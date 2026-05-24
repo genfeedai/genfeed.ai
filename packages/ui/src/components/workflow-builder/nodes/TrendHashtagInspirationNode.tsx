@@ -11,7 +11,7 @@ import type {
   TrendPlatform,
 } from '@ui/workflow-builder/types/workflow-saas.types';
 import { Hash, Loader2, Sparkles } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useId } from 'react';
 
 export type {
   ContentPreference,
@@ -50,6 +50,9 @@ function TrendHashtagInspirationNodeComponent({
   onUpdate,
   onExecute,
 }: TrendHashtagInspirationNodeProps) {
+  const platformGroupId = useId();
+  const contentTypeGroupId = useId();
+  const hashtagInputId = useId();
   const handlePlatformChange = useCallback(
     (platform: TrendPlatform) => {
       onUpdate(id, { platform });
@@ -81,8 +84,14 @@ function TrendHashtagInspirationNodeComponent({
     <div className="space-y-3">
       {/* Platform Selection */}
       <div>
-        <label className="text-xs text-muted-foreground">Platform</label>
-        <div className="grid grid-cols-5 gap-1 mt-1">
+        <span id={platformGroupId} className="text-xs text-muted-foreground">
+          Platform
+        </span>
+        <div
+          role="group"
+          aria-labelledby={platformGroupId}
+          className="grid grid-cols-5 gap-1 mt-1"
+        >
           {PLATFORMS.map((p) => (
             <Button
               key={p.value}
@@ -103,8 +112,14 @@ function TrendHashtagInspirationNodeComponent({
 
       {/* Content Preference */}
       <div>
-        <label className="text-xs text-muted-foreground">Content Type</label>
-        <div className="grid grid-cols-3 gap-1 mt-1">
+        <span id={contentTypeGroupId} className="text-xs text-muted-foreground">
+          Content Type
+        </span>
+        <div
+          role="group"
+          aria-labelledby={contentTypeGroupId}
+          className="grid grid-cols-3 gap-1 mt-1"
+        >
           {CONTENT_PREFERENCES.map((p) => (
             <Button
               key={p.value}
@@ -124,7 +139,7 @@ function TrendHashtagInspirationNodeComponent({
       </div>
 
       {/* Auto-select toggle */}
-      <label className="flex items-center gap-2 text-sm">
+      <div className="flex items-center gap-2 text-sm">
         <Checkbox
           checked={data.auto}
           onCheckedChange={(checked) =>
@@ -132,17 +147,21 @@ function TrendHashtagInspirationNodeComponent({
           }
           aria-label="Auto-select top trending hashtag"
         />
-        Auto-select top trending hashtag
-      </label>
+        <span>Auto-select top trending hashtag</span>
+      </div>
 
       {/* Manual hashtag input */}
       {!data.auto && (
         <div>
-          <label className="text-xs text-muted-foreground flex items-center gap-1">
-            <Hash className="w-3 h-3" />
+          <label
+            htmlFor={hashtagInputId}
+            className="text-xs text-muted-foreground flex items-center gap-1"
+          >
+            <Hash className="size-3" />
             Specific Hashtag
           </label>
           <Input
+            id={hashtagInputId}
             type="text"
             value={data.hashtag || ''}
             onChange={handleHashtagChange}
@@ -162,12 +181,12 @@ function TrendHashtagInspirationNodeComponent({
       >
         {isProcessing ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Generating...
+            <Loader2 className="size-4 animate-spin" />
+            Generating…
           </>
         ) : (
           <>
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="size-4" />
             Generate Prompt
           </>
         )}
@@ -177,7 +196,7 @@ function TrendHashtagInspirationNodeComponent({
       {data.sourceHashtag && (
         <div className="p-2 bg-background border border-white/[0.08]">
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Hash className="w-3 h-3" />
+            <Hash className="size-3" />
             Source Hashtag
           </div>
           <div className="text-sm text-foreground mt-1">

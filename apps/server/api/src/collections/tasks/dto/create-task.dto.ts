@@ -4,12 +4,12 @@ import {
   TASK_PRIORITIES,
   TASK_STATUSES,
 } from '@api/collections/tasks/schemas/task.schema';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
-  IsMongoId,
   IsOptional,
   IsString,
   MaxLength,
@@ -17,7 +17,7 @@ import {
 } from 'class-validator';
 
 export class LinkedEntityDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Entity ID reference',
     required: true,
@@ -74,7 +74,7 @@ export class CreateTaskDto {
   priority?: (typeof TASK_PRIORITIES)[number];
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Parent task ID for sub-tasks',
     required: false,
@@ -170,9 +170,20 @@ export class CreateTaskDto {
   @IsOptional()
   @IsString()
   @ApiProperty({
-    description: 'HeyGen voice ID for facecam tasks',
+    description:
+      'Provider-agnostic voice ID for facecam tasks (HeyGen catalog ID, ElevenLabs ID, or Voice document _id)',
     required: false,
     type: String,
   })
-  heygenVoiceId?: string;
+  voiceId?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description:
+      'Voice provider hint — determines how voiceId is resolved (heygen | elevenlabs | genfeed-ai | hedra)',
+    required: false,
+    type: String,
+  })
+  voiceProvider?: string;
 }

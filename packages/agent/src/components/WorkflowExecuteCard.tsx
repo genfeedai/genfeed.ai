@@ -8,6 +8,7 @@ import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.serv
 import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -203,7 +204,7 @@ export function WorkflowExecuteCard({
   return (
     <div className="my-2 overflow-hidden border border-border bg-background">
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <HiOutlineBolt className="h-4 w-4 text-primary" />
+        <HiOutlineBolt className="size-4 text-primary" />
         <span className="text-sm font-medium text-foreground">
           {action.title || 'Execute Workflow'}
         </span>
@@ -227,14 +228,14 @@ export function WorkflowExecuteCard({
 
         {action.creditEstimate != null && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <HiCurrencyDollar className="h-3.5 w-3.5" />
+            <HiCurrencyDollar className="size-3.5" />
             <span>Estimated cost: {action.creditEstimate} credits</span>
           </div>
         )}
 
         {isLoadingInterface && (
           <div className="border border-border px-3 py-2 text-xs text-muted-foreground">
-            Loading workflow inputs...
+            Loading workflow inputs…
           </div>
         )}
 
@@ -257,9 +258,8 @@ export function WorkflowExecuteCard({
                   )}
                   {field.type === 'boolean' ? (
                     <label className="flex items-center gap-2 border border-border px-2.5 py-2 text-sm text-foreground">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(value)}
+                      <Checkbox
+                        isChecked={Boolean(value)}
                         onChange={(event) =>
                           handleChange(key, event.target.checked)
                         }
@@ -336,16 +336,16 @@ export function WorkflowExecuteCard({
             isDisabled={!workflowId || isLoadingInterface}
             className="flex w-full items-center justify-center gap-2 px-4 py-2 text-sm font-black"
           >
-            <HiOutlineBolt className="h-4 w-4" />
+            <HiOutlineBolt className="size-4" />
             Execute
           </Button>
         )}
 
         {status === 'executing' && (
           <div className="flex items-center justify-center gap-2 border border-border px-4 py-3">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             <span className="text-sm text-muted-foreground">
-              Executing workflow...
+              Executing workflow…
             </span>
           </div>
         )}
@@ -353,7 +353,7 @@ export function WorkflowExecuteCard({
         {status === 'done' && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 dark:border-green-800 dark:bg-green-950">
-              <HiCheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <HiCheckCircle className="size-4 text-green-600 dark:text-green-400" />
               <span className="text-sm text-green-700 dark:text-green-300">
                 Workflow executed successfully
               </span>
@@ -372,7 +372,7 @@ export function WorkflowExecuteCard({
         {status === 'error' && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950">
-              <HiExclamationCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <HiExclamationCircle className="size-4 text-red-600 dark:text-red-400" />
               <span className="text-sm text-red-700 dark:text-red-300">
                 {error}
               </span>

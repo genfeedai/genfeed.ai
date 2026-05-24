@@ -14,6 +14,16 @@ export default function PricingSubscriptions({
   onSubscribe,
 }: PricingSubscriptionsProps) {
   const [isYearly, setIsYearly] = useState(true);
+  const subscriptionPlans = websitePlans.reduce<PricingPlanProps[]>(
+    (plans, plan) => {
+      if (plan.type === 'subscription') {
+        plans.push(plan);
+      }
+
+      return plans;
+    },
+    [],
+  );
 
   return (
     <div className="space-y-8">
@@ -22,21 +32,19 @@ export default function PricingSubscriptions({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        {websitePlans
-          .filter((plan) => plan.type === 'subscription')
-          .map((plan: PricingPlanProps, index) => (
-            <PricingCard
-              key={index}
-              buttonLabel="Subscribe"
-              onSubscribe={onSubscribe}
-              subscription={subscription}
-              plan={{
-                ...plan,
-                interval: isYearly ? 'year' : 'month',
-                price: isYearly && plan.price ? plan.price * 10 : plan.price,
-              }}
-            />
-          ))}
+        {subscriptionPlans.map((plan: PricingPlanProps) => (
+          <PricingCard
+            key={plan.label}
+            buttonLabel="Subscribe"
+            onSubscribe={onSubscribe}
+            subscription={subscription}
+            plan={{
+              ...plan,
+              interval: isYearly ? 'year' : 'month',
+              price: isYearly && plan.price ? plan.price * 10 : plan.price,
+            }}
+          />
+        ))}
       </div>
     </div>
   );

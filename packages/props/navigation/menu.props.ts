@@ -1,4 +1,4 @@
-import type { IIngredient } from '@genfeedai/interfaces';
+import type { AppContext, IIngredient } from '@genfeedai/interfaces';
 import type {
   MenuConfig,
   MenuItemConfig,
@@ -30,7 +30,6 @@ export type MenuPrimaryActionConfig =
     });
 
 export interface MenuShellConfig extends MenuConfig {
-  brandRailMode?: 'hidden' | 'workspace';
   primaryAction?: MenuPrimaryActionConfig;
   secondaryItems?: MenuItemConfig[];
 }
@@ -43,6 +42,8 @@ export interface SidebarSizingProps {
 
 export interface MenuSharedProps extends BaseMenuProps, SidebarSizingProps {
   config: MenuShellConfig;
+  /** Current app context for the AppSwitcher in the sidebar */
+  currentApp?: AppContext;
   /** Renders content above the sidebar header and navigation */
   renderTopSlot?: () => ReactNode;
   /** Whether the sidebar is collapsed (Todoist-style) */

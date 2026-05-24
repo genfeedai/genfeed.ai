@@ -32,6 +32,125 @@ export class ProfilesService {
     private readonly replicateService: ReplicateService,
   ) {}
 
+  private readObjectRecord(value: unknown): Record<string, unknown> {
+    return typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private readNumber(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value)
+      ? value
+      : undefined;
+  }
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private readStringArray(value: unknown): string[] {
+    return Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === 'string')
+      : [];
+  }
+
+  private readViolations(value: unknown): Array<{
+    severity: 'high' | 'medium' | 'low';
+    category: string;
+    message: string;
+    suggestion: string;
+  }> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.flatMap((item) => {
+      const record = this.readObjectRecord(item);
+      const severity = record.severity;
+      const category = this.readString(record.category);
+      const message = this.readString(record.message);
+      const suggestion = this.readString(record.suggestion);
+
+      if (
+        (severity !== 'high' && severity !== 'medium' && severity !== 'low') ||
+        !category ||
+        !message ||
+        !suggestion
+      ) {
+        return [];
+      }
+
+      return [
+        {
+          category,
+          message,
+          severity,
+          suggestion,
+        },
+      ];
+    });
+  }
+
+  private serializeProfileData(
+    value: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+  }
+
+  private normalizeProfile(record: ProfileDocument): Profile {
+    const data = this.readObjectRecord(record.data);
+    const {
+      id: _id,
+      _id: __id,
+      organizationId: _organizationId,
+      createdById: _createdById,
+      isDeleted: _isDeleted,
+      createdAt: _createdAt,
+      updatedAt: _updatedAt,
+      ...safeData
+    } = data as Record<string, unknown>;
+
+    // Spread user-supplied data first, then canonical DB fields win — prevents
+    // an attacker from injecting id, organizationId, or other system fields via
+    // the stored data blob.
+    return {
+      ...record,
+      ...safeData,
+      _id: record.mongoId ?? record.id,
+      id: record.id,
+      organizationId: record.organizationId,
+      createdById: record.createdById,
+      isDeleted: record.isDeleted,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    };
+  }
+
+  private async unsetDefaultProfiles(
+    organizationId: string,
+    excludeId?: string,
+  ) {
+    const profiles = await this.prisma.profile.findMany({
+      where: { isDeleted: false, organizationId },
+    });
+
+    await Promise.all(
+      profiles
+        .filter((profile) => profile.id !== excludeId)
+        .map((profile) =>
+          this.prisma.profile.update({
+            data: {
+              data: this.serializeProfileData({
+                ...this.readObjectRecord(profile.data),
+                isDefault: false,
+              }) as never,
+            },
+            where: { id: profile.id },
+          }),
+        ),
+    );
+  }
+
   /**
    * Create a new profile
    */
@@ -48,23 +167,22 @@ export class ProfilesService {
 
     // If this is set as default, unset other defaults
     if (dto.isDefault) {
-      await this.prisma.profile.updateMany({
-        data: { isDefault: false } as never,
-        where: { isDefault: true, organizationId },
-      });
+      await this.unsetDefaultProfiles(organizationId);
     }
 
     const profile = await this.prisma.profile.create({
       data: {
-        ...dto,
         createdById: userId,
+        data: this.serializeProfileData(
+          dto as unknown as Record<string, unknown>,
+        ) as never,
         organizationId,
       } as never,
     });
 
     this.logger.debug('Profile created', { profileId: profile.id });
 
-    return profile as unknown as Profile;
+    return this.normalizeProfile(profile as unknown as ProfileDocument);
   }
 
   /**
@@ -77,28 +195,35 @@ export class ProfilesService {
       isDefault?: boolean;
     },
   ): Promise<Profile[]> {
-    const where: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId,
-    };
-
-    if (filters?.isDefault !== undefined) {
-      where.isDefault = filters.isDefault;
-    }
-
-    if (filters?.search) {
-      where.OR = [
-        { label: { contains: filters.search, mode: 'insensitive' } },
-        { description: { contains: filters.search, mode: 'insensitive' } },
-      ];
-    }
-
     const results = await this.prisma.profile.findMany({
       orderBy: { createdAt: 'desc' },
-      where: where as never,
+      where: {
+        isDeleted: false,
+        organizationId,
+      },
     });
 
-    return results as unknown as Profile[];
+    return results
+      .map((profile) =>
+        this.normalizeProfile(profile as unknown as ProfileDocument),
+      )
+      .filter((profile) => {
+        if (
+          filters?.isDefault !== undefined &&
+          Boolean(profile.isDefault) !== filters.isDefault
+        ) {
+          return false;
+        }
+
+        if (filters?.search) {
+          const search = filters.search.toLowerCase();
+          const haystack =
+            `${profile.label ?? ''} ${profile.description ?? ''}`.toLowerCase();
+          return haystack.includes(search);
+        }
+
+        return true;
+      });
   }
 
   /**
@@ -113,17 +238,22 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found');
     }
 
-    return profile as unknown as Profile;
+    return this.normalizeProfile(profile as unknown as ProfileDocument);
   }
 
   /**
    * Get default profile
    */
   async getDefault(organizationId: string): Promise<Profile | null> {
-    const result = await this.prisma.profile.findFirst({
-      where: { isDefault: true, isDeleted: false, organizationId },
+    const results = await this.prisma.profile.findMany({
+      where: { isDeleted: false, organizationId },
     });
-    return result as unknown as Profile | null;
+
+    const profile = results
+      .map((item) => this.normalizeProfile(item as unknown as ProfileDocument))
+      .find((item) => item.isDefault);
+
+    return profile ?? null;
   }
 
   /**
@@ -136,10 +266,7 @@ export class ProfilesService {
   ): Promise<Profile> {
     // If setting as default, unset other defaults
     if (dto.isDefault) {
-      await this.prisma.profile.updateMany({
-        data: { isDefault: false } as never,
-        where: { id: { not: id }, isDefault: true, organizationId },
-      });
+      await this.unsetDefaultProfiles(organizationId, id);
     }
 
     const existing = await this.prisma.profile.findFirst({
@@ -151,11 +278,16 @@ export class ProfilesService {
     }
 
     const result = await this.prisma.profile.update({
-      data: dto as never,
+      data: {
+        data: this.serializeProfileData({
+          ...this.readObjectRecord(existing.data),
+          ...dto,
+        }) as never,
+      },
       where: { id },
     });
 
-    return result as unknown as Profile;
+    return this.normalizeProfile(result as unknown as ProfileDocument);
   }
 
   /**
@@ -214,15 +346,22 @@ export class ProfilesService {
         onBilling,
       );
 
-      // Track usage
-      await this.prisma.profile.update({
-        data: { usageCount: { increment: 1 } } as never,
-        where: {
-          id: String(
-            (profile as unknown as Record<string, unknown>)._id ??
-              (profile as unknown as { id: string }).id,
-          ),
+      // Track usage — scope write predicate to org + soft-delete to prevent IDOR
+      const nextUsageCount = (this.readNumber(profile.usageCount) ?? 0) + 1;
+      const profileDoc = profile as unknown as ProfileDocument;
+      await this.prisma.profile.updateMany({
+        data: {
+          data: this.serializeProfileData({
+            ...this.readObjectRecord(profileDoc.data),
+            ...profile,
+            usageCount: nextUsageCount,
+          }) as never,
         },
+        where: {
+          id: profile.id,
+          organizationId,
+          isDeleted: false,
+        } as never,
       });
 
       return {
@@ -418,9 +557,9 @@ Score 0-100. Higher is better.`;
     );
 
     return {
-      score: result.score || 0,
-      summary: result.summary || 'Analysis complete',
-      violations: result.violations || [],
+      score: this.readNumber(result.score) ?? 0,
+      summary: this.readString(result.summary) ?? 'Analysis complete',
+      violations: this.readViolations(result.violations),
     };
   }
 

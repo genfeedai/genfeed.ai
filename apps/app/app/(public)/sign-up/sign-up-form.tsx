@@ -3,21 +3,14 @@
 import { SignUp } from '@clerk/nextjs';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { useEffect, useState } from 'react';
+import { persistOnboardingHandoffParams } from '@/lib/onboarding/onboarding-access.util';
 
 export default function SignUpForm() {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
-    const params = new URLSearchParams(window.location.search);
-    const plan = params.get('plan');
-    if (plan) {
-      localStorage.setItem('gf_selected_plan', plan);
-    }
-    const credits = params.get('credits');
-    if (credits) {
-      localStorage.setItem('gf_selected_credits', credits);
-    }
+    persistOnboardingHandoffParams(window.location.search);
   }, []);
 
   return (

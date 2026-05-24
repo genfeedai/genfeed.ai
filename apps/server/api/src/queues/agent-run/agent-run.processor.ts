@@ -66,6 +66,24 @@ function extractRunThreadId(result: unknown): string | undefined {
     : undefined;
 }
 
+function readObjectRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0
+    ? value.trim()
+    : undefined;
+}
+
+function readNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
 @Processor('agent-run', {
   concurrency: 3,
   limiter: { duration: 60000, max: 20 },
@@ -115,15 +133,23 @@ export class AgentRunProcessor extends WorkerHost {
       }
 
       // 2. Publish run start event
+      const runLabel = readString((run as Record<string, unknown>).label) ?? '';
+      const runMetadata = readObjectRecord(
+        (run as Record<string, unknown>).metadata,
+      );
+
       this.agentStreamPublisherService.publishRunStart({
-        label: run.label,
+        label: runLabel,
         organizationId: data.organizationId,
         runId: data.runId,
         timestamp: new Date().toISOString(),
         userId: data.userId,
       });
 
-      if (this.taskOrchestratorService && run.metadata?.workspaceTaskId) {
+      if (
+        this.taskOrchestratorService &&
+        readString(runMetadata?.workspaceTaskId)
+      ) {
         this.taskOrchestratorService
           .handleRunStarted(data.runId, data.organizationId)
           .catch((rollupError: unknown) => {
@@ -163,6 +189,7 @@ export class AgentRunProcessor extends WorkerHost {
       // 4. Complete the run
       const summary = extractRunCompletionSummary(result);
       const threadId = extractRunThreadId(result);
+      const resultRecord = result as unknown as Record<string, unknown>;
 
       if (threadId && /^[0-9a-f]{24}$/i.test(threadId)) {
         await this.agentRunsService.patch(data.runId, {
@@ -186,17 +213,23 @@ export class AgentRunProcessor extends WorkerHost {
         const completedToolCalls = completedRun.toolCalls?.filter(
           (tc) => tc.status === 'completed',
         );
+        const completedRunRecord = completedRun as unknown as Record<
+          string,
+          unknown
+        >;
+        const contentGenerated =
+          readNumber(resultRecord.contentGenerated) ??
+          completedToolCalls?.length ??
+          0;
+        const runCreditsUsed =
+          readNumber(resultRecord.creditsUsed) ??
+          readNumber(completedRunRecord.creditsUsed) ??
+          0;
 
         await this.agentStrategiesService.recordRun(data.strategyId, {
           completedAt: completedRun.completedAt ?? new Date(),
-          contentGenerated:
-            Number((result as Record<string, unknown>)?.contentGenerated) ||
-            completedToolCalls?.length ||
-            0,
-          creditsUsed:
-            Number((result as Record<string, unknown>)?.creditsUsed) ||
-            completedRun.creditsUsed ||
-            0,
+          contentGenerated,
+          creditsUsed: runCreditsUsed,
           startedAt: completedRun.startedAt ?? new Date(),
           status: AgentRunStatus.COMPLETED,
           threadId: data.runId,
@@ -207,7 +240,11 @@ export class AgentRunProcessor extends WorkerHost {
 
       // 5b. Update campaign credits and check quota
       if (data.campaignId && this.campaignExecutionService) {
-        const creditsUsed = completedRun?.creditsUsed ?? 0;
+        const completedRunRecord = completedRun as unknown as Record<
+          string,
+          unknown
+        > | null;
+        const creditsUsed = readNumber(completedRunRecord?.creditsUsed) ?? 0;
         if (creditsUsed > 0) {
           await this.campaignExecutionService.updateCreditsUsed(
             data.campaignId,
@@ -218,9 +255,12 @@ export class AgentRunProcessor extends WorkerHost {
       }
 
       // 5c. Workspace task result rollup
+      const completedRunMetadata = readObjectRecord(
+        (completedRun as unknown as Record<string, unknown> | null)?.metadata,
+      );
       if (
         this.taskOrchestratorService &&
-        completedRun?.metadata?.workspaceTaskId
+        readString(completedRunMetadata?.workspaceTaskId)
       ) {
         this.taskOrchestratorService
           .handleRunCompletion(data.runId, data.organizationId)

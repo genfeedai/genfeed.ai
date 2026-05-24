@@ -1,16 +1,12 @@
-import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { type OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UpdateSettingDto } from '@api/collections/settings/dto/update-setting.dto';
 import { SettingEntity } from '@api/collections/settings/entities/setting.entity';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
-import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-onboarding.dto';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
-import { type UserDocument } from '@api/collections/users/schemas/user.schema';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -20,7 +16,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { BrandFilterUtil } from '@api/helpers/utils/brand-filter/brand-filter.util';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
@@ -37,8 +32,8 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
-import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
+import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import {
   BrandSerializer,
@@ -84,6 +79,67 @@ export class UsersController {
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
   ) {}
 
+  private readObjectRecord(value: unknown): Record<string, unknown> {
+    return typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private getSettingsId(settings: unknown): string | undefined {
+    const record = this.readObjectRecord(settings);
+    for (const key of ['id', '_id', 'mongoId'] as const) {
+      const value = record[key];
+
+      if (typeof value === 'string' && value.length > 0) {
+        return value;
+      }
+    }
+
+    return undefined;
+  }
+
+  private getUserIdCandidates(userData: unknown): string[] {
+    const record = this.readObjectRecord(userData);
+    const candidates = ['id', '_id', 'mongoId']
+      .map((key) => record[key])
+      .filter(
+        (value): value is string =>
+          typeof value === 'string' && value.length > 0,
+      );
+
+    return [...new Set(candidates)];
+  }
+
+  private async findUserSettings(userData: unknown): Promise<unknown | null> {
+    const record = this.readObjectRecord(userData);
+
+    if (this.getSettingsId(record.settings)) {
+      return record.settings;
+    }
+
+    for (const userId of this.getUserIdCandidates(userData)) {
+      const settings = await this.settingsService.findOne({
+        isDeleted: false,
+        user: userId,
+      });
+
+      if (settings) {
+        return settings;
+      }
+    }
+
+    return null;
+  }
+
+  private isActiveSubscriptionStatus(value: unknown): boolean {
+    return (
+      value === SubscriptionStatus.ACTIVE ||
+      value === SubscriptionStatus.TRIALING ||
+      value === 'ACTIVE' ||
+      value === 'TRIALING'
+    );
+  }
+
   private canAccessUser(targetUserId: string, currentUser: User): boolean {
     const publicMetadata = getPublicMetadata(currentUser);
     return getIsSuperAdmin(currentUser) || publicMetadata.user === targetUserId;
@@ -95,40 +151,21 @@ export class UsersController {
   async findAll(
     @Req() request: Request,
     @Query() query: BaseQueryDto,
-  ): Promise<UserEntity[]> {
+  ): Promise<unknown> {
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
+    const data = await this.usersService.findAll(
       {
-        $match: {
-          isDeleted,
-        },
+        include: { settings: true },
+        orderBy: handleQuerySort(query.sort),
+        where: { isDeleted },
       },
-      {
-        $lookup: {
-          as: 'settings',
-          foreignField: 'user',
-          from: 'settings',
-          localField: '_id',
-        },
-      },
-      {
-        $unwind: {
-          path: '$settings',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
-
-    const data: AggregatePaginateResult<UserDocument> =
-      await this.usersService.findAll(aggregate, options);
+      options,
+    );
     return serializeCollection(request, UserSerializer, data);
   }
 
@@ -152,9 +189,9 @@ export class UsersController {
       });
     }
 
-    const hasActiveDbSubscription =
-      dbSubscription?.status === SubscriptionStatus.ACTIVE ||
-      dbSubscription?.status === SubscriptionStatus.TRIALING;
+    const hasActiveDbSubscription = this.isActiveSubscriptionStatus(
+      dbSubscription?.status,
+    );
 
     const hasAccessByEntitlement =
       getIsSuperAdmin(user, request) ||
@@ -183,10 +220,11 @@ export class UsersController {
           onboardingStepsCompleted: ['brand', 'plan'],
         });
 
-        if (user.id) {
+        const userIdString = data._id?.toString();
+        if (userIdString) {
           await Promise.all([
-            this.requestContextCacheService.invalidateForUser(user.id),
-            this.accessBootstrapCacheService.invalidateForUser(user.id),
+            this.requestContextCacheService.invalidateForUser(userIdString),
+            this.accessBootstrapCacheService.invalidateForUser(userIdString),
           ]);
         }
       }
@@ -218,13 +256,13 @@ export class UsersController {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
     // Check if user is a member with restricted accounts
-    let member: unknown;
+    let member: { brands?: string[] } | null = null;
     try {
-      member = await this.membersService.findOne({
+      member = (await this.membersService.findOne({
         isDeleted: false,
         organization: publicMetadata.organization,
         user: publicMetadata.user,
-      });
+      })) as { brands?: string[] } | null;
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName} findAll: Failed to fetch member`,
@@ -234,7 +272,7 @@ export class UsersController {
       member = null;
     }
 
-    const brandFilter: unknown = {
+    const brandFilter: Record<string, unknown> = {
       isDeleted,
       organization: publicMetadata.organization,
     };
@@ -244,27 +282,17 @@ export class UsersController {
       member.brands.length > 0 &&
       !getIsSuperAdmin(user, request)
     ) {
-      brandFilter._id = { $in: member.brands };
+      brandFilter._id = { in: member.brands };
     }
 
-    const aggregate: Record<string, unknown>[] = [
+    const data = await this.brandsService.findAll(
       {
-        $match: brandFilter,
+        include: { credentials: true },
+        orderBy: handleQuerySort(query.sort),
+        where: brandFilter,
       },
-      // Lookup brand assets (logo, credentials) using BrandFilterUtil
-      ...BrandFilterUtil.buildBrandAssetLookups({
-        includeBanner: false,
-        includeCredentials: true,
-        includeLogo: true,
-        includeReferences: false,
-      }),
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
-
-    const data: AggregatePaginateResult<BrandDocument> =
-      await this.brandsService.findAll(aggregate, options);
+      options,
+    );
     return serializeCollection(request, BrandSerializer, data);
   }
 
@@ -278,11 +306,13 @@ export class UsersController {
       isDeleted: false,
     });
 
-    if (!userData || !userData.settings) {
+    const settings = await this.findUserSettings(userData);
+
+    if (!userData || !settings) {
       return returnNotFound('Settings', publicMetadata.user);
     }
 
-    return serializeSingle(request, SettingSerializer, userData.settings);
+    return serializeSingle(request, SettingSerializer, settings);
   }
 
   @Patch('me/settings')
@@ -299,12 +329,19 @@ export class UsersController {
       isDeleted: false,
     });
 
-    if (!userData || !userData.settings) {
+    const settings = await this.findUserSettings(userData);
+
+    if (!userData || !settings) {
+      return returnNotFound('Settings', publicMetadata.user);
+    }
+
+    const settingsId = this.getSettingsId(settings);
+    if (!settingsId) {
       return returnNotFound('Settings', publicMetadata.user);
     }
 
     const data = await this.settingsService.patch(
-      userData.settings._id,
+      settingsId,
       new SettingEntity({ ...updateSettingDto }),
     );
 
@@ -328,20 +365,16 @@ export class UsersController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
+    const data = await this.organizationsService.findAll(
       {
-        $match: {
+        orderBy: handleQuerySort(query.sort),
+        where: {
           isDeleted,
           user: publicMetadata.user,
         },
       },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
-
-    const data: AggregatePaginateResult<OrganizationDocument> =
-      await this.organizationsService.findAll(aggregate, options);
+      options,
+    );
     return serializeCollection(request, OrganizationSerializer, data);
   }
 
@@ -373,10 +406,12 @@ export class UsersController {
       organization: data._id,
     });
 
-    await Promise.all([
-      this.requestContextCacheService.invalidateForUser(user.id),
-      this.accessBootstrapCacheService.invalidateForUser(user.id),
-    ]);
+    if (publicMetadata.user) {
+      await Promise.all([
+        this.requestContextCacheService.invalidateForUser(publicMetadata.user),
+        this.accessBootstrapCacheService.invalidateForUser(publicMetadata.user),
+      ]);
+    }
 
     return serializeSingle(request, OrganizationSerializer, data);
   }
@@ -403,10 +438,12 @@ export class UsersController {
       brand: data._id,
     });
 
-    await Promise.all([
-      this.requestContextCacheService.invalidateForUser(user.id),
-      this.accessBootstrapCacheService.invalidateForUser(user.id),
-    ]);
+    if (publicMetadata.user) {
+      await Promise.all([
+        this.requestContextCacheService.invalidateForUser(publicMetadata.user),
+        this.accessBootstrapCacheService.invalidateForUser(publicMetadata.user),
+      ]);
+    }
 
     // Persist last-used brand on the member for org-switch recall
     await this.membersService.setLastUsedBrand(
@@ -568,12 +605,11 @@ export class UsersController {
       patchPayload as Partial<UpdateUserDto>,
     );
 
-    if (existingUser.clerkId) {
+    const existingUserId = existingUser._id?.toString();
+    if (existingUserId) {
       await Promise.all([
-        this.requestContextCacheService.invalidateForUser(existingUser.clerkId),
-        this.accessBootstrapCacheService.invalidateForUser(
-          existingUser.clerkId,
-        ),
+        this.requestContextCacheService.invalidateForUser(existingUserId),
+        this.accessBootstrapCacheService.invalidateForUser(existingUserId),
       ]);
     }
 
@@ -607,12 +643,19 @@ export class UsersController {
       isDeleted: false,
     });
 
-    if (!user || !user.settings) {
+    const settings = await this.findUserSettings(user);
+
+    if (!user || !settings) {
+      return returnNotFound(this.constructorName, userId);
+    }
+
+    const settingsId = this.getSettingsId(settings);
+    if (!settingsId) {
       return returnNotFound(this.constructorName, userId);
     }
 
     const data = await this.settingsService.patch(
-      user.settings._id,
+      settingsId,
       new SettingEntity({ ...updateSettingDto }),
     );
 

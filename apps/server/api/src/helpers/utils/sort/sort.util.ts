@@ -1,7 +1,7 @@
 import type { SortObject } from '@genfeedai/interfaces';
 
 /**
- * Handles MongoDB-style sort query format
+ * Handles field-direction sort query format
  *
  * Format: "field: direction" or "field1: direction1, field2: direction2"
  * - direction: 1 for ascending, -1 for descending
@@ -12,7 +12,7 @@ import type { SortObject } from '@genfeedai/interfaces';
  * - "category: 1, label: -1" -> { category: 1, label: -1 }
  *
  * @param query - Sort query string in MongoDB format
- * @returns MongoDB sort object
+ * @returns sort object
  */
 export const handleQuerySort = (
   query: string | undefined | null,

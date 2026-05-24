@@ -1,6 +1,12 @@
+import process from 'node:process';
+
 vi.mock('@clerk/backend', () => ({
   createClerkClient: vi.fn(),
   verifyToken: vi.fn(),
+}));
+
+vi.mock('@notifications/services/terminal/terminal.module', () => ({
+  TerminalModule: class TerminalModule {},
 }));
 
 describe('AppModule (Notifications)', () => {

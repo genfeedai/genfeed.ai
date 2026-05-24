@@ -7,22 +7,29 @@ import type { IElementCamera, IQueryParams } from '@genfeedai/interfaces';
 import type { IElementContentProps } from '@genfeedai/interfaces/ui/elements-content.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { ElementCamera } from '@models/elements/camera.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { CamerasService } from '@services/elements/cameras.service';
+import { useQuery } from '@tanstack/react-query';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalCamera } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
 
-export default function CamerasList({
+function CamerasListContent({
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -32,10 +39,10 @@ export default function CamerasList({
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
 
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const searchParamsString = searchParams.toString();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -71,11 +78,11 @@ export default function CamerasList({
       params.delete('brand');
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   const handleAdminBrandChange = useCallback(
@@ -89,11 +96,11 @@ export default function CamerasList({
       }
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   // Use refs for callback props to prevent unnecessary re-renders
@@ -106,19 +113,19 @@ export default function CamerasList({
   });
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams?.get('page')) || 1;
+  const currentPage = Number(searchParams.get('page')) || 1;
 
-  // Load cameras using useResource (handles AbortController cleanup properly)
   const {
-    data: cameras,
+    data: cameras = [] as ElementCamera[],
     isLoading,
-    isRefreshing,
-    refresh: refreshCameras,
-  } = useResource(
-    async () => {
+    isFetching,
+    error: camerasError,
+    refetch: refreshCameras,
+  } = useQuery({
+    queryKey: ['cameras', currentPage, scope, adminOrg, adminBrand],
+    queryFn: async () => {
       const service = await getCamerasService();
 
-      // Build API query
       const query: IQueryParams = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
@@ -137,16 +144,17 @@ export default function CamerasList({
       logger.info('GET /cameras success', data);
       return data;
     },
-    {
-      defaultValue: [] as ElementCamera[],
-      dependencies: [currentPage, scope, adminOrg, adminBrand],
-      enabled: !!isSignedIn,
-      onError: (error) => {
-        logger.error('GET /cameras failed', error);
-        notificationsService.error('Failed to load cameras');
-      },
-    },
-  );
+    enabled: !!isSignedIn,
+  });
+
+  const isRefreshing = isFetching && !isLoading;
+
+  useEffect(() => {
+    if (camerasError) {
+      logger.error('GET /cameras failed', camerasError);
+      notificationsService.error('Failed to load cameras');
+    }
+  }, [camerasError, notificationsService]);
 
   // Notify parent of loading state changes
   useEffect(() => {
@@ -185,7 +193,7 @@ export default function CamerasList({
                 isError: true,
                 label: 'Delete Camera',
                 message: `Are you sure you want to delete "${camera.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(camera),
               });
             },
             tooltip: 'Delete',
@@ -205,14 +213,10 @@ export default function CamerasList({
     openModal(modalId);
   };
 
-  const handleDelete = async () => {
-    if (!selectedCamera) {
-      return;
-    }
-
+  const handleDelete = async (camera: IElementCamera) => {
     try {
       const service = await getCamerasService();
-      await service.delete(selectedCamera.id);
+      await service.delete(camera.id);
       notificationsService.success('Camera deleted');
       setSelectedCamera(null);
       refreshCameras();
@@ -260,5 +264,15 @@ export default function CamerasList({
         <AutoPagination showTotal totalLabel="cameras" />
       </div>
     </>
+  );
+}
+
+export default function CamerasList(
+  props: Parameters<typeof CamerasListContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <CamerasListContent {...props} />
+    </Suspense>
   );
 }

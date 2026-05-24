@@ -46,7 +46,7 @@ export interface ServiceShellOptions {
  */
 export function bootstrap(options: BootstrapOptions): void {
   const { app, maxListeners = 50 } = options;
-  const env = process.env.NODE_ENV;
+  const env = process.env.NODE_ENV as string | undefined;
   const isProduction = env === 'production';
   const isStaging = env === 'staging';
   const isTest = env === 'test';

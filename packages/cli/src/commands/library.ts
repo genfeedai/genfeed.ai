@@ -1,11 +1,11 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { get, requireAuth } from '@/api/client.js';
-import { flattenCollection, type JsonApiCollectionResponse } from '@/api/json-api.js';
-import { getOrganizationId } from '@/config/store.js';
-import { formatHeader, print, printJson } from '@/ui/theme.js';
-import { GenfeedError, handleError } from '@/utils/errors.js';
+import { get, requireAuth } from '@/api/client';
+import { flattenCollection, type JsonApiCollectionResponse } from '@/api/json-api';
+import { getOrganizationId } from '@/config/store';
+import { formatHeader, print, printJson } from '@/ui/theme';
+import { GenfeedError, handleError } from '@/utils/errors';
 
 interface Ingredient {
   id: string;

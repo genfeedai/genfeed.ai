@@ -5,7 +5,7 @@ import { AdOptimizationConfigsModule } from '@api/collections/ad-optimization-co
 import { AdOptimizationRecommendationsModule } from '@api/collections/ad-optimization-recommendations/ad-optimization-recommendations.module';
 import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { MetaAdsController } from '@api/services/integrations/meta-ads/controllers/meta-ads.controller';
 import { MetaAdsBulkController } from '@api/services/integrations/meta-ads/controllers/meta-ads-bulk.controller';
@@ -26,12 +26,12 @@ const BaseModule = createServiceModule(MetaAdsService, {
     MetaAdsBulkController,
     MetaAdsOptimizationController,
   ],
-  exports: BaseModule.exports,
+  exports: BaseModule.exports ?? [],
   imports: [
-    ...BaseModule.imports,
+    ...(BaseModule.imports ?? []),
     forwardRef(() => AdBulkUploadJobsModule),
     forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsModule),
+    forwardRef(() => CredentialsCoreModule),
     forwardRef(() => QueuesModule),
     forwardRef(() => AdCreativeMappingsModule),
     forwardRef(() => AdOptimizationConfigsModule),
@@ -39,6 +39,6 @@ const BaseModule = createServiceModule(MetaAdsService, {
     forwardRef(() => AdOptimizationAuditLogsModule),
     forwardRef(() => AdPerformanceModule),
   ],
-  providers: [...BaseModule.providers, AdBulkUploadService],
+  providers: [...(BaseModule.providers ?? []), AdBulkUploadService],
 })
 export class MetaAdsModule {}

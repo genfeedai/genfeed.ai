@@ -7,6 +7,13 @@ import {
   websocketService,
 } from '@/services/websocket.service';
 
+function subscribeToAppStateChange(
+  handler: (nextAppState: AppStateStatus) => void,
+): () => void {
+  const subscription = AppState.addEventListener('change', handler);
+  return () => subscription.remove();
+}
+
 interface UseWebSocketReturn {
   connectionState: ConnectionState;
   isConnected: boolean;
@@ -18,7 +25,7 @@ interface UseWebSocketReturn {
 
 export function useWebSocket(): UseWebSocketReturn {
   const { getToken, isSignedIn } = useAuth();
-  const [connectionState, setConnectionState] = useState<ConnectionState>(
+  const [connectionState, setConnectionState] = useState<ConnectionState>(() =>
     websocketService.getConnectionState(),
   );
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
@@ -58,14 +65,7 @@ export function useWebSocket(): UseWebSocketReturn {
       appStateRef.current = nextAppState;
     };
 
-    const subscription = AppState.addEventListener(
-      'change',
-      handleAppStateChange,
-    );
-
-    return () => {
-      subscription.remove();
-    };
+    return subscribeToAppStateChange(handleAppStateChange);
   }, [connect]);
 
   useEffect(() => {

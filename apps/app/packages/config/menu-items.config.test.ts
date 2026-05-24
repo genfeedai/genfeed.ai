@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   APP_LOGO_HREF,
   APP_MENU_ITEMS,
-  APP_SECONDARY_MENU_ITEMS,
   AppMenuGroup,
+  getAppSecondaryMenuItems,
 } from './menu-items.config';
 
 describe('APP_MENU_ITEMS', () => {
@@ -15,65 +15,73 @@ describe('APP_MENU_ITEMS', () => {
   });
 
   it('renders the workspace entrypoints as standalone top-level rows', () => {
-    const ungroupedLabels = APP_MENU_ITEMS.filter(
-      (item) => item.group === AppMenuGroup.Root && !item.isPrimary,
-    ).map((item) => item.label);
+    const ungroupedLabels = APP_MENU_ITEMS.reduce<string[]>((labels, item) => {
+      if (item.group === AppMenuGroup.Root && !item.isPrimary) {
+        labels.push(item.label);
+      }
+      return labels;
+    }, []);
 
-    expect(ungroupedLabels).toEqual(['Dashboard', 'Inbox', 'Tasks']);
+    expect(ungroupedLabels).toEqual([
+      'Dashboard',
+      'Inbox',
+      'Tasks',
+      'Activity',
+    ]);
   });
 
-  it('surfaces the workspace groups: Library and Posts', () => {
+  it('does not surface content drilldowns in the shared sidebar', () => {
     const groups = [
       ...new Set(
-        APP_MENU_ITEMS.map((item) => item.group).filter(
-          (group) => group.length > 0,
+        APP_MENU_ITEMS.flatMap((item) =>
+          item.group.length > 0 ? [item.group] : [],
         ),
       ),
     ];
+    const hrefs = APP_MENU_ITEMS.map((item) => item.href);
 
-    expect(groups).toEqual([AppMenuGroup.Library, AppMenuGroup.Posts]);
+    expect(groups).toEqual([]);
+    expect(hrefs).not.toContain('/library/ingredients');
+    expect(hrefs).not.toContain('/posts');
   });
 
   it('gives workspace first-class subroutes in the main sidebar', () => {
-    const workspaceLabels = APP_MENU_ITEMS.filter(
-      (item) => item.group === AppMenuGroup.Root,
-    ).map((item) => item.label);
+    const workspaceLabels = APP_MENU_ITEMS.reduce<string[]>((labels, item) => {
+      if (item.group === AppMenuGroup.Root) {
+        labels.push(item.label);
+      }
+      return labels;
+    }, []);
 
-    expect(workspaceLabels).toEqual(['Dashboard', 'Inbox', 'Tasks']);
-  });
-
-  it('orders the posts group around the new canonical routes', () => {
-    const postsLabels = APP_MENU_ITEMS.filter(
-      (item) => item.group === AppMenuGroup.Posts,
-    ).map((item) => item.label);
-
-    expect(postsLabels).toEqual([
-      'Analytics',
-      'Remix',
-      'Calendar',
-      'Review',
-      'Posts',
+    expect(workspaceLabels).toEqual([
+      'Dashboard',
+      'Inbox',
+      'Tasks',
+      'Activity',
     ]);
   });
 
   it('does not include analytics group items pointing to /analytics/* routes', () => {
-    const analyticsGroupHrefs = APP_MENU_ITEMS.filter(
-      (item) =>
-        typeof item.href === 'string' && item.href.startsWith('/analytics/'),
-    ).map((item) => item.href);
+    const analyticsGroupHrefs = APP_MENU_ITEMS.reduce<string[]>(
+      (hrefs, item) => {
+        if (
+          typeof item.href === 'string' &&
+          item.href.startsWith('/analytics/')
+        ) {
+          hrefs.push(item.href);
+        }
+        return hrefs;
+      },
+      [],
+    );
 
     // Only /posts/analytics is allowed — no /analytics/* items
     expect(analyticsGroupHrefs).toHaveLength(0);
   });
 
-  it('keeps activity out of primary navigation and exposes it as a secondary destination', () => {
-    expect(APP_SECONDARY_MENU_ITEMS).toEqual([
-      expect.objectContaining({
-        href: '/workspace/activity',
-        label: 'Activity',
-      }),
-    ]);
-    expect(APP_MENU_ITEMS.map((item) => item.href)).not.toContain(
+  it('keeps activity in the workspace navigation and no longer exposes secondary destinations', () => {
+    expect(getAppSecondaryMenuItems()).toEqual([]);
+    expect(APP_MENU_ITEMS.map((item) => item.href)).toContain(
       '/workspace/activity',
     );
   });

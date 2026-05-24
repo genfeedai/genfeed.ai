@@ -54,29 +54,28 @@ describe('SchedulePanel', () => {
     expect(scheduleElements.length).toBeGreaterThan(0);
   });
 
-  it.skip('should handle user interactions correctly', () => {
-    const onScheduleUpdate = vi.fn();
-    render(
-      <SchedulePanel {...defaultProps} onScheduleUpdate={onScheduleUpdate} />,
-    );
+  it('should handle user interactions correctly', () => {
+    render(<SchedulePanel {...defaultProps} />);
 
-    // Test selecting a preset schedule
-    const presetButtons = screen.getAllByRole('button');
-    const presetButton = presetButtons.find((btn) =>
-      btn.textContent?.includes('Every hour'),
-    );
-    if (presetButton) {
-      fireEvent.click(presetButton);
-      expect(onScheduleUpdate).toHaveBeenCalled();
-    }
+    expect(
+      screen.getByRole('button', { name: /Save Schedule/i }),
+    ).toBeDisabled();
 
-    // Test enabling/disabling schedule
-    const toggleButton =
-      screen.getByRole('checkbox') || screen.getByRole('switch');
-    if (toggleButton) {
-      fireEvent.click(toggleButton);
-      expect(onScheduleUpdate).toHaveBeenCalled();
-    }
+    fireEvent.click(screen.getByRole('button', { name: /Preset/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Every hour/i }));
+
+    expect(
+      screen.getByRole('button', { name: /Save Schedule/i }),
+    ).not.toBeDisabled();
+
+    const toggleButton = screen.getByRole('switch', {
+      name: /Enable workflow schedule/i,
+    });
+    expect(toggleButton).toHaveAttribute('aria-checked', 'false');
+
+    fireEvent.click(toggleButton);
+
+    expect(toggleButton).toHaveAttribute('aria-checked', 'true');
   });
 
   it('should apply correct styles and classes', () => {

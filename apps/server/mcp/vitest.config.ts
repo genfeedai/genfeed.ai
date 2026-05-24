@@ -3,6 +3,7 @@ import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  oxc: false, // Disable OXC transformer — SWC required for NestJS decorator metadata
   plugins: [
     swc.vite({
       jsc: {
@@ -28,6 +29,13 @@ export default defineConfig({
         replacement: path.resolve(
           __dirname,
           '../../../packages/enums/src/index.ts',
+        ),
+      },
+      {
+        find: '@genfeedai/interfaces',
+        replacement: path.resolve(
+          __dirname,
+          '../../../packages/interfaces/src/index.ts',
         ),
       },
       {

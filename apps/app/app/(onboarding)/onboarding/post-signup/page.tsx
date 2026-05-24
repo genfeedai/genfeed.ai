@@ -1,27 +1,38 @@
 'use client';
 
+import {
+  buildOnboardingResumeHref,
+  parseSelectedCredits,
+} from '@app/(onboarding)/onboarding/post-signup/post-signup-routing.util';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { ManagedCreditsService } from '@services/billing/managed-credits.service';
 import { StripeService } from '@services/billing/stripe.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Button } from '@ui/primitives/button';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { isEEEnabled, isSelfHosted } from '@/lib/config/edition';
+import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 
-export default function PostSignupPage() {
+function PostSignupPageContent() {
   const { getToken } = useAuth();
   const { user: clerkUser } = useUser();
   const { currentUser, isLoading } = useCurrentUser();
+  const searchParams = useSearchParams();
+  const requestedCreditsParam = searchParams.get('credits');
   const calledRef = useRef(false);
   const [showFallback, setShowFallback] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
     'Setting up your workspace...',
   );
+  const checkoutEmail =
+    currentUser?.email || clerkUser?.primaryEmailAddress?.emailAddress || '';
 
   const resolveOnboardingHref = useCallback(async (): Promise<string> => {
     if (clerkUser?.publicMetadata?.proactiveLeadId) {
@@ -38,14 +49,21 @@ export default function PostSignupPage() {
     }
 
     const resumeStep = getResumeStep(completedSteps);
+    const storedBrandDomain = localStorage.getItem(
+      ONBOARDING_STORAGE_KEYS.brandDomain,
+    );
+    const onboardingHref = buildOnboardingResumeHref(
+      resumeStep,
+      storedBrandDomain,
+    );
 
     if (!isEEEnabled() || isSelfHosted()) {
-      return `/onboarding/${resumeStep}`;
+      return onboardingHref;
     }
 
     const token = await resolveClerkToken(getToken);
     if (!token) {
-      return `/onboarding/${resumeStep}`;
+      return onboardingHref;
     }
 
     await OrganizationsService.getInstance(token)
@@ -58,7 +76,7 @@ export default function PostSignupPage() {
         return [];
       });
 
-    return `/onboarding/${resumeStep}`;
+    return onboardingHref;
   }, [clerkUser, currentUser, getToken]);
 
   useEffect(() => {
@@ -72,16 +90,30 @@ export default function PostSignupPage() {
     }, 12_000);
 
     const route = async () => {
-      const selectedPlan = localStorage.getItem('gf_selected_plan');
-      const selectedCredits = localStorage.getItem('gf_selected_credits');
+      const requestedCredits = parseSelectedCredits(requestedCreditsParam);
+      if (requestedCredits) {
+        localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedPlan);
+        localStorage.setItem(
+          ONBOARDING_STORAGE_KEYS.selectedCredits,
+          requestedCredits.toString(),
+        );
+      }
+
+      const selectedPlan = localStorage.getItem(
+        ONBOARDING_STORAGE_KEYS.selectedPlan,
+      );
+      const selectedCredits = localStorage.getItem(
+        ONBOARDING_STORAGE_KEYS.selectedCredits,
+      );
       if (selectedPlan?.trim()) {
+        localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedPlan);
+
         if (!isEEEnabled()) {
           window.location.href = await resolveOnboardingHref();
           return;
         }
 
         setStatusMessage('Preparing your plan checkout...');
-        localStorage.removeItem('gf_selected_plan');
 
         try {
           const onboardingHref = await resolveOnboardingHref();
@@ -115,15 +147,53 @@ export default function PostSignupPage() {
         return;
       }
 
-      const credits = Number.parseInt(selectedCredits ?? '', 10);
-      if (!Number.isNaN(credits) && credits > 0) {
+      const credits = parseSelectedCredits(selectedCredits);
+      if (selectedCredits && !credits) {
+        localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedCredits);
+      }
+
+      if (credits) {
+        localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedCredits);
+
+        if (isSelfHosted()) {
+          if (!checkoutEmail) {
+            window.location.href = await resolveOnboardingHref();
+            return;
+          }
+
+          setStatusMessage('Preparing your managed credits checkout...');
+
+          try {
+            const result = await ManagedCreditsService.createCheckoutSession({
+              cancelUrl: `${window.location.origin}/onboarding/providers`,
+              email: checkoutEmail,
+              firstName: currentUser?.firstName || undefined,
+              lastName: currentUser?.lastName || undefined,
+              quantity: credits,
+              successUrl: `${window.location.origin}/managed-credits/success?session_id={CHECKOUT_SESSION_ID}`,
+            });
+
+            if (result?.url) {
+              window.location.href = result.url;
+              return;
+            }
+          } catch (error) {
+            logger.error(
+              'Failed to create managed credits checkout from post-signup',
+              error,
+            );
+          }
+
+          window.location.href = await resolveOnboardingHref();
+          return;
+        }
+
         if (!isEEEnabled()) {
           window.location.href = await resolveOnboardingHref();
           return;
         }
 
         setStatusMessage('Preparing your credits checkout...');
-        localStorage.removeItem('gf_selected_credits');
 
         try {
           const onboardingHref = await resolveOnboardingHref();
@@ -174,11 +244,19 @@ export default function PostSignupPage() {
     return () => {
       window.clearTimeout(fallbackTimeout);
     };
-  }, [clerkUser, currentUser, getToken, isLoading, resolveOnboardingHref]);
+  }, [
+    checkoutEmail,
+    clerkUser,
+    currentUser,
+    getToken,
+    isLoading,
+    requestedCreditsParam,
+    resolveOnboardingHref,
+  ]);
 
   return (
     <PageLoadingState
-      className="bg-black"
+      className="bg-neutral-950"
       fullScreen={true}
       message={statusMessage}
     >
@@ -199,5 +277,13 @@ export default function PostSignupPage() {
         </div>
       ) : null}
     </PageLoadingState>
+  );
+}
+
+export default function PostSignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <PostSignupPageContent />
+    </Suspense>
   );
 }

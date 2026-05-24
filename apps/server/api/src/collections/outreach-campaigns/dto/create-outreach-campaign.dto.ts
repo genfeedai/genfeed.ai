@@ -3,13 +3,13 @@ import { OutreachCampaignDiscoveryConfigDto } from '@api/collections/outreach-ca
 import { OutreachCampaignDmConfigDto } from '@api/collections/outreach-campaigns/dto/outreach-campaign-dm-config.dto';
 import { OutreachCampaignRateLimitsDto } from '@api/collections/outreach-campaigns/dto/outreach-campaign-rate-limits.dto';
 import { OutreachCampaignScheduleDto } from '@api/collections/outreach-campaigns/dto/outreach-campaign-schedule.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CampaignPlatform, CampaignType } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
-  IsMongoId,
   IsOptional,
   IsString,
   MaxLength,
@@ -17,7 +17,7 @@ import {
 } from 'class-validator';
 
 export class CreateOutreachCampaignDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Organization that owns this campaign',
@@ -25,7 +25,7 @@ export class CreateOutreachCampaignDto {
   })
   organization?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Brand this campaign is scoped to',
@@ -33,7 +33,7 @@ export class CreateOutreachCampaignDto {
   })
   brand?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'User that created this campaign',
@@ -41,7 +41,7 @@ export class CreateOutreachCampaignDto {
   })
   user?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Credential to use for posting replies',
     required: true,

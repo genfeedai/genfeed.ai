@@ -61,7 +61,7 @@ export function SchedulePostCard({
     return (
       <div className="my-2 border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
         <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-          <HiCheck className="h-5 w-5" />
+          <HiCheck className="size-5" />
           <span className="text-sm font-medium">
             Post scheduled for {selectedPlatforms.size} platform
             {selectedPlatforms.size !== 1 ? 's' : ''}
@@ -74,7 +74,7 @@ export function SchedulePostCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiCalendarDays className="h-5 w-5 text-blue-500" />
+        <HiCalendarDays className="size-5 text-blue-500" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Schedule Post'}
         </h3>
@@ -88,11 +88,15 @@ export function SchedulePostCard({
 
       {/* Date/Time input */}
       <div className="mb-3">
-        <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-          <HiClock className="mr-1 inline h-3 w-3" />
+        <label
+          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+          htmlFor="schedule-post-date-time"
+        >
+          <HiClock className="mr-1 inline size-3" />
           Date & Time
         </label>
         <Input
+          id="schedule-post-date-time"
           type="datetime-local"
           value={dateTime}
           onChange={(e) => setDateTime(e.target.value)}
@@ -101,22 +105,24 @@ export function SchedulePostCard({
 
       {/* Platform checkboxes */}
       <div className="mb-3">
-        <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           Platforms
-        </label>
+        </div>
         <div className="flex flex-wrap gap-2">
           {AVAILABLE_PLATFORMS.map((platform) => (
             <label
               key={platform}
+              htmlFor={`schedule-post-platform-${platform}`}
               className={`flex cursor-pointer items-center gap-1.5 border px-2.5 py-1 text-xs transition-colors ${
                 selectedPlatforms.has(platform)
                   ? 'border-primary bg-primary/5 text-foreground'
                   : 'border-border text-muted-foreground hover:border-primary/50'
               }`}
             >
-              <input
+              <Input
+                id={`schedule-post-platform-${platform}`}
                 type="checkbox"
-                checked={selectedPlatforms.has(platform)}
+                isChecked={selectedPlatforms.has(platform)}
                 onChange={() => togglePlatform(platform)}
                 className="sr-only"
               />
@@ -129,7 +135,7 @@ export function SchedulePostCard({
       {/* Credit estimate */}
       {action.creditEstimate != null && (
         <div className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <HiCurrencyDollar className="h-3.5 w-3.5" />
+          <HiCurrencyDollar className="size-3.5" />
           <span>Estimated cost: {action.creditEstimate} credits</span>
         </div>
       )}
@@ -139,7 +145,7 @@ export function SchedulePostCard({
         variant={ButtonVariant.DEFAULT}
         onClick={handleSchedule}
         isDisabled={!dateTime || selectedPlatforms.size === 0}
-        icon={<HiCalendarDays className="h-4 w-4" />}
+        icon={<HiCalendarDays className="size-4" />}
         className="w-full justify-center"
       >
         Schedule

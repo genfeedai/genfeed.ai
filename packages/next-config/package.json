@@ -8,20 +8,20 @@
   },
   "exports": {
     ".": {
-      "types": "./dist/next.config.base.d.ts",
-      "import": "./dist/next.config.base.js",
-      "require": "./dist/next.config.base.js"
+      "types": "./next.config.base.ts",
+      "import": "./next.config.base.ts",
+      "require": "./next.config.base.ts"
     },
     "./tailwind": {
-      "types": "./dist/tailwind.config.base.d.ts",
-      "import": "./dist/tailwind.config.base.js",
-      "require": "./dist/tailwind.config.base.js"
+      "types": "./tailwind.config.base.ts",
+      "import": "./tailwind.config.base.ts",
+      "require": "./tailwind.config.base.ts"
     }
   },
   "files": [
     "dist"
   ],
-  "main": "./dist/next.config.base.js",
+  "main": "./next.config.base.ts",
   "name": "@genfeedai/next-config",
   "peerDependencies": {
     "@sentry/nextjs": "*",
@@ -29,11 +29,11 @@
   },
   "private": true,
   "scripts": {
-    "build": "tsc --build --force",
+    "build": "tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit"
   },
-  "types": "./dist/next.config.base.d.ts",
+  "types": "./next.config.base.ts",
   "version": "1.0.0"
 }

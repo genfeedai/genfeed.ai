@@ -102,9 +102,10 @@ describe('RolesController', () => {
 
       const result = await controller.findAll(mockReq, {});
 
-      expect(rolesService.findAll).toHaveBeenCalledWith(expect.any(Array), {
-        pagination: false,
-      });
+      expect(rolesService.findAll).toHaveBeenCalledWith(
+        { where: { isDeleted: false } },
+        { pagination: false },
+      );
       expect(result).toBeDefined();
     });
 

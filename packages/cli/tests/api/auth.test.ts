@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { validateApiKey, whoami } from '../../src/api/auth.js';
+import { validateApiKey, whoami } from '../../src/api/auth';
 
 const mockApiKey = vi.fn<[], string | undefined>();
 const mockApiUrl = vi.fn<[], string>();
 const mockFetch = vi.fn();
 
-vi.mock('../../src/config/store.js', () => ({
+vi.mock('../../src/config/store', () => ({
   getApiKey: () => mockApiKey(),
   getApiUrl: () => mockApiUrl(),
 }));

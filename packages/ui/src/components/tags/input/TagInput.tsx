@@ -12,7 +12,7 @@ export default function TagInput({
   tags,
   onAddTag,
   onRemoveTag,
-  placeholder = 'Add tags...',
+  placeholder = 'Add tags…',
   className,
   isDisabled = false,
 }: TagInputProps) {

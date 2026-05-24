@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import {
   CreditEstimateQueryDto,
@@ -96,6 +97,8 @@ type JsonApiResourceLike = {
   attributes?: Record<string, unknown>;
 };
 
+type WebhookAuthType = 'none' | 'secret' | 'bearer';
+
 @AutoSwagger()
 @Controller('workflows')
 export class WorkflowsController {
@@ -113,6 +116,40 @@ export class WorkflowsController {
     private readonly batchWorkflowQueueService: BatchWorkflowQueueService,
     readonly _loggerService: LoggerService,
   ) {}
+
+  private normalizeCount(value: number | null | undefined): number {
+    return typeof value === 'number' ? value : 0;
+  }
+
+  private getBatchItemId(item: {
+    _id?: string | { toString(): string };
+    id?: string | { toString(): string };
+    ingredientId: string | { toString(): string };
+  }): string {
+    if (typeof item._id === 'string') {
+      return item._id;
+    }
+
+    if (item._id && typeof item._id.toString === 'function') {
+      return item._id.toString();
+    }
+
+    if (typeof item.id === 'string') {
+      return item.id;
+    }
+
+    if (item.id && typeof item.id.toString === 'function') {
+      return item.id.toString();
+    }
+
+    return item.ingredientId.toString();
+  }
+
+  private normalizeWebhookAuthType(value: unknown): WebhookAuthType {
+    return value === 'none' || value === 'bearer' || value === 'secret'
+      ? value
+      : 'secret';
+  }
 
   @Get('templates')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -251,8 +288,10 @@ export class WorkflowsController {
             warnings: warnings.length > 0 ? warnings : undefined,
           },
           nodes: cloudWorkflow.nodes,
+          organization: publicMetadata.organization,
           trigger: WorkflowTrigger.MANUAL,
-        } as CreateWorkflowDto,
+          user: publicMetadata.user,
+        } as unknown as CreateWorkflowDto,
       );
 
       return serializeSingle(request, WorkflowSerializer, created);
@@ -273,18 +312,14 @@ export class WorkflowsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted: false,
-          isPublic: true,
-          isTemplate: true,
-        },
+    const aggregate = {
+      where: {
+        isDeleted: false,
+        isPublic: true,
+        isTemplate: true,
       },
-      {
-        $sort: handleQuerySort(query.sort || '-executionCount'),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort || '-executionCount'),
+    };
 
     const data: AggregatePaginateResult<WorkflowDocument> =
       await this.workflowsService.findAll(aggregate, options);
@@ -298,25 +333,12 @@ export class WorkflowsController {
     @CurrentUser() user: User,
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted: false,
-          organization: publicMetadata.organization,
-        },
+    const aggregate = {
+      where: {
+        isDeleted: false,
+        organization: publicMetadata.organization,
       },
-      {
-        $project: {
-          _id: 1,
-          createdAt: 1,
-          description: 1,
-          name: 1,
-          nodes: 1,
-          organization: 1,
-          updatedAt: 1,
-        },
-      },
-    ];
+    };
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults({}),
@@ -974,29 +996,14 @@ export class WorkflowsController {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted,
-          organization: publicMetadata.organization,
-          user: publicMetadata.user,
-        },
+    const aggregate = {
+      where: {
+        isDeleted,
+        organization: publicMetadata.organization,
+        user: publicMetadata.user,
       },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-      {
-        $project: {
-          comfyuiTemplate: 0,
-          edges: 0,
-          inputVariables: 0,
-          metadata: 0,
-          nodes: 0,
-          steps: 0,
-          webhookSecret: 0,
-        },
-      },
-    ];
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data: AggregatePaginateResult<WorkflowDocument> =
       await this.workflowsService.findAll(aggregate, options);
@@ -1066,31 +1073,34 @@ export class WorkflowsController {
     return {
       data: {
         _id: job._id.toString(),
-        completedCount: job.completedCount,
+        completedCount: this.normalizeCount(job.completedCount),
         createdAt: job.createdAt?.toISOString(),
-        failedCount: job.failedCount,
+        failedCount: this.normalizeCount(job.failedCount),
         items: job.items.map((item) => ({
-          _id: item._id.toString(),
+          _id: this.getBatchItemId(item),
           completedAt: item.completedAt?.toISOString(),
           error: item.error,
           executionId: item.executionId,
           ingredientId: item.ingredientId.toString(),
           outputCategory: item.outputCategory,
           outputIngredientId: item.outputIngredientId?.toString(),
-          outputSummary: item.outputSummary
-            ? {
-                category: item.outputSummary.category,
-                id: item.outputSummary.id,
-                ingredientUrl: item.outputSummary.ingredientUrl,
-                status: item.outputSummary.status,
-                thumbnailUrl: item.outputSummary.thumbnailUrl,
-              }
-            : undefined,
+          outputSummary:
+            item.outputSummary &&
+            typeof item.outputSummary.id === 'string' &&
+            typeof item.outputSummary.category === 'string'
+              ? {
+                  category: item.outputSummary.category,
+                  id: item.outputSummary.id,
+                  ingredientUrl: item.outputSummary.ingredientUrl,
+                  status: item.outputSummary.status,
+                  thumbnailUrl: item.outputSummary.thumbnailUrl,
+                }
+              : undefined,
           startedAt: item.startedAt?.toISOString(),
           status: item.status,
         })),
         status: job.status,
-        totalCount: job.totalCount,
+        totalCount: this.normalizeCount(job.totalCount),
         updatedAt: job.updatedAt?.toISOString(),
         workflowId: job.workflowId.toString(),
       },
@@ -1124,11 +1134,11 @@ export class WorkflowsController {
     return {
       data: jobs.map((job) => ({
         _id: job._id.toString(),
-        completedCount: job.completedCount,
+        completedCount: this.normalizeCount(job.completedCount),
         createdAt: job.createdAt?.toISOString(),
-        failedCount: job.failedCount,
+        failedCount: this.normalizeCount(job.failedCount),
         status: job.status,
-        totalCount: job.totalCount,
+        totalCount: this.normalizeCount(job.totalCount),
         workflowId: job.workflowId.toString(),
       })),
     };
@@ -1382,7 +1392,7 @@ export class WorkflowsController {
 
     return {
       data: {
-        authType: workflow.webhookAuthType || 'secret',
+        authType: this.normalizeWebhookAuthType(workflow.webhookAuthType),
         lastTriggeredAt: workflow.webhookLastTriggeredAt || null,
         triggerCount: workflow.webhookTriggerCount || 0,
         webhookId: workflow.webhookId || null,
@@ -1439,7 +1449,7 @@ export class WorkflowsController {
     const itemJobs = batchJob.items.map((item) => ({
       batchJobId: batchJob._id.toString(),
       ingredientId: item.ingredientId.toString(),
-      itemId: item._id.toString(),
+      itemId: this.getBatchItemId(item),
       organizationId: publicMetadata.organization,
       userId: publicMetadata.user,
       workflowId,
@@ -1450,7 +1460,7 @@ export class WorkflowsController {
     return {
       data: {
         batchJobId: batchJob._id.toString(),
-        totalCount: batchJob.totalCount,
+        totalCount: this.normalizeCount(batchJob.totalCount),
       },
     };
   }

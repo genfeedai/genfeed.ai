@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { useState } from 'react';
+import { type KeyboardEvent, useState } from 'react';
 import { HiXMark } from 'react-icons/hi2';
 
 export default function TextOverlayPanel({
@@ -49,7 +49,7 @@ export default function TextOverlayPanel({
         text: text.trim(),
       });
 
-      notificationsService.success('Adding text overlay...');
+      notificationsService.success('Adding text overlay…');
       handleClose();
       onSuccess?.();
       setIsSubmitting(false);
@@ -75,12 +75,23 @@ export default function TextOverlayPanel({
     <>
       {/* Backdrop */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="Close text overlay panel"
         className="fixed inset-0 bg-black/50 z-40 transition-opacity"
         onClick={handleClose}
+        onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+          if (event.key !== 'Enter' && event.key !== ' ') {
+            return;
+          }
+
+          event.preventDefault();
+          handleClose();
+        }}
       />
 
       {/* Slide-over panel */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-card shadow-xl z-50 transform transition-transform duration-300">
+      <div className="fixed right-0 top-0 size-full max-w-md bg-card shadow-xl z-50 transform transition-transform duration-300">
         <div className="flex flex-col h-full">
           {/* Panel header - title and close button */}
           <div className="flex items-center justify-between p-6 border-b border-white/[0.08]">
@@ -143,9 +154,7 @@ export default function TextOverlayPanel({
 
               {/* Preview section */}
               <div className="mt-6">
-                <label className="text-sm font-medium mb-2 block">
-                  Preview
-                </label>
+                <p className="text-sm font-medium mb-2">Preview</p>
                 <div className="relative bg-background aspect-video flex items-center justify-center">
                   <div
                     className={`absolute ${getPositionClasses(position)} p-4`}

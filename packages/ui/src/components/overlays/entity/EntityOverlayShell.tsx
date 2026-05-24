@@ -219,7 +219,7 @@ export default function EntityOverlayShell({
                       <Button
                         label={openDetailLabel}
                         variant={ButtonVariant.SECONDARY}
-                        icon={<HiArrowTopRightOnSquare className="h-4 w-4" />}
+                        icon={<HiArrowTopRightOnSquare className="size-4" />}
                         onClick={onOpenDetail}
                       />
                     ) : null}

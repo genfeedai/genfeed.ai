@@ -1,16 +1,16 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { get } from '@/api/client.js';
+import { get } from '@/api/client';
 import {
   flattenCollection,
   flattenSingle,
   type JsonApiCollectionResponse,
   type JsonApiSingleResponse,
-} from '@/api/json-api.js';
-import { requireAdmin } from '@/middleware/auth-guard.js';
-import { formatHeader, formatLabel, formatWarning, print, printJson } from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
+} from '@/api/json-api';
+import { requireAdmin } from '@/middleware/auth-guard';
+import { formatHeader, formatLabel, formatWarning, print, printJson } from '@/ui/theme';
+import { handleError } from '@/utils/errors';
 
 interface Persona {
   id: string;

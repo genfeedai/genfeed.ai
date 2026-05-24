@@ -6,7 +6,7 @@ const { mockDeserializeResource, mockGet } = vi.hoisted(() => ({
   mockGet: vi.fn(),
 }));
 
-vi.mock('@genfeedai/helpers/data/json-api/json-api.helper', () => ({
+vi.mock('@services/core/json-api', () => ({
   deserializeResource: mockDeserializeResource,
 }));
 
@@ -102,5 +102,112 @@ describe('CreditsService', () => {
         type: 'byok-usage-summary',
       },
     });
+  });
+
+  it('deserializes JSON:API topbar balances', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        data: {
+          attributes: {
+            generatedAt: '2026-05-02T12:00:00.000Z',
+            segments: [
+              {
+                balance: 420,
+                currencyOrUnit: 'credits',
+                label: 'Genfeed',
+                lastSyncedAt: '2026-05-02T12:00:00.000Z',
+                provider: 'genfeed',
+                status: 'available',
+              },
+              {
+                balance: null,
+                currencyOrUnit: 'USD',
+                error: 'Balance unavailable',
+                label: 'Replicate',
+                lastSyncedAt: '2026-05-02T12:00:00.000Z',
+                provider: 'replicate',
+                status: 'unavailable',
+              },
+              {
+                balance: 12.34,
+                currencyOrUnit: 'USD',
+                label: 'fal.ai',
+                lastSyncedAt: '2026-05-02T12:00:00.000Z',
+                provider: 'fal',
+                status: 'available',
+              },
+            ],
+          },
+          id: 'topbar-balances',
+          type: 'topbar-balances',
+        },
+      },
+    });
+
+    mockDeserializeResource.mockReturnValue({
+      generatedAt: '2026-05-02T12:00:00.000Z',
+      segments: [
+        {
+          balance: 420,
+          currencyOrUnit: 'credits',
+          label: 'Genfeed',
+          lastSyncedAt: '2026-05-02T12:00:00.000Z',
+          provider: 'genfeed',
+          status: 'available',
+        },
+        {
+          balance: null,
+          currencyOrUnit: 'USD',
+          error: 'Balance unavailable',
+          label: 'Replicate',
+          lastSyncedAt: '2026-05-02T12:00:00.000Z',
+          provider: 'replicate',
+          status: 'unavailable',
+        },
+        {
+          balance: 12.34,
+          currencyOrUnit: 'USD',
+          label: 'fal.ai',
+          lastSyncedAt: '2026-05-02T12:00:00.000Z',
+          provider: 'fal',
+          status: 'available',
+        },
+      ],
+    });
+
+    const service = new CreditsService('test-token');
+
+    await expect(service.getTopbarBalances()).resolves.toEqual({
+      generatedAt: '2026-05-02T12:00:00.000Z',
+      segments: [
+        {
+          balance: 420,
+          currencyOrUnit: 'credits',
+          label: 'Genfeed',
+          lastSyncedAt: '2026-05-02T12:00:00.000Z',
+          provider: 'genfeed',
+          status: 'available',
+        },
+        {
+          balance: null,
+          currencyOrUnit: 'USD',
+          error: 'Balance unavailable',
+          label: 'Replicate',
+          lastSyncedAt: '2026-05-02T12:00:00.000Z',
+          provider: 'replicate',
+          status: 'unavailable',
+        },
+        {
+          balance: 12.34,
+          currencyOrUnit: 'USD',
+          label: 'fal.ai',
+          lastSyncedAt: '2026-05-02T12:00:00.000Z',
+          provider: 'fal',
+          status: 'available',
+        },
+      ],
+    });
+
+    expect(mockGet).toHaveBeenCalledWith('/topbar-balances');
   });
 });

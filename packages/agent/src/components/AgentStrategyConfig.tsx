@@ -239,7 +239,7 @@ export function AgentStrategyConfig({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div className="size-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -281,7 +281,7 @@ export function AgentStrategyConfig({
             }`}
           >
             <span
-              className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-background shadow-sm transition-transform ${
+              className={`pointer-events-none inline-block size-4 rounded-full bg-background shadow-sm transition-transform ${
                 strategy.isActive ? 'translate-x-4' : 'translate-x-0'
               }`}
             />
@@ -520,7 +520,7 @@ export function AgentStrategyConfig({
                 }`}
               >
                 <span
-                  className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-background shadow-sm transition-transform ${
+                  className={`pointer-events-none inline-block size-4 rounded-full bg-background shadow-sm transition-transform ${
                     isEngagementEnabled ? 'translate-x-4' : 'translate-x-0'
                   }`}
                 />

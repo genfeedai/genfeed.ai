@@ -11,8 +11,8 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 88 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(88);
+    it('should have 115 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(115);
     });
 
     it('should have correct values', () => {
@@ -60,17 +60,36 @@ describe('model.enum', () => {
       expect(MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5).toBe(
         'openai/gpt-image-1.5',
       );
+      expect(MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2).toBe(
+        'openai/gpt-image-2',
+      );
       expect(MODEL_KEYS.REPLICATE_OPENAI_SORA_2).toBe('openai/sora-2');
       expect(MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO).toBe('openai/sora-2-pro');
       expect(MODEL_KEYS.REPLICATE_QWEN_QWEN_IMAGE).toBe('qwen/qwen-image');
+      expect(MODEL_KEYS.REPLICATE_RECRAFT_AI_RECRAFT_V4).toBe(
+        'recraft-ai/recraft-v4',
+      );
+      expect(MODEL_KEYS.REPLICATE_RECRAFT_AI_RECRAFT_V4_PRO).toBe(
+        'recraft-ai/recraft-v4-pro',
+      );
       expect(MODEL_KEYS.REPLICATE_RUNWAYML_GEN4_IMAGE_TURBO).toBe(
         'runwayml/gen4-image-turbo',
       );
+      expect(MODEL_KEYS.REPLICATE_RUNWAYML_GEN_4_5).toBe('runwayml/gen-4.5');
       expect(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4).toBe(
         'bytedance/seedream-4',
       );
       expect(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5).toBe(
         'bytedance/seedream-4.5',
+      );
+      expect(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0).toBe(
+        'bytedance/seedance-2.0',
+      );
+      expect(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0_FAST).toBe(
+        'bytedance/seedance-2.0-fast',
+      );
+      expect(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_LITE).toBe(
+        'bytedance/seedream-5-lite',
       );
       expect(MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO).toBe(
         'black-forest-labs/flux-1.1-pro',
@@ -86,6 +105,12 @@ describe('model.enum', () => {
       );
       expect(MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO).toBe(
         'black-forest-labs/flux-kontext-pro',
+      );
+      expect(MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_MAX).toBe(
+        'black-forest-labs/flux-kontext-max',
+      );
+      expect(MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_MAX).toBe(
+        'black-forest-labs/flux-2-max',
       );
       expect(MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL).toBe(
         'black-forest-labs/flux-schnell',
@@ -114,8 +139,35 @@ describe('model.enum', () => {
       expect(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO).toBe(
         'kwaivgi/kling-v2.5-turbo-pro',
       );
+      expect(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_6).toBe(
+        'kwaivgi/kling-v2.6',
+      );
+      expect(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_O1).toBe('kwaivgi/kling-o1');
+      expect(MODEL_KEYS.REPLICATE_XAI_GROK_IMAGINE_IMAGE).toBe(
+        'xai/grok-imagine-image',
+      );
+      expect(MODEL_KEYS.REPLICATE_XAI_GROK_IMAGINE_VIDEO).toBe(
+        'xai/grok-imagine-video',
+      );
+      expect(MODEL_KEYS.REPLICATE_PIXVERSE_PIXVERSE_V6).toBe(
+        'pixverse/pixverse-v6',
+      );
       expect(MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST).toBe(
         'wan-video/wan-2.2-i2v-fast',
+      );
+      expect(MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_7_T2V).toBe(
+        'wan-video/wan-2.7-t2v',
+      );
+      expect(MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3).toBe(
+        'minimax/hailuo-2.3',
+      );
+      expect(MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST).toBe(
+        'minimax/hailuo-2.3-fast',
+      );
+      expect(MODEL_KEYS.REPLICATE_VIDU_Q3_PRO).toBe('vidu/q3-pro');
+      expect(MODEL_KEYS.REPLICATE_VIDU_Q3_TURBO).toBe('vidu/q3-turbo');
+      expect(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE).toBe(
+        'google/veo-3.1-lite',
       );
       expect(MODEL_KEYS.REPLICATE_META_MUSICGEN).toBe('meta/musicgen');
       expect(MODEL_KEYS.HEYGEN_AVATAR).toBe('heygen/avatar');
@@ -151,6 +203,15 @@ describe('model.enum', () => {
         'fal-ai/luma-dream-machine',
       );
       expect(MODEL_KEYS.FAL_RUNWAY_GEN3).toBe('fal-ai/runway-gen3');
+      expect(MODEL_KEYS.FAL_NANO_BANANA_2).toBe('fal-ai/nano-banana-2');
+      expect(MODEL_KEYS.FAL_FLUX_2_PRO).toBe('fal-ai/flux-2-pro');
+      expect(MODEL_KEYS.FAL_RECRAFT_V4_PRO).toBe('fal-ai/recraft/v4/pro');
+      expect(MODEL_KEYS.FAL_GPT_IMAGE_2).toBe('fal-ai/gpt-image-2');
+      expect(MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO).toBe(
+        'fal-ai/kling-video/v3/pro',
+      );
+      expect(MODEL_KEYS.FAL_VEO_3_1).toBe('fal-ai/veo3.1');
+      expect(MODEL_KEYS.FAL_PIXVERSE_V6).toBe('fal-ai/pixverse/v6');
       expect(MODEL_KEYS.FAL_SEEDANCE_2_0).toBe('fal-ai/seedance-2.0');
       expect(MODEL_KEYS.FAL_STABLE_VIDEO).toBe('fal-ai/stable-video-diffusion');
       expect(MODEL_KEYS.FAL_WHISPER).toBe('fal-ai/whisper');

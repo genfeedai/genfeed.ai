@@ -19,7 +19,7 @@ export default function SidebarSearchTrigger({
       onClick={onClick}
       ariaLabel="Open command palette"
       className={className}
-      icon={<HiMagnifyingGlass className="h-4 w-4 flex-shrink-0" />}
+      icon={<HiMagnifyingGlass className="size-4 flex-shrink-0" />}
       label={label}
       shortcut="⌘K"
     />

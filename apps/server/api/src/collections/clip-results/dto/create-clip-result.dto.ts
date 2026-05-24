@@ -1,15 +1,10 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { OrganizationalCreateDto } from '@api/shared/dto/base/base.dto';
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsArray,
-  IsMongoId,
-  IsNumber,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateClipResultDto extends OrganizationalCreateDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({ description: 'The clip project ID', required: true })
   readonly project!: string;
 

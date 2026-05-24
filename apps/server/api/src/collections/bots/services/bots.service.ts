@@ -28,7 +28,9 @@ export class BotsService extends BaseService<
     }
 
     const nextStatus =
-      bot.status === BotStatus.ACTIVE ? BotStatus.PAUSED : BotStatus.ACTIVE;
+      String(bot.status ?? '').toLowerCase() === BotStatus.ACTIVE
+        ? BotStatus.PAUSED
+        : BotStatus.ACTIVE;
 
     return super.patch(id, { status: nextStatus } as UpdateBotDto);
   }

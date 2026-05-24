@@ -1,8 +1,8 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CaptionEntity } from '@api/collections/captions/entities/caption.entity';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
+import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -56,7 +56,10 @@ import type {
   ExecutionRunResult,
 } from '@genfeedai/workflow-engine';
 import {
+  type AnalyticsFeedbackOutput,
+  createAnalyticsFeedbackExecutor,
   createBrandAssetExecutor,
+  createBrandContextExecutor,
   createImageGenExecutor,
   createLipSyncExecutor,
   createMentionTriggerExecutor,
@@ -65,11 +68,17 @@ import {
   createNewRepostTriggerExecutor,
   createPostReplyExecutor,
   createPromptConstructorExecutor,
+  createPublishExecutor,
   createReframeExecutor,
   createSendDmExecutor,
   createTextToSpeechExecutor,
+  createTrendTriggerExecutor,
   createUpscaleExecutor,
+  type KeywordTriggerPlatform,
   type NodeExecutor,
+  type SocialPlatform,
+  type TrendPlatform,
+  type TrendTriggerOutput,
   WorkflowEngine,
 } from '@genfeedai/workflow-engine';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -191,6 +200,7 @@ const NODE_TYPE_TO_EXECUTOR: Record<string, string> = {
   'trigger-new-follower': 'newFollowerTrigger',
   'trigger-new-like': 'newLikeTrigger',
   'trigger-new-repost': 'newRepostTrigger',
+  'analytics-feedback': 'analyticsFeedback',
 };
 
 /**
@@ -228,6 +238,8 @@ export class WorkflowEngineAdapterService {
     @Optional() private readonly replicateService?: ReplicateService,
     @Optional() private readonly promptBuilderService?: PromptBuilderService,
     @Optional() private readonly brandsService?: BrandsService,
+    @Optional()
+    private readonly performanceSummaryService?: PerformanceSummaryService,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -246,10 +258,15 @@ export class WorkflowEngineAdapterService {
     this.registerMusicSourceExecutor();
     this.registerSoundOverlayExecutor();
     this.registerTextToSpeechExecutor();
+    this.registerLlmExecutor();
     this.registerReframeExecutor();
     this.registerUpscaleExecutor();
     this.registerDirectMediaInputExecutors();
     this.registerBrandAssetExecutor();
+    this.registerBrandContextExecutor();
+    this.registerAnalyticsFeedbackExecutor();
+    this.registerTrendTriggerExecutor();
+    this.registerPublishExecutor();
   }
 
   /**
@@ -435,7 +452,7 @@ export class WorkflowEngineAdapterService {
             isDeleted: false,
             organization: organizationId,
           },
-          'detail',
+          ['detail'],
         );
 
         if (!brand) {
@@ -493,6 +510,269 @@ export class WorkflowEngineAdapterService {
     );
   }
 
+  private registerBrandContextExecutor(): void {
+    if (!this.brandsService) return;
+    const brandsService = this.brandsService;
+    const executor = createBrandContextExecutor(
+      async (brandId, organizationId) => {
+        const brand = await brandsService.findOne(
+          { _id: brandId, isDeleted: false, organization: organizationId },
+          ['detail'],
+        );
+        if (!brand) return null;
+        const brandDoc = brand as unknown as Record<string, unknown>;
+        return {
+          brandId: String(brandDoc._id),
+          colors:
+            (brandDoc.colors as {
+              primary: string;
+              secondary: string;
+              background: string;
+            } | null) ?? null,
+          fonts: (brandDoc.fonts as string | null) ?? null,
+          label: String(brandDoc.name ?? brandDoc.label ?? ''),
+          models: null,
+          slug: String(brandDoc.slug ?? ''),
+          voice: (brandDoc.voice as string | null) ?? null,
+        };
+      },
+    );
+    this.engine.registerExecutor(
+      executor.nodeType,
+      this.wrapEngineExecutor(executor),
+    );
+  }
+
+  private registerAnalyticsFeedbackExecutor(): void {
+    const summaryService = this.performanceSummaryService;
+    const executor = createAnalyticsFeedbackExecutor(
+      async ({ organizationId, brandId, topN, worstN }) => {
+        if (!summaryService) {
+          return this.createEmptyAnalyticsFeedback();
+        }
+
+        const summary = await summaryService.getWeeklySummary(
+          organizationId,
+          brandId,
+          { topN, worstN },
+        );
+        const bestPlatform =
+          summary.avgEngagementByPlatform.length > 0
+            ? summary.avgEngagementByPlatform.reduce((best, current) =>
+                current.avgEngagementRate > best.avgEngagementRate
+                  ? current
+                  : best,
+              ).platform
+            : null;
+        return {
+          avgEngagementRate:
+            summary.avgEngagementByPlatform.length > 0
+              ? summary.avgEngagementByPlatform.reduce(
+                  (sum, p) => sum + p.avgEngagementRate,
+                  0,
+                ) / summary.avgEngagementByPlatform.length
+              : 0,
+          bestPlatform,
+          bestPostingTimes: summary.bestPostingTimes.map((t) => ({
+            avgEngagement: t.avgEngagementRate,
+            dayOfWeek: 0,
+            hour: t.hour,
+          })),
+          topHooks: summary.topHooks,
+          topTopics: summary.topPerformers.map((p) => p.title).filter(Boolean),
+          weekOverWeekChange: summary.weekOverWeekTrend.percentageChange,
+          weekOverWeekDirection: summary.weekOverWeekTrend.direction,
+          worstTopics: summary.worstPerformers
+            .map((p) => p.title)
+            .filter(Boolean),
+        };
+      },
+    );
+    this.engine.registerExecutor(
+      executor.nodeType,
+      this.wrapEngineExecutor(executor),
+    );
+  }
+
+  private registerTrendTriggerExecutor(): void {
+    const executor = createTrendTriggerExecutor(async (params) => {
+      const keywordMatch = await this.findTrendFromSocialKeywordMatch(params);
+      if (keywordMatch) {
+        return keywordMatch;
+      }
+
+      const topic = params.keywords.find(
+        (keyword) => keyword.trim().length > 0,
+      );
+      if (!topic) {
+        return null;
+      }
+
+      return {
+        hashtags: [this.buildHashtag(topic)],
+        platform: params.platform,
+        soundId: null,
+        topic,
+        trendId: `analytics-${params.platform}-${topic
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')}`,
+        videoUrl: null,
+        viralScore: params.minViralScore,
+      };
+    });
+    this.engine.registerExecutor(
+      executor.nodeType,
+      this.wrapEngineExecutor(executor),
+    );
+  }
+
+  private registerPublishExecutor(): void {
+    const postsService = this.postsService;
+    const credentialsService = this.credentialsService;
+    const executor = createPublishExecutor(
+      async ({
+        brandId,
+        caption,
+        media,
+        organizationId,
+        platforms,
+        scheduledFor,
+        userId,
+      }) => {
+        if (!postsService || !credentialsService) {
+          return {
+            platforms,
+            postIds: [],
+            scheduledFor,
+            status: scheduledFor ? 'scheduled' : 'queued',
+          };
+        }
+
+        const postIds: string[] = [];
+        const publishedPlatforms: SocialPlatform[] = [];
+        const ingredients = this.extractPublishIngredientIds(media);
+
+        for (const platform of platforms) {
+          const credential = await credentialsService.findOne({
+            brand: brandId,
+            isConnected: true,
+            isDeleted: false,
+            organization: organizationId,
+            platform: platform as CredentialPlatform,
+          });
+
+          if (!credential) {
+            continue;
+          }
+
+          const post = await postsService.create({
+            brand: brandId,
+            category:
+              ingredients.length > 0 ? PostCategory.IMAGE : PostCategory.TEXT,
+            credential: credential._id,
+            description: caption,
+            ingredients,
+            label: this.buildPostLabel(caption),
+            organization: organizationId,
+            platform: credential.platform as CredentialPlatform,
+            scheduledDate: scheduledFor ?? undefined,
+            status: scheduledFor ? PostStatus.SCHEDULED : PostStatus.DRAFT,
+            user: userId,
+          });
+
+          postIds.push(post._id.toString());
+          publishedPlatforms.push(platform);
+        }
+
+        return {
+          platforms: publishedPlatforms,
+          postIds,
+          scheduledFor,
+          status: scheduledFor ? 'scheduled' : 'queued',
+        };
+      },
+    );
+    this.engine.registerExecutor(
+      executor.nodeType,
+      this.wrapEngineExecutor(executor),
+    );
+  }
+
+  private createEmptyAnalyticsFeedback(): AnalyticsFeedbackOutput {
+    return {
+      avgEngagementRate: 0,
+      bestPlatform: null,
+      bestPostingTimes: [],
+      topHooks: [],
+      topTopics: [],
+      weekOverWeekChange: 0,
+      weekOverWeekDirection: 'stable',
+      worstTopics: [],
+    };
+  }
+
+  private async findTrendFromSocialKeywordMatch(params: {
+    organizationId: string;
+    platform: TrendPlatform;
+    minViralScore: number;
+    keywords: string[];
+    excludeKeywords: string[];
+    lastTrendId: string | null;
+  }): Promise<TrendTriggerOutput | null> {
+    const keywordPlatform = this.toKeywordTriggerPlatform(params.platform);
+    if (
+      !keywordPlatform ||
+      !this.socialAdapterFactory?.isSupported(params.platform)
+    ) {
+      return null;
+    }
+
+    const checker = this.socialAdapterFactory
+      .getAdapter(params.platform)
+      .createKeywordChecker?.();
+
+    if (!checker) {
+      return null;
+    }
+
+    const match = await checker({
+      caseSensitive: false,
+      excludeKeywords: params.excludeKeywords,
+      keywords: params.keywords,
+      lastPostId: params.lastTrendId,
+      matchMode: 'contains',
+      organizationId: params.organizationId,
+      platform: keywordPlatform,
+    });
+
+    if (!match) {
+      return null;
+    }
+
+    return {
+      hashtags: [match.matchedKeyword]
+        .filter(Boolean)
+        .map((keyword) => this.buildHashtag(keyword)),
+      platform: params.platform,
+      soundId: null,
+      topic: match.matchedKeyword,
+      trendId: match.postId,
+      videoUrl: match.postUrl,
+      viralScore: params.minViralScore,
+    };
+  }
+
+  private toKeywordTriggerPlatform(
+    platform: TrendPlatform,
+  ): KeywordTriggerPlatform | null {
+    if (platform === 'twitter' || platform === 'instagram') {
+      return platform;
+    }
+
+    return null;
+  }
+
   private registerPromptConstructorExecutor(): void {
     const promptConstructorExecutor = createPromptConstructorExecutor();
 
@@ -500,6 +780,47 @@ export class WorkflowEngineAdapterService {
       'promptConstructor',
       this.wrapEngineExecutor(promptConstructorExecutor),
     );
+  }
+
+  private registerLlmExecutor(): void {
+    const openRouterService = this.openRouterService;
+
+    this.engine.registerExecutor('llm', async (node, inputs) => {
+      if (!openRouterService) {
+        throw new Error('OpenRouter service is not available for llm nodes');
+      }
+
+      const promptInput = inputs.get('prompt');
+      const prompt =
+        typeof promptInput === 'string' && promptInput.trim().length > 0
+          ? promptInput
+          : this.readConfigString(node.config, 'prompt');
+
+      if (!prompt) {
+        throw new Error('Missing required input: prompt');
+      }
+
+      const response = await openRouterService.chatCompletion({
+        max_tokens: Math.round(
+          this.getOptionalNumberConfig(node.config, 'maxTokens', 1024),
+        ),
+        messages: [{ content: prompt, role: 'user' }],
+        model:
+          this.readConfigString(node.config, 'model') ?? 'openai/gpt-4o-mini',
+        temperature: this.getOptionalNumberConfig(
+          node.config,
+          'temperature',
+          0.8,
+        ),
+      });
+      const content = response.choices[0]?.message?.content?.trim() ?? '';
+
+      if (!content) {
+        throw new Error('LLM executor returned empty content');
+      }
+
+      return { content, model: response.model };
+    });
   }
 
   /**
@@ -779,13 +1100,10 @@ export class WorkflowEngineAdapterService {
           },
         );
 
-        await ingredientsService.patch(
-          ingredientId,
-          new IngredientEntity({
-            status: IngredientStatus.GENERATED,
-            transformations: [TransformationCategory.CAPTIONED],
-          }),
-        );
+        await ingredientsService.patch(ingredientId, {
+          status: IngredientStatus.GENERATED,
+          transformations: [TransformationCategory.CAPTIONED],
+        });
         await metadataService.patch(
           metadataData._id,
           new MetadataEntity(uploaded),
@@ -1089,12 +1407,9 @@ export class WorkflowEngineAdapterService {
             result: result.audioUrl,
           }),
         );
-        await this.ingredientsService?.patch(
-          pendingOutput.ingredientId,
-          new IngredientEntity({
-            status: IngredientStatus.GENERATED,
-          }),
-        );
+        await this.ingredientsService?.patch(pendingOutput.ingredientId, {
+          status: IngredientStatus.GENERATED,
+        });
 
         return {
           audioUrl: this.buildMusicIngredientUrl(pendingOutput.ingredientId),
@@ -1289,22 +1604,29 @@ export class WorkflowEngineAdapterService {
       workflowDoc.brands && workflowDoc.brands.length > 0
         ? workflowDoc.brands[0]?.toString()
         : undefined;
-    const nodes: ExecutableNode[] = (workflowDoc.nodes || []).map((node) => ({
-      cachedOutput: (node as unknown as { cachedOutput?: unknown })
-        .cachedOutput,
-      config: this.withWorkflowBrandId(
-        node.type,
+    const nodes: ExecutableNode[] = (workflowDoc.nodes || []).map((node) => {
+      const config =
         node.data?.config ||
-          (node as unknown as { config?: Record<string, unknown> }).config ||
-          {},
-        primaryBrandId,
-      ),
-      id: node.id,
-      inputs: (node as unknown as { inputs?: string[] }).inputs || [],
-      isLocked: workflowDoc.lockedNodeIds?.includes(node.id) || false,
-      label: node.data?.label || node.type,
-      type: NODE_TYPE_TO_EXECUTOR[node.type] || node.type,
-    }));
+        (node as unknown as { config?: Record<string, unknown> }).config ||
+        {};
+      const inputVariableKeys = (
+        node.data as unknown as { inputVariableKeys?: unknown } | undefined
+      )?.inputVariableKeys;
+      const nodeConfig = Array.isArray(inputVariableKeys)
+        ? { ...config, inputVariableKeys }
+        : config;
+
+      return {
+        cachedOutput: (node as unknown as { cachedOutput?: unknown })
+          .cachedOutput,
+        config: this.withWorkflowBrandId(node.type, nodeConfig, primaryBrandId),
+        id: node.id,
+        inputs: (node as unknown as { inputs?: string[] }).inputs || [],
+        isLocked: workflowDoc.lockedNodeIds?.includes(node.id) || false,
+        label: node.data?.label || node.type,
+        type: NODE_TYPE_TO_EXECUTOR[node.type] || node.type,
+      };
+    });
 
     const edges: ExecutableEdge[] = (workflowDoc.edges || []).map((edge) => ({
       id: edge.id,
@@ -1345,9 +1667,12 @@ export class WorkflowEngineAdapterService {
       ![
         'ai-avatar-video',
         'ai-generate-image',
+        'analytics-feedback',
+        'analyticsFeedback',
+        'brandContext',
+        'effect-captions',
         'imageGen',
         'ai-text-to-speech',
-        'effect-captions',
         'musicSource',
         'soundOverlay',
       ].includes(canonicalNodeType) ||
@@ -1434,6 +1759,12 @@ export class WorkflowEngineAdapterService {
         .filter((variable) => variable.required)
         .map((variable) => variable.key),
     );
+    const inputVariableDefaults = new Map(
+      (workflowDoc.inputVariables ?? []).map((variable) => [
+        variable.key,
+        variable.defaultValue,
+      ]),
+    );
     const lockedNodeIds = new Set(executableWorkflow.lockedNodeIds);
 
     const nodes = executableWorkflow.nodes
@@ -1469,7 +1800,34 @@ export class WorkflowEngineAdapterService {
 
         return false;
       })
-      .map((node) => ({ ...node }));
+      .map((node) => {
+        const nextNode = { ...node };
+        const inputVariableKeys = Array.isArray(node.config.inputVariableKeys)
+          ? node.config.inputVariableKeys.filter(
+              (key): key is string => typeof key === 'string',
+            )
+          : [];
+
+        if (
+          inputVariableKeys.length > 0 &&
+          !isWorkflowInputNodeType(nextNode.type)
+        ) {
+          nextNode.config = { ...node.config };
+
+          for (const key of inputVariableKeys) {
+            const value =
+              inputValues[key] !== undefined
+                ? inputValues[key]
+                : inputVariableDefaults.get(key);
+
+            if (value !== undefined) {
+              nextNode.config[key] = value;
+            }
+          }
+        }
+
+        return nextNode;
+      });
 
     const nodeIds = new Set(nodes.map((node) => node.id));
 
@@ -1599,12 +1957,9 @@ export class WorkflowEngineAdapterService {
     }
 
     if (args.transformations && args.transformations.length > 0) {
-      await this.ingredientsService.patch(
-        ingredientId,
-        new IngredientEntity({
-          transformations: args.transformations,
-        }),
-      );
+      await this.ingredientsService.patch(ingredientId, {
+        transformations: args.transformations,
+      });
     }
 
     return { ingredientId, metadataId };
@@ -1864,6 +2219,57 @@ export class WorkflowEngineAdapterService {
     }
 
     return `${normalized.slice(0, 57).trimEnd()}...`;
+  }
+
+  private buildHashtag(value: string): string {
+    const normalized = value
+      .trim()
+      .replace(/^#/, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    return normalized ? `#${normalized}` : '#trend';
+  }
+
+  private extractPublishIngredientIds(media: unknown): string[] {
+    if (Array.isArray(media)) {
+      return media
+        .flatMap((item) => this.extractPublishIngredientIds(item))
+        .filter((id, index, ids) => ids.indexOf(id) === index);
+    }
+
+    if (typeof media === 'string') {
+      return this.isPublishIngredientReference(media) ? [media] : [];
+    }
+
+    if (!media || typeof media !== 'object') {
+      return [];
+    }
+
+    const record = media as Record<string, unknown>;
+    const candidates = [
+      record.id,
+      record._id,
+      record.ingredientId,
+      record.url,
+      record.src,
+      record.secureUrl,
+      record.videoUrl,
+      record.imageUrl,
+    ];
+
+    return candidates
+      .filter((candidate): candidate is string => typeof candidate === 'string')
+      .filter((candidate) => this.isPublishIngredientReference(candidate));
+  }
+
+  private isEntityId(value: string): boolean {
+    return /^[a-f\d]{24}$/i.test(value);
+  }
+
+  private isPublishIngredientReference(value: string): boolean {
+    return this.isEntityId(value) || /^https?:\/\//i.test(value);
   }
 
   /**

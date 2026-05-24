@@ -56,7 +56,7 @@ export default function ModalBlacklist({
     serviceFactory: (token) => BlacklistsService.getInstance(token),
   });
 
-  const handleChange = (
+  const updateModalBlacklist = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
@@ -82,8 +82,8 @@ export default function ModalBlacklist({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -94,7 +94,7 @@ export default function ModalBlacklist({
             type="text"
             name="label"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalBlacklist}
             placeholder="Enter display label"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -106,7 +106,7 @@ export default function ModalBlacklist({
             type="text"
             name="key"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalBlacklist}
             placeholder="lowercase-with-hyphens"
             isRequired={true}
             isDisabled={isSubmitting || (!!item && !isSuperAdmin)}
@@ -127,7 +127,7 @@ export default function ModalBlacklist({
           <SelectField
             name="category"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalBlacklist}
             isDisabled={isSubmitting}
             isRequired={true}
             placeholder="Select a type"
@@ -147,7 +147,7 @@ export default function ModalBlacklist({
           <Input
             name="description"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalBlacklist}
             placeholder="Enter description (optional)"
             isDisabled={isSubmitting}
           />

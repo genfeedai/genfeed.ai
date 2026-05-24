@@ -13,7 +13,7 @@ import { AgentStrategyReportsService } from '@api/collections/agent-strategies/s
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { ContentDraftsModule } from '@api/collections/content-drafts/content-drafts.module';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { EvaluationsModule } from '@api/collections/evaluations/evaluations.module';
 import { OptimizersModule } from '@api/collections/optimizers/optimizers.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
@@ -31,17 +31,17 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentStrategyReportsService,
   ],
   imports: [
-    ActivitiesModule,
+    forwardRef(() => ActivitiesModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => ContentDraftsModule),
-    ContentGatewayModule,
-    BatchGenerationModule,
+    forwardRef(() => ContentGatewayModule),
+    forwardRef(() => BatchGenerationModule),
     forwardRef(() => ContentPerformanceModule),
-    CredentialsModule,
-    EvaluationsModule,
-    OptimizersModule,
-    PostsModule,
-    TrendsModule,
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => EvaluationsModule),
+    forwardRef(() => OptimizersModule),
+    forwardRef(() => PostsModule),
+    forwardRef(() => TrendsModule),
   ],
   providers: [
     AgentStrategiesService,

@@ -8,6 +8,8 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { TrendAnalysisCardProps } from '@genfeedai/props/analytics/insights.props';
 import Card from '@ui/card/Card';
+import { ChartContainer, ChartTooltipContent } from '@ui/charts';
+import dynamic from 'next/dynamic';
 import { memo, useMemo } from 'react';
 import {
   HiArrowTrendingDown,
@@ -15,14 +17,22 @@ import {
   HiChartBar,
   HiMinus,
 } from 'react-icons/hi2';
-import {
-  Area,
-  AreaChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+
+const AreaChart = dynamic(() => import('recharts').then((m) => m.AreaChart), {
+  ssr: false,
+});
+const Area = dynamic(() => import('recharts').then((m) => m.Area), {
+  ssr: false,
+});
+const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), {
+  ssr: false,
+});
+const XAxis = dynamic(() => import('recharts').then((m) => m.XAxis), {
+  ssr: false,
+});
+const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), {
+  ssr: false,
+});
 
 const getDirectionStyles = (direction: TrendDirection) => {
   switch (direction) {
@@ -64,8 +74,11 @@ const TrendAnalysisCard = memo(function TrendAnalysisCard({
         className={className}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="animate-pulse p-4 bg-background">
+          {[1, 2, 3, 4].map((placeholderId) => (
+            <div
+              key={placeholderId}
+              className="animate-pulse p-4 bg-background"
+            >
               <div className="flex items-center justify-between mb-3">
                 <div className="h-4 bg-muted w-24" />
                 <div className="h-6 bg-muted w-16" />
@@ -87,7 +100,7 @@ const TrendAnalysisCard = memo(function TrendAnalysisCard({
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <HiChartBar className="w-12 h-12 text-foreground/30 mb-3" />
+          <HiChartBar className="size-12 text-foreground/30 mb-3" />
           <p className="text-foreground/70 font-medium">
             No trend data available
           </p>
@@ -149,7 +162,7 @@ const TrendItem = memo(function TrendItem({ trend }: TrendItemProps) {
           )}
         </div>
         <div className={cn('flex items-center gap-1', styles.text)}>
-          <DirectionIcon className="w-5 h-5" />
+          <DirectionIcon className="size-5" />
           <span className="font-mono font-medium">
             {formatPercentage(trend.changePercent)}
           </span>
@@ -157,7 +170,17 @@ const TrendItem = memo(function TrendItem({ trend }: TrendItemProps) {
       </div>
 
       <div className="h-20 -mx-2">
-        <ResponsiveContainer width="100%" height="100%">
+        <ChartContainer
+          config={{
+            value: {
+              color: styles.stroke,
+              label: 'Forecast',
+            },
+          }}
+          className="border-0 bg-transparent p-0 shadow-none"
+          height="100%"
+          style={{ minWidth: 0 }}
+        >
           <AreaChart data={chartData}>
             <defs>
               <linearGradient
@@ -174,18 +197,20 @@ const TrendItem = memo(function TrendItem({ trend }: TrendItemProps) {
             <XAxis dataKey="index" hide />
             <YAxis hide domain={['auto', 'auto']} />
             <Tooltip
-              content={({ active, payload }) => {
-                if (active && payload?.length) {
-                  return (
-                    <div className="bg-card border border-white/[0.08] px-3 py-2 shadow-lg">
-                      <p className="text-sm font-medium">
-                        {formatCompactNumberIntl(payload[0].value as number)}
-                      </p>
-                    </div>
-                  );
-                }
-                return null;
-              }}
+              content={
+                <ChartTooltipContent
+                  hideLabel
+                  valueFormatter={(value) =>
+                    formatCompactNumberIntl(
+                      typeof value === 'number'
+                        ? value
+                        : typeof value === 'string'
+                          ? Number(value)
+                          : undefined,
+                    )
+                  }
+                />
+              }
             />
             <Area
               type="monotone"
@@ -195,7 +220,7 @@ const TrendItem = memo(function TrendItem({ trend }: TrendItemProps) {
               fill={`url(#gradient-${trend.id})`}
             />
           </AreaChart>
-        </ResponsiveContainer>
+        </ChartContainer>
       </div>
 
       <div className="flex items-center justify-between mt-2 text-xs text-foreground/50">

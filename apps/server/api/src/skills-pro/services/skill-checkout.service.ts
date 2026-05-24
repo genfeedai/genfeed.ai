@@ -5,7 +5,15 @@ import { CreateSkillCheckoutDto } from '@api/skills-pro/dto/create-skill-checkou
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import Stripe from 'stripe';
+import StripeConstructor from 'stripe';
+
+type StripeClient = InstanceType<typeof StripeConstructor>;
+type CheckoutSession = Awaited<
+  ReturnType<StripeClient['checkout']['sessions']['create']>
+>;
+type CheckoutSessionCreateParams = Parameters<
+  StripeClient['checkout']['sessions']['create']
+>[0];
 
 @Injectable()
 export class SkillCheckoutService {
@@ -36,7 +44,7 @@ export class SkillCheckoutService {
       '/skills-pro/success?session_id={CHECKOUT_SESSION_ID}';
     const defaultCancelUrl = `${this.configService.get('GENFEEDAI_APP_URL')}/skills-pro`;
 
-    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
+    const sessionConfig: CheckoutSessionCreateParams = {
       allow_promotion_codes: true,
       cancel_url: dto.cancelUrl || defaultCancelUrl,
       line_items: [
@@ -58,7 +66,7 @@ export class SkillCheckoutService {
       sessionConfig.customer_email = dto.email;
     }
 
-    const session =
+    const session: CheckoutSession =
       await this.stripeService.stripe.checkout.sessions.create(sessionConfig);
 
     this.loggerService.log(`${this.constructorName} checkout session created`, {

@@ -79,7 +79,7 @@ function isPostDisabled(post: Post): boolean {
 
 export default function ContentCalendarPage(): React.JSX.Element {
   const { brandId } = useBrand();
-  const router = useRouter();
+  const { push } = useRouter();
 
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
@@ -172,7 +172,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
 
   const handleEventClick = (item: ContentCalendarItem) => {
     if (item.itemType === 'article') {
-      router.push(`${COMPOSE_ROUTES.ARTICLE}?id=${item.article.id}`);
+      push(`${COMPOSE_ROUTES.ARTICLE}?id=${item.article.id}`);
       return;
     }
 
@@ -187,13 +187,13 @@ export default function ContentCalendarPage(): React.JSX.Element {
     <div className="flex items-center gap-2">
       <Link
         href={getPublisherPostsHref()}
-        className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 w-9 transition-colors"
+        className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9 transition-colors"
       >
         <HiListBullet />
       </Link>
       <Link
         href={COMPOSE_ROUTES.ARTICLE}
-        className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 w-9 transition-colors"
+        className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9 transition-colors"
       >
         <HiDocumentText />
       </Link>

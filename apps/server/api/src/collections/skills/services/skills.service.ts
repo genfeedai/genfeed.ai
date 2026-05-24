@@ -35,6 +35,55 @@ export class SkillsService {
     private readonly loggerService: LoggerService,
   ) {}
 
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private readStringArray(value: unknown): string[] {
+    return Array.isArray(value)
+      ? value.filter((entry): entry is string => typeof entry === 'string')
+      : [];
+  }
+
+  private readProviders(value: unknown): ByokProvider[] {
+    return this.readStringArray(value).filter(
+      (provider): provider is ByokProvider =>
+        Object.values(ByokProvider).includes(provider as ByokProvider),
+    );
+  }
+
+  /**
+   * Extract domain-specific fields from a payload into the `config` JSON column.
+   * The Prisma Skill model only has: id, mongoId, organizationId, label, config, isDeleted, createdAt, updatedAt.
+   * All other fields are stored here.
+   */
+  private buildSkillConfig(
+    payload: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return {
+      category: payload['category'],
+      channels: payload['channels'],
+      configSchema: payload['configSchema'],
+      defaultInstructions: payload['defaultInstructions'],
+      description: payload['description'],
+      files: payload['files'],
+      inputSchema: payload['inputSchema'],
+      isBuiltIn: payload['isBuiltIn'],
+      isEnabled: payload['isEnabled'],
+      modalities: payload['modalities'],
+      name: payload['name'],
+      outputSchema: payload['outputSchema'],
+      requiredProviders: payload['requiredProviders'],
+      reviewDefaults: payload['reviewDefaults'],
+      slug: payload['slug'],
+      source: payload['source'],
+      sourceListingId: payload['sourceListingId'],
+      status: payload['status'],
+      title: payload['title'],
+      workflowStage: payload['workflowStage'],
+    };
+  }
+
   async createSkill(
     organizationId: string,
     payload: CreateSkillDto,
@@ -45,22 +94,23 @@ export class SkillsService {
       this.requireOrganizationId(organizationId);
     }
 
+    const config = this.buildSkillConfig({
+      ...(payload as unknown as Record<string, unknown>),
+      isBuiltIn,
+      source: payload.source ?? (isBuiltIn ? 'built_in' : 'custom'),
+      status: payload.status ?? 'published',
+    });
+
     const result = await this.prisma.skill.create({
       data: {
-        ...payload,
-        configSchema: payload.configSchema as never,
-        inputSchema: payload.inputSchema as never,
-        isBuiltIn,
+        config,
         isDeleted: false,
+        label: payload.name,
         organizationId: isBuiltIn ? null : organizationId,
-        outputSchema: payload.outputSchema as never,
-        reviewDefaults: payload.reviewDefaults as never,
-        source: payload.source ?? (isBuiltIn ? 'built_in' : 'custom'),
-        status: payload.status ?? 'published',
       } as never,
     });
 
-    return result as unknown as SkillDocument;
+    return this.normalizeSkill(result);
   }
 
   importSkill(
@@ -87,35 +137,51 @@ export class SkillsService {
       throw new NotFoundException('Skill', idOrSlug);
     }
 
+    const baseConfig = this.getConfig(baseSkill);
+
     const customizedSlug =
-      payload.slug?.trim() || this.buildCustomizedSlug(baseSkill.slug);
+      payload.slug?.trim() ||
+      this.buildCustomizedSlug(
+        this.readString(baseConfig.slug) ?? String(baseSkill.id),
+      );
+
+    const customName =
+      payload.name?.trim() ||
+      `${this.readString(baseConfig.name) ?? 'Skill'} Custom`;
+
+    const config = this.buildSkillConfig({
+      category: baseConfig['category'],
+      channels: baseConfig['channels'],
+      configSchema: baseConfig['configSchema'],
+      defaultInstructions: baseConfig['defaultInstructions'],
+      description: payload.description?.trim() || baseConfig['description'],
+      inputSchema: baseConfig['inputSchema'],
+      isBuiltIn: false,
+      isEnabled: true,
+      modalities: baseConfig['modalities'],
+      name: customName,
+      outputSchema: baseConfig['outputSchema'],
+      requiredProviders: baseConfig['requiredProviders'],
+      reviewDefaults: baseConfig['reviewDefaults'],
+      slug: customizedSlug,
+      source: 'custom',
+      status: 'draft',
+      workflowStage: baseConfig['workflowStage'],
+    });
 
     const result = await this.prisma.skill.create({
       data: {
-        baseSkillId: String(baseSkill._id),
-        category: baseSkill.category,
-        channels: baseSkill.channels,
-        configSchema: baseSkill.configSchema as never,
-        defaultInstructions: baseSkill.defaultInstructions,
-        description: payload.description?.trim() || baseSkill.description,
-        inputSchema: baseSkill.inputSchema as never,
-        isBuiltIn: false,
+        config: {
+          ...config,
+          baseSkillId: String(baseSkill.id),
+        },
         isDeleted: false,
-        isEnabled: true,
-        modalities: baseSkill.modalities,
-        name: payload.name?.trim() || `${baseSkill.name} Custom`,
+        label: customName,
         organizationId,
-        outputSchema: baseSkill.outputSchema as never,
-        requiredProviders: baseSkill.requiredProviders,
-        reviewDefaults: baseSkill.reviewDefaults as never,
-        slug: customizedSlug,
-        source: 'custom',
-        status: 'draft',
-        workflowStage: baseSkill.workflowStage,
       } as never,
     });
 
-    return result as unknown as SkillDocument;
+    return this.normalizeSkill(result);
   }
 
   async updateSkill(
@@ -130,41 +196,60 @@ export class SkillsService {
       throw new NotFoundException('Skill', idOrSlug);
     }
 
+    const existingConfig = this.getConfig(skill);
+    const patchConfig = this.buildSkillConfig(
+      payload as unknown as Record<string, unknown>,
+    );
+
+    // Merge only the keys present in payload (filter out undefined)
+    const mergedConfig: Record<string, unknown> = { ...existingConfig };
+    for (const [key, value] of Object.entries(patchConfig)) {
+      if (value !== undefined) {
+        mergedConfig[key] = value;
+      }
+    }
+
     const updated = await this.prisma.skill.update({
-      data: { ...payload, organizationId } as never,
-      where: { id: String(skill._id) },
+      data: {
+        config: mergedConfig,
+        label: payload.name ?? (existingConfig['name'] as string | undefined),
+        organizationId,
+      } as never,
+      where: { id: String(skill.id) },
     });
 
-    return updated as unknown as SkillDocument;
+    return this.normalizeSkill(updated);
   }
 
   async listAllForOrg(organizationId: string): Promise<SkillDocument[]> {
     const results = await this.prisma.skill.findMany({
-      orderBy: [{ createdAt: 'desc' }, { name: 'asc' }, { source: 'asc' }],
+      orderBy: [{ createdAt: 'desc' }],
       where: this.buildAccessibleSkillWhere(organizationId) as never,
     });
-    return results as unknown as SkillDocument[];
+    return results.map((r) => this.normalizeSkill(r));
   }
 
   async getAvailableForOrg(organizationId: string): Promise<SkillDocument[]> {
     const allSkills = await this.prisma.skill.findMany({
-      where: {
-        ...this.buildAccessibleSkillWhere(organizationId),
-        isEnabled: true,
-        status: { not: 'disabled' },
-      } as never,
+      where: this.buildAccessibleSkillWhere(organizationId) as never,
     });
 
     const availableSkills: SkillDocument[] = [];
 
     for (const skill of allSkills) {
+      const doc = this.normalizeSkill(skill);
+
+      if (!doc.isEnabled || doc.status === 'disabled') {
+        continue;
+      }
+
       const hasAllProviders = await this.hasRequiredProviders(
         organizationId,
-        (skill as unknown as SkillDocument).requiredProviders,
+        this.readProviders(doc.requiredProviders),
       );
 
       if (hasAllProviders) {
-        availableSkills.push(skill as unknown as SkillDocument);
+        availableSkills.push(doc);
       }
     }
 
@@ -178,10 +263,23 @@ export class SkillsService {
     const result = await this.prisma.skill.findFirst({
       where: {
         ...this.buildAccessibleSkillWhere(organizationId),
-        OR: [{ id: idOrSlug }, { slug: idOrSlug }],
+        OR: [{ id: idOrSlug }],
       } as never,
     });
-    return result as unknown as SkillDocument | null;
+
+    if (!result) {
+      // Try by slug (stored in config.slug) — fall back to in-memory scan for slug match
+      const all = await this.prisma.skill.findMany({
+        where: this.buildAccessibleSkillWhere(organizationId) as never,
+      });
+      const bySlug = all.find((r) => {
+        const cfg = this.getConfig(r);
+        return cfg.slug === idOrSlug;
+      });
+      return bySlug ? this.normalizeSkill(bySlug) : null;
+    }
+
+    return this.normalizeSkill(result);
   }
 
   async assertBrandSkillEnabled(
@@ -239,33 +337,41 @@ export class SkillsService {
       return [];
     }
 
-    const skills = await this.prisma.skill.findMany({
-      where: {
-        ...this.buildAccessibleSkillWhere(organizationId),
-        slug: { in: enabledSlugs },
-      } as never,
+    const all = await this.prisma.skill.findMany({
+      where: this.buildAccessibleSkillWhere(organizationId) as never,
     });
+
+    // Filter by enabled slugs (config.slug)
+    const skills = all
+      .map((r) => this.normalizeSkill(r))
+      .filter((doc) => {
+        const slug = this.readString(doc.slug);
+        return slug !== undefined && enabledSlugs.includes(slug);
+      });
 
     const resolvedSkills: ResolvedBrandSkill[] = [];
 
-    for (const skill of skills) {
-      const skillDoc = skill as unknown as SkillDocument;
-
+    for (const skillDoc of skills) {
       if (!this.matchesResolutionContext(skillDoc, options)) {
         continue;
       }
 
       const hasAllProviders = await this.hasRequiredProviders(
         organizationId,
-        skillDoc.requiredProviders,
+        this.readProviders(skillDoc.requiredProviders),
       );
 
       if (!hasAllProviders) {
         continue;
       }
 
+      const skillSlug = this.readString(skillDoc.slug);
+      if (!skillSlug) {
+        continue;
+      }
+
       resolvedSkills.push({
-        priority: enabledSlugs.indexOf(skillDoc.slug),
+        priority: enabledSlugs.indexOf(skillSlug),
         skill: skillDoc,
         targetSkill: skillDoc,
         variant: null,
@@ -273,6 +379,37 @@ export class SkillsService {
     }
 
     return resolvedSkills.sort((left, right) => left.priority - right.priority);
+  }
+
+  /**
+   * Normalize a raw Prisma Skill row into a SkillDocument-compatible shape.
+   * Spreads config fields to the top level so existing callers continue to work,
+   * and exposes `id` as both `.id` and `._id` for backward compatibility.
+   */
+  private normalizeSkill(row: Record<string, unknown>): SkillDocument {
+    const config = this.getConfig(row);
+    return {
+      ...config,
+      _id: row.id,
+      id: row.id,
+      createdAt: row.createdAt,
+      isDeleted: row.isDeleted,
+      label: row.label,
+      mongoId: row.mongoId,
+      organizationId: row.organizationId,
+      updatedAt: row.updatedAt,
+    } as unknown as SkillDocument;
+  }
+
+  /**
+   * Read the `config` JSON column from a Prisma row (or a normalized SkillDocument).
+   */
+  private getConfig(row: unknown): Record<string, unknown> {
+    const r = row as Record<string, unknown>;
+    if (r.config && typeof r.config === 'object' && !Array.isArray(r.config)) {
+      return r.config as Record<string, unknown>;
+    }
+    return {};
   }
 
   private buildAccessibleSkillWhere(
@@ -320,23 +457,27 @@ export class SkillsService {
     skill: SkillDocument,
     options: ResolveBrandSkillsOptions,
   ): boolean {
+    const modalities = this.readStringArray(skill.modalities);
+    const channels = this.readStringArray(skill.channels);
+    const skillSlug = this.readString(skill.slug);
+
     if (!skill.isEnabled || skill.status === 'disabled') {
       return false;
     }
 
     if (
       options.modality &&
-      skill.modalities.length > 0 &&
-      !skill.modalities.includes(options.modality) &&
-      !skill.modalities.includes('multi')
+      modalities.length > 0 &&
+      !modalities.includes(options.modality) &&
+      !modalities.includes('multi')
     ) {
       return false;
     }
 
     if (
       options.channel &&
-      skill.channels.length > 0 &&
-      !skill.channels.includes(options.channel)
+      channels.length > 0 &&
+      !channels.includes(options.channel)
     ) {
       return false;
     }
@@ -352,7 +493,7 @@ export class SkillsService {
     if (
       options.requestedSlugs &&
       options.requestedSlugs.length > 0 &&
-      !options.requestedSlugs.includes(skill.slug)
+      (!skillSlug || !options.requestedSlugs.includes(skillSlug))
     ) {
       return false;
     }

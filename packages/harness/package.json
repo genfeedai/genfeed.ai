@@ -3,20 +3,18 @@
     "@genfeedai/interfaces": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "25.6.0",
+    "@types/node": "25.9.1",
     "tsup": "8.5.1",
     "typescript": "6.0.2"
   },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./contracts": {
       "types": "./dist/contracts/index.d.ts",
-      "import": "./dist/contracts/index.mjs",
-      "require": "./dist/contracts/index.js"
+      "default": "./dist/contracts/index.js"
     }
   },
   "files": [
@@ -40,6 +38,7 @@
     "prepublishOnly": "bun run build"
   },
   "sideEffects": false,
+  "type": "module",
   "types": "./dist/index.d.ts",
   "version": "0.1.0"
 }

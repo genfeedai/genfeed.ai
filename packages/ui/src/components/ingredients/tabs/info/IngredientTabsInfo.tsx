@@ -246,7 +246,7 @@ export default function IngredientTabsInfo({
               withWrapper={false}
             >
               {activeAction === 'toggle-avatar'
-                ? 'Saving...'
+                ? 'Saving…'
                 : isAvatarImage
                   ? 'Remove Avatar Type'
                   : 'Mark as Avatar'}
@@ -267,7 +267,7 @@ export default function IngredientTabsInfo({
                   withWrapper={false}
                 >
                   {activeAction === 'set-org-avatar'
-                    ? 'Saving...'
+                    ? 'Saving…'
                     : 'Set as Organization Default Avatar'}
                 </Button>
 
@@ -284,7 +284,7 @@ export default function IngredientTabsInfo({
                   withWrapper={false}
                 >
                   {activeAction === 'set-brand-avatar'
-                    ? 'Saving...'
+                    ? 'Saving…'
                     : 'Set as Brand Default Avatar'}
                 </Button>
               </>

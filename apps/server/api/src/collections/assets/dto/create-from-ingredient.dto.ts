@@ -1,9 +1,10 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsMongoId, IsNotEmpty, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateFromIngredientDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsNotEmpty()
   @ApiProperty({
     description: 'The ingredient ID to copy from',
@@ -22,7 +23,7 @@ export class CreateFromIngredientDto {
   })
   readonly category!: AssetCategory;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsNotEmpty()
   @ApiProperty({
     description: 'The parent brand ID',

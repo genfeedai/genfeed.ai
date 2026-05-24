@@ -19,8 +19,6 @@ import Portal from '@ui/layout/portal/Portal';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import Link from 'next/link';
-import type React from 'react';
-
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 const useIsomorphicLayoutEffect =
@@ -56,65 +54,68 @@ export default function MenuAppSwitcher() {
     return publicData.isSuperAdmin === true;
   }, [user]);
 
-  const allApps: AppLink[] = [
-    // Main Apps (consolidated)
-    {
-      category: 'main',
-      description: 'Content overview & dashboard',
-      href: `${EnvironmentService.apps.app}/overview`,
-      icon: <HiOutlineSquares2X2 className="w-4 h-4" />,
-      label: 'Overview',
-      shortcut: ['⌘', '1'],
-    },
-    {
-      category: 'main',
-      description: 'Create AI content',
-      href: EnvironmentService.apps.app,
-      icon: <HiOutlinePaintBrush className="w-4 h-4" />,
-      label: 'Studio',
-      shortcut: ['⌘', '2'],
-    },
-    {
-      category: 'main',
-      description: 'Manage your content library',
-      href: `${EnvironmentService.apps.app}/library/ingredients`,
-      icon: <HiOutlineFolderOpen className="w-4 h-4" />,
-      label: 'Library',
-      shortcut: ['⌘', '3'],
-    },
-    {
-      category: 'main',
-      description: 'Publish content to social platforms',
-      href: `${EnvironmentService.apps.app}${getPublisherPostsHref()}`,
-      icon: <HiOutlinePaperAirplane className="w-4 h-4" />,
-      label: 'Posts',
-      shortcut: ['⌘', '4'],
-    },
-    {
-      category: 'main',
-      description: 'View performance metrics',
-      href: `${EnvironmentService.apps.app}/analytics/overview`,
-      icon: <HiOutlineChartBar className="w-4 h-4" />,
-      label: 'Analytics',
-      shortcut: ['⌘', '5'],
-    },
-    {
-      category: 'main',
-      description: 'Manage preferences & integrations',
-      href: `${EnvironmentService.apps.app}/settings/personal`,
-      icon: <HiOutlineCog6Tooth className="w-4 h-4" />,
-      label: 'Settings',
-      shortcut: ['⌘', 'S'],
-    },
-    // Admin Apps
-    {
-      category: 'admin',
-      description: 'Govern accounts',
-      href: EnvironmentService.apps.admin,
-      icon: <HiOutlineCog6Tooth className="w-4 h-4" />,
-      label: 'Admin',
-    },
-  ];
+  const allApps = useMemo<AppLink[]>(
+    () => [
+      // Main Apps (consolidated)
+      {
+        category: 'main',
+        description: 'Content overview & dashboard',
+        href: `${EnvironmentService.apps.app}/overview`,
+        icon: <HiOutlineSquares2X2 className="size-4" />,
+        label: 'Overview',
+        shortcut: ['⌘', '1'],
+      },
+      {
+        category: 'main',
+        description: 'Create AI content',
+        href: EnvironmentService.apps.app,
+        icon: <HiOutlinePaintBrush className="size-4" />,
+        label: 'Studio',
+        shortcut: ['⌘', '2'],
+      },
+      {
+        category: 'main',
+        description: 'Manage your content library',
+        href: `${EnvironmentService.apps.app}/library/ingredients`,
+        icon: <HiOutlineFolderOpen className="size-4" />,
+        label: 'Library',
+        shortcut: ['⌘', '3'],
+      },
+      {
+        category: 'main',
+        description: 'Publish content to social platforms',
+        href: `${EnvironmentService.apps.app}${getPublisherPostsHref()}`,
+        icon: <HiOutlinePaperAirplane className="size-4" />,
+        label: 'Posts',
+        shortcut: ['⌘', '4'],
+      },
+      {
+        category: 'main',
+        description: 'View performance metrics',
+        href: `${EnvironmentService.apps.app}/analytics/overview`,
+        icon: <HiOutlineChartBar className="size-4" />,
+        label: 'Analytics',
+        shortcut: ['⌘', '5'],
+      },
+      {
+        category: 'main',
+        description: 'Manage preferences & integrations',
+        href: `${EnvironmentService.apps.app}/settings`,
+        icon: <HiOutlineCog6Tooth className="size-4" />,
+        label: 'Settings',
+        shortcut: ['⌘', 'S'],
+      },
+      // Admin Apps
+      {
+        category: 'admin',
+        description: 'Govern accounts',
+        href: EnvironmentService.apps.admin,
+        icon: <HiOutlineCog6Tooth className="size-4" />,
+        label: 'Admin',
+      },
+    ],
+    [],
+  );
 
   // Filter apps based on user permissions
   const apps = useMemo(() => {
@@ -152,8 +153,10 @@ export default function MenuAppSwitcher() {
   useIsomorphicLayoutEffect(() => {
     if (isOpen && buttonRef.current && dropdownRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      dropdownRef.current.style.top = `${rect.bottom + 8}px`;
-      dropdownRef.current.style.left = `${rect.left}px`;
+      Object.assign(dropdownRef.current.style, {
+        left: `${rect.left}px`,
+        top: `${rect.bottom + 8}px`,
+      });
     }
   }, [isOpen]);
 
@@ -185,99 +188,122 @@ export default function MenuAppSwitcher() {
   const mainApps = apps.filter((app) => app.category === 'main');
   const creativeApps = apps.filter((app) => app.category === 'creative');
   const adminApps = apps.filter((app) => app.category === 'admin');
+  const regularApps = [...mainApps, ...creativeApps];
 
-  function renderShortcuts(app: AppLink): React.ReactElement | null {
-    if (!app.shortcut || currentApp === app.label) {
-      return null;
-    }
-
-    return (
-      <div className="flex gap-2">
-        {app.shortcut.map((key) => (
-          <Kbd
-            key={key}
-            className="bg-white/10 text-white/70 border border-white/20"
-          >
-            {key}
-          </Kbd>
-        ))}
-      </div>
-    );
-  }
-
-  function renderCurrentBadge(): React.ReactElement {
-    return (
-      <Badge className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-white/20 border border-white/[0.08] text-white/90">
-        Current
-      </Badge>
-    );
-  }
-
-  function renderAppLink(
-    app: AppLink,
-    variant: 'grid' | 'list' = 'grid',
-  ): React.ReactElement {
-    const isActive = currentApp === app.label;
-    const baseClasses = cn(
-      'flex items-center transition-all text-white',
-      'hover:bg-white/15 transition-colors duration-200',
-      isActive && 'bg-white/15',
-    );
-
-    const gridClasses = cn(baseClasses, 'gap-2.5 px-2.5 py-2');
-    const listClasses = cn(baseClasses, 'gap-3 px-3 py-2.5 w-full');
-
-    return (
-      <Link
-        key={app.href}
-        href={app.href}
-        className={variant === 'grid' ? gridClasses : listClasses}
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsOpen(false);
-        }}
-      >
-        <div className="flex-shrink-0">{app.icon}</div>
-
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm truncate">{app.label}</div>
-          <div className="text-xs text-white/60 truncate">
-            {app.description}
-          </div>
+  const dropdownContent = (
+    <div className="w-full">
+      {regularApps.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 px-2 mb-2">
+          {regularApps.map((app) => {
+            const isActive = currentApp === app.label;
+            const baseClasses = cn(
+              'flex items-center transition-all text-white',
+              'hover:bg-white/15 transition-colors duration-200',
+              isActive && 'bg-white/15',
+            );
+            return (
+              <Link
+                key={app.href}
+                href={app.href}
+                className={cn(baseClasses, 'gap-2.5 px-2.5 py-2')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                }}
+              >
+                <div className="flex-shrink-0">{app.icon}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm truncate">
+                    {app.label}
+                  </div>
+                  <div className="text-xs text-white/60 truncate">
+                    {app.description}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {app.shortcut && currentApp !== app.label && (
+                    <div className="flex gap-2">
+                      {app.shortcut.map((key) => (
+                        <Kbd
+                          key={key}
+                          className="bg-white/10 text-white/70 border border-white/20"
+                        >
+                          {key}
+                        </Kbd>
+                      ))}
+                    </div>
+                  )}
+                  {isActive && (
+                    <Badge className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-white/20 border border-white/[0.08] text-white/90">
+                      Current
+                    </Badge>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
         </div>
+      )}
 
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {renderShortcuts(app)}
-          {isActive && renderCurrentBadge()}
-        </div>
-      </Link>
-    );
-  }
-
-  function renderDropdownContent(): React.ReactElement {
-    const regularApps = [...mainApps, ...creativeApps];
-
-    return (
-      <div className="w-full">
-        {regularApps.length > 0 && (
-          <div className="grid grid-cols-2 gap-2 px-2 mb-2">
-            {regularApps.map((app) => renderAppLink(app, 'grid'))}
+      {adminApps.length > 0 && (
+        <>
+          {regularApps.length > 0 && (
+            <div className="my-2 border-t border-white/[0.08]" />
+          )}
+          <div className="px-2">
+            {adminApps.map((app) => {
+              const isActive = currentApp === app.label;
+              const baseClasses = cn(
+                'flex items-center transition-all text-white',
+                'hover:bg-white/15 transition-colors duration-200',
+                isActive && 'bg-white/15',
+              );
+              return (
+                <Link
+                  key={app.href}
+                  href={app.href}
+                  className={cn(baseClasses, 'gap-3 px-3 py-2.5 w-full')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsOpen(false);
+                  }}
+                >
+                  <div className="flex-shrink-0">{app.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">
+                      {app.label}
+                    </div>
+                    <div className="text-xs text-white/60 truncate">
+                      {app.description}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {app.shortcut && currentApp !== app.label && (
+                      <div className="flex gap-2">
+                        {app.shortcut.map((key) => (
+                          <Kbd
+                            key={key}
+                            className="bg-white/10 text-white/70 border border-white/20"
+                          >
+                            {key}
+                          </Kbd>
+                        ))}
+                      </div>
+                    )}
+                    {isActive && (
+                      <Badge className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-white/20 border border-white/[0.08] text-white/90">
+                        Current
+                      </Badge>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
-        )}
-
-        {adminApps.length > 0 && (
-          <>
-            {regularApps.length > 0 && (
-              <div className="my-2 border-t border-white/[0.08]" />
-            )}
-            <div className="px-2">
-              {adminApps.map((app) => renderAppLink(app, 'list'))}
-            </div>
-          </>
-        )}
-      </div>
-    );
-  }
+        </>
+      )}
+    </div>
+  );
 
   return (
     <div className="flex items-center" ref={buttonRef}>
@@ -306,7 +332,7 @@ export default function MenuAppSwitcher() {
             src={logoUrl}
             alt={EnvironmentService.LOGO_ALT}
             className={cn(
-              'h-6 w-6 object-contain dark:invert',
+              'size-6 object-contain dark:invert',
               isLoading && 'opacity-50',
             )}
             width={24}
@@ -319,7 +345,7 @@ export default function MenuAppSwitcher() {
 
         {isLoading && (
           <span className="absolute inset-0 flex items-center justify-center">
-            <span className="animate-spin h-3 w-3 border-2 border-primary border-t-transparent rounded-full opacity-50" />
+            <span className="animate-spin size-3 border-2 border-primary border-t-transparent rounded-full opacity-50" />
           </span>
         )}
       </Button>
@@ -329,13 +355,14 @@ export default function MenuAppSwitcher() {
           <ul
             ref={dropdownRef}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
             className={cn(
               BG_BLUR,
               BORDER_WHITE_30,
-              'app-switcher-dropdown z-[9999] w-[480px] fixed p-2 list-none',
+              'app-switcher-dropdown z-50 w-[480px] fixed p-2 list-none',
             )}
           >
-            {renderDropdownContent()}
+            {dropdownContent}
           </ul>
         </Portal>
       )}

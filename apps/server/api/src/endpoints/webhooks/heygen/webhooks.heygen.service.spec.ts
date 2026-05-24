@@ -299,13 +299,9 @@ describe('HeygenWebhookService', () => {
       videoUrl: 'https://cdn.heygen.com/clip.mp4',
     });
     expect(deps.clipProjectsService.patch).toHaveBeenCalledWith(projectId, {
-      $set: {
-        progress: 100,
-        status: 'completed',
-      },
-      $unset: {
-        error: '',
-      },
+      error: null,
+      progress: 100,
+      status: 'completed',
     });
   });
 

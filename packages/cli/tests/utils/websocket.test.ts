@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { BackgroundTaskUpdate } from '../../src/utils/websocket.js';
+import type { BackgroundTaskUpdate } from '../../src/utils/websocket';
 
 // Mock socket.io-client
 const mockSocket = {
@@ -19,18 +19,18 @@ async function flushMicrotasks(turns: number = 5): Promise<void> {
 }
 
 describe('utils/websocket', () => {
-  let waitForCompletion: typeof import('../../src/utils/websocket.js').waitForCompletion;
+  let waitForCompletion: typeof import('../../src/utils/websocket').waitForCompletion;
 
   beforeEach(async () => {
     vi.useFakeTimers();
     vi.clearAllMocks();
     mockSocket.on.mockReset();
     mockSocket.disconnect.mockReset();
-    const store = await import('../../src/config/store.js');
+    const store = await import('../../src/config/store');
     vi.spyOn(store, 'getApiKey').mockResolvedValue('test-api-key');
     vi.spyOn(store, 'getApiUrl').mockResolvedValue('https://api.genfeed.ai/v1');
 
-    const websocket = await import('../../src/utils/websocket.js');
+    const websocket = await import('../../src/utils/websocket');
     waitForCompletion = websocket.waitForCompletion;
   });
 

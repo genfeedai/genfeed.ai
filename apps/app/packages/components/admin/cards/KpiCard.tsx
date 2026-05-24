@@ -23,7 +23,7 @@ export default function KpiCard({
       <div className="p-6">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-sm text-foreground/60">{title}</span>
-          {Icon && <Icon className="h-5 w-5 text-foreground/40" />}
+          {Icon && <Icon className="size-5 text-foreground/40" />}
         </div>
         <div className={`text-2xl font-bold ${colorClass}`}>{value}</div>
         {description && (

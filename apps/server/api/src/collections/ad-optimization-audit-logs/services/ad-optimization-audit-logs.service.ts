@@ -39,7 +39,7 @@ export class AdOptimizationAuditLogsService {
     },
   ): Promise<Record<string, unknown>[]> {
     return this.prisma.adOptimizationAuditLog.findMany({
-      orderBy: { runDate: 'desc' },
+      orderBy: { createdAt: 'desc' },
       skip: params?.offset ?? 0,
       take: params?.limit ?? 50,
       where: {

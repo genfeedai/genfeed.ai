@@ -36,7 +36,7 @@ export default function ModalCameraMovement({
     serviceFactory: (token) => CameraMovementsService.getInstance(token),
   });
 
-  const handleChange = (
+  const updateModalCameraMovement = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
@@ -64,7 +64,7 @@ export default function ModalCameraMovement({
             type="text"
             name="label"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalCameraMovement}
             placeholder="Enter display label"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -76,7 +76,7 @@ export default function ModalCameraMovement({
             type="text"
             name="key"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalCameraMovement}
             placeholder="lowercase-with-hyphens"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -90,7 +90,7 @@ export default function ModalCameraMovement({
           <Input
             name="description"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalCameraMovement}
             placeholder="Enter description (optional)"
             isDisabled={isSubmitting}
           />

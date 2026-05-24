@@ -37,7 +37,7 @@ describe('TaskQueryDto', () => {
 
       const errors = await validate(dto);
 
-      expect(errors[0]?.constraints).toHaveProperty('isMongoId');
+      expect(errors[0]?.constraints).toHaveProperty('isEntityId');
     });
   });
 });

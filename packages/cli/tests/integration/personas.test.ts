@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { JsonApiCollectionResponse } from '../../src/api/json-api.js';
-import { flattenCollection } from '../../src/api/json-api.js';
-import { createTestClient, hasCredentials } from './setup.js';
+import type { JsonApiCollectionResponse } from '../../src/api/json-api';
+import { flattenCollection } from '../../src/api/json-api';
+import { createTestClient, hasCredentials } from './setup';
 
 interface Persona {
   id: string;

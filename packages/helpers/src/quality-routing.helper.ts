@@ -35,6 +35,13 @@ export const QUALITY_TIER_OPTIONS: QualityTierOption[] = [
 
 export const DEFAULT_QUALITY_TIER = QualityTier.HIGH;
 
+const QUALITY_TIER_ORDER: QualityTier[] = [
+  QualityTier.ULTRA,
+  QualityTier.HIGH,
+  QualityTier.STANDARD,
+  QualityTier.BASIC,
+];
+
 export const IMAGE_QUALITY_MODELS: Record<QualityTier, string[]> = {
   [QualityTier.BASIC]: [
     MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO,
@@ -155,16 +162,10 @@ export function resolveQualityToModel(
     }
   }
 
-  const tierOrder: QualityTier[] = [
-    QualityTier.ULTRA,
-    QualityTier.HIGH,
-    QualityTier.STANDARD,
-    QualityTier.BASIC,
-  ];
-  const currentTierIndex = tierOrder.indexOf(quality);
+  const currentTierIndex = QUALITY_TIER_ORDER.indexOf(quality);
 
-  for (let i = currentTierIndex + 1; i < tierOrder.length; i++) {
-    const fallbackTier = tierOrder[i];
+  for (let i = currentTierIndex + 1; i < QUALITY_TIER_ORDER.length; i++) {
+    const fallbackTier = QUALITY_TIER_ORDER[i];
     const fallbackModels = qualityModels[fallbackTier];
 
     for (const modelKey of fallbackModels) {
@@ -200,15 +201,11 @@ export function getQualityTierForModel(
     return DEFAULT_QUALITY_TIER;
   }
 
-  const tiers: QualityTier[] = [
-    QualityTier.ULTRA,
-    QualityTier.HIGH,
-    QualityTier.STANDARD,
-    QualityTier.BASIC,
-  ];
-
-  for (const tier of tiers) {
-    if (qualityModels[tier].includes(modelKey as string)) {
+  for (const tier of QUALITY_TIER_ORDER) {
+    for (const qualityModelKey of qualityModels[tier]) {
+      if (qualityModelKey !== modelKey) {
+        continue;
+      }
       return tier;
     }
   }
@@ -260,38 +257,36 @@ export function resolveQualityToModelFromDb(
     (m) => m.category === category && m.isActive && !m.isDeleted,
   );
 
-  const tierMatch = activeModels.find(
-    (m) =>
-      m.qualityTier === quality && isModelFormatCompatibleFromDoc(m, format),
-  );
-  if (tierMatch) {
-    return tierMatch;
-  }
-
-  const tierOrder: QualityTier[] = [
-    QualityTier.ULTRA,
-    QualityTier.HIGH,
-    QualityTier.STANDARD,
-    QualityTier.BASIC,
-  ];
-  const currentIndex = tierOrder.indexOf(quality);
-
-  for (let i = currentIndex + 1; i < tierOrder.length; i++) {
-    const fallbackTier = tierOrder[i];
-    const fallbackMatch = activeModels.find(
-      (m) =>
-        m.qualityTier === fallbackTier &&
-        isModelFormatCompatibleFromDoc(m, format),
-    );
-    if (fallbackMatch) {
-      return fallbackMatch;
+  for (const model of activeModels) {
+    if (
+      model.qualityTier === quality &&
+      isModelFormatCompatibleFromDoc(model, format)
+    ) {
+      return model;
     }
   }
 
-  const anyMatch = activeModels.find((m) =>
-    isModelFormatCompatibleFromDoc(m, format),
-  );
-  return anyMatch ?? null;
+  const currentIndex = QUALITY_TIER_ORDER.indexOf(quality);
+
+  for (let i = currentIndex + 1; i < QUALITY_TIER_ORDER.length; i++) {
+    const fallbackTier = QUALITY_TIER_ORDER[i];
+    for (const model of activeModels) {
+      if (
+        model.qualityTier === fallbackTier &&
+        isModelFormatCompatibleFromDoc(model, format)
+      ) {
+        return model;
+      }
+    }
+  }
+
+  for (const model of activeModels) {
+    if (isModelFormatCompatibleFromDoc(model, format)) {
+      return model;
+    }
+  }
+
+  return null;
 }
 
 /**

@@ -3,10 +3,6 @@
  * AI-powered content scheduling and automation
  */
 
-import {
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   IAIScheduleRecommendation,
   IAutoPostingRule,
@@ -20,9 +16,16 @@ import type {
   RepurposeFormat,
 } from '@genfeedai/interfaces/automation/smart-scheduler.interface';
 import { EnvironmentService } from '@services/core/environment.service';
+import {
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
+import { ServiceInstanceManager } from '@services/core/service-instance-manager';
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+const smartSchedulerInstances =
+  new ServiceInstanceManager<SmartSchedulerServiceClass>();
 
 class SmartSchedulerServiceClass {
   private baseURL: string;
@@ -285,19 +288,21 @@ class SmartSchedulerServiceClass {
 }
 
 export class SmartSchedulerService {
-  private static instances: Map<string, SmartSchedulerServiceClass> = new Map();
-
   static getInstance(token: string): SmartSchedulerServiceClass {
-    if (!SmartSchedulerService.instances.has(token)) {
-      SmartSchedulerService.instances.set(
-        token,
-        new SmartSchedulerServiceClass(EnvironmentService.getApiUrl(), token),
-      );
+    const cached = smartSchedulerInstances.get(SmartSchedulerService, token);
+    if (cached) {
+      return cached;
     }
-    return SmartSchedulerService.instances.get(token)!;
+
+    const instance = new SmartSchedulerServiceClass(
+      EnvironmentService.getApiUrl(),
+      token,
+    );
+    smartSchedulerInstances.set(SmartSchedulerService, token, instance);
+    return instance;
   }
 
   static clearInstance(token: string): void {
-    SmartSchedulerService.instances.delete(token);
+    smartSchedulerInstances.clear(SmartSchedulerService, token);
   }
 }

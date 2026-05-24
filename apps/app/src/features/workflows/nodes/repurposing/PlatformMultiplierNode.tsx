@@ -113,7 +113,7 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
   return (
     <NodeCard minWidth="320px">
       <NodeHeader
-        icon={<CopyIcon className="h-4 w-4" />}
+        icon={<CopyIcon className="size-4" />}
         title="Platform Multiplier"
         badge={
           <NodeBadge variant="purple">
@@ -129,9 +129,7 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
 
       {/* Platform Selection */}
       <div className="space-y-2">
-        <label className="text-xs text-muted-foreground">
-          Target Platforms
-        </label>
+        <span className="text-xs text-muted-foreground">Target Platforms</span>
         <div className="grid grid-cols-2 gap-2">
           {PLATFORM_OPTIONS.map((platform) => (
             <SelectableButton
@@ -153,7 +151,7 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
       {/* Caption Generation Toggle */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-sm">Generate platform captions</label>
+          <span className="text-sm">Generate platform captions</span>
           <Toggle
             checked={data.generateCaptions}
             onChange={handleToggleCaptions}
@@ -209,7 +207,7 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
                         }
                         className="flex-1"
                       >
-                        <DownloadIcon className="h-4 w-4" />
+                        <DownloadIcon className="size-4" />
                         Download
                       </Button>
                       {output.caption && (
@@ -240,7 +238,7 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
           fullWidth
           onClick={handleGenerate}
           disabled={!canGenerate}
-          icon={<SparklesIcon className="h-4 w-4" />}
+          icon={<SparklesIcon className="size-4" />}
         >
           Generate for {data.targetPlatforms.length} Platform
           {data.targetPlatforms.length !== 1 ? 's' : ''}
@@ -258,15 +256,14 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
 
 export const PlatformMultiplierNode = memo(PlatformMultiplierNodeComponent);
 
-export const platformMultiplierNodeDefaults: Partial<PlatformMultiplierNodeData> =
-  {
-    captionTone: 'casual',
-    generateCaptions: true,
-    inputMedia: null,
-    inputType: null,
-    jobId: null,
-    label: 'Platform Multiplier',
-    outputs: [],
-    status: WorkflowNodeStatus.IDLE,
-    targetPlatforms: ['tiktok', 'youtube_shorts', 'instagram_reels'],
-  };
+const platformMultiplierNodeDefaults: Partial<PlatformMultiplierNodeData> = {
+  captionTone: 'casual',
+  generateCaptions: true,
+  inputMedia: null,
+  inputType: null,
+  jobId: null,
+  label: 'Platform Multiplier',
+  outputs: [],
+  status: WorkflowNodeStatus.IDLE,
+  targetPlatforms: ['tiktok', 'youtube_shorts', 'instagram_reels'],
+};

@@ -30,12 +30,12 @@ export default function Container({
 
   return (
     <div
-      className={`mx-auto w-full max-w-[1560px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 ${className}`}
+      className={`mx-auto w-full max-w-[1280px] px-5 py-4 sm:px-6 lg:px-6 ${className}`}
     >
       {(label || hasHeaderRight) && (
         <div
           className={cn(
-            'mb-5 flex items-start gap-4',
+            'mb-4 flex items-center gap-4 border-b border-border pb-3',
             label ? 'justify-between' : 'justify-end',
           )}
         >

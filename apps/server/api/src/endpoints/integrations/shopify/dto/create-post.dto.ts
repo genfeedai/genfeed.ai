@@ -1,9 +1,9 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMinSize,
   IsArray,
   IsDateString,
-  IsMongoId,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -14,7 +14,7 @@ export class CreatePostDto {
     description: 'Genfeed ingredient (content) ID to publish',
     example: '507f1f77bcf86cd799439011',
   })
-  @IsMongoId()
+  @IsEntityId()
   @IsNotEmpty()
   ingredientId!: string;
 

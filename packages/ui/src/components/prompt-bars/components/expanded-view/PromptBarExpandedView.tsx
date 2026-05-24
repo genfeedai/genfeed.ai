@@ -1,5 +1,6 @@
 'use client';
 
+import { usePromptBarInternal } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import {
   DropdownDirection,
   IngredientCategory,
@@ -7,7 +8,6 @@ import {
   TagCategory,
 } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { PromptBarExpandedViewProps } from '@genfeedai/props/studio/prompt-bar.props';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarEssentials from '@ui/prompt-bars/components/essentials/PromptBarEssentials';
 import PromptBarFolderSelector from '@ui/prompt-bars/components/folder-selector/PromptBarFolderSelector';
@@ -30,116 +30,10 @@ function shouldShowSpeechInput(
   return categoryType === IngredientCategory.VIDEO && hasSpeechValue;
 }
 
-const PromptBarExpandedView = memo(function PromptBarExpandedView({
-  currentConfig,
-  pathname,
-  categoryType,
-  currentModelCategory,
-  form,
-  isCollapsed,
-  setIsCollapsed,
-  isAutoMode,
-  setIsAutoMode,
-  isDisabledState,
-  isGenerateBlocked,
-  controlClass,
-  iconButtonClass,
-  isAdvancedMode,
-  isAdvancedControlsEnabled,
-  models,
-  trainings,
-  selectedModels,
-  trainingIds,
-  normalizedWatchedModels,
-  watchedModels,
-  watchedModel,
-  watchedFormat,
-  watchedWidth,
-  watchedHeight,
-  watchedDuration,
-  watchedSpeech,
-  watchedQuality,
-  subscriptionTier,
-  isModelNotSet,
-  hasAudioToggleValue,
-  hasSpeechValue,
-  hasModelWithoutDurationEditingValue,
-  hasAnyResolutionOptionsValue,
-  hasEndFrameValue,
-  hasAnyImagenModelValue,
-  isOnlyImagenModelsValue,
-  supportsInterpolation,
-  supportsMultipleReferences,
-  requiresReferences,
-  maxReferenceCount,
-  folders,
-  profiles,
-  filteredPresets,
-  filteredScenes,
-  filteredFontFamilies,
-  filteredStyles,
-  filteredCameras,
-  filteredLightings,
-  filteredLenses,
-  filteredCameraMovements,
-  filteredMoods,
-  references,
-  setReferences,
-  endFrame,
-  setEndFrame,
-  referenceSource,
-  setReferenceSource,
-  selectedPreset,
-  setSelectedPreset,
-  selectedProfile,
-  setSelectedProfile,
-  formatIcon,
-  videoDurations,
-  triggerConfigChange,
-  refocusTextarea,
-  handleTextareaChange,
-  onTextChange,
-  handleCopy,
-  enhancePrompt,
-  handleUndo,
-  handleSubmitForm,
-  suggestions,
-  onSuggestionSelect,
-  showSuggestionsWhenEmpty,
-  maxSuggestions,
-  openGallery,
-  openUpload,
-  isDragActive = false,
-  dragError = null,
-  attachedPromptAssets = [],
-  onDragEnter = () => {},
-  onDragLeave = () => {},
-  onDropFiles = async () => {},
-  onRemoveAttachedAsset = () => {},
-  onBrowseAssets = () => {},
-  textareaRef,
-  textareaRegister,
-  modelDropdownRef,
-  promptBarHeight,
-  getModelDefaultDuration,
-  getDefaultVideoResolution,
-  getMinFromAllModels,
-  getModelMaxOutputs,
-  setTextValue,
-  isSupported,
-  toggleVoice,
-  isRecording,
-  isProcessing,
-  isGenerating,
-  isEnhancing,
-  isGenerateDisabled,
-  previousPrompt,
-  selectedModelCost,
-  activeGenerations,
-  generateLabel,
-  avatars = [],
-  voices = [],
-}: PromptBarExpandedViewProps) {
+const PromptBarExpandedView = memo(function PromptBarExpandedView() {
+  const ctx = usePromptBarInternal();
+  const isCollapsible = ctx.features.collapsible ?? true;
+  const hasDragDrop = ctx.features.dragDrop ?? true;
   const [isQuickOptionsOpen, setIsQuickOptionsOpen] = useState(false);
 
   const handleQuickOptionsToggle = useCallback(
@@ -149,14 +43,14 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView({
 
   const inlineSettingsContent = useMemo(() => {
     const hasMetadataControls =
-      currentConfig.buttons?.presets ||
-      currentConfig.buttons?.scene ||
-      currentConfig.buttons?.style ||
-      currentConfig.buttons?.camera ||
-      currentConfig.buttons?.mood ||
-      currentConfig.buttons?.fontFamily;
-    const hasTags = Boolean(currentConfig.buttons?.tags);
-    const hasFolder = Boolean(folders?.length);
+      ctx.currentConfig.buttons?.presets ||
+      ctx.currentConfig.buttons?.scene ||
+      ctx.currentConfig.buttons?.style ||
+      ctx.currentConfig.buttons?.camera ||
+      ctx.currentConfig.buttons?.mood ||
+      ctx.currentConfig.buttons?.fontFamily;
+    const hasTags = Boolean(ctx.currentConfig.buttons?.tags);
+    const hasFolder = Boolean(ctx.folders?.length);
 
     if (!hasMetadataControls && !hasTags && !hasFolder) {
       return null;
@@ -165,38 +59,38 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView({
     return (
       <>
         <PromptBarFolderSelector
-          folders={folders}
-          form={form}
-          controlClass={controlClass}
-          isDisabled={isDisabledState}
+          folders={ctx.folders}
+          form={ctx.form}
+          controlClass={ctx.controlClass}
+          isDisabled={ctx.isDisabledState}
           triggerDisplay="icon-only"
         />
 
         <PromptBarMetadataSelectors
-          currentConfig={currentConfig}
-          filteredPresets={filteredPresets}
-          profiles={profiles ?? []}
-          filteredScenes={filteredScenes}
-          filteredFontFamilies={filteredFontFamilies}
-          filteredStyles={filteredStyles}
-          filteredCameras={filteredCameras}
-          filteredLightings={filteredLightings}
-          filteredLenses={filteredLenses}
-          filteredCameraMovements={filteredCameraMovements}
-          filteredMoods={filteredMoods}
-          form={form}
-          selectedPreset={selectedPreset}
-          setSelectedPreset={setSelectedPreset}
-          selectedProfile={selectedProfile}
-          setSelectedProfile={setSelectedProfile}
-          refocusTextarea={refocusTextarea}
-          isDisabledState={isDisabledState}
-          controlClass={controlClass}
+          currentConfig={ctx.currentConfig}
+          filteredPresets={ctx.filteredPresets}
+          profiles={ctx.profiles ?? []}
+          filteredScenes={ctx.filteredScenes}
+          filteredFontFamilies={ctx.filteredFontFamilies}
+          filteredStyles={ctx.filteredStyles}
+          filteredCameras={ctx.filteredCameras}
+          filteredLightings={ctx.filteredLightings}
+          filteredLenses={ctx.filteredLenses}
+          filteredCameraMovements={ctx.filteredCameraMovements}
+          filteredMoods={ctx.filteredMoods}
+          form={ctx.form}
+          selectedPreset={ctx.selectedPreset}
+          setSelectedPreset={ctx.setSelectedPreset}
+          selectedProfile={ctx.selectedProfile}
+          setSelectedProfile={ctx.setSelectedProfile}
+          refocusTextarea={ctx.refocusTextarea}
+          isDisabledState={ctx.isDisabledState}
+          controlClass={ctx.controlClass}
           triggerDisplay="icon-only"
-          onTextChange={onTextChange}
-          triggerConfigChange={triggerConfigChange}
+          onTextChange={ctx.onTextChange}
+          triggerConfigChange={ctx.triggerConfigChange}
           onModelSelect={(modelKey) => {
-            form.setValue('models', [modelKey], {
+            ctx.form.setValue('models', [modelKey], {
               shouldValidate: true,
             });
           }}
@@ -205,13 +99,13 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView({
         {hasTags && (
           <DropdownTags
             direction={DropdownDirection.UP}
-            isDisabled={isDisabledState}
-            className={controlClass}
+            isDisabled={ctx.isDisabledState}
+            className={ctx.controlClass}
             scope={TagCategory.INGREDIENT}
             showLabel={false}
-            selectedTags={(form.getValues('tags') ?? []).filter(Boolean)}
+            selectedTags={(ctx.form.getValues('tags') ?? []).filter(Boolean)}
             onChange={(tagIds) => {
-              form.setValue('tags', tagIds, {
+              ctx.form.setValue('tags', tagIds, {
                 shouldValidate: true,
               });
             }}
@@ -219,36 +113,17 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView({
         )}
       </>
     );
-  }, [
-    currentConfig,
-    folders,
-    form,
-    controlClass,
-    isDisabledState,
-    filteredPresets,
-    profiles,
-    filteredScenes,
-    filteredFontFamilies,
-    filteredStyles,
-    filteredCameras,
-    filteredLightings,
-    filteredLenses,
-    filteredCameraMovements,
-    filteredMoods,
-    selectedPreset,
-    setSelectedPreset,
-    selectedProfile,
-    setSelectedProfile,
-    refocusTextarea,
-    onTextChange,
-    triggerConfigChange,
-  ]);
+  }, [ctx]);
 
-  const shouldShowSpeech = shouldShowSpeechInput(categoryType, hasSpeechValue);
-  const shouldShowQuickOptions =
-    isQuickOptionsOpen ||
-    (categoryType === IngredientCategory.VIDEO &&
-      Boolean(form.getValues('isBackgroundMusicEnabled')));
+  const shouldShowSpeech = shouldShowSpeechInput(
+    ctx.categoryType,
+    ctx.hasSpeechValue,
+  );
+  const shouldShowQuickOptions = !isCollapsible
+    ? shouldShowSpeech || isQuickOptionsOpen
+    : isQuickOptionsOpen ||
+      (ctx.categoryType === IngredientCategory.VIDEO &&
+        Boolean(ctx.form.getValues('isBackgroundMusicEnabled')));
 
   const secondaryContent = useMemo(() => {
     if (!shouldShowSpeech && !shouldShowQuickOptions) {
@@ -260,50 +135,50 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView({
         {shouldShowSpeech && (
           <PromptBarSpeechInput
             shouldRender={true}
-            isAvatarRoute={categoryType === IngredientCategory.AVATAR}
-            watchedSpeech={watchedSpeech}
-            isDisabled={isDisabledState}
+            isAvatarRoute={ctx.categoryType === IngredientCategory.AVATAR}
+            watchedSpeech={ctx.watchedSpeech}
+            isDisabled={ctx.isDisabledState}
             charLimit={AVATAR_SPEECH_CHAR_LIMIT}
             onSpeechChange={(value) => {
-              form.setValue('speech', value, { shouldValidate: true });
+              ctx.form.setValue('speech', value, { shouldValidate: true });
             }}
           />
         )}
 
         {shouldShowQuickOptions && (
           <PromptBarQuickOptions
-            currentConfig={currentConfig}
-            pathname={pathname}
-            categoryType={categoryType}
-            currentModelCategory={currentModelCategory}
-            form={form}
-            isDisabledState={isDisabledState}
-            controlClass={controlClass}
-            iconButtonClass={iconButtonClass}
-            isAdvancedControlsEnabled={isAdvancedControlsEnabled}
-            normalizedWatchedModels={normalizedWatchedModels}
-            watchedFormat={watchedFormat}
-            watchedWidth={watchedWidth}
-            watchedHeight={watchedHeight}
-            hasAudioToggleValue={hasAudioToggleValue}
-            hasEndFrameValue={hasEndFrameValue}
-            hasAnyImagenModelValue={hasAnyImagenModelValue}
-            isOnlyImagenModelsValue={isOnlyImagenModelsValue}
-            supportsInterpolation={supportsInterpolation}
-            supportsMultipleReferences={supportsMultipleReferences}
-            requiresReferences={requiresReferences}
-            maxReferenceCount={maxReferenceCount}
-            folders={folders}
-            references={references}
-            setReferences={setReferences}
-            endFrame={endFrame}
-            setEndFrame={setEndFrame}
-            referenceSource={referenceSource}
-            setReferenceSource={setReferenceSource}
-            triggerConfigChange={triggerConfigChange}
-            openGallery={openGallery}
-            openUpload={openUpload}
-            hasAnyResolutionOptionsValue={hasAnyResolutionOptionsValue}
+            currentConfig={ctx.currentConfig}
+            pathname={ctx.pathname}
+            categoryType={ctx.categoryType}
+            currentModelCategory={ctx.currentModelCategory}
+            form={ctx.form}
+            isDisabledState={ctx.isDisabledState}
+            controlClass={ctx.controlClass}
+            iconButtonClass={ctx.iconButtonClass}
+            isAdvancedControlsEnabled={ctx.isAdvancedControlsEnabled}
+            normalizedWatchedModels={ctx.normalizedWatchedModels}
+            watchedFormat={ctx.watchedFormat}
+            watchedWidth={ctx.watchedWidth}
+            watchedHeight={ctx.watchedHeight}
+            hasAudioToggleValue={ctx.hasAudioToggleValue}
+            hasEndFrameValue={ctx.hasEndFrameValue}
+            hasAnyImagenModelValue={ctx.hasAnyImagenModelValue}
+            isOnlyImagenModelsValue={ctx.isOnlyImagenModelsValue}
+            supportsInterpolation={ctx.supportsInterpolation}
+            supportsMultipleReferences={ctx.supportsMultipleReferences}
+            requiresReferences={ctx.requiresReferences}
+            maxReferenceCount={ctx.maxReferenceCount}
+            folders={ctx.folders}
+            references={ctx.references}
+            setReferences={ctx.setReferences}
+            endFrame={ctx.endFrame}
+            setEndFrame={ctx.setEndFrame}
+            referenceSource={ctx.referenceSource}
+            setReferenceSource={ctx.setReferenceSource}
+            triggerConfigChange={ctx.triggerConfigChange}
+            openGallery={ctx.openGallery}
+            openUpload={ctx.openUpload}
+            hasAnyResolutionOptionsValue={ctx.hasAnyResolutionOptionsValue}
             isExpanded={isQuickOptionsOpen}
             onToggleExpanded={handleQuickOptionsToggle}
             showToggle={false}
@@ -315,68 +190,137 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView({
   }, [
     shouldShowSpeech,
     shouldShowQuickOptions,
-    categoryType,
-    watchedSpeech,
-    isDisabledState,
-    form,
-    currentConfig,
-    pathname,
-    currentModelCategory,
-    controlClass,
-    iconButtonClass,
-    isAdvancedControlsEnabled,
-    normalizedWatchedModels,
-    watchedFormat,
-    watchedWidth,
-    watchedHeight,
-    hasAudioToggleValue,
-    hasEndFrameValue,
-    hasAnyImagenModelValue,
-    isOnlyImagenModelsValue,
-    supportsInterpolation,
-    supportsMultipleReferences,
-    requiresReferences,
-    maxReferenceCount,
-    folders,
-    references,
-    setReferences,
-    endFrame,
-    setEndFrame,
-    referenceSource,
-    setReferenceSource,
-    triggerConfigChange,
-    openGallery,
-    openUpload,
-    hasAnyResolutionOptionsValue,
+    ctx,
     isQuickOptionsOpen,
     handleQuickOptionsToggle,
     inlineSettingsContent,
   ]);
 
   const dropLabel = useMemo(() => {
-    if (currentModelCategory === ModelCategory.VIDEO) {
+    if (ctx.currentModelCategory === ModelCategory.VIDEO) {
       return 'Drop image to attach as a start frame';
     }
-
     return 'Drop image to attach as a reference';
-  }, [currentModelCategory]);
+  }, [ctx.currentModelCategory]);
+
+  const essentials = (
+    <PromptBarEssentials
+      currentConfig={ctx.currentConfig}
+      pathname={ctx.pathname}
+      categoryType={ctx.categoryType}
+      currentModelCategory={ctx.currentModelCategory}
+      features={ctx.features}
+      form={ctx.form}
+      isDisabledState={ctx.isDisabledState}
+      isGenerateBlocked={ctx.isGenerateBlocked}
+      controlClass={ctx.controlClass}
+      iconButtonClass={ctx.iconButtonClass}
+      isAdvancedMode={ctx.isAdvancedMode}
+      isAdvancedControlsEnabled={ctx.isAdvancedControlsEnabled}
+      isAutoMode={ctx.isAutoMode}
+      setIsAutoMode={ctx.setIsAutoMode}
+      models={ctx.models}
+      trainings={ctx.trainings}
+      selectedModels={ctx.selectedModels}
+      trainingIds={ctx.trainingIds}
+      normalizedWatchedModels={ctx.normalizedWatchedModels}
+      watchedModels={ctx.watchedModels}
+      watchedModel={ctx.watchedModel}
+      watchedFormat={ctx.watchedFormat}
+      watchedDuration={ctx.watchedDuration}
+      watchedQuality={ctx.watchedQuality}
+      subscriptionTier={ctx.subscriptionTier}
+      isModelNotSet={ctx.isModelNotSet}
+      hasModelWithoutDurationEditingValue={
+        ctx.hasModelWithoutDurationEditingValue
+      }
+      formatIcon={ctx.formatIcon}
+      videoDurations={ctx.videoDurations}
+      references={ctx.references}
+      referenceSource={ctx.referenceSource}
+      setReferences={ctx.setReferences}
+      setReferenceSource={ctx.setReferenceSource}
+      folders={ctx.folders}
+      triggerConfigChange={ctx.triggerConfigChange}
+      handleTextareaChange={ctx.handleTextareaChange}
+      onTextChange={ctx.onTextChange}
+      onToggleQuickOptions={handleQuickOptionsToggle}
+      isQuickOptionsOpen={isQuickOptionsOpen}
+      handleCopy={ctx.handleCopy}
+      enhancePrompt={ctx.enhancePrompt}
+      handleUndo={ctx.handleUndo}
+      handleSubmitForm={ctx.handleSubmitForm}
+      suggestions={ctx.suggestions}
+      onSuggestionSelect={ctx.onSuggestionSelect}
+      showSuggestionsWhenEmpty={ctx.showSuggestionsWhenEmpty}
+      maxSuggestions={ctx.maxSuggestions}
+      onToggleCollapse={
+        isCollapsible && ctx.setIsCollapsed
+          ? () => ctx.setIsCollapsed?.(!ctx.isCollapsed)
+          : undefined
+      }
+      secondaryContent={secondaryContent}
+      textareaRef={ctx.textareaRef}
+      textareaRegister={ctx.textareaRegister}
+      modelDropdownRef={ctx.modelDropdownRef}
+      promptBarHeight={ctx.promptBarHeight}
+      getModelDefaultDuration={ctx.getModelDefaultDuration}
+      getDefaultVideoResolution={ctx.getDefaultVideoResolution}
+      getMinFromAllModels={ctx.getMinFromAllModels}
+      getModelMaxOutputs={ctx.getModelMaxOutputs}
+      setTextValue={ctx.setTextValue}
+      isSupported={ctx.isSupported}
+      toggleVoice={ctx.toggleVoice}
+      isRecording={ctx.isRecording}
+      isProcessing={ctx.isProcessing}
+      isGenerating={ctx.isGenerating}
+      isEnhancing={ctx.isEnhancing}
+      isGenerateDisabled={ctx.isGenerateDisabled}
+      previousPrompt={ctx.previousPrompt}
+      selectedModelCost={ctx.selectedModelCost}
+      activeGenerations={ctx.activeGenerations}
+      generateLabel={ctx.generateLabel}
+      avatars={ctx.avatars}
+      voices={ctx.voices}
+    />
+  );
+
+  const variationPresets = (
+    <PromptBarVariationPresets
+      shouldRender={
+        ctx.references.length > 0 &&
+        ctx.categoryType === IngredientCategory.IMAGE
+      }
+      form={ctx.form}
+      setTextValue={ctx.setTextValue}
+    />
+  );
+
+  if (!hasDragDrop) {
+    return (
+      <>
+        {essentials}
+        {variationPresets}
+      </>
+    );
+  }
 
   return (
     <div
       className="relative"
-      onDragEnter={onDragEnter}
-      onDragLeave={onDragLeave}
+      onDragEnter={ctx.onDragEnter}
+      onDragLeave={ctx.onDragLeave}
       onDragOver={(event) => {
         event.preventDefault();
         event.stopPropagation();
       }}
-      onDrop={onDropFiles}
+      onDrop={ctx.onDropFiles}
       data-testid="promptbar-dropzone"
     >
       <div
         className={cn(
           'absolute inset-0 z-20 rounded-3xl border border-dashed border-primary/0 bg-primary/0 opacity-0 transition-all duration-200 pointer-events-none',
-          isDragActive && 'border-primary/70 bg-primary/10 opacity-100',
+          ctx.isDragActive && 'border-primary/70 bg-primary/10 opacity-100',
         )}
       >
         <div className="flex h-full items-center justify-center">
@@ -389,97 +333,17 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView({
         </div>
       </div>
 
-      <PromptBarEssentials
-        currentConfig={currentConfig}
-        pathname={pathname}
-        categoryType={categoryType}
-        currentModelCategory={currentModelCategory}
-        shellMode="legacy-collapsible"
-        form={form}
-        isDisabledState={isDisabledState}
-        isGenerateBlocked={isGenerateBlocked}
-        controlClass={controlClass}
-        iconButtonClass={iconButtonClass}
-        isAdvancedMode={isAdvancedMode}
-        isAdvancedControlsEnabled={isAdvancedControlsEnabled}
-        isAutoMode={isAutoMode}
-        setIsAutoMode={setIsAutoMode}
-        models={models}
-        trainings={trainings}
-        selectedModels={selectedModels}
-        trainingIds={trainingIds}
-        normalizedWatchedModels={normalizedWatchedModels}
-        watchedModels={watchedModels}
-        watchedModel={watchedModel}
-        watchedFormat={watchedFormat}
-        watchedDuration={watchedDuration}
-        watchedQuality={watchedQuality}
-        subscriptionTier={subscriptionTier}
-        isModelNotSet={isModelNotSet}
-        hasModelWithoutDurationEditingValue={
-          hasModelWithoutDurationEditingValue
-        }
-        formatIcon={formatIcon}
-        videoDurations={videoDurations}
-        references={references}
-        referenceSource={referenceSource}
-        setReferences={setReferences}
-        setReferenceSource={setReferenceSource}
-        folders={folders}
-        triggerConfigChange={triggerConfigChange}
-        handleTextareaChange={handleTextareaChange}
-        onTextChange={onTextChange}
-        onToggleQuickOptions={handleQuickOptionsToggle}
-        isQuickOptionsOpen={isQuickOptionsOpen}
-        handleCopy={handleCopy}
-        enhancePrompt={enhancePrompt}
-        handleUndo={handleUndo}
-        handleSubmitForm={handleSubmitForm}
-        suggestions={suggestions}
-        onSuggestionSelect={onSuggestionSelect}
-        showSuggestionsWhenEmpty={showSuggestionsWhenEmpty}
-        maxSuggestions={maxSuggestions}
-        onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
-        secondaryContent={secondaryContent}
-        textareaRef={textareaRef}
-        textareaRegister={textareaRegister}
-        modelDropdownRef={modelDropdownRef}
-        promptBarHeight={promptBarHeight}
-        getModelDefaultDuration={getModelDefaultDuration}
-        getDefaultVideoResolution={getDefaultVideoResolution}
-        getMinFromAllModels={getMinFromAllModels}
-        getModelMaxOutputs={getModelMaxOutputs}
-        setTextValue={setTextValue}
-        isSupported={isSupported}
-        toggleVoice={toggleVoice}
-        isRecording={isRecording}
-        isProcessing={isProcessing}
-        isGenerating={isGenerating}
-        isEnhancing={isEnhancing}
-        isGenerateDisabled={isGenerateDisabled}
-        previousPrompt={previousPrompt}
-        selectedModelCost={selectedModelCost}
-        activeGenerations={activeGenerations}
-        generateLabel={generateLabel}
-        avatars={avatars}
-        voices={voices}
-      />
+      {essentials}
 
       <PromptBarAttachedAssetsTray
-        assets={attachedPromptAssets}
-        dragError={dragError}
-        isDisabled={isDisabledState}
-        onBrowseAssets={onBrowseAssets}
-        onRemoveAttachedAsset={onRemoveAttachedAsset}
+        assets={ctx.attachedPromptAssets}
+        dragError={ctx.dragError}
+        isDisabled={ctx.isDisabledState}
+        onBrowseAssets={ctx.onBrowseAssets ?? (() => {})}
+        onRemoveAttachedAsset={ctx.onRemoveAttachedAsset ?? (() => {})}
       />
 
-      <PromptBarVariationPresets
-        shouldRender={
-          references.length > 0 && categoryType === IngredientCategory.IMAGE
-        }
-        form={form}
-        setTextValue={setTextValue}
-      />
+      {variationPresets}
     </div>
   );
 });

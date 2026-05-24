@@ -270,6 +270,49 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     },
   },
 
+  'analytics-feedback': {
+    category: 'input',
+    configSchema: {
+      brandId: {
+        description: 'Optional brand ID used to scope analytics feedback',
+        label: 'Brand ID',
+        type: 'string',
+      },
+      topN: {
+        default: 5,
+        description: 'Number of top-performing patterns to return',
+        label: 'Top Items',
+        min: 1,
+        type: 'number',
+      },
+      worstN: {
+        default: 5,
+        description: 'Number of under-performing patterns to return',
+        label: 'Worst Items',
+        min: 1,
+        type: 'number',
+      },
+    },
+    description: 'Read performance analytics to guide content strategy',
+    icon: 'HiChartBar',
+    inputs: {},
+    isPremium: true,
+    label: 'Analytics Feedback',
+    outputs: {
+      avgEngagementRate: { label: 'Avg Engagement Rate', type: 'number' },
+      bestPlatform: { label: 'Best Platform', type: 'text' },
+      bestPostingTimes: { label: 'Best Posting Times', type: 'any' },
+      topHooks: { label: 'Top Hooks', multiple: true, type: 'text' },
+      topTopics: { label: 'Top Topics', multiple: true, type: 'text' },
+      weekOverWeekChange: { label: 'Week-over-Week Change %', type: 'number' },
+      weekOverWeekDirection: {
+        label: 'Week-over-Week Direction',
+        type: 'text',
+      },
+      worstTopics: { label: 'Worst Topics', multiple: true, type: 'text' },
+    },
+  },
+
   'ai-generate-video': {
     category: 'ai',
     configSchema: {
@@ -361,8 +404,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       systemPrompt: {
         description: 'System prompt to guide the LLM',
         label: 'System Prompt',
-        rows: 4,
-        type: 'textarea',
+        type: 'string',
       },
       temperature: {
         default: 0.7,
@@ -1088,6 +1130,68 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     label: 'Video Input',
     outputs: {
       video: { label: 'Video', type: 'video' },
+    },
+  },
+
+  trendTrigger: {
+    category: 'input',
+    configSchema: {
+      checkFrequency: {
+        default: '1hr',
+        label: 'Check Frequency',
+        options: ['15min', '30min', '1hr', '6hr', '12hr', '24hr'],
+        type: 'select',
+      },
+      excludeKeywords: {
+        description: 'Comma-separated terms to exclude',
+        label: 'Exclude Keywords',
+        type: 'string',
+      },
+      keywords: {
+        description: 'Comma-separated terms to match',
+        label: 'Keywords',
+        type: 'string',
+      },
+      minViralScore: {
+        default: 70,
+        label: 'Min Viral Score',
+        max: 100,
+        min: 0,
+        type: 'number',
+      },
+      platform: {
+        default: 'tiktok',
+        label: 'Platform',
+        options: ['tiktok', 'instagram', 'twitter', 'youtube'],
+        type: 'select',
+      },
+      trendType: {
+        default: 'video',
+        label: 'Trend Type',
+        options: ['topic', 'hashtag', 'sound', 'video', 'creator'],
+        type: 'select',
+      },
+    },
+    description: 'Start workflow when a new trend matches criteria',
+    icon: 'HiTrendingUp',
+    inputs: {
+      keywords: {
+        label: 'Keywords',
+        multiple: true,
+        required: false,
+        type: 'text',
+      },
+    },
+    isPremium: true,
+    label: 'Trend Trigger',
+    outputs: {
+      hashtags: { label: 'Hashtags', multiple: true, type: 'text' },
+      platform: { label: 'Platform', type: 'text' },
+      soundId: { label: 'Sound ID', type: 'text' },
+      topic: { label: 'Topic', type: 'text' },
+      trendId: { label: 'Trend ID', type: 'text' },
+      videoUrl: { label: 'Video URL', type: 'text' },
+      viralScore: { label: 'Viral Score', type: 'number' },
     },
   },
 

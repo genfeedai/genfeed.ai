@@ -39,6 +39,17 @@ export class FileQueueService {
       'http://localhost:3012';
   }
 
+  private requireEncryptedToken(
+    value: string | null | undefined,
+    label: string,
+  ): string {
+    if (!value) {
+      throw new Error(`${label} is missing`);
+    }
+
+    return value;
+  }
+
   /**
    * Refresh YouTube OAuth token
    */
@@ -301,7 +312,13 @@ export class FileQueueService {
 
       // Refresh token to ensure it's valid
       this.loggerService.log('Refreshing YouTube token before upload');
-      await this.refreshYoutubeToken(credential);
+      await this.refreshYoutubeToken({
+        _id: credential._id,
+        refreshToken: this.requireEncryptedToken(
+          credential.refreshToken,
+          'YouTube refreshToken',
+        ),
+      });
 
       // Re-fetch credential to get the refreshed token
       const refreshedCredential = await this.credentialsService.findOne({
@@ -314,10 +331,16 @@ export class FileQueueService {
 
       // Decrypt tokens before sending to Files microservice
       const decryptedAccessToken = EncryptionUtil.decrypt(
-        refreshedCredential.accessToken,
+        this.requireEncryptedToken(
+          refreshedCredential.accessToken,
+          'YouTube accessToken',
+        ),
       );
       const decryptedRefreshToken = EncryptionUtil.decrypt(
-        refreshedCredential.refreshToken,
+        this.requireEncryptedToken(
+          refreshedCredential.refreshToken,
+          'YouTube refreshToken',
+        ),
       );
 
       const response = await firstValueFrom(

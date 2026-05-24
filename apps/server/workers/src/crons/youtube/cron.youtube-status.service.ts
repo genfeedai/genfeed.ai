@@ -45,43 +45,28 @@ export class CronYoutubeStatusService {
         limit: 100, // Check up to 100 posts per run
       };
 
-      const posts: unknown = await this.postsService.findAll(
-        [
-          {
-            $match: {
-              // Only check recent posts (last 7 days) to avoid checking old videos
-              createdAt: { $gte: sevenDaysAgo },
-              externalId: { $exists: true, $ne: null },
-              isDeleted: false,
-              platform: CredentialPlatform.YOUTUBE,
-              // Only check non-public statuses (PRIVATE, UNLISTED, SCHEDULED)
-              // Once PUBLIC, no need to keep checking
-              status: {
-                $in: [
-                  PostStatus.PRIVATE,
-                  PostStatus.UNLISTED,
-                  PostStatus.SCHEDULED, // Videos waiting to be uploaded
-                ],
-              },
+      const posts = (await this.postsService.findAll(
+        {
+          include: { credential: true },
+          where: {
+            // Only check recent posts (last 7 days) to avoid checking old videos
+            createdAt: { gte: sevenDaysAgo },
+            externalId: { not: null },
+            isDeleted: false,
+            platform: CredentialPlatform.YOUTUBE,
+            // Only check non-public statuses (PRIVATE, UNLISTED, SCHEDULED)
+            // Once PUBLIC, no need to keep checking
+            status: {
+              in: [
+                PostStatus.PRIVATE,
+                PostStatus.UNLISTED,
+                PostStatus.SCHEDULED, // Videos waiting to be uploaded
+              ],
             },
           },
-          {
-            $lookup: {
-              as: 'credential',
-              foreignField: '_id',
-              from: 'credentials',
-              localField: 'credential',
-            },
-          },
-          {
-            $unwind: {
-              path: '$credential',
-              preserveNullAndEmptyArrays: true,
-            },
-          },
-        ],
+        },
         options,
-      );
+      )) as unknown as { docs?: PostEntity[] };
 
       const postsChecked = posts.docs?.length || 0;
 
@@ -132,7 +117,7 @@ export class CronYoutubeStatusService {
 
       // Update if status doesn't match
       if (targetStatus && post.status !== targetStatus) {
-        const updateData: unknown = {
+        const updateData: Record<string, unknown> = {
           status: targetStatus,
         };
 

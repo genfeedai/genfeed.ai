@@ -32,6 +32,10 @@ export class PatternAnalyzerService {
   private readonly constructorName = this.constructor.name;
   private readonly defaultModel: string;
 
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
   constructor(
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
@@ -79,9 +83,9 @@ export class PatternAnalyzerService {
       // Extract patterns from posts
       const patterns = await this.extractPatterns(
         scrapeResult.posts,
-        creator.organization,
-        creatorId.toString(),
-        creator.platform,
+        creator.organizationId,
+        creatorId,
+        this.readCreatorPlatform(creator),
       );
 
       // Store patterns
@@ -146,12 +150,12 @@ export class PatternAnalyzerService {
           patterns.push({
             description: pattern.description,
             extractedFormula: pattern.extractedFormula,
-            organization: organizationId,
+            organizationId,
             patternType: pattern.patternType,
             placeholders: pattern.placeholders,
             platform,
             rawExample: pattern.rawExample,
-            sourceCreator: creatorId,
+            sourceCreatorId: creatorId,
             sourceMetrics: {
               comments: post.comments,
               engagementRate: post.engagementRate,
@@ -268,7 +272,6 @@ Return ONLY the JSON array. If no patterns found, return [].`;
         return [];
       }
 
-      // @ts-expect-error TS2322
       return patterns.map((p) => ({
         description: p.description || 'Extracted pattern',
         extractedFormula: p.extractedFormula || originalText.slice(0, 100),
@@ -392,19 +395,43 @@ Return ONLY the JSON array. If no patterns found, return [].`;
     return patterns;
   }
 
+  private readCreatorPlatform(creator: {
+    data: unknown;
+  }): ContentIntelligencePlatform {
+    const data = this.isPlainObject(creator.data) ? creator.data : {};
+    const platform = data.platform;
+    const validPlatforms = Object.values(ContentIntelligencePlatform);
+
+    if (
+      typeof platform === 'string' &&
+      validPlatforms.includes(platform as ContentIntelligencePlatform)
+    ) {
+      return platform as ContentIntelligencePlatform;
+    }
+
+    return ContentIntelligencePlatform.LINKEDIN;
+  }
+
   private validatePatternType(type: unknown): ContentPatternType {
     const validTypes = Object.values(ContentPatternType);
-    if (validTypes.includes(type)) {
-      return type;
+    if (
+      typeof type === 'string' &&
+      validTypes.includes(type as ContentPatternType)
+    ) {
+      return type as ContentPatternType;
     }
     return ContentPatternType.HOOK;
   }
 
-  private validateTemplateCategory(category: unknown): string | undefined {
-    // @ts-expect-error TS2304
-    const validCategories = Object.values(TemplateCategory);
-    if (validCategories.includes(category)) {
-      return category;
+  private validateTemplateCategory(
+    category: unknown,
+  ): ContentPatternCategory | undefined {
+    const validCategories = Object.values(ContentPatternCategory);
+    if (
+      typeof category === 'string' &&
+      validCategories.includes(category as ContentPatternCategory)
+    ) {
+      return category as ContentPatternCategory;
     }
     return undefined;
   }

@@ -1,11 +1,11 @@
-import {
-  type ChangeEvent,
-  type FocusEvent,
-  forwardRef,
-  type InputHTMLAttributes,
-  type ReactElement,
-  type Ref,
-  type RefObject,
+import { Input as ShipInput } from '@shipshitdev/ui/primitives';
+import type {
+  ChangeEvent,
+  FocusEvent,
+  InputHTMLAttributes,
+  ReactElement,
+  Ref,
+  RefObject,
 } from 'react';
 import {
   type Control,
@@ -18,6 +18,7 @@ import {
   fieldControlClassName,
   fieldControlInputClassName,
 } from './field-control';
+import { Label } from './label';
 
 export interface InputProps<T extends FieldValues = FieldValues>
   extends Omit<
@@ -42,6 +43,7 @@ export interface InputProps<T extends FieldValues = FieldValues>
   name?: Path<T> | string;
   onBlur?: (event: FocusEvent<HTMLInputElement>) => void;
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
+  ref?: Ref<HTMLInputElement>;
   required?: boolean;
 }
 
@@ -90,12 +92,12 @@ function renderInput<T extends FieldValues = FieldValues>({
   const inputClassName = cn(
     fieldControlClassName,
     fieldControlInputClassName,
-    hasError && 'border-destructive focus-visible:ring-destructive',
+    hasError && 'border-destructive focus-visible:border-destructive',
     className,
   );
 
   const input = (
-    <input
+    <ShipInput
       {...props}
       checked={isCheckable ? isChecked : undefined}
       className={inputClassName}
@@ -118,12 +120,12 @@ function renderInput<T extends FieldValues = FieldValues>({
   if (label) {
     return (
       <div className="space-y-1.5">
-        <label
+        <Label
           htmlFor={inputId}
           className="text-sm font-medium text-foreground"
         >
           {label}
-        </label>
+        </Label>
         {input}
       </div>
     );
@@ -178,10 +180,12 @@ function ControlledInputInner<T extends FieldValues = FieldValues>({
   });
 }
 
-function InputInner<T extends FieldValues = FieldValues>(
-  { control, inputRef, ...props }: InputProps<T>,
-  ref: Ref<HTMLInputElement>,
-): ReactElement {
+function Input<T extends FieldValues = FieldValues>({
+  ref,
+  control,
+  inputRef,
+  ...props
+}: InputProps<T>): ReactElement {
   if (control && props.name) {
     return (
       <ControlledInputInner
@@ -199,12 +203,6 @@ function InputInner<T extends FieldValues = FieldValues>(
     inputRef,
   });
 }
-
-const Input = forwardRef(InputInner) as (<T extends FieldValues = FieldValues>(
-  props: InputProps<T> & { ref?: Ref<HTMLInputElement> },
-) => ReactElement) & {
-  displayName?: string;
-};
 
 Input.displayName = 'Input';
 

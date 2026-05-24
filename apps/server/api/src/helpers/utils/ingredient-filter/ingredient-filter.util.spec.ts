@@ -4,12 +4,12 @@ describe('IngredientFilterUtil', () => {
   describe('buildParentFilter', () => {
     it('should filter root ingredients when parent is null', () => {
       const result = IngredientFilterUtil.buildParentFilter(null);
-      expect(result).toEqual({ parent: { $exists: false } });
+      expect(result).toEqual({ parent: null });
     });
 
     it('should filter root ingredients when parent is "null" string', () => {
       const result = IngredientFilterUtil.buildParentFilter('null');
-      expect(result).toEqual({ parent: { $exists: false } });
+      expect(result).toEqual({ parent: null });
     });
 
     it('should filter by parent ID when valid ObjectId provided', () => {
@@ -27,7 +27,7 @@ describe('IngredientFilterUtil', () => {
   describe('buildFolderFilter', () => {
     it('should filter root level when folder is undefined', () => {
       const result = IngredientFilterUtil.buildFolderFilter(undefined);
-      expect(result).toEqual({ folder: { $exists: false } });
+      expect(result).toEqual({ folder: null });
     });
 
     it('should filter by folder ID when valid ObjectId provided', () => {
@@ -38,14 +38,14 @@ describe('IngredientFilterUtil', () => {
 
     it('should filter root level when folder is null', () => {
       const result = IngredientFilterUtil.buildFolderFilter(null);
-      expect(result).toEqual({ folder: { $exists: false } });
+      expect(result).toEqual({ folder: null });
     });
   });
 
   describe('buildTrainingFilter', () => {
     it('should exclude training ingredients by default', () => {
       const result = IngredientFilterUtil.buildTrainingFilter(undefined);
-      expect(result).toEqual({ training: { $exists: false } });
+      expect(result).toEqual({ training: null });
     });
 
     it('should filter by training ID when valid ObjectId provided', () => {
@@ -56,49 +56,7 @@ describe('IngredientFilterUtil', () => {
 
     it('should exclude training when invalid ID provided', () => {
       const result = IngredientFilterUtil.buildTrainingFilter('invalid');
-      expect(result).toEqual({ training: { $exists: false } });
-    });
-  });
-
-  describe('buildFormatFilterStage', () => {
-    it('should return empty array when no format specified', () => {
-      const result = IngredientFilterUtil.buildFormatFilterStage();
-      expect(result).toEqual([]);
-    });
-
-    it('should build square format filter', () => {
-      const result = IngredientFilterUtil.buildFormatFilterStage('square');
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
-        $match: {
-          $expr: { $eq: ['$metadata.width', '$metadata.height'] },
-        },
-      });
-    });
-
-    it('should build landscape format filter', () => {
-      const result = IngredientFilterUtil.buildFormatFilterStage('landscape');
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
-        $match: {
-          $expr: { $gt: ['$metadata.width', '$metadata.height'] },
-        },
-      });
-    });
-
-    it('should build portrait format filter', () => {
-      const result = IngredientFilterUtil.buildFormatFilterStage('portrait');
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
-        $match: {
-          $expr: { $lt: ['$metadata.width', '$metadata.height'] },
-        },
-      });
-    });
-
-    it('should return empty array for unrecognized format', () => {
-      const result = IngredientFilterUtil.buildFormatFilterStage('invalid');
-      expect(result).toEqual([]);
+      expect(result).toEqual({ training: null });
     });
   });
 
@@ -111,31 +69,26 @@ describe('IngredientFilterUtil', () => {
 
     it('should filter for any existing brand when no ID provided', () => {
       const result = IngredientFilterUtil.buildBrandFilter(undefined);
-      expect(result).toEqual({ $exists: true });
+      expect(result).toEqual({ not: true });
     });
   });
 
   describe('buildMetadataLookup', () => {
-    it('should return metadata lookup pipeline stages', () => {
+    it('should return metadata include', () => {
       const result = IngredientFilterUtil.buildMetadataLookup();
-      expect(result.length).toBeGreaterThanOrEqual(2);
-      expect(result[0].$lookup).toBeDefined();
-      expect(result[0].$lookup.from).toBe('metadata');
-      expect(result[1].$unwind).toBeDefined();
+      expect(result).toEqual({ include: { metadata: true } });
     });
   });
 
   describe('buildPromptLookup', () => {
-    it('should return prompt lookup pipeline stages', () => {
+    it('should return prompt include', () => {
       const result = IngredientFilterUtil.buildPromptLookup();
-      expect(result).toHaveLength(2);
-      expect(result[0].$lookup).toBeDefined();
-      expect(result[0].$lookup.from).toBe('prompts');
+      expect(result).toEqual({ include: { prompt: true } });
     });
 
-    it('should return empty array when lightweight is true', () => {
+    it('should return empty object when lightweight is true', () => {
       const result = IngredientFilterUtil.buildPromptLookup(true);
-      expect(result).toEqual([]);
+      expect(result).toEqual({});
     });
   });
 });

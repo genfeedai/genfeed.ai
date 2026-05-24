@@ -62,13 +62,16 @@ describe('DesktopCloudService', () => {
 
     const service = new DesktopCloudService(environment, () => session);
 
-    await expect(service.listProjects()).resolves.toEqual([
-      {
-        id: 'project-1',
-        name: 'Desktop Launch',
-        status: 'active',
-      },
-    ]);
+    await expect(service.listProjects()).resolves.toEqual({
+      data: [
+        {
+          id: 'project-1',
+          name: 'Desktop Launch',
+          status: 'active',
+        },
+      ],
+      status: 'success',
+    });
   });
 
   it('publishes an existing draft through the dedicated publish endpoint', async () => {
@@ -107,9 +110,66 @@ describe('DesktopCloudService', () => {
       platform: 'twitter',
     });
 
-    expect(result.platform).toBe('twitter');
-    expect(result.postId).toBe('published-1');
-    expect(result.status).toBe('published');
+    expect(result).toEqual({
+      data: {
+        platform: 'twitter',
+        postId: 'published-1',
+        publishedAt: expect.any(String),
+        status: 'published',
+      },
+      status: 'success',
+    });
+  });
+
+  it('generates desktop content through the credit-backed Genfeed server endpoint', async () => {
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      expect(String(input)).toBe(
+        'https://api.genfeed.ai/v1/posts/hook-generations',
+      );
+      expect(init?.method).toBe('POST');
+      expect(init?.headers).toMatchObject({
+        Authorization: 'Bearer gf_desktop_key',
+      });
+      expect(init?.body).toBe(
+        JSON.stringify({
+          count: 1,
+          platform: 'twitter',
+          topic: 'Launch Genfeed Desktop',
+        }),
+      );
+
+      return new Response(
+        JSON.stringify({
+          hooks: ['Launch faster with Genfeed Desktop.'],
+        }),
+        {
+          headers: { 'content-type': 'application/json' },
+          status: 200,
+        },
+      );
+    }) as typeof fetch;
+
+    const service = new DesktopCloudService(environment, () => session);
+    const result = await service.generateContent({
+      platform: 'twitter',
+      prompt: 'Launch Genfeed Desktop',
+      publishIntent: 'review',
+      type: 'hook',
+    });
+
+    expect(result).toEqual({
+      data: {
+        content: 'Launch faster with Genfeed Desktop.',
+        hooks: ['Launch faster with Genfeed Desktop.'],
+        id: '',
+        platform: 'twitter',
+        type: 'hook',
+      },
+      status: 'success',
+    });
   });
 
   it('rejects cloud calls without a session', async () => {

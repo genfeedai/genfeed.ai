@@ -4,10 +4,10 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { logger } from '@services/core/logger.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 
-export default function NewEditorProjectPage() {
-  const router = useRouter();
+function NewEditorProjectPageContent() {
+  const { replace } = useRouter();
   const searchParams = useSearchParams();
   const videoId = searchParams.get('video') || searchParams.get('videoId');
   const creating = useRef(false);
@@ -30,18 +30,26 @@ export default function NewEditorProjectPage() {
           sourceVideoId: videoId ?? undefined,
         });
 
-        router.replace(`/editor/${project.id}`);
+        replace(`/editor/${project.id}`);
       } catch (error) {
         logger.error('Failed to create editor project', error);
         creating.current = false;
-        router.replace('/editor');
+        replace('/editor');
       }
     })();
-  }, [videoId, getEditorService, router]);
+  }, [videoId, getEditorService, replace]);
 
   return (
     <div className="flex h-screen items-center justify-center">
-      <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
+      <div className="size-12 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
     </div>
+  );
+}
+
+export default function NewEditorProjectPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewEditorProjectPageContent />
+    </Suspense>
   );
 }

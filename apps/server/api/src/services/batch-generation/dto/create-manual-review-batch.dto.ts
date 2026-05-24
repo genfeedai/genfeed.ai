@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   REVIEW_BATCH_ITEM_FORMATS,
   type ReviewBatchItemFormat,
@@ -7,7 +8,6 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsIn,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -28,7 +28,7 @@ class ManualReviewBatchItemDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   ingredientId?: string;
 
   @ApiProperty({
@@ -100,7 +100,7 @@ class ManualReviewBatchItemDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   contentRunId?: string;
 
   @ApiProperty({
@@ -184,7 +184,7 @@ export class CreateManualReviewBatchDto {
   @ApiProperty({
     description: 'Brand ID that owns the review handoff',
   })
-  @IsMongoId()
+  @IsEntityId()
   brandId!: string;
 
   @ApiProperty({

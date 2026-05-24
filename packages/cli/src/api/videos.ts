@@ -1,5 +1,5 @@
-import { get, post } from './client.js';
-import { flattenSingle, type JsonApiSingleResponse } from './json-api.js';
+import { get, post } from './client';
+import { flattenSingle, type JsonApiSingleResponse } from './json-api';
 
 export type VideoStatus = 'pending' | 'processing' | 'completed' | 'failed';
 

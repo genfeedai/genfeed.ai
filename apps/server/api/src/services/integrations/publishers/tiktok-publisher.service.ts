@@ -29,6 +29,35 @@ export class TikTokPublisherService extends BasePublisherService {
     super(configService, logger);
   }
 
+  private getPublishResponseData(response: unknown): {
+    isPending?: boolean;
+    postId?: string;
+    publishId?: string;
+  } {
+    if (
+      response === null ||
+      typeof response !== 'object' ||
+      !('data' in response) ||
+      response.data === null ||
+      typeof response.data !== 'object'
+    ) {
+      return {};
+    }
+
+    const data = response.data as {
+      isPending?: unknown;
+      post_id?: unknown;
+      publish_id?: unknown;
+    };
+
+    return {
+      isPending: data.isPending === true ? true : undefined,
+      postId: typeof data.post_id === 'string' ? data.post_id : undefined,
+      publishId:
+        typeof data.publish_id === 'string' ? data.publish_id : undefined,
+    };
+  }
+
   /**
    * Override validation for TikTok-specific requirements
    */
@@ -92,9 +121,10 @@ export class TikTokPublisherService extends BasePublisherService {
         );
       }
 
-      const postId = tiktokRes?.data?.post_id;
-      const publishId = tiktokRes?.data?.publish_id;
-      const isPending = tiktokRes?.data?.isPending || !postId;
+      const responseData = this.getPublishResponseData(tiktokRes);
+      const postId = responseData.postId;
+      const publishId = responseData.publishId;
+      const isPending = responseData.isPending || !postId;
 
       // Handle pending state (TikTok moderation in progress)
       if (isPending && publishId) {

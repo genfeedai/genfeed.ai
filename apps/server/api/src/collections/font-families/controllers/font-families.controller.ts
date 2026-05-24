@@ -13,7 +13,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import type { User } from '@clerk/backend';
 import { FontFamilySerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -104,15 +103,12 @@ export class FontFamiliesController extends BaseCRUDController<
    * Override the base pipeline to load font families
    * Load items with: (no org AND no user) OR (user's org) OR (user's user)
    */
-  public buildFindAllPipeline(
-    user: User,
-    query: BaseQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const publicMetadata = getPublicMetadata(user);
 
     // Build OR conditions: global items OR user's org items OR user's items
     const orConditions: Record<string, unknown>[] = [
-      { organization: { $exists: false }, user: { $exists: false } }, // global items
+      { organization: null, user: null }, // global items
     ];
 
     if (publicMetadata.organization) {
@@ -125,15 +121,14 @@ export class FontFamiliesController extends BaseCRUDController<
       orConditions.push({ user: publicMetadata.user });
     }
 
-    return PipelineBuilder.create()
-      .match({
-        // @ts-expect-error TS2322
-        $or: orConditions,
+    return {
+      orderBy: query.sort
+        ? handleQuerySort(query.sort)
+        : { createdAt: -1, label: 1 },
+      where: {
+        OR: orConditions,
         isDeleted: query.isDeleted ?? false,
-      })
-      .sort(
-        query.sort ? handleQuerySort(query.sort) : { createdAt: -1, label: 1 },
-      )
-      .build();
+      },
+    };
   }
 }

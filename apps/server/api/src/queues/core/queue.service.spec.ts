@@ -50,6 +50,8 @@ describe('QueueService', () => {
         { provide: getQueueToken('ad-bulk-upload'), useValue: mockQueue },
         { provide: getQueueToken('ad-optimization'), useValue: mockQueue },
         { provide: getQueueToken('telegram-distribute'), useValue: mockQueue },
+        { provide: getQueueToken('analytics-facebook'), useValue: mockQueue },
+        { provide: getQueueToken('analytics-threads'), useValue: mockQueue },
       ],
     }).compile();
 

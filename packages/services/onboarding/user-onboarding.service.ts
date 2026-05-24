@@ -21,20 +21,12 @@ export interface UpdateUserOnboardingPayload {
  * - PATCH :userId/onboarding — update onboarding progress
  */
 export class UserOnboardingService extends HTTPBaseService {
-  private static instanceMap = new Map<string, UserOnboardingService>();
-
   constructor(token: string) {
     super(`${EnvironmentService.apiEndpoint}${API_ENDPOINTS.USERS}`, token);
   }
 
   public static getInstance(token: string): UserOnboardingService {
-    if (!UserOnboardingService.instanceMap.has(token)) {
-      UserOnboardingService.instanceMap.set(
-        token,
-        new UserOnboardingService(token),
-      );
-    }
-    return UserOnboardingService.instanceMap.get(token)!;
+    return HTTPBaseService.getBaseServiceInstance(UserOnboardingService, token);
   }
 
   /**

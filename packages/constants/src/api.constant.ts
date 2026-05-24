@@ -28,6 +28,7 @@ export const API_ENDPOINTS = {
   EVALUATIONS: '/evaluations',
   FOLDERS: '/folders',
   FONT_FAMILIES: '/font-families',
+  HARNESS_PROFILES: '/harness-profiles',
   HEYGEN: '/heygen',
   INGREDIENTS: '/ingredients',
   INSIGHTS: '/insights',

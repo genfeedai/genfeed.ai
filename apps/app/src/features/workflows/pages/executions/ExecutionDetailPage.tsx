@@ -8,6 +8,7 @@ import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type {
   ExecutionNodeResult,
   ExecutionResult,
@@ -163,7 +164,7 @@ export default function ExecutionDetailPage({
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-pulse">Loading execution logs...</div>
+        <div className="animate-pulse">Loading execution logs…</div>
       </div>
     );
   }
@@ -171,7 +172,9 @@ export default function ExecutionDetailPage({
   if (error && !execution) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center">
-        <h1 className="mb-4 text-2xl font-bold">Execution Failed To Load</h1>
+        <h1 className="mb-4 text-2xl font-semibold">
+          Execution Failed To Load
+        </h1>
         <p className="mb-6 text-muted-foreground">{error}</p>
         <Link
           href={href('/workflows/executions')}
@@ -186,7 +189,7 @@ export default function ExecutionDetailPage({
   if (!execution) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center">
-        <h1 className="mb-4 text-2xl font-bold">Execution Not Found</h1>
+        <h1 className="mb-4 text-2xl font-semibold">Execution Not Found</h1>
         <p className="mb-6 text-muted-foreground">
           The execution run you're looking for doesn't exist.
         </p>
@@ -230,7 +233,9 @@ export default function ExecutionDetailPage({
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">{execution.workflowLabel}</h1>
+              <h1 className="text-2xl font-semibold">
+                {execution.workflowLabel}
+              </h1>
               <p className="text-sm text-muted-foreground">
                 Run ID: {execution.runId}
               </p>
@@ -271,7 +276,9 @@ export default function ExecutionDetailPage({
           </div>
           <div>
             <div className="text-sm text-muted-foreground">Started</div>
-            <div className="font-semibold">{startedAt.toLocaleString()}</div>
+            <div className="font-semibold">
+              <ClientFormattedDate value={startedAt} />
+            </div>
           </div>
           <div>
             <div className="text-sm text-muted-foreground">Timing</div>
@@ -287,7 +294,7 @@ export default function ExecutionDetailPage({
           </div>
           <div>
             <div className="text-sm text-muted-foreground">ETA</div>
-            <div className="font-semibold">{etaDisplay.etaLabel ?? '—'}</div>
+            <div className="font-semibold">{etaDisplay.etaLabel ?? ':'}</div>
             {etaDisplay.reassuranceLabel && (
               <div className="text-xs text-muted-foreground">
                 {etaDisplay.reassuranceLabel}
@@ -347,14 +354,14 @@ export default function ExecutionDetailPage({
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <span className="text-muted-foreground">Started:</span>{' '}
-                        {new Date(result.startedAt).toLocaleString()}
+                        <ClientFormattedDate value={result.startedAt} />
                       </div>
                       {result.completedAt && (
                         <div>
                           <span className="text-muted-foreground">
                             Completed:
                           </span>{' '}
-                          {new Date(result.completedAt).toLocaleString()}
+                          <ClientFormattedDate value={result.completedAt} />
                         </div>
                       )}
                     </div>

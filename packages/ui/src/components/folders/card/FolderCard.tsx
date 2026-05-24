@@ -1,12 +1,26 @@
 'use client';
 
 import type { FolderCardProps } from '@genfeedai/props/ui/content/folder.props';
+import type { KeyboardEvent } from 'react';
 import { HiFolder } from 'react-icons/hi2';
 
 export default function FolderCard({ folder, onClick }: FolderCardProps) {
+  const activateFolder = () => onClick?.(folder);
+  const activateFolderFromKeyboard = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    activateFolder();
+  };
+
   return (
     <div
-      onClick={() => onClick?.(folder)}
+      role="button"
+      tabIndex={0}
+      onClick={activateFolder}
+      onKeyDown={activateFolderFromKeyboard}
       className="group cursor-pointer bg-card border border-white/[0.08] transition-all p-4 hover:scale-105"
     >
       <div className="flex flex-col items-center gap-3">

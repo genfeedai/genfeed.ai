@@ -1,14 +1,33 @@
 import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import AppLayout from '@ui/layouts/app/AppLayout';
 import type { ReactElement } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function MenuComponent(): ReactElement {
   return <div data-testid="menu-component">Menu</div>;
 }
 
 describe('AppLayout', () => {
+  const localStorageStore = new Map<string, string>();
+
+  beforeEach(() => {
+    if (!window.localStorage) {
+      Object.defineProperty(window, 'localStorage', {
+        configurable: true,
+        value: {
+          clear: () => localStorageStore.clear(),
+          getItem: (key: string) => localStorageStore.get(key) ?? null,
+          removeItem: (key: string) => localStorageStore.delete(key),
+          setItem: (key: string, value: string) =>
+            localStorageStore.set(key, value),
+        },
+      });
+    }
+
+    window.localStorage.clear();
+  });
+
   it('renders layout shell', () => {
     render(
       <AppLayout>
@@ -88,8 +107,10 @@ describe('AppLayout', () => {
 
     const rail = screen.getByTestId('desktop-sidebar-rail');
     expect(rail).toBeInTheDocument();
-    expect(rail).toHaveClass('border-r');
-    expect(rail).toHaveClass('fixed', 'inset-y-0', 'left-0');
+    expect(rail).toHaveClass('border-r', 'border-border');
+    expect(rail).toHaveClass('bg-background');
+    expect(rail).toHaveClass('fixed', 'bottom-0', 'left-0');
+    expect(rail).toHaveStyle({ top: 'var(--desktop-titlebar-height)' });
     expect(screen.getAllByTestId('menu-component')).toHaveLength(2);
   });
 
@@ -105,9 +126,44 @@ describe('AppLayout', () => {
 
     const rail = screen.getByTestId('desktop-sidebar-rail');
 
-    expect(rail).toHaveClass('bg-transparent', 'shadow-none');
+    expect(rail).toHaveClass('bg-transparent');
     expect(rail).not.toHaveClass('border-r');
-    expect(rail).not.toHaveClass('bg-background/95');
+    expect(rail).not.toHaveClass('bg-background-secondary');
+  });
+
+  it('collapses the desktop sidebar to only the Genfeed logo toggle', async () => {
+    window.localStorage.setItem('genfeed:sidebar:collapsed:anon', 'true');
+
+    render(
+      <AppLayout menuComponent={<MenuComponent />}>
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('desktop-sidebar-rail')).toHaveStyle({
+        minWidth: '0px',
+        width: '0px',
+      });
+    });
+
+    const expandToggle = screen.getByRole('button', {
+      name: 'Expand sidebar',
+    });
+
+    expect(expandToggle).toBeInTheDocument();
+
+    fireEvent.click(expandToggle);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('desktop-sidebar-rail')).toHaveStyle({
+        minWidth: '240px',
+        width: '240px',
+      });
+    });
+    expect(
+      screen.queryByRole('button', { name: 'Expand sidebar' }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders agent dock and fixed-height shell when agent panel is provided', () => {
@@ -127,27 +183,20 @@ describe('AppLayout', () => {
     expect(screen.getByTestId('agent-panel-resize-handle')).toBeInTheDocument();
   });
 
-  it('keeps fixed shell height while collapsed and clips via dock rail', () => {
+  it('does not render the bottom agent rail while collapsed', () => {
     render(
       <AppLayout agentPanel={<div>Agent panel</div>} isAgentCollapsed>
         <div>Content</div>
       </AppLayout>,
     );
 
-    const rail = screen.getByTestId('agent-panel-rail');
-    const shell = screen.getByTestId('agent-panel-shell');
-
-    expect(rail).toHaveStyle({ minHeight: '48px', height: '48px' });
-    expect(shell).toHaveStyle({ minHeight: '380px', height: '380px' });
-    expect(shell).toHaveClass('absolute', 'bottom-0', 'inset-x-0');
-    expect(rail).toHaveClass(
-      'gen-shell-toolbar',
-      'border-t',
-      'bg-background/92',
-    );
+    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
+      '--desktop-agent-height': '0px',
+    });
   });
 
-  it('keeps the collapsed agent rail borderless in transparent shell mode', () => {
+  it('keeps the collapsed agent rail hidden in transparent shell mode', () => {
     render(
       <AppLayout
         agentPanel={<div>Agent panel</div>}
@@ -158,10 +207,7 @@ describe('AppLayout', () => {
       </AppLayout>,
     );
 
-    const rail = screen.getByTestId('agent-panel-rail');
-
-    expect(rail).toHaveClass('shadow-none');
-    expect(rail).not.toHaveClass('border-t');
+    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
   });
 
   it('shows the agent dock border in transparent shell mode when expanded', () => {
@@ -176,7 +222,7 @@ describe('AppLayout', () => {
 
     const rail = screen.getByTestId('agent-panel-rail');
 
-    expect(rail).toHaveClass('bg-transparent', 'shadow-none', 'border-t');
+    expect(rail).toHaveClass('bg-transparent', 'shadow-none');
   });
 
   it('passes agent toggle to topbar when agent rail is mounted', () => {
@@ -203,6 +249,23 @@ describe('AppLayout', () => {
     expect(capturedProps?.onAgentToggle).toBe(toggle);
   });
 
+  it('does not pass the terminal toggle to topbar without an agent rail', () => {
+    let capturedProps: TopbarProps | undefined;
+    const TopbarMock = (props: TopbarProps) => {
+      capturedProps = props;
+      return <div data-testid="topbar-mock" />;
+    };
+
+    render(
+      <AppLayout topbarComponent={TopbarMock} onAgentToggle={vi.fn()}>
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    expect(screen.getByTestId('topbar-mock')).toBeInTheDocument();
+    expect(capturedProps?.onAgentToggle).toBeUndefined();
+  });
+
   it('keeps default topbar chrome styling', () => {
     const TopbarMock = () => <div data-testid="topbar-mock" />;
 
@@ -212,12 +275,8 @@ describe('AppLayout', () => {
       </AppLayout>,
     );
 
-    expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
-      'gen-shell-toolbar',
-      'border-b',
-      'bg-background/84',
-      'backdrop-blur-xl',
-    );
+    expect(screen.getByTestId('app-topbar-shell')).toHaveClass('bg-background');
+    expect(screen.getByTestId('app-topbar-shell')).not.toHaveClass('border-b');
   });
 
   it('does not offset the topbar for the collapsed bottom dock', () => {
@@ -237,7 +296,7 @@ describe('AppLayout', () => {
       'lg:right-[var(--desktop-agent-width)]',
     );
     expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
-      '--desktop-agent-height': '48px',
+      '--desktop-agent-height': '0px',
     });
   });
 
@@ -253,7 +312,7 @@ describe('AppLayout', () => {
     const topbarShell = screen.getByTestId('app-topbar-shell');
 
     expect(topbarShell).toHaveClass(
-      'h-16',
+      'h-12',
       'fixed',
       'top-0',
       'left-0',
@@ -261,10 +320,9 @@ describe('AppLayout', () => {
       'z-50',
     );
     expect(topbarShell).not.toHaveClass(
-      'gen-shell-toolbar',
       'border-b',
-      'bg-background/84',
-      'backdrop-blur-xl',
+      'border-border',
+      'bg-background',
     );
   });
 
@@ -281,12 +339,8 @@ describe('AppLayout', () => {
       </AppLayout>,
     );
 
-    expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
-      'gen-shell-toolbar',
-      'border-b',
-      'bg-background/84',
-      'backdrop-blur-xl',
-    );
+    expect(screen.getByTestId('app-topbar-shell')).toHaveClass('bg-background');
+    expect(screen.getByTestId('app-topbar-shell')).not.toHaveClass('border-b');
   });
 
   it('keeps topbar chrome when a secondary topbar is present', () => {
@@ -302,12 +356,8 @@ describe('AppLayout', () => {
       </AppLayout>,
     );
 
-    expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
-      'gen-shell-toolbar',
-      'border-b',
-      'bg-background/84',
-      'backdrop-blur-xl',
-    );
+    expect(screen.getByTestId('app-topbar-shell')).toHaveClass('bg-background');
+    expect(screen.getByTestId('app-topbar-shell')).not.toHaveClass('border-b');
   });
 
   it('keeps topbar borderless when transparent override is explicit', () => {
@@ -322,10 +372,9 @@ describe('AppLayout', () => {
     const topbarShell = screen.getByTestId('app-topbar-shell');
 
     expect(topbarShell).not.toHaveClass(
-      'gen-shell-toolbar',
       'border-b',
-      'bg-background/84',
-      'backdrop-blur-xl',
+      'border-border',
+      'bg-background',
     );
   });
 });

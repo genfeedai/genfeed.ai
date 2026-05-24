@@ -9,6 +9,7 @@ import { LinksService } from '@api/collections/links/services/links.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
@@ -51,14 +52,13 @@ export class LinksController extends BaseCRUDController<
    * Override enrichCreateDto to not add user field (use brand instead)
    */
   public enrichCreateDto(createDto: CreateLinkDto, user: User): CreateLinkDto {
-    const publicMetadata: unknown = user.publicMetadata;
-    const enriched: unknown = { ...createDto };
+    const publicMetadata = getPublicMetadata(user);
+    const enriched: CreateLinkDto = {
+      ...createDto,
+      brand: publicMetadata.brand ?? createDto.brand,
+    };
 
     // Links are associated with accounts, not users
-    if (publicMetadata.brand) {
-      enriched.brand = publicMetadata.brand;
-    }
-
     // Do NOT add user field - Link schema doesn't have it
     return enriched;
   }
@@ -69,15 +69,7 @@ export class LinksController extends BaseCRUDController<
   public async enrichUpdateDto(
     updateDto: UpdateLinkDto,
   ): Promise<UpdateLinkDto> {
-    const enriched: unknown = { ...updateDto };
-
-    // Only add brand if it's being updated
-    if (enriched.brand) {
-      enriched.brand = enriched.brand;
-    }
-
-    // Do NOT add user field - Link schema doesn't have it
-    return await Promise.resolve(enriched);
+    return await Promise.resolve({ ...updateDto });
   }
 
   /**
@@ -90,13 +82,10 @@ export class LinksController extends BaseCRUDController<
   /**
    * Override canUserModifyEntity to use brand-based authorization
    */
-  public canUserModifyEntity(user: User, entity: unknown): boolean {
-    const publicMetadata: unknown = user.publicMetadata;
+  public canUserModifyEntity(user: User, entity: LinkDocument): boolean {
+    const publicMetadata = getPublicMetadata(user);
 
-    // Check brand ownership
-    const entityAccountId =
-      entity.brand?._id?.toString() || entity.brand?.toString();
-    return entityAccountId === publicMetadata.brand;
+    return entity.brandId === publicMetadata.brand;
   }
 
   @Post()
@@ -111,8 +100,7 @@ export class LinksController extends BaseCRUDController<
     // Invalidate brands and links cache for brand list endpoints
     // Note: Brand findOne is not cached (see brands.controller.ts) to avoid stale
     // relation-heavy payloads, so no need to invalidate specific brand cache keys
-    // @ts-expect-error TS2532
-    await this.cacheService.invalidateByTags(['brands', 'links']);
+    await this.cacheService?.invalidateByTags(['brands', 'links']);
 
     return result;
   }
@@ -130,8 +118,7 @@ export class LinksController extends BaseCRUDController<
     // Invalidate brands and links cache for brand list endpoints
     // Note: Brand findOne is not cached (see brands.controller.ts) to avoid stale
     // relation-heavy payloads, so no need to invalidate specific brand cache keys
-    // @ts-expect-error TS2532
-    await this.cacheService.invalidateByTags(['brands', 'links']);
+    await this.cacheService?.invalidateByTags(['brands', 'links']);
 
     return result;
   }
@@ -148,8 +135,7 @@ export class LinksController extends BaseCRUDController<
     // Invalidate brands and links cache for brand list endpoints
     // Note: Brand findOne is not cached (see brands.controller.ts) to avoid stale
     // relation-heavy payloads, so no need to invalidate specific brand cache keys
-    // @ts-expect-error TS2532
-    await this.cacheService.invalidateByTags(['brands', 'links']);
+    await this.cacheService?.invalidateByTags(['brands', 'links']);
 
     return result;
   }

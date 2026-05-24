@@ -1,5 +1,6 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsMongoId } from 'class-validator';
+import { IsArray } from 'class-validator';
 
 export class UpdateTagsDto {
   @ApiProperty({
@@ -8,6 +9,6 @@ export class UpdateTagsDto {
     type: [String],
   })
   @IsArray()
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   readonly tags!: string[];
 }

@@ -8,16 +8,16 @@ import {
   CaptionFormat,
 } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { ICaption, IFieldOption, IMetadata } from '@genfeedai/interfaces';
-import type { Caption } from '@genfeedai/models/content/caption.model';
 import type { IngredientTabsCaptionsProps } from '@genfeedai/props/content/ingredient.props';
 import { CaptionsService } from '@genfeedai/services/content/captions.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
+import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Alert from '@ui/feedback/alert/Alert';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
@@ -45,7 +45,7 @@ export default function IngredientTabsCaptions({
   // onReload,
 }: IngredientTabsCaptionsProps) {
   const { isSignedIn } = useAuth();
-  const router = useRouter();
+  const { push } = useRouter();
   const { href } = useOrgUrl();
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
@@ -66,22 +66,18 @@ export default function IngredientTabsCaptions({
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [selectedCaption, setSelectedCaption] = useState<ICaption | null>(null);
 
-  // Load captions using useResource (handles AbortController cleanup properly)
   const {
-    data: captions,
+    data: captions = [],
     isLoading,
-    refresh: refreshCaptions,
-  } = useResource(
-    async () => {
+    refetch: refreshCaptions,
+  } = useQuery({
+    queryKey: ['ingredient-captions', ingredient.id],
+    queryFn: async () => {
       const service = await getVideosService();
       return service.findCaptions(ingredient.id);
     },
-    {
-      defaultValue: [] as Caption[],
-      dependencies: [ingredient.id],
-      enabled: !!isSignedIn,
-    },
-  );
+    enabled: !!isSignedIn,
+  });
 
   // Set selectedCaption when captions load
   useEffect(() => {
@@ -129,12 +125,12 @@ export default function IngredientTabsCaptions({
         selectedCaption.id,
       );
 
-      notificationsService.success('Video with captions is being generated...');
+      notificationsService.success('Video with captions is being generated…');
 
       logger.info('Video generated', data);
 
       // Redirect to videos page
-      router.push(href(`/videos/${data.id}`));
+      push(href(`/videos/${data.id}`));
     } catch (error) {
       logger.error('Failed to generate video with captions', error);
       notificationsService.error('Failed to generate video with captions');
@@ -224,7 +220,15 @@ export default function IngredientTabsCaptions({
             {captions.map((caption: ICaption) => (
               <div
                 key={caption.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => setSelectedCaption(caption)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedCaption(caption);
+                  }
+                }}
                 className={`p-3 border cursor-pointer transition-colors ${
                   selectedCaption?.id === caption.id
                     ? 'border-primary bg-primary/10'
@@ -239,7 +243,11 @@ export default function IngredientTabsCaptions({
                     </p>
 
                     <p className="text-sm text-foreground/60">
-                      Created {new Date(caption.createdAt).toLocaleDateString()}
+                      <ClientDateTime
+                        value={caption.createdAt}
+                        prefix="Created "
+                        format={(date) => date.toLocaleDateString()}
+                      />
                     </p>
                   </div>
                   <Button

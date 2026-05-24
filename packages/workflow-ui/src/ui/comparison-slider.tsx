@@ -127,7 +127,7 @@ function ComparisonSliderComponent({
         fill
         unoptimized
         sizes="(max-width: 768px) 100vw, 300px"
-        className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+        className="absolute inset-0 size-full object-cover pointer-events-none"
       />
 
       <div
@@ -148,8 +148,8 @@ function ComparisonSliderComponent({
         className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg pointer-events-none"
         style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
       >
-        <div className="absolute top-1/2 left-1/2 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-lg">
-          <ChevronsLeftRight className="h-3 w-3 text-gray-600" aria-hidden />
+        <div className="absolute top-1/2 left-1/2 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-lg">
+          <ChevronsLeftRight className="size-3 text-neutral-600" aria-hidden />
         </div>
       </div>
 

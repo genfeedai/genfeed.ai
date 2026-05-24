@@ -4,16 +4,25 @@ import { useXArticleCompose } from '@hooks/pages/use-x-article-compose/use-x-art
 import ArticleTypeSelector from '@ui/articles/type-selector/ArticleTypeSelector';
 import XArticleGenerateForm from '@ui/articles/x-article/XArticleGenerateForm';
 import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import ArticleDetail from './article-detail';
 
-export default function ArticleCompose() {
+function ArticleComposeContent() {
   const searchParams = useSearchParams();
-  const articleId = searchParams?.get('id') || '';
+  const articleId = searchParams.get('id') || '';
+  const credentialId = searchParams.get('credentialId') || '';
+  const initialPrompt = searchParams.get('prompt') || '';
+  const requestedType = searchParams.get('type') || '';
 
   const [composeMode, setComposeMode] = useState<
     'select' | 'quick' | 'x-article'
-  >(articleId ? 'quick' : 'select');
+  >(
+    articleId
+      ? 'quick'
+      : requestedType === 'x-article'
+        ? 'x-article'
+        : 'select',
+  );
 
   const { phase, article, handleGenerate } = useXArticleCompose();
 
@@ -21,24 +30,28 @@ export default function ArticleCompose() {
   const resolvedArticleId =
     phase === 'generated' && article ? article.id : articleId;
 
-  if (composeMode === 'select' && !resolvedArticleId) {
-    return (
-      <div className="container mx-auto p-6">
-        <ArticleTypeSelector onSelect={(type) => setComposeMode(type)} />
-      </div>
-    );
-  }
+  return composeMode === 'select' && !resolvedArticleId ? (
+    <div className="container mx-auto p-6">
+      <ArticleTypeSelector onSelect={(type) => setComposeMode(type)} />
+    </div>
+  ) : composeMode === 'x-article' && phase !== 'generated' ? (
+    <div className="container mx-auto p-6">
+      <XArticleGenerateForm
+        credentialId={credentialId}
+        initialPrompt={initialPrompt}
+        onGenerate={handleGenerate}
+        isGenerating={phase === 'generating'}
+      />
+    </div>
+  ) : (
+    <ArticleDetail articleId={resolvedArticleId} credentialId={credentialId} />
+  );
+}
 
-  if (composeMode === 'x-article' && phase !== 'generated') {
-    return (
-      <div className="container mx-auto p-6">
-        <XArticleGenerateForm
-          onGenerate={handleGenerate}
-          isGenerating={phase === 'generating'}
-        />
-      </div>
-    );
-  }
-
-  return <ArticleDetail articleId={resolvedArticleId} />;
+export default function ArticleCompose() {
+  return (
+    <Suspense fallback={null}>
+      <ArticleComposeContent />
+    </Suspense>
+  );
 }

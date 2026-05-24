@@ -34,6 +34,10 @@ type EvaluationAiResult = {
   scores: unknown;
 };
 
+type EvaluationContext = NonNullable<
+  Parameters<EvaluationsOperationsService['evaluateVideo']>[1]
+>;
+
 type PostThreadChild = {
   description?: string;
   order?: number;
@@ -93,16 +97,83 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     super(prisma, 'evaluation', logger);
   }
 
+  private readObjectRecord(value: unknown): Record<string, unknown> {
+    return typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private readNumber(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value)
+      ? value
+      : undefined;
+  }
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private serializeJsonRecord(
+    value: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+  }
+
+  private buildBrandContext(brand?: {
+    name?: string;
+    guidelines?: unknown;
+  }): EvaluationContext['brand'] {
+    const label = this.readString(brand?.name);
+    if (!label) {
+      return undefined;
+    }
+
+    const guidelines = this.readString(brand?.guidelines);
+
+    return {
+      label,
+      ...(guidelines
+        ? {
+            description: guidelines,
+            text: guidelines,
+          }
+        : {}),
+    };
+  }
+
+  private buildStoredEvaluationData(
+    value: EvaluationData,
+  ): Record<string, unknown> {
+    return this.serializeJsonRecord(
+      Object.fromEntries(
+        Object.entries(value).filter(([, entry]) => entry !== undefined),
+      ),
+    );
+  }
+
+  private readScoreBucket(value: unknown):
+    | {
+        overall?: number;
+      }
+    | undefined {
+    const record = this.readObjectRecord(value);
+    const overall = this.readNumber(record.overall);
+
+    return overall !== undefined ? { overall } : undefined;
+  }
+
   private async validateContentForEvaluation(
     contentType: IngredientCategory | 'article' | 'post',
     contentId: string,
+    organizationId: string,
   ): Promise<void> {
     switch (contentType) {
       case IngredientCategory.VIDEO: {
         if (!this.videosService) throw new Error('VideosService not available');
-        const video = await this.videosService.findOne({ _id: contentId }, [
-          { path: 'metadata' },
-        ]);
+        const video = await this.videosService.findOne(
+          { _id: contentId, organizationId, isDeleted: false },
+          [{ path: 'metadata' }],
+        );
         if (!video) throw new NotFoundException(`Video ${contentId} not found`);
         if (!(video.metadata as { result?: string })?.result) {
           throw new NotFoundException(`Video ${contentId} has no result URL`);
@@ -111,9 +182,10 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       }
       case IngredientCategory.IMAGE: {
         if (!this.imagesService) throw new Error('ImagesService not available');
-        const image = await this.imagesService.findOne({ _id: contentId }, [
-          { path: 'metadata' },
-        ]);
+        const image = await this.imagesService.findOne(
+          { _id: contentId, organizationId, isDeleted: false },
+          [{ path: 'metadata' }],
+        );
         if (!image) throw new NotFoundException(`Image ${contentId} not found`);
         if (!(image.metadata as { result?: string })?.result) {
           throw new NotFoundException(`Image ${contentId} has no result URL`);
@@ -123,7 +195,11 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       case 'article': {
         if (!this.articlesService)
           throw new Error('ArticlesService not available');
-        const article = await this.articlesService.findOne({ _id: contentId });
+        const article = await this.articlesService.findOne({
+          _id: contentId,
+          organizationId,
+          isDeleted: false,
+        });
         if (!article)
           throw new NotFoundException(`Article ${contentId} not found`);
         if (!article.content)
@@ -132,7 +208,11 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       }
       case 'post': {
         if (!this.postsService) throw new Error('PostsService not available');
-        const post = await this.postsService.findOne({ _id: contentId });
+        const post = await this.postsService.findOne({
+          _id: contentId,
+          organizationId,
+          isDeleted: false,
+        });
         if (!post) throw new NotFoundException(`Post ${contentId} not found`);
         if (!post.description)
           throw new NotFoundException(`Post ${contentId} has no content`);
@@ -156,7 +236,11 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       this.constructorName,
     );
 
-    await this.validateContentForEvaluation(contentType, contentId);
+    await this.validateContentForEvaluation(
+      contentType,
+      contentId,
+      organizationId,
+    );
     await this.assertOrganizationCreditsAvailable(
       organizationId,
       EvaluationsService.EVALUATION_MINIMUM_CREDITS,
@@ -227,11 +311,10 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     const prompt = video.prompt as { enhanced?: string; original?: string };
     const brand = video.brand as { name?: string; guidelines?: string };
 
-    const context = {
-      brand: brand
-        ? { guidelines: brand.guidelines, name: brand.name }
-        : undefined,
-      prompt: prompt?.enhanced || prompt?.original,
+    const context: EvaluationContext = {
+      brand: this.buildBrandContext(brand),
+      prompt:
+        this.readString(prompt?.enhanced) ?? this.readString(prompt?.original),
     };
 
     let billedCredits = 0;
@@ -250,7 +333,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         userId,
         contentType: IngredientCategory.VIDEO,
         contentId: videoId,
-        data: {
+        data: this.buildStoredEvaluationData({
           analysis: aiResult.analysis,
           brandId,
           evaluationType,
@@ -258,7 +341,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           overallScore: aiResult.overallScore,
           scores: aiResult.scores,
           status: Status.COMPLETED,
-        } satisfies EvaluationData,
+        }) as never,
       },
     });
 
@@ -299,11 +382,10 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     const prompt = image.prompt as { enhanced?: string; original?: string };
     const brand = image.brand as { name?: string; guidelines?: string };
 
-    const context = {
-      brand: brand
-        ? { guidelines: brand.guidelines, name: brand.name }
-        : undefined,
-      prompt: prompt?.enhanced || prompt?.original,
+    const context: EvaluationContext = {
+      brand: this.buildBrandContext(brand),
+      prompt:
+        this.readString(prompt?.enhanced) ?? this.readString(prompt?.original),
     };
 
     let billedCredits = 0;
@@ -322,7 +404,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         userId,
         contentType: IngredientCategory.IMAGE,
         contentId: imageId,
-        data: {
+        data: this.buildStoredEvaluationData({
           analysis: aiResult.analysis,
           brandId,
           evaluationType,
@@ -330,7 +412,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           overallScore: aiResult.overallScore,
           scores: aiResult.scores,
           status: Status.COMPLETED,
-        } satisfies EvaluationData,
+        }) as never,
       },
     });
 
@@ -364,15 +446,13 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       throw new NotFoundException(`Article ${articleId} has no content`);
 
     const brand = article.brand as { name?: string; guidelines?: string };
-    const context = {
-      brand: brand
-        ? { guidelines: brand.guidelines, name: brand.name }
-        : undefined,
-      metadata: {
-        category: article.category,
-        summary: article.summary,
-        title: article.label,
-      },
+    const context: EvaluationContext = {
+      brand: this.buildBrandContext(brand),
+      metadata: this.serializeJsonRecord({
+        category: this.readString(article.category),
+        summary: this.readString(article.summary),
+        title: this.readString(article.label),
+      }),
     };
 
     let billedCredits = 0;
@@ -391,7 +471,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         userId,
         contentType: 'article',
         contentId: articleId,
-        data: {
+        data: this.buildStoredEvaluationData({
           analysis: aiResult.analysis,
           brandId,
           evaluationType,
@@ -399,7 +479,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           overallScore: aiResult.overallScore,
           scores: aiResult.scores,
           status: Status.COMPLETED,
-        } satisfies EvaluationData,
+        }) as never,
       },
     });
 
@@ -437,11 +517,11 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         userId,
         contentType: 'post',
         contentId: postId,
-        data: {
+        data: this.buildStoredEvaluationData({
           brandId,
           evaluationType,
           status: Status.PROCESSING,
-        } satisfies EvaluationData,
+        }) as never,
       },
     });
 
@@ -502,27 +582,29 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       });
 
       const prevData = prevRaw?.data as EvaluationData | null;
+      const previousScores = this.readObjectRecord(prevData?.scores);
       const previousEval =
         prevData?.status === Status.COMPLETED &&
         prevData?.overallScore !== undefined &&
-        prevData?.scores
+        Object.keys(previousScores).length > 0
           ? {
               overallScore: prevData.overallScore as number,
-              scores: prevData.scores as Record<string, unknown>,
+              scores: {
+                brand: this.readScoreBucket(previousScores.brand),
+                engagement: this.readScoreBucket(previousScores.engagement),
+                technical: this.readScoreBucket(previousScores.technical),
+              },
               updatedAt: prevRaw!.updatedAt,
             }
           : undefined;
 
-      const context = {
-        brand: brand
-          ? {
-              guidelines: (brand as { guidelines?: unknown }).guidelines,
-              name: brand.name,
-            }
-          : undefined,
+      const context: EvaluationContext = {
+        brand: this.buildBrandContext(
+          brand as { guidelines?: unknown; name?: string } | undefined,
+        ),
         isThread,
-        label: post.label,
-        platform: post.platform,
+        label: this.readString(post.label),
+        platform: this.readString(post.platform),
         previousEvaluation: previousEval,
         threadLength: isThread ? threadChildren.length + 1 : 1,
       };
@@ -530,18 +612,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       let billedCredits = 0;
       const aiResult = (await this.evaluationsOperationsService.evaluatePost(
         threadContent,
-        context as {
-          label?: string;
-          brand?: { name?: string; guidelines?: unknown };
-          platform?: string;
-          isThread?: boolean;
-          threadLength?: number;
-          previousEvaluation?: {
-            overallScore: number;
-            scores: Record<string, unknown>;
-            updatedAt: Date;
-          };
-        },
+        context,
         organizationId,
         (amount) => {
           billedCredits += amount;
@@ -563,14 +634,14 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       const updatedEvaluation = await this.prisma.evaluation.update({
         where: { id: evaluationId },
         data: {
-          data: {
+          data: this.buildStoredEvaluationData({
             ...existingData,
             analysis: aiResult.analysis,
             flags: aiResult.flags,
             overallScore: aiResult.overallScore,
             scores: aiResult.scores,
             status: Status.COMPLETED,
-          } satisfies EvaluationData,
+          }) as never,
         },
       });
 
@@ -594,10 +665,10 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       await this.prisma.evaluation.update({
         where: { id: evaluationId },
         data: {
-          data: {
+          data: this.buildStoredEvaluationData({
             ...existingData,
             status: Status.FAILED,
-          } satisfies EvaluationData,
+          }) as never,
         },
       });
 
@@ -680,7 +751,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     const updated = await this.prisma.evaluation.update({
       where: { id: evaluationId },
       data: {
-        data: {
+        data: this.buildStoredEvaluationData({
           ...data,
           actualPerformance: {
             accuracyScore,
@@ -689,7 +760,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
             syncedAt: new Date().toISOString(),
             views: metrics.views || 0,
           },
-        } satisfies EvaluationData,
+        }) as never,
       },
     });
 

@@ -1,15 +1,15 @@
 import { checkbox, input } from '@inquirer/prompts';
 import { Command } from 'commander';
 import ora from 'ora';
-import { get, post, requireAuth } from '@/api/client.js';
+import { get, post, requireAuth } from '@/api/client';
 import {
   flattenCollection,
   flattenSingle,
   type JsonApiCollectionResponse,
   type JsonApiSingleResponse,
-} from '@/api/json-api.js';
-import { formatSuccess, formatWarning, print } from '@/ui/theme.js';
-import { GenfeedError, handleError } from '@/utils/errors.js';
+} from '@/api/json-api';
+import { formatSuccess, formatWarning, print } from '@/ui/theme';
+import { GenfeedError, handleError } from '@/utils/errors';
 
 interface PublishResponse {
   id: string;

@@ -16,8 +16,8 @@ import { ArticleAnalyticsService } from '@api/collections/articles/services/arti
 import type {
   ArticleCycleModelConfig,
   ArticleReviewRubric,
+  ArticlesContentService,
 } from '@api/collections/articles/services/articles-content.service';
-import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import {
   buildViralityAnalysisResponse,
   normalizePerformanceMetrics,
@@ -60,7 +60,13 @@ import {
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable, NotFoundException, Optional } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
 
 @Injectable()
 export class ArticlesService extends BaseService<
@@ -85,6 +91,11 @@ export class ArticlesService extends BaseService<
     @Optional()
     private readonly promptsService?: PromptsService,
     @Optional()
+    @Inject(
+      forwardRef(
+        () => require('./articles-content.service').ArticlesContentService,
+      ),
+    )
     private readonly articlesContentService?: ArticlesContentService,
     @Optional() private readonly templatesService?: TemplatesService,
     @Optional() protected readonly cacheService?: CacheService,
@@ -96,6 +107,32 @@ export class ArticlesService extends BaseService<
     @Optional() private readonly modelsService?: ModelsService,
   ) {
     super(prisma, 'article', logger, undefined, cacheService);
+  }
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private readStringArray(value: unknown): string[] {
+    return Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === 'string')
+      : [];
+  }
+
+  private normalizeArticleCategory(
+    value: unknown,
+  ): ArticleCategory | undefined {
+    return Object.values(ArticleCategory).find(
+      (category) => category === value,
+    );
+  }
+
+  private normalizeArticleScope(value: unknown): ArticleScope | undefined {
+    return Object.values(ArticleScope).find((scope) => scope === value);
+  }
+
+  private isPublicArticleStatus(value: unknown): boolean {
+    return value === ArticleStatus.PUBLIC || value === 'PUBLISHED';
   }
 
   /**
@@ -525,7 +562,7 @@ export class ArticlesService extends BaseService<
         ];
 
         // If article is published, also invalidate public cache (PUBLISHED = public)
-        if (result.status === ArticleStatus.PUBLIC) {
+        if (this.isPublicArticleStatus(result.status)) {
           tagsToInvalidate.push('public');
         }
 
@@ -560,13 +597,17 @@ export class ArticlesService extends BaseService<
             const publicUrl = result.slug
               ? `${this.configService.get('GENFEEDAI_PUBLIC_URL')}/articles/${result.slug}`
               : undefined;
+            const articleLabel = this.readString(result.label) ?? result.title;
+            const articleSlug = this.readString(result.slug) ?? result.id;
 
             await this.notificationsService.sendArticleNotification({
-              category: result.category,
-              label: result.label,
+              category: this.readString(result.category),
+              label: articleLabel,
               publicUrl,
-              slug: result.slug,
-              summary: result.summary,
+              slug: articleSlug,
+              summary:
+                this.readString(result.summary) ??
+                this.readString(result.excerpt),
             });
 
             this.logger.log(
@@ -972,10 +1013,13 @@ export class ArticlesService extends BaseService<
         };
       }
 
-      // Get all prompts for this article - TODO: migrate findAll pipeline to Prisma
-      const promptsResult = await this.promptsService.findAll([], {
-        pagination: false,
-      });
+      // Get all prompts for this article - TODO: migrate findAll query to Prisma
+      const promptsResult = await this.promptsService.findAll(
+        { where: {} },
+        {
+          pagination: false,
+        },
+      );
       const prompts = promptsResult.docs.filter(
         (p: Record<string, unknown>) =>
           p.articleId === articleId &&
@@ -1413,14 +1457,17 @@ export class ArticlesService extends BaseService<
     const remixSlug = `${baseSlug}-remix-${Date.now()}`;
 
     const remixDto: CreateArticleDto = {
-      category: originalArticle.category || ArticleCategory.POST,
-      content: originalArticle.content,
+      category:
+        this.normalizeArticleCategory(originalArticle.category) ??
+        ArticleCategory.POST,
+      content: this.readString(originalArticle.content),
       label: remixTitle,
-      scope: originalArticle.scope || ArticleScope.USER,
+      scope:
+        this.normalizeArticleScope(originalArticle.scope) ?? ArticleScope.USER,
       slug: remixSlug,
       status: ArticleStatus.DRAFT, // Always start as draft
-      summary: originalArticle.summary,
-      tags: originalArticle.tags || [],
+      summary: this.readString(originalArticle.summary) ?? '',
+      tags: this.readStringArray(originalArticle.tags),
     };
 
     const remixArticle = await this.createArticle(
@@ -1465,7 +1512,7 @@ export class ArticlesService extends BaseService<
     const [users, orgs] = await Promise.all([
       this.usersService && userIds.length > 0
         ? this.usersService
-            .findAll([], { pagination: false })
+            .findAll({ where: {} }, { pagination: false })
             .then((result) =>
               result.docs.filter((u: Record<string, unknown>) =>
                 userIds.includes(String(u.id ?? u._id)),
@@ -1474,7 +1521,7 @@ export class ArticlesService extends BaseService<
         : Promise.resolve([]),
       this.organizationsService && orgIds.length > 0
         ? this.organizationsService
-            .findAll([], { pagination: false })
+            .findAll({ where: {} }, { pagination: false })
             .then((result) =>
               result.docs.filter((o: Record<string, unknown>) =>
                 orgIds.includes(String(o.id ?? o._id)),

@@ -18,6 +18,7 @@ export interface AppSidebarProps extends BaseMenuProps {
   backHref?: string;
   backLabel?: string;
   collapsedSidebarWidth?: MenuSharedProps['collapsedSidebarWidth'];
+  currentApp?: MenuSharedProps['currentApp'];
   mobileSidebarWidth?: MenuSharedProps['mobileSidebarWidth'];
   primaryAction?: MenuPrimaryActionConfig;
   secondaryItems?: MenuShellConfig['secondaryItems'];
@@ -42,6 +43,7 @@ export default function AppSidebar({
   backHref,
   backLabel,
   collapsedSidebarWidth,
+  currentApp,
   mobileSidebarWidth,
   primaryAction,
   secondaryItems,
@@ -59,7 +61,6 @@ export default function AppSidebar({
 }: AppSidebarProps) {
   const config = useMemo<MenuShellConfig>(
     () => ({
-      brandRailMode: 'hidden',
       items,
       logoHref,
       primaryAction,
@@ -72,6 +73,7 @@ export default function AppSidebar({
     <MenuShared
       collapsedSidebarWidth={collapsedSidebarWidth}
       config={config}
+      currentApp={currentApp}
       mobileSidebarWidth={mobileSidebarWidth}
       onClose={onClose}
       renderTopSlot={renderTopSlot}

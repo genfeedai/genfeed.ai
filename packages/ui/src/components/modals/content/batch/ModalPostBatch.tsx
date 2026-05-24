@@ -78,7 +78,7 @@ type ModalPostBatchEmptyStateProps = {
   hasAvailableCredentials: boolean;
   hasInvalidCredentials: boolean;
   onClose: () => void;
-  router: ReturnType<typeof useRouter>;
+  onOpenCredentials: () => void;
 };
 
 // All supported platforms
@@ -135,12 +135,12 @@ function ModalPostBatchEmptyState({
   hasAvailableCredentials,
   hasInvalidCredentials,
   onClose,
-  router,
+  onOpenCredentials,
 }: ModalPostBatchEmptyStateProps) {
   if (!ingredient) {
     return (
       <div className="text-center py-8 px-4">
-        <h3 className="text-lg font-bold mb-4">No Content Selected</h3>
+        <h3 className="text-lg font-semibold mb-4">No Content Selected</h3>
         <p className="text-foreground/70 mb-6">
           Please select content to publish.
         </p>
@@ -170,7 +170,7 @@ function ModalPostBatchEmptyState({
 
     return (
       <div className="text-center py-8 px-4">
-        <h3 className="text-lg font-bold mb-4">{title}</h3>
+        <h3 className="text-lg font-semibold mb-4">{title}</h3>
         <p className="text-foreground/70 mb-6">{errorMessage}</p>
 
         <div className="flex gap-3 justify-center">
@@ -185,7 +185,7 @@ function ModalPostBatchEmptyState({
             variant={ButtonVariant.DEFAULT}
             onClick={() => {
               onClose();
-              router.push(`${EnvironmentService.apps.app}/credentials`);
+              onOpenCredentials();
             }}
           />
         </div>
@@ -206,7 +206,7 @@ export default function ModalPostBatch({
   openKey,
 }: ModalPostProps) {
   const { organizationId, refreshBrands } = useBrand();
-  const router = useRouter();
+  const { push } = useRouter();
   const [error, setError] = useState<string | null>(null);
 
   // Refs for callbacks to prevent re-renders
@@ -300,21 +300,21 @@ export default function ModalPostBatch({
         return;
       }
 
-      const url = `GET /organizations/${organizationId}`;
+      const url = `GET /organizations/${organizationId}/settings`;
 
       try {
         const service = await getOrganizationsService();
-        const organization = await service.findOne(organizationId);
+        const organizationSettings = await service.getSettings(organizationId);
 
         if (signal?.aborted) {
           return;
         }
 
-        if (organization?.settings) {
-          setSettings(organization.settings);
+        if (organizationSettings) {
+          setSettings(organizationSettings);
         }
 
-        logger.info(`${url} success`, organization);
+        logger.info(`${url} success`, organizationSettings);
       } catch (error) {
         logger.error(`${url} failed`, error);
       }
@@ -366,6 +366,10 @@ export default function ModalPostBatch({
       onCloseRef.current?.();
     }, 300);
   }, [form]);
+
+  const openCredentials = useCallback(() => {
+    push(`${EnvironmentService.apps.app}/credentials`);
+  }, [push]);
 
   const handleSubmit = useCallback(async () => {
     setError(null); // Clear any previous errors
@@ -663,7 +667,7 @@ export default function ModalPostBatch({
   useEffect(() => {
     const abortController = new AbortController();
 
-    if (organizationId) {
+    if (organizationId && activeIngredients.length > 0) {
       startTransition(() => {
         void findOrganizationSettings(abortController.signal);
       });
@@ -672,7 +676,7 @@ export default function ModalPostBatch({
     return () => {
       abortController.abort();
     };
-  }, [findOrganizationSettings, organizationId]);
+  }, [activeIngredients.length, findOrganizationSettings, organizationId]);
 
   // Initialize platform configs with all possible platforms
   useEffect(() => {
@@ -1012,7 +1016,7 @@ export default function ModalPostBatch({
           hasAvailableCredentials={hasAvailableCredentials}
           hasInvalidCredentials={hasInvalidCredentials}
           onClose={closeModalPost}
-          router={router}
+          onOpenCredentials={openCredentials}
         />
 
         {ingredient &&
@@ -1107,7 +1111,7 @@ export default function ModalPostBatch({
                   <div className="w-full max-w-md space-y-6">
                     {/* Header */}
                     <div className="text-center">
-                      <h2 className="text-2xl font-bold mb-2">
+                      <h2 className="text-2xl font-semibold mb-2">
                         Submission Status
                       </h2>
 
@@ -1123,14 +1127,14 @@ export default function ModalPostBatch({
                           (r) =>
                             r.status === 'pending' || r.status === 'submitting',
                         )
-                          ? ' (in progress...)'
+                          ? ' (in progress…)'
                           : ' successfully'}
                       </p>
                     </div>
 
                     {/* Platform statuses */}
                     <div className="space-y-2">
-                      {platformStatuses.map((status, index) => {
+                      {platformStatuses.map((status) => {
                         const PlatformIcon =
                           PLATFORM_ICONS[
                             status.platform as keyof typeof PLATFORM_ICONS
@@ -1169,7 +1173,7 @@ export default function ModalPostBatch({
                             case 'failed':
                               return <Badge status="error">Failed</Badge>;
                             case 'submitting':
-                              return <Badge status="info">Submitting...</Badge>;
+                              return <Badge status="info">Submitting…</Badge>;
                             default:
                               return <Badge variant="ghost">Pending</Badge>;
                           }
@@ -1177,12 +1181,12 @@ export default function ModalPostBatch({
 
                         return (
                           <div
-                            key={index}
+                            key={status.credentialId}
                             className={`flex items-center gap-3 p-4 border transition-all ${getStatusColor()}`}
                           >
                             {PlatformIcon && (
                               <PlatformIcon
-                                className={`h-5 w-5 ${getIconColor()}`}
+                                className={`size-5 ${getIconColor()}`}
                               />
                             )}
                             <div className="flex-1">
@@ -1247,7 +1251,7 @@ export default function ModalPostBatch({
                               label="View Scheduled Posts"
                               variant={ButtonVariant.DEFAULT}
                               onClick={() => {
-                                router.push(
+                                push(
                                   `${EnvironmentService.apps.app}${getPublisherPostsHref(
                                     {
                                       status: PostStatus.SCHEDULED,
@@ -1271,11 +1275,9 @@ export default function ModalPostBatch({
                   {hasFormErrors(form.formState.errors) && (
                     <Alert type={AlertCategory.ERROR} className="mb-4">
                       <div className="space-y-1">
-                        {parseFormErrors(form.formState.errors).map(
-                          (error, index) => (
-                            <div key={index}>{error}</div>
-                          ),
-                        )}
+                        {parseFormErrors(form.formState.errors).map((error) => (
+                          <div key={error}>{error}</div>
+                        ))}
                       </div>
                     </Alert>
                   )}
@@ -1298,9 +1300,7 @@ export default function ModalPostBatch({
                           variant={ButtonVariant.OUTLINE}
                           onClick={() => {
                             closeModalPost();
-                            router.push(
-                              `${EnvironmentService.apps.app}/credentials`,
-                            );
+                            push(`${EnvironmentService.apps.app}/credentials`);
                           }}
                         />
                       </div>

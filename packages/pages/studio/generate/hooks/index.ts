@@ -5,6 +5,7 @@ export { useAssetLoading } from '@pages/studio/generate/hooks/useAssetLoading';
 export { useFilters } from '@pages/studio/generate/hooks/useFilters';
 export { usePromptState } from '@pages/studio/generate/hooks/usePromptState';
 export { useSocketGeneration } from '@pages/studio/generate/hooks/useSocketGeneration';
+export { useStoryboardGeneration } from '@pages/studio/generate/hooks/useStoryboardGeneration';
 export {
   useTableActions,
   useTableColumns,

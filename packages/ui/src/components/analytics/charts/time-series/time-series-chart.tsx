@@ -7,17 +7,30 @@ import {
   formatPercentageSimple,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { TimeSeriesChartProps } from '@genfeedai/props/analytics/analytics.props';
+import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
-import { useState } from 'react';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import dynamic from 'next/dynamic';
+import { useMemo, useState } from 'react';
+
+const AreaChart = dynamic(() => import('recharts').then((m) => m.AreaChart), {
+  ssr: false,
+});
+const Area = dynamic(() => import('recharts').then((m) => m.Area), {
+  ssr: false,
+});
+const CartesianGrid = dynamic(
+  () => import('recharts').then((m) => m.CartesianGrid),
+  { ssr: false },
+);
+const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), {
+  ssr: false,
+});
+const XAxis = dynamic(() => import('recharts').then((m) => m.XAxis), {
+  ssr: false,
+});
+const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), {
+  ssr: false,
+});
 
 const METRIC_COLORS = {
   comments: 'var(--overlay-white-20)',
@@ -54,6 +67,19 @@ export function TimeSeriesChart({
   );
   const [activeMetrics, setActiveMetrics] =
     useState<TimeSeriesMetric[]>(normalizedMetrics);
+  const chartConfig = useMemo(
+    () =>
+      Object.fromEntries(
+        normalizedMetrics.map((metric) => [
+          metric,
+          {
+            color: METRIC_COLORS[metric],
+            label: METRIC_LABELS[metric],
+          },
+        ]),
+      ),
+    [normalizedMetrics],
+  );
 
   if (isLoading) {
     return (
@@ -62,8 +88,8 @@ export function TimeSeriesChart({
         style={{ height }}
       >
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white/30 mx-auto mb-3" />
-          <p className="text-sm text-white/40">Loading chart data...</p>
+          <div className="animate-spin rounded-full size-12 border-b-2 border-white/30 mx-auto mb-3" />
+          <p className="text-sm text-white/40">Loading chart data…</p>
         </div>
       </div>
     );
@@ -86,13 +112,15 @@ export function TimeSeriesChart({
   }
 
   const toggleMetric = (metric: TimeSeriesMetric) => {
-    if (activeMetrics.includes(metric)) {
-      if (activeMetrics.length > 1) {
-        setActiveMetrics(activeMetrics.filter((m) => m !== metric));
+    setActiveMetrics((previousMetrics) => {
+      if (!previousMetrics.includes(metric)) {
+        return [...previousMetrics, metric];
       }
-    } else {
-      setActiveMetrics([...activeMetrics, metric]);
-    }
+
+      return previousMetrics.length > 1
+        ? previousMetrics.filter((m) => m !== metric)
+        : previousMetrics;
+    });
   };
 
   const formatValue = (value: number, metric: TimeSeriesMetric) => {
@@ -119,7 +147,7 @@ export function TimeSeriesChart({
             }`}
           >
             <span
-              className="inline-block w-3 h-3 rounded-full mr-2"
+              className="inline-block size-3 rounded-full mr-2"
               style={{ backgroundColor: METRIC_COLORS[metric] }}
             />
             {METRIC_LABELS[metric]}
@@ -128,7 +156,11 @@ export function TimeSeriesChart({
       </div>
 
       {/* Chart */}
-      <ResponsiveContainer width="100%" height={height}>
+      <ChartContainer
+        config={chartConfig}
+        className="border-white/[0.08] bg-card p-3 shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]"
+        height={height}
+      >
         <AreaChart
           data={data}
           margin={{ bottom: 0, left: 0, right: 30, top: 10 }}
@@ -175,32 +207,29 @@ export function TimeSeriesChart({
           />
 
           <Tooltip
-            contentStyle={{
-              backdropFilter: 'blur(10px)',
-              backgroundColor: 'var(--overlay-black-90)',
-              border: '1px solid var(--overlay-white-10)',
-              borderRadius: '12px',
-            }}
-            labelStyle={{
-              color: 'hsl(var(--foreground))',
-              fontWeight: '600',
-              marginBottom: '8px',
-            }}
-            itemStyle={{ color: 'var(--overlay-white-20)' }}
-            formatter={(value, name) => [
-              formatValue(
-                typeof value === 'number'
-                  ? value
-                  : typeof value === 'string'
-                    ? Number(value)
-                    : 0,
-                String(name ?? '') as TimeSeriesMetric,
-              ),
-              METRIC_LABELS[String(name ?? '') as keyof typeof METRIC_LABELS] ??
-                String(name ?? '') ??
-                '',
-            ]}
-            labelFormatter={(label) => `Date: ${formatChartDate(label)}`}
+            content={
+              <ChartTooltipContent
+                labelFormatter={(label) =>
+                  `Date: ${formatChartDate(
+                    typeof label === 'string' ||
+                      typeof label === 'number' ||
+                      label instanceof Date
+                      ? label
+                      : null,
+                  )}`
+                }
+                valueFormatter={(value, item) =>
+                  formatValue(
+                    typeof value === 'number'
+                      ? value
+                      : typeof value === 'string'
+                        ? Number(value)
+                        : 0,
+                    String(item.dataKey ?? item.name ?? '') as TimeSeriesMetric,
+                  )
+                }
+              />
+            }
           />
           {activeMetrics.map((metric) => (
             <Area
@@ -222,7 +251,7 @@ export function TimeSeriesChart({
             />
           ))}
         </AreaChart>
-      </ResponsiveContainer>
+      </ChartContainer>
     </div>
   );
 }

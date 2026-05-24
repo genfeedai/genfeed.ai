@@ -15,6 +15,10 @@ import type {
 export type { CostBreakdown, NodeCostEstimate };
 
 type TopazImageUpscaleTier = (typeof PRICING)['topaz-image-upscale'][number];
+const DEFAULT_TOPAZ_IMAGE_UPSCALE_TIER =
+  PRICING['topaz-image-upscale'].find(
+    (tier: TopazImageUpscaleTier) => 1 <= tier.maxMP,
+  ) ?? PRICING['topaz-image-upscale'][0];
 
 // =============================================================================
 // HELPERS
@@ -169,20 +173,15 @@ export function calculateWorkflowCost(nodes: WorkflowNode[]): CostBreakdown {
         });
       } else {
         // Image upscale - default to ~1MP tier
-        const tier =
-          PRICING['topaz-image-upscale'].find(
-            (t: TopazImageUpscaleTier) => 1 <= t.maxMP,
-          ) ?? PRICING['topaz-image-upscale'][0];
-
         estimates.push({
           model: getDataField(data, 'model', 'topaz-standard-v2'),
           nodeId: node.id,
           nodeLabel: label,
           nodeType: type,
           quantity: 1,
-          subtotal: tier.price,
+          subtotal: DEFAULT_TOPAZ_IMAGE_UPSCALE_TIER.price,
           unit: 'per image',
-          unitPrice: tier.price,
+          unitPrice: DEFAULT_TOPAZ_IMAGE_UPSCALE_TIER.price,
         });
       }
       continue;

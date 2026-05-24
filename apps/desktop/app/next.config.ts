@@ -1,14 +1,15 @@
 import path from 'node:path';
 import type { NextConfig } from 'next';
 
-const packagesRoot = path.resolve(__dirname, '../../packages');
+const repoRoot = path.resolve(__dirname, '../../..');
+const packagesRoot = path.join(repoRoot, 'packages');
 
 const nextConfig: NextConfig = {
   assetPrefix: './',
   images: {
     unoptimized: true,
   },
-  output: 'export',
+  output: 'standalone',
   transpilePackages: [
     '@genfeedai/desktop-contracts',
     '@genfeedai/hooks',
@@ -17,7 +18,7 @@ const nextConfig: NextConfig = {
     '@genfeedai/ui',
   ],
   turbopack: {
-    root: path.resolve(__dirname, '../..'),
+    root: repoRoot,
   },
   webpack: (config) => {
     config.resolve.alias = {

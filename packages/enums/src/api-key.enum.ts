@@ -24,6 +24,7 @@ export enum ApiKeyScope {
   BRANDS_READ = 'brands:read',
   CREDITS_READ = 'credits:read',
   CREDITS_PROVISION = 'credits:provision',
+  MANAGED_INFERENCE_EXECUTE = 'managed-inference:execute',
   POSTS_CREATE = 'posts:create',
   ANALYTICS_READ = 'analytics:read',
   ADMIN = 'admin',

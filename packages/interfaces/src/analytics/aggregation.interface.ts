@@ -115,8 +115,8 @@ export interface IAnalyticsMatchStage {
   organization?: string;
   brand?: string;
   date?: {
-    $gte?: Date;
-    $lte?: Date;
+    gte?: Date;
+    lte?: Date;
   };
   platform?: string;
   isDeleted?: boolean;
@@ -124,22 +124,22 @@ export interface IAnalyticsMatchStage {
 
 export interface IAnalyticsGroupFields {
   _id: string;
-  avgEngagementRate?: { $avg: string };
-  totalViews?: { $sum: string };
-  totalLikes?: { $sum: string };
-  totalComments?: { $sum: string };
-  totalShares?: { $sum: string };
-  totalSaves?: { $sum: string };
-  posts?: { $addToSet: string };
-  platforms?: { $addToSet: string };
+  avgEngagementRate?: { avg: string };
+  totalViews?: { sum: string };
+  totalLikes?: { sum: string };
+  totalComments?: { sum: string };
+  totalShares?: { sum: string };
+  totalSaves?: { sum: string };
+  posts?: { addToSet: string };
+  platforms?: { addToSet: string };
 }
 
 /**
- * Pipeline result interfaces for analytics-aggregation.service.ts
- * Each interface maps to the output shape of a specific aggregation pipeline.
+ * Result interfaces for analytics aggregation service methods.
+ * Each interface maps to the output shape of a specific analytics query.
  */
 
-/** Result of getTimeSeriesData pipeline after $project */
+/** Result of getTimeSeriesData after projection */
 export interface ITimeSeriesProjectedResult {
   date: string;
   views: number;
@@ -162,13 +162,13 @@ export interface ITimeSeriesPlatformAggMetrics {
   engagementRate: number;
 }
 
-/** Result of getTimeSeriesDataWithPlatforms pipeline (second $group) */
+/** Result of getTimeSeriesDataWithPlatforms grouped by date */
 export interface ITimeSeriesGroupedByDateResult {
   _id: string;
   platforms: ITimeSeriesPlatformAggMetrics[];
 }
 
-/** Result of getPlatformComparison pipeline after $project + $addFields */
+/** Result of getPlatformComparison after projection */
 export interface IPlatformComparisonProjectedResult {
   _id: string;
   platform: string;
@@ -182,7 +182,7 @@ export interface IPlatformComparisonProjectedResult {
   avgViewsPerPost: number;
 }
 
-/** Result of getTopPerformingContent pipeline after $project */
+/** Result of getTopPerformingContent after projection */
 export interface ITopContentProjectedResult {
   _id: string;
   postId: string;
@@ -210,7 +210,7 @@ export interface IViralHookPlatformAggResult {
   engagementRate: number;
 }
 
-/** Result of getViralHooksSummary pipeline after $project */
+/** Result of getViralHooksSummary after projection */
 export interface IViralHookAggResult {
   _id: string;
   platforms: IViralHookPlatformAggResult[];

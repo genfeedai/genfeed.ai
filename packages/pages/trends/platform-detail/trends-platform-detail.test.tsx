@@ -5,15 +5,15 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseTrendContent = vi.fn();
-const mockUseResource = vi.fn();
+const mockUseQuery = vi.fn();
 const mockUsePathname = vi.fn(() => '/research/tiktok');
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: (...args: unknown[]) => mockUseResource(...args),
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: (...args: unknown[]) => mockUseQuery(...args),
 }));
 
 vi.mock('@hooks/data/trends/use-trend-content/use-trend-content', () => ({
@@ -109,7 +109,7 @@ describe('TrendsPlatformDetail', () => {
       },
     });
 
-    mockUseResource
+    mockUseQuery
       .mockReturnValueOnce({
         data: [
           {
@@ -122,13 +122,13 @@ describe('TrendsPlatformDetail', () => {
         ],
         error: null,
         isLoading: false,
-        refresh: vi.fn(),
+        refetch: vi.fn(),
       })
       .mockReturnValueOnce({
         data: [{ hashtag: '#AIAgents', platform: 'tiktok', viralityScore: 70 }],
         error: null,
         isLoading: false,
-        refresh: vi.fn(),
+        refetch: vi.fn(),
       })
       .mockReturnValueOnce({
         data: [
@@ -136,7 +136,7 @@ describe('TrendsPlatformDetail', () => {
         ],
         error: null,
         isLoading: false,
-        refresh: vi.fn(),
+        refetch: vi.fn(),
       });
   });
 
@@ -180,12 +180,12 @@ describe('TrendsPlatformDetail', () => {
       },
     });
 
-    mockUseResource.mockReset();
-    mockUseResource.mockReturnValue({
+    mockUseQuery.mockReset();
+    mockUseQuery.mockReturnValue({
       data: [],
       error: null,
       isLoading: false,
-      refresh: vi.fn(),
+      refetch: vi.fn(),
     });
 
     render(<TrendsPlatformDetail platform="linkedin" />);
@@ -215,12 +215,12 @@ describe('TrendsPlatformDetail', () => {
       },
     });
 
-    mockUseResource.mockReset();
-    mockUseResource.mockReturnValue({
+    mockUseQuery.mockReset();
+    mockUseQuery.mockReturnValue({
       data: [],
       error: null,
       isLoading: false,
-      refresh: vi.fn(),
+      refetch: vi.fn(),
     });
 
     render(<TrendsPlatformDetail platform="linkedin" />);
@@ -246,12 +246,12 @@ describe('TrendsPlatformDetail', () => {
       },
     });
 
-    mockUseResource.mockReset();
-    mockUseResource.mockReturnValue({
+    mockUseQuery.mockReset();
+    mockUseQuery.mockReturnValue({
       data: [],
       error: null,
       isLoading: false,
-      refresh: vi.fn(),
+      refetch: vi.fn(),
     });
 
     render(<TrendsPlatformDetail platform="linkedin" />);

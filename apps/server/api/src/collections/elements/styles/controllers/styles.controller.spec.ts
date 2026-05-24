@@ -8,11 +8,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
-vi.mock('@genfeedai/helpers', async () => ({
-  ...(await vi.importActual('@genfeedai/helpers')),
-  getDeserializer: vi.fn((dto) => Promise.resolve(dto)),
-}));
-
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
     errors: [
@@ -92,13 +87,22 @@ describe('ElementsStylesController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with organization filter', () => {
-      const query = {};
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+  describe('buildFindAllQuery', () => {
+    it('should build query with organization filter', () => {
+      const inputQuery = {};
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
-      expect(pipeline).toBeDefined();
-      expect(Array.isArray(pipeline)).toBe(true);
+      expect(query).toBeDefined();
+      expect(query).toMatchObject({
+        where: expect.objectContaining({
+          isDeleted: false,
+          OR: expect.arrayContaining([
+            expect.objectContaining({
+              organizationId: expect.any(String),
+            }),
+          ]),
+        }),
+      });
     });
 
     it('should load defaults when no organization', () => {
@@ -108,10 +112,10 @@ describe('ElementsStylesController', () => {
         },
       } as unknown as User;
 
-      const query = {};
-      const pipeline = controller.buildFindAllPipeline(userWithoutOrg, query);
+      const inputQuery = {};
+      const query = controller.buildFindAllQuery(userWithoutOrg, inputQuery);
 
-      expect(pipeline).toBeDefined();
+      expect(query).toBeDefined();
     });
   });
 

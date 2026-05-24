@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { flattenCollection, flattenSingle } from '../../src/api/json-api.js';
+import { flattenCollection, flattenSingle } from '../../src/api/json-api';
 
 describe('json-api', () => {
   describe('flattenCollection', () => {

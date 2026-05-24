@@ -63,7 +63,7 @@ import { forwardRef, Module } from '@nestjs/common';
 
     // Utility modules
     forwardRef(() => ByokModule),
-    FailedGenerationModule,
+    forwardRef(() => FailedGenerationModule),
   ],
   providers: [
     AvatarVideoGenerationService,

@@ -27,7 +27,7 @@ export const FAQ_ITEMS_CORE: FAQItem[] = [
   },
   {
     answer:
-      'Sign up at genfeed.ai and start creating in minutes. Plans start at $499/mo.',
+      'Start with the Cloud App for $49/mo plus pay-as-you-go output. Self-host Core for free when you want to run your own infrastructure.',
     question: 'How do I get started?',
   },
   {
@@ -61,7 +61,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Sign up at genfeed.ai and start creating in minutes. Plans start at $499/mo.',
+          'Start with the Cloud App for $49/mo plus pay-as-you-go output. Self-host Core for free when you want to run your own infrastructure.',
         question: 'How do I get started?',
       },
     ],
@@ -71,28 +71,28 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Genfeed uses output-based pricing. You pay for what you create: videos, images, and voice minutes. No confusing credits—just simple quotas that reset monthly.',
+          'Genfeed separates platform access from output usage. Cloud App starts at $49/mo plus pay-as-you-go output. Cloud Teams is higher-entry B2B for collaboration, multi-org, and multi-brand workflows. Core remains free to self-host with your own AI keys.',
         question: 'How does pricing work?',
       },
       {
         answer:
-          'Pro: $499/month (30 videos + 500 images + 60 min voice). Scale: $1,499/month (100 videos + 2,000 images + 200 min voice). Enterprise: $4,999/month (unlimited everything).',
+          'Cloud App is $49/month plus pay-as-you-go output. Cloud Teams starts at $499/month for collaboration, multi-org, and multi-brand use cases. Enterprise is custom. Self-hosted Core is free.',
         question: 'What are the pricing tiers?',
       },
       {
         answer:
-          'Self-host on your own infrastructure for free. Cloud plans start at $499/mo.',
+          'Yes. Self-host Core on your own infrastructure for free when you want control. The default managed path is Cloud App at $49/mo plus usage.',
         question: 'Is there a free option?',
       },
       {
         answer:
-          'When you hit your monthly quota, generation stops until your quota resets next month. You can upgrade to a higher tier anytime for more capacity.',
-        question: 'What happens when I reach my limit?',
+          'The entry Cloud App plan does not bundle output quotas. You pay for the videos, images, and voice output you create.',
+        question: 'What happens when I create more?',
       },
       {
         answer:
-          'Your quotas reset on your billing date each month. Unused quotas do not roll over—use it or lose it.',
-        question: 'Do unused quotas roll over?',
+          'Cloud Teams is for agencies and teams that need shared workspaces, organization boundaries, brand systems, approvals, managed billing, and priority support.',
+        question: 'When do I need Cloud?',
       },
     ],
   },
@@ -126,22 +126,22 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Pro ($499/month) includes: 30 AI videos, 500 images, 60 min voice per month. Plus 2 team seats, 1 brand kit, premium AI models (auto-selected for best quality), multi-platform publishing, and email support.',
-        question: "What's included in the Pro tier?",
+          'Cloud App includes managed platform access, a personal workspace, one brand kit, premium AI models, multi-platform publishing, and pay-as-you-go output.',
+        question: "What's included in Cloud App?",
       },
       {
         answer:
-          'Scale ($1,499/month) includes: 100 AI videos, 2,000 images, 200 min voice per month. Plus 10 team seats, 5 brand kits, model selection unlocked, read-only API access, priority support, advanced analytics, and custom domains.',
-        question: 'What extra features come with Scale?',
+          'Cloud Teams adds collaboration workspaces, multi-organization accounts, multi-brand operations, roles, shared approvals, managed billing, priority support, and advanced analytics.',
+        question: 'What extra features come with Cloud Teams?',
       },
       {
         answer:
-          'Enterprise ($4,999/month) includes unlimited everything: videos, images, voice, team seats, brand kits. Plus full API access, white-label deployment (custom domain + branding), SSO, dedicated Slack support, and 99.9% SLA.',
+          'Enterprise includes custom output terms, unlimited organizations and brand kits, full API access, white-label deployment, SSO, dedicated Slack support, account management, and SLA terms.',
         question: 'What is included in Enterprise?',
       },
       {
         answer:
-          'Read-only API access is included with Scale tier. Full read/write API access is available for Enterprise customers. Contact sales for API documentation.',
+          'Core includes API access when you self-host. Managed API access depends on Cloud App, Cloud Teams, or Enterprise scope. Contact sales for production API terms.',
         question: 'Do you have an API?',
       },
     ],
@@ -166,7 +166,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Yes. Pro tier includes email support (48hr response). Scale includes priority support (24hr response). Enterprise includes dedicated Slack channel and account manager.',
+          'Yes. Cloud App includes email support. Cloud Teams includes priority support. Enterprise includes a dedicated Slack channel and account manager.',
         question: 'Do you offer customer support?',
       },
     ],

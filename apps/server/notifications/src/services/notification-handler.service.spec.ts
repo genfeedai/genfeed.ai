@@ -64,10 +64,6 @@ describe('NotificationHandlerService', () => {
     loggerService.log('NotificationHandlerService initialized');
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('should be defined', () => {
     expect(service).toBeDefined();
   });

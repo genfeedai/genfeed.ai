@@ -1,7 +1,7 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 
 /**
  * Result of a publish operation
@@ -39,6 +39,14 @@ export interface MediaInfo {
   isCarousel: boolean;
   hasIngredients: boolean;
 }
+
+export type ThreadChild = {
+  _id: { toString(): string } | string;
+  category?: PostCategory | string;
+  description?: string | null;
+  ingredients?: Array<{ _id?: { toString(): string } | string } | string>;
+  order?: number;
+};
 
 /**
  * Interface for platform-specific publishers
@@ -90,7 +98,7 @@ export interface IPublisher {
    */
   publishThreadChildren?(
     context: PublishContext,
-    children: unknown[],
+    children: ThreadChild[],
     parentExternalId: string,
   ): Promise<void>;
 

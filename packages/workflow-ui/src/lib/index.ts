@@ -25,6 +25,7 @@ export {
   getPresetBezier,
   PRESET_BEZIERS,
 } from './easing';
+export { getConnectedInputsForNode, getUpstreamNodeIds } from './graph';
 export type {
   GridCandidate,
   GridCell,
@@ -40,6 +41,7 @@ export {
   splitImage,
   splitWithDimensions,
 } from './gridSplitter';
+export { createIdMap, createSourceMap, createTargetMap } from './lookups';
 export { getImageDimensions, getVideoMetadata } from './media';
 export type { MediaInfo } from './mediaExtraction';
 // Media utilities
@@ -80,6 +82,7 @@ export {
   getImageDimensions as getImageDimensionsFromDataUrl,
   getVideoDimensions as getVideoDimensionsFromUrl,
 } from './nodeDimensions';
+export { getNodeOutputForHandle } from './nodeOutputs';
 export { generateHandlesFromSchema, isSchemaHandle } from './schemaHandles';
 export {
   extractEnumValues,
@@ -90,6 +93,15 @@ export {
   CONNECTION_FIELDS,
   validateRequiredSchemaFields,
 } from './schemaValidation';
+export {
+  createIdLookup,
+  filterItemsByIdLookup,
+  findGroupContainingNodeId,
+  hasEveryId,
+  hasSomeId,
+  mergeIds,
+  removeIds,
+} from './selection';
 // Speed curve utilities
 export {
   analyzeWarpCurve,

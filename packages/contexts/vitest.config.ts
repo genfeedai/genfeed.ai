@@ -3,11 +3,27 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 const SERIALIZERS_SRC = path.resolve(__dirname, '../serializers/src');
+const CLIENT_MODELS_MOCK = path.resolve(
+  __dirname,
+  '../hooks/tests/__mocks__/client-models.mock.ts',
+);
+const CLIENT_SERIALIZERS_MOCK = path.resolve(
+  __dirname,
+  '../services/__mocks__/serializers.mock.ts',
+);
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: [
+      {
+        find: /^@genfeedai\/client\/models$/,
+        replacement: CLIENT_MODELS_MOCK,
+      },
+      {
+        find: /^@genfeedai\/client\/serializers$/,
+        replacement: CLIENT_SERIALIZERS_MOCK,
+      },
       {
         find: '@contexts',
         replacement: path.resolve(__dirname, '.'),

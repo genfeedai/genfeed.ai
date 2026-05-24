@@ -28,6 +28,12 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
   }),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    orgHref: (path: string) => `/acme/~${path}`,
+  }),
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     patchSettings: mockPatchSettings,
@@ -48,7 +54,7 @@ vi.mock('@hooks/utils/use-setup-card/use-setup-card', () => ({
       },
       {
         description: 'Connect Instagram, TikTok, etc.',
-        href: '/settings/organization/credentials',
+        href: '/settings/api-keys',
         isCompleted: true,
         key: 'platforms',
         label: 'Social accounts',
@@ -119,8 +125,41 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+function createLocalStorageMock() {
+  let store: Record<string, string> = {};
+
+  return {
+    clear: vi.fn(() => {
+      store = {};
+    }),
+    getItem: vi.fn((key: string) => store[key] ?? null),
+    key: vi.fn((index: number) => Object.keys(store)[index] ?? null),
+    removeItem: vi.fn((key: string) => {
+      delete store[key];
+    }),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value;
+    }),
+    get length() {
+      return Object.keys(store).length;
+    },
+  };
+}
+
 describe('SettingsProgressPage', () => {
   beforeEach(() => {
+    const localStorageMock = createLocalStorageMock();
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: localStorageMock,
+      writable: true,
+    });
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      value: localStorageMock,
+      writable: true,
+    });
+
     mockCurrentUserState.currentUser = {
       id: 'user-123',
       settings: {
@@ -143,7 +182,7 @@ describe('SettingsProgressPage', () => {
     ).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /finish content types/i }),
-    ).toHaveAttribute('href', '/settings/brands');
+    ).toHaveAttribute('href', '/acme/~/settings/brands');
   });
 
   it('re-enables the sidebar module through the account-level toggle', async () => {

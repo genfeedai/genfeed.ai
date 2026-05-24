@@ -6,6 +6,8 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { RolesModule } from '@api/collections/roles/roles.module';
+import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
 import { OnboardingController } from '@api/endpoints/onboarding/onboarding.controller';
@@ -18,28 +20,30 @@ import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
 import { ComfyUIModule } from '@api/services/integrations/comfyui/comfyui.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [OnboardingController],
   exports: [OnboardingService],
   imports: [
-    BatchGenerationModule,
-    BrandScraperModule,
-    BrandsModule,
-    ClerkModule,
-    ComfyUIModule,
-    CommonModule,
-    CreditsModule,
-    FilesClientModule,
-    LinksModule,
-    MembersModule,
-    ModelsModule,
-    OrganizationSettingsModule,
-    OrganizationsModule,
-    PostsModule,
-    ReplicateModule,
-    UsersModule,
+    forwardRef(() => BatchGenerationModule),
+    forwardRef(() => BrandScraperModule),
+    forwardRef(() => BrandsModule),
+    forwardRef(() => ClerkModule),
+    forwardRef(() => ComfyUIModule),
+    forwardRef(() => CommonModule),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => FilesClientModule),
+    forwardRef(() => LinksModule),
+    forwardRef(() => MembersModule),
+    forwardRef(() => ModelsModule),
+    forwardRef(() => OrganizationSettingsModule),
+    forwardRef(() => OrganizationsModule),
+    forwardRef(() => PostsModule),
+    forwardRef(() => ReplicateModule),
+    forwardRef(() => RolesModule),
+    forwardRef(() => UserSetupModule),
+    forwardRef(() => UsersModule),
   ],
   providers: [
     OnboardingService,

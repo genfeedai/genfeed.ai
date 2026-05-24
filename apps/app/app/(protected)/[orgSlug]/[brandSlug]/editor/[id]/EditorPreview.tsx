@@ -70,18 +70,21 @@ type EditorPreviewPlayerProps = Omit<
   ref?: Ref<PlayerRef>;
 };
 
-const RemotionPlayer = forwardRef<PlayerRef, EditorPreviewPlayerProps>(
-  function RemotionPlayer({ component, inputProps, ...props }, ref) {
-    return (
-      <Player
-        ref={ref}
-        {...props}
-        component={component as never}
-        inputProps={inputProps as never}
-      />
-    );
-  },
-);
+function RemotionPlayer({
+  component,
+  inputProps,
+  ref,
+  ...props
+}: EditorPreviewPlayerProps) {
+  return (
+    <Player
+      ref={ref}
+      {...props}
+      component={component as never}
+      inputProps={inputProps as never}
+    />
+  );
+}
 
 function EditorComposition({ tracks }: EditorCompositionProps) {
   useVideoConfig();
@@ -101,7 +104,7 @@ function EditorComposition({ tracks }: EditorCompositionProps) {
       <AbsoluteFill
         style={{
           alignItems: 'center',
-          backgroundColor: '#000',
+          backgroundColor: '#0a0a0f',
           display: 'flex',
           justifyContent: 'center',
         }}
@@ -117,7 +120,7 @@ function EditorComposition({ tracks }: EditorCompositionProps) {
   }
 
   return (
-    <AbsoluteFill style={{ backgroundColor: '#000' }}>
+    <AbsoluteFill style={{ backgroundColor: '#0a0a0f' }}>
       {/* Render video tracks */}
       {videoTracks.map((track) =>
         track.clips.map((clip) => {
@@ -160,14 +163,9 @@ function EditorComposition({ tracks }: EditorCompositionProps) {
               from={clip.startFrame}
               durationInFrames={clip.durationFrames}
             >
-              <AbsoluteFill
-                style={{
-                  alignItems: 'center',
-                  display: 'flex',
-                  justifyContent: 'center',
-                }}
-              >
+              <AbsoluteFill className="flex items-center justify-center">
                 <div
+                  className="absolute -translate-x-1/2 -translate-y-1/2 p-2 [text-shadow:2px_2px_4px_rgba(0,0,0,0.5)]"
                   style={{
                     backgroundColor: clip.textOverlay.backgroundColor,
                     color: clip.textOverlay.color,
@@ -175,11 +173,7 @@ function EditorComposition({ tracks }: EditorCompositionProps) {
                     fontSize: clip.textOverlay.fontSize,
                     fontWeight: clip.textOverlay.fontWeight || 700,
                     left: `${clip.textOverlay.position.x}%`,
-                    padding: clip.textOverlay.padding || 8,
-                    position: 'absolute',
-                    textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
                     top: `${clip.textOverlay.position.y}%`,
-                    transform: 'translate(-50%, -50%)',
                   }}
                 >
                   {clip.textOverlay.text}
@@ -219,7 +213,7 @@ export interface EditorPreviewRef {
   getCurrentFrame: () => number;
 }
 
-export const EditorPreview = forwardRef<EditorPreviewRef, EditorPreviewProps>(
+const EditorPreview = forwardRef<EditorPreviewRef, EditorPreviewProps>(
   function EditorPreview(
     { tracks, width, height, fps, totalFrames, onFrameChange, onPlayingChange },
     ref,
@@ -275,7 +269,7 @@ export const EditorPreview = forwardRef<EditorPreviewRef, EditorPreviewProps>(
     const aspectRatio = width / height;
 
     return (
-      <div className="relative w-full bg-black overflow-hidden">
+      <div className="relative w-full bg-neutral-950 overflow-hidden">
         <div
           className="relative mx-auto"
           style={{

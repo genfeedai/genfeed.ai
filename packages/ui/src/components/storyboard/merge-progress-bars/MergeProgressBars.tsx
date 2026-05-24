@@ -43,14 +43,12 @@ export default function MergeProgressBars({
         return (
           <div key={step.id} className="flex items-center gap-4">
             {/* Status Icon - Larger */}
-            <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
-              {isCompleted && (
-                <HiCheckCircle className="h-8 w-8 text-success" />
-              )}
-              {isFailed && <HiXCircle className="h-8 w-8 text-error" />}
+            <div className="flex-shrink-0 size-8 flex items-center justify-center">
+              {isCompleted && <HiCheckCircle className="size-8 text-success" />}
+              {isFailed && <HiXCircle className="size-8 text-error" />}
               {isActive && <Spinner size={ComponentSize.MD} />}
               {isPending && (
-                <div className="w-6 h-6 rounded-full border-2 border-white/[0.08]" />
+                <div className="size-6 rounded-full border-2 border-white/[0.08]" />
               )}
             </div>
 

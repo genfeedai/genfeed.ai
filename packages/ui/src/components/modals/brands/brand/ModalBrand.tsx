@@ -29,7 +29,6 @@ import {
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@genfeedai/hooks/data/elements/use-elements/use-elements';
 import { useOrganization } from '@genfeedai/hooks/data/organization/use-organization/use-organization';
-import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
@@ -57,6 +56,7 @@ import BrandDetailLinkEditor, {
   type BrandLinkEditorValues,
 } from '@pages/brands/components/sidebar/BrandDetailLinkEditor';
 import BrandDetailSystemPrompt from '@pages/brands/components/system-prompt/BrandDetailSystemPrompt';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import TextareaLabelActions from '@ui/content/textarea-label-actions/TextareaLabelActions';
 import Alert from '@ui/feedback/alert/Alert';
@@ -250,8 +250,8 @@ function BrandEditorForm({
       {hasFormErrors(form.formState.errors) ? (
         <Alert type={AlertCategory.ERROR}>
           <div className="space-y-1">
-            {parseFormErrors(form.formState.errors).map((formError, index) => (
-              <div key={index}>{formError}</div>
+            {parseFormErrors(form.formState.errors).map((formError) => (
+              <div key={formError}>{formError}</div>
             ))}
           </div>
         </Alert>
@@ -524,8 +524,8 @@ export default function BrandOverlay({
   initialView = 'edit',
 }: BrandOverlayProps) {
   const { organizationId } = useBrand();
-  const router = useRouter();
-  const { orgHref } = useOrgUrl();
+  const { push } = useRouter();
+  const { orgSlug } = useOrgUrl();
   const { settings } = useOrganization();
   const clipboardService = ClipboardService.getInstance();
   const shouldAutoOpen = isOpen ?? Boolean(brand);
@@ -588,13 +588,16 @@ export default function BrandOverlay({
     mode: 'onChange',
   });
 
+  const queryClient = useQueryClient();
+  const brandModalKey = ['brand-modal', overlayBrandId];
+
   const {
     data: loadedBrand,
     isLoading: isLoadingBrand,
-    refresh: refreshBrand,
-    mutate: mutateBrand,
-  } = useResource(
-    async () => {
+    refetch: refreshBrand,
+  } = useQuery({
+    queryKey: brandModalKey,
+    queryFn: async () => {
       if (!overlayBrandId) {
         throw new Error('Brand ID is required');
       }
@@ -602,11 +605,12 @@ export default function BrandOverlay({
       const service = await getBrandsService();
       return (await service.findOne(overlayBrandId)) as BrandOverlayRecord;
     },
-    {
-      dependencies: [overlayBrandId],
-      enabled: !!overlayBrandId,
-    },
-  );
+    enabled: !!overlayBrandId,
+  });
+
+  const mutateBrand = (data: BrandOverlayRecord) => {
+    queryClient.setQueryData(brandModalKey, data);
+  };
 
   const activeBrand: BrandOverlayRecord | null =
     loadedBrand ??
@@ -771,7 +775,7 @@ export default function BrandOverlay({
     }
   }, [form, getPromptsService, listenForSocket, organizationId]);
 
-  const handleChange = useCallback(
+  const updateModalBrand = useCallback(
     (
       event: ChangeEvent<
         HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -790,7 +794,7 @@ export default function BrandOverlay({
     closeModal(ModalEnum.BRAND);
   }, []);
 
-  const handleClose = useCallback(() => {
+  const closeModalBrand = useCallback(() => {
     setError(null);
     setSelectedLink(null);
     setGenerateModalType(null);
@@ -986,7 +990,7 @@ export default function BrandOverlay({
     onConfirm?.(true);
   }, [onConfirm, refreshBrand]);
 
-  const handleSubmit = useCallback(async () => {
+  const submitModalBrand = useCallback(async () => {
     try {
       const service = await getBrandsService();
       const formData = {
@@ -1034,7 +1038,7 @@ export default function BrandOverlay({
   ]);
 
   const { isSubmitting, onSubmit } = useFormSubmitWithState(() =>
-    handleSubmit(),
+    submitModalBrand(),
   );
 
   const socialConnections = useMemo(
@@ -1094,10 +1098,10 @@ export default function BrandOverlay({
         description={overlayDescription}
         width={activeBrand ? '2xl' : 'xl'}
         surface="flat"
-        onClose={handleClose}
+        onClose={closeModalBrand}
         onOpenDetail={
           activeBrand?.slug
-            ? () => router.push(orgHref(`/settings/brands/${activeBrand.slug}`))
+            ? () => push(`/${orgSlug}/${activeBrand.slug}/settings`)
             : undefined
         }
         badges={
@@ -1168,7 +1172,7 @@ export default function BrandOverlay({
 
                   handleDismiss();
                 }}
-                onChange={handleChange}
+                onChange={updateModalBrand}
                 onEnhanceDescription={enhanceDescription}
                 onSubmit={onSubmit}
                 onTabChange={setEditorTab}

@@ -14,10 +14,10 @@ import { HiCheckCircle, HiCodeBracket } from 'react-icons/hi2';
 const TERMINAL_COMMANDS = [
   { command: '# Clone the repo', isComment: true },
   {
-    command: 'git clone https://github.com/genfeedai/core.git',
+    command: 'git clone https://github.com/genfeedai/genfeed.ai.git',
     isComment: false,
   },
-  { command: 'cd core', isComment: false },
+  { command: 'cd genfeed.ai', isComment: false },
   { command: '# Install dependencies', isComment: true },
   { command: 'bun install', isComment: false },
   { command: '# Start development servers', isComment: true },
@@ -46,13 +46,13 @@ function TerminalWindow(): React.ReactElement {
   }, [currentLine, showProgress, showSuccess]);
 
   return (
-    <div className=" overflow-hidden border border-edge/[0.08] bg-black shadow-2xl">
+    <div className=" overflow-hidden border border-edge/[0.08] bg-zinc-950 shadow-2xl">
       {/* Terminal header */}
       <div className="bg-fill/5 px-6 py-3 border-b border-edge/10 flex items-center gap-2">
         <div className="flex gap-2">
-          <div className="w-3 h-3 rounded-full bg-fill/10" />
-          <div className="w-3 h-3 rounded-full bg-fill/10" />
-          <div className="w-3 h-3 rounded-full bg-fill/10" />
+          <div className="size-3 rounded-full bg-fill/10" />
+          <div className="size-3 rounded-full bg-fill/10" />
+          <div className="size-3 rounded-full bg-fill/10" />
         </div>
         <Text className="ml-4 text-[10px] font-black uppercase tracking-widest text-surface/20">
           terminal
@@ -143,15 +143,15 @@ export default function HomeOpenSource(): React.ReactElement {
             </Text>
             <ul className="space-y-6 mb-12">
               <li className="flex items-center gap-4 text-surface/70">
-                <HiCheckCircle className="h-5 w-5 text-surface" />
+                <HiCheckCircle className="size-5 text-surface" />
                 <Text>AGPL Licensed Core</Text>
               </li>
               <li className="flex items-center gap-4 text-surface/70">
-                <HiCheckCircle className="h-5 w-5 text-surface" />
+                <HiCheckCircle className="size-5 text-surface" />
                 <Text>Local-first model execution</Text>
               </li>
               <li className="flex items-center gap-4 text-surface/70">
-                <HiCheckCircle className="h-5 w-5 text-surface" />
+                <HiCheckCircle className="size-5 text-surface" />
                 <Text>End-to-end encryption by default</Text>
               </li>
             </ul>
@@ -165,7 +165,7 @@ export default function HomeOpenSource(): React.ReactElement {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <FaGithub className="h-5 w-5" />
+                <FaGithub className="size-5" />
                 Star on GitHub
               </a>
             </Button>

@@ -1,63 +1,18 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Slot } from '@radix-ui/react-slot';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
-import { cva, type VariantProps } from 'class-variance-authority';
 import {
-  type ButtonHTMLAttributes,
-  type ComponentPropsWithoutRef,
-  type ComponentRef,
-  forwardRef,
-  type MouseEvent,
-  type ReactElement,
-  type ReactNode,
+  Button as ShipButton,
+  buttonVariants as shipButtonVariants,
+} from '@shipshitdev/ui/primitives';
+import type {
+  ButtonHTMLAttributes,
+  ComponentPropsWithRef,
+  MouseEvent,
+  ReactElement,
+  ReactNode,
 } from 'react';
 import { cn } from '../lib/utils';
-
-const buttonVariants = cva(
-  'inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md border border-transparent bg-transparent text-sm font-medium normal-case tracking-normal transition-[color,box-shadow,background-color,border-color] duration-200 focus-visible:outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
-  {
-    defaultVariants: {
-      size: ButtonSize.DEFAULT,
-      variant: ButtonVariant.DEFAULT,
-    },
-    variants: {
-      size: {
-        [ButtonSize.DEFAULT]: 'h-9 px-4 py-2',
-        [ButtonSize.ICON]: 'h-9 w-9',
-        [ButtonSize.LG]: 'h-10 px-6',
-        [ButtonSize.PUBLIC]:
-          'h-auto px-12 py-5 text-sm uppercase font-semibold',
-        [ButtonSize.SM]: 'h-8 px-3 text-xs',
-        [ButtonSize.XS]: 'h-7 px-2 text-xs',
-      },
-      variant: {
-        [ButtonVariant.BLACK]:
-          'bg-black text-white shadow-sm hover:bg-black/90',
-        [ButtonVariant.DEFAULT]:
-          'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90',
-        [ButtonVariant.DESTRUCTIVE]:
-          'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 focus-visible:ring-destructive/20',
-        [ButtonVariant.GENERATE]:
-          'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90',
-        [ButtonVariant.GHOST]:
-          'text-foreground hover:bg-accent hover:text-accent-foreground',
-        [ButtonVariant.LINK]:
-          'border-transparent px-0 text-primary underline-offset-4 hover:underline hover:text-primary',
-        [ButtonVariant.OUTLINE]:
-          'border-input bg-background text-foreground shadow-sm hover:bg-accent hover:text-accent-foreground',
-        [ButtonVariant.OUTLINE_WHITE]:
-          'border-white bg-transparent text-white hover:bg-white/10',
-        [ButtonVariant.SECONDARY]:
-          'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
-        [ButtonVariant.SOFT]:
-          'bg-accent text-accent-foreground hover:bg-accent/80',
-        [ButtonVariant.UNSTYLED]: '',
-        [ButtonVariant.WHITE]:
-          'bg-white text-black shadow-sm hover:bg-white/90',
-      },
-    },
-  },
-);
 
 const TEXT_TRANSFORM_CLASSES: Record<string, string> = {
   capitalize: 'capitalize',
@@ -66,12 +21,110 @@ const TEXT_TRANSFORM_CLASSES: Record<string, string> = {
   uppercase: 'uppercase',
 };
 
+type ButtonVariantConfig = {
+  shipVariant:
+    | 'default'
+    | 'secondary'
+    | 'destructive'
+    | 'outline'
+    | 'ghost'
+    | 'link'
+    | 'pill';
+};
+
+const BUTTON_VARIANT_CONFIG: Record<ButtonVariant, ButtonVariantConfig> = {
+  [ButtonVariant.BLACK]: { shipVariant: 'default' },
+  [ButtonVariant.DEFAULT]: { shipVariant: 'default' },
+  [ButtonVariant.DESTRUCTIVE]: { shipVariant: 'destructive' },
+  [ButtonVariant.GENERATE]: { shipVariant: 'default' },
+  [ButtonVariant.GHOST]: { shipVariant: 'ghost' },
+  [ButtonVariant.LINK]: { shipVariant: 'link' },
+  [ButtonVariant.OUTLINE]: { shipVariant: 'outline' },
+  [ButtonVariant.OUTLINE_WHITE]: { shipVariant: 'outline' },
+  [ButtonVariant.SECONDARY]: { shipVariant: 'secondary' },
+  [ButtonVariant.SOFT]: { shipVariant: 'secondary' },
+  [ButtonVariant.UNSTYLED]: { shipVariant: 'default' },
+  [ButtonVariant.WHITE]: { shipVariant: 'default' },
+};
+
+function getMappedButtonSize(size?: ButtonSize | null) {
+  switch (size) {
+    case ButtonSize.SM:
+      return 'sm';
+    case ButtonSize.LG:
+      return 'lg';
+    case ButtonSize.XS:
+      return 'xs';
+    case ButtonSize.ICON:
+      return 'icon';
+    case ButtonSize.PUBLIC:
+      return 'xl';
+    case ButtonSize.DEFAULT:
+    default:
+      return 'default';
+  }
+}
+
+function getVariantOverrideClassName(variant?: ButtonVariant | null) {
+  switch (variant) {
+    case ButtonVariant.BLACK:
+      return '!border-transparent !bg-black !text-white hover:!bg-black/90';
+    case ButtonVariant.GENERATE:
+      return '!border-transparent !bg-foreground !text-background hover:!bg-foreground/90';
+    case ButtonVariant.OUTLINE_WHITE:
+      return '!border-white/18 !bg-transparent !text-white hover:!bg-white/[0.04]';
+    case ButtonVariant.SOFT:
+      return '!border-transparent !bg-secondary !text-secondary-foreground hover:!bg-secondary/80';
+    case ButtonVariant.WHITE:
+      return '!border-transparent !bg-white !text-black hover:!bg-white/90';
+    default:
+      return '';
+  }
+}
+
+function getSizeOverrideClassName(size?: ButtonSize | null) {
+  if (size === ButtonSize.PUBLIC) {
+    return 'h-10 px-5 text-[14px] uppercase tracking-[0.18em]';
+  }
+
+  return '';
+}
+
+type ButtonStyleProps = {
+  className?: string;
+  size?: ButtonSize | null;
+  variant?: ButtonVariant | null;
+};
+
+const buttonVariants = ({
+  className,
+  size = ButtonSize.DEFAULT,
+  variant = ButtonVariant.DEFAULT,
+}: ButtonStyleProps = {}) => {
+  const resolvedVariant = variant ?? ButtonVariant.DEFAULT;
+
+  if (resolvedVariant === ButtonVariant.UNSTYLED) {
+    return className ?? '';
+  }
+
+  return cn(
+    'ship-ui',
+    shipButtonVariants({
+      size: getMappedButtonSize(size),
+      variant: BUTTON_VARIANT_CONFIG[resolvedVariant].shipVariant,
+    }),
+    getVariantOverrideClassName(resolvedVariant),
+    getSizeOverrideClassName(size),
+    className,
+  );
+};
+
 export interface ButtonProps
   extends Omit<
       ButtonHTMLAttributes<HTMLButtonElement>,
       'children' | 'onClick' | 'onMouseDown'
     >,
-    VariantProps<typeof buttonVariants> {
+    ButtonStyleProps {
   ariaLabel?: string;
   asChild?: boolean;
   children?: ReactNode;
@@ -82,6 +135,7 @@ export interface ButtonProps
   label?: ReactNode;
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
   onMouseDown?: (e: MouseEvent<HTMLButtonElement>) => void;
+  ref?: React.Ref<HTMLButtonElement>;
   textTransform?: 'uppercase' | 'lowercase' | 'capitalize' | 'none';
   tooltip?: string;
   tooltipPosition?: 'top' | 'bottom' | 'left' | 'right';
@@ -95,22 +149,26 @@ const Tooltip = TooltipPrimitive.Root;
 
 const TooltipTrigger = TooltipPrimitive.Trigger;
 
-const TooltipContent = forwardRef<
-  ComponentRef<typeof TooltipPrimitive.Content>,
-  ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <TooltipPrimitive.Portal>
-    <TooltipPrimitive.Content
-      ref={ref}
-      sideOffset={sideOffset}
-      className={cn(
-        'z-50 overflow-hidden rounded border border-border bg-popover px-3 py-1.5 text-xs text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
-        className,
-      )}
-      {...props}
-    />
-  </TooltipPrimitive.Portal>
-));
+function TooltipContent({
+  ref,
+  className,
+  sideOffset = 4,
+  ...props
+}: ComponentPropsWithRef<typeof TooltipPrimitive.Content>) {
+  return (
+    <TooltipPrimitive.Portal>
+      <TooltipPrimitive.Content
+        ref={ref}
+        sideOffset={sideOffset}
+        className={cn(
+          'z-50 overflow-hidden rounded border border-border bg-popover px-3 py-1.5 text-xs text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
+          className,
+        )}
+        {...props}
+      />
+    </TooltipPrimitive.Portal>
+  );
+}
 TooltipContent.displayName = TooltipPrimitive.Content.displayName;
 
 function SimpleTooltip({
@@ -142,76 +200,61 @@ function Spinner() {
   return (
     <span
       aria-label="Loading"
-      className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"
+      className="inline-block size-4 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"
       role="status"
     />
   );
 }
 
-const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  (
-    {
-      ariaLabel,
-      asChild = false,
-      children,
-      className,
-      disabled,
-      icon,
-      isDisabled = false,
-      isLoading = false,
-      isPingEnabled = false,
-      label,
-      onClick,
-      onMouseDown,
-      size,
-      textTransform = 'none',
-      tooltip,
-      tooltipPosition = 'bottom',
-      type = 'button',
-      variant,
-      withWrapper = true,
-      wrapperClassName = '',
-      ...props
-    },
-    ref,
-  ) => {
-    const Comp = asChild ? Slot : 'button';
-    const isButtonDisabled = disabled || isDisabled || isLoading;
-    const resolvedVariant =
-      variant && variant !== ButtonVariant.UNSTYLED
-        ? variant
-        : ButtonVariant.DEFAULT;
-    const transformClass =
-      TEXT_TRANSFORM_CLASSES[textTransform] ?? 'normal-case';
-    const buttonClassName =
-      variant === ButtonVariant.UNSTYLED
-        ? cn(
-            isButtonDisabled ? 'cursor-not-allowed' : 'cursor-pointer',
-            transformClass,
-            className,
-          )
-        : cn(
-            buttonVariants({
-              className,
-              size: size ?? ButtonSize.DEFAULT,
-              variant: resolvedVariant,
-            }),
-            transformClass,
-          );
+function Button({
+  ref,
+  ariaLabel,
+  asChild = false,
+  children,
+  className,
+  disabled,
+  icon,
+  isDisabled = false,
+  isLoading = false,
+  isPingEnabled = false,
+  label,
+  onClick,
+  onMouseDown,
+  size = ButtonSize.DEFAULT,
+  textTransform = 'none',
+  tooltip,
+  tooltipPosition = 'bottom',
+  type = 'button',
+  variant = ButtonVariant.DEFAULT,
+  withWrapper = true,
+  wrapperClassName = '',
+  ...props
+}: ButtonProps) {
+  const Comp = asChild ? Slot : 'button';
+  const isButtonDisabled = disabled || isDisabled || isLoading;
+  const resolvedVariant = variant ?? ButtonVariant.DEFAULT;
+  const transformClass = TEXT_TRANSFORM_CLASSES[textTransform] ?? 'normal-case';
+  const variantClassName = getVariantOverrideClassName(resolvedVariant);
+  const sizeClassName = getSizeOverrideClassName(size);
 
-    const content = asChild ? (
-      children
-    ) : (
-      <>
-        {isLoading ? <Spinner /> : icon}
-        {isLoading && !icon ? null : (children ?? label)}
-      </>
-    );
+  const content = asChild ? (
+    children
+  ) : (
+    <>
+      {isLoading ? <Spinner /> : icon}
+      {isLoading && !icon ? null : (children ?? label)}
+    </>
+  );
 
-    const buttonElement = (
+  const buttonElement =
+    resolvedVariant === ButtonVariant.UNSTYLED ? (
       <Comp
         aria-label={ariaLabel}
-        className={buttonClassName}
+        className={cn(
+          isButtonDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
+          transformClass,
+          className,
+        )}
         disabled={isButtonDisabled}
         onClick={onClick}
         onMouseDown={onMouseDown}
@@ -221,30 +264,51 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {content}
       </Comp>
-    );
-
-    const wrappedButton = withWrapper ? (
-      <div className={cn('relative inline-flex', wrapperClassName)}>
-        {isPingEnabled ? (
-          <span className="absolute -top-1 -right-1 h-3 w-3 animate-ping rounded-full bg-red-500" />
-        ) : null}
-        {buttonElement}
-      </div>
     ) : (
-      buttonElement
+      <ShipButton
+        aria-label={ariaLabel}
+        asChild={asChild}
+        className={cn(
+          'ship-ui',
+          variantClassName,
+          sizeClassName,
+          transformClass,
+          className,
+        )}
+        disabled={isButtonDisabled}
+        onClick={onClick}
+        onMouseDown={onMouseDown}
+        ref={ref}
+        size={getMappedButtonSize(size)}
+        type={type}
+        variant={BUTTON_VARIANT_CONFIG[resolvedVariant].shipVariant}
+        {...props}
+      >
+        {content}
+      </ShipButton>
     );
 
-    if (!tooltip) {
-      return wrappedButton;
-    }
+  const wrappedButton = withWrapper ? (
+    <div className={cn('relative inline-flex', wrapperClassName)}>
+      {isPingEnabled ? (
+        <span className="absolute -top-1 -right-1 size-3 animate-ping rounded-full bg-red-500" />
+      ) : null}
+      {buttonElement}
+    </div>
+  ) : (
+    buttonElement
+  );
 
-    return (
-      <SimpleTooltip label={tooltip} position={tooltipPosition}>
-        {wrappedButton as React.ReactElement}
-      </SimpleTooltip>
-    );
-  },
-);
+  if (!tooltip) {
+    return wrappedButton;
+  }
+
+  return (
+    <SimpleTooltip label={tooltip} position={tooltipPosition}>
+      {wrappedButton as ReactElement}
+    </SimpleTooltip>
+  );
+}
 
 Button.displayName = 'Button';
 

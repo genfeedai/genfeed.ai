@@ -1,10 +1,3 @@
-// ============================================
-// Number Formatting
-// ============================================
-
-/**
- * Format a number with K/M suffix for large numbers
- */
 export function formatNumber(num: number): string {
   if (num >= 1000000) {
     return `${(num / 1000000).toFixed(1)}M`;
@@ -15,17 +8,10 @@ export function formatNumber(num: number): string {
   return num.toString();
 }
 
-/**
- * Format a number as percentage with sign prefix
- */
 export function formatPercentage(num: number): string {
   const sign = num >= 0 ? '+' : '';
   return `${sign}${num.toFixed(1)}%`;
 }
-
-// ============================================
-// Date Formatting
-// ============================================
 
 interface TimeDiff {
   minutes: number;
@@ -33,12 +19,12 @@ interface TimeDiff {
   days: number;
 }
 
-function getTimeDiff(dateString: string): TimeDiff | null {
+function parseValidDate(dateString: string): Date | null {
   const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
+  return Number.isNaN(date.getTime()) ? null : date;
+}
 
+function getTimeDiff(date: Date): TimeDiff {
   const diffMs = Date.now() - date.getTime();
   return {
     days: Math.floor(diffMs / 86400000),
@@ -77,36 +63,27 @@ function formatRelativeTime(
   return fallbackDate.toLocaleDateString('en-US');
 }
 
-/**
- * Format a date string to a relative time (e.g., "5m ago", "2d ago")
- */
-export function formatRelativeDate(dateString: string): string {
-  const diff = getTimeDiff(dateString);
-  if (!diff) {
+function formatRelativeDateWithVerbosity(
+  dateString: string,
+  verbose: boolean,
+): string {
+  const date = parseValidDate(dateString);
+  if (!date) {
     return dateString;
   }
 
-  return formatRelativeTime(diff, new Date(dateString), false);
+  return formatRelativeTime(getTimeDiff(date), date, verbose);
 }
 
-/**
- * Format a date string to a verbose relative time (e.g., "5 minutes ago")
- */
-export function formatRelativeDateVerbose(dateString: string): string {
-  const diff = getTimeDiff(dateString);
-  if (!diff) {
-    return dateString;
-  }
+export const formatRelativeDate = (dateString: string): string =>
+  formatRelativeDateWithVerbosity(dateString, false);
 
-  return formatRelativeTime(diff, new Date(dateString), true);
-}
+export const formatRelativeDateVerbose = (dateString: string): string =>
+  formatRelativeDateWithVerbosity(dateString, true);
 
-/**
- * Format a date string to a full localized date with time
- */
 export function formatFullDate(dateString: string): string {
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) {
+  const date = parseValidDate(dateString);
+  if (!date) {
     return dateString;
   }
 
@@ -119,12 +96,9 @@ export function formatFullDate(dateString: string): string {
   });
 }
 
-/**
- * Format a date string to a short date with time
- */
 export function formatShortDate(dateString: string): string {
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) {
+  const date = parseValidDate(dateString);
+  if (!date) {
     return dateString;
   }
 

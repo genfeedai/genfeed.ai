@@ -6,19 +6,13 @@ import type {
   MediaInfo,
   PublishContext,
   PublishResult,
+  ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-
-type ThreadChild = {
-  _id: { toString(): string } | string;
-  category?: PostCategory;
-  description?: string;
-  order?: number;
-};
 
 @Injectable()
 export class YouTubePublisherService extends BasePublisherService {

@@ -5,9 +5,8 @@ and member access control.
  */
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -48,15 +47,15 @@ import { forwardRef, Module } from '@nestjs/common';
     // Core modules
     forwardRef(() => ActivitiesModule),
     forwardRef(() => BrandsModule),
-    ByokModule,
+    forwardRef(() => ByokModule),
     forwardRef(() => ClerkModule),
-    CommonModule,
-    forwardRef(() => CredentialsModule),
+    forwardRef(() => CommonModule),
+    forwardRef(() => CredentialsCoreModule),
     forwardRef(() => CreditsModule),
-    FleetModule,
+    forwardRef(() => FleetModule),
     forwardRef(() => IngredientsModule),
-    IntegrationsModule,
-    LoggerModule,
+    forwardRef(() => IntegrationsModule),
+    forwardRef(() => LoggerModule),
     forwardRef(() => MembersModule),
     forwardRef(() => ModelsModule),
     forwardRef(() => OrganizationSettingsModule),
@@ -68,11 +67,6 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => UsersModule),
     forwardRef(() => VideosModule),
   ],
-  providers: [
-    OrganizationsService,
-    MemberCreditsGuard,
-    CreditsInterceptor,
-    CreditsUtilsService,
-  ],
+  providers: [OrganizationsService, MemberCreditsGuard, CreditsInterceptor],
 })
 export class OrganizationsModule {}

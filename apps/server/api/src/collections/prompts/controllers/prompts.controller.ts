@@ -5,10 +5,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { CreatePromptDto } from '@api/collections/prompts/dto/create-prompt.dto';
 import { PromptQueryDto } from '@api/collections/prompts/dto/prompt-query.dto';
 import { UpdatePromptDto } from '@api/collections/prompts/dto/update-prompt.dto';
-import {
-  Prompt,
-  type PromptDocument,
-} from '@api/collections/prompts/schemas/prompt.schema';
+import { type PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { ConfigService } from '@api/config/config.service';
@@ -32,9 +29,11 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { IPromptBrandContext } from '@api/shared/interfaces/prompt/prompt.interface';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import {
@@ -65,9 +64,31 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+function toPromptBrandContext(
+  brand: BrandDocument | null | undefined,
+): IPromptBrandContext | undefined {
+  if (!brand) {
+    return undefined;
+  }
+
+  return {
+    backgroundColor: brand.backgroundColor ?? undefined,
+    description: brand.description ?? undefined,
+    label: brand.label ?? undefined,
+    primaryColor: brand.primaryColor ?? undefined,
+    secondaryColor: brand.secondaryColor ?? undefined,
+    text: brand.text ?? undefined,
+  };
+}
+
+function toMarketplacePromptText(prompt: PromptDocument): string {
+  return prompt.enhanced?.trim() || prompt.original.trim() || 'Untitled Prompt';
+}
+
+function toMarketplacePromptTitle(prompt: PromptDocument): string {
+  const promptText = toMarketplacePromptText(prompt);
+
+  return promptText.length > 80 ? `${promptText.slice(0, 77)}...` : promptText;
 }
 
 const PROMPT_ENHANCEMENT_MODEL = 'openrouter/free';
@@ -118,7 +139,7 @@ export class PromptsController {
       ).creditsConfig?.amount ?? 0;
 
     let selectedBrand: BrandDocument | undefined;
-    if (isValidObjectId(createPromptDto.brand)) {
+    if (isEntityId(createPromptDto.brand)) {
       const brand = await this.brandsService.findOne({
         _id: createPromptDto.brand,
         isDeleted: false,
@@ -128,14 +149,14 @@ export class PromptsController {
     }
 
     const { normalizedType } = PromptParser.parsePrompt(this.configService, {
-      brand: selectedBrand,
+      brand: toPromptBrandContext(selectedBrand),
       category: createPromptDto.category,
       originalPrompt: createPromptDto.original,
     });
 
     const enrichedDto = {
       ...createPromptDto,
-      brand: isValidObjectId(createPromptDto.brand)
+      brand: isEntityId(createPromptDto.brand)
         ? createPromptDto.brand
         : undefined,
       category: normalizedType,
@@ -254,7 +275,7 @@ export class PromptsController {
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const scope = query.scope || { $ne: null };
+    const scope = query.scope || { not: null };
 
     // Build match conditions
     const match: Record<string, unknown> = {
@@ -264,7 +285,7 @@ export class PromptsController {
     };
 
     // Add brand filter if provided
-    if (query.brand && isValidObjectId(query.brand)) {
+    if (query.brand && isEntityId(query.brand)) {
       match.brand = query.brand;
     }
 
@@ -273,51 +294,7 @@ export class PromptsController {
       match.isFavorite = query.isFavorite;
     }
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: match,
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-      // First lookup: Get ingredient from prompt.ingredient reference
-      {
-        $lookup: {
-          as: 'ingredientFromPrompt',
-          foreignField: '_id',
-          from: 'ingredients',
-          localField: 'ingredient',
-        },
-      },
-      // Second lookup: Get ingredients that reference this prompt
-      {
-        $lookup: {
-          as: 'ingredientFromIngredient',
-          foreignField: 'prompt',
-          from: 'ingredients',
-          localField: '_id',
-        },
-      },
-      // Combine both lookups - prefer prompt.ingredient if exists, otherwise use ingredient.prompt
-      {
-        $addFields: {
-          ingredient: {
-            $cond: {
-              else: { $arrayElemAt: ['$ingredientFromIngredient', 0] },
-              if: { $gt: [{ $size: '$ingredientFromPrompt' }, 0] },
-              then: { $arrayElemAt: ['$ingredientFromPrompt', 0] },
-            },
-          },
-        },
-      },
-      // Clean up temporary fields
-      {
-        $project: {
-          ingredientFromIngredient: 0,
-          ingredientFromPrompt: 0,
-        },
-      },
-    ];
+    const aggregate = { where: match, orderBy: handleQuerySort(query.sort) };
 
     const data: AggregatePaginateResult<PromptDocument> =
       await this.promptsService.findAll(aggregate, options);
@@ -333,14 +310,14 @@ export class PromptsController {
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    const data: Prompt | null = await this.promptsService.findOne(
+    const data = (await this.promptsService.findOne(
       {
         _id: promptId,
         isDeleted: false,
         organization: publicMetadata.organization,
       },
       [{ path: 'ingredient' }],
-    );
+    )) as unknown as PromptDocument | null;
 
     let prompt = data;
 
@@ -353,7 +330,7 @@ export class PromptsController {
       });
 
       if (ingredient) {
-        prompt = { ...data, ingredient } as Prompt;
+        prompt = { ...data, ingredient } as unknown as PromptDocument;
       }
     }
 
@@ -375,7 +352,7 @@ export class PromptsController {
     // Verify the prompt exists and belongs to the user
     const prompt = await this.promptsService.findOne({
       _id: promptId,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],
@@ -440,8 +417,9 @@ export class PromptsController {
       };
     }
 
-    const promptDoc = prompt as unknown;
-    const promptText = promptDoc.text || promptDoc.title || 'Untitled Prompt';
+    const promptText = toMarketplacePromptText(prompt);
+    const promptTitle = toMarketplacePromptTitle(prompt);
+    const promptTemplate = prompt.enhanced?.trim() || prompt.original;
 
     const listing = await this.marketplaceApiClient.createListing(
       seller._id.toString(),
@@ -449,20 +427,22 @@ export class PromptsController {
       {
         description: promptText,
         downloadData: {
-          category: promptDoc.category,
-          template: promptDoc.text,
-          title: promptDoc.title,
-          variables: promptDoc.variables || [],
+          category: prompt.category ?? undefined,
+          original: prompt.original,
+          promptId: prompt._id,
+          template: promptTemplate,
+          title: promptTitle,
+          variables: [],
         },
         previewData: {
-          category: promptDoc.category,
-          template: promptDoc.text?.slice(0, 200),
-          variableCount: promptDoc.variables?.length || 0,
+          category: prompt.category ?? undefined,
+          template: promptTemplate.slice(0, 200),
+          variableCount: 0,
         },
         price: 0,
         shortDescription: promptText.slice(0, 300),
         tags: ['community', 'prompt'],
-        title: promptDoc.title || 'Untitled Prompt',
+        title: promptTitle,
         type: 'prompt',
       },
     );

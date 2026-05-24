@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createImage, getImage } from '../../src/api/images.js';
+import { createImage, getImage } from '../../src/api/images';
 
 const mockApiKey = vi.fn<[], string | undefined>();
 const mockApiUrl = vi.fn<[], string>();
 const mockFetch = vi.fn();
 
-vi.mock('../../src/config/store.js', () => ({
+vi.mock('../../src/config/store', () => ({
   getApiKey: () => mockApiKey(),
   getApiUrl: () => mockApiUrl(),
 }));

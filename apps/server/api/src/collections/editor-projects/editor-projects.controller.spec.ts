@@ -30,14 +30,6 @@ vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
   AutoSwagger: () => () => undefined,
 }));
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
-  getPublicMetadata: vi.fn(() => ({
-    brand: '507f191e810c19729de860ee',
-    organization: '507f191e810c19729de860ee',
-    user: '507f191e810c19729de860ee',
-  })),
-}));
-
 vi.mock('@api/helpers/utils/pagination/pagination.util', () => ({
   customLabels: {},
 }));
@@ -221,8 +213,15 @@ describe('EditorProjectsController', () => {
       );
 
       expect(editorProjectsService.findAll).toHaveBeenCalledWith(
-        expect.any(Array),
-        expect.any(Object),
+        {
+          orderBy: { updatedAt: -1 },
+          where: expect.objectContaining({
+            brand: '507f191e810c19729de860ee',
+            isDeleted: false,
+            organization: '507f191e810c19729de860ee',
+          }),
+        },
+        expect.objectContaining({ limit: 20, page: 1 }),
       );
       expect(result).toBeDefined();
     });

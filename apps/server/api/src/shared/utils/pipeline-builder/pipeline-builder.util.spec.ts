@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 
 function hasLookup(
   stage: PipelineStage,
-): stage is PipelineStage & { $lookup: { as: string; from: string } } {
-  return '$lookup' in stage;
+): stage is PipelineStage & { relationInclude: { as: string; from: string } } {
+  return 'relationInclude' in stage;
 }
 
 describe('PipelineBuilder', () => {
@@ -17,34 +17,34 @@ describe('PipelineBuilder', () => {
   });
 
   describe('static buildMatch()', () => {
-    it('creates a $match stage', () => {
+    it('creates a match stage', () => {
       const stage = PipelineBuilder.buildMatch({ isDeleted: false });
-      expect(stage).toEqual({ $match: { isDeleted: false } });
+      expect(stage).toEqual({ where: { isDeleted: false } });
     });
 
-    it('creates a $match with multiple conditions', () => {
+    it('creates a match with multiple conditions', () => {
       const stage = PipelineBuilder.buildMatch({
         status: 'active',
         type: 'image',
       });
-      expect(stage).toEqual({ $match: { status: 'active', type: 'image' } });
+      expect(stage).toEqual({ where: { status: 'active', type: 'image' } });
     });
   });
 
   describe('static buildSort()', () => {
-    it('creates a $sort stage', () => {
+    it('creates a orderBy stage', () => {
       const stage = PipelineBuilder.buildSort({ createdAt: -1 });
-      expect(stage).toEqual({ $sort: { createdAt: -1 } });
+      expect(stage).toEqual({ orderBy: { createdAt: -1 } });
     });
 
     it('sorts by multiple fields', () => {
       const stage = PipelineBuilder.buildSort({ createdAt: -1, label: 1 });
-      expect(stage).toEqual({ $sort: { createdAt: -1, label: 1 } });
+      expect(stage).toEqual({ orderBy: { createdAt: -1, label: 1 } });
     });
   });
 
   describe('static buildLookup()', () => {
-    it('creates a $lookup stage', () => {
+    it('creates a relationInclude stage', () => {
       const stage = PipelineBuilder.buildLookup({
         as: 'user',
         foreignField: '_id',
@@ -55,7 +55,7 @@ describe('PipelineBuilder', () => {
       if (!hasLookup(stage)) {
         throw new Error('Expected lookup stage');
       }
-      const lookup = stage.$lookup;
+      const lookup = stage.relationInclude;
       expect(lookup.from).toBe('users');
       expect(lookup.as).toBe('user');
     });
@@ -64,15 +64,14 @@ describe('PipelineBuilder', () => {
   describe('builder pattern', () => {
     it('builds an empty pipeline', () => {
       const pipeline = PipelineBuilder.create().build();
-      expect(pipeline).toEqual([]);
+      expect(pipeline).toEqual({ where: {} });
     });
 
     it('builds pipeline with match stage', () => {
       const pipeline = PipelineBuilder.create()
         .match({ isDeleted: false })
         .build();
-      expect(pipeline).toHaveLength(1);
-      expect(pipeline[0]).toEqual({ $match: { isDeleted: false } });
+      expect(pipeline).toEqual({ where: { isDeleted: false } });
     });
 
     it('merges multiple match calls', () => {
@@ -80,9 +79,10 @@ describe('PipelineBuilder', () => {
         .match({ isDeleted: false })
         .match({ status: 'active' })
         .build();
-      // Multiple matches get merged into one
-      expect(pipeline).toHaveLength(1);
-      expect(pipeline[0]).toHaveProperty('$match');
+      expect(pipeline.where).toEqual({
+        isDeleted: false,
+        status: 'active',
+      });
     });
 
     it('builds pipeline with sort stage', () => {
@@ -90,21 +90,24 @@ describe('PipelineBuilder', () => {
         .match({ isDeleted: false })
         .sort({ createdAt: -1 })
         .build();
-      expect(pipeline).toHaveLength(2);
+      expect(pipeline).toEqual({
+        orderBy: { createdAt: -1 },
+        where: { isDeleted: false },
+      });
     });
 
     it('matchIf adds stage when condition is true', () => {
       const pipeline = PipelineBuilder.create()
         .matchIf(true, { status: 'active' })
         .build();
-      expect(pipeline).toHaveLength(1);
+      expect(pipeline.where).toEqual({ status: 'active' });
     });
 
     it('matchIf skips stage when condition is false', () => {
       const pipeline = PipelineBuilder.create()
         .matchIf(false, { status: 'active' })
         .build();
-      expect(pipeline).toHaveLength(0);
+      expect(pipeline).toEqual({ where: {} });
     });
 
     it('supports method chaining', () => {

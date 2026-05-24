@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ElementDto } from '@api/shared/dto/element/element.dto';
 import { ModelCategory, Platform } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
@@ -5,13 +6,12 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
-  IsMongoId,
   IsOptional,
   IsString,
 } from 'class-validator';
 
 export class CreatePresetDto extends ElementDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'The organization ID for the preset',
@@ -19,7 +19,7 @@ export class CreatePresetDto extends ElementDto {
   })
   organization?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'The brand ID for the preset (null for org-wide presets)',
@@ -27,7 +27,7 @@ export class CreatePresetDto extends ElementDto {
   })
   brand?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Ingredient image ID used as thumbnail for the preset',

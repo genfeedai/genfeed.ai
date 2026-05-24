@@ -7,13 +7,15 @@ const desktopRoot = path.resolve(__dirname, '..');
 const appRoot = path.resolve(desktopRoot, '../../app');
 const apiEndpoint =
   process.env.GENFEED_DESKTOP_API_URL || 'https://api.genfeed.ai/v1';
+const apiBaseUrl = apiEndpoint.replace(/\/v1\/?$/, '');
 
-const child = spawn('bun', ['run', 'build'], {
+const child = spawn('bunx', ['next', 'build'], {
   cwd: appRoot,
   env: {
     ...process.env,
-    API_URL: apiEndpoint,
+    API_URL: apiBaseUrl,
     GENFEED_DESKTOP_BUNDLE: '1',
+    GENFEED_DESKTOP_API_URL: apiEndpoint,
     NEXT_PUBLIC_API_ENDPOINT: apiEndpoint,
     NEXT_PUBLIC_DESKTOP_SHELL: '1',
   },

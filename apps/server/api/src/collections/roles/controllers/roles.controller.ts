@@ -44,7 +44,9 @@ export class RolesController {
     try {
       const roleData = new RoleEntity(createRoleDto);
 
-      const data = await this.rolesService.create(roleData);
+      const data = await this.rolesService.create(
+        roleData as unknown as CreateRoleDto,
+      );
       return serializeSingle(request, RoleSerializer, data);
     } catch (error: unknown) {
       throw new HttpException(
@@ -63,13 +65,11 @@ export class RolesController {
   async findAll(@Req() request: Request, @Query() _query: BaseQueryDto) {
     try {
       const data = await this.rolesService.findAll(
-        [
-          {
-            $match: {
-              isDeleted: false,
-            },
+        {
+          where: {
+            isDeleted: false,
           },
-        ],
+        },
         {
           pagination: false,
         },

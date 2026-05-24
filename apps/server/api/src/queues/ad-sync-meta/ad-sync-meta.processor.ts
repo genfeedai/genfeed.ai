@@ -1,4 +1,3 @@
-import type { AdPerformance } from '@api/collections/ad-performance/schemas/ad-performance.schema';
 import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import {
@@ -85,7 +84,7 @@ export class AdSyncMetaProcessor extends WorkerHost {
       return;
     }
 
-    const normalizedRecords: Partial<AdPerformance>[] = [];
+    const normalizedRecords: Record<string, unknown>[] = [];
 
     for (const campaign of campaigns) {
       const insights = await this.metaAdsService.getCampaignInsights(
@@ -106,7 +105,13 @@ export class AdSyncMetaProcessor extends WorkerHost {
             normalizeMetaCampaignInsightRecord({
               campaign,
               externalAccountId: accountId,
-              insight,
+              insight: {
+                ...insight,
+                actionValues: insight.actionValues?.map((actionValue) => ({
+                  actionType: actionValue.action_type ?? '',
+                  value: actionValue.value ?? '',
+                })),
+              },
             }),
           ),
         );
@@ -123,7 +128,7 @@ export class AdSyncMetaProcessor extends WorkerHost {
   private toAdPerformanceRecord(
     jobData: MetaAdSyncJobData,
     record: NormalizedAdPerformanceRecord,
-  ): Partial<AdPerformance> {
+  ): Record<string, unknown> {
     return {
       adPlatform: 'meta',
       bodyText: record.bodyText,

@@ -15,6 +15,21 @@ export interface UseVoiceCommandsOptions {
   language?: string;
 }
 
+type SpeechRecognitionConstructor = new () => {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onend: (() => void) | null;
+  onerror: ((event: { error: string; message?: string }) => void) | null;
+  onresult:
+    | ((event: {
+        results: ArrayLike<ArrayLike<{ transcript: string }>>;
+      }) => void)
+    | null;
+  start: () => void;
+  stop: () => void;
+};
+
 /**
  * Enhanced voice recognition hook with support for voice commands
  *
@@ -83,12 +98,14 @@ export function useVoiceCommands({
 
     queueMicrotask(() => setIsSupported(true));
 
-    const recognition = new SpeechRecognition();
+    const recognition = new (
+      SpeechRecognition as SpeechRecognitionConstructor
+    )();
     recognition.continuous = continuous;
     recognition.interimResults = interimResults;
     recognition.lang = language;
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
       logger.info('Voice input:', transcript);
       setTranscript(transcript);
@@ -109,7 +126,7 @@ export function useVoiceCommands({
       }
     };
 
-    recognition.onerror = (errorEvent: any) => {
+    recognition.onerror = (errorEvent) => {
       logger.error('Voice recognition error:', errorEvent);
       setIsListening(false);
 

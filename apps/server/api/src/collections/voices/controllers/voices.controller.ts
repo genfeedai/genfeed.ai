@@ -13,6 +13,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
@@ -25,6 +26,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
@@ -70,15 +72,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
-
-interface UploadedAudioFile {
-  buffer: Buffer;
-}
 
 @AutoSwagger()
 @Controller('voices')
@@ -133,13 +126,13 @@ export class VoicesController {
       }
 
       if (!isSuperAdmin) {
-        match.$or = [
+        match.OR = [
           catalogFilter,
           {
-            $or: [
+            OR: [
               { isCloned: true },
-              { voiceSource: { $exists: false } },
-              { voiceSource: { $in: ['cloned', 'generated'] } },
+              { voiceSource: { not: null } },
+              { voiceSource: { in: ['cloned', 'generated'] } },
             ],
             brand,
             organization,
@@ -152,86 +145,52 @@ export class VoicesController {
       }
 
       if (query.isActive !== undefined) {
-        match.isActive = query.isActive ? { $ne: false } : false;
+        match.isActive = query.isActive ? { not: false } : false;
       }
 
       if (requestedProviders.length > 0) {
-        match.provider = { $in: requestedProviders };
+        match.provider = { in: requestedProviders };
       }
 
       if (requestedSources && requestedSources.length > 0) {
-        match.voiceSource = { $in: requestedSources };
+        match.voiceSource = { in: requestedSources };
       }
 
-      const aggregate: Record<string, unknown>[] = [
-        {
-          $match: match,
-        },
-        {
-          $lookup: {
-            as: 'metadata',
-            foreignField: '_id',
-            from: 'metadata',
-            localField: 'metadata',
-          },
-        },
-        {
-          $unwind: {
-            path: '$metadata',
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-      ];
-
       if (normalizedSearch) {
-        aggregate.push({
-          $match: {
-            $or: [
+        match.AND = [
+          {
+            OR: [
               {
-                'metadata.label': {
-                  $options: 'i',
-                  $regex: normalizedSearch,
+                label: {
+                  mode: 'insensitive',
+                  contains: normalizedSearch,
                 },
               },
               {
                 externalVoiceId: {
-                  $options: 'i',
-                  $regex: normalizedSearch,
+                  mode: 'insensitive',
+                  contains: normalizedSearch,
                 },
               },
               {
                 provider: {
-                  $options: 'i',
-                  $regex: normalizedSearch,
+                  mode: 'insensitive',
+                  contains: normalizedSearch,
                 },
               },
             ],
           },
-        });
+        ];
       }
 
-      aggregate.push(
-        {
-          $addFields: {
-            isActive: { $ifNull: ['$isActive', true] },
-            isDefaultSelectable: { $ifNull: ['$isDefaultSelectable', true] },
-            voiceSource: {
-              $ifNull: [
-                '$voiceSource',
-                {
-                  $cond: [{ $eq: ['$isCloned', true] }, 'cloned', 'generated'],
-                },
-              ],
-            },
-          },
-        },
-        {
-          $sort: handleQuerySort(sort),
-        },
-      );
-
       const data: AggregatePaginateResult<IngredientDocument> =
-        await this.voicesService.findAll(aggregate, options);
+        await this.voicesService.findAll(
+          {
+            orderBy: handleQuerySort(sort),
+            where: match,
+          },
+          options,
+        );
       return serializeCollection(request, VoiceSerializer, data);
     } catch (_error: unknown) {
       throw new HttpException(
@@ -285,38 +244,19 @@ export class VoicesController {
       }
     }
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted: false,
-          type: 'voice',
-          voiceSource: 'catalog',
-        },
+    const findAllQuery = {
+      orderBy: {
+        createdAt: -1,
+        provider: 1,
       },
-      {
-        $lookup: {
-          as: 'metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'metadata',
-        },
+      where: {
+        isDeleted: false,
+        type: 'voice',
+        voiceSource: 'catalog',
       },
-      {
-        $unwind: {
-          path: '$metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $sort: {
-          createdAt: -1,
-          'metadata.label': 1,
-          provider: 1,
-        },
-      },
-    ];
+    };
 
-    const data = await this.voicesService.findAll(aggregate, {
+    const data = await this.voicesService.findAll(findAllQuery, {
       customLabels,
       limit: 500,
       page: 1,
@@ -338,7 +278,7 @@ export class VoicesController {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
 
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       throw new HttpException(
         { detail: 'Invalid voice ID', title: 'Validation failed' },
         HttpStatus.BAD_REQUEST,
@@ -380,7 +320,10 @@ export class VoicesController {
       );
     }
 
-    await this.voicesService.patchAll({ _id: id }, { $set: updates });
+    await this.voicesService.patchAll(
+      { OR: [{ id: String(id) }, { mongoId: String(id) }] },
+      updates,
+    );
 
     const updatedVoice = await this.voicesService.findOne({ _id: id }, [
       PopulatePatterns.metadataFull,
@@ -453,13 +396,16 @@ export class VoicesController {
 
       // Update ingredient to GENERATED with audio URL and duration
       await this.voicesService.patchAll(
-        { _id: ingredientData._id },
         {
-          $set: {
-            duration: result.duration,
-            status: IngredientStatus.GENERATED,
-            url: result.audioUrl,
-          },
+          OR: [
+            { id: String(ingredientData._id) },
+            { mongoId: String(ingredientData._id) },
+          ],
+        },
+        {
+          duration: result.duration,
+          status: IngredientStatus.GENERATED,
+          url: result.audioUrl,
         },
       );
 
@@ -485,8 +431,13 @@ export class VoicesController {
 
       // Mark ingredient as failed
       await this.voicesService.patchAll(
-        { _id: ingredientData._id },
-        { $set: { status: IngredientStatus.FAILED } },
+        {
+          OR: [
+            { id: String(ingredientData._id) },
+            { mongoId: String(ingredientData._id) },
+          ],
+        },
+        { status: IngredientStatus.FAILED },
       );
 
       throw new HttpException(
@@ -588,8 +539,13 @@ export class VoicesController {
 
     if (existingVoice?._id) {
       await this.voicesService.patchAll(
-        { _id: existingVoice._id },
-        { $set: catalogPatch },
+        {
+          OR: [
+            { id: String(existingVoice._id) },
+            { mongoId: String(existingVoice._id) },
+          ],
+        },
+        catalogPatch,
       );
 
       const metadataId =
@@ -599,7 +555,7 @@ export class VoicesController {
           ? existingVoice.metadata._id
           : existingVoice.metadata;
 
-      if (metadataId && isValidObjectId(String(metadataId))) {
+      if (metadataId && isEntityId(String(metadataId))) {
         await this.metadataService.patch(String(metadataId), {
           externalId: input.externalVoiceId,
           externalProvider: input.provider,
@@ -628,15 +584,18 @@ export class VoicesController {
     });
 
     await this.voicesService.patchAll(
-      { _id: ingredientData._id },
       {
-        $set: {
-          ...catalogPatch,
-          isActive: true,
-          isDefaultSelectable: true,
-          isFeatured: false,
-          status: IngredientStatus.UPLOADED,
-        },
+        OR: [
+          { id: String(ingredientData._id) },
+          { mongoId: String(ingredientData._id) },
+        ],
+      },
+      {
+        ...catalogPatch,
+        isActive: true,
+        isDefaultSelectable: true,
+        isFeatured: false,
+        status: IngredientStatus.UPLOADED,
       },
     );
   }
@@ -682,7 +641,23 @@ export class VoicesController {
     @Req() request: Request,
     @CurrentUser() user: User,
     @Body() cloneVoiceDto: CloneVoiceDto,
-    @UploadedFile() file?: UploadedAudioFile,
+    @UploadedFile(
+      new UploadValidationPipe({
+        allowedExtensions: ['mp3', 'wav', 'aac', 'flac', 'ogg', 'webm'],
+        allowedMimeTypes: [
+          'audio/mpeg',
+          'audio/mp3',
+          'audio/wav',
+          'audio/aac',
+          'audio/flac',
+          'audio/ogg',
+          'audio/webm',
+        ],
+        maxSizeBytes: 25 * 1024 * 1024,
+        required: false,
+      }),
+    )
+    file?: Express.Multer.File,
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -760,22 +735,18 @@ export class VoicesController {
     try {
       const publicMetadata = getPublicMetadata(user);
 
-      const aggregate: Record<string, unknown>[] = [
-        {
-          $match: {
-            isCloned: true,
-            isDeleted: false,
-            organization: publicMetadata.organization,
-            type: 'voice',
-          },
+      const findAllQuery = {
+        orderBy: { createdAt: -1 },
+        where: {
+          isCloned: true,
+          isDeleted: false,
+          organization: publicMetadata.organization,
+          type: 'voice',
         },
-        {
-          $sort: { createdAt: -1 },
-        },
-      ];
+      };
 
       const data: AggregatePaginateResult<IngredientDocument> =
-        await this.voicesService.findAll(aggregate, options);
+        await this.voicesService.findAll(findAllQuery, options);
       return serializeCollection(request, VoiceCloneSerializer, data);
     } catch (_error: unknown) {
       throw new HttpException(
@@ -795,7 +766,7 @@ export class VoicesController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const publicMetadata = getPublicMetadata(user);
 
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       throw new HttpException(
         { detail: 'Invalid voice ID', title: 'Validation failed' },
         HttpStatus.BAD_REQUEST,
@@ -838,8 +809,10 @@ export class VoicesController {
 
       // Soft delete the ingredient
       await this.voicesService.patchAll(
-        { _id: voiceDoc._id },
-        { $set: { isDeleted: true } },
+        {
+          OR: [{ id: String(voiceDoc._id) }, { mongoId: String(voiceDoc._id) }],
+        },
+        { isDeleted: true },
       );
 
       return serializeSingle(request, VoiceCloneSerializer, voice);
@@ -859,7 +832,7 @@ export class VoicesController {
     request: Request,
     user: User,
     dto: CloneVoiceDto,
-    file: UploadedAudioFile | undefined,
+    file: Express.Multer.File | undefined,
     publicMetadata: { brand: string; organization: string; user: string },
     url: string,
   ): Promise<JsonApiSingleResponse> {
@@ -896,17 +869,20 @@ export class VoicesController {
 
     // Update with clone-specific fields
     await this.voicesService.patchAll(
-      { _id: ingredientData._id },
       {
-        $set: {
-          cloneStatus: VoiceCloneStatus.READY,
-          externalVoiceId: result.voiceId,
-          isActive: true,
-          isCloned: true,
-          isDefaultSelectable: true,
-          provider: VoiceProvider.ELEVENLABS,
-          voiceSource: 'cloned',
-        },
+        OR: [
+          { id: String(ingredientData._id) },
+          { mongoId: String(ingredientData._id) },
+        ],
+      },
+      {
+        cloneStatus: VoiceCloneStatus.READY,
+        externalVoiceId: result.voiceId,
+        isActive: true,
+        isCloned: true,
+        isDefaultSelectable: true,
+        provider: VoiceProvider.ELEVENLABS,
+        voiceSource: 'cloned',
       },
     );
 
@@ -939,7 +915,7 @@ export class VoicesController {
     request: Request,
     user: User,
     dto: CloneVoiceDto,
-    _file: UploadedAudioFile | undefined,
+    _file: Express.Multer.File | undefined,
     publicMetadata: { brand: string; organization: string; user: string },
     url: string,
   ): Promise<JsonApiSingleResponse> {
@@ -977,17 +953,20 @@ export class VoicesController {
 
     // Update with clone-specific fields
     await this.voicesService.patchAll(
-      { _id: ingredientData._id },
       {
-        $set: {
-          cloneStatus: VoiceCloneStatus.CLONING,
-          isActive: true,
-          isCloned: true,
-          isDefaultSelectable: true,
-          provider: VoiceProvider.GENFEED_AI,
-          sampleAudioUrl: dto.audioUrl,
-          voiceSource: 'cloned',
-        },
+        OR: [
+          { id: String(ingredientData._id) },
+          { mongoId: String(ingredientData._id) },
+        ],
+      },
+      {
+        cloneStatus: VoiceCloneStatus.CLONING,
+        isActive: true,
+        isCloned: true,
+        isDefaultSelectable: true,
+        provider: VoiceProvider.GENFEED_AI,
+        sampleAudioUrl: dto.audioUrl,
+        voiceSource: 'cloned',
       },
     );
 
@@ -1010,12 +989,15 @@ export class VoicesController {
 
     if (!result) {
       await this.voicesService.patchAll(
-        { _id: ingredientData._id },
         {
-          $set: {
-            cloneStatus: VoiceCloneStatus.FAILED,
-            status: IngredientStatus.FAILED,
-          },
+          OR: [
+            { id: String(ingredientData._id) },
+            { mongoId: String(ingredientData._id) },
+          ],
+        },
+        {
+          cloneStatus: VoiceCloneStatus.FAILED,
+          status: IngredientStatus.FAILED,
         },
       );
 

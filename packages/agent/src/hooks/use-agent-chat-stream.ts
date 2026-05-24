@@ -111,6 +111,7 @@ export function useAgentChatStream(
     (s) => s.setSocketConnectionState,
   );
   const updateThread = useAgentChatStore((s) => s.updateThread);
+  const pageContext = useAgentChatStore((s) => s.pageContext);
 
   const appendStreamToken = useAgentChatStore((s) => s.appendStreamToken);
   const setStreamingReasoning = useAgentChatStore(
@@ -590,8 +591,12 @@ export function useAgentChatStream(
       const preAssistantIds = new Set(
         useAgentChatStore
           .getState()
-          .messages.filter((message) => message.role === 'assistant')
-          .map((message) => message.id),
+          .messages.reduce<string[]>((acc, message) => {
+            if (message.role === 'assistant') {
+              acc.push(message.id);
+            }
+            return acc;
+          }, []),
       );
 
       const userMessage: AgentChatMessage = {
@@ -983,6 +988,7 @@ export function useAgentChatStream(
               attachments: sendOptions?.attachments,
               content,
               model: resolvedModel,
+              pageContext: pageContext ?? undefined,
               planModeEnabled: sendOptions?.planModeEnabled,
               source: sendOptions?.source,
               threadId: currentActiveThreadId ?? undefined,
@@ -1043,6 +1049,7 @@ export function useAgentChatStream(
     },
     [
       model,
+      pageContext,
       apiService,
       isReady,
       subscribe,

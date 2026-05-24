@@ -30,7 +30,7 @@ const SidebarHeader = memo(function SidebarHeader({
         <div className={cn('relative z-[100] flex-1 min-w-0')}>
           {isLoading ? (
             <div className="flex items-center justify-center h-8">
-              <span className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full opacity-50" />
+              <span className="animate-spin size-4 border-2 border-primary border-t-transparent rounded-full opacity-50" />
             </div>
           ) : (
             <MenuBrandSwitcher

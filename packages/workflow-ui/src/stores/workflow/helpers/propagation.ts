@@ -13,6 +13,7 @@
  */
 
 import type { WorkflowEdge, WorkflowNode } from '@genfeedai/types';
+import { createIdMap, createSourceMap } from '../../../lib';
 
 /**
  * Extract the primary output value from a node's data, following the priority chain.
@@ -234,6 +235,8 @@ export function computeDownstreamUpdates(
   nodes: WorkflowNode[],
   edges: WorkflowEdge[],
 ): Map<string, Record<string, unknown>> {
+  const nodeMap = createIdMap(nodes);
+  const edgesBySource = createSourceMap(edges);
   const updates: Map<string, Record<string, unknown>> = new Map();
   const visited = new Set<string>();
   const queue: Array<{ nodeId: string; output: string }> = [
@@ -248,13 +251,13 @@ export function computeDownstreamUpdates(
     if (visited.has(current.nodeId)) continue;
     visited.add(current.nodeId);
 
-    const currentNode = nodes.find((n) => n.id === current.nodeId);
+    const currentNode = nodeMap.get(current.nodeId);
     if (!currentNode) continue;
 
-    const downstreamEdges = edges.filter((e) => e.source === current.nodeId);
+    const downstreamEdges = edgesBySource.get(current.nodeId) ?? [];
 
     for (const edge of downstreamEdges) {
-      const targetNode = nodes.find((n) => n.id === edge.target);
+      const targetNode = nodeMap.get(edge.target);
       if (!targetNode) continue;
 
       // --- Gallery aggregation (outputGallery special case) ---
@@ -310,8 +313,10 @@ export function hasStateChanged(
   updates: Map<string, Record<string, unknown>>,
   nodes: WorkflowNode[],
 ): boolean {
+  const nodeMap = createIdMap(nodes);
+
   for (const [nodeId, update] of updates) {
-    const existingNode = nodes.find((n) => n.id === nodeId);
+    const existingNode = nodeMap.get(nodeId);
     if (!existingNode) continue;
     const existingData = existingNode.data as Record<string, unknown>;
     for (const [key, value] of Object.entries(update)) {

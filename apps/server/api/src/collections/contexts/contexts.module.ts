@@ -18,11 +18,11 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [ContextsController],
   exports: [ContextsService],
   imports: [
-    ByokModule,
-    ConfigModule,
+    forwardRef(() => ByokModule),
+    forwardRef(() => ConfigModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => ModelsModule),
-    ReplicateModule,
+    forwardRef(() => ReplicateModule),
   ],
   providers: [ContextsService, CreditsGuard, CreditsInterceptor],
 })

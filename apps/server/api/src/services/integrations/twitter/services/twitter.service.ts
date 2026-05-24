@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
@@ -92,6 +93,17 @@ interface TwitterAnalyticsResult {
   mediaType?: 'text' | 'image' | 'video' | 'mixed';
 }
 
+function requireString(
+  value: string | null | undefined,
+  field: string,
+): string {
+  if (!value) {
+    throw new Error(`Twitter credential is missing ${field}`);
+  }
+
+  return value;
+}
+
 @Injectable()
 export class TwitterService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -130,7 +142,7 @@ export class TwitterService {
   public async refreshToken(
     organizationId: string,
     brandId: string,
-  ): Promise<unknown> {
+  ): Promise<CredentialDocument> {
     const queryCredentials = {
       brand: brandId,
       isDeleted: false,
@@ -507,15 +519,10 @@ export class TwitterService {
 
     try {
       const credential = await this.refreshToken(organizationId, brandId);
-
-      if (!credential?.accessToken) {
-        throw new Error('Twitter credential not found or invalid');
-      }
+      const accessToken = requireString(credential.accessToken, 'accessToken');
 
       // OAuth 2.0: single bearer token
-      const decryptedAccessToken = EncryptionUtil.decrypt(
-        credential.accessToken,
-      );
+      const decryptedAccessToken = EncryptionUtil.decrypt(accessToken);
       const userClient = new TwitterApi(decryptedAccessToken);
 
       await userClient.v2.sendDmInConversation(recipientId, {
@@ -547,15 +554,10 @@ export class TwitterService {
 
     try {
       const credential = await this.refreshToken(organizationId, brandId);
-
-      if (!credential?.accessToken) {
-        throw new Error('Twitter credential not found or invalid');
-      }
+      const accessToken = requireString(credential.accessToken, 'accessToken');
 
       // OAuth 2.0: single bearer token
-      const decryptedAccessToken = EncryptionUtil.decrypt(
-        credential.accessToken,
-      );
+      const decryptedAccessToken = EncryptionUtil.decrypt(accessToken);
       const userClient = new TwitterApi(decryptedAccessToken);
 
       // Handle single or multiple media URLs
@@ -640,14 +642,9 @@ export class TwitterService {
 
     try {
       const credential = await this.refreshToken(organizationId, brandId);
+      const accessToken = requireString(credential.accessToken, 'accessToken');
 
-      if (!credential?.accessToken) {
-        throw new Error('Twitter credential not found or invalid');
-      }
-
-      const decryptedAccessToken = EncryptionUtil.decrypt(
-        credential.accessToken,
-      );
+      const decryptedAccessToken = EncryptionUtil.decrypt(accessToken);
       const userClient = new TwitterApi(decryptedAccessToken);
 
       const plainTextContent = htmlToText(text);

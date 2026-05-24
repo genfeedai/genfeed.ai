@@ -22,9 +22,7 @@ export default function ButtonRefresh({
       className={className}
       tooltip="Refresh"
       label={
-        <HiArrowPath
-          className={cn('h-4 w-4', isRefreshing && 'animate-spin')}
-        />
+        <HiArrowPath className={cn('size-4', isRefreshing && 'animate-spin')} />
       }
     />
   );

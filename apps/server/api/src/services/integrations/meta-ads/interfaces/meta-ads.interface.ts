@@ -1,8 +1,24 @@
 export type {
   MetaAdAccountInput as MetaAdAccount,
   MetaCampaignInput as MetaCampaign,
-  MetaCampaignInsightInput as MetaInsightsData,
 } from '@genfeedai/integrations/ads';
+
+export interface MetaInsightsData {
+  actions?: Array<{ action_type?: string; value?: string }>;
+  actionValues?: Array<{ action_type?: string; value?: string }>;
+  clicks: number;
+  conversions?: number;
+  costPerResult: number;
+  cpc: number;
+  cpm: number;
+  ctr: number;
+  dateStart: string;
+  dateStop: string;
+  frequency: number;
+  impressions: number;
+  reach?: number;
+  spend: number;
+}
 
 export interface MetaInsightsParams {
   datePreset?:

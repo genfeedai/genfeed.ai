@@ -5,7 +5,7 @@ store platform post IDs/URLs, and multi-platform publishing.
  */
 
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -36,8 +36,8 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [AnalyticsAggregationService, PostAnalyticsService, PostsService],
   imports: [
     forwardRef(() => ActivitiesModule),
-    ByokModule,
-    forwardRef(() => CredentialsModule),
+    forwardRef(() => ByokModule),
+    forwardRef(() => CredentialsCoreModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => IngredientsModule),
     forwardRef(() => ModelsModule),
@@ -47,7 +47,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => QuotaModule),
     forwardRef(() => ReplicateModule),
     forwardRef(() => TemplatesModule),
-    TrendsModule,
+    forwardRef(() => TrendsModule),
   ],
   providers: [
     AnalyticsAggregationService,

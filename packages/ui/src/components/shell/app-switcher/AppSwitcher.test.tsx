@@ -1,11 +1,25 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import {
+  cloneElement,
+  isValidElement,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-// Capture the router push spy before mocking so tests can assert on it
-const pushSpy = vi.fn();
-
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: pushSpy }),
+vi.mock('next/link', () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: ReactNode;
+    href: string;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
 // Mock Button — avoids deep @genfeedai/enums + CVA dependency chain
@@ -16,14 +30,12 @@ vi.mock('../../../primitives/button', () => ({
     ariaLabel,
     className,
     'aria-current': ariaCurrent,
-    'data-active': dataActive,
   }: {
     children: React.ReactNode;
     onClick?: () => void;
     ariaLabel?: string;
     className?: string;
     'aria-current'?: string;
-    'data-active'?: string;
   }) => (
     <button
       type="button"
@@ -31,28 +43,47 @@ vi.mock('../../../primitives/button', () => ({
       aria-label={ariaLabel}
       className={className}
       aria-current={ariaCurrent}
-      data-active={dataActive}
     >
       {children}
     </button>
   ),
 }));
 
-// Mock Popover — render children directly, no portal/floating logic
-vi.mock('@ui/primitives/popover', () => ({
-  Popover: ({ children }: { children: React.ReactNode; open?: boolean }) => (
-    <>{children}</>
+vi.mock('../../../primitives/dropdown-menu', () => ({
+  DropdownMenu: ({ children }: { children: ReactNode }) => <>{children}</>,
+  DropdownMenuContent: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
   ),
-  PopoverTrigger: ({ children }: { children: React.ReactNode }) => (
-    <>{children}</>
-  ),
-  PopoverContent: ({
+  DropdownMenuItem: ({
+    asChild,
     children,
     className,
   }: {
-    children: React.ReactNode;
+    asChild?: boolean;
+    children: ReactNode;
     className?: string;
-  }) => <div className={className}>{children}</div>,
+  }) =>
+    asChild && isValidElement(children) ? (
+      cloneElement(
+        children as ReactElement<{ className?: string }>,
+        className ? { className } : undefined,
+      )
+    ) : (
+      <button type="button" className={className}>
+        {children}
+      </button>
+    ),
+  DropdownMenuLabel: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DropdownMenuSeparator: () => <hr />,
+  DropdownMenuTrigger: ({ children }: { children: ReactNode }) => (
+    <>{children}</>
+  ),
+}));
+
+vi.mock('../../../primitives/tooltip', () => ({
+  SimpleTooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 vi.mock('@genfeedai/enums', () => ({
@@ -71,8 +102,11 @@ const { AppSwitcher } = await import('./AppSwitcher');
 describe('AppSwitcher', () => {
   it('renders the active app label in the trigger button', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
-    // The trigger and the grid both render the label; there will be multiple
-    expect(screen.getAllByText('Workspace').length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getByRole('button', {
+        name: 'Switch app',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('renders content apps first and platform apps after the divider', () => {
@@ -81,51 +115,48 @@ describe('AppSwitcher', () => {
       'Library',
       'Posts',
       'Workspace',
+      'Agent',
       'Studio',
       'Workflows',
       'Editor',
-      'Compose',
+      'Write',
       'Analytics',
     ]) {
-      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+      expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
   });
 
   it('marks the active app with aria-current="page"', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="workflows" />);
-    const activeButton = screen
-      .getAllByRole('button', { name: 'Workflows' })
-      .find((button) => button.getAttribute('aria-current') === 'page');
+    const activeButton = screen.getByRole('link', { name: 'Workflows' });
 
-    expect(activeButton).toBeDefined();
+    expect(activeButton).toHaveAttribute('aria-current', 'page');
   });
 
   it('does not set aria-current on inactive app buttons', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
-    expect(
-      screen.getByRole('button', { name: 'Analytics' }),
-    ).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: 'Analytics' })).not.toHaveAttribute(
+      'aria-current',
+    );
   });
 
   it('active app button carries the shared shell active state', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="compose" />);
-    const btn = screen
-      .getAllByRole('button', { name: 'Compose' })
-      .find((button) => button.getAttribute('aria-current') === 'page');
+    const btn = screen.getByRole('link', { name: 'Write' });
     expect(btn).toBeDefined();
-    expect(btn?.className).toContain('gen-shell-surface');
-    expect(btn).toHaveAttribute('data-active', 'true');
+    expect(btn).toHaveAttribute('aria-current', 'page');
+    expect(btn).toHaveClass('bg-white/[0.06]');
   });
 
   it('inactive app button does not have active-state classes', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="compose" />);
-    const btn = screen.getByRole('button', { name: 'Editor' });
-    expect(btn).not.toHaveAttribute('data-active', 'true');
+    const btn = screen.getByRole('link', { name: 'Editor' });
+    expect(btn).not.toHaveAttribute('aria-current');
+    expect(btn).not.toHaveClass('bg-white/[0.06]');
   });
 
   describe('route generation', () => {
-    it('navigates to studio URL with brandSlug when provided', () => {
-      pushSpy.mockClear();
+    it('links to studio URL with brandSlug when provided', () => {
       render(
         <AppSwitcher
           orgSlug="acme"
@@ -133,33 +164,47 @@ describe('AppSwitcher', () => {
           brandSlug="my-brand"
         />,
       );
-      fireEvent.click(screen.getByRole('button', { name: 'Studio' }));
-      expect(pushSpy).toHaveBeenCalledWith('/acme/my-brand/studio/image');
+      expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/studio/image',
+      );
     });
 
-    it('navigates to org overview for studio when brandSlug is absent', () => {
-      pushSpy.mockClear();
+    it('links to org overview for studio when brandSlug is absent', () => {
       render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
-      fireEvent.click(screen.getByRole('button', { name: 'Studio' }));
-      expect(pushSpy).toHaveBeenCalledWith('/acme/~/overview');
+      expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
+        'href',
+        '/acme/~/overview',
+      );
     });
 
-    it('navigates to correct route for workspace app', () => {
-      pushSpy.mockClear();
+    it('links to correct route for workspace app', () => {
       render(<AppSwitcher orgSlug="acme" currentApp="studio" />);
-      fireEvent.click(screen.getByRole('button', { name: 'Workspace' }));
-      expect(pushSpy).toHaveBeenCalledWith('/acme/~/overview');
+      expect(screen.getByRole('link', { name: 'Workspace' })).toHaveAttribute(
+        'href',
+        '/acme/~/overview',
+      );
     });
 
-    it('navigates to correct route for analytics app', () => {
-      pushSpy.mockClear();
+    it('links to brand-scoped workspace when a brand is selected', () => {
+      render(
+        <AppSwitcher orgSlug="acme" currentApp="studio" brandSlug="my-brand" />,
+      );
+      expect(screen.getByRole('link', { name: 'Workspace' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/workspace',
+      );
+    });
+
+    it('links to correct route for analytics app', () => {
       render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
-      fireEvent.click(screen.getByRole('button', { name: 'Analytics' }));
-      expect(pushSpy).toHaveBeenCalledWith('/acme/~/analytics/overview');
+      expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
+        'href',
+        '/acme/~/analytics/overview',
+      );
     });
 
-    it('navigates to brand-scoped library pages when a brand is selected', () => {
-      pushSpy.mockClear();
+    it('links brand app surfaces to brand-scoped routes', () => {
       render(
         <AppSwitcher
           orgSlug="acme"
@@ -167,14 +212,48 @@ describe('AppSwitcher', () => {
           brandSlug="my-brand"
         />,
       );
-      fireEvent.click(screen.getByRole('button', { name: 'Library' }));
-      expect(pushSpy).toHaveBeenCalledWith(
+
+      expect(screen.getByRole('link', { name: 'Write' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/compose/post',
+      );
+      expect(screen.getByRole('link', { name: 'Editor' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/editor',
+      );
+      expect(screen.getByRole('link', { name: 'Workflows' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/workflows',
+      );
+      expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/analytics/overview',
+      );
+    });
+
+    it('links to the org-scoped agent app route', () => {
+      render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
+      expect(screen.getByRole('link', { name: 'Agent' })).toHaveAttribute(
+        'href',
+        '/acme/~/chat',
+      );
+    });
+
+    it('links to brand-scoped library pages when a brand is selected', () => {
+      render(
+        <AppSwitcher
+          orgSlug="acme"
+          currentApp="workspace"
+          brandSlug="my-brand"
+        />,
+      );
+      expect(screen.getByRole('link', { name: 'Library' })).toHaveAttribute(
+        'href',
         '/acme/my-brand/library/ingredients',
       );
     });
 
-    it('navigates to brand-scoped posts pages when a brand is selected', () => {
-      pushSpy.mockClear();
+    it('links to brand-scoped posts pages when a brand is selected', () => {
       render(
         <AppSwitcher
           orgSlug="acme"
@@ -182,12 +261,13 @@ describe('AppSwitcher', () => {
           brandSlug="my-brand"
         />,
       );
-      fireEvent.click(screen.getByRole('button', { name: 'Posts' }));
-      expect(pushSpy).toHaveBeenCalledWith('/acme/my-brand/posts');
+      expect(screen.getByRole('link', { name: 'Posts' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/posts',
+      );
     });
 
     it('preserves task context search params when switching apps', () => {
-      pushSpy.mockClear();
       render(
         <AppSwitcher
           orgSlug="acme"
@@ -196,9 +276,8 @@ describe('AppSwitcher', () => {
         />,
       );
 
-      fireEvent.click(screen.getByRole('button', { name: 'Analytics' }));
-
-      expect(pushSpy).toHaveBeenCalledWith(
+      expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
+        'href',
         '/acme/~/analytics/overview?taskId=123&taskSource=workspace',
       );
     });

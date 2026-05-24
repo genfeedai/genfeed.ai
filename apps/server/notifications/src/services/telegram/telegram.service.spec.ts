@@ -39,10 +39,6 @@ describe('TelegramService', () => {
     loggerService = module.get<LoggerService>(LoggerService);
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('should be defined', () => {
     expect(service).toBeDefined();
   });

@@ -8,7 +8,10 @@ import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
+import type { ReactNode } from 'react';
 import { useCallback, useRef } from 'react';
+
+const EMPTY_ARRAY: never[] = [];
 
 const Checkbox = dynamic(
   () => import('@ui/primitives/checkbox').then((mod) => mod.Checkbox),
@@ -16,10 +19,10 @@ const Checkbox = dynamic(
 );
 
 export default function AppTable<T>({
-  items = [],
+  items = EMPTY_ARRAY,
   isLoading = false,
   columns,
-  actions = [],
+  actions = EMPTY_ARRAY,
 
   getRowKey,
   getRowClassName,
@@ -27,10 +30,11 @@ export default function AppTable<T>({
   emptyState,
 
   selectable = false,
-  selectedIds = [],
+  selectedIds = EMPTY_ARRAY,
   onSelectionChange,
   getItemId,
   onRowClick,
+  hideHeader = false,
 }: TableProps<T>) {
   // Ref for callback to prevent re-renders
   const onSelectionChangeRef = useRef(onSelectionChange);
@@ -122,10 +126,15 @@ export default function AppTable<T>({
     <div className="relative overflow-hidden rounded border border-white/[0.08] bg-card shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]">
       <div className="overflow-x-auto rounded">
         <table className="w-full caption-bottom text-sm">
-          <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-lg">
+          <thead
+            className={cn(
+              'sticky top-0 z-10 bg-card/95 backdrop-blur-lg',
+              hideHeader && 'sr-only',
+            )}
+          >
             <tr className="border-b border-white/[0.08] transition-colors">
               {selectable && (
-                <th className="h-12 w-12 px-4 text-left align-middle font-medium text-muted-foreground">
+                <th className="size-12 px-4 text-left align-middle font-medium text-muted-foreground">
                   <Checkbox
                     name="selectAll"
                     isChecked={
@@ -201,15 +210,15 @@ export default function AppTable<T>({
                     <td className="px-4 py-2 relative align-middle">
                       <div className="flex justify-end opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-200">
                         <div className="flex items-center gap-1">
-                          {actions
-                            .filter((action) => {
+                          {actions.reduce<ReactNode[]>(
+                            (acc, action, actionIndex) => {
                               // Check if action should be visible for this item
-                              if (action.isVisible) {
-                                return action.isVisible(item);
+                              const isVisible = action.isVisible
+                                ? action.isVisible(item)
+                                : true;
+                              if (!isVisible) {
+                                return acc;
                               }
-                              return true; // Show by default if isVisible not specified
-                            })
-                            .map((action, actionIndex) => {
                               const iconContent =
                                 typeof action.icon === 'function'
                                   ? action.icon(item)
@@ -219,7 +228,7 @@ export default function AppTable<T>({
                                   ? action.tooltip(item)
                                   : action.tooltip;
 
-                              return (
+                              acc.push(
                                 <Button
                                   key={actionIndex}
                                   label={iconContent}
@@ -238,9 +247,12 @@ export default function AppTable<T>({
                                     action.className,
                                     action.getClassName?.(item),
                                   )}
-                                />
+                                />,
                               );
-                            })}
+                              return acc;
+                            },
+                            [],
+                          )}
                         </div>
                       </div>
                     </td>

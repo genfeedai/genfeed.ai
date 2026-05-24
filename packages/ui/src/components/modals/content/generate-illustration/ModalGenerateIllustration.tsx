@@ -381,7 +381,7 @@ export default function ModalGenerateIllustration({
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="A professional illustration showing..."
+            placeholder="A professional illustration showing…"
             isDisabled={isGenerating}
             className="resize-none"
             textareaRef={textareaRef}
@@ -391,7 +391,7 @@ export default function ModalGenerateIllustration({
         {isGenerating && (
           <div className="flex items-center gap-2 bg-background p-3 text-sm">
             <Spinner size={ComponentSize.SM} />
-            <span>Generating your illustration...</span>
+            <span>Generating your illustration…</span>
           </div>
         )}
 
@@ -399,9 +399,7 @@ export default function ModalGenerateIllustration({
           <div className="space-y-3">
             <div className=" border border-white/[0.08] bg-card p-4">
               <label className="mb-2 block text-sm font-medium">
-                {generatedImageUrl
-                  ? 'Generated Image Preview'
-                  : 'Processing...'}
+                {generatedImageUrl ? 'Generated Image Preview' : 'Processing…'}
               </label>
 
               <div className="relative w-full overflow-hidden">
@@ -436,7 +434,7 @@ export default function ModalGenerateIllustration({
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center gap-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground h-9 px-3"
         >
-          <HiArrowTopRightOnSquare className="w-4 h-4" />
+          <HiArrowTopRightOnSquare className="size-4" />
           Studio
         </Link>
 

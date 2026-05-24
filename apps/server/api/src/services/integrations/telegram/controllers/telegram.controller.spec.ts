@@ -17,7 +17,11 @@ describe('TelegramController', () => {
   const orgId = 'test-object-id';
   const brandId = 'test-object-id';
   const userId = 'test-object-id';
-  const mockUser = { _id: userId } as Record<string, unknown>;
+  const mockUser = {
+    publicMetadata: {
+      user: userId,
+    },
+  } as Record<string, unknown>;
 
   const validAuthData: TelegramAuthData = {
     auth_date: Math.floor(Date.now() / 1000),
@@ -115,11 +119,11 @@ describe('TelegramController', () => {
       ).rejects.toThrow(HttpException);
     });
 
-    it('should pass user._id.toString() as userId', async () => {
+    it('should pass publicMetadata.user as userId', async () => {
       await controller.verify(mockUser, orgId, brandId, validAuthData);
       const callArgs = telegramService.verifyAndSaveAuth.mock
         .calls[0] as unknown[];
-      expect(callArgs[2]).toBe(userId.toString());
+      expect(callArgs[2]).toBe(userId);
     });
   });
 

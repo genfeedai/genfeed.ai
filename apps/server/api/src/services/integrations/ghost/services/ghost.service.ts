@@ -13,8 +13,15 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import jwt from 'jsonwebtoken';
 import { firstValueFrom } from 'rxjs';
+
+const jwt = require('jsonwebtoken') as {
+  sign: (
+    payload: Record<string, unknown>,
+    secretOrPrivateKey: string | Buffer,
+    options?: Record<string, unknown>,
+  ) => string;
+};
 
 @Injectable()
 export class GhostService {

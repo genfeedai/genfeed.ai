@@ -5,7 +5,7 @@ import { type ModelDocument } from '@api/collections/models/schemas/model.schema
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/clerk/clerk.util';
@@ -16,7 +16,6 @@ import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defau
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,
@@ -37,6 +36,8 @@ import {
 } from '@nestjs/common';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ModuleRef } from '@nestjs/core';
+
+type MatchConditions = Record<string, unknown>;
 
 @AutoSwagger()
 @Controller('models')
@@ -91,11 +92,8 @@ export class ModelsController extends BaseCRUDController<
     return getIsSuperAdmin(user);
   }
 
-  public buildFindAllPipeline(
-    _user: User,
-    query: ModelsQueryDto,
-  ): Record<string, unknown>[] {
-    let matchConditions: Record<string, unknown> = {
+  public buildFindAllQuery(_user: User, query: ModelsQueryDto) {
+    let matchConditions: MatchConditions = {
       isDeleted: query.isDeleted ?? false,
     };
 
@@ -121,27 +119,31 @@ export class ModelsController extends BaseCRUDController<
           ],
           'category',
         );
-        matchConditions = { ...matchConditions, ...otherCategoriesFilter };
+        matchConditions = {
+          ...matchConditions,
+          ...otherCategoriesFilter,
+        } as MatchConditions;
       } else {
         // Use CollectionFilterUtil for single category
         const categoryFilter = CollectionFilterUtil.buildCategoryFilter(
           query.category,
         );
-        matchConditions = { ...matchConditions, ...categoryFilter };
+        matchConditions = {
+          ...matchConditions,
+          ...categoryFilter,
+        } as MatchConditions;
       }
     }
 
     // Note: Organization filtering is handled in the overridden findAll method
     // because it requires async database lookup
 
-    return PipelineBuilder.create()
-      .match(matchConditions)
-      .sort(
-        query.sort
-          ? handleQuerySort(query.sort)
-          : ({ createdAt: -1, key: 1, label: 1, type: 1 } as SortObject),
-      )
-      .build();
+    return {
+      orderBy: query.sort
+        ? handleQuerySort(query.sort)
+        : ({ createdAt: -1, key: 1, label: 1, type: 1 } as SortObject),
+      where: matchConditions,
+    };
   }
 
   /**
@@ -154,8 +156,8 @@ export class ModelsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Query() query: ModelsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    // Build base pipeline
-    let pipeline = this.buildFindAllPipeline(user, query);
+    const findAllQuery = this.buildFindAllQuery(user, query);
+    const where = { ...(findAllQuery.where ?? {}) } as Record<string, unknown>;
 
     // Add organization filtering if organizationId is provided
     if (query.organizationId) {
@@ -164,31 +166,25 @@ export class ModelsController extends BaseCRUDController<
           organization: query.organizationId,
         });
 
-      if (organizationSettings?.enabledModels) {
-        const enabledModelIds = organizationSettings.enabledModels.map(
-          (id) => id,
-        );
-        // Strict mode: if enabledModels array exists, only return those models
-        // If array is empty, no models will match (strict mode)
-        // Add $match stage at the beginning to filter by enabled model IDs
-        pipeline = [
-          {
-            $match: {
-              _id: { $in: enabledModelIds },
-            },
-          },
-          ...pipeline,
-        ];
+      const rawEnabledModels = (
+        organizationSettings as Record<string, unknown> | undefined
+      )?.enabledModels;
+      const rawEnabledModelIds = (
+        organizationSettings as Record<string, unknown> | undefined
+      )?.enabledModelIds;
+      const enabledModelIds = Array.isArray(rawEnabledModels)
+        ? rawEnabledModels.filter((id): id is string => typeof id === 'string')
+        : Array.isArray(rawEnabledModelIds)
+          ? rawEnabledModelIds.filter(
+              (id): id is string => typeof id === 'string',
+            )
+          : [];
+
+      if (enabledModelIds.length > 0) {
+        where._id = { in: enabledModelIds };
       } else {
         // Strict mode: if no organization settings or empty enabledModels, return no models
-        pipeline = [
-          {
-            $match: {
-              _id: { $in: [] },
-            },
-          },
-          ...pipeline,
-        ];
+        where._id = { in: [] };
       }
     }
 
@@ -199,24 +195,18 @@ export class ModelsController extends BaseCRUDController<
       : null;
 
     if (authenticatedOrgId) {
-      pipeline.push({
-        $match: {
-          $or: [
-            { organization: null },
-            { organization: { $exists: false } },
-            { organization: authenticatedOrgId },
-          ],
-        },
-      });
+      where.OR = [{ organization: null }, { organization: authenticatedOrgId }];
     }
 
-    // Use the base service findAll with the modified pipeline
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const data = await this.modelsService.findAll(pipeline, options);
+    const data = await this.modelsService.findAll(
+      { ...findAllQuery, where },
+      options,
+    );
     return serializeCollection(request, ModelSerializer, data);
   }
 
@@ -247,7 +237,7 @@ export class ModelsController extends BaseCRUDController<
     // If turning OFF isDefault, check if it's the only default in category
     if (updateDto.isDefault === false && model.isDefault) {
       const otherDefaults = await this.modelsService.count({
-        _id: { $ne: modelId },
+        _id: { not: modelId },
         category: model.category,
         isDefault: true,
         isDeleted: false,
@@ -268,7 +258,7 @@ export class ModelsController extends BaseCRUDController<
     if (updateDto.isDefault === true) {
       await this.modelsService.updateMany(
         {
-          _id: { $ne: modelId },
+          _id: { not: modelId },
           category: model.category,
           isDefault: true,
         },

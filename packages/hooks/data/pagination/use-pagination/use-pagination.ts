@@ -32,23 +32,22 @@ export interface PaginationReturn {
  * ```typescript
  * const pagination = usePagination({ pageSize: 24 });
  *
- * const { data } = useResource(
- *   async () => {
+ * const { data } = useQuery({
+ *   queryKey: ['articles', pagination.currentPage],
+ *   queryFn: async () => {
  *     const service = await getArticlesService();
  *     const result = await service.findAll({
  *       page: pagination.currentPage,
  *       limit: pagination.pageSize,
  *     });
  *
- *     // Update total pages from API response
  *     if (result.pagination) {
  *       pagination.setTotalPages(result.pagination.totalPages);
  *     }
  *
  *     return result.data;
  *   },
- *   { dependencies: [pagination.currentPage] }
- * );
+ * });
  *
  * // Use in JSX
  * <Pagination

@@ -4,10 +4,14 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 const desktopBridge: IGenfeedDesktopBridge = {
   app: {
+    enableOfflineMode: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appEnableOfflineMode),
     getBootstrap: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appBootstrap),
     getDiagnostics: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appGetDiagnostics),
+    openExternalPath: async (pathname) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appOpenExternalPath, pathname),
     onDidBootstrapChange: (callback) => {
       const listener = (_event: unknown, bootstrap: unknown) => {
         callback(bootstrap as Parameters<typeof callback>[0]);
@@ -87,12 +91,16 @@ const desktopBridge: IGenfeedDesktopBridge = {
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.draftsSave, workspaceId, draft),
   },
   files: {
+    getAssetUrl: async (assetId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.filesGetAssetUrl, assetId),
     importAssets: async (workspaceId, filePaths) =>
       ipcRenderer.invoke(
         DESKTOP_IPC_CHANNELS.filesImportAssets,
         workspaceId,
         filePaths,
       ),
+    listAssets: async (workspaceId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.filesListAssets, workspaceId),
     openFileDialog: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.openFileDialog),
     readFile: async (workspaceId, relativePath) =>
@@ -107,6 +115,47 @@ const desktopBridge: IGenfeedDesktopBridge = {
         workspaceId,
         relativePath,
         contents,
+      ),
+  },
+  generation: {
+    cancelGenerationJob: async (jobId) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.generationCancelAssetGeneration,
+        jobId,
+      ),
+    clearProviderConfig: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.generationClearProviderConfig),
+    enqueueAssetGeneration: async (request) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.generationEnqueueAssetGeneration,
+        request,
+      ),
+    generateWorkflow: async (params) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.generationGenerateWorkflow,
+        params,
+      ),
+    getGenerationJob: async (jobId) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.generationGetGenerationJob,
+        jobId,
+      ),
+    getProviderConfig: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.generationGetProviderConfig),
+    listGenerationJobs: async (workspaceId) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.generationListGenerationJobs,
+        workspaceId,
+      ),
+    saveProviderConfig: async (config) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.generationSaveProviderConfig,
+        config,
+      ),
+    testProviderConfig: async (config) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.generationTestProviderConfig,
+        config,
       ),
   },
   notifications: {
@@ -129,10 +178,16 @@ const desktopBridge: IGenfeedDesktopBridge = {
   },
   platform: process.platform,
   sync: {
-    getCursor: async () =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetCursor),
+    ackOps: async (ops) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncAckOps, ops),
+    applyBrandManifest: async (manifest) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncApplyBrandManifest, manifest),
+    getCursor: async (scope) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetCursor, scope),
     getJobs: async (workspaceId) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetJobs, workspaceId),
+    getOps: async (workspaceId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetOps, workspaceId),
     getState: async () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetState),
     onSyncThreadsRequested: (callback) => {
       const listener = () => callback();
@@ -147,10 +202,64 @@ const desktopBridge: IGenfeedDesktopBridge = {
         payload,
         workspaceId,
       ),
-    setCursor: async (cursor: string) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncSetCursor, cursor),
+    queueOp: async (
+      entityType,
+      entityId,
+      operation,
+      payload,
+      workspaceId,
+      baseVersion,
+    ) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.syncQueueOp,
+        entityType,
+        entityId,
+        operation,
+        payload,
+        workspaceId,
+        baseVersion,
+      ),
+    recordAssetSync: async (update) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncRecordAssetSync, update),
+    setCursor: async (cursor: string, scope) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncSetCursor, cursor, scope),
     triggerThreads: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncTriggerThreads),
+  },
+  terminal: {
+    create: async (options) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.terminalCreate, options),
+    kill: async (sessionId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.terminalKill, sessionId),
+    onData: (callback) => {
+      const listener = (_event: unknown, payload: unknown) => {
+        callback(payload as Parameters<typeof callback>[0]);
+      };
+      ipcRenderer.on(DESKTOP_IPC_CHANNELS.terminalData, listener);
+
+      return () => {
+        ipcRenderer.off(DESKTOP_IPC_CHANNELS.terminalData, listener);
+      };
+    },
+    onExit: (callback) => {
+      const listener = (_event: unknown, payload: unknown) => {
+        callback(payload as Parameters<typeof callback>[0]);
+      };
+      ipcRenderer.on(DESKTOP_IPC_CHANNELS.terminalExit, listener);
+
+      return () => {
+        ipcRenderer.off(DESKTOP_IPC_CHANNELS.terminalExit, listener);
+      };
+    },
+    resize: async (sessionId, cols, rows) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.terminalResize,
+        sessionId,
+        cols,
+        rows,
+      ),
+    write: async (sessionId, data) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.terminalWrite, sessionId, data),
   },
   workspace: {
     getRecentWorkspaces: async () =>

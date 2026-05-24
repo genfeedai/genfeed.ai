@@ -1,3 +1,18 @@
+const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
+  notation: 'compact',
+});
+const FULL_NUMBER_FORMATTER = new Intl.NumberFormat('en-US');
+const CHART_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  month: 'short',
+});
+const TOOLTIP_DATE_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  month: 'short',
+});
+
 export function formatCompactNumber(
   num: number | string | null | undefined,
 ): string {
@@ -54,7 +69,7 @@ export function formatCompactNumberIntl(
     return '0';
   }
 
-  return new Intl.NumberFormat('en-US', { notation: 'compact' }).format(value);
+  return COMPACT_NUMBER_FORMATTER.format(value);
 }
 
 /**
@@ -66,7 +81,7 @@ export function formatFullNumber(value: number | null | undefined): string {
     return '0';
   }
 
-  return new Intl.NumberFormat('en-US').format(value);
+  return FULL_NUMBER_FORMATTER.format(value);
 }
 
 export interface FormatPercentageOptions {
@@ -126,10 +141,7 @@ export function formatChartDate(
     return '';
   }
 
-  return new Intl.DateTimeFormat('en-US', {
-    day: 'numeric',
-    month: 'short',
-  }).format(dateObj);
+  return CHART_DATE_FORMATTER.format(dateObj);
 }
 
 /**
@@ -148,12 +160,7 @@ export function formatTooltipDateTime(
     return '';
   }
 
-  return new Intl.DateTimeFormat('en-US', {
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    month: 'short',
-  }).format(dateObj);
+  return TOOLTIP_DATE_TIME_FORMATTER.format(dateObj);
 }
 
 /**

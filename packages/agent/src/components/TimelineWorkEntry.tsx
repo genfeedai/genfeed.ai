@@ -61,12 +61,12 @@ function StatusIcon({
 
   if (status === AgentWorkEventStatus.CANCELLED || stopActiveAnimation) {
     return (
-      <div className="h-3 w-3 shrink-0 rounded-full border-[1.5px] border-muted-foreground/40" />
+      <div className="size-3 shrink-0 rounded-full border-[1.5px] border-muted-foreground/40" />
     );
   }
 
   return (
-    <div className="h-3 w-3 shrink-0 animate-spin rounded-full border-[1.5px] border-primary/60 border-t-transparent" />
+    <div className="size-3 shrink-0 animate-spin rounded-full border-[1.5px] border-primary/60 border-t-transparent" />
   );
 }
 
@@ -103,7 +103,7 @@ export function TimelineWorkEntry({
   );
 
   const content = (
-    <div className="flex items-center gap-1.5 py-1 px-1 text-xs">
+    <div className="flex items-center gap-1.5 p-1 text-xs">
       <StatusIcon
         status={event.status}
         stopActiveAnimation={stopActiveAnimation}

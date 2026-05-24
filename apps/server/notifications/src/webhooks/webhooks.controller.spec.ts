@@ -27,10 +27,6 @@ describe('WebhooksController', () => {
     webhooksService = module.get<WebhooksService>(WebhooksService);
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });

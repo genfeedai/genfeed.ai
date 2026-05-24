@@ -147,7 +147,7 @@ function ImageGenNodeComponent(props: NodeProps) {
         {/* Hint when model doesn't support image input */}
         {!modelSupportsImageInput && nodeData.inputImages.length > 0 && (
           <div className="text-xs text-amber-500 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
+            <AlertCircle className="size-3" />
             This model doesn&apos;t use image inputs
           </div>
         )}
@@ -165,7 +165,7 @@ function ImageGenNodeComponent(props: NodeProps) {
                 onClick={handleDownloadAll}
                 className="h-auto p-0"
               >
-                <Download className="w-3 h-3" />
+                <Download className="size-3" />
                 Download All
               </Button>
             </div>
@@ -193,13 +193,13 @@ function ImageGenNodeComponent(props: NodeProps) {
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      className="h-6 w-6 bg-white/20 hover:bg-white/30"
+                      className="size-6 bg-white/20 hover:bg-white/30"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDownload(i);
                       }}
                     >
-                      <Download className="w-3 h-3 text-white" />
+                      <Download className="size-3 text-white" />
                     </Button>
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] text-center py-0.5">
@@ -224,7 +224,7 @@ function ImageGenNodeComponent(props: NodeProps) {
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => setSelectedPreview(null)}
-                    className="absolute top-1 right-1 h-5 w-5 bg-black/50 hover:bg-black/70 text-white"
+                    className="absolute top-1 right-1 size-5 bg-black/50 hover:bg-black/70 text-white"
                   >
                     x
                   </Button>
@@ -248,7 +248,7 @@ function ImageGenNodeComponent(props: NodeProps) {
           </div>
         ) : (
           <div className="relative flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 border border-dashed border-border/50 bg-secondary/20">
-            <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
+            <ImageIcon className="size-6 text-muted-foreground/50" />
             {nodeData.status === 'processing' && <ProcessingOverlay />}
           </div>
         )}
@@ -256,7 +256,7 @@ function ImageGenNodeComponent(props: NodeProps) {
         {/* Help text for required inputs */}
         {!canGenerate && nodeData.status !== 'processing' && (
           <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
+            <AlertCircle className="size-3" />
             Connect a prompt to generate
           </div>
         )}

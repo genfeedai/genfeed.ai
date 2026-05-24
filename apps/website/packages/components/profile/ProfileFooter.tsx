@@ -19,8 +19,7 @@ export default function ProfileFooter() {
             alt="Genfeed"
             width={40}
             height={40}
-            sizes="80px"
-            className="object-contain dark:invert"
+            className="h-auto object-contain dark:invert"
           />
         )}
         <span className="text-sm">Create content with Genfeed</span>

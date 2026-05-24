@@ -3,7 +3,12 @@ import { ModelCategory, ModelProvider, PricingType } from '@genfeedai/enums';
 import { type Model } from '@genfeedai/prisma';
 
 export class ModelEntity extends BaseEntity implements Model {
-  declare readonly label: string;
+  declare readonly organizationId: string;
+  declare readonly externalId: string | null;
+  declare readonly config: Model['config'];
+  declare readonly trainingId: string | null;
+  declare readonly parentModelId: string | null;
+  declare readonly label: string | null;
   declare readonly provider: ModelProvider;
   declare readonly key: string;
   declare readonly category: ModelCategory;

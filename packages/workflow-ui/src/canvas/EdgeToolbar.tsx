@@ -70,9 +70,9 @@ function EdgeToolbarComponent() {
         title={hasPause ? 'Resume edge' : 'Pause edge'}
       >
         {hasPause ? (
-          <Play className="h-3.5 w-3.5" />
+          <Play className="size-3.5" />
         ) : (
-          <Pause className="h-3.5 w-3.5" />
+          <Pause className="size-3.5" />
         )}
       </Button>
       <div className="h-4 w-px bg-[var(--border)]" />
@@ -83,7 +83,7 @@ function EdgeToolbarComponent() {
         title="Delete edge"
         className="hover:bg-red-500/10 hover:text-red-500"
       >
-        <Trash2 className="h-3.5 w-3.5" />
+        <Trash2 className="size-3.5" />
       </Button>
     </div>
   );

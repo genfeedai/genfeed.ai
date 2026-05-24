@@ -12,7 +12,7 @@ import type {
   TrendVideoInspirationNodeData,
 } from '@ui/workflow-builder/types/workflow-saas.types';
 import { ExternalLink, Loader2, Sparkles, Video } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useId } from 'react';
 
 export type {
   AspectRatio,
@@ -65,6 +65,9 @@ function TrendVideoInspirationNodeComponent({
   onUpdate,
   onExecute,
 }: TrendVideoInspirationNodeProps) {
+  const platformGroupId = useId();
+  const inspirationStyleGroupId = useId();
+  const minViralScoreId = useId();
   const handlePlatformChange = useCallback(
     (platform: TrendPlatform) => {
       onUpdate(id, { platform });
@@ -89,8 +92,14 @@ function TrendVideoInspirationNodeComponent({
     <div className="space-y-3">
       {/* Platform Selection */}
       <div>
-        <label className="text-xs text-muted-foreground">Platform</label>
-        <div className="grid grid-cols-5 gap-1 mt-1">
+        <span id={platformGroupId} className="text-xs text-muted-foreground">
+          Platform
+        </span>
+        <div
+          role="group"
+          aria-labelledby={platformGroupId}
+          className="grid grid-cols-5 gap-1 mt-1"
+        >
           {PLATFORMS.map((p) => (
             <Button
               key={p.value}
@@ -111,10 +120,17 @@ function TrendVideoInspirationNodeComponent({
 
       {/* Inspiration Style */}
       <div>
-        <label className="text-xs text-muted-foreground">
+        <span
+          id={inspirationStyleGroupId}
+          className="text-xs text-muted-foreground"
+        >
           Inspiration Style
-        </label>
-        <div className="space-y-1 mt-1">
+        </span>
+        <div
+          role="group"
+          aria-labelledby={inspirationStyleGroupId}
+          className="space-y-1 mt-1"
+        >
           {INSPIRATION_STYLES.map((s) => (
             <Button
               key={s.value}
@@ -136,10 +152,14 @@ function TrendVideoInspirationNodeComponent({
 
       {/* Min Viral Score */}
       <div>
-        <label className="text-xs text-muted-foreground">
+        <label
+          htmlFor={minViralScoreId}
+          className="text-xs text-muted-foreground"
+        >
           Min Viral Score: {data.minViralScore}
         </label>
         <Slider
+          id={minViralScoreId}
           min={0}
           max={100}
           step={1}
@@ -151,7 +171,7 @@ function TrendVideoInspirationNodeComponent({
 
       {/* Options */}
       <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-2 text-sm">
           <Checkbox
             checked={data.auto}
             onCheckedChange={(checked) =>
@@ -159,9 +179,9 @@ function TrendVideoInspirationNodeComponent({
             }
             aria-label="Auto-select top trend"
           />
-          Auto-select top trend
-        </label>
-        <label className="flex items-center gap-2 text-sm">
+          <span>Auto-select top trend</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
           <Checkbox
             checked={data.includeOriginalHook}
             onCheckedChange={(checked) =>
@@ -169,8 +189,8 @@ function TrendVideoInspirationNodeComponent({
             }
             aria-label="Include original hook as reference"
           />
-          Include original hook as reference
-        </label>
+          <span>Include original hook as reference</span>
+        </div>
       </div>
 
       {/* Generate Button */}
@@ -183,12 +203,12 @@ function TrendVideoInspirationNodeComponent({
       >
         {isProcessing ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Analyzing...
+            <Loader2 className="size-4 animate-spin" />
+            Analyzing…
           </>
         ) : (
           <>
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="size-4" />
             Generate Prompt
           </>
         )}
@@ -198,7 +218,7 @@ function TrendVideoInspirationNodeComponent({
       {data.sourceTrendTitle && (
         <div className="p-2 bg-background border border-white/[0.08]">
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Video className="w-3 h-3" />
+            <Video className="size-3" />
             Source Video
           </div>
           <div className="text-sm text-foreground mt-1 line-clamp-2">
@@ -211,7 +231,7 @@ function TrendVideoInspirationNodeComponent({
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs text-primary mt-1 hover:underline"
             >
-              <ExternalLink className="w-3 h-3" />
+              <ExternalLink className="size-3" />
               View Original
             </a>
           )}

@@ -25,7 +25,7 @@ export function SkeletonStudio() {
           <Skeleton className="aspect-square w-full max-w-lg rounded-lg" />
           <div className="flex gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 w-20 rounded" />
+              <Skeleton key={i} className="size-20 rounded" />
             ))}
           </div>
         </div>

@@ -22,7 +22,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => CreditsModule),
     forwardRef(() => ImagesModule),
     forwardRef(() => ModelsModule),
-    NotificationsPublisherModule,
+    forwardRef(() => NotificationsPublisherModule),
     forwardRef(() => PostsModule),
     forwardRef(() => PromptBuilderModule),
     forwardRef(() => ReplicateModule),

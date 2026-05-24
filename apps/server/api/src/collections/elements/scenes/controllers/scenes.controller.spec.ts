@@ -5,6 +5,7 @@ import { ElementsScenesService } from '@api/collections/elements/scenes/services
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
 import type { User } from '@clerk/backend';
 import { SceneSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -36,12 +37,6 @@ const createBaseQuery = (partial: Partial<BaseQueryDto> = {}): BaseQueryDto =>
     sort: 'createdAt: -1',
     ...partial,
   }) as BaseQueryDto;
-
-const asMatchStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $match: Record<string, unknown> };
-
-const asSortStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $sort: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -270,9 +265,9 @@ describe('ElementsScenesController', () => {
       expect(pipeline).toHaveLength(2);
       const matchStage = asMatchStage(pipeline[0]);
       expect(matchStage.$match.$or).toBeDefined();
-      expect(
-        (matchStage.$match.$or as unknown[]).length,
-      ).toBeGreaterThanOrEqual(2);
+      expect(matchStage.$match.$or).toEqual([
+        { organizationId: mockUser.publicMetadata.organization },
+      ]);
       expect(matchStage.$match.isDeleted).toBe(false);
     });
 
@@ -284,8 +279,7 @@ describe('ElementsScenesController', () => {
       );
 
       const matchStage = asMatchStage(pipeline[0]);
-      // Without org, falls back to $or with global items and user items
-      expect(matchStage.$match.$or).toBeDefined();
+      expect(matchStage.$match.$or).toBeUndefined();
       expect(matchStage.$match.isDeleted).toBe(false);
     });
 
@@ -314,7 +308,7 @@ describe('ElementsScenesController', () => {
       expect(sortStage.$sort).toBeDefined();
     });
 
-    it('should load organization scenes or defaults', () => {
+    it('should load organization scenes', () => {
       const query = createBaseQuery();
       const pipeline = controller.buildFindAllPipeline(mockUser, query);
 
@@ -323,13 +317,8 @@ describe('ElementsScenesController', () => {
         Record<string, unknown>
       >;
 
-      // orConditions[0] = global (no org, no user)
-      // orConditions[1] = org condition
-      expect(orConditions[0]).toEqual({
-        organization: { $exists: false },
-        user: { $exists: false },
-      });
-      expect(orConditions[1].organization).toEqual(
+      expect(orConditions).toHaveLength(1);
+      expect(orConditions[0].organizationId).toEqual(
         mockUser.publicMetadata.organization as string,
       );
     });

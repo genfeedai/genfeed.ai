@@ -20,6 +20,7 @@ import {
   RunEventType,
   RunMeteringStage,
   RunStatus,
+  RunSurface,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -43,6 +44,61 @@ export class RunsService extends BaseService<
     return String(run?._id || '');
   }
 
+  private requireActionType(
+    actionType: RunDocument['actionType'],
+  ): RunActionType {
+    if (!actionType) {
+      throw new Error('Run actionType is missing');
+    }
+
+    return actionType as RunActionType;
+  }
+
+  private requireAuthType(authType: RunDocument['authType']): RunAuthType {
+    if (!authType) {
+      throw new Error('Run authType is missing');
+    }
+
+    return authType as RunAuthType;
+  }
+
+  private requireStatus(status: RunDocument['status']): RunStatus {
+    if (!status) {
+      throw new Error('Run status is missing');
+    }
+
+    return status as RunStatus;
+  }
+
+  private requireSurface(surface: RunDocument['surface']): RunSurface {
+    if (!surface) {
+      throw new Error('Run surface is missing');
+    }
+
+    return surface as RunSurface;
+  }
+
+  private getProgress(run: Pick<RunDocument, 'progress'>): number {
+    return typeof run.progress === 'number' ? run.progress : 0;
+  }
+
+  private getTraceId(run: Pick<RunDocument, 'traceId' | '_id'>): string {
+    return run.traceId || this.runId(run);
+  }
+
+  private getDate(value: Date | string | null | undefined): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    if (value instanceof Date) {
+      return value;
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
   private sortEvents(events: RunEvent[]): RunEvent[] {
     return [...events].sort(
       (a, b) =>
@@ -57,7 +113,7 @@ export class RunsService extends BaseService<
     sequence: number,
   ): RunEventEnvelopeDto {
     return {
-      actionType: run.actionType,
+      actionType: this.requireActionType(run.actionType),
       event: {
         createdAt: event.createdAt,
         message: event.message,
@@ -67,12 +123,12 @@ export class RunsService extends BaseService<
         traceId: event.traceId,
         type: event.type,
       },
-      progress: run.progress,
+      progress: this.getProgress(run),
       runId: this.runId(run),
-      status: run.status,
-      surface: run.surface,
+      status: this.requireStatus(run.status),
+      surface: this.requireSurface(run.surface),
       timestamp: new Date(event.createdAt || new Date()).toISOString(),
-      traceId: event.traceId || run.traceId,
+      traceId: event.traceId || this.getTraceId(run),
     };
   }
 
@@ -100,15 +156,15 @@ export class RunsService extends BaseService<
     stage: RunMeteringStage,
   ): Promise<void> {
     await this.runsMeteringService.record({
-      actionType: run.actionType,
-      authType: run.authType,
+      actionType: this.requireActionType(run.actionType),
+      authType: this.requireAuthType(run.authType),
       organizationId: String(run.organization),
-      progress: run.progress,
+      progress: this.getProgress(run),
       runId: this.runId(run),
       stage,
-      status: run.status,
-      surface: run.surface,
-      traceId: run.traceId,
+      status: this.requireStatus(run.status),
+      surface: this.requireSurface(run.surface),
+      traceId: this.getTraceId(run),
       userId: String(run.user),
     });
   }
@@ -147,7 +203,9 @@ export class RunsService extends BaseService<
     }
 
     if (dto.output !== undefined) {
-      const outputType = this.isAnalyticsAction(previousRun.actionType)
+      const outputType = this.isAnalyticsAction(
+        this.requireActionType(previousRun.actionType),
+      )
         ? RunEventType.ANALYTICS_SNAPSHOT
         : RunEventType.OUTPUT_READY;
 
@@ -317,16 +375,20 @@ export class RunsService extends BaseService<
       return null;
     }
 
-    if (this.isTerminalStatus(run.status)) {
+    const currentStatus = this.requireStatus(run.status);
+    if (this.isTerminalStatus(currentStatus)) {
       return run;
     }
+
+    const currentProgress = this.getProgress(run);
+    const startedAt = this.getDate(run.startedAt);
 
     const now = new Date();
 
     const updated = await this.prisma.run.update({
       data: {
-        progress: run.progress > 0 ? run.progress : 1,
-        startedAt: run.startedAt ?? now,
+        progress: currentProgress > 0 ? currentProgress : 1,
+        startedAt: startedAt ?? now,
         status: RunStatus.RUNNING,
       },
       where: { id: runId },
@@ -358,17 +420,19 @@ export class RunsService extends BaseService<
       return null;
     }
 
-    if (this.isTerminalStatus(run.status)) {
+    const currentStatus = this.requireStatus(run.status);
+    if (this.isTerminalStatus(currentStatus)) {
       return run;
     }
 
     const completedAt = new Date();
+    const startedAt = this.getDate(run.startedAt);
 
     const updated = await this.prisma.run.update({
       data: {
         completedAt,
-        durationMs: run.startedAt
-          ? completedAt.getTime() - (run.startedAt as Date).getTime()
+        durationMs: startedAt
+          ? completedAt.getTime() - startedAt.getTime()
           : undefined,
         status: RunStatus.CANCELLED,
       },
@@ -421,18 +485,19 @@ export class RunsService extends BaseService<
     }
 
     const now = new Date();
-    const nextStatus = dto.status ?? run.status;
+    const nextStatus = dto.status ?? this.requireStatus(run.status);
+    const startedAt = this.getDate(run.startedAt);
+    const completedAt = this.getDate(run.completedAt);
 
-    if (nextStatus === RunStatus.RUNNING && !run.startedAt) {
+    if (nextStatus === RunStatus.RUNNING && !startedAt) {
       updatePayload.startedAt = now;
     }
 
-    if (this.isTerminalStatus(nextStatus) && !run.completedAt) {
+    if (this.isTerminalStatus(nextStatus) && !completedAt) {
       updatePayload.completedAt = now;
 
-      if (run.startedAt) {
-        updatePayload.durationMs =
-          now.getTime() - (run.startedAt as Date).getTime();
+      if (startedAt) {
+        updatePayload.durationMs = now.getTime() - startedAt.getTime();
       }
 
       if (dto.progress === undefined) {
@@ -485,7 +550,7 @@ export class RunsService extends BaseService<
     const eventToPersist: RunEvent = {
       ...event,
       createdAt: new Date(),
-      traceId: event.traceId || run.traceId,
+      traceId: event.traceId || this.getTraceId(run),
     };
 
     const existingEvents = (run.events ?? []) as RunEvent[];

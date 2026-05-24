@@ -142,6 +142,25 @@ describe('ChatWorkspaceLayoutClient', () => {
     });
   });
 
+  it('recognizes org-scoped /chat/new routes when bootstrapping prefills', async () => {
+    navigationState.pathname = '/org-123/~/chat/new';
+    navigationState.searchParams = new URLSearchParams('prompt=hello');
+
+    render(
+      <ChatWorkspaceLayoutClient>
+        <div>child</div>
+      </ChatWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(sendMessage).toHaveBeenCalledWith('hello', {
+        forceNewThread: true,
+        signal: expect.any(AbortSignal),
+        source: 'agent',
+      });
+    });
+  });
+
   it('navigates to the onboarding thread route after /chat/onboarding produces a different active thread id', async () => {
     navigationState.pathname = '/chat/onboarding';
     const view = render(

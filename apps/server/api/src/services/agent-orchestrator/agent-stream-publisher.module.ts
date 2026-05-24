@@ -9,7 +9,7 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   exports: [AgentStreamPublisherService],
   imports: [
-    AgentThreadsModule,
+    forwardRef(() => AgentThreadsModule),
     forwardRef(() => AgentThreadingModule),
     RedisModule.forRoot({
       configModule: ConfigModule,

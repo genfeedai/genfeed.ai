@@ -145,27 +145,21 @@ describe('CronIngredientsService', () => {
       await service.checkStuckProcessingIngredients();
 
       expect(ingredientsService.findAll).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            $match: expect.objectContaining({
-              isDeleted: false,
-              status: IngredientStatus.PROCESSING,
-            }),
-          }),
-        ]),
         expect.objectContaining({
+          where: expect.objectContaining({
+            isDeleted: false,
+            status: IngredientStatus.PROCESSING,
+          }),
+        }),
+        expect.objectContaining({
+          limit: 100,
           pagination: false,
         }),
       );
 
       expect(ingredientsService.patchAll).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: {
-            $in: expect.arrayContaining([
-              mockStuckIngredients.docs[0]._id,
-              mockStuckIngredients.docs[1]._id,
-            ]),
-          },
+          OR: expect.any(Array),
           isDeleted: false,
           status: IngredientStatus.PROCESSING,
         }),
@@ -272,18 +266,18 @@ describe('CronIngredientsService', () => {
       await service.refreshMissingMetadataDimensions();
 
       expect(ingredientsService.findAll).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            $match: expect.objectContaining({
-              category: {
-                $in: [IngredientCategory.VIDEO, IngredientCategory.IMAGE],
-              },
-              isDeleted: false,
-              status: IngredientStatus.GENERATED,
-            }),
-          }),
-        ]),
         expect.objectContaining({
+          include: { metadata: true },
+          where: expect.objectContaining({
+            category: {
+              in: [IngredientCategory.VIDEO, IngredientCategory.IMAGE],
+            },
+            isDeleted: false,
+            status: IngredientStatus.GENERATED,
+          }),
+        }),
+        expect.objectContaining({
+          limit: 50,
           pagination: false,
         }),
       );

@@ -3,22 +3,28 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
-  forwardRef,
   type ReactElement,
+  type Ref,
   useEffect,
   useImperativeHandle,
   useState,
 } from 'react';
 
+interface CredentialMentionListHandle {
+  onKeyDown: (props: { event: KeyboardEvent }) => boolean;
+}
+
 interface CredentialMentionListProps {
   items: CredentialMentionItem[];
   command: (item: CredentialMentionItem) => void;
+  ref?: Ref<CredentialMentionListHandle>;
 }
 
-export const CredentialMentionList = forwardRef<
-  { onKeyDown: (props: { event: KeyboardEvent }) => boolean },
-  CredentialMentionListProps
->(function CredentialMentionList({ items, command }, ref): ReactElement {
+export function CredentialMentionList({
+  items,
+  command,
+  ref,
+}: CredentialMentionListProps): ReactElement {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
@@ -73,7 +79,7 @@ export const CredentialMentionList = forwardRef<
             <img
               src={item.avatar}
               alt={item.handle}
-              className="h-6 w-6 rounded-full object-cover"
+              className="size-6 rounded-full object-cover"
             />
           )}
           <div className="flex flex-col">
@@ -89,4 +95,4 @@ export const CredentialMentionList = forwardRef<
       ))}
     </div>
   );
-});
+}

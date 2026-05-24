@@ -8,7 +8,7 @@ import { AdminPage } from '../../pages/admin.page';
 /**
  * E2E Tests for Admin Business Analytics Dashboard
  *
- * Covers the /overview/analytics/business route.
+ * Covers the /admin/overview/analytics/business route.
  * Verifies KPI sections, daily charts, comparison cards,
  * projections, and top-organization leader tables.
  * All API calls are mocked.
@@ -24,7 +24,7 @@ test.describe('Admin Business Analytics', () => {
     await admin.gotoAnalyticsBusiness();
 
     await admin.assertPageVisible();
-    await expect(adminPage).toHaveURL(/overview\/analytics\/business/);
+    await expect(adminPage).toHaveURL(/admin\/overview\/analytics\/business/);
   });
 
   test('renders revenue KPI section', async ({ adminPage }) => {
@@ -152,7 +152,7 @@ test.describe('Admin Business Analytics', () => {
   }) => {
     const admin = new AdminPage(adminPage);
     // Navigate to overview analytics first, then click Business tab
-    await adminPage.goto('/overview/analytics/all', {
+    await adminPage.goto('/admin/overview/analytics/all', {
       waitUntil: 'domcontentloaded',
     });
     await admin.waitForPageLoad();
@@ -162,6 +162,6 @@ test.describe('Admin Business Analytics', () => {
     await businessTab.click();
 
     await admin.waitForPageLoad();
-    await expect(adminPage).toHaveURL(/overview\/analytics\/business/);
+    await expect(adminPage).toHaveURL(/admin\/overview\/analytics\/business/);
   });
 });

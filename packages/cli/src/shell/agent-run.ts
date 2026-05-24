@@ -6,7 +6,8 @@ import {
   getThreadSnapshot,
   respondToInputRequest,
   startAgentChatStream,
-} from '@/api/threads.js';
+} from '@/api/threads';
+import { extractString, isRecord } from '@/utils/extract';
 
 type AgentRunStatus = 'completed' | 'failed' | 'timeout' | 'waiting-input';
 
@@ -20,18 +21,6 @@ export interface AgentRunResult {
   status: AgentRunStatus;
   threadId: string;
   uiActions?: Array<Record<string, unknown>>;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function extractString(
-  record: Record<string, unknown> | undefined,
-  key: string
-): string | undefined {
-  const value = record?.[key];
-  return typeof value === 'string' ? value : undefined;
 }
 
 function extractUiActions(

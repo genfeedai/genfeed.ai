@@ -5,6 +5,8 @@ import {
   formatPercentage,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { IAnalytics } from '@genfeedai/interfaces';
+import { ChartContainer } from '@ui/charts';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
   HiArrowRight,
@@ -12,7 +14,13 @@ import {
   HiEye,
   HiHeart,
 } from 'react-icons/hi2';
-import { Area, AreaChart, ResponsiveContainer } from 'recharts';
+
+const AreaChart = dynamic(() => import('recharts').then((m) => m.AreaChart), {
+  ssr: false,
+});
+const Area = dynamic(() => import('recharts').then((m) => m.Area), {
+  ssr: false,
+});
 
 export interface QuickAnalyticsPreviewProps {
   data: IAnalytics | null;
@@ -52,7 +60,7 @@ export function QuickAnalyticsPreview({
     return (
       <div className={cardClassName}>
         <div className="flex items-center gap-2 mb-6">
-          <HiChartBarSquare className="w-4 h-4 text-purple-600" />
+          <HiChartBarSquare className="size-4 text-purple-600" />
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
         </div>
         <div className="text-center py-8">
@@ -64,7 +72,7 @@ export function QuickAnalyticsPreview({
             className="inline-flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
           >
             Go to Analytics
-            <HiArrowRight className="w-4 h-4" />
+            <HiArrowRight className="size-4" />
           </Link>
         </div>
       </div>
@@ -120,7 +128,7 @@ export function QuickAnalyticsPreview({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <HiChartBarSquare className="w-4 h-4 text-purple-600" />
+          <HiChartBarSquare className="size-4 text-purple-600" />
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
         </div>
         <span className="text-sm text-muted-foreground">Last 7 days</span>
@@ -134,7 +142,7 @@ export function QuickAnalyticsPreview({
             className="rounded-lg border border-border bg-muted p-4"
           >
             <div className="flex items-center gap-2 mb-2">
-              <stat.icon className={`w-4 h-4 ${stat.color}`} />
+              <stat.icon className={`size-4 ${stat.color}`} />
               <p className="text-xs text-muted-foreground">{stat.label}</p>
             </div>
             <p className="text-2xl font-bold text-foreground mb-1">
@@ -156,7 +164,16 @@ export function QuickAnalyticsPreview({
         <p className="text-sm font-medium text-foreground/80 mb-3">
           Views Trend
         </p>
-        <ResponsiveContainer width="100%" height={80}>
+        <ChartContainer
+          config={{
+            value: {
+              color: '#8b5cf6',
+              label: 'Views',
+            },
+          }}
+          className="border-0 bg-transparent p-0 shadow-none"
+          height={80}
+        >
           <AreaChart data={trendData}>
             <defs>
               <linearGradient id="colorPreview" x1="0" y1="0" x2="0" y2="1">
@@ -173,7 +190,7 @@ export function QuickAnalyticsPreview({
               fill="url(#colorPreview)"
             />
           </AreaChart>
-        </ResponsiveContainer>
+        </ChartContainer>
       </div>
 
       {/* Platform Distribution */}
@@ -216,7 +233,7 @@ export function QuickAnalyticsPreview({
         className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-purple-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-purple-700"
       >
         View Detailed Analytics
-        <HiArrowRight className="w-4 h-4" />
+        <HiArrowRight className="size-4" />
       </Link>
     </div>
   );

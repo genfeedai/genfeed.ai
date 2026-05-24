@@ -3,8 +3,7 @@ import type {
   ToolCategory,
   ToolRequiredRole,
 } from '../interfaces/tool-definition.interface';
-import { AGENT_SOURCE_TOOLS } from './source.agent';
-import { MCP_SOURCE_TOOLS } from './source.mcp';
+import { SOURCE_TOOLS } from './source';
 
 const UI_ACTION_MAP: Partial<
   Record<string, CanonicalToolDefinition['uiActionType']>
@@ -120,85 +119,22 @@ const roleWeight: Record<ToolRequiredRole, number> = {
   user: 0,
 };
 
-function maxRole(a: ToolRequiredRole, b: ToolRequiredRole): ToolRequiredRole {
-  return roleWeight[a] >= roleWeight[b] ? a : b;
-}
-
-function chooseBetterParameters(
-  a: CanonicalToolDefinition['parameters'],
-  b: CanonicalToolDefinition['parameters'],
-): CanonicalToolDefinition['parameters'] {
-  const aSize = Object.keys(a.properties).length;
-  const bSize = Object.keys(b.properties).length;
-  return bSize > aSize ? b : a;
-}
-
-const fromAgent: CanonicalToolDefinition[] = AGENT_SOURCE_TOOLS.map((tool) => ({
-  category: inferCategory(tool.name),
-  creditCost: tool.creditCost,
-  description: tool.description,
-  name: tool.name,
-  parameters: tool.parameters,
-  requiredRole: 'user',
-  surfaces: {
-    agent: true,
-    cliAgentVisible: tool.surfaces?.cliAgentVisible ?? true,
-    mcp: false,
-  },
-  uiActionType: UI_ACTION_MAP[tool.name],
-}));
-
-const fromMcp: CanonicalToolDefinition[] = MCP_SOURCE_TOOLS.map((tool) => ({
-  category: inferCategory(tool.name),
-  creditCost: 0,
-  description: tool.description,
-  name: tool.name,
-  parameters: {
-    properties: tool.inputSchema.properties,
-    required: tool.inputSchema.required,
-    type: 'object',
-  },
-  requiredRole: tool.requiredRole,
-  surfaces: {
-    agent: false,
-    cliAgentVisible: tool.surfaces?.cliAgentVisible ?? false,
-    mcp: true,
-  },
-  uiActionType: UI_ACTION_MAP[tool.name],
-}));
-
-const merged = new Map<string, CanonicalToolDefinition>();
-
-for (const tool of [...fromAgent, ...fromMcp]) {
-  const existing = merged.get(tool.name);
-  if (!existing) {
-    merged.set(tool.name, tool);
-    continue;
-  }
-
-  merged.set(tool.name, {
-    ...existing,
-    category: existing.category === 'other' ? tool.category : existing.category,
-    creditCost: existing.creditCost || tool.creditCost,
-    description:
-      tool.description.length > existing.description.length
-        ? tool.description
-        : existing.description,
-    parameters: chooseBetterParameters(existing.parameters, tool.parameters),
-    requiredRole: maxRole(existing.requiredRole, tool.requiredRole),
+export const ALL_TOOLS: CanonicalToolDefinition[] = SOURCE_TOOLS.map(
+  (tool) => ({
+    category: inferCategory(tool.name),
+    creditCost: tool.creditCost,
+    description: tool.description,
+    name: tool.name,
+    parameters: tool.parameters,
+    requiredRole: tool.requiredRole,
     surfaces: {
-      agent: existing.surfaces.agent || tool.surfaces.agent,
-      cliAgentVisible:
-        existing.surfaces.cliAgentVisible || tool.surfaces.cliAgentVisible,
-      mcp: existing.surfaces.mcp || tool.surfaces.mcp,
+      agent: tool.surfaces.agent,
+      cliAgentVisible: tool.surfaces.cliAgentVisible ?? tool.surfaces.agent,
+      mcp: tool.surfaces.mcp,
     },
-    uiActionType: existing.uiActionType ?? tool.uiActionType,
-  });
-}
-
-export const ALL_TOOLS: CanonicalToolDefinition[] = [...merged.values()].sort(
-  (a, b) => a.name.localeCompare(b.name),
-);
+    uiActionType: UI_ACTION_MAP[tool.name],
+  }),
+).sort((a, b) => a.name.localeCompare(b.name));
 
 const toolsByName = new Map<string, CanonicalToolDefinition>(
   ALL_TOOLS.map((tool) => [tool.name, tool]),

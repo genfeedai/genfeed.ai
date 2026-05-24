@@ -16,10 +16,7 @@ export class CredentialsService extends BaseService<Credential> {
   }
 
   public static getInstance(token: string): CredentialsService {
-    return BaseService.getDataServiceInstance(
-      CredentialsService,
-      token,
-    ) as CredentialsService;
+    return BaseService.getDataServiceInstance(CredentialsService, token);
   }
 
   public async findCredentialInstagramPages(

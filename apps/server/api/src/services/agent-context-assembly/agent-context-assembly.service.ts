@@ -101,6 +101,31 @@ export class AgentContextAssemblyService {
     const resolvedStrategy = effectiveBrandAgentConfig.strategy ?? {};
     const resolvedPersona = effectiveBrandAgentConfig.persona;
     const resolvedDefaultModel = effectiveBrandAgentConfig.defaultModel;
+    const primaryColor =
+      typeof brand.primaryColor === 'string' && brand.primaryColor !== '#000000'
+        ? brand.primaryColor
+        : undefined;
+    const secondaryColor =
+      typeof brand.secondaryColor === 'string' &&
+      brand.secondaryColor !== '#FFFFFF'
+        ? brand.secondaryColor
+        : undefined;
+    const referenceImages = Array.isArray(brand.referenceImages)
+      ? brand.referenceImages.filter(
+          (
+            img,
+          ): img is {
+            category: string;
+            label?: string;
+            url?: string;
+          } =>
+            img !== null &&
+            typeof img === 'object' &&
+            !Array.isArray(img) &&
+            typeof (img as { category?: unknown }).category === 'string' &&
+            typeof (img as { url?: unknown }).url === 'string',
+        )
+      : [];
 
     if (effectiveBrandAgentConfig.platformOverrideApplied) {
       layersUsed.push('platformOverride');
@@ -108,34 +133,32 @@ export class AgentContextAssemblyService {
 
     const context: AssembledBrandContext = {
       assembledAt: new Date(),
-      brandDescription: brand.description,
+      brandDescription: brand.description ?? undefined,
       brandId,
       brandName: brand.label || 'Unknown Brand',
-      defaultModel: resolvedDefaultModel,
+      defaultModel: resolvedDefaultModel ?? undefined,
       layersUsed,
       persona: resolvedPersona,
     };
 
     // Visual identity (part of brandIdentity layer)
-    const hasNonDefaultColor =
-      brand.primaryColor && brand.primaryColor !== '#000000';
-    const hasReferenceImages =
-      brand.referenceImages && brand.referenceImages.length > 0;
+    const hasNonDefaultColor = primaryColor !== undefined;
+    const hasReferenceImages = referenceImages.length > 0;
 
     if (hasNonDefaultColor || hasReferenceImages) {
       context.visualIdentity = {};
 
-      if (hasNonDefaultColor) {
-        context.visualIdentity.primaryColor = brand.primaryColor;
+      if (primaryColor) {
+        context.visualIdentity.primaryColor = primaryColor;
       }
-      if (brand.secondaryColor && brand.secondaryColor !== '#FFFFFF') {
-        context.visualIdentity.secondaryColor = brand.secondaryColor;
+      if (secondaryColor) {
+        context.visualIdentity.secondaryColor = secondaryColor;
       }
       if (brand.fontFamily) {
         context.visualIdentity.fontFamily = brand.fontFamily;
       }
       if (hasReferenceImages) {
-        context.visualIdentity.referenceImages = brand.referenceImages
+        context.visualIdentity.referenceImages = referenceImages
           .filter((img) => img.url)
           .map((img) => ({ category: img.category, label: img.label }));
       }
@@ -551,13 +574,39 @@ export class AgentContextAssemblyService {
     );
 
     if (patterns?.length) {
-      context.topPatterns = patterns.map((p) => ({
-        avgPerformanceScore: p.avgPerformanceScore,
-        examples: (p.examples ?? []).map((e) => ({ text: e.text })),
-        formula: p.formula,
-        label: p.label,
-        patternType: p.patternType,
-      }));
+      context.topPatterns = patterns.map((pattern) => {
+        const record = pattern as Record<string, unknown>;
+        const examples = Array.isArray(record.examples)
+          ? record.examples
+              .map((example) => {
+                const exampleRecord =
+                  example && typeof example === 'object'
+                    ? (example as Record<string, unknown>)
+                    : {};
+                return {
+                  text:
+                    typeof exampleRecord.text === 'string'
+                      ? exampleRecord.text
+                      : '',
+                };
+              })
+              .filter((example) => example.text.length > 0)
+          : [];
+
+        return {
+          avgPerformanceScore:
+            typeof record.avgPerformanceScore === 'number'
+              ? record.avgPerformanceScore
+              : 0,
+          examples,
+          formula: typeof record.formula === 'string' ? record.formula : '',
+          label: typeof record.label === 'string' ? record.label : 'Pattern',
+          patternType:
+            typeof record.patternType === 'string'
+              ? record.patternType
+              : 'unknown',
+        };
+      });
       context.layersUsed.push('performancePatterns');
     }
   }
@@ -582,7 +631,8 @@ export class AgentContextAssemblyService {
         ? `@${credential.username}`
         : undefined;
       context.credentialPlatform = credential.platform;
-      context.credentialDisplayName = credential.label || credential.username;
+      context.credentialDisplayName =
+        credential.label ?? credential.username ?? undefined;
       context.layersUsed.push('credentialContext');
     } catch {
       this.loggerService.warn(

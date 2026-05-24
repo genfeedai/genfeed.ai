@@ -1,10 +1,12 @@
 import type {
   EdgeStyle,
+  HandleType,
   NodeType,
   WorkflowEdge,
   WorkflowNode,
 } from '@genfeedai/types';
 import { CONNECTION_RULES, NODE_DEFINITIONS } from '@genfeedai/types';
+import { createIdMap, createTargetMap } from '@genfeedai/workflow-ui/lib';
 import type { Connection, EdgeChange, NodeChange } from '@xyflow/react';
 import {
   applyEdgeChanges,
@@ -14,6 +16,20 @@ import {
 import type { StateCreator } from 'zustand';
 import { generateId, getHandleType } from '../helpers/nodeHelpers';
 import type { WorkflowStore } from '../types';
+
+const CONNECTION_RULE_LOOKUP = new Map<HandleType, Set<HandleType>>(
+  Object.entries(CONNECTION_RULES).map(([sourceType, targetTypes]) => [
+    sourceType as HandleType,
+    new Set(targetTypes),
+  ]),
+);
+
+function canConnectHandleTypes(
+  sourceType: HandleType,
+  targetType: HandleType,
+): boolean {
+  return CONNECTION_RULE_LOOKUP.get(sourceType)?.has(targetType) ?? false;
+}
 
 export interface EdgeSlice {
   onNodesChange: (changes: NodeChange<WorkflowNode>[]) => void;
@@ -36,9 +52,11 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
 ) => ({
   findCompatibleHandle: (sourceNodeId, sourceHandleId, targetNodeId) => {
     const { nodes, edges } = get();
+    const nodeMap = createIdMap(nodes);
+    const edgesByTarget = createTargetMap(edges);
 
-    const sourceNode = nodes.find((n) => n.id === sourceNodeId);
-    const targetNode = nodes.find((n) => n.id === targetNodeId);
+    const sourceNode = nodeMap.get(sourceNodeId);
+    const targetNode = nodeMap.get(targetNodeId);
 
     if (!sourceNode || !targetNode) return null;
 
@@ -54,7 +72,7 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
     if (!targetDef) return null;
 
     const existingTargetHandles = new Set(
-      edges.filter((e) => e.target === targetNodeId).map((e) => e.targetHandle),
+      (edgesByTarget.get(targetNodeId) ?? []).map((edge) => edge.targetHandle),
     );
 
     for (const input of targetDef.inputs) {
@@ -62,7 +80,7 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
       const hasExistingConnection = existingTargetHandles.has(input.id);
       if (hasExistingConnection && !input.multiple) continue;
 
-      if (CONNECTION_RULES[sourceType]?.includes(input.type)) {
+      if (canConnectHandleTypes(sourceType, input.type)) {
         return input.id;
       }
     }
@@ -72,9 +90,14 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
 
   isValidConnection: (connection) => {
     const { nodes } = get();
+    const nodeMap = createIdMap(nodes);
 
-    const sourceNode = nodes.find((n) => n.id === connection.source);
-    const targetNode = nodes.find((n) => n.id === connection.target);
+    const sourceNode = connection.source
+      ? nodeMap.get(connection.source)
+      : undefined;
+    const targetNode = connection.target
+      ? nodeMap.get(connection.target)
+      : undefined;
 
     if (!sourceNode || !targetNode) return false;
 
@@ -91,7 +114,7 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
 
     if (!sourceType || !targetType) return false;
 
-    return CONNECTION_RULES[sourceType]?.includes(targetType) ?? false;
+    return canConnectHandleTypes(sourceType, targetType);
   },
 
   onConnect: (connection) => {

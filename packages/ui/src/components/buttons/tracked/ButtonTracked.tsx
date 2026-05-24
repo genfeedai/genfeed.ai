@@ -3,9 +3,11 @@
 import { Button, type ButtonProps } from '@ui/primitives/button';
 import { track } from '@vercel/analytics';
 
+type TrackingData = Record<string, string | number | boolean>;
+
 interface ButtonTrackedProps extends ButtonProps {
   trackingName: string;
-  trackingData?: Record<string, string | number | boolean>;
+  trackingData?: TrackingData;
 }
 
 export default function ButtonTracked({
@@ -14,10 +16,22 @@ export default function ButtonTracked({
   onClick,
   ...props
 }: ButtonTrackedProps) {
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const activateButtonTracked = (e: React.MouseEvent<HTMLButtonElement>) => {
     track(trackingName, trackingData);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('genfeed:marketing:button-click', {
+          detail: {
+            trackingData,
+            trackingName,
+          },
+        }),
+      );
+    }
+
     onClick?.(e);
   };
 
-  return <Button onClick={handleClick} {...props} />;
+  return <Button onClick={activateButtonTracked} {...props} />;
 }

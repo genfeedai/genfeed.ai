@@ -23,7 +23,7 @@ export interface WorkflowNodeLike {
   [key: string]: unknown;
 }
 
-export interface WorkflowNodeRepair {
+interface WorkflowNodeRepair {
   index: number;
   kind: 'duplicate-id' | 'dropped-malformed-node' | 'missing-id';
   nextId: string;

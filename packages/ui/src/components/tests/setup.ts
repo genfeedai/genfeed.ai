@@ -15,13 +15,19 @@ if (typeof global.document === 'undefined') {
   global.navigator = dom.window.navigator;
 }
 
+Object.defineProperty(globalThis, 'localStorage', {
+  configurable: true,
+  value: window.localStorage,
+  writable: true,
+});
+
 // Make React globally available
 globalThis.React = React;
 
 function shouldSuppressTestNoise(message: string): boolean {
   return (
     message.includes('Warning:') ||
-    message.includes('not wrapped in act(...)') ||
+    message.includes('not wrapped in act(…)') ||
     message.includes('The tag <stop> is unrecognized in this browser') ||
     message.includes(
       'The tag <linearGradient> is unrecognized in this browser',
@@ -195,6 +201,7 @@ global.fetch = vi.fn();
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
+  useParams: () => ({ brandSlug: 'brand-slug', orgSlug: 'acme' }),
   useRouter: () => ({
     back: vi.fn(),
     prefetch: vi.fn(),
@@ -246,6 +253,119 @@ vi.mock('next/image', () => ({
     React.createElement('img', { alt, src, ...props }),
 }));
 
+vi.mock('next/dynamic', () => ({
+  default: (loader: unknown) => {
+    const source = String(loader);
+
+    if (!source.includes('recharts')) {
+      return () => null;
+    }
+
+    if (source.includes('.AreaChart')) {
+      return ({ children }: { children?: React.ReactNode }) =>
+        React.createElement('div', { 'data-testid': 'area-chart' }, children);
+    }
+
+    if (source.includes('.BarChart')) {
+      return ({ children }: { children?: React.ReactNode }) =>
+        React.createElement('div', { 'data-testid': 'bar-chart' }, children);
+    }
+
+    if (source.includes('.Area')) {
+      return ({ dataKey, stroke }: { dataKey?: string; stroke?: string }) =>
+        React.createElement('div', {
+          'data-stroke': stroke,
+          'data-testid': `area-${dataKey}`,
+        });
+    }
+
+    if (source.includes('.PieChart')) {
+      return ({ children }: { children?: React.ReactNode }) =>
+        React.createElement('div', { 'data-testid': 'pie-chart' }, children);
+    }
+
+    if (source.includes('.Pie')) {
+      return ({
+        children,
+        data,
+      }: {
+        children?: React.ReactNode;
+        data?: Array<{ platform: string; value: number }>;
+      }) =>
+        React.createElement(
+          'div',
+          { 'data-testid': 'pie' },
+          data?.map((item) =>
+            React.createElement(
+              'span',
+              {
+                'data-testid': `pie-segment-${item.platform}`,
+                key: item.platform,
+              },
+              `${item.platform}: ${item.value}`,
+            ),
+          ),
+          children,
+        );
+    }
+
+    if (source.includes('.Bar')) {
+      return ({ dataKey, fill }: { dataKey?: string; fill?: string }) =>
+        React.createElement(
+          React.Fragment,
+          null,
+          React.createElement('div', {
+            'data-fill': fill,
+            'data-key': dataKey,
+            'data-testid': 'bar',
+          }),
+          React.createElement('div', {
+            'data-fill': fill,
+            'data-testid': `bar-${dataKey}`,
+          }),
+        );
+    }
+
+    if (source.includes('.Cell')) {
+      return ({ fill }: { fill?: string }) =>
+        React.createElement('div', {
+          'data-fill': fill,
+          'data-testid': 'cell',
+        });
+    }
+
+    if (source.includes('.CartesianGrid')) {
+      return () =>
+        React.createElement('div', { 'data-testid': 'cartesian-grid' });
+    }
+
+    if (source.includes('.Tooltip')) {
+      return () => React.createElement('div', { 'data-testid': 'tooltip' });
+    }
+
+    if (source.includes('.XAxis')) {
+      return () => React.createElement('div', { 'data-testid': 'x-axis' });
+    }
+
+    if (source.includes('.YAxis')) {
+      return () => React.createElement('div', { 'data-testid': 'y-axis' });
+    }
+
+    return () => null;
+  },
+}));
+
+vi.mock('socket.io-client', () => ({
+  io: vi.fn(() => ({
+    close: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    emit: vi.fn(),
+    off: vi.fn(),
+    on: vi.fn(),
+  })),
+}));
+
 // Mock @clerk/nextjs — nearly all components use useAuth/useUser/useOrganization
 vi.mock('@clerk/nextjs', () => ({
   ClerkProvider: ({ children }: { children: React.ReactNode }) =>
@@ -293,7 +413,6 @@ vi.mock('@clerk/nextjs', () => ({
 
 // Mock CSS and static file imports
 vi.mock('*.css', () => ({}));
-vi.mock('*.scss', () => ({}));
 vi.mock('*.png', () => 'test-image.png');
 vi.mock('*.jpg', () => 'test-image.jpg');
 vi.mock('*.jpeg', () => 'test-image.jpeg');

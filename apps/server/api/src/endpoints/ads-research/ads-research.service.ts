@@ -1,5 +1,7 @@
+import type { AdPerformanceDocument } from '@api/collections/ad-performance/schemas/ad-performance.schema';
 import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
+import type { CreativePatternDocument } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
@@ -22,7 +24,6 @@ import type {
   AdsResearchWorkflowResult,
   CampaignLaunchPrep,
 } from '@genfeedai/interfaces/integrations/ads-research.interface';
-import { type AdPerformance, type CreativePattern } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 interface DetailContext {
@@ -219,9 +220,11 @@ export class AdsResearchService {
           sourceChannel: ad.channel,
           sourcePlatform: ad.platform,
         },
+        organization: input.organizationId,
         status: WorkflowStatus.DRAFT,
         templateId: 'ad-remix-review',
         trigger: WorkflowTrigger.SCHEDULED,
+        user: input.userId,
       },
     );
 
@@ -454,7 +457,9 @@ export class AdsResearchService {
     };
   }
 
-  private async mapPublicItem(item: AdPerformance): Promise<AdsResearchItem> {
+  private async mapPublicItem(
+    item: AdPerformanceDocument,
+  ): Promise<AdsResearchItem> {
     const platform = this.normalizePlatform(String(item.adPlatform || 'meta'));
     const patterns = await this.getPatternSummary({
       industry: item.industry as string | undefined,
@@ -466,10 +471,6 @@ export class AdsResearchService {
     const videoUrls = Array.isArray(item.videoUrls)
       ? (item.videoUrls as string[])
       : [];
-
-    const itemWithId = item as AdPerformance & {
-      _id?: string;
-    };
 
     return {
       body: item.bodyText as string | undefined,
@@ -487,7 +488,7 @@ export class AdsResearchService {
       }),
       headline: item.headlineText as string | undefined,
       id: String(
-        itemWithId._id || item.externalAdId || item.externalCampaignId || '',
+        item._id || item.externalAdId || item.externalCampaignId || '',
       ),
       imageUrls,
       industry: item.industry as string | undefined,
@@ -512,7 +513,7 @@ export class AdsResearchService {
       previewUrl: imageUrls[0] || videoUrls[0],
       source: 'public',
       sourceId: String(
-        item.externalAdId || item.externalCampaignId || itemWithId._id || '',
+        item.externalAdId || item.externalCampaignId || item._id || '',
       ),
       sourceLabel: 'Public niche winner',
       status: item.campaignStatus as string | undefined,
@@ -589,12 +590,17 @@ export class AdsResearchService {
           : true,
       )
       .slice(0, 3)
-      .map((pattern: CreativePattern & { _id?: string }) => ({
+      .map((pattern: CreativePatternDocument) => ({
         examples:
-          pattern.examples?.slice(0, 2).map((example) => example.text) || [],
+          pattern.examples
+            ?.slice(0, 2)
+            .map((example) => example.text)
+            .filter(
+              (example): example is string => typeof example === 'string',
+            ) || [],
         id: String(pattern._id || ''),
-        label: pattern.label,
-        score: pattern.avgPerformanceScore,
+        label: pattern.label ?? 'Untitled pattern',
+        score: pattern.avgPerformanceScore ?? 0,
         summary:
           pattern.description ||
           `High-performing ${pattern.patternType} pattern for ${params.platform}.`,

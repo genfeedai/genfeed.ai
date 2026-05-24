@@ -69,16 +69,13 @@ describe('AgentRunsController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with organization filter', () => {
-      const pipeline = controller.buildFindAllPipeline(
-        mockUser as any,
-        {} as any,
-      );
+  describe('buildFindAllQuery', () => {
+    it('should build query with organization filter', () => {
+      const query = controller.buildFindAllQuery(mockUser as any, {} as any);
 
-      expect(pipeline).toHaveLength(2);
-      expect(pipeline[0]).toEqual({
-        $match: {
+      expect(query).toEqual({
+        orderBy: { createdAt: -1 },
+        where: {
           isDeleted: false,
           organization: '507f1f77bcf86cd799439012',
         },

@@ -7,7 +7,7 @@ export default defineConfig({
     contracts: 'src/contracts/index.ts',
     index: 'src/index.ts',
   },
-  format: ['esm', 'cjs'],
+  format: ['esm'],
   sourcemap: true,
   splitting: true,
   treeshake: true,

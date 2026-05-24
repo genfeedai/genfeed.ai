@@ -3,7 +3,6 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { TrainingsController } from '@api/collections/trainings/controllers/trainings.controller';
 import type { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
 import type { TrainingsQueryDto } from '@api/collections/trainings/dto/trainings-query.dto';
-import { TrainingEntity } from '@api/collections/trainings/entities/training.entity';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { ConfigService } from '@api/config/config.service';
@@ -14,6 +13,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import { MODEL_KEYS } from '@genfeedai/constants';
@@ -33,12 +33,6 @@ const createTrainingsQuery = (
     pagination: true,
     ...partial,
   }) as TrainingsQueryDto;
-
-const asMatchStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $match: Record<string, unknown> };
-
-const asSortStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $sort: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -277,7 +271,23 @@ describe('TrainingsController', () => {
 
       expect(ingredientsService.findAll).toHaveBeenCalled();
       expect(trainingsService.create).toHaveBeenCalledWith(
-        expect.any(TrainingEntity),
+        expect.objectContaining({
+          brandId: mockUser.publicMetadata.brand,
+          config: expect.objectContaining({
+            model: 'default-trainer-model',
+            status: IngredientStatus.PROCESSING,
+            steps: 1000,
+            trigger: 'NEWTOK',
+          }),
+          label: 'New Training',
+          organizationId: mockUser.publicMetadata.organization,
+          sources: {
+            connect: expect.arrayContaining([
+              { id: '507f191e810c19729de860ee' },
+            ]),
+          },
+          userId: mockUser.publicMetadata.user,
+        }),
       );
       expect(result).toBeDefined();
     });

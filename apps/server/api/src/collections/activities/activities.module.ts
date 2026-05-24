@@ -12,7 +12,7 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   controllers: [ActivitiesController],
   exports: [ActivitiesService],
-  imports: [MembersModule, forwardRef(() => StreaksModule)],
+  imports: [forwardRef(() => MembersModule), forwardRef(() => StreaksModule)],
   providers: [ActivitiesService],
 })
 export class ActivitiesModule {}

@@ -7,6 +7,7 @@ const coverageDirectory = path.resolve(__dirname, './coverage-e2e');
 fs.mkdirSync(path.join(coverageDirectory, '.tmp'), { recursive: true });
 
 export default defineConfig({
+  oxc: false, // Disable OXC transformer — SWC required for NestJS decorator metadata
   plugins: [
     swc.vite({
       jsc: {
@@ -190,13 +191,8 @@ export default defineConfig({
     globals: true,
     include: ['test/**/*.e2e-spec.ts', 'test/integration/**/*.spec.ts'],
     name: '@genfeedai/api-e2e',
+    maxWorkers: 1,
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        maxThreads: 1,
-        minThreads: 1,
-      },
-    },
     setupFiles: ['./test/setup.ts'],
     testTimeout: 60000,
   },

@@ -1,9 +1,9 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 type DefaultRecurringContentType = 'image' | 'newsletter' | 'post';
 
@@ -39,7 +39,7 @@ export class DefaultRecurringContentService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly workflowsService: WorkflowsService,
+    private readonly moduleRef: ModuleRef,
     private readonly logger: LoggerService,
   ) {}
 
@@ -219,7 +219,13 @@ export class DefaultRecurringContentService {
       cronSchedule,
       timezone,
     );
-    const workflow = await this.workflowsService.createWorkflow(
+    const { WorkflowsService } = await import(
+      '@api/collections/workflows/services/workflows.service'
+    );
+    const workflowsService = this.moduleRef.get(WorkflowsService, {
+      strict: false,
+    });
+    const workflow = await workflowsService.createWorkflow(
       params.userId,
       params.organizationId,
       {

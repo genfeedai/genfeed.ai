@@ -9,7 +9,7 @@ import type {
   AgentRunTimeRange,
 } from '@genfeedai/types';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
+import { useQuery } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 
 export interface UseAgentRunsOptions extends AgentRunListQueryParams {
@@ -35,15 +35,35 @@ export function useAgentRuns(
     options.initialStats ?? null,
   );
 
-  const fetchRuns = useCallback(
-    async (_signal: AbortSignal) => {
+  const shouldRevalidateOnMount =
+    options.revalidateOnMount ?? options.initialRuns == null;
+
+  const {
+    data: runs = [] as IAgentRun[],
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      'agent-runs',
+      options.historyOnly,
+      options.model,
+      options.page,
+      options.q,
+      options.routingPolicy,
+      options.sortMode,
+      options.status,
+      options.strategy,
+      options.timeRange,
+      options.trigger,
+      options.webSearchEnabled,
+    ],
+    queryFn: async () => {
       const token = await resolveClerkToken(getToken);
       if (!token) return [];
 
       const service = AgentRunsService.getInstance(token);
 
-      // Fetch runs and stats in parallel
-      const [runs, fetchedStats] = await Promise.all([
+      const [fetchedRuns, fetchedStats] = await Promise.all([
         service.list({
           historyOnly: options.historyOnly,
           model: options.model,
@@ -60,45 +80,10 @@ export function useAgentRuns(
       ]);
 
       setStats(fetchedStats);
-      return runs;
+      return fetchedRuns;
     },
-    [
-      getToken,
-      options.historyOnly,
-      options.model,
-      options.page,
-      options.q,
-      options.routingPolicy,
-      options.sortMode,
-      options.status,
-      options.strategy,
-      options.timeRange,
-      options.trigger,
-      options.webSearchEnabled,
-    ],
-  );
-
-  const {
-    data: runs,
-    isLoading,
-    refresh,
-  } = useResource(fetchRuns, {
-    defaultValue: [] as IAgentRun[],
-    dependencies: [
-      options.historyOnly,
-      options.model,
-      options.page,
-      options.q,
-      options.routingPolicy,
-      options.sortMode,
-      options.status,
-      options.strategy,
-      options.timeRange,
-      options.trigger,
-      options.webSearchEnabled,
-    ],
     initialData: options.initialRuns ?? undefined,
-    revalidateOnMount: options.revalidateOnMount ?? options.initialRuns == null,
+    staleTime: shouldRevalidateOnMount ? 0 : Number.POSITIVE_INFINITY,
   });
 
   const cancelRun = useCallback(
@@ -108,15 +93,17 @@ export function useAgentRuns(
 
       const service = AgentRunsService.getInstance(token);
       await service.cancel(id);
-      await refresh();
+      await refetch();
     },
-    [getToken, refresh],
+    [getToken, refetch],
   );
 
   return {
     cancelRun,
     isLoading,
-    refresh,
+    refresh: async () => {
+      await refetch();
+    },
     runs,
     stats,
   };

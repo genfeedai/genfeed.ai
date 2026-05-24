@@ -1,9 +1,9 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
-  IsMongoId,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -17,17 +17,17 @@ export class CreateHookRemixDto {
   @ApiProperty({ description: 'YouTube video URL' })
   @IsUrl()
   @IsNotEmpty()
-  youtubeUrl: string;
+  youtubeUrl!: string;
 
   @ApiProperty({ description: 'CTA video ingredient ID' })
-  @IsMongoId()
+  @IsEntityId()
   @IsNotEmpty()
-  ctaIngredientId: string;
+  ctaIngredientId!: string;
 
   @ApiProperty({ description: 'Brand ID' })
-  @IsMongoId()
+  @IsEntityId()
   @IsNotEmpty()
-  brandId: string;
+  brandId!: string;
 
   @ApiPropertyOptional({ default: 3, description: 'Hook duration in seconds' })
   @IsOptional()
@@ -53,17 +53,17 @@ export class CreateBatchHookRemixDto {
   @ArrayMinSize(1)
   @ArrayMaxSize(50)
   @IsUrl({}, { each: true })
-  youtubeUrls: string[];
+  youtubeUrls!: string[];
 
   @ApiProperty({ description: 'CTA video ingredient ID' })
-  @IsMongoId()
+  @IsEntityId()
   @IsNotEmpty()
-  ctaIngredientId: string;
+  ctaIngredientId!: string;
 
   @ApiProperty({ description: 'Brand ID' })
-  @IsMongoId()
+  @IsEntityId()
   @IsNotEmpty()
-  brandId: string;
+  brandId!: string;
 
   @ApiPropertyOptional({ default: 3, description: 'Hook duration in seconds' })
   @IsOptional()

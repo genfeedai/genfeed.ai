@@ -176,8 +176,8 @@ export class AnalyticsViewProvider implements vscode.WebviewViewProvider {
     <div id="auth-view" class="auth-container" style="display:none;">
       <h3>Analytics</h3>
       <p>Sign in to inspect campaign analytics runs.</p>
-      <button class="btn btn-primary btn-block" onclick="authenticate()">Sign In</button>
-      <button class="btn btn-secondary btn-block" onclick="setApiKey()">Use API Key</button>
+      <button class="btn btn-primary btn-block" data-action="authenticate">Sign In</button>
+      <button class="btn btn-secondary btn-block" data-action="setApiKey">Use API Key</button>
     </div>
 
     <div id="loading-view" style="display:none;">
@@ -191,8 +191,8 @@ export class AnalyticsViewProvider implements vscode.WebviewViewProvider {
       <div class="toolbar">
         <span class="section-title">Analytics</span>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-secondary btn-sm" onclick="refresh()">Refresh</button>
-          <button class="btn btn-primary btn-sm" onclick="runAnalytics()">Run</button>
+          <button class="btn btn-secondary btn-sm" data-action="refresh">Refresh</button>
+          <button class="btn btn-primary btn-sm" data-action="runAnalytics">Run</button>
         </div>
       </div>
 
@@ -219,7 +219,7 @@ export class AnalyticsViewProvider implements vscode.WebviewViewProvider {
 
     <div id="error-view" class="empty-state" style="display:none;">
       <p id="error-message"></p>
-      <button class="btn btn-secondary btn-sm" onclick="refresh()">Retry</button>
+      <button class="btn btn-secondary btn-sm" data-action="refresh">Retry</button>
     </div>
   </div>
 
@@ -297,7 +297,7 @@ export class AnalyticsViewProvider implements vscode.WebviewViewProvider {
             <div class="run-query">\${escapeHtml(query)}</div>
             <div class="run-query">Progress: \${run.progress || 0}% · \${formatDate(run.updatedAt || run.createdAt)}</div>
             <div class="card-footer">
-              <button class="btn btn-secondary btn-sm" onclick="openStatus('\${escapeAttr(runId)}')">Status</button>
+              <button class="btn btn-secondary btn-sm" data-action="openStatus" data-id="\${escapeAttr(runId)}">Status</button>
             </div>
           </div>
         \`;
@@ -347,6 +347,20 @@ export class AnalyticsViewProvider implements vscode.WebviewViewProvider {
     function escapeAttr(value) {
       return escapeHtml(value);
     }
+
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-action]');
+      if (!target) return;
+      const action = target.dataset.action;
+      const id = target.dataset.id;
+      switch (action) {
+        case 'authenticate': authenticate(); break;
+        case 'setApiKey': setApiKey(); break;
+        case 'refresh': refresh(); break;
+        case 'runAnalytics': runAnalytics(); break;
+        case 'openStatus': if (id) openStatus(id); break;
+      }
+    });
 
     refresh();
   </script>

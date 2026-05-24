@@ -27,12 +27,12 @@ import { track } from '@vercel/analytics';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { EditorEffectsPanel } from './EditorEffectsPanel';
-import { EditorPreview, type EditorPreviewRef } from './EditorPreview';
-import { EditorPropertiesPanel } from './EditorPropertiesPanel';
-import { EditorTextPanel } from './EditorTextPanel';
-import { EditorTimeline } from './EditorTimeline';
-import { EditorToolbar } from './EditorToolbar';
+import EditorEffectsPanel from './EditorEffectsPanel';
+import EditorPreview, { type EditorPreviewRef } from './EditorPreview';
+import EditorPropertiesPanel from './EditorPropertiesPanel';
+import EditorTextPanel from './EditorTextPanel';
+import EditorTimeline from './EditorTimeline';
+import EditorToolbar from './EditorToolbar';
 
 const DEFAULT_FPS = 30;
 const AUTO_SAVE_INTERVAL = 30000;
@@ -67,7 +67,7 @@ export default function EditorPageContent({
   projectId,
 }: EditorPageContentProps) {
   const _brandId = useBrandId();
-  const router = useRouter();
+  const { push } = useRouter();
   const { href } = useOrgUrl();
   const { openGallery } = useGalleryModal();
   const { openConfirm } = useConfirmModal();
@@ -531,13 +531,13 @@ export default function EditorPageContent({
         message:
           'You have unsaved changes. Are you sure you want to leave? Your changes will be lost.',
         onConfirm: () => {
-          router.push(href('/editor'));
+          push(href('/editor'));
         },
       });
       return;
     }
-    router.push(href('/editor'));
-  }, [state.isDirty, router, openConfirm, href]);
+    push(href('/editor'));
+  }, [state.isDirty, push, openConfirm, href]);
 
   const handleFrameChange = useCallback((frame: number) => {
     setState((prev) => ({ ...prev, currentFrame: frame }));
@@ -621,7 +621,7 @@ export default function EditorPageContent({
   if (state.isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary" />
+        <div className="animate-spin rounded-full size-12 border-t-2 border-b-2 border-primary" />
       </div>
     );
   }

@@ -4,6 +4,7 @@ import {
   useConfirmModal,
   useUploadModal,
 } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ArticleStatus,
   AssetCategory,
@@ -89,6 +90,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
   const params = useParams();
   const pathname = usePathname();
   const router = useRouter();
+  const { brands } = useBrand();
 
   const notificationsService = NotificationsService.getInstance();
   const publicService = PublicService.getInstance();
@@ -105,10 +107,19 @@ export function useBrandDetail(): UseBrandDetailReturn {
     AssetsService.getInstance(token),
   );
 
-  const brandParam = params?.slug;
-  const brandSlug = Array.isArray(brandParam)
+  const brandParam = params?.slug ?? params?.brandSlug;
+  const routeBrandParam = Array.isArray(brandParam)
     ? brandParam[0]
     : (brandParam ?? '');
+  const matchedRouteBrand = useMemo(
+    () =>
+      brands.find(
+        (brand) =>
+          brand.slug === routeBrandParam || brand.id === routeBrandParam,
+      ),
+    [brands, routeBrandParam],
+  );
+  const brandSlug = matchedRouteBrand?.slug ?? routeBrandParam;
   const hasBrandId = Boolean(brandSlug);
 
   const [state, dispatch] = useReducer(
@@ -127,6 +138,26 @@ export function useBrandDetail(): UseBrandDetailReturn {
   const [generateModalType, setGenerateModalType] = useState<
     'banner' | 'logo' | null
   >(null);
+
+  useEffect(() => {
+    const orgSlug = typeof params?.orgSlug === 'string' ? params.orgSlug : '';
+
+    if (!orgSlug || !matchedRouteBrand?.slug || !pathname || !routeBrandParam) {
+      return;
+    }
+
+    const oldRouteMatch = pathname.match(
+      /\/~\/settings\/brands\/[^/]+(\/.*)?$/,
+    );
+    const canonicalRouteMatch = pathname.match(/\/settings(\/.*)?$/);
+    const suffix = oldRouteMatch?.[1] ?? canonicalRouteMatch?.[1] ?? '';
+    const canonicalPath = `/${orgSlug}/${matchedRouteBrand.slug}/settings${suffix}`;
+    const usesIdAsSlug = matchedRouteBrand.id === routeBrandParam;
+
+    if ((oldRouteMatch || usesIdAsSlug) && pathname !== canonicalPath) {
+      router.replace(canonicalPath);
+    }
+  }, [matchedRouteBrand, params?.orgSlug, pathname, routeBrandParam, router]);
 
   const findLatestMedia = useCallback(async () => {
     if (!state.brand?.id) {

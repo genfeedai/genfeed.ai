@@ -2,6 +2,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
@@ -35,6 +36,7 @@ import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
+  ContentSurface,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
@@ -71,6 +73,31 @@ interface CredentialMentionItem {
   platform: CredentialPlatform;
 }
 
+function readId(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function toCredentialPlatform(platform: unknown): CredentialPlatform {
+  return platform as unknown as CredentialPlatform;
+}
+
+function toContentSurface(surface: unknown): ContentSurface {
+  const value = typeof surface === 'string' ? surface : '';
+  const allowed: ContentSurface[] = [
+    'article',
+    'image',
+    'newsletter',
+    'post',
+    'thread',
+    'video',
+    'x-article',
+  ];
+
+  return allowed.includes(value as ContentSurface)
+    ? (value as ContentSurface)
+    : 'post';
+}
+
 @AutoSwagger()
 @Controller('credentials')
 @UseGuards(RolesGuard)
@@ -82,6 +109,7 @@ export class CredentialsController {
   >;
 
   constructor(
+    private readonly accountPublishingContextService: AccountPublishingContextService,
     private readonly brandsService: BrandsService,
     private readonly credentialsService: CredentialsService,
     private readonly facebookService: FacebookService,
@@ -110,13 +138,30 @@ export class CredentialsController {
     ]);
   }
 
+  @Get(':credentialId/publishing-context')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async getPublishingContext(
+    @Param('credentialId') credentialId: string,
+    @Query('surface') surface: string | undefined,
+    @CurrentUser() user: User,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+
+    return this.accountPublishingContextService.resolve({
+      brandId: publicMetadata.brand,
+      credentialId,
+      organizationId: publicMetadata.organization,
+      surface: toContentSurface(surface),
+    });
+  }
+
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
     @Query() query: BaseQueryDto,
     @Req() request: Request,
     @CurrentUser() user: User,
-  ): Promise<JsonApiCollectionResponse<CredentialEntity>> {
+  ): Promise<JsonApiCollectionResponse> {
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -124,17 +169,13 @@ export class CredentialsController {
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted,
-          user: publicMetadata.user,
-        },
+    const aggregate = {
+      where: {
+        isDeleted,
+        user: publicMetadata.user,
       },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data: AggregatePaginateResult<CredentialDocument> =
       await this.credentialsService.findAll(aggregate, options);
@@ -165,7 +206,7 @@ export class CredentialsController {
         handle: cred.externalHandle,
         id: cred._id.toString(),
         name: cred.externalName ?? cred.externalHandle,
-        platform: cred.platform,
+        platform: toCredentialPlatform(cred.platform),
       });
     }
     return { mentions };
@@ -207,7 +248,9 @@ export class CredentialsController {
       return returnNotFound(this.constructorName, credentialId);
     }
 
-    const refresher = this.platformRefreshers.get(credential.platform);
+    const refresher = this.platformRefreshers.get(
+      toCredentialPlatform(credential.platform),
+    );
 
     if (!refresher) {
       throw new HttpException(
@@ -219,11 +262,21 @@ export class CredentialsController {
       );
     }
 
-    try {
-      await refresher.refreshToken(
-        credential.organization.toString(),
-        credential.brand.toString(),
+    const credentialOrganizationId = readId(credential.organization);
+    const credentialBrandId = readId(credential.brand);
+
+    if (!credentialOrganizationId || !credentialBrandId) {
+      throw new HttpException(
+        {
+          detail: 'Credential is missing brand or organization context',
+          title: 'Invalid Credential',
+        },
+        HttpStatus.BAD_REQUEST,
       );
+    }
+
+    try {
+      await refresher.refreshToken(credentialOrganizationId, credentialBrandId);
 
       const updatedCredential = await this.credentialsService.findOne({
         _id: credential._id,
@@ -275,14 +328,25 @@ export class CredentialsController {
         );
       }
 
+      const brandId = readId(credential.brand);
+      if (!brandId) {
+        throw new HttpException(
+          {
+            detail: 'Credential is missing a connected brand',
+            title: 'Invalid Credential',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       const brand = await this.brandsService.findOne({
-        _id: credential.brand,
+        _id: brandId,
         isDeleted: false,
         organization: publicMetadata.organization,
       });
 
       if (!brand) {
-        return returnNotFound('Brand', credential.brand.toString());
+        return returnNotFound('Brand', brandId);
       }
 
       // Get all available handles from the Instagram service

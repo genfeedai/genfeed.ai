@@ -1,47 +1,138 @@
 import { CreateActivityDto } from '@api/collections/activities/dto/create-activity.dto';
 import { UpdateActivityDto } from '@api/collections/activities/dto/update-activity.dto';
+import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { StreaksService as StreaksServiceToken } from '@api/collections/streaks/services/streaks.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { EventBusService } from '@api/shared/services/event-bus/event-bus.service';
 import { ActivityEntityModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  type OnModuleInit,
+} from '@nestjs/common';
 
 type StreaksServiceContract = Pick<
   StreaksServiceToken,
   'checkAndUpdate' | 'isQualifyingActivityKey'
 >;
 
+type ActivityMutationInput = Partial<CreateActivityDto> &
+  Partial<UpdateActivityDto> & {
+    action?: string | null;
+    brandId?: string | null;
+    data?: Record<string, unknown>;
+    organizationId?: string | null;
+    userId?: string | null;
+  };
+
 @Injectable()
-export class ActivitiesService extends BaseService<
-  ActivityDocument,
-  CreateActivityDto,
-  UpdateActivityDto
-> {
+export class ActivitiesService
+  extends BaseService<ActivityDocument, CreateActivityDto, UpdateActivityDto>
+  implements OnModuleInit
+{
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     @Inject(forwardRef(() => StreaksServiceToken))
     private readonly streaksService: StreaksServiceContract,
+    private readonly eventBusService: EventBusService,
   ) {
     super(prisma, 'activity', logger);
   }
 
+  onModuleInit() {
+    this.eventBusService.subscribe(
+      'credits.activity',
+      async (data: Record<string, unknown>) => {
+        try {
+          await this.create(data);
+        } catch (error) {
+          this.logger.warn('Failed to create activity from credits event', {
+            error,
+          });
+        }
+      },
+    );
+  }
+
+  private isRecordObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  private buildActivityMutation(
+    input: ActivityMutationInput,
+    existing?: ActivityDocument | null,
+  ): Record<string, unknown> {
+    const currentData = this.isRecordObject(existing?.data)
+      ? { ...existing.data }
+      : {};
+    const nextData = {
+      ...currentData,
+      ...(this.isRecordObject(input.data) ? input.data : {}),
+    };
+
+    if (input.key !== undefined) {
+      nextData.key = input.key;
+    }
+
+    if (input.source !== undefined) {
+      nextData.source = input.source;
+    }
+
+    if (input.value !== undefined) {
+      nextData.value = input.value;
+    }
+
+    if (input.isRead !== undefined) {
+      nextData.isRead = input.isRead;
+    }
+
+    const mutation: Record<string, unknown> = {
+      action: input.action ?? input.key ?? existing?.action ?? null,
+      brandId: input.brandId ?? input.brand ?? existing?.brandId ?? null,
+      entityId: input.entityId ?? existing?.entityId ?? null,
+      entityModel: input.entityModel ?? existing?.entityModel ?? null,
+      organizationId:
+        input.organizationId ??
+        input.organization ??
+        existing?.organizationId ??
+        null,
+      userId: input.userId ?? input.user ?? existing?.userId ?? null,
+    };
+
+    if (Object.keys(nextData).length > 0) {
+      mutation.data = nextData;
+    }
+
+    if (input.isDeleted !== undefined) {
+      mutation.isDeleted = input.isDeleted;
+    }
+
+    return mutation;
+  }
+
   override async create(
-    createDto: CreateActivityDto,
+    createDto: CreateActivityDto | ActivityEntity | ActivityMutationInput,
   ): Promise<ActivityDocument> {
-    const activity = await super.create(createDto);
+    const activity = await super.create(
+      this.buildActivityMutation(createDto as ActivityMutationInput) as never,
+    );
 
     const activityUser = activity.userId ? String(activity.userId) : null;
     const activityOrganization = activity.organizationId
       ? String(activity.organizationId)
       : null;
+    const activityKey = String(activity.key ?? activity.action ?? '');
 
     if (
       activityUser &&
       activityOrganization &&
-      this.streaksService.isQualifyingActivityKey(activity.key)
+      activityKey &&
+      this.streaksService.isQualifyingActivityKey(activityKey)
     ) {
       try {
         await this.streaksService.checkAndUpdate(
@@ -61,6 +152,19 @@ export class ActivitiesService extends BaseService<
     return activity;
   }
 
+  override async patch(
+    id: string,
+    updateDto: Partial<UpdateActivityDto> | Record<string, unknown>,
+  ): Promise<ActivityDocument> {
+    const existing = await super.findOne({ id });
+    const mutation = this.buildActivityMutation(
+      updateDto as ActivityMutationInput,
+      existing,
+    );
+
+    return super.patch(id, mutation);
+  }
+
   async bulkPatch(
     filter: Record<string, unknown>,
     updateDto: Partial<UpdateActivityDto>,
@@ -76,7 +180,15 @@ export class ActivitiesService extends BaseService<
 
       const result = await this.delegate.updateMany({
         where: filter,
-        data: updateData,
+        data:
+          updateData.isRead === undefined
+            ? updateData
+            : {
+                data: {
+                  isRead: updateData.isRead,
+                },
+                isDeleted: updateData.isDeleted,
+              },
       });
 
       this.logger.debug('Bulk patch completed', {
@@ -99,127 +211,9 @@ export class ActivitiesService extends BaseService<
   }
 
   /**
-   * Build entity lookup pipeline stages for activities.
-   * NOTE: These are MongoDB aggregation pipeline stages kept for reference.
-   * With Prisma, use explicit include/join queries instead of these pipeline stages.
-   * TODO: Migrate callers to use Prisma include queries.
+   * Build the default Prisma query fragment for activity entity relations.
    */
-  static buildEntityLookup(): Record<string, unknown>[] {
-    return [
-      // Lookup ingredients - only matches when entityModel is Ingredient
-      {
-        $lookup: {
-          as: 'ingredient',
-          from: 'ingredients',
-          let: { entityId: '$entityId', entityModel: '$entityModel' },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ['$_id', '$$entityId'] },
-                    { $eq: ['$isDeleted', false] },
-                    { $eq: ['$$entityModel', ActivityEntityModel.INGREDIENT] },
-                  ],
-                },
-              },
-            },
-            {
-              $project: {
-                _id: 1,
-                category: 1,
-                ingredientUrl: 1,
-                status: 1,
-                thumbnailUrl: 1,
-              },
-            },
-          ],
-        },
-      },
-
-      // Lookup posts - only matches when entityModel is Post
-      {
-        $lookup: {
-          as: 'post',
-          from: 'posts',
-          let: { entityId: '$entityId', entityModel: '$entityModel' },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ['$_id', '$$entityId'] },
-                    { $eq: ['$isDeleted', false] },
-                    { $eq: ['$$entityModel', ActivityEntityModel.POST] },
-                  ],
-                },
-              },
-            },
-            {
-              $project: {
-                _id: 1,
-                platform: 1,
-                status: 1,
-                url: 1,
-              },
-            },
-          ],
-        },
-      },
-
-      // Lookup articles - only matches when entityModel is Article
-      {
-        $lookup: {
-          as: 'article',
-          from: 'articles',
-          let: { entityId: '$entityId', entityModel: '$entityModel' },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ['$_id', '$$entityId'] },
-                    { $eq: ['$isDeleted', false] },
-                    { $eq: ['$$entityModel', ActivityEntityModel.ARTICLE] },
-                  ],
-                },
-              },
-            },
-            {
-              $project: {
-                _id: 1,
-                status: 1,
-                title: 1,
-              },
-            },
-          ],
-        },
-      },
-
-      // Combine all entity types into a single 'entity' field for easier access
-      {
-        $addFields: {
-          entity: {
-            $cond: {
-              else: {
-                $cond: {
-                  else: {
-                    $cond: {
-                      else: null,
-                      if: { $gt: [{ $size: '$article' }, 0] },
-                      then: { $arrayElemAt: ['$article', 0] },
-                    },
-                  },
-                  if: { $gt: [{ $size: '$post' }, 0] },
-                  then: { $arrayElemAt: ['$post', 0] },
-                },
-              },
-              if: { $gt: [{ $size: '$ingredient' }, 0] },
-              then: { $arrayElemAt: ['$ingredient', 0] },
-            },
-          },
-        },
-      },
-    ];
+  static buildEntityLookup(): Record<string, unknown> {
+    return { where: {} };
   }
 }

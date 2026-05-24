@@ -12,6 +12,30 @@ class MockResizeObserver {
 }
 global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
 
+vi.mock('@ui/flows', () => ({
+  FlowCanvas: ({
+    children,
+    edges,
+    nodes,
+    onDrop,
+  }: {
+    children?: React.ReactNode;
+    edges?: Edge[];
+    nodes?: Node[];
+    onDrop?: (event: React.DragEvent) => void;
+  }) => (
+    <div
+      data-testid="flow-canvas"
+      data-has-drop={String(typeof onDrop === 'function')}
+      className="h-full"
+    >
+      <div data-testid="nodes">{nodes?.length ?? 0} nodes</div>
+      <div data-testid="edges">{edges?.length ?? 0} edges</div>
+      {children}
+    </div>
+  ),
+}));
+
 // Mock React Flow completely to avoid ResizeObserver issues
 vi.mock('@xyflow/react', () => ({
   Background: () => <div data-testid="background" />,
@@ -89,12 +113,12 @@ describe('WorkflowCanvas', () => {
     const { container } = render(
       <WorkflowCanvas {...defaultProps} onDrop={onDrop} />,
     );
-    // Verify the component renders with the drop handler configured
     expect(
-      container.querySelector('[data-testid="react-flow"]'),
+      container.querySelector('[data-testid="flow-canvas"]'),
     ).toBeInTheDocument();
-    // The onDrop prop is passed to the component
-    expect(onDrop).toBeDefined();
+    expect(
+      container.querySelector('[data-has-drop="true"]'),
+    ).toBeInTheDocument();
   });
 
   it('should handle node click events', () => {

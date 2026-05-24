@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { useCallback, useState } from 'react';
+import { useCallback, useId, useState } from 'react';
 import {
   HiOutlineChevronDown,
   HiOutlineChevronUp,
@@ -44,30 +44,47 @@ interface VariableItemProps {
 
 function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const idPrefix = useId();
+  const keyId = `${idPrefix}-key`;
+  const labelId = `${idPrefix}-label`;
+  const typeId = `${idPrefix}-type`;
+  const descriptionId = `${idPrefix}-description`;
+  const requiredId = `${idPrefix}-required`;
 
   return (
     <div className=" border border-white/[0.08] bg-card">
       <div
+        role="button"
+        tabIndex={0}
         className="flex cursor-pointer items-center gap-2 p-3"
         onClick={() => setIsExpanded(!isExpanded)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsExpanded(!isExpanded);
+          }
+        }}
       >
-        <HiOutlineVariable className="h-4 w-4 text-primary" />
+        <HiOutlineVariable className="size-4 text-primary" />
         <span className="flex-1 font-medium text-sm">{variable.label}</span>
         <Badge variant="ghost" size={ComponentSize.SM}>
           {variable.type}
         </Badge>
         {isExpanded ? (
-          <HiOutlineChevronUp className="h-4 w-4" />
+          <HiOutlineChevronUp className="size-4" />
         ) : (
-          <HiOutlineChevronDown className="h-4 w-4" />
+          <HiOutlineChevronDown className="size-4" />
         )}
       </div>
 
       {isExpanded && (
         <div className="border-t border-white/[0.08] p-3 space-y-3">
           <div>
-            <label className="text-xs font-medium">Key</label>
+            <label htmlFor={keyId} className="text-xs font-medium">
+              Key
+            </label>
             <Input
+              id={keyId}
               type="text"
               className="mt-1 h-8"
               value={variable.key}
@@ -77,8 +94,11 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
           </div>
 
           <div>
-            <label className="text-xs font-medium">Label</label>
+            <label htmlFor={labelId} className="text-xs font-medium">
+              Label
+            </label>
             <Input
+              id={labelId}
               type="text"
               className="mt-1 h-8"
               value={variable.label}
@@ -88,14 +108,16 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
           </div>
 
           <div>
-            <label className="text-xs font-medium">Type</label>
+            <label htmlFor={typeId} className="text-xs font-medium">
+              Type
+            </label>
             <Select
               value={variable.type}
               onValueChange={(value) =>
                 onUpdate({ type: value as InputVariableType })
               }
             >
-              <SelectTrigger className="mt-1 h-8">
+              <SelectTrigger id={typeId} className="mt-1 h-8">
                 <SelectValue placeholder="Select a type" />
               </SelectTrigger>
               <SelectContent>
@@ -109,8 +131,11 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
           </div>
 
           <div>
-            <label className="text-xs font-medium">Description</label>
+            <label htmlFor={descriptionId} className="text-xs font-medium">
+              Description
+            </label>
             <Input
+              id={descriptionId}
               type="text"
               className="mt-1 h-8"
               value={variable.description || ''}
@@ -121,13 +146,16 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
 
           <div className="flex items-center gap-2">
             <Checkbox
+              id={requiredId}
               checked={variable.required || false}
               onCheckedChange={(checked) =>
                 onUpdate({ required: checked === true })
               }
               aria-label={`Toggle required for ${variable.label}`}
             />
-            <label className="text-sm">Required</label>
+            <label htmlFor={requiredId} className="text-sm">
+              Required
+            </label>
           </div>
 
           <Button
@@ -136,7 +164,7 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
             size={ButtonSize.SM}
             className="w-full"
             onClick={onDelete}
-            icon={<HiOutlineTrash className="h-4 w-4" />}
+            icon={<HiOutlineTrash className="size-4" />}
             label="Delete Variable"
           />
         </div>
@@ -167,8 +195,16 @@ export default function VariablesPanel({
     <div className="flex flex-col">
       {/* Header */}
       <div
+        role="button"
+        tabIndex={0}
         className="flex cursor-pointer items-center justify-between border-b border-white/[0.08] px-4 py-3"
         onClick={onToggleCollapse}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggleCollapse?.();
+          }
+        }}
       >
         <span className="font-semibold text-sm">Input Variables</span>
         <div className="flex items-center gap-2">
@@ -176,9 +212,9 @@ export default function VariablesPanel({
             {variables.length}
           </Badge>
           {isCollapsed ? (
-            <HiOutlineChevronDown className="h-4 w-4" />
+            <HiOutlineChevronDown className="size-4" />
           ) : (
-            <HiOutlineChevronUp className="h-4 w-4" />
+            <HiOutlineChevronUp className="size-4" />
           )}
         </div>
       </div>
@@ -208,7 +244,7 @@ export default function VariablesPanel({
             size={ButtonSize.SM}
             className="w-full"
             onClick={handleAddVariable}
-            icon={<HiOutlinePlus className="h-4 w-4" />}
+            icon={<HiOutlinePlus className="size-4" />}
             label="Add Variable"
           />
         </div>

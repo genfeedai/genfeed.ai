@@ -21,7 +21,7 @@ export interface LLMProviderInfo {
   models: LLMModelOption[];
 }
 
-export interface LLMModelOption {
+interface LLMModelOption {
   id: string;
   label: string;
   description: string;

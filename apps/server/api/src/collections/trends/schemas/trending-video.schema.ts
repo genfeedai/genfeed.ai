@@ -1,1 +1,31 @@
-export type { TrendingVideo as TrendingVideoDocument } from '@genfeedai/prisma';
+export interface TrendingVideoDocument {
+  _id?: string;
+  id?: string;
+  externalId?: string;
+  platform?: string;
+  title?: string;
+  description?: string;
+  hook?: string;
+  hashtags?: string[];
+  duration?: number;
+  soundId?: string | null;
+  soundName?: string | null;
+  videoUrl?: string;
+  playUrl?: string;
+  coverUrl?: string | null;
+  authorName?: string | null;
+  viewCount?: number;
+  postCount?: number;
+  usageCount?: number;
+  engagementRate?: number;
+  growthRate?: number;
+  velocity?: number;
+  viralScore?: number;
+  viralityScore?: number;
+  isCurrent?: boolean;
+  expiresAt?: Date | string | null;
+  lastSeenAt?: Date | string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  [key: string]: unknown;
+}

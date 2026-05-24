@@ -242,7 +242,7 @@ export default function AnnouncementsPage({
               Channels <span className="text-rose-400">*</span>
             </span>
 
-            <label className="flex items-center gap-3 cursor-pointer select-none">
+            <span className="flex items-center gap-3 cursor-pointer select-none">
               <Checkbox
                 checked={form.discordEnabled}
                 onCheckedChange={(checked) =>
@@ -252,7 +252,7 @@ export default function AnnouncementsPage({
                 aria-label="Publish announcement to Discord"
               />
               <span className="text-sm text-foreground">Discord</span>
-            </label>
+            </span>
 
             {form.discordEnabled && (
               <div className="ml-7 flex flex-col gap-2">
@@ -277,7 +277,7 @@ export default function AnnouncementsPage({
               </div>
             )}
 
-            <label className="flex items-center gap-3 cursor-pointer select-none">
+            <span className="flex items-center gap-3 cursor-pointer select-none">
               <Checkbox
                 checked={form.twitterEnabled}
                 onCheckedChange={(checked) =>
@@ -287,7 +287,7 @@ export default function AnnouncementsPage({
                 aria-label="Publish announcement to Twitter/X"
               />
               <span className="text-sm text-foreground">Twitter/X</span>
-            </label>
+            </span>
           </div>
 
           {/* Submit */}
@@ -296,7 +296,7 @@ export default function AnnouncementsPage({
             isDisabled={isSubmitting || tweetOverLimit}
             className="flex items-center gap-2"
           >
-            <HiOutlineGlobeAlt className="w-4 h-4" />
+            <HiOutlineGlobeAlt className="size-4" />
             {isSubmitting ? 'Publishing…' : 'Publish'}
           </Button>
         </form>
@@ -331,7 +331,7 @@ export default function AnnouncementsPage({
                   )}
 
                   <span className="flex items-center gap-1 text-xs text-foreground/50 ml-auto">
-                    <HiCalendar className="w-3.5 h-3.5" />
+                    <HiCalendar className="size-3.5" />
                     {formatDate(
                       announcement.publishedAt ?? announcement.createdAt,
                     )}

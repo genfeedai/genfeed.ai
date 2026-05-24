@@ -258,7 +258,7 @@ export class AgentWorkflowsService {
   }
 
   private getConfig(workflow: AgentWorkflow): WorkflowConfig {
-    return (workflow.config ?? {}) as WorkflowConfig;
+    return (workflow.config ?? {}) as unknown as WorkflowConfig;
   }
 
   private applyStateUpdate(

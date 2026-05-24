@@ -34,7 +34,7 @@ function getVoiceTooltip(isRecording: boolean, isProcessing: boolean): string {
     return 'Stop recording';
   }
   if (isProcessing) {
-    return 'Processing...';
+    return 'Processing…';
   }
   return 'Voice input (Speak to transcribe)';
 }
@@ -43,7 +43,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
   currentConfig,
   categoryType,
   currentModelCategory,
-  shellMode = 'legacy-collapsible',
+  features = {},
   form,
   isDisabledState,
   isGenerateBlocked,
@@ -106,7 +106,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
   avatars = [],
   voices = [],
 }: PromptBarEssentialsProps) {
-  const isUnifiedShell = shellMode === 'studio-unified';
+  const isCollapsible = features.collapsible ?? true;
   const watchedTextTrimmed = form.watch('text')?.trim();
   const hasVisibleReferences = references.length > 0;
   const firstReference = hasVisibleReferences ? references[0] : null;
@@ -146,8 +146,8 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
             tooltip="Collapse"
             tooltipPosition="left"
             variant={ButtonVariant.GHOST}
-            className="absolute right-2 top-2 h-8 w-8 rounded-full border border-white/10 bg-black/20 p-0 text-white/70 backdrop-blur-sm hover:bg-black/30 hover:text-white"
-            icon={<HiChevronUp className="w-4 h-4" />}
+            className="absolute right-2 top-2 size-8 rounded-full border border-white/10 bg-black/20 p-0 text-white/70 backdrop-blur-sm hover:bg-black/30 hover:text-white"
+            icon={<HiChevronUp className="size-4" />}
             data-testid="collapse-button"
           />
         )}
@@ -167,10 +167,10 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               handleSubmitForm();
             }
           }}
-          maxHeight={isUnifiedShell ? 240 : 300}
+          maxHeight={isCollapsible ? 300 : 240}
           className={cn(
             'w-full resize-none border-0 bg-transparent px-2 py-2 text-sm shadow-none focus-visible:border-transparent focus-visible:ring-0',
-            isUnifiedShell ? 'min-h-[96px] pr-12' : 'min-h-[72px] pr-24',
+            isCollapsible ? 'min-h-[72px] pr-24' : 'min-h-[96px] pr-12',
           )}
           data-testid="prompt-textarea"
         />
@@ -312,11 +312,11 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 />
               )}
 
-            {isUnifiedShell ? null : (
+            {isCollapsible ? (
               <PromptBarDivider className="h-5 bg-white/10" />
-            )}
+            ) : null}
 
-            {isUnifiedShell && hasVisibleReferences && firstReference && (
+            {!isCollapsible && hasVisibleReferences && firstReference && (
               <Button
                 onClick={onToggleQuickOptions}
                 variant={ButtonVariant.GHOST}
@@ -329,7 +329,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 tooltipPosition="top"
                 ariaLabel="Open reference controls"
               >
-                <span className="relative h-5 w-5 overflow-hidden rounded">
+                <span className="relative size-5 overflow-hidden rounded">
                   <Image
                     src={
                       referenceSource === 'brand'
@@ -358,7 +358,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               tooltip={isQuickOptionsOpen ? 'Hide settings' : 'Show settings'}
               tooltipPosition="top"
               ariaLabel={isQuickOptionsOpen ? 'Hide settings' : 'Show settings'}
-              icon={<HiAdjustmentsHorizontal className="w-4 h-4" />}
+              icon={<HiAdjustmentsHorizontal className="size-4" />}
             />
 
             {watchedTextTrimmed && (
@@ -369,7 +369,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 tooltipPosition="top"
                 variant={ButtonVariant.GHOST}
                 className={iconButtonClass}
-                icon={<HiClipboard className="w-4 h-4" />}
+                icon={<HiClipboard className="size-4" />}
               />
             )}
 
@@ -377,13 +377,11 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               <Button
                 onClick={enhancePrompt}
                 isDisabled={isDisabledState || isEnhancing}
-                tooltip={
-                  isEnhancing ? 'Enhancing...' : 'Enhance prompt with AI'
-                }
+                tooltip={isEnhancing ? 'Enhancing…' : 'Enhance prompt with AI'}
                 tooltipPosition="top"
                 variant={ButtonVariant.GHOST}
                 className={cn(iconButtonClass, isEnhancing && 'animate-pulse')}
-                icon={<HiSparkles className="w-4 h-4" />}
+                icon={<HiSparkles className="size-4" />}
               />
             )}
 
@@ -395,13 +393,13 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 tooltipPosition="top"
                 variant={ButtonVariant.GHOST}
                 className={iconButtonClass}
-                icon={<HiArrowUturnLeft className="w-4 h-4" />}
+                icon={<HiArrowUturnLeft className="size-4" />}
               />
             )}
           </div>
 
           <div className="ml-auto flex items-center gap-1.5">
-            {isUnifiedShell && (
+            {!isCollapsible && (
               <Button
                 label={`${form.watch('outputs') || 1}x`}
                 variant={ButtonVariant.GHOST}
@@ -409,7 +407,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 tooltip="Number of outputs"
                 tooltipPosition="top"
                 icon={
-                  <span className="w-4 h-4 flex items-center justify-center text-xs font-medium">
+                  <span className="size-4 flex items-center justify-center text-xs font-medium">
                     #
                   </span>
                 }
@@ -426,7 +424,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               />
             )}
 
-            {!isUnifiedShell && (
+            {isCollapsible && (
               <>
                 <Button
                   label={`${form.watch('outputs') || 1}x`}
@@ -435,7 +433,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                   tooltip="Number of outputs"
                   tooltipPosition="top"
                   icon={
-                    <span className="w-4 h-4 flex items-center justify-center text-xs font-medium">
+                    <span className="size-4 flex items-center justify-center text-xs font-medium">
                       #
                     </span>
                   }
@@ -455,7 +453,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               </>
             )}
 
-            {isSupported && (isUnifiedShell || !watchedTextTrimmed) ? (
+            {isSupported && (!isCollapsible || !watchedTextTrimmed) ? (
               <Button
                 onClick={toggleVoice}
                 variant={
@@ -468,9 +466,9 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 isDisabled={isGenerateBlocked || isProcessing}
                 tooltip={getVoiceTooltip(isRecording, isProcessing)}
                 tooltipPosition="top"
-                icon={<HiMicrophone className="w-4 h-4" />}
+                icon={<HiMicrophone className="size-4" />}
               >
-                {isUnifiedShell ? null : 'Voice'}
+                {isCollapsible ? 'Voice' : null}
               </Button>
             ) : null}
 
@@ -496,7 +494,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                   ? `${generateLabel} (Queue)`
                   : generateLabel
               }
-              className={cn('transition-all duration-300', 'h-9 w-9 p-0')}
+              className={cn('transition-all duration-300', 'size-9 p-0')}
               data-testid="generate-button"
             />
           </div>
@@ -507,8 +505,10 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
         <p className="text-xs text-foreground/60">
           Tip: Include trigger words:{' '}
           {selectedModels
-            .filter((m) => m.trigger)
-            .map((m) => `"${m.trigger}"`)
+            .reduce<string[]>((acc, m) => {
+              if (m.trigger) acc.push(`"${m.trigger}"`);
+              return acc;
+            }, [])
             .join(', ')}
         </p>
       )}

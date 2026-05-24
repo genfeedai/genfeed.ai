@@ -121,7 +121,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
           disabled={nodeData.status === 'processing' || !canGenerate}
           title="Regenerate"
         >
-          <RefreshCw className="h-3 w-3" />
+          <RefreshCw className="size-3" />
         </Button>
       ) : null,
     [nodeData.outputAudio, nodeData.status, canGenerate, handleGenerate],
@@ -133,7 +133,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
         {/* API Key Warning */}
         {!TTS_ENABLED && (
           <div className="flex items-start gap-2 p-2 bg-amber-500/10 border border-amber-500/30 rounded text-xs">
-            <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="size-4 text-amber-500 flex-shrink-0 mt-0.5" />
             <div className="text-amber-500">
               <p className="font-medium">ElevenLabs not configured</p>
               <p className="text-amber-500/80 mt-0.5">
@@ -150,14 +150,20 @@ function TextToSpeechNodeComponent(props: NodeProps) {
 
         {/* Provider Selection */}
         <div>
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <label
+            htmlFor={`tts-provider-${id}`}
+            className="text-xs text-[var(--muted-foreground)]"
+          >
             Provider
           </label>
           <Select
             value={nodeData.provider}
             onValueChange={handleProviderChange}
           >
-            <SelectTrigger className="nodrag h-8 w-full">
+            <SelectTrigger
+              id={`tts-provider-${id}`}
+              className="nodrag h-8 w-full"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -172,11 +178,14 @@ function TextToSpeechNodeComponent(props: NodeProps) {
 
         {/* Voice Selection */}
         <div>
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <label
+            htmlFor={`tts-voice-${id}`}
+            className="text-xs text-[var(--muted-foreground)]"
+          >
             Voice
           </label>
           <Select value={nodeData.voice} onValueChange={handleVoiceChange}>
-            <SelectTrigger className="nodrag h-8 w-full">
+            <SelectTrigger id={`tts-voice-${id}`} className="nodrag h-8 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -191,10 +200,14 @@ function TextToSpeechNodeComponent(props: NodeProps) {
 
         {/* Stability Slider */}
         <div>
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <div
+            id={`tts-stability-${id}`}
+            className="text-xs text-[var(--muted-foreground)]"
+          >
             Stability: {Math.round(nodeData.stability * 100)}%
-          </label>
+          </div>
           <Slider
+            aria-labelledby={`tts-stability-${id}`}
             value={[nodeData.stability]}
             min={0}
             max={1}
@@ -210,10 +223,14 @@ function TextToSpeechNodeComponent(props: NodeProps) {
 
         {/* Similarity Boost Slider */}
         <div>
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <div
+            id={`tts-similarity-${id}`}
+            className="text-xs text-[var(--muted-foreground)]"
+          >
             Clarity: {Math.round(nodeData.similarityBoost * 100)}%
-          </label>
+          </div>
           <Slider
+            aria-labelledby={`tts-similarity-${id}`}
             value={[nodeData.similarityBoost]}
             min={0}
             max={1}
@@ -229,10 +246,14 @@ function TextToSpeechNodeComponent(props: NodeProps) {
 
         {/* Speed Slider */}
         <div>
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <div
+            id={`tts-speed-${id}`}
+            className="text-xs text-[var(--muted-foreground)]"
+          >
             Speed: {nodeData.speed.toFixed(1)}x
-          </label>
+          </div>
           <Slider
+            aria-labelledby={`tts-speed-${id}`}
             value={[nodeData.speed]}
             min={0.5}
             max={2}
@@ -259,9 +280,9 @@ function TextToSpeechNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="size-4 animate-spin" />
             ) : (
-              <Volume2 className="w-4 h-4" />
+              <Volume2 className="size-4" />
             )}
             {nodeData.status === 'processing'
               ? 'Generating...'
@@ -272,7 +293,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
         {/* Help text for required input */}
         {!canGenerate && nodeData.status !== 'processing' && (
           <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-            <AudioLines className="w-3 h-3" />
+            <AudioLines className="size-3" />
             Connect text input to generate speech
           </div>
         )}

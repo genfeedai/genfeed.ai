@@ -104,9 +104,9 @@ export function IngredientAlternativesCard({
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         {isImage ? (
-          <HiOutlinePhoto className="h-4 w-4 text-primary" />
+          <HiOutlinePhoto className="size-4 text-primary" />
         ) : (
-          <HiOutlineVideoCamera className="h-4 w-4 text-primary" />
+          <HiOutlineVideoCamera className="size-4 text-primary" />
         )}
         <span className="text-sm font-medium text-foreground">
           {action.title}
@@ -136,7 +136,7 @@ export function IngredientAlternativesCard({
               >
                 {isGeneratingThis && (
                   <div className="absolute inset-0 flex items-center justify-center bg-background/70">
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <div className="size-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   </div>
                 )}
                 <p className="mb-1 text-xs font-semibold text-foreground">
@@ -161,7 +161,7 @@ export function IngredientAlternativesCard({
               onClick={handleRetry}
               className="w-full"
             >
-              <HiArrowPath className="h-4 w-4" />
+              <HiArrowPath className="size-4" />
               Try Again
             </Button>
           </div>
@@ -196,7 +196,7 @@ export function IngredientAlternativesCard({
                 onClick={handleRetry}
                 className="flex-1"
               >
-                <HiArrowPath className="h-3 w-3" />
+                <HiArrowPath className="size-3" />
                 Try Another
               </Button>
             </div>

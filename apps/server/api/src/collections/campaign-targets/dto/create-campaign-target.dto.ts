@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   CampaignDiscoverySource,
   CampaignPlatform,
@@ -8,7 +9,6 @@ import { Type } from 'class-transformer';
 import {
   IsDate,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -17,7 +17,7 @@ import {
 } from 'class-validator';
 
 export class CreateCampaignTargetDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Organization that owns this target',
@@ -25,7 +25,7 @@ export class CreateCampaignTargetDto {
   })
   organization?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Campaign this target belongs to',
     required: true,

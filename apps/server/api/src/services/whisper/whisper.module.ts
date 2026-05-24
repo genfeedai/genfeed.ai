@@ -9,11 +9,11 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   exports: [WhisperService],
   imports: [
-    ConfigModule,
+    forwardRef(() => ConfigModule),
     forwardRef(() => FileQueueModule),
-    HttpModule,
-    LoggerModule,
-    ReplicateModule,
+    forwardRef(() => HttpModule),
+    forwardRef(() => LoggerModule),
+    forwardRef(() => ReplicateModule),
   ],
   providers: [WhisperService],
 })

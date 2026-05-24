@@ -3,6 +3,7 @@ import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  oxc: false, // Disable OXC transformer — SWC required for NestJS decorator metadata
   plugins: [
     swc.vite({
       jsc: {

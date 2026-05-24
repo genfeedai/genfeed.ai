@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { LabeledCreateDto } from '@api/shared/dto/base/base.dto';
 import {
   WorkflowRecurrenceType,
@@ -12,7 +13,6 @@ import {
   IsBoolean,
   IsDate,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsObject,
   IsOptional,
@@ -245,22 +245,6 @@ export class WorkflowRecurrenceDto {
 }
 
 export class CreateWorkflowDto extends LabeledCreateDto {
-  @IsMongoId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'The user ID who created this workflow',
-    required: false,
-  })
-  readonly user?: string;
-
-  @IsMongoId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'The organization ID that owns this workflow',
-    required: false,
-  })
-  readonly organization?: string;
-
   @IsArray()
   @IsOptional()
   @ApiProperty({
@@ -268,15 +252,6 @@ export class CreateWorkflowDto extends LabeledCreateDto {
     required: false,
   })
   readonly tags?: string[];
-
-  @IsString()
-  @ApiProperty({ description: 'Name of the workflow' })
-  readonly label!: string;
-
-  @IsString()
-  @IsOptional()
-  @ApiProperty({ description: 'Description of the workflow', required: false })
-  readonly description?: string;
 
   @IsString()
   @IsOptional()
@@ -296,7 +271,7 @@ export class CreateWorkflowDto extends LabeledCreateDto {
   })
   readonly trigger?: WorkflowTrigger;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Source asset that triggered the workflow',

@@ -10,6 +10,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   AssetScope,
   IngredientCategory,
@@ -22,16 +23,11 @@ import type {
 } from '@genfeedai/interfaces';
 import { IngredientSerializer, PostSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
-import { MongoMatchQuery } from '@libs/interfaces/query.interface';
+import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 @AutoSwagger()
 @Public()
@@ -66,31 +62,28 @@ export class PublicPostsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const matchQuery: MongoMatchQuery = {
+    const matchQuery: PrismaWhereQuery = {
       isDeleted: false,
       scope: AssetScope.PUBLIC,
       status: PostStatus.PUBLIC,
     };
 
     // Filter by ingredient if provided
-    if (ingredient && isValidObjectId(ingredient)) {
+    if (ingredient && isEntityId(ingredient)) {
       matchQuery.ingredient = ingredient;
     }
 
     // Filter by brand if provided
-    if (brand && isValidObjectId(brand)) {
+    if (brand && isEntityId(brand)) {
       matchQuery.brand = brand;
     }
 
     // Filter by tag if provided (assuming tags are stored in metadata)
     if (tag) {
-      matchQuery['metadata.tags'] = { $options: 'i', $regex: tag };
+      matchQuery['metadata.tags'] = { mode: 'insensitive', contains: tag };
     }
 
-    const aggregate: Record<string, unknown>[] = [
-      { $match: matchQuery },
-      { $sort: { createdAt: -1 } },
-    ];
+    const aggregate = { where: matchQuery, orderBy: { createdAt: -1 } };
 
     const data = await this.postsService.findAll(aggregate, options);
     return serializeCollection(request, PostSerializer, data);
@@ -108,7 +101,7 @@ export class PublicPostsController {
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    if (!isValidObjectId(postId)) {
+    if (!isEntityId(postId)) {
       return returnNotFound(this.constructorName, postId);
     }
 
@@ -148,7 +141,7 @@ export class PublicPostsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const matchQuery: MongoMatchQuery = {
+    const matchQuery: PrismaWhereQuery = {
       isDeleted: false,
       scope: AssetScope.PUBLIC,
       status: IngredientStatus.GENERATED,
@@ -163,66 +156,19 @@ export class PublicPostsController {
     }
 
     // Filter by brand if provided
-    if (brand && isValidObjectId(brand)) {
+    if (brand && isEntityId(brand)) {
       matchQuery.brand = brand;
     }
 
     // Filter by tag if provided
     if (tag) {
-      matchQuery['metadata.tags'] = { $options: 'i', $regex: tag };
+      matchQuery['metadata.tags'] = { mode: 'insensitive', contains: tag };
     }
 
-    const aggregate: Record<string, unknown>[] = [
-      { $match: matchQuery },
-      // Lookup metadata for label and tags
-      {
-        $lookup: {
-          as: 'metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // Lookup posts to aggregate metrics
-      {
-        $lookup: {
-          as: 'posts',
-          from: 'posts',
-          let: { ingredientId: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$ingredient', '$$ingredientId'] },
-                isDeleted: false,
-                status: PostStatus.PUBLIC,
-              },
-            },
-            {
-              $project: {
-                views: 1,
-              },
-            },
-          ],
-        },
-      },
-      // Add computed fields for aggregation
-      {
-        $addFields: {
-          engagementRate: 0,
-          totalImpressions: 0,
-          totalPosts: { $size: '$posts' },
-          totalViews: { $sum: '$posts.views' },
-        },
-      },
-      // Sort by most used (totalPosts) and then by creation date
-      { $sort: { createdAt: -1, totalPosts: -1 } },
-    ];
+    const aggregate = {
+      where: matchQuery,
+      orderBy: { createdAt: -1, totalPosts: -1 },
+    };
 
     const data = await this.ingredientsService.findAll(aggregate, options);
     return serializeCollection(request, IngredientSerializer, data);

@@ -28,7 +28,7 @@ export class PromptsService extends BaseService<
   }
 
   findOne(
-    params: QueryFilter<PromptDocument>,
+    params: Record<string, unknown>,
     populate: (string | PopulateOption)[] = [],
   ): Promise<PromptDocument | null> {
     return super.findOne(params, populate);

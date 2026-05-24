@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 describe('Card', () => {
   it('renders compact surface styling by default', () => {
     const { container } = render(<Card label="Surface">Body</Card>);
-    expect(container.firstChild).toHaveClass('border-white/[0.08]');
+    expect(container.firstChild).toHaveClass('shadow-border');
     expect(container.firstChild).toHaveClass('bg-card');
   });
 
@@ -30,8 +30,8 @@ describe('Card', () => {
   });
 
   it('renders keyboard-accessible interactive semantics when onClick is provided', () => {
-    const handleClick = vi.fn();
-    render(<Card label="Interactive" onClick={handleClick} />);
+    const activateCard = vi.fn();
+    render(<Card label="Interactive" onClick={activateCard} />);
 
     const interactiveSurface = screen.getByRole('button', {
       name: 'Interactive',
@@ -40,7 +40,7 @@ describe('Card', () => {
     fireEvent.keyDown(interactiveSurface, { key: 'Enter' });
     fireEvent.keyDown(interactiveSurface, { key: ' ' });
 
-    expect(handleClick).toHaveBeenCalledTimes(2);
+    expect(activateCard).toHaveBeenCalledTimes(2);
   });
 
   it('exposes stable ordering metadata when index is provided', () => {

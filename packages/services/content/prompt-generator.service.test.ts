@@ -16,10 +16,6 @@ import {
   PromptGeneratorService,
 } from '@services/content/prompt-generator.service';
 
-type PromptGeneratorServiceClass = typeof PromptGeneratorService & {
-  instances: Map<string, PromptGeneratorService>;
-};
-
 type MockFn = ReturnType<typeof vi.fn>;
 
 const mockCreate = vi.mocked(axios.create);
@@ -34,9 +30,6 @@ describe('PromptGeneratorService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (
-      PromptGeneratorService as unknown as PromptGeneratorServiceClass
-    ).instances.clear();
   });
 
   afterEach(() => {

@@ -36,7 +36,7 @@ export default function ModalFontFamily({
     serviceFactory: (token) => FontFamiliesService.getInstance(token),
   });
 
-  const handleChange = (
+  const updateModalFontFamily = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
@@ -64,7 +64,7 @@ export default function ModalFontFamily({
             type="text"
             name="label"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalFontFamily}
             placeholder="Enter display label"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -76,7 +76,7 @@ export default function ModalFontFamily({
             type="text"
             name="key"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalFontFamily}
             placeholder="lowercase-with-hyphens"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -90,7 +90,7 @@ export default function ModalFontFamily({
           <Input
             name="description"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalFontFamily}
             placeholder="Enter description (optional)"
             isDisabled={isSubmitting}
           />

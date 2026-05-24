@@ -1,8 +1,8 @@
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { ConfigService } from '@api/config/config.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
 import { ByokBillingStatus, CreditTransactionCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -291,12 +291,11 @@ export class ByokBillingService {
 
         invoiceItemId = invoiceItem.id;
 
-        // @ts-expect-error TS2769
         const invoice = await this.stripeService.stripe.invoices.create({
           auto_advance: true,
           collection_method: 'charge_automatically',
           customer: subscription.stripeCustomerId,
-          metadata,
+          metadata: metadata as unknown as Record<string, string>,
         });
 
         await this.stripeService.stripe.invoices.finalizeInvoice(invoice.id);

@@ -1,8 +1,4 @@
-import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MembersModule } from '@api/collections/members/members.module';
-import { MetadataModule } from '@api/collections/metadata/metadata.module';
-import { PromptsModule } from '@api/collections/prompts/prompts.module';
-import { UsersModule } from '@api/collections/users/users.module';
 import { ConfigModule } from '@api/config/config.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { TaskQueueClientService } from '@api/services/task-queue-client/task-queue-client.service';
@@ -47,23 +43,18 @@ class AxiosErrorInterceptorSetup implements OnModuleInit {
 @Global()
 @Module({
   exports: [
-    ConfigModule,
-    HttpModule,
-    MembersModule,
-    NotificationsPublisherModule,
+    forwardRef(() => ConfigModule),
+    forwardRef(() => HttpModule),
+    forwardRef(() => MembersModule),
+    forwardRef(() => NotificationsPublisherModule),
     SharedService,
     TaskQueueClientService,
   ],
   imports: [
-    ConfigModule,
-    HttpModule,
-    NotificationsPublisherModule,
-
-    forwardRef(() => IngredientsModule),
+    forwardRef(() => ConfigModule),
+    forwardRef(() => HttpModule),
     forwardRef(() => MembersModule),
-    forwardRef(() => MetadataModule),
-    forwardRef(() => PromptsModule),
-    forwardRef(() => UsersModule),
+    forwardRef(() => NotificationsPublisherModule),
   ],
   providers: [
     AxiosErrorInterceptorSetup,

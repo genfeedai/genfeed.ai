@@ -70,7 +70,7 @@ export const AnalyticsView = ({ workspaceId }: AnalyticsViewProps) => {
         </div>
       </div>
 
-      {loading && <p className="muted-text">Loading analytics...</p>}
+      {loading && <p className="muted-text">Loading analytics…</p>}
       {error && <div className="error-banner">{error}</div>}
 
       {!loading && analytics && (

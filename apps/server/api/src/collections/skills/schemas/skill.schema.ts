@@ -1,7 +1,6 @@
-export type {
-  Skill,
-  Skill as SkillDocument,
-} from '@genfeedai/prisma';
+import type { Skill } from '@genfeedai/prisma';
+
+export type { Skill } from '@genfeedai/prisma';
 
 export const SKILL_MODALITIES = [
   'text',
@@ -32,3 +31,15 @@ export const SKILL_WORKFLOW_STAGES = [
 
 export const SKILL_SOURCES = ['built_in', 'imported', 'custom'] as const;
 export const SKILL_STATUSES = ['draft', 'published', 'disabled'] as const;
+
+export interface SkillDocument extends Skill {
+  _id: string;
+  channels?: string[];
+  modalities?: string[];
+  name?: string;
+  requiredProviders?: string[];
+  reviewDefaults?: Record<string, unknown>;
+  slug?: string;
+  workflowStage?: string;
+  [key: string]: unknown;
+}

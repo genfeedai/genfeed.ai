@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
 import { PerformanceMetrics } from '@api/shared/interfaces/performance/performance.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -23,6 +24,35 @@ export class PerformanceInterceptor implements NestInterceptor {
     @Optional() private readonly memoryMonitor?: MemoryMonitorService,
   ) {}
 
+  private readError(error: unknown): {
+    message?: string;
+    name?: string;
+    stack?: string;
+    status?: number;
+  } {
+    if (error instanceof Error) {
+      return {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        status: (error as Error & { status?: number }).status,
+      };
+    }
+
+    if (typeof error === 'object' && error !== null) {
+      const record = error as Record<string, unknown>;
+      return {
+        message:
+          typeof record.message === 'string' ? record.message : undefined,
+        name: typeof record.name === 'string' ? record.name : undefined,
+        stack: typeof record.stack === 'string' ? record.stack : undefined,
+        status: typeof record.status === 'number' ? record.status : undefined,
+      };
+    }
+
+    return {};
+  }
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const now = Date.now();
     const request = context.switchToHttp().getRequest();
@@ -35,11 +65,12 @@ export class PerformanceInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap({
         error: (error: unknown) => {
+          const errorDetails = this.readError(error);
           this.logPerformance(
             now,
             method,
             url,
-            error.status || 500,
+            errorDetails.status ?? 500,
             userAgent,
             userId,
             error,
@@ -92,13 +123,14 @@ export class PerformanceInterceptor implements NestInterceptor {
       isSlow && this.memoryMonitor
         ? this.memoryMonitor.getMemoryStats()
         : undefined;
+    const errorDetails = error ? this.readError(error) : undefined;
 
     // Log based on performance thresholds
     if (isVerySlow) {
       this.logger.warn('Very slow request detected', {
         ...metrics,
         severity: 'HIGH',
-        ...(error && { error: error.message }),
+        ...(errorDetails?.message && { error: errorDetails.message }),
         ...(memoryStats && {
           memory: memoryStats,
           memoryWarning:
@@ -111,7 +143,7 @@ export class PerformanceInterceptor implements NestInterceptor {
       this.logger.warn('Slow request detected', {
         ...metrics,
         severity: 'MEDIUM',
-        ...(error && { error: error.message }),
+        ...(errorDetails?.message && { error: errorDetails.message }),
         ...(memoryStats && {
           memory: memoryStats,
           memoryWarning:
@@ -125,7 +157,7 @@ export class PerformanceInterceptor implements NestInterceptor {
       this.logger.debug('Request completed', {
         ...metrics,
         severity: 'LOW',
-        ...(error && { error: error.message }),
+        ...(errorDetails?.message && { error: errorDetails.message }),
       });
     }
 
@@ -134,9 +166,9 @@ export class PerformanceInterceptor implements NestInterceptor {
       this.logger.error('Request failed', {
         ...metrics,
         error: {
-          message: error.message,
-          name: error.name,
-          stack: error.stack,
+          message: errorDetails?.message,
+          name: errorDetails?.name,
+          stack: errorDetails?.stack,
         },
       });
     }
@@ -187,7 +219,7 @@ export class APIMetricsInterceptor implements NestInterceptor {
   private extractEndpoint(url: string): string {
     // Extract endpoint pattern (e.g., /v1/videos/:id becomes /v1/videos/*)
     return url
-      .replace(/\/[0-9a-fA-F]{24}/g, '/*') // MongoDB ObjectIds
+      .replace(/\/[0-9a-fA-F]{24}/g, '/*') // entity IDs
       .replace(/\/\d+/g, '/*') // Numeric IDs
       .replace(/\/[a-zA-Z0-9-_]+$/g, '/*'); // Generic IDs at the end
   }

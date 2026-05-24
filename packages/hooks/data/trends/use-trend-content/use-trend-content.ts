@@ -8,7 +8,7 @@ import type {
 } from '@genfeedai/props/trends/trends-page.props';
 import { TrendsService } from '@genfeedai/services/social/trends.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 
 const EMPTY_SUMMARY: TrendsSummary = {
@@ -29,30 +29,30 @@ export interface UseTrendContentReturn {
 
 export function useTrendContent(platform?: string): UseTrendContentReturn {
   const brandId = useBrandId();
+  const queryClient = useQueryClient();
 
   const getTrendsService = useAuthedService((token: string) =>
     TrendsService.getInstance(token),
   );
 
+  const queryKey = ['trend-content', brandId, platform];
+
   const {
     data: response,
     error,
     isLoading,
-    isRefreshing,
-    mutate,
-  } = useResource<TrendContentResponse>(
-    async () => {
+    isFetching,
+  } = useQuery<TrendContentResponse>({
+    queryKey,
+    queryFn: async () => {
       const service = await getTrendsService();
       return service.getTrendContent({ platform });
     },
-    {
-      defaultValue: {
-        items: [],
-        summary: EMPTY_SUMMARY,
-      },
-      dependencies: [brandId, platform],
+    initialData: {
+      items: [],
+      summary: EMPTY_SUMMARY,
     },
-  );
+  });
 
   const refreshTrendContent = useCallback(async () => {
     const service = await getTrendsService();
@@ -60,8 +60,8 @@ export function useTrendContent(platform?: string): UseTrendContentReturn {
       platform,
       refresh: true,
     });
-    mutate(refreshed);
-  }, [getTrendsService, mutate, platform]);
+    queryClient.setQueryData(queryKey, refreshed);
+  }, [getTrendsService, platform, queryClient, queryKey]);
 
   const items = useMemo(() => response.items || [], [response.items]);
   const summary = useMemo(
@@ -72,7 +72,7 @@ export function useTrendContent(platform?: string): UseTrendContentReturn {
   return {
     error,
     isLoading,
-    isRefreshing,
+    isRefreshing: isFetching && !isLoading,
     items,
     refreshTrendContent,
     summary,

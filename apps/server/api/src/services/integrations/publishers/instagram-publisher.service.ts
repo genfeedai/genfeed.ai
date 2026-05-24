@@ -6,6 +6,7 @@ import { BasePublisherService } from '@api/services/integrations/publishers/base
 import type {
   PublishContext,
   PublishResult,
+  ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -134,7 +135,7 @@ export class InstagramPublisherService extends BasePublisherService {
    */
   async publishThreadChildren(
     context: PublishContext,
-    children: unknown[],
+    children: ThreadChild[],
     parentExternalId: string,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;

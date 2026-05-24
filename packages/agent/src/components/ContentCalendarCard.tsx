@@ -25,7 +25,7 @@ export function ContentCalendarCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiCalendar className="h-5 w-5 text-teal-500" />
+        <HiCalendar className="size-5 text-teal-500" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Content Calendar'}
         </h3>
@@ -67,13 +67,13 @@ export function ContentCalendarCard({
                     variant={ButtonVariant.UNSTYLED}
                     withWrapper={false}
                     onClick={() => onFillGap?.(day.date)}
-                    className="mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-teal-50 text-teal-600 transition-colors hover:bg-teal-100 dark:bg-teal-900/30 dark:text-teal-400"
+                    className="mt-1 flex size-5 items-center justify-center rounded-full bg-teal-50 text-teal-600 transition-colors hover:bg-teal-100 dark:bg-teal-900/30 dark:text-teal-400"
                     tooltip="Fill Gap"
                   >
-                    <HiPlus className="h-3 w-3" />
+                    <HiPlus className="size-3" />
                   </Button>
                 ) : (
-                  <span className="mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-teal-500/10 text-[10px] font-medium text-teal-600 dark:text-teal-400">
+                  <span className="mt-1 flex size-5 items-center justify-center rounded-full bg-teal-500/10 text-[10px] font-medium text-teal-600 dark:text-teal-400">
                     {day.postCount}
                   </span>
                 )}

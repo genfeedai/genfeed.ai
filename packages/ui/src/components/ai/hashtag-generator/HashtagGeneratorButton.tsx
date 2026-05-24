@@ -88,10 +88,10 @@ export default function HashtagGeneratorButton({
       maxWidth="360px"
       trigger={
         <Button
-          icon={<HiHashtag className="w-4 h-4" />}
+          icon={<HiHashtag className="size-4" />}
           variant={ButtonVariant.SECONDARY}
           size={ButtonSize.ICON}
-          className={`h-9 w-9 min-h-0 p-0 ${className}`}
+          className={`size-9 min-h-0 p-0 ${className}`}
           tooltip="Generate hashtags"
           tooltipPosition="top"
           isDisabled={isDisabled || !content.trim()}
@@ -117,7 +117,7 @@ export default function HashtagGeneratorButton({
           <div className="flex items-center justify-center py-6">
             <Spinner size={ComponentSize.SM} />
             <span className="ml-2 text-sm text-foreground/60">
-              Generating hashtags...
+              Generating hashtags…
             </span>
           </div>
         )}

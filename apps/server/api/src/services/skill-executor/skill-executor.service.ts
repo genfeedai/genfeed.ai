@@ -5,6 +5,7 @@ import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-fac
 import { ContentWritingHandler } from '@api/services/skill-executor/handlers/content-writing.handler';
 import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
 import { TrendDiscoveryHandler } from '@api/services/skill-executor/handlers/trend-discovery.handler';
+import { TrendRemixHandler } from '@api/services/skill-executor/handlers/trend-remix.handler';
 import type {
   GatewayExecutionContext,
   GatewayExecutionResult,
@@ -12,7 +13,11 @@ import type {
   SkillExecutionResult,
   SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
-import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
+import {
+  ByokProvider,
+  ContentRunSource,
+  ContentRunStatus,
+} from '@genfeedai/enums';
 import type {
   ContentRunBrief,
   ContentRunPublishContext,
@@ -31,11 +36,13 @@ export class SkillExecutorService {
     contentWritingHandler: ContentWritingHandler,
     imageGenerationHandler: ImageGenerationHandler,
     trendDiscoveryHandler: TrendDiscoveryHandler,
+    trendRemixHandler: TrendRemixHandler,
   ) {
     this.handlers = {
       'content-writing': contentWritingHandler,
       'image-generation': imageGenerationHandler,
       'trend-discovery': trendDiscoveryHandler,
+      'trend-remix': trendRemixHandler,
     };
   }
 
@@ -46,7 +53,7 @@ export class SkillExecutorService {
   ): Promise<SkillExecutionResult> {
     const startedAt = Date.now();
 
-    const skill = await this.skillsService.getSkillBySlug(
+    const skill = await this.skillsService.getSkillById(
       context.organizationId,
       skillSlug,
     );
@@ -98,9 +105,12 @@ export class SkillExecutorService {
       );
     }
 
-    let source: 'byok' | 'hosted' = 'hosted';
+    let source: 'byok' | 'hosted' | 'managed' = 'hosted';
 
-    const requiredProviders = skill.requiredProviders ?? [];
+    const requiredProviders = (skill.requiredProviders ?? []).filter(
+      (provider): provider is ByokProvider =>
+        Object.values(ByokProvider).includes(provider as ByokProvider),
+    );
 
     if (requiredProviders.length > 0) {
       const resolution = await this.byokProviderFactoryService.resolveProvider(
@@ -119,10 +129,9 @@ export class SkillExecutorService {
         String(run._id),
         {
           duration,
-          output: draft,
+          output: draft as unknown as Record<string, unknown>,
           variants: this.buildRunVariants(draft, String(run._id)),
-          source:
-            source === 'byok' ? ContentRunSource.BYOK : ContentRunSource.HOSTED,
+          source: this.toContentRunSource(source),
           status: ContentRunStatus.COMPLETED,
         },
       );
@@ -145,8 +154,7 @@ export class SkillExecutorService {
             error instanceof Error
               ? error.message
               : 'Unknown skill execution error',
-          source:
-            source === 'byok' ? ContentRunSource.BYOK : ContentRunSource.HOSTED,
+          source: this.toContentRunSource(source),
           status: ContentRunStatus.FAILED,
         },
       );
@@ -202,7 +210,7 @@ export class SkillExecutorService {
       const draft = await handler.execute(executionContext, params ?? {});
 
       await this.contentRunsService.patchRun(context.organizationId, runId, {
-        output: draft,
+        output: draft as unknown as Record<string, unknown>,
         status: ContentRunStatus.COMPLETED,
         variants: this.buildRunVariants(draft, runId),
       });
@@ -239,9 +247,14 @@ export class SkillExecutorService {
       angle: this.getString(params.angle),
       audience: this.getString(params.audience),
       callToAction: this.getString(params.callToAction),
+      channelFit: this.getString(params.channelFit),
+      confidence: this.getNumber(params.confidence),
       evidence: this.getStringArray(params.evidence),
       hypothesis: this.getString(params.hypothesis),
       notes: this.getString(params.notes),
+      risk: this.getString(params.risk),
+      sourceId: this.getString(params.sourceId ?? params.sourceReferenceId),
+      sourceUrl: this.getString(params.sourceUrl),
     };
 
     return Object.values(brief).some((value) =>
@@ -249,6 +262,20 @@ export class SkillExecutorService {
     )
       ? brief
       : undefined;
+  }
+
+  private toContentRunSource(
+    source: 'byok' | 'hosted' | 'managed',
+  ): ContentRunSource {
+    if (source === 'byok') {
+      return ContentRunSource.BYOK;
+    }
+
+    if (source === 'managed') {
+      return ContentRunSource.MANAGED;
+    }
+
+    return ContentRunSource.HOSTED;
   }
 
   private buildRunPublishContext(
@@ -297,6 +324,29 @@ export class SkillExecutorService {
     draft: SkillExecutionResult['draft'],
     runId: string,
   ): ContentRunVariant[] {
+    const remixPackVariants = this.getRecords(draft.metadata.remixPackVariants);
+    if (remixPackVariants.length > 0) {
+      const draftMetadata = { ...draft.metadata };
+      delete draftMetadata.remixPackVariants;
+
+      return remixPackVariants.map((variant, index) => ({
+        angle: this.getString(variant.angle),
+        assetIds: this.getStringArray(variant.assetIds),
+        content: this.getString(variant.content) ?? draft.content,
+        format: this.getString(variant.format),
+        hypothesis: this.getString(variant.hypothesis),
+        id: `${runId}-${draft.skillSlug}-${this.getString(variant.format) ?? index + 1}`,
+        metadata: {
+          ...draftMetadata,
+          ...(this.getRecord(variant.metadata) ?? {}),
+          remixPack: true,
+        },
+        platform: this.getString(variant.platform) ?? 'unspecified',
+        status: this.getString(variant.status) ?? 'generated',
+        type: this.getString(variant.type) ?? draft.type,
+      }));
+    }
+
     const platforms =
       draft.platforms.length > 0 ? draft.platforms : ['unspecified'];
     const assetIds = this.getStringArray(draft.metadata.assetIds);
@@ -339,6 +389,30 @@ export class SkillExecutorService {
     return value && typeof value === 'object' && !Array.isArray(value)
       ? (value as Record<string, unknown>)
       : undefined;
+  }
+
+  private getRecords(value: unknown): Record<string, unknown>[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.filter(
+      (item): item is Record<string, unknown> =>
+        item !== null && typeof item === 'object' && !Array.isArray(item),
+    );
+  }
+
+  private getNumber(value: unknown): number | undefined {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string' && value.trim().length > 0) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    }
+
+    return undefined;
   }
 
   private getDate(value: unknown): Date | undefined {

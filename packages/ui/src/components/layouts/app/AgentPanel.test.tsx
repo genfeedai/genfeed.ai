@@ -82,8 +82,32 @@ vi.mock('@genfeedai/agent/components/AgentOutputsPanel', () => ({
   AgentOutputsPanel: () => <div data-testid="agent-outputs-panel" />,
 }));
 
+vi.mock('@genfeedai/agent/components/AgentCliTerminal', () => ({
+  AgentCliTerminalBody: () => <div data-testid="agent-cli-terminal" />,
+  AgentCliTerminalControls: () => (
+    <div data-testid="agent-cli-terminal-controls" />
+  ),
+  useAgentCliTerminal: () => ({
+    activeKind: 'shell',
+    activeSessionId: null,
+    containerRef: { current: null },
+    cwdInput: '',
+    isSearchOpen: false,
+    killSession: () => undefined,
+    searchQuery: '',
+    sessions: [],
+    setCwdInput: () => undefined,
+    setSearchQuery: () => undefined,
+    startSession: () => undefined,
+    status: '',
+    submitCwd: () => undefined,
+    switchSession: () => undefined,
+    toggleSearch: () => undefined,
+  }),
+}));
+
 describe('AgentPanel', () => {
-  it('fetches credits on mount and renders chat container', async () => {
+  it('fetches credits on mount and renders the terminal', async () => {
     const apiService = {
       getCreditsInfoEffect: vi.fn().mockResolvedValue({
         balance: 123,
@@ -101,11 +125,12 @@ describe('AgentPanel', () => {
     expect(mockSetCreditsRemaining).toHaveBeenCalledWith(123);
     expect(mockSetModelCosts).toHaveBeenCalledWith({});
 
-    expect(screen.getByTestId('agent-chat-container')).toBeInTheDocument();
+    // Default mode is CLI — AgentCliTerminal renders instead of AgentChatContainer
+    expect(screen.getByTestId('agent-cli-terminal')).toBeInTheDocument();
     expect(screen.getByTestId('agent-outputs-panel')).toBeInTheDocument();
   });
 
-  it('renders toggle button that calls toggleOpen from store', async () => {
+  it('renders terminal toggle button that calls toggleOpen from store', async () => {
     const apiService = {
       getCreditsInfoEffect: vi.fn().mockResolvedValue({
         balance: 123,
@@ -120,7 +145,7 @@ describe('AgentPanel', () => {
       expect(apiService.getCreditsInfoEffect).toHaveBeenCalledTimes(1);
     });
 
-    fireEvent.click(screen.getByLabelText('Collapse quick ask panel'));
+    fireEvent.click(screen.getByLabelText('Collapse terminal'));
     expect(mockToggleOpen).toHaveBeenCalledTimes(1);
   });
 });

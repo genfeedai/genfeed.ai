@@ -11,7 +11,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import type { User } from '@clerk/backend';
 import { ApiKeyFullSerializer, ApiKeySerializer } from '@genfeedai/serializers';
 import {
@@ -59,14 +58,12 @@ export class ApiKeysController {
 
     // Check if user has reached API key limit (e.g., 10 keys)
     const existingKeys = await this.apiKeysService.findAll(
-      [
-        {
-          $match: {
-            isRevoked: false,
-            userId: publicMetadata.user,
-          },
+      {
+        where: {
+          isRevoked: false,
+          userId: publicMetadata.user,
         },
-      ],
+      },
       { limit: 100, page: 1 },
     );
 
@@ -113,21 +110,21 @@ export class ApiKeysController {
     const publicMetadata = getPublicMetadata(user);
     const queryAny = query as unknown as Record<string, string | undefined>;
 
-    const pipeline = PipelineBuilder.create()
-      .match({
+    const findAllQuery = {
+      orderBy: { createdAt: -1 },
+      where: {
         isRevoked: false,
         userId: publicMetadata.user,
         ...(queryAny.label && {
-          label: { $options: 'i', $regex: queryAny.label },
+          label: { mode: 'insensitive', contains: queryAny.label },
         }),
         ...(queryAny.description && {
-          description: { $options: 'i', $regex: queryAny.description },
+          description: { mode: 'insensitive', contains: queryAny.description },
         }),
-      })
-      .sort({ createdAt: -1 })
-      .build();
+      },
+    };
 
-    const result = await this.apiKeysService.findAll(pipeline, {
+    const result = await this.apiKeysService.findAll(findAllQuery, {
       limit: query.limit || 10,
       page: query.page || 1,
     });
@@ -151,18 +148,18 @@ export class ApiKeysController {
     };
 
     // Find keys with MCP in label or description
-    const aggregate = PipelineBuilder.create()
-      .match({
-        $or: [
-          { label: { $options: 'i', $regex: 'mcp' } },
-          { description: { $options: 'i', $regex: 'mcp' } },
+    const findAllQuery = {
+      where: {
+        OR: [
+          { label: { mode: 'insensitive', contains: 'mcp' } },
+          { description: { mode: 'insensitive', contains: 'mcp' } },
         ],
         isRevoked: false,
         userId: publicMetadata.user,
-      })
-      .build();
+      },
+    };
 
-    const result = await this.apiKeysService.findAll(aggregate, options);
+    const result = await this.apiKeysService.findAll(findAllQuery, options);
 
     return serializeCollection(request, ApiKeySerializer, result);
   }

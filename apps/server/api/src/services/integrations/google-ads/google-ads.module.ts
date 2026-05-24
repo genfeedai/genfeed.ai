@@ -1,5 +1,5 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { GoogleAdsController } from '@api/services/integrations/google-ads/controllers/google-ads.controller';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { GoogleAdsOAuthService } from '@api/services/integrations/google-ads/services/google-ads-oauth.service';
@@ -11,15 +11,15 @@ const BaseModule = createServiceModule(GoogleAdsService, {
   additionalImports: [
     HttpModule,
     forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsModule),
+    forwardRef(() => CredentialsCoreModule),
   ],
   additionalProviders: [GoogleAdsOAuthService],
 });
 
 @Module({
   controllers: [GoogleAdsController],
-  exports: [...(BaseModule.exports as unknown[]), GoogleAdsOAuthService],
-  imports: BaseModule.imports,
-  providers: BaseModule.providers,
+  exports: [GoogleAdsService, GoogleAdsOAuthService],
+  imports: BaseModule.imports ?? [],
+  providers: BaseModule.providers ?? [],
 })
 export class GoogleAdsModule {}

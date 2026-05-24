@@ -1,12 +1,12 @@
 'use client';
 
-import { useGrowthBookClientStatus } from '@genfeedai/hooks/feature-flags/provider';
+import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import { useFeatureFlag } from '@genfeedai/hooks/feature-flags/use-feature-flag';
 import type { FeatureGateProps } from '@genfeedai/props/guards/feature-gate.props';
 import Link from 'next/link';
 
 export default function FeatureGate({ flagKey, children }: FeatureGateProps) {
-  const { isConfigured, isReady } = useGrowthBookClientStatus();
+  const { isConfigured, isReady } = useFeatureFlagContext();
   const isEnabled = useFeatureFlag(flagKey);
 
   if (!isConfigured) {

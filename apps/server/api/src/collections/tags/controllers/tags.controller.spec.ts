@@ -58,74 +58,66 @@ describe('TagsController', () => {
     expect(controller.optimizedPopulateFields).toHaveLength(2);
   });
 
-  describe('buildFindAllPipeline', () => {
+  describe('buildFindAllQuery', () => {
     it('should include global tags OR conditions', () => {
-      const query = { isDeleted: false } as TagsQueryDto;
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+      const inputQuery = { isDeleted: false } as TagsQueryDto;
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
-      expect(pipeline).toBeInstanceOf(Array);
-      expect(pipeline.length).toBeGreaterThanOrEqual(2); // $match + $sort
-
-      const matchStage = pipeline[0] as Record<string, Record<string, unknown>>;
-      expect(matchStage.$match.$or).toBeDefined();
+      expect(query).toHaveProperty('orderBy');
+      expect(query.where.OR).toBeDefined();
     });
 
     it('should filter by category when provided', () => {
-      const query = {
+      const inputQuery = {
         category: 'hashtag',
         isDeleted: false,
       } as unknown as TagsQueryDto;
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
-      const matchStage = pipeline[0] as Record<string, Record<string, unknown>>;
-      expect(matchStage.$match.category).toBe('hashtag');
+      expect(query.where.category).toBe('hashtag');
     });
 
     it('should filter by brand when provided', () => {
-      const query = {
+      const inputQuery = {
         brand: brandId,
         isDeleted: false,
       } as unknown as TagsQueryDto;
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
-      const matchStage = pipeline[0] as Record<string, Record<string, unknown>>;
-      expect(matchStage.$match.brand).toEqual(expect.any(String));
+      expect(query.where.brand).toEqual(expect.any(String));
     });
 
-    it('should add search condition with $and when search is provided', () => {
-      const query = {
+    it('should add search condition with AND when search is provided', () => {
+      const inputQuery = {
         isDeleted: false,
         search: 'trending',
       } as unknown as TagsQueryDto;
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
-      const matchStage = pipeline[0] as Record<string, Record<string, unknown>>;
-      expect(matchStage.$match.$and).toBeDefined();
+      expect(query.where.AND).toBeDefined();
     });
 
     it('should use label filter when search is not provided but label is', () => {
-      const query = {
+      const inputQuery = {
         isDeleted: false,
         label: 'test',
       } as unknown as TagsQueryDto;
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
-      const matchStage = pipeline[0] as Record<string, Record<string, unknown>>;
-      expect(matchStage.$match.label).toBeDefined();
-      expect(matchStage.$match.$and).toBeUndefined();
+      expect(query.where.label).toBeDefined();
+      expect(query.where.AND).toBeUndefined();
     });
 
     it('should prefer search over label when both are provided', () => {
-      const query = {
+      const inputQuery = {
         isDeleted: false,
         label: 'specific',
         search: 'general',
       } as unknown as TagsQueryDto;
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
-      const matchStage = pipeline[0] as Record<string, Record<string, unknown>>;
-      expect(matchStage.$match.$and).toBeDefined();
-      expect(matchStage.$match.label).toBeUndefined();
+      expect(query.where.AND).toBeDefined();
+      expect(query.where.label).toBeUndefined();
     });
   });
 

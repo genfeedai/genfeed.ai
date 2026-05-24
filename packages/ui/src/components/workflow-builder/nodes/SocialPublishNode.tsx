@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { ExternalLink, Share2 } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useId } from 'react';
 
 // Cloud-specific types (to be defined in workflow-saas)
 export type SocialPlatform =
@@ -69,6 +69,10 @@ function SocialPublishNodeComponent({
   onUpdate,
   onExecute,
 }: SocialPublishNodeProps) {
+  const titleId = useId();
+  const descriptionId = useId();
+  const tagsId = useId();
+  const visibilityId = useId();
   const handlePlatformChange = useCallback(
     (platform: SocialPlatform) => {
       onUpdate(id, { platform });
@@ -92,10 +96,10 @@ function SocialPublishNodeComponent({
 
   const handleTagsChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const tags = e.target.value
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean);
+      const tags = e.target.value.split(',').flatMap((t) => {
+        const s = t.trim();
+        return s ? [s] : [];
+      });
       onUpdate(id, { tags });
     },
     [id, onUpdate],
@@ -128,33 +132,43 @@ function SocialPublishNodeComponent({
 
       {/* Title */}
       <div>
-        <label className="text-xs text-muted-foreground">Title</label>
+        <label htmlFor={titleId} className="text-xs text-muted-foreground">
+          Title
+        </label>
         <Input
+          id={titleId}
           type="text"
           value={data.title}
           onChange={handleTitleChange}
-          placeholder="Video title..."
+          placeholder="Video title…"
           className="mt-1"
         />
       </div>
 
       {/* Description */}
       <div>
-        <label className="text-xs text-muted-foreground">Description</label>
+        <label
+          htmlFor={descriptionId}
+          className="text-xs text-muted-foreground"
+        >
+          Description
+        </label>
         <Textarea
+          id={descriptionId}
           value={data.description}
           onChange={handleDescriptionChange}
-          placeholder="Video description..."
+          placeholder="Video description…"
           className="w-full h-16 px-2 py-1.5 text-sm bg-background border border-white/[0.08] resize-none focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
 
       {/* Tags */}
       <div>
-        <label className="text-xs text-muted-foreground">
+        <label htmlFor={tagsId} className="text-xs text-muted-foreground">
           Tags (comma-separated)
         </label>
         <Input
+          id={tagsId}
           type="text"
           value={data.tags.join(', ')}
           onChange={handleTagsChange}
@@ -165,14 +179,16 @@ function SocialPublishNodeComponent({
 
       {/* Visibility */}
       <div>
-        <label className="text-xs text-muted-foreground">Visibility</label>
+        <label htmlFor={visibilityId} className="text-xs text-muted-foreground">
+          Visibility
+        </label>
         <Select
           value={data.visibility}
           onValueChange={(value) =>
             onUpdate(id, { visibility: value as SocialVisibility })
           }
         >
-          <SelectTrigger className="mt-1">
+          <SelectTrigger id={visibilityId} className="mt-1">
             <SelectValue placeholder="Select visibility" />
           </SelectTrigger>
           <SelectContent>
@@ -193,7 +209,7 @@ function SocialPublishNodeComponent({
           rel="noopener noreferrer"
           className="flex items-center gap-2 p-2 bg-green-500/10 border border-green-500/20 text-green-400 text-sm hover:bg-green-500/20 transition"
         >
-          <ExternalLink className="w-4 h-4" />
+          <ExternalLink className="size-4" />
           View Published Video
         </a>
       )}
@@ -207,7 +223,7 @@ function SocialPublishNodeComponent({
           variant={ButtonVariant.UNSTYLED}
           className="w-full py-2 bg-primary text-white text-sm font-medium hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Share2 className="w-4 h-4" />
+          <Share2 className="size-4" />
           Publish to {PLATFORMS.find((p) => p.value === data.platform)?.label}
         </Button>
       )}

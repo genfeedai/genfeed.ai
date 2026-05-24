@@ -236,20 +236,12 @@ describe('AnalyticsController', () => {
       expect(postsService.findAll).toHaveBeenCalled();
       expect(brandsService.findAll).toHaveBeenCalled();
       expect(ingredientsService.findAll).toHaveBeenCalledTimes(2);
-      expect(ingredientsService.findAll.mock.calls[0][0]).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            $match: { category: IngredientCategory.VIDEO },
-          }),
-        ]),
-      );
-      expect(ingredientsService.findAll.mock.calls[1][0]).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            $match: { category: IngredientCategory.IMAGE },
-          }),
-        ]),
-      );
+      expect(ingredientsService.findAll.mock.calls[0][0]).toEqual({
+        where: { category: IngredientCategory.VIDEO },
+      });
+      expect(ingredientsService.findAll.mock.calls[1][0]).toEqual({
+        where: { category: IngredientCategory.IMAGE },
+      });
       expect(result).toBeDefined();
     });
   });

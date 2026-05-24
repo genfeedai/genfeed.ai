@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
@@ -21,6 +22,10 @@ import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const ONBOARDING_JOURNEY_REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
+const PRISMA_POST_STATUS = {
+  PUBLIC: 'PUBLIC',
+  SCHEDULED: 'SCHEDULED',
+} as const;
 
 @Injectable()
 export class PostsService extends BaseService<
@@ -158,10 +163,12 @@ export class PostsService extends BaseService<
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PostDocument> {
-    const isPublishingPost = dto.status === PostStatus.PUBLIC;
+    const normalizedStatus =
+      typeof dto.status === 'string' ? dto.status.toLowerCase() : undefined;
+    const isPublishingPost = normalizedStatus === PostStatus.PUBLIC;
     let currentPost: PostDocument | null = null;
 
-    if (dto.status === PostStatus.SCHEDULED || isPublishingPost) {
+    if (normalizedStatus === PostStatus.SCHEDULED || isPublishingPost) {
       currentPost = await this.findOne({ _id: id });
     }
 
@@ -207,12 +214,12 @@ export class PostsService extends BaseService<
     }
 
     // If parent post is being scheduled, automatically schedule all children
-    if (dto.status === PostStatus.SCHEDULED) {
+    if (normalizedStatus === PostStatus.SCHEDULED) {
       if (currentPost && !currentPost.parent) {
         // Find all children and update them to SCHEDULED
         const updateResult = await this.prisma.post.updateMany({
           data: {
-            status: PostStatus.SCHEDULED,
+            status: PRISMA_POST_STATUS.SCHEDULED,
             ...(normalizedDto.scheduledDate && {
               scheduledDate: normalizedDto.scheduledDate as Date,
             }),
@@ -220,7 +227,7 @@ export class PostsService extends BaseService<
           where: {
             isDeleted: false,
             parentId: id,
-            status: { not: PostStatus.PUBLIC },
+            status: { not: PRISMA_POST_STATUS.PUBLIC },
           },
         });
 
@@ -237,8 +244,8 @@ export class PostsService extends BaseService<
     if (
       isPublishingPost &&
       updatedPost &&
-      updatedPost.status === PostStatus.PUBLIC &&
-      currentPost?.status !== PostStatus.PUBLIC
+      String(updatedPost.status).toLowerCase() === PostStatus.PUBLIC &&
+      String(currentPost?.status ?? '').toLowerCase() !== PostStatus.PUBLIC
     ) {
       await this.completePublishFirstPostMission(updatedPost);
     }
@@ -268,7 +275,7 @@ export class PostsService extends BaseService<
     }
 
     const missions = this.organizationSettingsService.normalizeJourneyState(
-      settings.onboardingJourneyMissions as
+      settings.onboardingJourneyMissions as unknown as
         | IOnboardingJourneyMissionState[]
         | undefined,
     );
@@ -325,20 +332,16 @@ export class PostsService extends BaseService<
    */
   @HandleErrors('handle YouTube post', 'posts')
   async handleYoutubePost(post: PostDocument): Promise<void> {
-    if (
-      !post.credential ||
-      !post.ingredients ||
-      post.ingredients.length === 0
-    ) {
+    const ingredients = Array.isArray(post.ingredients) ? post.ingredients : [];
+
+    if (!post.credential || ingredients.length === 0) {
       throw new Error('Post must have credential and at least one ingredient');
     }
 
     const credential = post.credential as unknown as CredentialEntity;
-    const ingredient = (
-      post.ingredients as string[]
-    )[0] as unknown as IngredientEntity;
+    const ingredient = ingredients[0] as unknown as IngredientEntity;
 
-    if (credential.platform !== CredentialPlatform.YOUTUBE) {
+    if (credential.platform !== 'YOUTUBE') {
       this.logger.warn(
         `handleYoutubePost called for non-YouTube platform: ${credential.platform}`,
       );
@@ -370,7 +373,7 @@ export class PostsService extends BaseService<
         organizationId: post.organization.toString(),
         postId,
         room: clerkUserId ? getUserRoomName(clerkUserId) : undefined,
-        scheduledDate: post.scheduledDate,
+        scheduledDate: post.scheduledDate ?? undefined,
         status: originalStatus,
         tags:
           (post.tags as unknown as ({ name?: string } | string)[])?.map(
@@ -485,6 +488,10 @@ export class PostsService extends BaseService<
 
   /**
    * Find the root post of a thread.
+   *
+   * Uses a single recursive CTE to traverse the full parent chain in one
+   * database round-trip, eliminating the N+1 query from the previous
+   * while-loop implementation.
    */
   @HandleErrors('find root post', 'posts')
   async findRootPost(
@@ -492,54 +499,44 @@ export class PostsService extends BaseService<
     populate: PopulateOption[] = [],
     maxDepth: number = 100,
   ): Promise<PostDocument | null> {
-    let current = await this.findOne({ _id: postId }, populate);
-    if (!current) {
+    const ancestors = await this.prisma.$queryRaw<
+      Array<{ id: string; parentId: string | null }>
+    >`
+      WITH RECURSIVE ancestors AS (
+        SELECT id, "parentId"
+        FROM "Post"
+        WHERE id = ${postId} AND "isDeleted" = false
+        UNION ALL
+        SELECT p.id, p."parentId"
+        FROM "Post" p
+        INNER JOIN ancestors a ON p.id = a."parentId"
+        WHERE p."isDeleted" = false
+      )
+      SELECT id, "parentId" FROM ancestors
+      LIMIT ${maxDepth + 1}
+    `;
+
+    if (!ancestors || ancestors.length === 0) {
       return null;
     }
 
-    const visited = new Set<string>();
-    visited.add(current._id.toString());
-
-    let depth = 0;
-
-    while (current.parent) {
-      depth++;
-
-      if (depth > maxDepth) {
-        this.logger.error('Max depth exceeded in findRootPost', {
-          depth,
-          maxDepth,
-          postId,
-        });
-        throw new BadRequestException(
-          `Max hierarchy depth (${maxDepth}) exceeded for post ${postId}`,
-        );
-      }
-
-      const parentId = current.parent.toString();
-
-      if (visited.has(parentId)) {
-        this.logger.error('Circular reference detected in post hierarchy', {
-          currentId: current._id.toString(),
-          parentId,
-          postId,
-          visited: Array.from(visited),
-        });
-        throw new BadRequestException(
-          `Circular reference detected in post hierarchy: ${parentId}`,
-        );
-      }
-
-      visited.add(parentId);
-
-      const parent = await this.findOne({ _id: current.parent }, populate);
-      if (!parent) {
-        break;
-      }
-      current = parent;
+    if (ancestors.length > maxDepth) {
+      this.logger.error('Max depth exceeded in findRootPost', {
+        depth: ancestors.length,
+        maxDepth,
+        postId,
+      });
+      throw new BadRequestException(
+        `Max hierarchy depth (${maxDepth}) exceeded for post ${postId}`,
+      );
     }
 
-    return current;
+    const rootRow = ancestors.find((a) => a.parentId === null);
+    if (!rootRow) {
+      return this.findOne({ _id: postId }, populate);
+    }
+
+    return this.findOne({ _id: rootRow.id }, populate);
   }
 
   /**
@@ -652,7 +649,7 @@ export class PostsService extends BaseService<
     };
 
     return this.create(
-      remixDto as CreatePostDto & {
+      remixDto as unknown as CreatePostDto & {
         user: string;
         organization: string;
         brand: string;

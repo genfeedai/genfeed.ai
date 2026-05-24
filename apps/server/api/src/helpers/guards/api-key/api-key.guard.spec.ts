@@ -17,15 +17,18 @@ describe('ApiKeyAuthGuard', () => {
     _id: '507f1f77bcf86cd799439011',
     allowedIps: ['192.168.1.1'],
     createdAt: new Date(),
+    id: '507f1f77bcf86cd799439011',
     isRevoked: false,
     key: 'hashed_key_value',
     name: 'Test API Key',
     organization: '507f1f77bcf86cd799439013',
+    organizationId: '507f1f77bcf86cd799439013',
     rateLimit: 60,
     scopes: ['videos:create', 'videos:read'],
     updatedAt: new Date(),
     usageCount: 0,
     user: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439012',
   };
 
   beforeEach(async () => {
@@ -166,18 +169,18 @@ describe('ApiKeyAuthGuard', () => {
       const mutatedRequest = mockContext.switchToHttp().getRequest();
       expect(result).toBe(true);
       expect(mutatedRequest.user).toEqual({
-        id: mockApiKey.user.toString(),
+        id: mockApiKey.userId.toString(),
         publicMetadata: {
           apiKeyId: mockApiKey._id.toString(),
-          brand: mockApiKey.organization.toString(),
+          brand: mockApiKey.organizationId.toString(),
           isApiKey: true,
-          organization: mockApiKey.organization.toString(),
+          organization: mockApiKey.organizationId.toString(),
           scopes: mockApiKey.scopes,
-          user: mockApiKey.user.toString(),
+          user: mockApiKey.userId.toString(),
         },
       });
       expect(apiKeysService.updateLastUsed).toHaveBeenCalledWith(
-        mockApiKey._id.toString(),
+        mockApiKey.id.toString(),
         '192.168.1.1',
       );
     });
@@ -231,7 +234,7 @@ describe('ApiKeyAuthGuard', () => {
 
       expect(result).toBe(true);
       expect(apiKeysService.updateLastUsed).toHaveBeenCalledWith(
-        mockApiKey._id.toString(),
+        mockApiKey.id.toString(),
         '192.168.1.2',
       );
     });

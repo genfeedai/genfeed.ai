@@ -92,7 +92,7 @@ export default function ContentPreviewSidebar({
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className={`mt-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                      className={`mt-1 flex size-6 items-center justify-center rounded-full text-xs font-semibold ${
                         isActive
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted text-foreground/60'
@@ -105,7 +105,7 @@ export default function ContentPreviewSidebar({
                         {item.content.trim() ||
                           'Draft tweet — start typing to see it here.'}
                       </p>
-                      {showCharacterCount && (
+                      {showCharacterCount === true && (
                         <div className="flex flex-wrap items-center gap-2 text-xs text-foreground/60">
                           <span>
                             {item.content.length}/{contentMaxLength}
@@ -129,7 +129,7 @@ export default function ContentPreviewSidebar({
             emptyMessage ||
             'Your tweet preview will appear here as you write.'}
         </p>
-        {showCharacterCount && (
+        {showCharacterCount === true && (
           <div className="mt-2 text-xs text-foreground/60 text-right">
             {content.length}/{contentMaxLength}
           </div>
@@ -149,7 +149,7 @@ export default function ContentPreviewSidebar({
             emptyMessage ||
             'Your LinkedIn post preview will appear here as you write.'}
         </p>
-        {showCharacterCount && (
+        {showCharacterCount === true && (
           <div className="mt-2 text-xs text-foreground/60 text-right">
             {content.length} characters
           </div>
@@ -216,25 +216,18 @@ export default function ContentPreviewSidebar({
     );
   };
 
-  const renderPreviewContent = () => {
-    if (platform === CredentialPlatform.TWITTER) {
-      return renderTwitterPreview();
-    }
-
-    if (platform === CredentialPlatform.LINKEDIN) {
-      return renderLinkedInPreview();
-    }
-
-    if (platform === CredentialPlatform.REDDIT) {
-      return renderRedditPreview();
-    }
-
-    if (platform === 'article') {
-      return renderArticlePreview();
-    }
-
-    return renderGenericPreview();
-  };
+  let previewContent: React.ReactNode;
+  if (platform === CredentialPlatform.TWITTER) {
+    previewContent = renderTwitterPreview();
+  } else if (platform === CredentialPlatform.LINKEDIN) {
+    previewContent = renderLinkedInPreview();
+  } else if (platform === CredentialPlatform.REDDIT) {
+    previewContent = renderRedditPreview();
+  } else if (platform === 'article') {
+    previewContent = renderArticlePreview();
+  } else {
+    previewContent = renderGenericPreview();
+  }
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -243,7 +236,7 @@ export default function ContentPreviewSidebar({
         <Badge variant="outline">{getPlatformLabel()}</Badge>
       </div>
       <div className=" border border-white/[0.08] bg-background/60 p-4">
-        {renderPreviewContent()}
+        {previewContent}
       </div>
     </div>
   );

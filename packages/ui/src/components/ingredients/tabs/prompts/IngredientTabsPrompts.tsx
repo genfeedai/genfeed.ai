@@ -48,9 +48,9 @@ export default function IngredientTabsPrompts({
 
       {/* Remaining rows: 2 columns */}
       <div className="grid grid-cols-2 gap-4">
-        {promptRows.slice(1).map((row, idx) => (
+        {promptRows.slice(1).map((row) => (
           <div
-            key={idx}
+            key={row.label}
             className="flex flex-col rounded-2xl border border-white/8 bg-white/[0.025] p-4"
           >
             <span className="font-semibold opacity-50">{row.label}</span>

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import process from 'node:process';
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
 
@@ -85,7 +86,7 @@ if (isCoverageRun) {
 
 export default defineConfig({
   customLogger,
-  oxc: false,
+  oxc: false, // Disable OXC transformer — SWC required for NestJS decorator metadata
   plugins: [
     swc.vite({
       jsc: {
@@ -135,6 +136,18 @@ export default defineConfig({
       {
         find: '@genfeedai/harness',
         replacement: path.resolve(__dirname, '../../../packages/harness/src'),
+      },
+      {
+        find: '@genfeedai/helpers',
+        replacement: path.resolve(__dirname, '../../../packages/helpers/src'),
+      },
+      {
+        find: '@genfeedai/utils',
+        replacement: path.resolve(__dirname, '../../../packages/utils'),
+      },
+      {
+        find: /^@genfeedai\/utils\/(.*)$/,
+        replacement: path.resolve(__dirname, '../../../packages/utils/$1'),
       },
       {
         find: /^@genfeedai\/harness\/(.*)$/,
@@ -240,6 +253,20 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../../../packages/libs'),
       },
       {
+        find: /^@genfeedai\/ee-billing\/(.*)$/,
+        replacement: path.resolve(
+          __dirname,
+          '../../../ee/packages/billing/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/ee-billing',
+        replacement: path.resolve(
+          __dirname,
+          '../../../ee/packages/billing/src',
+        ),
+      },
+      {
         find: '@test',
         replacement: path.resolve(__dirname, './test'),
       },
@@ -268,9 +295,9 @@ export default defineConfig({
       thresholds: { branches: 50, functions: 50, lines: 50, statements: 50 },
     },
     environment: 'node',
+    exclude: ['**/node_modules/**', '**/dist/**'],
     globals: true,
     include: ['src/**/*.spec.ts'],
-    maxWorkers: isCoverageRun ? 1 : undefined,
     name: '@genfeedai/api-unit',
     passWithNoTests: true,
     setupFiles: ['./test/setup-unit.ts'],

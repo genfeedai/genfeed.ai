@@ -287,9 +287,8 @@ export class AgentCampaignExecutionService {
       ? runs.reduce(
           (total, run) =>
             total +
-            (run.toolCalls?.filter(
-              (tc: { status: string }) => tc.status === 'completed',
-            ).length ?? 0),
+            (run.toolCalls?.filter((tc) => tc.status === 'completed').length ??
+              0),
           0,
         )
       : 0;

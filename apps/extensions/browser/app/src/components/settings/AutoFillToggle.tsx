@@ -9,7 +9,7 @@ export function AutoFillToggle(): ReactElement {
   const setAutoFill = useSettingsStore((s) => s.setAutoFill);
 
   return (
-    <label className="flex items-center justify-between">
+    <div className="flex items-center justify-between">
       <div>
         <span className="text-sm text-foreground">Auto-fill compose box</span>
         <p className="text-[11px] text-muted-foreground">
@@ -27,11 +27,11 @@ export function AutoFillToggle(): ReactElement {
         }`}
       >
         <span
-          className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
+          className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-white transition-transform ${
             autoFill ? 'translate-x-4' : 'translate-x-0'
           }`}
         />
       </Button>
-    </label>
+    </div>
   );
 }

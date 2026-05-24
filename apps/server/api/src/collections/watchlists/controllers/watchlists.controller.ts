@@ -11,6 +11,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import type { User } from '@clerk/backend';
+import { WatchlistPlatform } from '@genfeedai/enums';
 import { WatchlistSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -25,6 +26,15 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
+
+function readWatchlistConfig(config: unknown): Partial<{
+  handle: string;
+  platform: WatchlistPlatform;
+}> {
+  return (
+    (config as { handle?: string; platform?: WatchlistPlatform } | null) ?? {}
+  );
+}
 
 @AutoSwagger()
 @Controller('watchlists')
@@ -162,16 +172,24 @@ export class WatchlistsController {
 
     // If updating platform or handle, check for duplicates
     if (dto.platform || dto.handle) {
-      const platform = dto.platform || existing.platform;
-      const handle = dto.handle || existing.handle;
+      const existingConfig = readWatchlistConfig(existing.config);
+      const platform = dto.platform || existingConfig.platform;
+      const handle = dto.handle || existingConfig.handle;
+      const brandId = existing.brandId ?? undefined;
+
+      if (!brandId || !platform || !handle) {
+        throw new ConflictException(
+          'Watchlist item is missing duplicate-check data',
+        );
+      }
 
       const duplicate = await this.service.findByHandle(
-        existing.brand,
-        platform as unknown,
+        brandId,
+        platform,
         handle,
       );
 
-      if (duplicate && duplicate._id.toString() !== watchlistId) {
+      if (duplicate && duplicate.id !== watchlistId) {
         throw new ConflictException(
           'A watchlist item with this handle already exists',
         );

@@ -3,6 +3,7 @@
 import { useAuth } from '@clerk/nextjs';
 import { AgentFullPage } from '@genfeedai/agent';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { TasksService } from '@services/management/tasks.service';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
@@ -16,7 +17,8 @@ interface ChatWorkspacePageShellProps {
 export function ChatWorkspacePageShell({
   threadId,
 }: ChatWorkspacePageShellProps) {
-  const router = useRouter();
+  const { push } = useRouter();
+  const { orgHref } = useOrgUrl();
   const { getToken } = useAuth();
   const {
     agentApiService,
@@ -53,19 +55,17 @@ export function ChatWorkspacePageShell({
         showThreadSidebar={false}
         threadId={threadId}
         onNavigateToBilling={() => {
-          router.push(
-            isEEEnabled()
-              ? '/settings/organization/billing'
-              : '/settings/organization/api-keys',
+          push(
+            orgHref(isEEEnabled() ? '/settings/billing' : '/settings/api-keys'),
           );
         }}
         onOAuthConnect={handleOAuthConnect}
         onOnboardingCompleted={completeOnboardingFlow}
         onSelectCreditPack={(pack) => {
-          router.push(
+          push(
             isEEEnabled()
-              ? `/settings/organization/billing?pack=${pack.label.toLowerCase()}`
-              : '/settings/organization/api-keys',
+              ? orgHref(`/settings/billing?pack=${pack.label.toLowerCase()}`)
+              : orgHref('/settings/api-keys'),
           );
         }}
       />

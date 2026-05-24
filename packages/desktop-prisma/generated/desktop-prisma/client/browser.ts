@@ -13,10 +13,50 @@
  * 🟢 You can import this file directly.
  */
 
-import * as Prisma from './internal/prismaNamespaceBrowser.js'
+import * as Prisma from './internal/prismaNamespaceBrowser'
 export { Prisma }
-export * as $Enums from './enums.js'
-export * from './enums.js';
+export * as $Enums from './enums'
+export * from './enums';
+/**
+ * Model User
+ * 
+ */
+export type User = Prisma.UserModel
+/**
+ * Model Organization
+ * 
+ */
+export type Organization = Prisma.OrganizationModel
+/**
+ * Model Post
+ * 
+ */
+export type Post = Prisma.PostModel
+/**
+ * Model Ingredient
+ * 
+ */
+export type Ingredient = Prisma.IngredientModel
+/**
+ * Model Trend
+ * 
+ */
+export type Trend = Prisma.TrendModel
+/**
+ * Model AgentStrategy
+ * 
+ */
+export type AgentStrategy = Prisma.AgentStrategyModel
+/**
+ * Model Workflow
+ * 
+ */
+export type Workflow = Prisma.WorkflowModel
+/**
+ * Model WorkflowExecution
+ * 
+ */
+export type WorkflowExecution = Prisma.WorkflowExecutionModel
 /**
  * Model DesktopKv
  * 
@@ -28,6 +68,21 @@ export type DesktopKv = Prisma.DesktopKvModel
  */
 export type DesktopWorkspace = Prisma.DesktopWorkspaceModel
 /**
+ * Model DesktopBrand
+ * 
+ */
+export type DesktopBrand = Prisma.DesktopBrandModel
+/**
+ * Model DesktopAsset
+ * 
+ */
+export type DesktopAsset = Prisma.DesktopAssetModel
+/**
+ * Model DesktopSyncOp
+ * 
+ */
+export type DesktopSyncOp = Prisma.DesktopSyncOpModel
+/**
  * Model DesktopSyncJob
  * 
  */
@@ -37,53 +92,3 @@ export type DesktopSyncJob = Prisma.DesktopSyncJobModel
  * 
  */
 export type DesktopRecentItem = Prisma.DesktopRecentItemModel
-/**
- * Model DesktopOrganization
- * 
- */
-export type DesktopOrganization = Prisma.DesktopOrganizationModel
-/**
- * Model DesktopUser
- * 
- */
-export type DesktopUser = Prisma.DesktopUserModel
-/**
- * Model DesktopProject
- * 
- */
-export type DesktopProject = Prisma.DesktopProjectModel
-/**
- * Model DesktopContentItem
- * 
- */
-export type DesktopContentItem = Prisma.DesktopContentItemModel
-/**
- * Model DesktopTrend
- * 
- */
-export type DesktopTrend = Prisma.DesktopTrendModel
-/**
- * Model DesktopIngredient
- * 
- */
-export type DesktopIngredient = Prisma.DesktopIngredientModel
-/**
- * Model DesktopAgent
- * 
- */
-export type DesktopAgent = Prisma.DesktopAgentModel
-/**
- * Model DesktopAgentRun
- * 
- */
-export type DesktopAgentRun = Prisma.DesktopAgentRunModel
-/**
- * Model DesktopWorkflow
- * 
- */
-export type DesktopWorkflow = Prisma.DesktopWorkflowModel
-/**
- * Model DesktopWorkflowRun
- * 
- */
-export type DesktopWorkflowRun = Prisma.DesktopWorkflowRunModel

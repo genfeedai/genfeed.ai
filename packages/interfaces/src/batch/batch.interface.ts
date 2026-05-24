@@ -98,7 +98,9 @@ export interface IBatchSummary {
   id: string;
   status: BatchStatus;
   totalCount: number;
+  totalItems?: number;
   completedCount: number;
+  completedItems?: number;
   failedCount: number;
   pendingCount: number;
   brandId: string;

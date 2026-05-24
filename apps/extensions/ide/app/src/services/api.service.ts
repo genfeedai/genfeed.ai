@@ -1,6 +1,6 @@
 import { AuthService } from '@services/auth.service';
 import { captureExtensionError } from '@services/error-tracking.service';
-import * as vscode from 'vscode';
+import { getValidatedApiEndpoint } from '@services/trusted-origins';
 import type {
   ApiError,
   ApiResponse,
@@ -22,8 +22,7 @@ export class ApiService {
   private baseUrl: string;
 
   private constructor() {
-    const config = vscode.workspace.getConfiguration('genfeed');
-    this.baseUrl = config.get<string>('apiEndpoint', 'https://api.genfeed.ai');
+    this.baseUrl = getValidatedApiEndpoint();
   }
 
   static getInstance(): ApiService {

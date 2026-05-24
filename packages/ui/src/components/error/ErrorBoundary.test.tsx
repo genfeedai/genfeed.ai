@@ -1,9 +1,5 @@
 /**
  * @vitest-environment jsdom
- *
- * SKIPPED: @testing-library/react 16.x uses React.act() which doesn't exist
- * in React 19 (moved from react-dom/test-utils). Needs @testing-library/react
- * upgrade to v17+ or React 19 compat shim.
  */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ErrorBoundary } from '@ui/error/ErrorBoundary';
@@ -18,8 +14,13 @@ function Thrower() {
   return <div>OK</div>;
 }
 
-// TODO: Unskip after upgrading @testing-library/react to v17+ (React 19 compat)
-describe.skip('ErrorBoundary', () => {
+vi.mock('@genfeedai/services/core/logger.service', () => ({
+  logger: {
+    error: vi.fn(),
+  },
+}));
+
+describe('ErrorBoundary', () => {
   beforeEach(() => {
     shouldThrow = false;
     console.error = vi.fn();

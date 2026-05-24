@@ -101,14 +101,10 @@ export class AssetsController {
     }
 
     // Create secure aggregation pipeline
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: matchConditions as Record<string, unknown>,
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+    const aggregate = {
+      where: matchConditions as Record<string, unknown>,
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data: AggregatePaginateResult<AssetDocument> =
       await this.assetsService.findAll(aggregate, options);
@@ -204,7 +200,7 @@ export class AssetsController {
     if (isSettingAsLogoOrBanner) {
       await this.assetsService.patchAll(
         {
-          _id: { $ne: validatedId },
+          _id: { not: validatedId },
           category: updateAssetDto.category,
           isDeleted: false,
           parent: updateAssetDto.parent,
@@ -239,7 +235,7 @@ export class AssetsController {
       userId &&
       updatedAsset &&
       [AssetCategory.LOGO, AssetCategory.BANNER].includes(
-        updatedAsset.category,
+        String(updatedAsset.category).toLowerCase() as AssetCategory,
       ) &&
       updatedAsset.parent
     ) {
@@ -249,7 +245,9 @@ export class AssetsController {
         {
           action: 'updated',
           assetId: updatedAsset._id.toString(),
-          category: updatedAsset.category,
+          category: String(
+            updatedAsset.category,
+          ).toLowerCase() as AssetCategory,
         },
       );
     }

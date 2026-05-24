@@ -14,7 +14,7 @@ import { google } from 'googleapis';
 @Injectable()
 export class YoutubeUploadService {
   private readonly constructorName = this.constructor.name;
-  private readonly youtubeAPI: unknown;
+  private readonly youtubeAPI: ReturnType<typeof google.youtube>;
 
   constructor(
     private readonly fileQueueService: FileQueueService,
@@ -26,6 +26,21 @@ export class YoutubeUploadService {
     // Create YouTube API client without default auth
     // Each upload will pass its own per-request auth
     this.youtubeAPI = google.youtube({ version: 'v3' });
+  }
+
+  private resolveFilePath(videoId: string, outputPath: unknown): string {
+    if (typeof outputPath === 'string' && outputPath.length > 0) {
+      return outputPath;
+    }
+
+    return path.join(
+      process.cwd(),
+      'public',
+      'tmp',
+      'videos',
+      videoId,
+      'file-0.mp4',
+    );
   }
 
   async uploadVideo(
@@ -57,16 +72,7 @@ export class YoutubeUploadService {
         30_000,
       );
 
-      const filePath =
-        result?.outputPath ||
-        path.join(
-          process.cwd(),
-          'public',
-          'tmp',
-          'videos',
-          videoId,
-          'file-0.mp4',
-        );
+      const filePath = this.resolveFilePath(videoId, result?.outputPath);
 
       const tagLabels = await this.tagResolutionService.resolveTagLabels(
         post.tags || [],
@@ -131,16 +137,20 @@ export class YoutubeUploadService {
         },
       };
 
-      const res = await this.youtubeAPI.videos.insert({
+      const res = (await this.youtubeAPI.videos.insert({
         ...body,
         auth,
-      });
+      } as never)) as {
+        data?: {
+          id?: string | null;
+        };
+      };
 
-      if (!res.data.id) {
+      if (!res.data?.id) {
         throw new Error('Failed to upload video');
       }
 
-      const youtubeVideoId: string = res.data.id;
+      const youtubeVideoId = res.data.id;
 
       this.loggerService.log(`${url} completed`, { youtubeVideoId });
 

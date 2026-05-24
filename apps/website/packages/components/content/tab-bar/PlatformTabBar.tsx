@@ -34,7 +34,7 @@ export default function PlatformTabBar({
       return {
         badge: (
           <span
-            className={`w-2 h-2 rounded-full ${STATUS_COLORS[post.status as PostStatus] || 'bg-muted-foreground'}`}
+            className={`size-2 rounded-full ${STATUS_COLORS[post.status as PostStatus] || 'bg-muted-foreground'}`}
             title={post.status}
           />
         ),
@@ -62,7 +62,7 @@ export default function PlatformTabBar({
           aria-label="Add platform variant"
         >
           <span className="flex items-center gap-2">
-            <HiPlus className="w-4 h-4" />
+            <HiPlus className="size-4" />
             Add Platform
           </span>
         </Button>

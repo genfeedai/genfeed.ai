@@ -3,6 +3,29 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('@ui/charts', () => ({
+  ChartContainer: ({
+    children,
+    className,
+    height,
+    style,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+    height?: number | string;
+    style?: React.CSSProperties;
+  }) => (
+    <div
+      data-testid="responsive-container"
+      className={className}
+      style={{ ...style, height }}
+    >
+      {children}
+    </div>
+  ),
+  ChartTooltipContent: () => <div data-testid="chart-tooltip-content" />,
+}));
+
 // Mock recharts
 vi.mock('recharts', () => ({
   Cell: ({ fill }: { fill: string }) => (
@@ -16,8 +39,8 @@ vi.mock('recharts', () => ({
     children: React.ReactNode;
   }) => (
     <div data-testid="pie">
-      {data?.map((item, i) => (
-        <span key={i} data-testid={`pie-segment-${item.platform}`}>
+      {data?.map((item) => (
+        <span key={item.platform} data-testid={`pie-segment-${item.platform}`}>
           {item.platform}: {item.value}
         </span>
       ))}
@@ -26,9 +49,6 @@ vi.mock('recharts', () => ({
   ),
   PieChart: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="pie-chart">{children}</div>
-  ),
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
   ),
   Tooltip: () => <div data-testid="tooltip" />,
 }));
@@ -79,7 +99,7 @@ describe('PlatformBreakdownChart', () => {
   });
 
   describe('Empty State', () => {
-    it.skip('shows empty message when data is null', () => {
+    it('shows empty message when data is null', () => {
       render(<PlatformBreakdownChart data={null} />);
       expect(
         screen.getByText('No platform data available'),

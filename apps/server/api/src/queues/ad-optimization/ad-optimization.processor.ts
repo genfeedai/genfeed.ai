@@ -6,8 +6,8 @@ import type {
   RecommendationType,
 } from '@api/collections/ad-optimization-recommendations/schemas/ad-optimization-recommendation.schema';
 import { AdOptimizationRecommendationsService } from '@api/collections/ad-optimization-recommendations/services/ad-optimization-recommendations.service';
+import { type AdPerformanceDocument } from '@api/collections/ad-performance/schemas/ad-performance.schema';
 import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
-import { type AdPerformance } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -252,8 +252,10 @@ export class AdOptimizationProcessor extends WorkerHost {
     }
   }
 
-  private aggregateByAd(records: AdPerformance[]): AggregatedAdMetrics[] {
-    const byAd = new Map<string, AdPerformance[]>();
+  private aggregateByAd(
+    records: AdPerformanceDocument[],
+  ): AggregatedAdMetrics[] {
+    const byAd = new Map<string, AdPerformanceDocument[]>();
 
     for (const record of records) {
       if (!record.externalAdId) continue;
@@ -265,12 +267,15 @@ export class AdOptimizationProcessor extends WorkerHost {
     const results: AggregatedAdMetrics[] = [];
 
     for (const [adId, adRecords] of byAd) {
-      const totalSpend = adRecords.reduce((sum, r) => sum + r.spend, 0);
+      const totalSpend = adRecords.reduce((sum, r) => sum + (r.spend ?? 0), 0);
       const totalImpressions = adRecords.reduce(
-        (sum, r) => sum + r.impressions,
+        (sum, r) => sum + (r.impressions ?? 0),
         0,
       );
-      const totalClicks = adRecords.reduce((sum, r) => sum + r.clicks, 0);
+      const totalClicks = adRecords.reduce(
+        (sum, r) => sum + (r.clicks ?? 0),
+        0,
+      );
       const totalRevenue = adRecords.reduce(
         (sum, r) => sum + (r.revenue || 0),
         0,

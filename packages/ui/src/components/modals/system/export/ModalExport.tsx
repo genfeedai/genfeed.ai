@@ -99,7 +99,10 @@ export default function ModalExport({
     <Modal id={ModalEnum.EXPORT} title="Export Data">
       <div className="space-y-4">
         <div>
-          <label className="text-sm font-medium mb-1 block">
+          <label
+            htmlFor="export-format"
+            className="text-sm font-medium mb-1 block"
+          >
             Export Format
           </label>
 
@@ -120,9 +123,7 @@ export default function ModalExport({
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-sm font-medium">
-              Select Fields to Export
-            </label>
+            <span className="text-sm font-medium">Select Fields to Export</span>
             <div className="text-xs text-foreground/60">
               <Button
                 withWrapper={false}

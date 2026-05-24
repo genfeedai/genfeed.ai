@@ -32,9 +32,9 @@ import { forwardRef, Module } from '@nestjs/common';
     BrandMemorySyncService,
   ],
   imports: [
-    BrandMemoryModule,
-    PostsModule,
-    NotificationsModule,
+    forwardRef(() => BrandMemoryModule),
+    forwardRef(() => PostsModule),
+    forwardRef(() => NotificationsModule),
     forwardRef(() => QueuesModule),
     forwardRef(() => OrganizationsModule),
     forwardRef(() => UsersModule),

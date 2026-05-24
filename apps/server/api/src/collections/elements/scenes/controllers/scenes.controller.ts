@@ -14,7 +14,6 @@ import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';
 import { SceneSerializer } from '@genfeedai/serializers';
@@ -100,46 +99,33 @@ export class ElementsScenesController extends BaseCRUDController<
     return super.remove(request, user, sceneId);
   }
 
-  /**
-   * Override the base pipeline to load scenes
-   * Load items with: (no org AND no user) OR (user's org) OR (user's user)
-   */
-  public buildFindAllPipeline(
-    user: User,
-    query: BaseQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,
       query,
     );
 
-    // Build OR conditions: global items OR user's org items OR user's items
-    const orConditions: unknown[] = [
-      { organization: { $exists: false }, user: { $exists: false } }, // global items
-    ];
+    const orConditions: Record<string, unknown>[] = [];
 
     if (publicMetadata.organization) {
       orConditions.push({
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       });
     }
 
-    if (publicMetadata.user) {
-      orConditions.push({ user: publicMetadata.user });
-    }
-
-    return PipelineBuilder.create()
-      .match({
+    return {
+      where: {
         isDeleted: query.isDeleted ?? false,
         ...(typeof query.isFavorite === 'boolean' && {
           isFavorite: query.isFavorite,
         }),
-        ...(adminFilter ?? { $or: orConditions }),
-      })
-      .sort(
-        query.sort ? handleQuerySort(query.sort) : { createdAt: -1, key: 1 },
-      )
-      .build();
+        ...(adminFilter ??
+          (orConditions.length > 0 ? { OR: orConditions } : {})),
+      },
+      orderBy: query.sort
+        ? handleQuerySort(query.sort)
+        : { createdAt: -1, key: 1 },
+    };
   }
 }

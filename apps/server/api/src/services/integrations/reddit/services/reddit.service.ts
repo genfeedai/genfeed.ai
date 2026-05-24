@@ -1,3 +1,4 @@
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
@@ -18,6 +19,14 @@ export class RedditService {
     private readonly httpService: HttpService,
   ) {}
 
+  private requireAccessToken(credential: CredentialDocument): string {
+    if (!credential.accessToken) {
+      throw new Error('Reddit credential missing access token');
+    }
+
+    return credential.accessToken;
+  }
+
   public generateAuthUrl(state: string): string {
     const params = new URLSearchParams({
       client_id: this.configService.get('REDDIT_CLIENT_ID'),
@@ -33,7 +42,7 @@ export class RedditService {
   public async refreshToken(
     organizationId: string,
     brandId: string,
-  ): Promise<unknown> {
+  ): Promise<CredentialDocument> {
     const credential = await this.credentialsService.findOne({
       brand: brandId,
       organization: organizationId,
@@ -88,7 +97,9 @@ export class RedditService {
     const credential = await this.refreshToken(organizationId, brandId);
 
     // Decrypt access token before use
-    const decryptedAccessToken = EncryptionUtil.decrypt(credential.accessToken);
+    const decryptedAccessToken = EncryptionUtil.decrypt(
+      this.requireAccessToken(credential),
+    );
 
     const response = await firstValueFrom(
       this.httpService.get(`${this.apiUrl}/api/v1/me`, {
@@ -120,7 +131,9 @@ export class RedditService {
     const credential = await this.refreshToken(organizationId, brandId);
 
     // Decrypt access token before use
-    const decryptedAccessToken = EncryptionUtil.decrypt(credential.accessToken);
+    const decryptedAccessToken = EncryptionUtil.decrypt(
+      this.requireAccessToken(credential),
+    );
 
     // Reddit expects thing_id in format t3_xxx for posts
     const fullThingId = thingId.startsWith('t3_') ? thingId : `t3_${thingId}`;
@@ -159,7 +172,9 @@ export class RedditService {
     const credential = await this.refreshToken(organizationId, brandId);
 
     // Decrypt access token before use
-    const decryptedAccessToken = EncryptionUtil.decrypt(credential.accessToken);
+    const decryptedAccessToken = EncryptionUtil.decrypt(
+      this.requireAccessToken(credential),
+    );
 
     const params = new URLSearchParams();
     params.append('sr', subreddit);

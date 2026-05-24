@@ -34,6 +34,15 @@ export const internalAuthSchema = {
   BULL_BOARD_AUTH_TOKEN: Joi.string()
     .optional()
     .description('Authentication token for Bull Board admin interface'),
+  GENFEED_API_KEY: Joi.string()
+    .optional()
+    .allow('')
+    .description('Self-hosted managed inference API key for Genfeed Cloud'),
+  GENFEED_MANAGED_INFERENCE_URL: Joi.string()
+    .uri()
+    .optional()
+    .allow('')
+    .description('Override URL for the Genfeed Cloud managed inference API'),
   GENFEEDAI_API_KEY: Joi.string()
     .optional()
     .description('API key for internal service-to-service authentication'),

@@ -7,8 +7,21 @@ const mockPush = vi.fn();
 let capturedFooterActions: SwitcherDropdownFooterAction[] = [];
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({
+    brandSlug: 'test-brand',
+    orgSlug: 'test-org',
+  }),
   useRouter: () => ({
     push: mockPush,
+  }),
+}));
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    selectedBrand: {
+      organization: { slug: 'test-org' },
+      slug: 'test-brand',
+    },
   }),
 }));
 
@@ -55,7 +68,6 @@ vi.mock('@ui/menus/switcher-dropdown/SwitcherDropdown', () => ({
 }));
 
 describe('MenuBrandSwitcher', () => {
-  const brands = [{ id: 'brand_1', label: 'Test Brand', thumbnailUrl: '' }];
   const brandsWithSlug = [
     {
       id: 'brand_1',
@@ -104,6 +116,6 @@ describe('MenuBrandSwitcher', () => {
 
     capturedFooterActions[0]?.onAction();
 
-    expect(mockPush).toHaveBeenCalledWith('/settings/brands/test-brand');
+    expect(mockPush).toHaveBeenCalledWith('/test-org/test-brand/settings');
   });
 });

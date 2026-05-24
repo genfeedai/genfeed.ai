@@ -75,7 +75,7 @@ export default function TrendNotificationSettings({
       {/* Header */}
       <div className="flex items-start gap-3">
         <div className="p-2 bg-primary/10">
-          <HiBell className="w-5 h-5 text-primary" />
+          <HiBell className="size-5 text-primary" />
         </div>
         <div>
           <h3 className="text-lg font-semibold">Trend Notifications</h3>
@@ -133,7 +133,7 @@ export default function TrendNotificationSettings({
                   isDisabled={isDisabled}
                 />
                 <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
-                  <HiInformationCircle className="w-3 h-3" />
+                  <HiInformationCircle className="size-3" />
                   Message @userinfobot on Telegram to get your chat ID
                 </p>
               </div>
@@ -228,8 +228,8 @@ export default function TrendNotificationSettings({
       {/* Status indicator */}
       {isSaving && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          Saving...
+          <div className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          Saving…
         </div>
       )}
     </div>

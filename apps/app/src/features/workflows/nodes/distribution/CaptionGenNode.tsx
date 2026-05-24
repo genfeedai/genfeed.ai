@@ -125,7 +125,7 @@ function CaptionGenNodeComponent(props: NodeProps): React.JSX.Element {
   return (
     <NodeCard>
       <NodeHeader
-        icon={<SparklesIcon className="h-4 w-4" />}
+        icon={<SparklesIcon className="size-4" />}
         title="Caption Generator"
         badge={<NodeBadge variant="purple">AI</NodeBadge>}
       />
@@ -159,10 +159,10 @@ function CaptionGenNodeComponent(props: NodeProps): React.JSX.Element {
       {/* Options */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-sm flex items-center gap-2">
-            <HashIcon className="h-4 w-4" />
+          <span className="text-sm flex items-center gap-2">
+            <HashIcon className="size-4" />
             Include Hashtags
-          </label>
+          </span>
           <Toggle
             checked={data.includeHashtags}
             onChange={() => handleToggle('includeHashtags')}
@@ -183,7 +183,7 @@ function CaptionGenNodeComponent(props: NodeProps): React.JSX.Element {
         )}
 
         <div className="flex items-center justify-between">
-          <label className="text-sm">Include Emojis</label>
+          <span className="text-sm">Include Emojis</span>
           <Toggle
             checked={data.includeEmojis}
             onChange={() => handleToggle('includeEmojis')}
@@ -191,7 +191,7 @@ function CaptionGenNodeComponent(props: NodeProps): React.JSX.Element {
         </div>
 
         <div className="flex items-center justify-between">
-          <label className="text-sm">Include Call-to-Action</label>
+          <span className="text-sm">Include Call-to-Action</span>
           <Toggle
             checked={data.includeCTA}
             onChange={() => handleToggle('includeCTA')}
@@ -250,14 +250,14 @@ function CaptionGenNodeComponent(props: NodeProps): React.JSX.Element {
             </span>
             <div className="flex gap-1">
               <NodeIconButton onClick={handleCopy} title="Copy to clipboard">
-                <CopyIcon className="h-4 w-4" />
+                <CopyIcon className="size-4" />
               </NodeIconButton>
               <NodeIconButton
                 onClick={handleGenerate}
                 disabled={data.status === WorkflowNodeStatus.PROCESSING}
                 title="Regenerate"
               >
-                <RefreshIcon className="h-4 w-4" />
+                <RefreshIcon className="size-4" />
               </NodeIconButton>
             </div>
           </div>
@@ -269,7 +269,7 @@ function CaptionGenNodeComponent(props: NodeProps): React.JSX.Element {
           fullWidth
           onClick={handleGenerate}
           disabled={!canGenerate}
-          icon={<SparklesIcon className="h-4 w-4" />}
+          icon={<SparklesIcon className="size-4" />}
         >
           Generate Caption
         </NodeButton>
@@ -288,7 +288,7 @@ function CaptionGenNodeComponent(props: NodeProps): React.JSX.Element {
 
 export const CaptionGenNode = memo(CaptionGenNodeComponent);
 
-export const captionGenNodeDefaults: Partial<CaptionGenNodeData> = {
+const captionGenNodeDefaults: Partial<CaptionGenNodeData> = {
   ctaType: 'link_bio',
   hashtagCount: 5,
   includeCTA: true,

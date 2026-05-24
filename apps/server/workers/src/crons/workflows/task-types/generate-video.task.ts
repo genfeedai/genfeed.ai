@@ -196,7 +196,7 @@ export class GenerateVideoTask {
       ByokProvider.REPLICATE,
     );
 
-    const input: unknown = {
+    const input: Record<string, unknown> = {
       aspect_ratio: config.aspectRatio || '16:9',
       duration: config.duration || 8, // Veo3 default: 8 seconds
       generate_audio: config.generateAudio !== false, // Default true
@@ -243,7 +243,7 @@ export class GenerateVideoTask {
         ? 'runwayml/gen-2:latest'
         : 'stability-ai/stable-video-diffusion:latest';
 
-    const input: unknown = {
+    const input: Record<string, unknown> = {
       duration_seconds: config.duration || 5,
       fps: config.fps || 30,
       negative_prompt: config.negativePrompt || '',
@@ -431,7 +431,7 @@ export class GenerateVideoTask {
       ];
       if (
         config.resolution &&
-        !validVeo3Resolutions.includes(config.resolution as unknown)
+        !validVeo3Resolutions.includes(config.resolution as VideoResolution)
       ) {
         return {
           error: 'Veo3 resolution must be 720p or 1080p',
@@ -462,7 +462,7 @@ export class GenerateVideoTask {
     const validResolutions = Object.values(VideoResolution);
     if (
       config.resolution &&
-      !validResolutions.includes(config.resolution as unknown)
+      !validResolutions.includes(config.resolution as VideoResolution)
     ) {
       return {
         error: `Invalid resolution. Must be one of: ${validResolutions.join(', ')}`,

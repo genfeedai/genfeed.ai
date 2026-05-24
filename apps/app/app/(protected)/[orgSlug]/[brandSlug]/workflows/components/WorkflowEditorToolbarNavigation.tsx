@@ -12,7 +12,7 @@ export default function WorkflowEditorToolbarNavigation() {
   return (
     <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.SM}>
       <Link href={href('/workflows')}>
-        <HiArrowLeft className="h-4 w-4" />
+        <HiArrowLeft className="size-4" />
         Workflows
       </Link>
     </Button>

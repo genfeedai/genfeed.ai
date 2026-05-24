@@ -63,7 +63,7 @@ export default function ModalTextOverlay({
         text: text.trim(),
       });
 
-      notificationsService.success('Adding text overlay...');
+      notificationsService.success('Adding text overlay…');
       closeModalTextOverlay();
       onConfirm?.();
       setIsSubmitting(false);
@@ -102,7 +102,10 @@ export default function ModalTextOverlay({
             onChange={(e) => {
               setText(e.target.value);
               if (errors.text) {
-                setErrors({ ...errors, text: undefined });
+                setErrors((previousErrors) => ({
+                  ...previousErrors,
+                  text: undefined,
+                }));
               }
             }}
           />

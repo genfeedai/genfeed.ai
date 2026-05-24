@@ -4,11 +4,11 @@ import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import { AlertCategory, ButtonVariant } from '@genfeedai/enums';
 import type { ITrendVideo } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useTrendContent } from '@hooks/data/trends/use-trend-content/use-trend-content';
 import { SocialsNavigation } from '@pages/trends/shared/socials-navigation';
 import TrendContentCard from '@pages/trends/shared/trend-content-card';
 import { TrendsService } from '@services/social/trends.service';
+import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
@@ -52,20 +52,17 @@ export default function TrendsList() {
   );
 
   const {
-    data: viralVideos,
+    data: viralVideos = [],
     error: videosError,
     isLoading: isLoadingVideos,
-    refresh: refreshVideos,
-  } = useResource<ITrendVideo[]>(
-    async () => {
+    refetch: refetchVideos,
+  } = useQuery<ITrendVideo[]>({
+    queryFn: async () => {
       const service = await getTrendsService();
       return service.getViralVideos({ limit: 6 });
     },
-    {
-      defaultValue: [],
-      dependencies: [brandId],
-    },
-  );
+    queryKey: ['trends-list-viral-videos', brandId],
+  });
 
   const filteredItems = useMemo(() => {
     if (!search.trim()) {
@@ -88,7 +85,7 @@ export default function TrendsList() {
   }, [items, search]);
 
   const handleRefresh = async () => {
-    await Promise.all([refreshTrendContent(), refreshVideos()]);
+    await Promise.all([refreshTrendContent(), refetchVideos()]);
   };
 
   const currentError = error || videosError;
@@ -233,7 +230,7 @@ export default function TrendsList() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {viralVideos.map((video) => (
+                {viralVideos.map((video: ITrendVideo) => (
                   <ViralVideoCard key={video.id} video={video} />
                 ))}
               </div>

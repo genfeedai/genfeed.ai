@@ -227,7 +227,7 @@ describe('BatchContentService', () => {
   });
 
   describe('rankDrafts', () => {
-    it('should rank by confidenceScore descending', () => {
+    it('should rank by confidence descending', () => {
       const service = new BatchContentService(
         createMockQueueService(),
         createMockBrandsService(),
@@ -235,9 +235,9 @@ describe('BatchContentService', () => {
       );
 
       const result = service.rankDrafts([
-        { confidenceScore: 0.5, content: 'mid', skillSlug: 'skill' },
-        { confidenceScore: 0.9, content: 'best', skillSlug: 'skill' },
-        { confidenceScore: 0.1, content: 'worst', skillSlug: 'skill' },
+        { confidence: 0.5, content: 'mid', skillSlug: 'skill' },
+        { confidence: 0.9, content: 'best', skillSlug: 'skill' },
+        { confidence: 0.1, content: 'worst', skillSlug: 'skill' },
       ] as unknown as ContentDraft[]);
 
       expect(result[0].content).toBe('best');
@@ -253,9 +253,9 @@ describe('BatchContentService', () => {
       );
 
       const result = service.rankDrafts([
-        { confidenceScore: 0.9, content: 'short', skillSlug: 'skill' },
+        { confidence: 0.9, content: 'short', skillSlug: 'skill' },
         {
-          confidenceScore: 0.9,
+          confidence: 0.9,
           content: 'this is a much longer piece of content',
           skillSlug: 'skill',
         },
@@ -266,7 +266,7 @@ describe('BatchContentService', () => {
       expect(result[1].metadata?.rank).toBe(2);
     });
 
-    it('should handle drafts with undefined confidenceScore', () => {
+    it('should handle drafts with undefined confidence', () => {
       const service = new BatchContentService(
         createMockQueueService(),
         createMockBrandsService(),
@@ -275,7 +275,7 @@ describe('BatchContentService', () => {
 
       const result = service.rankDrafts([
         { content: 'no score', skillSlug: 'skill' },
-        { confidenceScore: 0.5, content: 'has score', skillSlug: 'skill' },
+        { confidence: 0.5, content: 'has score', skillSlug: 'skill' },
       ] as unknown as ContentDraft[]);
 
       expect(result[0].content).toBe('has score');
@@ -303,7 +303,7 @@ describe('BatchContentService', () => {
 
       const result = service.rankDrafts([
         {
-          confidenceScore: 0.9,
+          confidence: 0.9,
           content: 'a',
           metadata: { source: 'test' },
           skillSlug: 'skill',

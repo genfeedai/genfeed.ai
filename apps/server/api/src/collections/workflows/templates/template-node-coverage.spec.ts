@@ -10,8 +10,10 @@ describe('workflow template node coverage', () => {
         .map((node) => node.type),
     );
 
-    for (const nodeType of templateNodeTypes) {
-      expect(getNodeDefinition(nodeType)).toBeDefined();
-    }
+    const missingNodeTypes = [...templateNodeTypes].filter(
+      (nodeType) => !getNodeDefinition(nodeType),
+    );
+
+    expect(missingNodeTypes).toEqual([]);
   });
 });

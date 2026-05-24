@@ -10,6 +10,7 @@ export interface IEnvConfig {
   VERSION?: string;
   SERVICE_NAME?: string;
   API_METRICS_LOGGING?: 'true' | 'false';
+  GENFEED_CLOUD?: 'true' | 'false';
 
   // === Genfeed Internal URLs ===
   GENFEEDAI_API_URL?: string;
@@ -25,6 +26,8 @@ export interface IEnvConfig {
 
   // === Internal Auth ===
   GENFEEDAI_API_KEY?: string;
+  GENFEED_API_KEY?: string;
+  GENFEED_MANAGED_INFERENCE_URL?: string;
   TOKEN_ENCRYPTION_KEY?: string;
   BULL_BOARD_AUTH_TOKEN?: string;
 
@@ -288,7 +291,10 @@ export interface IEnvConfig {
   DISCORD_CHANNEL_ID_POSTS?: string;
   DISCORD_CHANNEL_ID_STUDIO?: string;
   DISCORD_CHANNEL_ID_USERS?: string;
+  DISCORD_CHANNEL_ID_MODELS?: string;
   DISCORD_BOT_AVATAR_URL?: string;
+  DISCORD_WEBHOOK_NAME_PREFIX?: string;
+  DISCORD_WEBHOOK_REASON?: string;
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_BOT_USERNAME?: string;
   TELEGRAM_ADMIN_IDS?: string;
@@ -300,6 +306,9 @@ export interface IEnvConfig {
   TWITCH_CLIENT_ID?: string;
   API_BASE_URL?: string;
   API_SECRET_KEY?: string;
+  GENFEED_LOCAL_TERMINAL?: 'true' | 'false';
+  GENFEED_TERMINAL_CWD?: string;
+  NEXT_PUBLIC_GENFEED_TERMINAL_CWD?: string;
 
   // === Validation ===
   VALIDATION_MAX_FILE_SIZE?: string;

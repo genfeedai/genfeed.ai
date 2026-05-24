@@ -1,10 +1,10 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { MediaCategory, Platform } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
   IsEnum,
-  IsMongoId,
   IsObject,
   IsOptional,
   IsString,
@@ -13,7 +13,7 @@ import {
 } from 'class-validator';
 
 export class CreateSocialMediaPostDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({ required: true })
   readonly brand!: string;
 

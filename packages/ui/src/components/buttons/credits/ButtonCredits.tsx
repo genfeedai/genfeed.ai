@@ -13,6 +13,7 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type {
   ICreditsEventData,
@@ -38,6 +39,7 @@ export default function ButtonCredits({
   isCompact = false,
 }: ButtonCreditsProps = {}) {
   const { organizationId } = useBrand();
+  const { orgHref } = useOrgUrl();
 
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
@@ -245,12 +247,12 @@ export default function ButtonCredits({
               <div className="flex items-center justify-between mt-1.5">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                    <div className="size-1.5 rounded-full bg-white/50" />
                     <span className="text-[11px] text-white/40">Plan</span>
                   </div>
                   {extraBalance > 0 && (
                     <div className="flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+                      <div className="size-1.5 rounded-full bg-primary/60" />
                       <span className="text-[11px] text-white/40">Extra</span>
                     </div>
                   )}
@@ -283,7 +285,7 @@ export default function ButtonCredits({
             >
               <HiArrowPath
                 className={cn(
-                  'w-4 h-4 flex-shrink-0',
+                  'size-4 flex-shrink-0',
                   isLoading && 'animate-spin',
                 )}
               />
@@ -292,7 +294,7 @@ export default function ButtonCredits({
 
             {/* Top Up */}
             <Link
-              href={`${EnvironmentService.apps.app}/settings/organization`}
+              href={orgHref('/settings')}
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
@@ -302,7 +304,7 @@ export default function ButtonCredits({
               onClick={() => setIsOpen(false)}
               title="Top Up Credits"
             >
-              <HiPlus className="w-4 h-4 flex-shrink-0" />
+              <HiPlus className="size-4 flex-shrink-0" />
               <span className="text-sm font-black">Top Up</span>
             </Link>
           </div>

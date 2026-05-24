@@ -10,6 +10,34 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
+type TiktokError = {
+  message?: string;
+  response?: {
+    data?: {
+      data?: { error?: { code?: string } };
+      error?: string | { code?: string };
+    };
+  };
+};
+
+type TiktokPost = PostEntity & {
+  credential?: {
+    _id?: string;
+    accessToken?: string | null;
+    externalHandle?: string | null;
+    isConnected?: boolean;
+  };
+};
+
+function readTiktokErrorCode(error: unknown): string | undefined {
+  const response = (error as TiktokError | undefined)?.response;
+  const rawError = response?.data?.error;
+  if (typeof rawError === 'string') {
+    return rawError;
+  }
+  return rawError?.code ?? response?.data?.data?.error?.code;
+}
+
 @Injectable()
 export class CronTiktokStatusService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -37,24 +65,15 @@ export class CronTiktokStatusService {
    * Check if an error is an authentication error
    */
   private isAuthError(error: unknown): boolean {
-    const response = error?.response;
-    const errorCode =
-      response?.data?.error?.code ||
-      response?.data?.error ||
-      response?.data?.data?.error?.code;
-    return this.AUTH_ERROR_CODES.includes(errorCode);
+    const errorCode = readTiktokErrorCode(error);
+    return errorCode ? this.AUTH_ERROR_CODES.includes(errorCode) : false;
   }
 
   /**
    * Get the error code from a TikTok API error
    */
   private getErrorCode(error: unknown): string | undefined {
-    const response = error?.response;
-    return (
-      response?.data?.error?.code ||
-      response?.data?.error ||
-      response?.data?.data?.error?.code
-    );
+    return readTiktokErrorCode(error);
   }
 
   /**
@@ -78,33 +97,18 @@ export class CronTiktokStatusService {
       };
 
       // Find TikTok posts with PENDING status
-      const posts: unknown = await this.postsService.findAll(
-        [
-          {
-            $match: {
-              externalId: { $exists: true, $ne: null }, // Has publish_id
-              isDeleted: false,
-              platform: CredentialPlatform.TIKTOK,
-              status: PostStatus.PENDING,
-            },
+      const posts = (await this.postsService.findAll(
+        {
+          include: { credential: true },
+          where: {
+            externalId: { not: null }, // Has publish_id
+            isDeleted: false,
+            platform: CredentialPlatform.TIKTOK,
+            status: PostStatus.PENDING,
           },
-          {
-            $lookup: {
-              as: 'credentialDoc',
-              foreignField: '_id',
-              from: 'credentials',
-              localField: 'credential',
-            },
-          },
-          {
-            $unwind: {
-              path: '$credentialDoc',
-              preserveNullAndEmptyArrays: true,
-            },
-          },
-        ],
+        },
         options,
-      );
+      )) as unknown as { docs?: TiktokPost[] };
 
       const postsToCheck = posts.docs?.length || 0;
 
@@ -129,7 +133,7 @@ export class CronTiktokStatusService {
    * Check individual post status against TikTok API
    */
   private async checkPostStatus(
-    post: PostEntity,
+    post: TiktokPost,
     now: Date,
     maxAge: Date,
   ): Promise<void> {
@@ -158,14 +162,15 @@ export class CronTiktokStatusService {
       // Get credential for API call
       const credential = (
         post as unknown as {
-          credentialDoc?: {
+          credential?: {
             _id?: string;
             accessToken?: string;
+            externalHandle?: string;
             isConnected?: boolean;
           };
         }
-      ).credentialDoc;
-      if (!credential?.accessToken) {
+      ).credential;
+      if (!credential?._id || !credential.accessToken) {
         this.logger.warn(`${url} post ${post._id} has no valid credential`);
         await this.markPostFailed(
           post,
@@ -190,11 +195,11 @@ export class CronTiktokStatusService {
       const refreshedCredential = await this.tiktokService.refreshToken(
         post.organization.toString(),
         post.brand.toString(),
-        credential._id.toString(),
+        credential._id,
       );
 
       const decryptedAccessToken = EncryptionUtil.decrypt(
-        refreshedCredential.accessToken,
+        refreshedCredential.accessToken ?? '',
       );
 
       // Call TikTok API to check publish status
@@ -216,7 +221,7 @@ export class CronTiktokStatusService {
 
       // Check if moderation complete and post_id available
       if (statusData?.status === 'PUBLISH_COMPLETE' && hasPostId) {
-        const postId = statusData.publicly_available_post_id[0].toString();
+        const postId = String(statusData.publicly_available_post_id?.[0]);
         const postUrl = `https://www.tiktok.com/@${credential.externalHandle}/video/${postId}`;
 
         // Update post with real post_id and mark as PUBLIC
@@ -255,9 +260,10 @@ export class CronTiktokStatusService {
       });
 
       // Check if this is a TikTok moderation failure (thrown by getPublishStatus when status === 'FAILED')
-      if (error.message?.startsWith('TikTok publish failed:')) {
+      const errorMessage = (error as TiktokError).message ?? '';
+      if (errorMessage.startsWith('TikTok publish failed:')) {
         const failReason =
-          error.message.replace('TikTok publish failed: ', '') ||
+          errorMessage.replace('TikTok publish failed: ', '') ||
           'TikTok moderation rejected the post';
         await this.markPostFailed(post, failReason);
         return;
@@ -276,29 +282,22 @@ export class CronTiktokStatusService {
         if (
           (
             post as unknown as {
-              credentialDoc?: {
+              credential?: {
                 _id?: string;
                 accessToken?: string;
                 isConnected?: boolean;
               };
             }
-          ).credentialDoc?._id
+          ).credential?._id
         ) {
           try {
-            await this.credentialsService.patch(
-              (
-                post as unknown as {
-                  credentialDoc?: {
-                    _id?: string;
-                    accessToken?: string;
-                    isConnected?: boolean;
-                  };
-                }
-              ).credentialDoc._id,
-              {
-                isConnected: false,
-              },
-            );
+            const credentialId = post.credential?._id;
+            if (!credentialId) {
+              return;
+            }
+            await this.credentialsService.patch(credentialId, {
+              isConnected: false,
+            });
           } catch (patchError: unknown) {
             this.logger.error(
               `${url} failed to mark credential as disconnected`,
@@ -323,10 +322,13 @@ export class CronTiktokStatusService {
    * Mark a post as failed
    */
   private async markPostFailed(post: unknown, reason: string): Promise<void> {
-    await this.postsService.patch(post._id.toString(), {
+    const postRecord = post as { _id?: unknown };
+    await this.postsService.patch(String(postRecord._id), {
       status: PostStatus.FAILED,
     });
 
-    this.logger.warn(`Post ${post._id} marked as failed`, { reason });
+    this.logger.warn(`Post ${String(postRecord._id)} marked as failed`, {
+      reason,
+    });
   }
 }

@@ -18,10 +18,17 @@ import AppTable from '@ui/display/table/Table';
 import { LazyModalStyle } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
 
-export default function StylesList({
+function StylesListContent({
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -34,10 +41,10 @@ export default function StylesList({
     useCallback((token: string) => StylesService.getInstance(token), []),
   );
 
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const searchParamsString = searchParams.toString();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -70,11 +77,11 @@ export default function StylesList({
       params.delete('brand');
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   const handleAdminBrandChange = useCallback(
@@ -88,11 +95,11 @@ export default function StylesList({
       }
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   // Use refs for callback props to prevent unnecessary re-renders
@@ -151,7 +158,7 @@ export default function StylesList({
       : [];
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams?.get('page')) || 1;
+  const currentPage = Number(searchParams.get('page')) || 1;
 
   const findAllStyles = useCallback(
     async (isRefresh = false) => {
@@ -207,7 +214,7 @@ export default function StylesList({
     ],
   );
 
-  // Fetch data on mount and when searchParams change
+  // Fetch data on mount and when search params change
   useEffect(() => {
     findAllStyles();
   }, [findAllStyles]);
@@ -228,21 +235,17 @@ export default function StylesList({
         isError: true,
         label: 'Delete Style',
         message: `Are you sure you want to delete "${style.label}"? This action cannot be undone.`,
-        onConfirm: handleDelete,
+        onConfirm: () => handleDelete(style),
       });
     }
 
     openModal(modalId);
   };
 
-  const handleDelete = async () => {
-    if (!selectedStyle) {
-      return;
-    }
-
+  const handleDelete = async (style: IElementStyle) => {
     try {
       const service = await getStylesService();
-      await service.delete(selectedStyle.id);
+      await service.delete(style.id);
       notificationsService.success('Style deleted');
       setSelectedStyle(null);
       findAllStyles(true);
@@ -294,5 +297,15 @@ export default function StylesList({
         <AutoPagination showTotal totalLabel="styles" />
       </div>
     </>
+  );
+}
+
+export default function StylesList(
+  props: Parameters<typeof StylesListContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <StylesListContent {...props} />
+    </Suspense>
   );
 }

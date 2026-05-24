@@ -1,13 +1,27 @@
-/* Custom styles for Genfeed.ai documentation */
+/* Genfeed.ai documentation surface tokens */
 
 :root {
-  --primary-color: #000000;
-  --dark-bg: #0a0a0a;
-  --dark-navbar-bg: #111111;
-  --light-bg: #ffffff;
+  --docs-background-dark: #030303;
+  --docs-background-dark-secondary: #0f0f0f;
+  --docs-background-dark-tertiary: #1a1a1a;
+  --docs-background-light: #fafaf9;
+  --docs-border-dark: #262626;
+  --docs-border-light: #dad9d6;
+  --docs-foreground-dark: #fafafa;
+  --docs-muted-dark: #949494;
+  --docs-muted-light: #707070;
+  --docs-overlay-white-5: rgba(255, 255, 255, 0.05);
+  --docs-primary-light: #2563eb;
+  --docs-radius-sm: 4px;
+  --docs-radius-lg: 8px;
+  --docs-space-sm: 8px;
+  --docs-space-lg: 16px;
+  --docs-success: #10b981;
+  --docs-warning: #f59e0b;
+  --docs-info: #3b82f6;
+  --docs-destructive: #dc2626;
 }
 
-/* Smooth transitions */
 * {
   transition:
     background-color 0.3s ease,
@@ -15,10 +29,9 @@
     color 0.3s ease;
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: var(--docs-space-sm);
+  height: var(--docs-space-sm);
 }
 
 ::-webkit-scrollbar-track {
@@ -26,29 +39,26 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
+  background: var(--docs-muted-light);
+  border-radius: var(--docs-radius-sm);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: var(--docs-muted-dark);
 }
 
-/* Dark mode scrollbar */
 .dark ::-webkit-scrollbar-thumb {
-  background: #555;
+  background: var(--docs-muted-dark);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #777;
+  background: var(--docs-foreground-dark);
 }
 
-/* Code block improvements */
 pre {
-  border-radius: 8px !important;
+  border-radius: var(--docs-radius-lg);
 }
 
-/* Table improvements */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -56,46 +66,41 @@ table {
 
 th,
 td {
-  padding: 0.75rem 1rem;
+  padding: 0.75rem var(--docs-space-lg);
   text-align: left;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--docs-border-light);
 }
 
 .dark th,
 .dark td {
-  border-bottom-color: #374151;
+  border-bottom-color: var(--docs-border-dark);
 }
 
 th {
   font-weight: 600;
 }
 
-/* Callout/admonition styles */
 .nx-mt-6.nx-flex.nx-rounded-lg {
-  border-radius: 8px;
+  border-radius: var(--docs-radius-lg);
 }
 
-/* Footer customization */
 footer {
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--docs-border-light);
 }
 
 .dark footer {
-  border-top-color: #1f2937;
+  border-top-color: var(--docs-border-dark);
 }
 
-/* Navigation improvements */
 nav a:hover {
   opacity: 0.8;
 }
 
-/* Logo styling */
 nav img {
   height: 24px;
   width: auto;
 }
 
-/* Mobile responsiveness */
 @media (max-width: 768px) {
   table {
     display: block;
@@ -104,65 +109,66 @@ nav img {
   }
 }
 
-/* Swagger UI dark mode overrides */
 .dark .swagger-ui {
   background-color: transparent;
 }
 
 .dark .swagger-ui .opblock {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--docs-overlay-white-5);
 }
 
 .dark .swagger-ui .opblock-summary {
-  border-color: #374151;
+  border-color: var(--docs-border-dark);
 }
 
 .dark .swagger-ui .opblock.opblock-post {
-  border-color: #49cc90;
-  background: rgba(73, 204, 144, 0.1);
+  border-color: var(--docs-success);
+  background: color-mix(in oklab, var(--docs-success) 14%, transparent);
 }
 
 .dark .swagger-ui .opblock.opblock-get {
-  border-color: #61affe;
-  background: rgba(97, 175, 254, 0.1);
+  border-color: var(--docs-info);
+  background: color-mix(in oklab, var(--docs-info) 14%, transparent);
 }
 
 .dark .swagger-ui .opblock.opblock-put {
-  border-color: #fca130;
-  background: rgba(252, 161, 48, 0.1);
+  border-color: var(--docs-warning);
+  background: color-mix(in oklab, var(--docs-warning) 14%, transparent);
 }
 
 .dark .swagger-ui .opblock.opblock-delete {
-  border-color: #f93e3e;
-  background: rgba(249, 62, 62, 0.1);
+  border-color: var(--docs-destructive);
+  background: color-mix(in oklab, var(--docs-destructive) 14%, transparent);
 }
 
-.dark .swagger-ui .opblock-section-header {
-  background: #1f2937;
+.dark .swagger-ui .opblock-section-header,
+.dark .swagger-ui .scheme-container,
+.dark .swagger-ui select,
+.dark .swagger-ui input[type="text"],
+.dark .swagger-ui textarea {
+  background-color: var(--docs-background-dark-tertiary);
 }
 
 .dark .swagger-ui select,
 .dark .swagger-ui input[type="text"],
 .dark .swagger-ui textarea {
-  background-color: #1f2937;
-  color: #f9fafb;
-  border-color: #374151;
+  color: var(--docs-foreground-dark);
+  border-color: var(--docs-border-dark);
 }
 
 .dark .swagger-ui .scheme-container {
-  background-color: #1f2937;
   box-shadow: none;
 }
 
 .dark .swagger-ui table thead tr th,
 .dark .swagger-ui table thead tr td {
-  border-color: #374151;
-  color: #f9fafb;
+  border-color: var(--docs-border-dark);
+  color: var(--docs-foreground-dark);
 }
 
 .dark .swagger-ui .parameter__name,
 .dark .swagger-ui .parameter__type,
 .dark .swagger-ui .response-col_status,
 .dark .swagger-ui .response-col_description {
-  color: #f9fafb;
+  color: var(--docs-foreground-dark);
 }

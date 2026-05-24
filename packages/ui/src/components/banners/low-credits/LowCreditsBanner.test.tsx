@@ -58,7 +58,7 @@ describe('LowCreditsBanner', () => {
 
   it('re-shows the banner when a dismissed balance later drops to zero', () => {
     localStorage.setItem(
-      'genfeed:low-credits-dismissed',
+      'genfeed:low-credits-dismissed:v1',
       JSON.stringify({
         balance: 500,
         timestamp: Date.now(),
@@ -85,7 +85,7 @@ describe('LowCreditsBanner', () => {
   });
 
   it('ignores malformed dismiss state and still renders the warning', () => {
-    localStorage.setItem('genfeed:low-credits-dismissed', 'not-json');
+    localStorage.setItem('genfeed:low-credits-dismissed:v1', 'not-json');
     mockUseSubscription.mockReturnValue({
       creditsBreakdown: { total: 250 },
     });
@@ -116,7 +116,7 @@ describe('LowCreditsBanner', () => {
 
     expect(
       screen.getByRole('link', { name: 'Configure providers' }),
-    ).toHaveAttribute('href', '/test-org/~/settings/organization/api-keys');
+    ).toHaveAttribute('href', '/test-org/~/settings/api-keys');
   });
 
   it('keeps the billing CTA in EE mode', () => {
@@ -129,6 +129,6 @@ describe('LowCreditsBanner', () => {
 
     expect(
       screen.getByRole('link', { name: 'Top up credits' }),
-    ).toHaveAttribute('href', '/test-org/~/settings/organization/billing');
+    ).toHaveAttribute('href', '/test-org/~/settings/billing');
   });
 });

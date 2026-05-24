@@ -30,15 +30,36 @@ function bumpVersion(version, bump) {
 }
 
 function run(command, args, options = {}) {
+  const { env, exitOnError = true, ...spawnOptions } = options;
   const result = spawnSync(command, args, {
     cwd: root,
     encoding: 'utf8',
+    env: { ...process.env, ...(env ?? {}) },
     stdio: 'inherit',
-    ...options,
+    ...spawnOptions,
   });
 
   if (result.status !== 0) {
-    process.exit(result.status ?? 1);
+    const exitCode = result.status ?? 1;
+    if (exitOnError) {
+      process.exit(exitCode);
+    }
+
+    const error = new Error(`${command} ${args.join(' ')} failed`);
+    error.exitCode = exitCode;
+    throw error;
+  }
+}
+
+function assertCleanWorkingTree() {
+  const result = spawnSync('git', ['diff-index', '--quiet', 'HEAD', '--'], {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: 'inherit',
+  });
+
+  if (result.status !== 0) {
+    fail('Working tree must be clean before publishing packages.');
   }
 }
 
@@ -48,6 +69,16 @@ function isPathInside(parentPath, childPath) {
     relativePath === '' ||
     (!relativePath.startsWith('..') && !path.isAbsolute(relativePath))
   );
+}
+
+function readPackageJson(packageJsonPath) {
+  return JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+}
+
+function writePackageVersion(packageJsonPath, version) {
+  const pkg = readPackageJson(packageJsonPath);
+  pkg.version = version;
+  fs.writeFileSync(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`);
 }
 
 const args = process.argv.slice(2);
@@ -107,7 +138,7 @@ const normalizedRequests = requests.map((request, index) => {
   }
   seenPaths.add(packageDir);
 
-  const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  const pkg = readPackageJson(packageJsonPath);
   if (pkg.private === true) {
     fail(`${candidatePath} is private and cannot be published`);
   }
@@ -119,6 +150,7 @@ const normalizedRequests = requests.map((request, index) => {
     bump,
     currentVersion: pkg.version,
     name: pkg.name,
+    nextVersion: bumpVersion(pkg.version, bump),
     packageDir,
     packageJsonPath,
     path: candidatePath,
@@ -130,27 +162,46 @@ run('node', [
   ...normalizedRequests.map((request) => request.path),
 ]);
 
+assertCleanWorkingTree();
+
 const releases = [];
+let exitCode = 0;
 
 for (const request of normalizedRequests) {
-  const publishArgs = [request.path, request.bump];
+  writePackageVersion(request.packageJsonPath, request.nextVersion);
+}
 
-  if (dryRun) {
-    publishArgs.push('--dry-run');
+try {
+  for (const request of normalizedRequests) {
+    const publishArgs = [request.path, '--no-bump'];
+
+    if (dryRun) {
+      publishArgs.push('--dry-run');
+    }
+
+    console.log(`\n=== ${dryRun ? 'Dry Run' : 'Publish'} ${request.path} ===`);
+    run(scriptPath, publishArgs, {
+      env: { PUBLISH_SKIP_CLEAN_CHECK: 'true' },
+      exitOnError: false,
+    });
+    releases.push({
+      name: request.name,
+      path: request.path,
+      version: request.nextVersion,
+    });
   }
+} catch (error) {
+  exitCode = error?.exitCode ?? 1;
+} finally {
+  if (dryRun) {
+    for (const request of normalizedRequests) {
+      writePackageVersion(request.packageJsonPath, request.currentVersion);
+    }
+  }
+}
 
-  console.log(`\n=== ${dryRun ? 'Dry Run' : 'Publish'} ${request.path} ===`);
-  run(scriptPath, publishArgs);
-  releases.push({
-    name: request.name,
-    path: request.path,
-    version:
-      request.bump === 'patch' ||
-      request.bump === 'minor' ||
-      request.bump === 'major'
-        ? bumpVersion(request.currentVersion, request.bump)
-        : request.currentVersion,
-  });
+if (exitCode !== 0) {
+  process.exit(exitCode);
 }
 
 const outputPath =

@@ -2,14 +2,22 @@ export interface ContentRunBrief {
   angle?: string;
   audience?: string;
   callToAction?: string;
+  channelFit?: string;
+  confidence?: number;
   evidence?: string[];
   hypothesis?: string;
   notes?: string;
+  risk?: string;
+  sourceId?: string;
+  sourceUrl?: string;
 }
 
 export interface ContentRunVariant {
+  angle?: string;
   assetIds?: string[];
   content?: string;
+  format?: string;
+  hypothesis?: string;
   id: string;
   metadata: Record<string, unknown>;
   platform: string;
@@ -23,8 +31,8 @@ export interface ContentRunPublishContext {
   metadata: Record<string, unknown>;
   platform?: string;
   postIds?: string[];
-  publishedAt?: Date;
-  scheduledFor?: Date;
+  publishedAt?: Date | string;
+  scheduledFor?: Date | string;
   variantId?: string;
 }
 

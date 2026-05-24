@@ -60,7 +60,7 @@ function toggleValue(values: string[], value: string): string[] {
 }
 
 export default function ContentTeamOrchestratorPage() {
-  const router = useRouter();
+  const { push } = useRouter();
   const notificationsService = NotificationsService.getInstance();
   const { brandId, brands } = useBrand();
   const { strategies } = useAgentStrategies();
@@ -235,7 +235,7 @@ export default function ContentTeamOrchestratorPage() {
         );
 
         notificationsService.success('Content team orchestrator launched');
-        router.push('/orchestration');
+        push('/orchestration');
       } catch (error) {
         logger.error('Failed to launch content team orchestrator', { error });
         notificationsService.error('Unable to launch orchestrator');
@@ -261,7 +261,7 @@ export default function ContentTeamOrchestratorPage() {
       getGoalsService,
       getStrategiesService,
       notificationsService,
-      router,
+      push,
       selectedBlueprint,
     ],
   );
@@ -415,7 +415,7 @@ export default function ContentTeamOrchestratorPage() {
                 </p>
               ) : (
                 strategies.map((strategy) => (
-                  <label
+                  <span
                     key={strategy.id}
                     className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-white/[0.06] px-3 py-2"
                   >
@@ -432,7 +432,7 @@ export default function ContentTeamOrchestratorPage() {
                       checked={form.selectedStrategyIds.includes(strategy.id)}
                       onCheckedChange={() => toggleStrategy(strategy.id)}
                     />
-                  </label>
+                  </span>
                 ))
               )}
             </div>
@@ -581,7 +581,7 @@ export default function ContentTeamOrchestratorPage() {
             />
             <Button
               label="Cancel"
-              onClick={() => router.push('/orchestration')}
+              onClick={() => push('/orchestration')}
               type="button"
               variant={ButtonVariant.SECONDARY}
             />

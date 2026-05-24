@@ -1,10 +1,10 @@
 import { PerformanceSource } from '@api/collections/content-performance/schemas/content-performance.schema';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ContentType, CredentialPlatform } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -14,7 +14,7 @@ import {
 
 export class CreateContentPerformanceDto {
   @ApiProperty({ description: 'Brand ID', required: true })
-  @IsMongoId()
+  @IsEntityId()
   brand!: string;
 
   @ApiProperty({
@@ -42,7 +42,7 @@ export class CreateContentPerformanceDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   post?: string;
 
   @ApiProperty({ required: false })
@@ -57,7 +57,7 @@ export class CreateContentPerformanceDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   workflowExecutionId?: string;
 
   @ApiProperty({ required: false })

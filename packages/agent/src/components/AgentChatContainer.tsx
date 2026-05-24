@@ -15,6 +15,10 @@ import { TimelineStreamingRow } from '@genfeedai/agent/components/TimelineStream
 import { TimelineWorkGroup } from '@genfeedai/agent/components/TimelineWorkGroup';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
+import {
+  AGENT_DRAFT_SUGGESTION_EVENT,
+  type AgentDraftSuggestionPayload,
+} from '@genfeedai/agent/hooks/use-agent-draft-context';
 import type {
   AgentChatMessage as AgentChatMessageType,
   AgentWorkEvent,
@@ -96,7 +100,7 @@ function AgentConversationSkeleton({
 
           <div className="flex flex-1 flex-col gap-12 pt-1">
             <div className="flex justify-end">
-              <Skeleton className="h-10 w-40 rounded-2xl bg-white/[0.05]" />
+              <Skeleton className="h-10 w-40 rounded-md bg-white/[0.05]" />
             </div>
 
             <div className="max-w-[40rem] space-y-3 pt-2">
@@ -118,16 +122,16 @@ function AgentConversationSkeleton({
         zIndex={10}
         className="bottom-3 md:bottom-5"
       >
-        <div className="rounded-[1.75rem] border border-white/[0.08] bg-background/80 px-4 py-4 shadow-[0_18px_50px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+        <div className="rounded-md border border-white/[0.08] bg-background/80 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.28)] backdrop-blur-xl">
           <Skeleton className="mb-4 h-5 w-28 rounded-full bg-white/[0.04]" />
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <Skeleton className="h-8 w-8 rounded-full bg-white/[0.04]" />
+              <Skeleton className="size-8 rounded-full bg-white/[0.04]" />
               <Skeleton className="h-4 w-40 rounded-full bg-white/[0.04]" />
             </div>
             <div className="flex items-center gap-3">
               <Skeleton className="h-4 w-16 rounded-full bg-white/[0.04]" />
-              <Skeleton className="h-8 w-8 rounded-full bg-white/[0.04]" />
+              <Skeleton className="size-8 rounded-full bg-white/[0.04]" />
             </div>
           </div>
         </div>
@@ -639,6 +643,47 @@ export function AgentChatContainer({
         return;
       }
 
+      if (action === 'apply_to_draft') {
+        const text = typeof payload?.text === 'string' ? payload.text : '';
+
+        if (!text.trim()) {
+          setError('No generated text is available for this action.');
+          return;
+        }
+
+        if (typeof window === 'undefined') {
+          setError('Draft updates are only available in the browser.');
+          return;
+        }
+
+        const pageContext = useAgentChatStore.getState().pageContext;
+        const event = new CustomEvent<AgentDraftSuggestionPayload>(
+          AGENT_DRAFT_SUGGESTION_EVENT,
+          {
+            cancelable: true,
+            detail: {
+              mode: pageContext?.selectedText ? 'replace-selection' : 'append',
+              selectedText: pageContext?.selectedText,
+              sourceAction:
+                typeof payload?.sourceAction === 'string'
+                  ? payload.sourceAction
+                  : undefined,
+              text,
+            },
+          },
+        );
+
+        const wasHandled = !window.dispatchEvent(event);
+
+        if (!wasHandled) {
+          setError('Open a writing surface before applying text to a draft.');
+          return;
+        }
+
+        setError(null);
+        return;
+      }
+
       if (!activeThreadId) {
         setError('No active thread selected.');
         return;
@@ -903,21 +948,21 @@ export function AgentChatContainer({
         </div>
       ) : isEmpty && !onboardingMode ? (
         <div className="relative flex min-h-0 flex-1 overflow-hidden">
-          <div className="flex min-h-0 flex-1 overflow-y-auto px-6 py-10 md:px-8 md:py-14">
+          <div className="flex min-h-0 flex-1 overflow-y-auto px-4 py-6 md:px-6">
             <div
               className={cn(
                 'mx-auto flex h-full w-full flex-col items-center justify-center',
-                isWideLayout ? 'max-w-4xl' : 'max-w-4xl',
+                isWideLayout ? 'max-w-3xl' : 'max-w-3xl',
               )}
             >
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-foreground/[0.05] ring-1 ring-inset ring-foreground/[0.08]">
-                <HiOutlineSparkles className="h-6 w-6 text-foreground/68" />
+              <div className="mb-3 flex size-9 items-center justify-center rounded-md bg-foreground/[0.05] ring-1 ring-inset ring-foreground/[0.08]">
+                <HiOutlineSparkles className="size-4 text-foreground/68" />
               </div>
 
-              <h2 className="mb-2 text-center text-[clamp(1.75rem,3vw,2.4rem)] font-semibold tracking-tight text-foreground">
+              <h2 className="mb-1 text-center text-base font-semibold tracking-[-0.02em] text-foreground">
                 {emptyStateTitle}
               </h2>
-              <p className="max-w-xl text-center text-sm leading-6 text-foreground/58">
+              <p className="max-w-md text-center text-xs leading-5 text-foreground/52">
                 {emptyStateDescription}
               </p>
 
@@ -925,7 +970,7 @@ export function AgentChatContainer({
                 layoutMode="inflow"
                 maxWidth={isWideLayout ? '2xl' : '4xl'}
                 zIndex={60}
-                className="mt-5 w-full"
+                className="mt-4 w-full"
               >
                 <AgentChatInput
                   onSend={handleSend}
@@ -970,7 +1015,7 @@ export function AgentChatContainer({
             <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
               <div
                 className={cn(
-                  'mx-auto space-y-1 px-4 py-4 pb-56 md:px-6 md:pb-72',
+                  'mx-auto space-y-1 p-4 pb-56 md:px-6 md:pb-72',
                   conversationColumnMaxWidthClass,
                 )}
               >
@@ -1002,7 +1047,7 @@ export function AgentChatContainer({
                               isBusy ||
                               isCreatingFollowUpTasks
                             }
-                            className="rounded-xl px-4 py-2 text-sm"
+                            className="rounded-md px-4 py-2 text-sm"
                           >
                             {isCreatingFollowUpTasks
                               ? 'Creating Tasks...'
@@ -1098,9 +1143,9 @@ export function AgentChatContainer({
                 <Button
                   variant={ButtonVariant.GHOST}
                   size={ButtonSize.ICON}
-                  icon={<HiOutlineArrowDown className="h-4 w-4" />}
+                  icon={<HiOutlineArrowDown className="size-4" />}
                   ariaLabel="Scroll to latest message"
-                  className="rounded-full border border-white/[0.14] bg-background/80 shadow-lg backdrop-blur-sm"
+                  className="rounded-full border border-border/70 bg-background/88 text-foreground/72 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
                   withWrapper={false}
                   onClick={scrollToBottom}
                 />

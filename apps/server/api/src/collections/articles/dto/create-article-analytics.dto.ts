@@ -1,29 +1,30 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDate, IsMongoId, IsNumber, Min } from 'class-validator';
+import { IsDate, IsNumber, Min } from 'class-validator';
 
 export class CreateArticleAnalyticsDto {
   @ApiProperty({
     description: 'Article ID',
   })
-  @IsMongoId()
+  @IsEntityId()
   article!: string;
 
   @ApiProperty({
     description: 'User ID',
   })
-  @IsMongoId()
+  @IsEntityId()
   user!: string;
 
   @ApiProperty({
     description: 'Brand ID',
   })
-  @IsMongoId()
+  @IsEntityId()
   brand!: string;
 
   @ApiProperty({
     description: 'Organization ID',
   })
-  @IsMongoId()
+  @IsEntityId()
   organization!: string;
 
   @ApiProperty({

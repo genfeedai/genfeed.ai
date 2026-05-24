@@ -124,9 +124,9 @@ const config = createAppNextConfig({
       source: '/library',
     },
     {
-      destination: '/settings/personal',
+      destination: '/settings',
       permanent: false,
-      source: '/settings',
+      source: '/settings/personal',
     },
     {
       destination: '/analytics/overview',
@@ -137,11 +137,6 @@ const config = createAppNextConfig({
       destination: '/compose/article',
       permanent: false,
       source: '/compose',
-    },
-    {
-      destination: '/chat/new',
-      permanent: false,
-      source: '/chat',
     },
     {
       destination: '/:orgSlug/~/chat/:path*',
@@ -159,6 +154,7 @@ const config = createAppNextConfig({
 config.experimental = {
   ...(config.experimental ?? {}),
   optimizePackageImports: [
+    ...(config.experimental?.optimizePackageImports ?? []),
     '@tiptap/core',
     '@tiptap/extension-image',
     '@tiptap/extension-link',
@@ -217,8 +213,35 @@ config.turbopack = {
       './packages/components/admin/modals/ModalSubscription.tsx',
     '@components/social/SocialLinks':
       './packages/components/admin/social/SocialLinks.tsx',
-    '@genfeedai/serializers': '../../packages/serializers/src/index.ts',
+    '@genfeedai/agent': '../../packages/agent/src/index.ts',
+    '@genfeedai/client': '../../packages/client/src/index.ts',
+    '@genfeedai/constants': '../../packages/constants/src/index.ts',
+    '@genfeedai/enums': '../../packages/enums/src/index.ts',
     '@genfeedai/helpers': '../../packages/helpers/src/index.ts',
+    '@genfeedai/interfaces': '../../packages/interfaces/src/index.ts',
+    '@genfeedai/serializers': '../../packages/serializers/src/index.ts',
+    '@genfeedai/types': '../../packages/types/src/index.ts',
+    '@genfeedai/ui': '../../packages/ui/src/index.ts',
+    '@genfeedai/workflow-saas': '../../packages/workflow-saas/src/index.ts',
+    '@genfeedai/workflow-ui': '../../packages/workflow-ui/src/index.ts',
+    '@genfeedai/workflow-ui/canvas':
+      '../../packages/workflow-ui/src/canvas/index.ts',
+    '@genfeedai/workflow-ui/hooks':
+      '../../packages/workflow-ui/src/hooks/index.ts',
+    '@genfeedai/workflow-ui/lib': '../../packages/workflow-ui/src/lib/index.ts',
+    '@genfeedai/workflow-ui/nodes':
+      '../../packages/workflow-ui/src/nodes/index.ts',
+    '@genfeedai/workflow-ui/panels':
+      '../../packages/workflow-ui/src/panels/index.ts',
+    '@genfeedai/workflow-ui/provider':
+      '../../packages/workflow-ui/src/provider/index.ts',
+    '@genfeedai/workflow-ui/stores':
+      '../../packages/workflow-ui/src/stores/index.ts',
+    '@genfeedai/workflow-ui/styles':
+      '../../packages/workflow-ui/src/styles/workflow-ui.css',
+    '@genfeedai/workflow-ui/toolbar':
+      '../../packages/workflow-ui/src/toolbar/index.ts',
+    '@genfeedai/workflow-ui/ui': '../../packages/workflow-ui/src/ui/index.ts',
     '@protected': './app/(protected)/admin',
     '@serializers': '../../packages/serializers/src',
     '@ui/forms/base/form-control/FormControl':

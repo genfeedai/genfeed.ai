@@ -36,7 +36,7 @@ export function useAIGenNodeHeader({
         disabled={isProcessing}
       >
         <span className="truncate">{modelDisplayName}</span>
-        <ChevronDown className="h-3 w-3 shrink-0" />
+        <ChevronDown className="size-3 shrink-0" />
       </Button>
     ),
     [modelDisplayName, isProcessing, onModelBrowse],
@@ -52,12 +52,12 @@ export function useAIGenNodeHeader({
             onClick={onExpand}
             title="Expand preview"
           >
-            <Expand className="h-3 w-3" />
+            <Expand className="size-3" />
           </Button>
         )}
         {isProcessing ? (
           <Button variant="destructive" size="sm" onClick={onStop}>
-            <Square className="h-4 w-4 fill-current" />
+            <Square className="size-4 fill-current" />
             Generating
           </Button>
         ) : (
@@ -67,7 +67,7 @@ export function useAIGenNodeHeader({
             onClick={onGenerate}
             disabled={!canGenerate}
           >
-            <Play className="h-4 w-4 fill-current" />
+            <Play className="size-4 fill-current" />
             Generate
           </Button>
         )}

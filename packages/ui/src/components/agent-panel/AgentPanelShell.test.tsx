@@ -50,10 +50,10 @@ describe('AgentPanelShell', () => {
 
   it('renders default title when no title prop', () => {
     render(<AgentPanelShell {...defaultProps} />);
-    expect(screen.getByText('Genfeed Terminal')).toBeInTheDocument();
+    expect(screen.getByText('Console')).toBeInTheDocument();
   });
 
-  it('renders custom title and subtitle', () => {
+  it('renders custom title (subtitle prop accepted but not rendered)', () => {
     render(
       <AgentPanelShell
         {...defaultProps}
@@ -62,19 +62,19 @@ describe('AgentPanelShell', () => {
       />,
     );
     expect(screen.getByText('My Agent')).toBeInTheDocument();
-    expect(screen.getByText('Helping you')).toBeInTheDocument();
+    expect(screen.queryByText('Helping you')).not.toBeInTheDocument();
   });
 
   it('calls onToggle when toggle button clicked', () => {
     const onToggle = vi.fn();
     render(<AgentPanelShell {...defaultProps} onToggle={onToggle} />);
-    fireEvent.click(screen.getByLabelText('Collapse quick ask panel'));
+    fireEvent.click(screen.getByLabelText('Collapse terminal'));
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
-  it('shows "Expand quick ask panel" aria-label when isOpen=false', () => {
+  it('shows "Expand terminal" aria-label when isOpen=false', () => {
     render(<AgentPanelShell {...defaultProps} isOpen={false} />);
-    expect(screen.getByLabelText('Expand quick ask panel')).toBeInTheDocument();
+    expect(screen.getByLabelText('Expand terminal')).toBeInTheDocument();
   });
 
   it('body has opacity-0 class when isOpen=false', () => {

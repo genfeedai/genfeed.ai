@@ -1,9 +1,9 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosUploadController } from '@api/collections/videos/controllers/upload/videos-upload.controller';
-import { ValidationConfigService } from '@api/config/services/validation.config';
 import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation/upload-validation.pipe';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -86,11 +86,6 @@ describe('VideosUploadController', () => {
         },
       }),
     },
-    validationConfigService: {
-      getAllowedVideoExtensions: vi.fn().mockReturnValue(['mp4']),
-      getAllowedVideoMimeTypes: vi.fn().mockReturnValue(['video/mp4']),
-      getMaxFileSize: vi.fn().mockReturnValue(100 * 1024 * 1024),
-    },
     websocketService: {
       publishIngredientStatus: vi.fn(),
     },
@@ -111,10 +106,6 @@ describe('VideosUploadController', () => {
         { provide: LoggerService, useValue: mockServices.loggerService },
         { provide: MetadataService, useValue: mockServices.metadataService },
         { provide: SharedService, useValue: mockServices.sharedService },
-        {
-          provide: ValidationConfigService,
-          useValue: mockServices.validationConfigService,
-        },
         {
           provide: NotificationsPublisherService,
           useValue: mockServices.websocketService,
@@ -149,25 +140,40 @@ describe('VideosUploadController', () => {
       expect(result).toBeDefined();
     });
 
-    it('should throw error when file is missing', async () => {
-      await expect(
-        controller.createUpload(
-          mockReq,
-          mockUser,
-          null as unknown as Express.Multer.File,
-        ),
-      ).rejects.toThrow(HttpException);
+    it('should throw error when file is missing', () => {
+      const pipe = new UploadValidationPipe({
+        allowedExtensions: ['mp4', 'avi', 'mov', 'mkv', 'webm'],
+        allowedMimeTypes: [
+          'video/mp4',
+          'video/avi',
+          'video/quicktime',
+          'video/x-matroska',
+          'video/webm',
+        ],
+        maxSizeBytes: 100 * 1024 * 1024,
+      });
+      expect(() =>
+        pipe.transform(null as unknown as Express.Multer.File),
+      ).toThrow(HttpException);
     });
 
-    it('should throw error when file validation fails', async () => {
+    it('should throw error when file validation fails', () => {
+      const pipe = new UploadValidationPipe({
+        allowedExtensions: ['mp4', 'avi', 'mov', 'mkv', 'webm'],
+        allowedMimeTypes: [
+          'video/mp4',
+          'video/avi',
+          'video/quicktime',
+          'video/x-matroska',
+          'video/webm',
+        ],
+        maxSizeBytes: 100 * 1024 * 1024,
+      });
       const invalidFile = {
         ...mockFile,
         mimetype: 'invalid/type',
       } as unknown as Express.Multer.File;
-
-      await expect(
-        controller.createUpload(mockReq, mockUser, invalidFile),
-      ).rejects.toThrow(HttpException);
+      expect(() => pipe.transform(invalidFile)).toThrow(HttpException);
     });
   });
 });

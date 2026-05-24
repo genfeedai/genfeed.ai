@@ -19,13 +19,13 @@ function Calendar({
       className={cn('p-3', className)}
       classNames={{
         button_next: cn(
-          'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100',
+          'size-7 bg-transparent p-0 opacity-50 hover:opacity-100',
           'inline-flex items-center justify-center',
           'border border-white/[0.08] hover:border-white/20',
           'hover:bg-white/5 transition-colors',
         ),
         button_previous: cn(
-          'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100',
+          'size-7 bg-transparent p-0 opacity-50 hover:opacity-100',
           'inline-flex items-center justify-center',
           'border border-white/[0.08] hover:border-white/20',
           'hover:bg-white/5 transition-colors',
@@ -33,13 +33,13 @@ function Calendar({
         caption_label: 'text-sm font-medium text-white/90',
         day: cn(
           'relative p-0 text-center text-sm focus-within:relative focus-within:z-20',
-          'h-9 w-9',
+          'size-9',
           props.mode === 'range'
             ? '[&:has([aria-selected])]:bg-white/5 first:[&:has([aria-selected])]: last:[&:has([aria-selected])]:'
             : '[&:has([aria-selected])]: [&:has([aria-selected])]:bg-white/5',
         ),
         day_button: cn(
-          'h-9 w-9 p-0 font-normal',
+          'size-9 p-0 font-normal',
           'inline-flex items-center justify-center',
           'hover:bg-white/10 hover:text-white',
           'focus:outline-none focus:ring-1 focus:ring-white/20',
@@ -68,9 +68,9 @@ function Calendar({
       components={{
         Chevron: ({ orientation }) =>
           orientation === 'left' ? (
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="size-4" />
           ) : (
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="size-4" />
           ),
       }}
       {...props}

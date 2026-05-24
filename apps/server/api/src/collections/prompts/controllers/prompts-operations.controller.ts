@@ -9,6 +9,7 @@
  */
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateTweetReplyDto } from '@api/collections/prompts/dto/create-tweet-reply.dto';
@@ -34,10 +35,12 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
+import type { IPromptBrandContext } from '@api/shared/interfaces/prompt/prompt.interface';
 import type { User } from '@clerk/backend';
 import {
   ActivityKey,
@@ -52,7 +55,6 @@ import {
   Status,
   SystemPromptKey,
 } from '@genfeedai/enums';
-import { type Brand } from '@genfeedai/prisma';
 import { PromptSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -72,9 +74,28 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+interface UploadedBinaryFile {
+  buffer: Buffer;
+  mimetype: string;
+  originalname: string;
+  size: number;
+}
+
+function toPromptBrandContext(
+  brand: BrandDocument | null | undefined,
+): IPromptBrandContext | undefined {
+  if (!brand) {
+    return undefined;
+  }
+
+  return {
+    backgroundColor: brand.backgroundColor ?? undefined,
+    description: brand.description ?? undefined,
+    label: brand.label ?? undefined,
+    primaryColor: brand.primaryColor ?? undefined,
+    secondaryColor: brand.secondaryColor ?? undefined,
+    text: brand.text ?? undefined,
+  };
 }
 
 @AutoSwagger()
@@ -106,11 +127,11 @@ export class PromptsOperationsController {
   ) {
     const publicMetadata = getPublicMetadata(user);
 
-    let selectedBrand: Brand | undefined;
-    if (isValidObjectId(createParsePromptDto.brand)) {
+    let selectedBrand: BrandDocument | undefined;
+    if (isEntityId(createParsePromptDto.brand)) {
       const brand = await this.brandsService.findOne({
         _id: createParsePromptDto.brand,
-        $or: [
+        OR: [
           { user: publicMetadata.user },
           { organization: publicMetadata.organization },
         ],
@@ -122,7 +143,7 @@ export class PromptsOperationsController {
     const { promptString, normalizedType } = PromptParser.parsePrompt(
       this.configService,
       {
-        brand: selectedBrand,
+        brand: toPromptBrandContext(selectedBrand),
         category: createParsePromptDto.category,
         originalPrompt: createParsePromptDto.original,
       },
@@ -160,8 +181,8 @@ export class PromptsOperationsController {
       return returnNotFound(this.constructorName, promptId);
     }
 
-    let selectedBrand: Brand | undefined;
-    if (isValidObjectId(prompt.brand)) {
+    let selectedBrand: BrandDocument | undefined;
+    if (isEntityId(prompt.brand)) {
       const brand = await this.brandsService.findOne({
         _id: prompt.brand,
         isDeleted: false,
@@ -172,7 +193,7 @@ export class PromptsOperationsController {
     const { promptString, normalizedType } = PromptParser.parsePrompt(
       this.configService,
       {
-        brand: selectedBrand,
+        brand: toPromptBrandContext(selectedBrand),
         category: prompt.category ? String(prompt.category) : '',
         originalPrompt: prompt.original,
       },
@@ -237,9 +258,7 @@ export class PromptsOperationsController {
     // Create activity for prompt remix start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: isValidObjectId(prompt.brand)
-          ? prompt.brand
-          : publicMetadata.brand,
+        brand: isEntityId(prompt.brand) ? prompt.brand : publicMetadata.brand,
         key: ActivityKey.PROMPT_REMIX_PROCESSING,
         organization: publicMetadata.organization,
         source: ActivitySource.PROMPT_REMIX,
@@ -384,8 +403,8 @@ export class PromptsOperationsController {
       return returnNotFound(this.constructorName, promptId);
     }
 
-    let selectedBrand: Brand | undefined;
-    if (isValidObjectId(prompt.brand)) {
+    let selectedBrand: BrandDocument | undefined;
+    if (isEntityId(prompt.brand)) {
       const brand = await this.brandsService.findOne({
         _id: prompt.brand,
         isDeleted: false,
@@ -396,7 +415,7 @@ export class PromptsOperationsController {
     const { promptString, normalizedType } = PromptParser.parsePrompt(
       this.configService,
       {
-        brand: selectedBrand,
+        brand: toPromptBrandContext(selectedBrand),
         category: prompt.category ? String(prompt.category) : '',
         originalPrompt: prompt.original,
       },
@@ -405,9 +424,7 @@ export class PromptsOperationsController {
     // Create activity for prompt enhance start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: isValidObjectId(prompt.brand)
-          ? prompt.brand
-          : publicMetadata.brand,
+        brand: isEntityId(prompt.brand) ? prompt.brand : publicMetadata.brand,
         key: ActivityKey.PROMPT_ENHANCE_PROCESSING,
         organization: publicMetadata.organization,
         source: ActivitySource.PROMPT_ENHANCEMENT,
@@ -527,7 +544,7 @@ export class PromptsOperationsController {
   )
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async voiceToSpeech(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: UploadedBinaryFile,
   ): Promise<{ text: string }> {
     if (!file) {
       throw new BadRequestException('No file uploaded');

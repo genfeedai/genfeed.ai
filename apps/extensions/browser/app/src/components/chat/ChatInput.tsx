@@ -43,7 +43,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps): ReactElement {
     onSend(trimmed);
     setValue('');
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      Object.assign(textareaRef.current.style, { height: 'auto' });
     }
   }, [value, disabled, onSend]);
 
@@ -54,13 +54,13 @@ export function ChatInput({ onSend, disabled }: ChatInputProps): ReactElement {
     }
   }
 
-  function handleInput() {
+  function resizeMessageTextarea() {
     const el = textareaRef.current;
     if (!el) {
       return;
     }
-    el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+    Object.assign(el.style, { height: 'auto' });
+    Object.assign(el.style, { height: `${Math.min(el.scrollHeight, 120)}px` });
   }
 
   return (
@@ -70,7 +70,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps): ReactElement {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        onInput={handleInput}
+        onInput={resizeMessageTextarea}
         placeholder={placeholder}
         disabled={disabled}
         rows={1}
@@ -82,7 +82,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps): ReactElement {
         onClick={handleSend}
         disabled={disabled || !value.trim()}
         aria-label="Send message"
-        className="flex h-9 w-9 shrink-0 items-center justify-center"
+        className="flex size-9 shrink-0 items-center justify-center"
       >
         <svg
           aria-hidden="true"

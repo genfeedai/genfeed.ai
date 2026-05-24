@@ -3,6 +3,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import type { BrandCompletenessGroup } from '@genfeedai/helpers';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useBrandCompleteness } from '@genfeedai/hooks/utils/use-brand-completeness/use-brand-completeness';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -40,7 +41,13 @@ interface BrandCompletenessCardProps {
   };
 }
 
-function GroupRow({ group }: { group: BrandCompletenessGroup }) {
+function GroupRow({
+  group,
+  href,
+}: {
+  group: BrandCompletenessGroup;
+  href: (path: string) => string;
+}) {
   const [isExpanded, setExpanded] = useState(false);
   const incompleteFields = group.fields.filter((f) => !f.isComplete);
   const isComplete = group.score === 100;
@@ -54,11 +61,11 @@ function GroupRow({ group }: { group: BrandCompletenessGroup }) {
         className="flex w-full items-center gap-2.5 px-2 py-1.5 text-left transition-colors duration-150 hover:bg-white/[0.04]"
       >
         {isComplete ? (
-          <HiCheck className="w-3.5 h-3.5 text-green-400/60 flex-shrink-0" />
+          <HiCheck className="size-3.5 text-green-400/60 flex-shrink-0" />
         ) : (
           <HiChevronDown
             className={cn(
-              'w-3.5 h-3.5 text-white/20 flex-shrink-0 transition-transform duration-200',
+              'size-3.5 text-white/20 flex-shrink-0 transition-transform duration-200',
               !isExpanded && '-rotate-90',
             )}
           />
@@ -89,10 +96,10 @@ function GroupRow({ group }: { group: BrandCompletenessGroup }) {
           {incompleteFields.map((field) => (
             <Link
               key={field.key}
-              href={field.href}
+              href={href(field.href)}
               className="flex items-center gap-2 px-2 py-1 rounded text-[11px] text-white/45 transition-colors duration-150 hover:text-white/70 hover:bg-white/[0.04]"
             >
-              <HiChevronRight className="w-3 h-3 text-white/15 flex-shrink-0" />
+              <HiChevronRight className="size-3 text-white/15 flex-shrink-0" />
               {field.label}
             </Link>
           ))}
@@ -106,6 +113,7 @@ export default function BrandCompletenessCard({
   brand,
 }: BrandCompletenessCardProps) {
   const result = useBrandCompleteness(brand);
+  const { href } = useOrgUrl();
 
   if (!result || result.overallScore === 100) {
     return null;
@@ -138,7 +146,7 @@ export default function BrandCompletenessCard({
       {/* Groups */}
       <div className="flex flex-col gap-0.5">
         {result.groups.map((group) => (
-          <GroupRow key={group.key} group={group} />
+          <GroupRow key={group.key} group={group} href={href} />
         ))}
       </div>
 

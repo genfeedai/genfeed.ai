@@ -41,7 +41,7 @@ export default function ModalScene({
     serviceFactory: (token) => ScenesService.getInstance(token),
   });
 
-  const handleChange = (
+  const updateModalScene = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
@@ -66,7 +66,7 @@ export default function ModalScene({
             type="text"
             name="label"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalScene}
             placeholder="Enter display label"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -78,7 +78,7 @@ export default function ModalScene({
             type="text"
             name="key"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalScene}
             placeholder="lowercase-with-hyphens"
             isRequired={true}
             isDisabled={isSubmitting || (!!item && !isSuperAdmin)}
@@ -98,7 +98,7 @@ export default function ModalScene({
           <Input
             name="description"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalScene}
             placeholder="Enter description (optional)"
             isDisabled={isSubmitting}
           />

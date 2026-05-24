@@ -24,17 +24,17 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [TrainingsController, TrainingsOperationsController],
   exports: [TrainingsService],
   imports: [
-    ByokModule,
+    forwardRef(() => ByokModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => FileQueueModule),
     forwardRef(() => IngredientsModule),
     forwardRef(() => MetadataModule),
     forwardRef(() => ModelsModule),
 
-    FilesClientModule,
-    MemoryModule,
-    NotificationsPublisherModule,
-    ReplicateModule,
+    forwardRef(() => FilesClientModule),
+    forwardRef(() => MemoryModule),
+    forwardRef(() => NotificationsPublisherModule),
+    forwardRef(() => ReplicateModule),
   ],
   providers: [TrainingsService, CreditsGuard, CreditsInterceptor],
 })

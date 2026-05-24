@@ -14,24 +14,28 @@
       "@genfeedai/config": ["../../../packages/config/src/index.ts"],
       "@genfeedai/harness": ["../../../packages/harness/src/index.ts"],
       "@genfeedai/harness/*": ["../../../packages/harness/src/*"],
+      "@genfeedai/ee-billing": ["../../../ee/packages/billing/src/index.ts"],
+      "@genfeedai/ee-billing/*": ["../../../ee/packages/billing/src/*"],
       "@genfeedai/ee-harness": ["../../../ee/packages/harness/src/index.ts"],
       "@genfeedai/integrations": [
         "../../../packages/integrations/src/index.ts"
       ],
-      "@genfeedai/interfaces": [
-        "../../../packages/interfaces/src/index.ts.d.ts"
-      ],
+      "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
       "@genfeedai/serializers": ["../../../packages/serializers/src/index.ts"],
       "@genfeedai/serializers/*": ["../../../packages/serializers/src/*"],
       "@genfeedai/types": ["../../../packages/types/src/index.ts"],
       "@genfeedai/types/*": ["../../../packages/types/src/*"],
+      "@genfeedai/utils": ["../../../packages/utils/index.ts"],
+      "@genfeedai/utils/*": ["../../../packages/utils/*"],
       "@genfeedai/workflow-engine": [
         "../../../packages/workflow-engine/src/index.ts"
       ],
       "@genfeedai/workflow-saas": [
         "../../../packages/workflow-saas/src/index.ts"
       ],
+      "@genfeedai/workflows": ["../../../packages/workflows/src/index.ts"],
+      "@genfeedai/workflows/*": ["../../../packages/workflows/src/*"],
       "@genfeedai/prisma": ["../../../packages/prisma/src/index.ts"],
       "@genfeedai/prisma/*": ["../../../packages/prisma/src/*"],
       "@config/*": ["../../../packages/config/src/*"],
@@ -46,7 +50,7 @@
       "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"],
       "@workflow-saas/*": ["../../../packages/workflow-saas/src/*"]
     },
-    "types": ["node", "vitest/globals"]
+    "types": ["node", "vitest/globals", "multer"]
   },
   "exclude": ["node_modules", "dist"],
   "extends": "../tsconfig.json",

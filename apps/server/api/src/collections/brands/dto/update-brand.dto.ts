@@ -1,6 +1,11 @@
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
+import type {
+  BrandAgentConfig,
+  BrandReferenceImage,
+} from '@api/collections/brands/schemas/brand.schema';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsBoolean, IsOptional } from 'class-validator';
+import { IsArray, IsBoolean, IsOptional } from 'class-validator';
 
 export class UpdateBrandDto extends PartialType(CreateBrandDto) {
   @IsBoolean()
@@ -10,4 +15,29 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
     required: false,
   })
   readonly isDeleted?: boolean;
+
+  @IsOptional()
+  @ApiProperty({
+    description: 'Agent configuration overrides for the brand',
+    required: false,
+    type: Object,
+  })
+  readonly agentConfig?: Partial<BrandAgentConfig>;
+
+  @IsOptional()
+  @IsArray()
+  @ApiProperty({
+    description: 'Reference images used for generation consistency',
+    required: false,
+    type: [Object],
+  })
+  readonly referenceImages?: BrandReferenceImage[];
+
+  @IsOptional()
+  @IsEntityId()
+  @ApiProperty({
+    description: 'Owning user identifier',
+    required: false,
+  })
+  readonly user?: string;
 }

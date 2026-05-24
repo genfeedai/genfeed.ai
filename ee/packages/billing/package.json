@@ -1,33 +1,48 @@
 {
   "dependencies": {
-    "@genfeedai/interfaces": "workspace:*"
+    "@genfeedai/config": "workspace:*",
+    "@genfeedai/enums": "workspace:*",
+    "@genfeedai/interfaces": "workspace:*",
+    "@genfeedai/prisma": "workspace:*",
+    "@genfeedai/serializers": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "25.6.0",
+    "@types/multer": "^2.1.0",
+    "@types/node": "25.9.1",
     "typescript": "6.0.2"
   },
   "exports": {
     ".": {
-      "default": "./dist/index.js",
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
+      "default": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./subscriptions": {
+      "default": "./src/subscriptions/index.ts",
+      "types": "./src/subscriptions/index.ts"
+    },
+    "./user-subscriptions": {
+      "default": "./src/user-subscriptions/index.ts",
+      "types": "./src/user-subscriptions/index.ts"
+    },
+    "./subscription-attributions": {
+      "default": "./src/subscription-attributions/index.ts",
+      "types": "./src/subscription-attributions/index.ts"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "license": "SEE LICENSE IN ../../LICENSE",
-  "main": "./dist/index.js",
+  "main": "./src/index.ts",
   "name": "@genfeedai/ee-billing",
   "private": true,
   "scripts": {
-    "build": "tsc --build && if [ -d dist/src ]; then mv dist/src/* dist/ 2>/dev/null && rm -rf dist/src; fi",
-    "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "dev": "tsc --watch",
+    "build": "echo 'Source-level package — consumed via path aliases, no build needed'",
+    "clean": "echo 'Nothing to clean'",
     "type-check": "tsc --noEmit"
   },
   "sideEffects": false,
-  "types": "./dist/index.d.ts",
+  "types": "./src/index.ts",
   "version": "0.1.0"
 }

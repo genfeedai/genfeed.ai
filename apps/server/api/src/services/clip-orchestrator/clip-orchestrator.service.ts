@@ -4,6 +4,7 @@ import {
   type ClipRunConfirmationEvent,
   type ClipRunStateChangeEvent,
 } from '@api/services/clip-orchestrator/clip-orchestrator.events';
+import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
 import {
   ClipRunState,
   CONFIRMATION_CHECKPOINTS,
@@ -47,10 +48,10 @@ export interface ClipRun {
  */
 @Injectable()
 export class ClipOrchestratorService {
-  /** In-memory store of active runs (keyed by run ID). */
-  private readonly runs = new Map<string, ClipRun>();
-
-  constructor(private readonly eventEmitter: EventEmitter2) {}
+  constructor(
+    private readonly eventEmitter: EventEmitter2,
+    private readonly stateStore: ClipOrchestratorStateStore,
+  ) {}
 
   // ---------------------------------------------------------------------------
   // Public API
@@ -59,7 +60,7 @@ export class ClipOrchestratorService {
   /**
    * Start a new clip orchestration run.
    */
-  startRun(dto: StartClipRunDto): ClipRun {
+  async startRun(dto: StartClipRunDto): Promise<ClipRun> {
     const run: ClipRun = {
       confirmationRequired: dto.confirmationRequired ?? false,
       createdAt: new Date(),
@@ -74,15 +75,15 @@ export class ClipOrchestratorService {
       userId: dto.userId,
     };
 
-    this.runs.set(run.id, run);
+    await this.persistRun(run);
     return run;
   }
 
   /**
    * Retrieve a run by ID.
    */
-  getRun(runId: string): ClipRun | undefined {
-    return this.runs.get(runId);
+  async getRun(runId: string): Promise<ClipRun | undefined> {
+    return this.stateStore.get('runs', runId, reviveClipRun);
   }
 
   /**
@@ -91,8 +92,8 @@ export class ClipOrchestratorService {
    * and the target state is a checkpoint, the run pauses in
    * `awaiting_confirmation` instead.
    */
-  transition(runId: string, targetState: ClipRunState): ClipRun {
-    const run = this.getRunOrThrow(runId);
+  async transition(runId: string, targetState: ClipRunState): Promise<ClipRun> {
+    const run = await this.getRunOrThrow(runId);
     const fromState = run.currentState;
 
     // Check if confirmation is needed at this checkpoint
@@ -116,8 +117,8 @@ export class ClipOrchestratorService {
   /**
    * Confirm a paused run and proceed to the pending state.
    */
-  confirm(runId: string): ClipRun {
-    const run = this.getRunOrThrow(runId);
+  async confirm(runId: string): Promise<ClipRun> {
+    const run = await this.getRunOrThrow(runId);
 
     if (run.currentState !== ClipRunState.AwaitingConfirmation) {
       throw new Error(
@@ -143,8 +144,8 @@ export class ClipOrchestratorService {
    * Record a step failure. Increments retry count and transitions to failed
    * if retries are exhausted.
    */
-  failStep(runId: string, error: string): ClipRun {
-    const run = this.getRunOrThrow(runId);
+  async failStep(runId: string, error: string): Promise<ClipRun> {
+    const run = await this.getRunOrThrow(runId);
 
     // Find or create the current step
     const currentStep = this.getCurrentStep(run);
@@ -155,7 +156,7 @@ export class ClipOrchestratorService {
       // Exhausted retries — fail the run
       currentStep.completedAt = new Date();
       run.error = `Step ${run.currentState} failed after ${MAX_RETRIES} retries: ${error}`;
-      this.applyTransition(run, ClipRunState.Failed);
+      await this.applyTransition(run, ClipRunState.Failed);
 
       this.eventEmitter.emit(CLIP_ORCHESTRATOR_EVENTS.RUN_FAILED, {
         error: run.error,
@@ -165,6 +166,7 @@ export class ClipOrchestratorService {
         timestamp: new Date(),
       });
 
+      await this.persistRun(run);
       return run;
     }
 
@@ -178,14 +180,15 @@ export class ClipOrchestratorService {
       timestamp: new Date(),
     });
 
+    await this.persistRun(run);
     return run;
   }
 
   /**
    * Calculate the backoff delay for a step's current retry attempt.
    */
-  getRetryDelay(runId: string): number {
-    const run = this.getRunOrThrow(runId);
+  async getRetryDelay(runId: string): Promise<number> {
+    const run = await this.getRunOrThrow(runId);
     const currentStep = this.findCurrentStep(run);
     const retryCount = currentStep?.retryCount ?? 0;
     return BASE_RETRY_DELAY_MS * 2 ** retryCount;
@@ -194,8 +197,8 @@ export class ClipOrchestratorService {
   /**
    * Check whether a retry is still possible for the current step.
    */
-  canRetry(runId: string): boolean {
-    const run = this.getRunOrThrow(runId);
+  async canRetry(runId: string): Promise<boolean> {
+    const run = await this.getRunOrThrow(runId);
     const currentStep = this.findCurrentStep(run);
     return (currentStep?.retryCount ?? 0) < MAX_RETRIES;
   }
@@ -203,8 +206,8 @@ export class ClipOrchestratorService {
   /**
    * Retry a failed run from the last known good state.
    */
-  retryFromLastGood(runId: string): ClipRun {
-    const run = this.getRunOrThrow(runId);
+  async retryFromLastGood(runId: string): Promise<ClipRun> {
+    const run = await this.getRunOrThrow(runId);
 
     if (run.currentState !== ClipRunState.Failed) {
       throw new Error(
@@ -228,8 +231,8 @@ export class ClipOrchestratorService {
    * Get the next state in the pipeline for a given run,
    * respecting the skipMerging flag.
    */
-  getNextState(runId: string): ClipRunState | null {
-    const run = this.getRunOrThrow(runId);
+  async getNextState(runId: string): Promise<ClipRunState | null> {
+    const run = await this.getRunOrThrow(runId);
     const currentIndex = PIPELINE_STATES.indexOf(run.currentState);
 
     if (currentIndex === -1 || currentIndex >= PIPELINE_STATES.length - 1) {
@@ -252,8 +255,11 @@ export class ClipOrchestratorService {
   /**
    * Mark the current step as completed with optional output data.
    */
-  completeStep(runId: string, output?: Record<string, unknown>): ClipRun {
-    const run = this.getRunOrThrow(runId);
+  async completeStep(
+    runId: string,
+    output?: Record<string, unknown>,
+  ): Promise<ClipRun> {
+    const run = await this.getRunOrThrow(runId);
     const step = this.getCurrentStep(run);
     step.completedAt = new Date();
     step.output = output;
@@ -267,6 +273,7 @@ export class ClipOrchestratorService {
       timestamp: new Date(),
     });
 
+    await this.persistRun(run);
     return run;
   }
 
@@ -274,8 +281,8 @@ export class ClipOrchestratorService {
   // Internal helpers
   // ---------------------------------------------------------------------------
 
-  private getRunOrThrow(runId: string): ClipRun {
-    const run = this.runs.get(runId);
+  private async getRunOrThrow(runId: string): Promise<ClipRun> {
+    const run = await this.getRun(runId);
     if (!run) {
       throw new Error(`Clip run not found: ${runId}`);
     }
@@ -289,11 +296,11 @@ export class ClipOrchestratorService {
     }
   }
 
-  private applyTransition(
+  private async applyTransition(
     run: ClipRun,
     targetState: ClipRunState,
     pendingState?: ClipRunState,
-  ): ClipRun {
+  ): Promise<ClipRun> {
     const previousState = run.currentState;
     run.currentState = targetState;
     run.updatedAt = new Date();
@@ -307,6 +314,7 @@ export class ClipOrchestratorService {
       stepId: randomUUID(),
     };
     run.steps.push(step);
+    await this.persistRun(run);
 
     // Emit state change event
     const event: ClipRunStateChangeEvent = {
@@ -345,6 +353,10 @@ export class ClipOrchestratorService {
     return run;
   }
 
+  private async persistRun(run: ClipRun): Promise<void> {
+    await this.stateStore.set('runs', run.id, run);
+  }
+
   private getCurrentStep(run: ClipRun): ClipRunStepDto {
     const existing = this.findCurrentStep(run);
     if (existing) return existing;
@@ -365,4 +377,17 @@ export class ClipOrchestratorService {
       .reverse()
       .find((s) => s.state === run.currentState && !s.completedAt);
   }
+}
+
+function reviveClipRun(run: ClipRun): ClipRun {
+  return {
+    ...run,
+    createdAt: new Date(run.createdAt),
+    steps: run.steps.map((step) => ({
+      ...step,
+      completedAt: step.completedAt ? new Date(step.completedAt) : undefined,
+      startedAt: new Date(step.startedAt),
+    })),
+    updatedAt: new Date(run.updatedAt),
+  };
 }

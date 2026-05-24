@@ -3,6 +3,7 @@ import type { ILabeledItem } from '../index';
 
 export type AppContext =
   | 'workspace'
+  | 'agent'
   | 'library'
   | 'posts'
   | 'studio'
@@ -13,6 +14,7 @@ export type AppContext =
 
 export interface MenuItemConfig {
   href?: string;
+  hrefScope?: 'brand' | 'organization' | 'personal';
   label: string;
   icon?: ReactNode;
   outline?: ComponentType<{ className?: string }>;

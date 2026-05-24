@@ -39,7 +39,7 @@ export default function ModalAvatar({
   );
 
   const { isSubmitting, onSubmit } = useFormSubmitWithState(() =>
-    handleSubmit(),
+    submitModalAvatar(),
   );
 
   const form = useForm<IngredientAvatarSchema>({
@@ -66,7 +66,7 @@ export default function ModalAvatar({
     form.reset();
   };
 
-  const handleSubmit = async () => {
+  const submitModalAvatar = async () => {
     const url = `POST /ingredients`;
     try {
       const service = await getIngredientsService();
@@ -83,16 +83,18 @@ export default function ModalAvatar({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const processKeyDownModalAvatar = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       if (!isSubmitting && form.formState.isValid) {
-        handleSubmit();
+        submitModalAvatar();
       }
     }
   };
 
-  const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+  const updateModalAvatar = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     form.setValue(name as keyof IngredientAvatarSchema, value, {
       shouldValidate: true,
@@ -109,7 +111,7 @@ export default function ModalAvatar({
               alt="Avatar"
               width={1024}
               height={1024}
-              className="w-full h-full object-cover object-center"
+              className="size-full object-cover object-center"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               priority
             />
@@ -121,9 +123,9 @@ export default function ModalAvatar({
                 name="text"
                 placeholder="Enter a text"
                 control={form.control}
-                onChange={handleChange}
+                onChange={updateModalAvatar}
                 isDisabled={isSubmitting}
-                onKeyDown={handleKeyDown}
+                onKeyDown={processKeyDownModalAvatar}
               />
             </FormControl>
           </div>

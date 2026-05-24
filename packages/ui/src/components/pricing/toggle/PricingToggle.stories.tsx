@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Button from '@ui/buttons/base/Button';
@@ -76,7 +77,7 @@ export const Interactive: Story = {
     return (
       <div className="space-y-6 p-8">
         <PricingToggle isYearly={isYearly} setIsYearly={setIsYearly} />
-        <div className="text-center text-sm text-gray-600">
+        <div className="text-center text-sm text-zinc-600">
           Currently selected: {isYearly ? 'Yearly' : 'Monthly'}
         </div>
       </div>
@@ -101,8 +102,8 @@ export const InContext: Story = {
     return (
       <div className="space-y-8 p-8 bg-background">
         <div className="text-center">
-          <h2 className="text-3xl font-bold mb-2">Choose Your Plan</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-3xl font-semibold mb-2">Choose Your Plan</h2>
+          <p className="text-zinc-600 mb-6">
             Select the plan that works best for you
           </p>
           <PricingToggle isYearly={isYearly} setIsYearly={setIsYearly} />
@@ -110,8 +111,8 @@ export const InContext: Story = {
 
         <div className="flex justify-center gap-4 mt-8">
           <div className=" border border-white/[0.08] bg-card w-64 p-6 text-center">
-            <h3 className="text-xl font-bold mb-2">Starter</h3>
-            <div className="text-3xl font-bold mb-4">
+            <h3 className="text-xl font-semibold mb-2">Starter</h3>
+            <div className="text-3xl font-semibold mb-4">
               ${isYearly ? '99' : '9.99'}
               <span className="text-base font-normal">
                 /{isYearly ? 'year' : 'month'}
@@ -130,8 +131,8 @@ export const InContext: Story = {
             <span className="inline-flex items-center rounded-full bg-success px-2.5 py-0.5 text-xs font-semibold text-success-foreground mb-2">
               Most Popular
             </span>
-            <h3 className="text-xl font-bold mb-2">Professional</h3>
-            <div className="text-3xl font-bold mb-4">
+            <h3 className="text-xl font-semibold mb-2">Professional</h3>
+            <div className="text-3xl font-semibold mb-4">
               ${isYearly ? '287.99' : '29.99'}
               <span className="text-base font-normal">
                 /{isYearly ? 'year' : 'month'}
@@ -147,8 +148,8 @@ export const InContext: Story = {
           </div>
 
           <div className=" border border-white/[0.08] bg-card w-64 p-6 text-center">
-            <h3 className="text-xl font-bold mb-2">Enterprise</h3>
-            <div className="text-3xl font-bold mb-4">
+            <h3 className="text-xl font-semibold mb-2">Enterprise</h3>
+            <div className="text-3xl font-semibold mb-4">
               ${isYearly ? '959.99' : '99.99'}
               <span className="text-base font-normal">
                 /{isYearly ? 'year' : 'month'}

@@ -103,6 +103,8 @@ export interface CreateTaskInput {
   request?: string;
   status?: TaskStatus;
   title: string;
+  voiceId?: string;
+  voiceProvider?: string;
 }
 
 export interface ListTasksParams {
@@ -198,10 +200,7 @@ export class TasksService extends BaseService<
   }
 
   public static getInstance(token: string): TasksService {
-    return BaseService.getDataServiceInstance(
-      TasksService,
-      token,
-    ) as TasksService;
+    return BaseService.getDataServiceInstance(TasksService, token);
   }
 
   async list(params: ListTasksParams = {}): Promise<Task[]> {

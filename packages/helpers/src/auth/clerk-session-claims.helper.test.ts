@@ -46,12 +46,22 @@ describe('clerk-session-claims.helper', () => {
 
       expect(claims).toEqual({
         brandId: 'brand_987',
+        clerkOrgId: 'org_987',
         clerkUserId: 'user_clerk_987',
         email: 'ops@example.com',
         lastName: 'Lovelace',
         mongoUserId: '507f191e810c19729de860ea',
-        organizationId: 'org_987',
       });
+    });
+
+    it('extracts clerkOrgId from Clerk v2 compact org claim', () => {
+      const claims = resolveClerkSessionClaims({
+        o: { id: 'org_v2_123', rol: 'admin', slg: 'my-org' },
+        sub: 'user_clerk_v2',
+      });
+
+      expect(claims.clerkOrgId).toBe('org_v2_123');
+      expect(claims.organizationId).toBeUndefined();
     });
   });
 
@@ -71,6 +81,16 @@ describe('clerk-session-claims.helper', () => {
           organizationId: 'org_1',
         }),
       ).toBe(false);
+    });
+
+    it('accepts clerkOrgId as alternative to organizationId', () => {
+      expect(
+        hasClerkHotPathClaims({
+          clerkOrgId: 'org_clerk_1',
+          clerkUserId: 'user_clerk_1',
+          mongoUserId: '507f1f77bcf86cd799439011',
+        }),
+      ).toBe(true);
     });
 
     it('can require a brand claim when the caller needs it', () => {

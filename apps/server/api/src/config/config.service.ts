@@ -40,8 +40,6 @@ interface ApiEnvConfig extends IEnvConfig {
   GF_DEV_ENABLE_OPTIONAL_INIT?: 'true' | 'false';
   GF_DEV_ENABLE_SCHEDULERS?: 'true' | 'false';
   GF_DEV_ENABLE_TELEGRAM_POLLING?: 'true' | 'false';
-  GROWTHBOOK_API_HOST?: string;
-  GROWTHBOOK_CLIENT_KEY?: string;
   MARKETPLACE_API_URL?: string;
 }
 
@@ -69,8 +67,6 @@ const apiSpecificSchema = {
     .valid('true', 'false')
     .optional()
     .allow(''),
-  GROWTHBOOK_API_HOST: Joi.string().uri().optional().allow(''),
-  GROWTHBOOK_CLIENT_KEY: Joi.string().optional().allow(''),
   // Marketplace (extracted service)
   MARKETPLACE_API_URL: Joi.string()
     .uri()

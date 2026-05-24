@@ -25,11 +25,29 @@ const getDesktopEnvironmentOverrides = (): DesktopEnvironmentOverrides => {
   return globalThis.__GENFEED_DESKTOP_ENV__ ?? {};
 };
 
+const readOptionalNumberEnv = (key: string): number | undefined => {
+  const value = process.env[key];
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
 export const EnvironmentService = {
   get apiEndpoint(): string {
     return (
       getDesktopEnvironmentOverrides().apiEndpoint ||
       process.env.NEXT_PUBLIC_API_ENDPOINT ||
+      'https://api.genfeed.ai/v1'
+    );
+  },
+
+  get managedCreditsApiEndpoint(): string {
+    return (
+      process.env.NEXT_PUBLIC_GENFEED_MANAGED_CREDITS_API_ENDPOINT ||
+      process.env.NEXT_PUBLIC_GENFEED_MANAGED_API_ENDPOINT ||
       'https://api.genfeed.ai/v1'
     );
   },
@@ -145,6 +163,45 @@ export const EnvironmentService = {
 
   GA_ID: process.env.NEXT_PUBLIC_GA_ID || '',
 
+  marketing: {
+    consentDefault:
+      process.env.NEXT_PUBLIC_MARKETING_CONSENT_DEFAULT === 'granted'
+        ? 'granted'
+        : 'denied',
+    gtmContainerId: process.env.NEXT_PUBLIC_GTM_CONTAINER_ID || '',
+    linkedinConversionIds: {
+      book_call: readOptionalNumberEnv(
+        'NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_BOOK_CALL',
+      ),
+      cta_click: readOptionalNumberEnv(
+        'NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_CTA_CLICK',
+      ),
+      lead_submit: readOptionalNumberEnv(
+        'NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_LEAD_SUBMIT',
+      ),
+      signup_complete: readOptionalNumberEnv(
+        'NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_SIGNUP_COMPLETE',
+      ),
+      start_signup: readOptionalNumberEnv(
+        'NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_START_SIGNUP',
+      ),
+      view_pricing: readOptionalNumberEnv(
+        'NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_VIEW_PRICING',
+      ),
+    },
+    linkedinPartnerId: process.env.NEXT_PUBLIC_LINKEDIN_PARTNER_ID || '',
+    metaPixelId: process.env.NEXT_PUBLIC_META_PIXEL_ID || '',
+    xEventIds: {
+      book_call: process.env.NEXT_PUBLIC_X_BOOK_CALL_EVENT_ID || '',
+      cta_click: process.env.NEXT_PUBLIC_X_CTA_CLICK_EVENT_ID || '',
+      lead_submit: process.env.NEXT_PUBLIC_X_LEAD_SUBMIT_EVENT_ID || '',
+      signup_complete: process.env.NEXT_PUBLIC_X_SIGNUP_COMPLETE_EVENT_ID || '',
+      start_signup: process.env.NEXT_PUBLIC_X_START_SIGNUP_EVENT_ID || '',
+      view_pricing: process.env.NEXT_PUBLIC_X_VIEW_PRICING_EVENT_ID || '',
+    },
+    xPixelId: process.env.NEXT_PUBLIC_X_PIXEL_ID || '',
+  },
+
   getApiUrl(): string {
     return this.apiEndpoint;
   },
@@ -152,14 +209,14 @@ export const EnvironmentService = {
   github: {
     core:
       process.env.NEXT_PUBLIC_GITHUB_CORE ||
-      'https://github.com/genfeedai/core',
+      'https://github.com/genfeedai/genfeed.ai',
     issues:
       process.env.NEXT_PUBLIC_GITHUB_ISSUES ||
-      'https://github.com/genfeedai/core/issues',
+      'https://github.com/genfeedai/genfeed.ai/issues',
     org: process.env.NEXT_PUBLIC_GITHUB_ORG || 'https://github.com/genfeedai',
     prs:
       process.env.NEXT_PUBLIC_GITHUB_PRS ||
-      'https://github.com/genfeedai/core/pulls',
+      'https://github.com/genfeedai/genfeed.ai/pulls',
   },
 
   get ingredientsEndpoint(): string {
@@ -199,16 +256,16 @@ export const EnvironmentService = {
 
   /**
    * Stripe price IDs for subscription tiers
-   * See: https://github.com/genfeedai/cloud/issues?q=is%3Aissue+pricing
+   * See: https://github.com/genfeedai/genfeed.ai/issues?q=is%3Aissue+pricing
    */
   plans: {
     enterprise:
-      process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY, // Enterprise $4,999/mo
+      process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY, // Enterprise custom
     // New output-based tiers (2026)
-    monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY, // Pro $499/mo
+    monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY, // Hosted $8/mo
     // PAYG one-time credits
     payg: process.env.NEXT_PUBLIC_STRIPE_PRICE_PAYG,
-    scale: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY, // Scale $1,499/mo
+    scale: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY, // Cloud Teams from $499/mo
     yearly: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY,
   },
 

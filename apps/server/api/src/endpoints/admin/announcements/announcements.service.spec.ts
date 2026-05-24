@@ -145,8 +145,10 @@ describe('AdminAnnouncementsService', () => {
         announcementsCollectionService.createAnnouncement,
       ).toHaveBeenCalledWith(
         expect.objectContaining({
-          tweetId: 'tweet-123',
-          tweetUrl: expect.stringContaining('tweet-123'),
+          config: expect.objectContaining({
+            tweetId: 'tweet-123',
+            tweetUrl: expect.stringContaining('tweet-123'),
+          }),
         }),
       );
       expect(result).toBe(mockAnnouncement);
@@ -191,7 +193,11 @@ describe('AdminAnnouncementsService', () => {
       expect(result).toBe(mockAnnouncement);
       expect(
         announcementsCollectionService.createAnnouncement,
-      ).toHaveBeenCalledWith(expect.objectContaining({ tweetId: undefined }));
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          config: expect.objectContaining({ tweetId: undefined }),
+        }),
+      );
     });
 
     it('should continue and persist if discord publish fails', async () => {

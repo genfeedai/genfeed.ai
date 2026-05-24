@@ -40,7 +40,7 @@ export default function CredentialsGuard({ children }: CredentialsGuardProps) {
       <div className="min-h-fit flex flex-col justify-center items-center">
         <CardEmpty
           icon={HiLink}
-          iconClassName="w-12 h-12"
+          iconClassName="size-12"
           label="No Social Accounts Connected"
           description="Connect a social media account to start creating and scheduling posts."
           size={CardEmptySize.LG}

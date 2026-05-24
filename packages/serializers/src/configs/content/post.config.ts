@@ -7,6 +7,7 @@ import { nestedRel, rel } from '@serializers/builders';
 import {
   BRAND_MINIMAL_REL,
   CONTENT_ENTITY_RELS,
+  MINIMAL_ENTITY_RELS,
   ORGANIZATION_MINIMAL_REL,
   USER_REL,
 } from '@serializers/relationships';
@@ -22,6 +23,12 @@ export const postSerializerConfig = {
   }),
   parent: rel('post', postAttributes),
   persona: rel('persona', personaAttributes),
+};
+
+export const postListSerializerConfig = {
+  attributes: postAttributes,
+  type: 'post',
+  ...MINIMAL_ENTITY_RELS,
 };
 
 export const postAnalyticsSerializerConfig = {

@@ -47,7 +47,7 @@ export function WorkflowCreatedCard({
   return (
     <div className="my-2 overflow-hidden border border-emerald-500/20 bg-background">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <HiCheckCircle className="h-5 w-5 text-emerald-500" />
+        <HiCheckCircle className="size-5 text-emerald-500" />
         <div>
           <h3 className="text-sm font-semibold text-foreground">
             {action.title || 'Automation created'}
@@ -67,7 +67,7 @@ export function WorkflowCreatedCard({
           </div>
           {action.scheduleSummary ? (
             <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <HiClock className="h-3.5 w-3.5" />
+              <HiClock className="size-3.5" />
               <span>{action.scheduleSummary}</span>
             </div>
           ) : null}
@@ -89,7 +89,7 @@ export function WorkflowCreatedCard({
                     className="inline-flex items-center gap-1.5 border border-border px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent"
                   >
                     <span>{cta.label}</span>
-                    <HiArrowTopRightOnSquare className="h-3.5 w-3.5" />
+                    <HiArrowTopRightOnSquare className="size-3.5" />
                   </Link>
                 );
               }

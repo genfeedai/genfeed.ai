@@ -1,12 +1,15 @@
 import type { Article } from '@api/collections/articles/schemas/article.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
-import type {
-  ArticleCategory,
-  ArticleScope,
-  ArticleStatus,
-} from '@genfeedai/enums';
 
 export class ArticleEntity extends BaseEntity implements Article {
+  id!: string;
+  mongoId!: string | null;
+  userId!: string;
+  organizationId!: string;
+  brandId!: string | null;
+  title!: string;
+  excerpt!: string | null;
+  coverImageUrl!: string | null;
   user!: string;
   organization!: string;
   brand!: string;
@@ -14,16 +17,16 @@ export class ArticleEntity extends BaseEntity implements Article {
   tags!: string[];
 
   label!: string;
-  description?: string;
+  description!: string | null;
 
   slug!: string;
   summary!: string;
-  content!: string;
-  category!: ArticleCategory;
-  status!: ArticleStatus;
-  scope!: ArticleScope;
+  content!: Article['content'];
+  category!: Article['category'];
+  status!: Article['status'];
+  scope!: Article['scope'];
 
-  publishedAt?: Date;
+  publishedAt!: Article['publishedAt'];
 
   // AI Generation metadata
   aiGeneration?: {

@@ -37,7 +37,7 @@ export default function OnboardingStepWelcome() {
   return (
     <div className="py-6 px-1">
       <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold tracking-tight mb-3">
+        <h2 className="text-3xl font-semibold tracking-tight mb-3">
           Let&apos;s set up your brand
         </h2>
         <p className="text-muted-foreground max-w-md mx-auto">
@@ -52,8 +52,8 @@ export default function OnboardingStepWelcome() {
             key={feature.title}
             className="group relative flex items-start gap-4 p-5 bg-gradient-to-br from-white/[0.07] to-white/[0.03] border border-white/[0.08] hover:border-white/[0.15] transition-all duration-300 hover:-translate-y-0.5"
           >
-            <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 border border-primary/10 group-hover:border-primary/20 transition-colors flex items-center justify-center">
-              <feature.icon className="w-6 h-6 text-primary" />
+            <div className="flex-shrink-0 size-12 bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 border border-primary/10 group-hover:border-primary/20 transition-colors flex items-center justify-center">
+              <feature.icon className="size-6 text-primary" />
             </div>
             <div>
               <h3 className="font-semibold mb-1.5">{feature.title}</h3>
@@ -67,7 +67,7 @@ export default function OnboardingStepWelcome() {
 
       <div className="text-center mt-6">
         <span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-sm text-muted-foreground">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+          <span className="size-1.5 rounded-full bg-primary animate-pulse" />
           This takes about 30 seconds. You can edit everything after.
         </span>
       </div>

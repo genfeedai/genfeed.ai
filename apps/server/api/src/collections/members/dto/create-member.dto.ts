@@ -1,22 +1,31 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsMongoId, IsOptional } from 'class-validator';
+import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class CreateMemberDto {
-  @IsMongoId()
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Clerk organization membership ID used to synchronize state',
+    required: false,
+  })
+  readonly clerkMembershipId?: string | null;
+
+  @IsEntityId()
   @ApiProperty({
     description: 'The organization ID this member belongs to',
     required: true,
   })
   readonly organization!: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The user ID of this member',
     required: true,
   })
   readonly user!: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The role ID assigned to this member',
     required: true,
@@ -25,7 +34,7 @@ export class CreateMemberDto {
 
   @IsOptional()
   @IsArray()
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   @ApiProperty({
     default: [],
     description: 'Array of brand IDs assigned to this member',

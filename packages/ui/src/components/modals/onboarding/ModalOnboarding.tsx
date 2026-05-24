@@ -23,6 +23,33 @@ import OnboardingStepWelcome from '@ui/modals/onboarding/steps/OnboardingStepWel
 import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+function getOnboardingStepContent(
+  step: OnboardingStep,
+  brandUrl: string,
+  extractedData: IExtractedBrandData | null,
+  setBrandUrl: (url: string) => void,
+  isProcessing: boolean,
+): React.ReactNode {
+  switch (step) {
+    case OnboardingStep.WELCOME:
+      return <OnboardingStepWelcome />;
+    case OnboardingStep.BRAND_URL:
+      return (
+        <OnboardingStepBrandUrl
+          value={brandUrl}
+          onChange={setBrandUrl}
+          isDisabled={isProcessing}
+        />
+      );
+    case OnboardingStep.PROCESSING:
+      return <OnboardingStepProcessing url={brandUrl} />;
+    case OnboardingStep.REVIEW:
+      return <OnboardingStepReview data={extractedData} />;
+    default:
+      return null;
+  }
+}
+
 export interface ModalOnboardingProps {
   isOpen?: boolean;
   onComplete?: () => void;
@@ -168,26 +195,13 @@ export default function ModalOnboarding({
     }
   }, [step, handleStartAnalysis, handleConfirm]);
 
-  const renderStep = () => {
-    switch (step) {
-      case OnboardingStep.WELCOME:
-        return <OnboardingStepWelcome />;
-      case OnboardingStep.BRAND_URL:
-        return (
-          <OnboardingStepBrandUrl
-            value={brandUrl}
-            onChange={setBrandUrl}
-            isDisabled={isProcessing}
-          />
-        );
-      case OnboardingStep.PROCESSING:
-        return <OnboardingStepProcessing url={brandUrl} />;
-      case OnboardingStep.REVIEW:
-        return <OnboardingStepReview data={extractedData} />;
-      default:
-        return null;
-    }
-  };
+  const stepContent = getOnboardingStepContent(
+    step,
+    brandUrl,
+    extractedData,
+    setBrandUrl,
+    isProcessing,
+  );
 
   const getStepNumber = (): number => {
     switch (step) {
@@ -222,7 +236,7 @@ export default function ModalOnboarding({
           </Alert>
         )}
 
-        <div className="flex-1">{renderStep()}</div>
+        <div className="flex-1">{stepContent}</div>
 
         {/* Step indicator */}
         <div className="flex flex-col items-center gap-2 my-4">
@@ -246,10 +260,10 @@ export default function ModalOnboarding({
                   <div
                     className={`flex items-center justify-center text-xs font-semibold transition-all ${
                       isActive
-                        ? 'w-10 h-10 bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/30 text-primary-foreground'
+                        ? 'size-10 bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/30 text-primary-foreground'
                         : isCompleted
-                          ? 'w-8 h-8 bg-gradient-to-br from-primary/40 to-primary/20 border border-primary/30 text-primary-foreground'
-                          : 'w-8 h-8 bg-white/[0.05] border border-white/[0.08] text-muted-foreground'
+                          ? 'size-8 bg-gradient-to-br from-primary/40 to-primary/20 border border-primary/30 text-primary-foreground'
+                          : 'size-8 bg-white/[0.05] border border-white/[0.08] text-muted-foreground'
                     }`}
                   >
                     {num}

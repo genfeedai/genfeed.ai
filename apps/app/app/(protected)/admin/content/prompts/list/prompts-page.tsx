@@ -18,7 +18,7 @@ import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { HiEllipsisVertical, HiSparkles, HiTrash } from 'react-icons/hi2';
 
 const PROMPT_SKELETON_KEYS = [
@@ -28,9 +28,9 @@ const PROMPT_SKELETON_KEYS = [
   'prompt-skeleton-4',
 ] as const;
 
-export default function PromptsPage() {
+function PromptsPageContent() {
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const searchParamsString = searchParams.toString() ?? '';
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -119,17 +119,13 @@ export default function PromptsPage() {
     [getPromptsService, notificationsService],
   );
 
-  if (isLoading) {
-    return (
-      <div className="grid gap-4">
-        {PROMPT_SKELETON_KEYS.map((key) => (
-          <SkeletonCard key={key} showImage={false} />
-        ))}
-      </div>
-    );
-  }
-
-  return (
+  return isLoading ? (
+    <div className="grid gap-4">
+      {PROMPT_SKELETON_KEYS.map((key) => (
+        <SkeletonCard key={key} showImage={false} />
+      ))}
+    </div>
+  ) : (
     <WorkspaceSurface
       title="Saved Prompts"
       tone="muted"
@@ -201,7 +197,7 @@ export default function PromptsPage() {
                           variant={ButtonVariant.GHOST}
                           size={ButtonSize.ICON}
                         >
-                          <HiEllipsisVertical className="w-4 h-4" />
+                          <HiEllipsisVertical className="size-4" />
                         </Button>
                       }
                       usePortal
@@ -216,7 +212,7 @@ export default function PromptsPage() {
                                 prompt.id && handleEnhance(prompt.id)
                               }
                             >
-                              <HiSparkles className="w-4 h-4" />
+                              <HiSparkles className="size-4" />
                               Enhance
                             </Button>
                           </li>
@@ -228,7 +224,7 @@ export default function PromptsPage() {
                             className="text-error"
                             onClick={() => prompt.id && handleDelete(prompt)}
                           >
-                            <HiTrash className="w-4 h-4" />
+                            <HiTrash className="size-4" />
                             Delete
                           </Button>
                         </li>
@@ -246,5 +242,13 @@ export default function PromptsPage() {
         )}
       </div>
     </WorkspaceSurface>
+  );
+}
+
+export default function PromptsPage() {
+  return (
+    <Suspense fallback={null}>
+      <PromptsPageContent />
+    </Suspense>
   );
 }

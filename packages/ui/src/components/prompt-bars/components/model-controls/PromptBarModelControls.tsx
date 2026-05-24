@@ -54,7 +54,7 @@ const PromptBarModelControls = memo(function PromptBarModelControls({
   if (visibleModels.length === 0) {
     return (
       <span className="inline-flex items-center gap-1.5 h-10 px-3 text-sm text-foreground/50 bg-white/5 border border-white/10">
-        <HiCpuChip className="w-4 h-4" />
+        <HiCpuChip className="size-4" />
         No models for this format
       </span>
     );

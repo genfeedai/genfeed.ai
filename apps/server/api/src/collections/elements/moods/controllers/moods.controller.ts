@@ -5,6 +5,7 @@ import {
   type ElementMoodDocument,
 } from '@api/collections/elements/moods/schemas/mood.schema';
 import { ElementsMoodsService } from '@api/collections/elements/moods/services/moods.service';
+import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -12,9 +13,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';
 import { MoodSerializer } from '@genfeedai/serializers';
@@ -100,43 +99,19 @@ export class ElementsMoodsController extends BaseCRUDController<
     return super.remove(request, user, moodId);
   }
 
-  /**
-   * Override the base pipeline to load moods
-   * Load items with: (no org AND no user) OR (user's org) OR (user's user)
-   */
-  public buildFindAllPipeline(
-    user: User,
-    query: BaseQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,
       query,
     );
 
-    // Build OR conditions: global items OR user's org items OR user's items
-    const orConditions: Record<string, unknown>[] = [
-      { organization: { $exists: false }, user: { $exists: false } }, // global items
-    ];
-
-    if (publicMetadata.organization) {
-      orConditions.push({
+    return buildElementFindAllQuery({
+      adminFilter,
+      metadata: {
         organization: publicMetadata.organization,
-      });
-    }
-
-    if (publicMetadata.user) {
-      orConditions.push({ user: publicMetadata.user });
-    }
-
-    return PipelineBuilder.create()
-      .match({
-        isDeleted: query.isDeleted ?? false,
-        ...(adminFilter ?? { $or: orConditions }),
-      })
-      .sort(
-        query.sort ? handleQuerySort(query.sort) : { createdAt: -1, label: 1 },
-      )
-      .build();
+      },
+      query,
+    });
   }
 }

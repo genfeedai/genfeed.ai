@@ -738,13 +738,25 @@ export default function ModalUpload({
                 }
                 value={voiceCloneProvider}
               >
-                <label className="flex cursor-pointer items-center gap-2 text-sm">
-                  <RadioGroupItem value={VoiceProvider.ELEVENLABS} />
+                <label
+                  className="flex cursor-pointer items-center gap-2 text-sm"
+                  htmlFor="voice-provider-elevenlabs"
+                >
+                  <RadioGroupItem
+                    id="voice-provider-elevenlabs"
+                    value={VoiceProvider.ELEVENLABS}
+                  />
                   <span>ElevenLabs</span>
                 </label>
                 {isSelfHostedVoiceAvailable && (
-                  <label className="flex cursor-pointer items-center gap-2 text-sm">
-                    <RadioGroupItem value={VoiceProvider.GENFEED_AI} />
+                  <label
+                    className="flex cursor-pointer items-center gap-2 text-sm"
+                    htmlFor="voice-provider-genfeed-ai"
+                  >
+                    <RadioGroupItem
+                      id="voice-provider-genfeed-ai"
+                      value={VoiceProvider.GENFEED_AI}
+                    />
                     <span>Genfeed AI</span>
                   </label>
                 )}
@@ -806,14 +818,17 @@ export default function ModalUpload({
                 {selectedFileList.length} / {maxFiles} selected
               </div>
               <ul className="space-y-2">
-                {selectedFileList.map((f, idx) => {
+                {selectedFileList.map((f) => {
                   // Find the status for this file
                   const fileStatus = Array.from(fileStatuses.values()).find(
                     (status) => status.file.name === f.name,
                   );
 
                   return (
-                    <li key={idx} className="space-y-1">
+                    <li
+                      key={`${f.name}-${f.size}-${f.lastModified}`}
+                      className="space-y-1"
+                    >
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate max-w-52" title={f.name}>
                           {f.name}

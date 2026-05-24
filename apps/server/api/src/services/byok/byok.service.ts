@@ -4,9 +4,10 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { ByokBillingStatus, ByokProvider } from '@genfeedai/enums';
 import type { IByokKeyEntry, IByokProviderStatus } from '@genfeedai/interfaces';
+import type { Prisma, PrismaClient } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 const BYOK_PROVIDER_LABELS: Record<
@@ -155,7 +156,7 @@ export class ByokService {
     }
 
     const status = orgSettings.byokBillingStatus;
-    return !status || status === ByokBillingStatus.ACTIVE;
+    return !status || String(status).toLowerCase() === ByokBillingStatus.ACTIVE;
   }
 
   /**
@@ -223,31 +224,35 @@ export class ByokService {
     expiresAt: number,
   ): Promise<void> {
     try {
-      const existing = await this.prisma.organizationSetting.findFirst({
-        where: { organizationId: orgId },
-      });
+      await this.prisma.$transaction(
+        async (tx) => {
+          const existing = await tx.organizationSetting.findFirst({
+            where: { organizationId: orgId },
+          });
 
-      if (!existing) {
-        return;
-      }
+          if (!existing) {
+            return;
+          }
 
-      const byokKeys = this.getByokKeys(existing);
-      const entry = byokKeys[provider] ?? ({} as IByokKeyEntry);
+          const byokKeys = this.getByokKeys(existing);
+          const entry = byokKeys[provider] ?? ({} as IByokKeyEntry);
 
-      byokKeys[provider] = {
-        ...entry,
-        apiKey: EncryptionUtil.encrypt(accessToken),
-        apiSecret: refreshToken
-          ? EncryptionUtil.encrypt(refreshToken)
-          : entry.apiSecret,
-        expiresAt,
-        lastValidatedAt: new Date(),
-      };
+          byokKeys[provider] = {
+            ...entry,
+            apiKey: EncryptionUtil.encrypt(accessToken),
+            apiSecret: refreshToken
+              ? EncryptionUtil.encrypt(refreshToken)
+              : entry.apiSecret,
+            expiresAt,
+            lastValidatedAt: new Date(),
+          };
 
-      await this.prisma.organizationSetting.updateMany({
-        data: { byokKeys: byokKeys as never },
-        where: { organizationId: orgId },
-      });
+          await this.writeByokSettings(tx, existing, {
+            byokKeys: byokKeys as never,
+          });
+        },
+        { isolationLevel: 'Serializable' },
+      );
     } catch (error: unknown) {
       this.logger.error('Failed to update OAuth tokens', {
         error,
@@ -264,26 +269,28 @@ export class ByokService {
    */
   async removeKey(orgId: string, provider: ByokProvider): Promise<void> {
     try {
-      const existing = await this.prisma.organizationSetting.findFirst({
-        where: { organizationId: orgId },
-      });
+      await this.prisma.$transaction(
+        async (tx) => {
+          const existing = await tx.organizationSetting.findFirst({
+            where: { organizationId: orgId },
+          });
 
-      if (!existing) {
-        return;
-      }
+          if (!existing) {
+            return;
+          }
 
-      const byokKeys = this.getByokKeys(existing);
-      delete byokKeys[provider];
+          const byokKeys = this.getByokKeys(existing);
+          delete byokKeys[provider];
 
-      const hasRemainingKeys = Object.keys(byokKeys).length > 0;
+          const hasRemainingKeys = Object.keys(byokKeys).length > 0;
 
-      await this.prisma.organizationSetting.updateMany({
-        data: {
-          byokKeys: byokKeys as never,
-          isByokEnabled: hasRemainingKeys,
+          await this.writeByokSettings(tx, existing, {
+            byokKeys: byokKeys as never,
+            isByokEnabled: hasRemainingKeys,
+          });
         },
-        where: { organizationId: orgId },
-      });
+        { isolationLevel: 'Serializable' },
+      );
 
       this.logger.log('BYOK key removed', { orgId, provider });
     } catch (error: unknown) {
@@ -301,29 +308,33 @@ export class ByokService {
    */
   async incrementUsage(organizationId: string, keyId: string): Promise<void> {
     try {
-      const existing = await this.prisma.organizationSetting.findFirst({
-        where: { organizationId },
-      });
+      await this.prisma.$transaction(
+        async (tx) => {
+          const existing = await tx.organizationSetting.findFirst({
+            where: { organizationId },
+          });
 
-      if (!existing) {
-        return;
-      }
+          if (!existing) {
+            return;
+          }
 
-      const byokKeys = this.getByokKeys(existing);
-      const entry = byokKeys[keyId as ByokProvider];
+          const byokKeys = this.getByokKeys(existing);
+          const entry = byokKeys[keyId as ByokProvider];
 
-      if (entry) {
-        byokKeys[keyId as ByokProvider] = {
-          ...entry,
-          lastUsedAt: new Date(),
-          totalRequests: (entry.totalRequests ?? 0) + 1,
-        };
+          if (entry) {
+            byokKeys[keyId as ByokProvider] = {
+              ...entry,
+              lastUsedAt: new Date(),
+              totalRequests: (entry.totalRequests ?? 0) + 1,
+            };
 
-        await this.prisma.organizationSetting.updateMany({
-          data: { byokKeys: byokKeys as never },
-          where: { organizationId },
-        });
-      }
+            await this.writeByokSettings(tx, existing, {
+              byokKeys: byokKeys as never,
+            });
+          }
+        },
+        { isolationLevel: 'Serializable' },
+      );
     } catch (error: unknown) {
       this.logger.error('Failed to increment BYOK usage', {
         error,
@@ -432,30 +443,52 @@ export class ByokService {
     return (settings.byokKeys as Record<string, IByokKeyEntry>) ?? {};
   }
 
+  private async writeByokSettings(
+    tx: Pick<PrismaClient, 'organizationSetting'>,
+    existing: { id: string; updatedAt: Date },
+    data: Prisma.OrganizationSettingUpdateManyMutationInput,
+  ): Promise<void> {
+    const result = await tx.organizationSetting.updateMany({
+      data,
+      where: {
+        id: existing.id,
+        updatedAt: existing.updatedAt,
+      },
+    });
+
+    if (result.count !== 1) {
+      throw new ConflictException(
+        'BYOK credentials changed during update. Please retry.',
+      );
+    }
+  }
+
   private async updateByokKey(
     orgId: string,
     provider: ByokProvider,
     entry: IByokKeyEntry,
     enableByok: boolean,
   ): Promise<void> {
-    const existing = await this.prisma.organizationSetting.findFirst({
-      where: { organizationId: orgId },
-    });
+    await this.prisma.$transaction(
+      async (tx) => {
+        const existing = await tx.organizationSetting.findFirst({
+          where: { organizationId: orgId },
+        });
 
-    if (!existing) {
-      return;
-    }
+        if (!existing) {
+          return;
+        }
 
-    const byokKeys = this.getByokKeys(existing);
-    byokKeys[provider] = entry;
+        const byokKeys = this.getByokKeys(existing);
+        byokKeys[provider] = entry;
 
-    await this.prisma.organizationSetting.updateMany({
-      data: {
-        byokKeys: byokKeys as never,
-        ...(enableByok && { isByokEnabled: true }),
+        await this.writeByokSettings(tx, existing, {
+          byokKeys: byokKeys as never,
+          ...(enableByok && { isByokEnabled: true }),
+        });
       },
-      where: { organizationId: orgId },
-    });
+      { isolationLevel: 'Serializable' },
+    );
   }
 
   private async validateAnthropic(
@@ -661,9 +694,9 @@ export class ByokService {
   ): Promise<{ isValid: boolean; error?: string }> {
     try {
       await firstValueFrom(
-        this.httpService.get(
-          `https://api.apify.com/v2/acts?token=${apiKey}&limit=1`,
-        ),
+        this.httpService.get('https://api.apify.com/v2/acts?limit=1', {
+          headers: { Authorization: `Bearer ${apiKey}` },
+        }),
       );
       return { isValid: true };
     } catch {

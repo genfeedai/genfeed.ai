@@ -11,7 +11,7 @@ export default function Referral({ referralCode }: ReferralProps) {
     <Card>
       <div className="flex justify-center mb-4">
         <div className="p-3 bg-primary/10 rounded-full">
-          <HiSparkles className="w-8 h-8 text-primary" />
+          <HiSparkles className="size-8 text-primary" />
         </div>
       </div>
 
@@ -30,7 +30,7 @@ export default function Referral({ referralCode }: ReferralProps) {
           href={`${EnvironmentService.apps.app}/request-access`}
           className="inline-flex items-center justify-center gap-2 h-9 px-4 py-2 text-sm font-medium bg-primary text-primary-foreground shadow hover:bg-primary/90"
         >
-          <HiShare className="w-4 h-4" />
+          <HiShare className="size-4" />
           Request Access
         </Link>
       </div>

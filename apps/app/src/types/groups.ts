@@ -4,11 +4,14 @@
  */
 
 // Re-export types from shared package
-export type { GroupColor, NodeGroup } from '@genfeedai/types';
+export type {
+  GroupColor,
+  NodeGroup,
+} from '@genfeedai/types';
 
 import type { GroupColor } from '@genfeedai/types';
 
-export const GROUP_COLORS: Record<
+const _GROUP_COLORS: Record<
   GroupColor,
   { bg: string; border: string; text: string }
 > = {

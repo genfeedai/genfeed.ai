@@ -21,6 +21,7 @@ import {
   HiSparkles,
   HiVideoCamera,
 } from 'react-icons/hi2';
+import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 
 const CONTENT_TYPES = [
   { icon: HiPhoto, id: 'image', title: 'Images' },
@@ -78,7 +79,7 @@ export default function SuccessContent() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const preview = localStorage.getItem('gf_onboarding_preview_url');
+    const preview = localStorage.getItem(ONBOARDING_STORAGE_KEYS.previewUrl);
     if (preview) {
       setPreviewUrl(preview);
     }
@@ -126,9 +127,12 @@ export default function SuccessContent() {
     }
 
     // Clean up localStorage keys
-    localStorage.removeItem('gf_onboarding_preview_url');
-    localStorage.removeItem('gf_brand_domain');
-    localStorage.removeItem('gf_onboarding_content_type');
+    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.previewUrl);
+    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.brandDomain);
+    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.brandName);
+    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.accessMode);
+    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.source);
+    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.contentType);
 
     const org = selectedBrand?.organization;
     const orgSlug =
@@ -148,8 +152,8 @@ export default function SuccessContent() {
     <div ref={sectionRef} className="max-w-lg mx-auto text-center pt-24">
       {/* Success icon */}
       <div className="success-icon opacity-0 flex justify-center mb-8">
-        <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-full flex items-center justify-center">
-          <HiCheckCircle className="h-10 w-10 text-green-400" />
+        <div className="size-20 bg-white/5 border border-white/10 rounded-full flex items-center justify-center">
+          <HiCheckCircle className="size-10 text-green-400" />
         </div>
       </div>
 
@@ -159,7 +163,7 @@ export default function SuccessContent() {
       </h1>
 
       <div className="success-credit-reveal opacity-0 mb-8 inline-flex items-center gap-3 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-5 py-3 text-left">
-        <HiSparkles className="h-5 w-5 text-emerald-300" />
+        <HiSparkles className="size-5 text-emerald-300" />
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200/80">
             Starter Credits Ready
@@ -179,7 +183,7 @@ export default function SuccessContent() {
             alt="Your brand preview"
             width={288}
             height={288}
-            className="w-72 h-72 rounded-lg object-cover border border-white/10"
+            className="size-72 rounded-lg object-cover border border-white/10"
           />
         </div>
       )}
@@ -205,12 +209,12 @@ export default function SuccessContent() {
                     : 'border-white/[0.08] bg-white/[0.02] text-white/50 hover:border-white/20'
                 }`}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="size-4" />
                 {title}
                 {isSelected && (
                   <svg
                     aria-hidden="true"
-                    className="w-3 h-3"
+                    className="size-3"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -234,7 +238,7 @@ export default function SuccessContent() {
         <Button
           variant={ButtonVariant.WHITE}
           onClick={handleEnterWorkspace}
-          icon={<HiSparkles className="h-4 w-4" />}
+          icon={<HiSparkles className="size-4" />}
           label="Enter Workspace"
         />
       </div>

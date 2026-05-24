@@ -135,10 +135,10 @@ function PublishNodeComponent(props: NodeProps): React.JSX.Element {
 
   const handleHashtagsChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const tags = e.target.value
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean);
+      const tags = e.target.value.split(',').flatMap((tag) => {
+        const trimmedTag = tag.trim();
+        return trimmedTag ? [trimmedTag] : [];
+      });
       updateNodeData(id, { hashtags: tags });
     },
     [id, updateNodeData],
@@ -160,7 +160,7 @@ function PublishNodeComponent(props: NodeProps): React.JSX.Element {
 
       {/* Platform selection */}
       <div>
-        <label className="text-xs text-muted-foreground">Platforms</label>
+        <span className="text-xs text-muted-foreground">Platforms</span>
         <div className="grid grid-cols-2 gap-1 mt-1">
           {PLATFORM_CONFIG.map((platform) => (
             <SelectableButton
@@ -226,7 +226,7 @@ function PublishNodeComponent(props: NodeProps): React.JSX.Element {
           <p className="text-xs text-muted-foreground">Published</p>
           {data.publishedUrls.map((url, index) => (
             <a
-              key={`url-${index}`}
+              key={url}
               href={url}
               target="_blank"
               rel="noopener noreferrer"
@@ -254,7 +254,7 @@ function PublishNodeComponent(props: NodeProps): React.JSX.Element {
 
 export const PublishNode = memo(PublishNodeComponent);
 
-export const publishNodeDefaults: Partial<PublishNodeData> = {
+const publishNodeDefaults: Partial<PublishNodeData> = {
   caption: '',
   createdPostIds: [],
   hashtags: [],

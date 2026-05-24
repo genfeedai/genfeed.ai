@@ -4,11 +4,10 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { SubscriptionAttributionsService } from '@api/collections/subscription-attributions/services/subscription-attributions.service';
 import { SubscriptionEntity } from '@api/collections/subscriptions/entities/subscription.entity';
-import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
-import { UserSubscriptionsService } from '@api/collections/user-subscriptions/services/user-subscriptions.service';
+import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
+import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -19,13 +18,22 @@ import {
   type ManagedCheckoutResult,
   ManagedStripeCheckoutService,
 } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
-import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import {
+  type StripeCheckoutSession,
+  type StripeCustomer,
+  type StripeInvoice,
+  StripeService,
+  type StripeSubscription,
+} from '@api/services/integrations/stripe/services/stripe.service';
 import {
   MANAGED_API_KEY_LABEL,
   MANAGED_API_KEY_SCOPES,
 } from '@api/services/integrations/stripe/stripe.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
+import { SubscriptionAttributionsService } from '@genfeedai/ee-billing/subscription-attributions';
+import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
+import { UserSubscriptionsService } from '@genfeedai/ee-billing/user-subscriptions';
 import {
   ActivityKey,
   ActivitySource,
@@ -39,7 +47,13 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { nanoid } from 'nanoid';
-import Stripe from 'stripe';
+
+type StripeEvent = {
+  data: { object: unknown };
+  type: string;
+};
+type StripeMetadata = Record<string, string>;
+type StripeRecurringInterval = 'day' | 'week' | 'month' | 'year';
 
 @Injectable()
 export class StripeWebhookService {
@@ -65,37 +79,53 @@ export class StripeWebhookService {
     private readonly prisma: PrismaService,
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+    private readonly userSetupService: UserSetupService,
   ) {}
 
-  async handleWebhookEvent(event: Stripe.Event, url: string) {
+  async handleWebhookEvent(event: StripeEvent, url: string) {
     switch (event.type) {
       case 'customer.subscription.created': {
-        await this.handleSubscriptionCreated(event.data.object, url);
+        await this.handleSubscriptionCreated(
+          event.data.object as StripeSubscription,
+          url,
+        );
         break;
       }
 
       case 'customer.subscription.updated': {
-        await this.handleSubscriptionUpdated(event.data.object, url);
+        await this.handleSubscriptionUpdated(
+          event.data.object as StripeSubscription,
+          url,
+        );
         break;
       }
 
       case 'customer.subscription.deleted': {
-        await this.handleSubscriptionDeleted(event.data.object, url);
+        await this.handleSubscriptionDeleted(
+          event.data.object as StripeSubscription,
+          url,
+        );
         break;
       }
 
       case 'checkout.session.completed': {
-        await this.handleCheckoutCompleted(event.data.object, url);
+        await this.handleCheckoutCompleted(
+          event.data.object as StripeCheckoutSession,
+          url,
+        );
         break;
       }
 
       case 'invoice.paid': {
-        await this.handleInvoicePaid(event.data.object, url);
+        await this.handleInvoicePaid(event.data.object as StripeInvoice, url);
         break;
       }
 
       case 'invoice.payment_failed': {
-        await this.handleInvoicePaymentFailed(event.data.object, url);
+        await this.handleInvoicePaymentFailed(
+          event.data.object as StripeInvoice,
+          url,
+        );
         break;
       }
 
@@ -103,12 +133,15 @@ export class StripeWebhookService {
       // for marketplace purchases are now handled by the marketplace service.
 
       case 'customer.created': {
-        this.handleCustomerCreated(event.data.object, url);
+        this.handleCustomerCreated(event.data.object as StripeCustomer, url);
         break;
       }
 
       case 'customer.updated': {
-        await this.handleCustomerUpdated(event.data.object, url);
+        await this.handleCustomerUpdated(
+          event.data.object as StripeCustomer,
+          url,
+        );
         break;
       }
 
@@ -120,7 +153,7 @@ export class StripeWebhookService {
   }
 
   private async handleSubscriptionCreated(
-    subscription: Stripe.Subscription,
+    subscription: StripeSubscription,
     url: string,
   ) {
     try {
@@ -205,7 +238,7 @@ export class StripeWebhookService {
   }
 
   private async handleSubscriptionUpdated(
-    subscription: Stripe.Subscription,
+    subscription: StripeSubscription,
     url: string,
   ) {
     try {
@@ -257,10 +290,11 @@ export class StripeWebhookService {
       );
 
       // Invalidate request context cache so updated subscription info is reflected immediately
-      if (user.clerkId) {
+      const userId = user._id?.toString();
+      if (userId) {
         await Promise.all([
-          this.requestContextCacheService.invalidateForUser(user.clerkId),
-          this.accessBootstrapCacheService.invalidateForUser(user.clerkId),
+          this.requestContextCacheService.invalidateForUser(userId),
+          this.accessBootstrapCacheService.invalidateForUser(userId),
         ]);
       }
 
@@ -291,7 +325,7 @@ export class StripeWebhookService {
   }
 
   private async handleSubscriptionDeleted(
-    subscription: Stripe.Subscription,
+    subscription: StripeSubscription,
     url: string,
   ) {
     try {
@@ -357,10 +391,11 @@ export class StripeWebhookService {
       );
 
       // Invalidate request context cache so canceled subscription is reflected immediately
-      if (user.clerkId) {
+      const userId = user._id?.toString();
+      if (userId) {
         await Promise.all([
-          this.requestContextCacheService.invalidateForUser(user.clerkId),
-          this.accessBootstrapCacheService.invalidateForUser(user.clerkId),
+          this.requestContextCacheService.invalidateForUser(userId),
+          this.accessBootstrapCacheService.invalidateForUser(userId),
         ]);
       }
 
@@ -384,7 +419,7 @@ export class StripeWebhookService {
   }
 
   private async handleCheckoutCompleted(
-    session: Stripe.Checkout.Session,
+    session: StripeCheckoutSession,
     url: string,
   ) {
     try {
@@ -507,8 +542,10 @@ export class StripeWebhookService {
             balance: newBalance,
             isOnboardingCompleted: true,
           });
+        }
+        if (dbUser?._id) {
           await this.accessBootstrapCacheService.invalidateForUser(
-            dbUser.clerkId,
+            dbUser._id.toString(),
           );
         }
 
@@ -551,7 +588,7 @@ export class StripeWebhookService {
   }
 
   private async handleManagedInferenceCheckoutCompleted(
-    session: Stripe.Checkout.Session,
+    session: StripeCheckoutSession,
     url: string,
   ) {
     const sessionId = session.id;
@@ -629,7 +666,7 @@ export class StripeWebhookService {
   }
 
   private async provisionManagedCheckoutAccount(
-    session: Stripe.Checkout.Session,
+    session: StripeCheckoutSession,
     email: string,
     url: string,
   ): Promise<ManagedCheckoutResult> {
@@ -665,8 +702,8 @@ export class StripeWebhookService {
           {
             clerkId: clerkUser.id,
             email,
-            firstName: firstName || existingUserByEmail.firstName,
-            lastName: lastName || existingUserByEmail.lastName,
+            firstName: firstName || existingUserByEmail.firstName || undefined,
+            lastName: lastName || existingUserByEmail.lastName || undefined,
           },
         );
       }
@@ -680,27 +717,57 @@ export class StripeWebhookService {
           firstName,
           handle: generateLabel('user'),
           lastName,
-        }),
+        }) as Parameters<UsersService['create']>[0],
       );
     }
 
-    const organization = await this.organizationsService.findOne({
+    let organization = await this.organizationsService.findOne({
       isDeleted: false,
       user: String(dbUser._id),
     });
 
-    if (!organization) {
-      throw new Error(
-        `Organization not found for managed checkout user ${dbUser._id}`,
+    let brand = organization
+      ? await this.brandsService.findOne(
+          {
+            isDeleted: false,
+            organizationId: String(organization._id),
+          },
+          [],
+        )
+      : null;
+
+    if (!organization || !brand) {
+      const setupResult = await this.userSetupService.initializeUserResources(
+        String(dbUser._id),
+        OrganizationCategory.BUSINESS,
       );
+
+      organization = setupResult.organization;
+      brand = setupResult.brand;
     }
 
-    const brand = await this.brandsService.findOne(
-      {
+    let orgSetting = await this.organizationSettingsService.findOne({
+      isDeleted: false,
+      organization: String(organization._id),
+    });
+
+    if (!orgSetting) {
+      await this.userSetupService.initializeUserResources(
+        String(dbUser._id),
+        OrganizationCategory.BUSINESS,
+      );
+      orgSetting = await this.organizationSettingsService.findOne({
         isDeleted: false,
         organization: String(organization._id),
+      });
+    }
+
+    brand = await this.brandsService.findOne(
+      {
+        isDeleted: false,
+        organizationId: String(organization._id),
       },
-      'minimal',
+      [],
     );
 
     if (!brand) {
@@ -740,7 +807,7 @@ export class StripeWebhookService {
         isRevoked: false,
         label: MANAGED_API_KEY_LABEL,
         organization: String(organization._id),
-        user: String(dbUser._id),
+        userId: String(dbUser._id),
       },
       [],
     );
@@ -756,13 +823,24 @@ export class StripeWebhookService {
           source: 'managed_inference',
           stripeSessionId: session.id,
         },
-        organization: String(organization._id),
+        organizationId: String(organization._id),
         rateLimit: 100,
         scopes: MANAGED_API_KEY_SCOPES,
-        user: String(dbUser._id),
+        userId: String(dbUser._id),
       });
 
       plainKey = createdApiKey.plainKey;
+    } else {
+      const scopes = new Set(existingApiKey.scopes);
+      for (const scope of MANAGED_API_KEY_SCOPES) {
+        scopes.add(scope);
+      }
+
+      if (scopes.size !== existingApiKey.scopes.length) {
+        await this.apiKeysService.patch(String(existingApiKey.id), {
+          scopes: Array.from(scopes),
+        });
+      }
     }
 
     const userPatch: Record<string, unknown> = {
@@ -782,11 +860,6 @@ export class StripeWebhookService {
 
     await this.usersService.patch(String(dbUser._id), userPatch);
 
-    const orgSetting = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: String(organization._id),
-    });
-
     if (orgSetting) {
       await this.organizationSettingsService.patch(String(orgSetting._id), {
         hasEverHadCredits: true,
@@ -805,7 +878,9 @@ export class StripeWebhookService {
       user: String(dbUser._id),
     });
 
-    await this.accessBootstrapCacheService.invalidateForUser(clerkUser.id);
+    await this.accessBootstrapCacheService.invalidateForUser(
+      String(dbUser._id),
+    );
 
     await this.activitiesService.create({
       brand: String(brand._id),
@@ -839,7 +914,7 @@ export class StripeWebhookService {
    * Looks up the user's creator org and adds credits to that org's balance
    */
   private async handleUserCheckoutCompleted(
-    session: Stripe.Checkout.Session,
+    session: StripeCheckoutSession,
     url: string,
   ) {
     try {
@@ -919,8 +994,8 @@ export class StripeWebhookService {
 
   private async addCreditsToOrgFromUserCheckout(
     organizationId: string,
-    dbUser: { _id: string; clerkId?: string },
-    session: Stripe.Checkout.Session,
+    dbUser: { _id: string; clerkId?: string | null },
+    session: StripeCheckoutSession,
     url: string,
   ) {
     const userId = dbUser._id.toString();
@@ -980,7 +1055,7 @@ export class StripeWebhookService {
   }
 
   private async handleSkillsProCheckoutCompleted(
-    session: Stripe.Checkout.Session,
+    session: StripeCheckoutSession,
     url: string,
   ) {
     try {
@@ -1019,8 +1094,8 @@ export class StripeWebhookService {
   }
 
   private async trackSubscriptionAttributionFromSession(
-    session: Stripe.Checkout.Session,
-    subscription: unknown,
+    session: StripeCheckoutSession,
+    subscription: SubscriptionDocument,
     url: string,
   ) {
     if (!session.subscription || !session.customer) {
@@ -1047,7 +1122,7 @@ export class StripeWebhookService {
         (typeof stripeSubscription.customer === 'object' &&
         stripeSubscription.customer &&
         'email' in stripeSubscription.customer
-          ? (stripeSubscription.customer as Stripe.Customer).email || undefined
+          ? (stripeSubscription.customer as StripeCustomer).email || undefined
           : undefined) ||
         user?.email ||
         'unknown';
@@ -1092,7 +1167,7 @@ export class StripeWebhookService {
   }
 
   private extractAttributionMetadata(
-    metadata: Stripe.Metadata | null | undefined,
+    metadata: StripeMetadata | null | undefined,
   ): {
     sourceContentId?: string;
     sourceContentType?: string;
@@ -1154,7 +1229,7 @@ export class StripeWebhookService {
   }
 
   private buildCombinedMetadata(
-    metadata: Stripe.Metadata,
+    metadata: StripeMetadata,
   ): Record<string, string> {
     const combined: Record<string, string> = {};
 
@@ -1197,7 +1272,7 @@ export class StripeWebhookService {
    * Falls back to finding the user by checkout session email.
    */
   private async markOnboardingCompleteFromSession(
-    session: Stripe.Checkout.Session,
+    session: StripeCheckoutSession,
     url: string,
     extraClerkMetadata?: Record<string, unknown>,
   ): Promise<void> {
@@ -1234,8 +1309,10 @@ export class StripeWebhookService {
         isOnboardingCompleted: true,
         ...extraClerkMetadata,
       });
-      await this.accessBootstrapCacheService.invalidateForUser(dbUser.clerkId);
     }
+    await this.accessBootstrapCacheService.invalidateForUser(
+      String(dbUser._id),
+    );
 
     if (!dbUser.isOnboardingCompleted) {
       await this.usersService.patch(dbUser._id, {
@@ -1271,7 +1348,7 @@ export class StripeWebhookService {
    */
   private resolveSubscriptionPlan(
     stripePriceId: string,
-    recurringInterval?: Stripe.Price.Recurring.Interval | null,
+    recurringInterval?: StripeRecurringInterval | null,
   ): SubscriptionPlan {
     const enterprisePriceId = this.configService.get(
       'STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY',
@@ -1379,7 +1456,7 @@ export class StripeWebhookService {
     }
   }
 
-  private async handleInvoicePaid(invoice: Stripe.Invoice, url: string) {
+  private async handleInvoicePaid(invoice: StripeInvoice, url: string) {
     try {
       // Handle BYOK platform fee invoices
       if (invoice.metadata?.type === 'byok_platform_fee') {
@@ -1552,10 +1629,10 @@ export class StripeWebhookService {
                   dbUser.clerkId,
                   { isOnboardingCompleted: true },
                 );
-                await this.accessBootstrapCacheService.invalidateForUser(
-                  dbUser.clerkId,
-                );
               }
+              await this.accessBootstrapCacheService.invalidateForUser(
+                String(dbUser._id),
+              );
 
               this.loggerService.log(
                 `${url} onboarding marked complete via invoice.paid`,
@@ -1581,7 +1658,7 @@ export class StripeWebhookService {
   }
 
   private async handleInvoicePaymentFailed(
-    invoice: Stripe.Invoice,
+    invoice: StripeInvoice,
     url: string,
   ) {
     try {
@@ -1623,7 +1700,7 @@ export class StripeWebhookService {
     }
   }
 
-  private async handleByokInvoicePaid(invoice: Stripe.Invoice, url: string) {
+  private async handleByokInvoicePaid(invoice: StripeInvoice, url: string) {
     try {
       const organizationId = invoice.metadata?.organizationId;
 
@@ -1655,7 +1732,6 @@ export class StripeWebhookService {
       }
 
       // Log activity
-      // @ts-expect-error CreateActivityDto shape
       await this.activitiesService.create({
         brand: organizationId,
         key: ActivityKey.CREDITS_ADD,
@@ -1678,7 +1754,7 @@ export class StripeWebhookService {
   }
 
   private async handleByokInvoicePaymentFailed(
-    invoice: Stripe.Invoice,
+    invoice: StripeInvoice,
     url: string,
   ) {
     try {
@@ -1727,7 +1803,7 @@ export class StripeWebhookService {
   // NOTE: charge.dispute.created, charge.dispute.closed, and charge.refunded
   // for marketplace purchases are now handled by the marketplace service directly.
 
-  private handleCustomerCreated(customer: Stripe.Customer, url: string) {
+  private handleCustomerCreated(customer: StripeCustomer, url: string) {
     try {
       // Customer creation is typically handled by our CustomersService
       // This webhook is mainly for logging/auditing
@@ -1743,7 +1819,7 @@ export class StripeWebhookService {
     }
   }
 
-  private async handleCustomerUpdated(customer: Stripe.Customer, url: string) {
+  private async handleCustomerUpdated(customer: StripeCustomer, url: string) {
     try {
       // Sync subscription data from Stripe to our database
       const existingSubscription =
@@ -1769,15 +1845,13 @@ export class StripeWebhookService {
     url: string,
   ) {
     try {
-      const aggregate: Record<string, unknown>[] = [
-        {
-          $match: {
-            isDeleted: { $ne: true },
-            organization: organizationId,
-            status: { $in: ['active', 'trialing', 'past_due'] },
-          },
+      const aggregate = {
+        where: {
+          isDeleted: { not: true },
+          organization: organizationId,
+          status: { in: ['active', 'trialing', 'past_due'] },
         },
-      ];
+      };
 
       const options = {
         customLabels,
@@ -1785,7 +1859,11 @@ export class StripeWebhookService {
       };
 
       // Find all active subscriptions for the organization
-      const data = await this.subscriptionsService.findAll(aggregate, options);
+      const data = await this.subscriptionsService.findAll(
+        aggregate,
+        options,
+        false,
+      );
 
       const subscriptions = data.docs;
 

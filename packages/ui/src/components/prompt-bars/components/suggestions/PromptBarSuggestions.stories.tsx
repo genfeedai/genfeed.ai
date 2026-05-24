@@ -19,13 +19,13 @@ export const Default: Story = {
     onSuggestionSelect: () => {},
     suggestions: [
       {
-        icon: <HiOutlineClipboardDocumentCheck className="h-4 w-4" />,
+        icon: <HiOutlineClipboardDocumentCheck className="size-4" />,
         id: 'create-plan',
         label: 'Create a plan',
         prompt: 'Create a plan for this task',
       },
       {
-        icon: <HiOutlineSparkles className="h-4 w-4" />,
+        icon: <HiOutlineSparkles className="size-4" />,
         id: 'use-plan-mode',
         label: 'Use plan mode',
         prompt: 'Use plan mode for this request',

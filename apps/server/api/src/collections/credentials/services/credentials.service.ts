@@ -24,6 +24,17 @@ export class CredentialsService extends BaseService<
     super(prisma, 'credential', logger);
   }
 
+  countConnected(organizationId: string, brandId?: string): Promise<number> {
+    return this.prisma.credential.count({
+      where: {
+        isConnected: true,
+        isDeleted: false,
+        organizationId,
+        ...(brandId ? { brandId } : {}),
+      },
+    });
+  }
+
   findByHandle(
     handle: string,
     organizationId: string,
@@ -78,6 +89,6 @@ export class CredentialsService extends BaseService<
       });
     }
 
-    return this.create(entity as CreateCredentialDto);
+    return this.create(entity as unknown as CreateCredentialDto);
   }
 }

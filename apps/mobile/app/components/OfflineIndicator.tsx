@@ -1,12 +1,13 @@
 import React from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
+import { colors } from '@/constants';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { useOfflineQueue } from '@/hooks/use-offline-queue';
 
 export function OfflineIndicator(): React.ReactElement | null {
   const { isOnline } = useNetworkStatus();
   const { queueLength } = useOfflineQueue();
-  const opacity = React.useRef(new Animated.Value(0)).current;
+  const opacity = React.useMemo(() => new Animated.Value(0), []);
 
   React.useEffect(() => {
     Animated.timing(opacity, {
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: 'center',
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.bgTertiary,
     borderRadius: 10,
     flexDirection: 'row',
     gap: 10,
@@ -75,13 +76,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   dot: {
-    backgroundColor: '#ef4444',
+    backgroundColor: colors.error,
     borderRadius: 4,
     height: 8,
     width: 8,
   },
   text: {
-    color: 'white',
+    color: colors.white,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -89,12 +90,12 @@ const styles = StyleSheet.create({
 
 const bannerStyles = StyleSheet.create({
   container: {
-    backgroundColor: '#fbbf24',
+    backgroundColor: colors.warning,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   text: {
-    color: '#78350f',
+    color: colors.warningDark,
     fontSize: 13,
     fontWeight: '500',
     textAlign: 'center',

@@ -91,7 +91,10 @@ export class SlackBotManager
         `Slack Bot Manager initialized with ${this.getActiveCount()} bots`,
       );
     } catch (error) {
-      this.logger.error('Failed to initialize Slack Bot Manager:', error);
+      this.logger.error(
+        'Failed to initialize Slack Bot Manager',
+        this.sanitizeErrorForLog(error),
+      );
     }
   }
 
@@ -270,7 +273,10 @@ export class SlackBotManager
           });
         }
       } catch (error) {
-        this.logger.error('Failed to handle file upload:', error);
+        this.logger.error(
+          'Failed to handle file upload',
+          this.sanitizeErrorForLog(error),
+        );
       }
     });
 
@@ -288,7 +294,10 @@ export class SlackBotManager
     try {
       await botInstance.app.stop();
     } catch (error) {
-      this.logger.error(`Error stopping bot ${botInstance.id}`, error);
+      this.logger.error(
+        `Error stopping bot ${botInstance.id}`,
+        this.sanitizeErrorForLog(error),
+      );
     }
   }
 
@@ -328,7 +337,10 @@ export class SlackBotManager
           return;
         }
         this.handleRedisEvent(event, data).catch((err) =>
-          this.logger.error('Failed to handle Redis integration event', err),
+          this.logger.error(
+            'Failed to handle Redis integration event',
+            this.sanitizeErrorForLog(err),
+          ),
         );
       });
     }
@@ -352,7 +364,7 @@ export class SlackBotManager
       if (result.status === 'rejected') {
         this.logger.warn(
           'Failed to unsubscribe from one or more Redis channels',
-          result.reason,
+          this.sanitizeErrorForLog(result.reason),
         );
       }
     }
@@ -426,7 +438,10 @@ export class SlackBotManager
           'API returned 401 — set GENFEEDAI_API_KEY in your .env to authenticate with the API.',
         );
       } else {
-        this.logger.error('Failed to fetch integrations:', error);
+        this.logger.error(
+          'Failed to fetch integrations',
+          this.sanitizeErrorForLog(error),
+        );
       }
       return [];
     }
@@ -453,8 +468,8 @@ export class SlackBotManager
       await this.addIntegration(integration);
     } catch (error) {
       this.logger.error(
-        `Failed to fetch and add integration ${integrationId}:`,
-        error,
+        `Failed to fetch and add integration ${integrationId}`,
+        this.sanitizeErrorForLog(error),
       );
     }
   }
@@ -482,8 +497,8 @@ export class SlackBotManager
       await this.updateIntegration(integration);
     } catch (error) {
       this.logger.error(
-        `Failed to fetch and update integration ${integrationId}:`,
-        error,
+        `Failed to fetch and update integration ${integrationId}`,
+        this.sanitizeErrorForLog(error),
       );
     }
   }
@@ -499,7 +514,10 @@ export class SlackBotManager
       );
       return response.data;
     } catch (error) {
-      this.logger.error('Failed to fetch workflows:', error);
+      this.logger.error(
+        'Failed to fetch workflows',
+        this.sanitizeErrorForLog(error),
+      );
       return [];
     }
   }
@@ -564,7 +582,10 @@ export class SlackBotManager
 
       await respond({ blocks, text: 'GenFeed AI Workflows' });
     } catch (error) {
-      this.logger.error('Failed to fetch workflows:', error);
+      this.logger.error(
+        'Failed to fetch workflows',
+        this.sanitizeErrorForLog(error),
+      );
       await respond({ text: 'Failed to load workflows. Please try again.' });
     }
   }
@@ -600,7 +621,7 @@ export class SlackBotManager
               }
             } catch (error) {
               this.logger.warn('Failed to fetch workflow execution status', {
-                error,
+                error: this.sanitizeErrorForLog(error),
                 executionId: session.executionId,
               });
             }
@@ -627,7 +648,7 @@ export class SlackBotManager
         await this.cancelWorkflowExecution(session.orgId, session.executionId);
       } catch (error) {
         this.logger.warn('Failed to cancel workflow execution', {
-          error,
+          error: this.sanitizeErrorForLog(error),
           executionId: session.executionId,
         });
       }
@@ -680,7 +701,10 @@ export class SlackBotManager
 
       await this.promptNextInput(userId, respond);
     } catch (error) {
-      this.logger.error('Failed to select workflow:', error);
+      this.logger.error(
+        'Failed to select workflow',
+        this.sanitizeErrorForLog(error),
+      );
       await respond({
         text: 'Failed to load workflow details. Please try again.',
       });
@@ -838,7 +862,10 @@ export class SlackBotManager
 
       void this.monitorWorkflowExecution(orgId, userId, respond);
     } catch (error) {
-      this.logger.error('Failed to execute workflow:', error);
+      this.logger.error(
+        'Failed to execute workflow',
+        this.sanitizeErrorForLog(error),
+      );
       await respond({
         text: 'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
       });
@@ -911,6 +938,38 @@ export class SlackBotManager
     ];
 
     await respond({ blocks, text: 'Settings' });
+  }
+
+  /**
+   * Strip sensitive fields from an error before logging.
+   * Axios errors carry the full request config (including Authorization headers)
+   * on `error.config` — never log that object directly.
+   */
+  private sanitizeErrorForLog(error: unknown): Record<string, unknown> {
+    if (error instanceof Error) {
+      const axiosError = error as {
+        response?: { status?: number; statusText?: string };
+        code?: string;
+        config?: unknown;
+      };
+      return {
+        code: axiosError.code,
+        message: error.message,
+        status: axiosError.response?.status,
+        statusText: axiosError.response?.statusText,
+      };
+    }
+
+    if (typeof error === 'object' && error !== null) {
+      const obj = error as Record<string, unknown>;
+      return {
+        code: obj.code,
+        message: obj.message,
+        name: obj.name,
+      };
+    }
+
+    return { raw: String(error) };
   }
 
   private getInternalApiHeaders(): { Authorization: string } | undefined {
@@ -1051,11 +1110,37 @@ export class SlackBotManager
         return;
       }
 
-      this.logger.error('Failed while monitoring workflow execution:', error);
+      this.logger.error(
+        'Failed while monitoring workflow execution',
+        this.sanitizeErrorForLog(error),
+      );
       await respond({
         text: 'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
       });
       this.deleteSession(userId);
     }
+  }
+
+  /**
+   * Sanitize an error object before logging to prevent Authorization headers
+   * or other sensitive fields from appearing in log output.
+   */
+  private sanitizeError(error: unknown): Record<string, unknown> {
+    if (!(error instanceof Error)) {
+      return { message: String(error) };
+    }
+
+    const axiosError = error as {
+      message: string;
+      response?: { status?: number; statusText?: string };
+      config?: { url?: string };
+    };
+
+    return {
+      message: axiosError.message,
+      responseStatus: axiosError.response?.status,
+      responseStatusText: axiosError.response?.statusText,
+      url: axiosError.config?.url,
+    };
   }
 }

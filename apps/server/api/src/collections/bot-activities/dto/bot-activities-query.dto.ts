@@ -1,9 +1,9 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BotActivityStatus, ReplyBotType } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   Max,
@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 
 export class BotActivitiesQueryDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Filter by reply bot config ID',
@@ -19,7 +19,7 @@ export class BotActivitiesQueryDto {
   })
   replyBotConfig?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Filter by monitored account ID',

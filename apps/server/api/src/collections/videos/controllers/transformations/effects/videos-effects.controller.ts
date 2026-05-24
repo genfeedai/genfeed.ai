@@ -35,6 +35,14 @@ import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Controller, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
+function requirePath(value: unknown): string {
+  if (typeof value !== 'string') {
+    throw new Error('Missing output path');
+  }
+
+  return value;
+}
+
 @AutoSwagger()
 @Controller('videos')
 export class VideosEffectsController {
@@ -97,7 +105,7 @@ export class VideosEffectsController {
       })
       .then(async (job) => {
         const result = await this.fileQueueService.waitForJob(job.jobId, 60000);
-        const output = result.outputPath;
+        const output = requirePath(result.outputPath);
         const meta = await this.filesClientService.uploadToS3(
           ingredientData._id,
           `videos`,
@@ -108,13 +116,10 @@ export class VideosEffectsController {
           metadataData._id,
           new MetadataEntity(meta),
         );
-        await this.ingredientsService.patch(
-          ingredientData._id,
-          new IngredientEntity({
-            status: IngredientStatus.GENERATED,
-            transformations: [TransformationCategory.REVERSED],
-          }),
-        );
+        await this.ingredientsService.patch(ingredientData._id, {
+          status: IngredientStatus.GENERATED,
+          transformations: [TransformationCategory.REVERSED],
+        });
 
         const websocketUrl = WebSocketPaths.video(ingredientData._id);
         await this.websocketService.publishVideoComplete(
@@ -184,7 +189,7 @@ export class VideosEffectsController {
             job.jobId,
             60000,
           );
-          const output = result.outputPath;
+          const output = requirePath(result.outputPath);
           const meta = await this.filesClientService.uploadToS3(
             ingredientData._id,
             `videos`,
@@ -198,13 +203,10 @@ export class VideosEffectsController {
             metadataData._id,
             new MetadataEntity(meta),
           );
-          await this.ingredientsService.patch(
-            ingredientData._id,
-            new IngredientEntity({
-              status: IngredientStatus.GENERATED,
-              transformations: [TransformationCategory.MIRRORED],
-            }),
-          );
+          await this.ingredientsService.patch(ingredientData._id, {
+            status: IngredientStatus.GENERATED,
+            transformations: [TransformationCategory.MIRRORED],
+          });
 
           const websocketUrl = WebSocketPaths.video(ingredientData._id);
           await this.websocketService.publishVideoComplete(

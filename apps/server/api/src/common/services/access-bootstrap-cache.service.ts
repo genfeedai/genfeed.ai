@@ -39,12 +39,12 @@ const ACCESS_BOOTSTRAP_PREFIX = 'access-bootstrap';
 const ACCESS_BOOTSTRAP_TTL_SECONDS = 30;
 const ACCESS_BOOTSTRAP_KEYS_SET_TTL_SECONDS = 3_600;
 
-function buildAccessBootstrapKey(clerkId: string, organizationId: string) {
-  return `${ACCESS_BOOTSTRAP_PREFIX}:${clerkId}:${organizationId}`;
+function buildAccessBootstrapKey(userId: string, organizationId: string) {
+  return `${ACCESS_BOOTSTRAP_PREFIX}:${userId}:${organizationId}`;
 }
 
-function buildAccessBootstrapKeysSetKey(clerkId: string) {
-  return `${ACCESS_BOOTSTRAP_PREFIX}:keys:${clerkId}`;
+function buildAccessBootstrapKeysSetKey(userId: string) {
+  return `${ACCESS_BOOTSTRAP_PREFIX}:keys:${userId}`;
 }
 
 @Injectable()
@@ -57,7 +57,7 @@ export class AccessBootstrapCacheService {
   ) {}
 
   async get(
-    clerkId: string,
+    userId: string,
     organizationId: string,
   ): Promise<AccessBootstrapCachePayload | null> {
     const publisher = this.redisService.getPublisher();
@@ -67,7 +67,7 @@ export class AccessBootstrapCacheService {
 
     try {
       const cached = await publisher.get(
-        buildAccessBootstrapKey(clerkId, organizationId),
+        buildAccessBootstrapKey(userId, organizationId),
       );
 
       if (!cached) {
@@ -77,7 +77,7 @@ export class AccessBootstrapCacheService {
       return JSON.parse(cached) as AccessBootstrapCachePayload;
     } catch (error: unknown) {
       this.logger.error(
-        `Failed to read access bootstrap cache for user ${clerkId}`,
+        `Failed to read access bootstrap cache for user ${userId}`,
         error,
         this.context,
       );
@@ -86,7 +86,7 @@ export class AccessBootstrapCacheService {
   }
 
   async set(
-    clerkId: string,
+    userId: string,
     organizationId: string,
     payload: AccessBootstrapCachePayload,
   ): Promise<void> {
@@ -96,8 +96,8 @@ export class AccessBootstrapCacheService {
     }
 
     try {
-      const cacheKey = buildAccessBootstrapKey(clerkId, organizationId);
-      const keysSetKey = buildAccessBootstrapKeysSetKey(clerkId);
+      const cacheKey = buildAccessBootstrapKey(userId, organizationId);
+      const keysSetKey = buildAccessBootstrapKeysSetKey(userId);
 
       await storeRedisSnapshot(
         publisher,
@@ -109,33 +109,33 @@ export class AccessBootstrapCacheService {
       );
     } catch (error: unknown) {
       this.logger.error(
-        `Failed to write access bootstrap cache for user ${clerkId}`,
+        `Failed to write access bootstrap cache for user ${userId}`,
         error,
         this.context,
       );
     }
   }
 
-  async invalidateForUser(clerkId: string): Promise<void> {
+  async invalidateForUser(userId: string): Promise<void> {
     const publisher = this.redisService.getPublisher();
     if (!publisher) {
       return;
     }
 
     try {
-      const keysSetKey = buildAccessBootstrapKeysSetKey(clerkId);
+      const keysSetKey = buildAccessBootstrapKeysSetKey(userId);
       const invalidatedCount = await invalidateRedisSnapshot(
         publisher,
         keysSetKey,
       );
 
       this.logger.debug(
-        `Invalidated ${invalidatedCount} access bootstrap key(s) for user ${clerkId}`,
+        `Invalidated ${invalidatedCount} access bootstrap key(s) for user ${userId}`,
         this.context,
       );
     } catch (error: unknown) {
       this.logger.error(
-        `Failed to invalidate access bootstrap cache for user ${clerkId}`,
+        `Failed to invalidate access bootstrap cache for user ${userId}`,
         error,
         this.context,
       );

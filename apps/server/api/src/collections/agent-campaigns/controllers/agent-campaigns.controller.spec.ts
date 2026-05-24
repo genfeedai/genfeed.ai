@@ -136,17 +136,17 @@ describe('AgentCampaignsController', () => {
     });
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with organization and brand filters', () => {
-      const query = {};
-      const pipeline = controller.buildFindAllPipeline(
+  describe('buildFindAllQuery', () => {
+    it('should build query with organization and brand filters', () => {
+      const inputQuery = {};
+      const query = controller.buildFindAllQuery(
         mockUser as any,
-        query as any,
+        inputQuery as any,
       );
 
-      expect(pipeline).toHaveLength(2);
-      expect(pipeline[0]).toEqual({
-        $match: {
+      expect(query).toEqual({
+        orderBy: { createdAt: -1 },
+        where: {
           brand: '507f1f77bcf86cd799439013',
           isDeleted: false,
           organization: '507f1f77bcf86cd799439012',
@@ -155,14 +155,15 @@ describe('AgentCampaignsController', () => {
     });
 
     it('should include status filter when provided', () => {
-      const query = { status: 'active' };
-      const pipeline = controller.buildFindAllPipeline(
+      const inputQuery = { status: 'active' };
+      const query = controller.buildFindAllQuery(
         mockUser as any,
-        query as any,
+        inputQuery as any,
       );
 
-      expect(pipeline[0]).toEqual({
-        $match: {
+      expect(query).toEqual({
+        orderBy: { createdAt: -1 },
+        where: {
           brand: '507f1f77bcf86cd799439013',
           isDeleted: false,
           organization: '507f1f77bcf86cd799439012',
@@ -179,13 +180,14 @@ describe('AgentCampaignsController', () => {
           brand: undefined,
         },
       };
-      const pipeline = controller.buildFindAllPipeline(
+      const query = controller.buildFindAllQuery(
         userWithoutBrand as any,
         {} as any,
       );
 
-      expect(pipeline[0]).toEqual({
-        $match: {
+      expect(query).toEqual({
+        orderBy: { createdAt: -1 },
+        where: {
           isDeleted: false,
           organization: '507f1f77bcf86cd799439012',
         },
@@ -193,13 +195,13 @@ describe('AgentCampaignsController', () => {
     });
 
     it('should respect isDeleted query param', () => {
-      const query = { isDeleted: true };
-      const pipeline = controller.buildFindAllPipeline(
+      const inputQuery = { isDeleted: true };
+      const query = controller.buildFindAllQuery(
         mockUser as any,
-        query as any,
+        inputQuery as any,
       );
 
-      expect((pipeline[0] as any).$match.isDeleted).toBe(true);
+      expect((query as any).where.isDeleted).toBe(true);
     });
   });
 

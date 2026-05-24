@@ -43,7 +43,7 @@ import {
   HiSparkles,
   HiStrikethrough,
 } from 'react-icons/hi2';
-import '@ui/editors/rich-editor.scss';
+import '@ui/editors/rich-editor.css';
 
 const AI_EDITOR_ACTIONS = [
   AiActionType.GRAMMAR_CHECK,
@@ -54,7 +54,7 @@ const AI_EDITOR_ACTIONS = [
 export default function RichTextEditor({
   value,
   onChange,
-  placeholder = 'Start writing...',
+  placeholder = 'Start writing…',
   className = '',
   readOnly = false,
   showToolbar = true,
@@ -243,7 +243,7 @@ export default function RichTextEditor({
             title="Bold"
             ariaLabel="Bold"
           >
-            <HiBold className="w-4 h-4" />
+            <HiBold className="size-4" />
           </Button>
 
           <Button
@@ -254,7 +254,7 @@ export default function RichTextEditor({
             title="Italic"
             ariaLabel="Italic"
           >
-            <HiItalic className="w-4 h-4" />
+            <HiItalic className="size-4" />
           </Button>
 
           {shouldShowAdvancedFormatting && (
@@ -267,7 +267,7 @@ export default function RichTextEditor({
                 title="Strikethrough"
                 ariaLabel="Strikethrough"
               >
-                <HiStrikethrough className="w-4 h-4" />
+                <HiStrikethrough className="size-4" />
               </Button>
 
               <Button
@@ -278,7 +278,7 @@ export default function RichTextEditor({
                 title="Code"
                 ariaLabel="Code"
               >
-                <HiCodeBracket className="w-4 h-4" />
+                <HiCodeBracket className="size-4" />
               </Button>
             </>
           )}
@@ -296,7 +296,7 @@ export default function RichTextEditor({
                 title="Bullet List"
                 ariaLabel="Bullet List"
               >
-                <HiListBullet className="w-4 h-4" />
+                <HiListBullet className="size-4" />
               </Button>
 
               <Button
@@ -307,7 +307,7 @@ export default function RichTextEditor({
                 title="Numbered List"
                 ariaLabel="Numbered List"
               >
-                <HiQueueList className="w-4 h-4" />
+                <HiQueueList className="size-4" />
               </Button>
             </>
           )}
@@ -354,7 +354,7 @@ export default function RichTextEditor({
             title="Add Link"
             ariaLabel="Add Link"
           >
-            <HiLink className="w-4 h-4" />
+            <HiLink className="size-4" />
           </Button>
 
           <Button
@@ -365,7 +365,7 @@ export default function RichTextEditor({
             title="Add Image"
             ariaLabel="Add Image"
           >
-            <HiPhoto className="w-4 h-4" />
+            <HiPhoto className="size-4" />
           </Button> */}
 
           {/* AI Actions */}
@@ -389,7 +389,7 @@ export default function RichTextEditor({
                       <Spinner size={ComponentSize.XS} />
                     ) : (
                       <span className="flex items-center gap-1 text-xs">
-                        <HiSparkles className="w-3.5 h-3.5" />
+                        <HiSparkles className="size-3.5" />
                         {AI_ACTION_LABELS[action]}
                       </span>
                     )}

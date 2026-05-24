@@ -1,4 +1,4 @@
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { ConfigModule } from '@api/config/config.module';
 import { GoogleAdsAdapter } from '@api/services/ads-gateway/adapters/google-ads.adapter';
 import { MetaAdsAdapter } from '@api/services/ads-gateway/adapters/meta-ads.adapter';
@@ -15,12 +15,12 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [AdsGatewayController],
   exports: [AdsGatewayService],
   imports: [
-    forwardRef(() => CredentialsModule),
+    forwardRef(() => CredentialsCoreModule),
     forwardRef(() => MetaAdsModule),
     forwardRef(() => GoogleAdsModule),
     forwardRef(() => TikTokAdsModule),
-    ConfigModule,
-    LoggerModule,
+    forwardRef(() => ConfigModule),
+    forwardRef(() => LoggerModule),
   ],
   providers: [
     AdsGatewayService,

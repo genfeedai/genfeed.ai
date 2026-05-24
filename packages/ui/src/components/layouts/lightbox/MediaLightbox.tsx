@@ -4,6 +4,7 @@ import { IngredientCategory } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { MediaLightboxProps } from '@genfeedai/props/layout/media-lightbox.props';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import type { Plugin } from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/plugins/captions.css';
@@ -59,66 +60,68 @@ export default function MediaLightbox({
 
   // Map ingredients to lightbox slides with their thumbnail URLs
   const slides: Slide[] = useMemo(() => {
-    return items
-      .filter((item: IIngredient) => item.ingredientUrl || item.thumbnailUrl)
-      .map((item: IIngredient) => {
-        // Detect video types by category or file extension
-        const isVideoCategory =
-          item.category === IngredientCategory.VIDEO ||
-          item.category === IngredientCategory.VIDEO_EDIT;
+    return items.reduce<Slide[]>((acc, item: IIngredient) => {
+      if (!item.ingredientUrl && !item.thumbnailUrl) {
+        return acc;
+      }
+      // Detect video types by category or file extension
+      const isVideoCategory =
+        item.category === IngredientCategory.VIDEO ||
+        item.category === IngredientCategory.VIDEO_EDIT;
 
-        const isVideoExtension =
-          item.metadataExtension === 'mp4' ||
-          item.metadataExtension === 'mov' ||
-          item.metadataExtension === 'webm';
+      const isVideoExtension =
+        item.metadataExtension === 'mp4' ||
+        item.metadataExtension === 'mov' ||
+        item.metadataExtension === 'webm';
 
-        const isVideo = isVideoCategory || isVideoExtension;
+      const isVideo = isVideoCategory || isVideoExtension;
 
-        const src = item.ingredientUrl || item.thumbnailUrl || '';
+      const src = item.ingredientUrl || item.thumbnailUrl || '';
 
-        const slide: Slide & VideoSlideProps = {
-          alt: item.metadataLabel || 'Media',
-          height: item.height || 1920,
-          src,
-          width: item.width || 1080,
-        } as Slide & VideoSlideProps;
+      const slide: Slide & VideoSlideProps = {
+        alt: item.metadataLabel || 'Media',
+        height: item.height || 1920,
+        src,
+        width: item.width || 1080,
+      } as Slide & VideoSlideProps;
 
-        if (isVideo) {
-          // Configure video slide per yet-another-react-lightbox docs
-          slide.type = 'video';
-          slide.sources = [
-            {
-              src,
-              type: `video/${item.metadataExtension || 'mp4'}`,
-            },
-          ];
-          slide.controls = true;
-          slide.playsInline = true;
-          slide.preload = 'metadata';
+      if (isVideo) {
+        // Configure video slide per yet-another-react-lightbox docs
+        slide.type = 'video';
+        slide.sources = [
+          {
+            src,
+            type: `video/${item.metadataExtension || 'mp4'}`,
+          },
+        ];
+        slide.controls = true;
+        slide.playsInline = true;
+        slide.preload = 'metadata';
 
-          // Always set poster for video thumbnails (use thumbnailUrl or fallback to src for first frame)
-          const posterUrl =
-            item.thumbnailUrl && item.thumbnailUrl !== src
-              ? item.thumbnailUrl
-              : src;
+        // Always set poster for video thumbnails (use thumbnailUrl or fallback to src for first frame)
+        const posterUrl =
+          item.thumbnailUrl && item.thumbnailUrl !== src
+            ? item.thumbnailUrl
+            : src;
 
-          slide.poster = posterUrl;
+        slide.poster = posterUrl;
 
-          // Store the poster URL as a custom property for thumbnail rendering
-          slide.thumbnailSrc = posterUrl;
-        }
+        // Store the poster URL as a custom property for thumbnail rendering
+        slide.thumbnailSrc = posterUrl;
+      }
 
-        // Add title and description for captions plugin
-        if (item.metadataLabel) {
-          slide.title = item.metadataLabel;
-        }
+      // Add title and description for captions plugin
+      if (item.metadataLabel) {
+        slide.title = item.metadataLabel;
+      }
 
-        if (item.promptText) {
-          slide.description = item.promptText;
-        }
+      if (item.promptText) {
+        slide.description = item.promptText;
+      }
 
-        return slide;
-      });
+      acc.push(slide);
+      return acc;
+    }, []);
   }, [items]);
 
   // Don't render if no slides or plugins not loaded
@@ -207,14 +210,13 @@ export default function MediaLightbox({
 
           if (isVideo && thumbnailSrc) {
             return (
-              <img
+              <Image
                 src={thumbnailSrc}
                 alt={'Video thumbnail'}
-                style={{
-                  height: '100%',
-                  objectFit: 'cover',
-                  width: '100%',
-                }}
+                fill
+                sizes="96px"
+                className="object-cover"
+                unoptimized
               />
             );
           }

@@ -1,6 +1,6 @@
 import type { Ora } from 'ora';
 import { io, type Socket } from 'socket.io-client';
-import { getApiKey, getApiUrl } from '@/config/store.js';
+import { getApiKey, getApiUrl } from '@/config/store';
 
 export interface BackgroundTaskUpdate {
   taskId: string;

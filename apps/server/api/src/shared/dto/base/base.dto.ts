@@ -1,15 +1,10 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetScope } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsMongoId,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export abstract class BaseCreateDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'The unique identifier of the document',
@@ -19,14 +14,14 @@ export abstract class BaseCreateDto {
 }
 
 export abstract class OrganizationalCreateDto extends BaseCreateDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The user ID who created this resource',
     required: true,
   })
   readonly user!: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The organization ID that owns this resource',
     required: true,
@@ -75,7 +70,7 @@ export abstract class LabeledCreateDto extends OrganizationalCreateDto {
 }
 
 export abstract class BaseUpdateDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'The unique identifier of the document',
@@ -85,7 +80,7 @@ export abstract class BaseUpdateDto {
 }
 
 export abstract class OrganizationalUpdateDto extends BaseUpdateDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'The user ID who owns this resource',
@@ -93,7 +88,7 @@ export abstract class OrganizationalUpdateDto extends BaseUpdateDto {
   })
   readonly user?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'The organization ID that owns this resource',

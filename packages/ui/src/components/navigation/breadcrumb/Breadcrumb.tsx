@@ -28,13 +28,11 @@ export default function Breadcrumb({
 }: BreadcrumbProps) {
   const pathname = usePathname();
 
-  const pathSegments = pathname
-    .split('/')
-    .filter(Boolean)
-    .map((part, index, arr) => ({
-      href: `/${arr.slice(0, index + 1).join('/')}`,
-      label: safeDecodeURIComponent(part.replace(/-/g, ' ')),
-    }));
+  const pathParts = pathname.split('/').filter(Boolean);
+  const pathSegments = pathParts.map((part, index) => ({
+    href: `/${pathParts.slice(0, index + 1).join('/')}`,
+    label: safeDecodeURIComponent(part.replace(/-/g, ' ')),
+  }));
 
   const crumbs = segments ?? pathSegments;
 

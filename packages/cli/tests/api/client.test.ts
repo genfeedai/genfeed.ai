@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { get, post, requireAuth } from '../../src/api/client.js';
-import { AuthError } from '../../src/utils/errors.js';
+import { get, post, requireAuth } from '../../src/api/client';
+import { AuthError } from '../../src/utils/errors';
 
 // Mock config store — use vi.hoisted so the mocks exist before vi.mock factories run
 const { mockApiKey, mockApiUrl, mockFetch } = vi.hoisted(() => ({
@@ -9,7 +9,7 @@ const { mockApiKey, mockApiUrl, mockFetch } = vi.hoisted(() => ({
   mockFetch: vi.fn(),
 }));
 
-vi.mock('../../src/config/store.js', () => ({
+vi.mock('../../src/config/store', () => ({
   getApiKey: () => mockApiKey(),
   getApiUrl: () => mockApiUrl(),
 }));

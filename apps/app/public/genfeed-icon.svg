@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="GenFeed">
+  <defs>
+    <linearGradient id="genfeed-icon-bg" x1="108" y1="88" x2="916" y2="936" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0c0f12"/>
+      <stop offset="1" stop-color="#010202"/>
+    </linearGradient>
+    <linearGradient id="genfeed-icon-mark" x1="256" y1="196" x2="760" y2="824" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#eafff5"/>
+      <stop offset="0.55" stop-color="#9bf5ca"/>
+      <stop offset="1" stop-color="#22c55e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#genfeed-icon-bg)"/>
+  <rect x="108" y="108" width="808" height="808" rx="180" fill="#111619" stroke="#263238" stroke-width="18"/>
+  <path d="M518 183c181 0 314 104 338 256H655c-21-47-68-76-137-76-96 0-158 65-158 166 0 105 65 170 168 170 76 0 132-34 153-94H498V455h378v93c0 185-141 293-350 293-218 0-369-143-369-312 0-204 148-346 361-346Z" fill="url(#genfeed-icon-mark)"/>
+</svg>

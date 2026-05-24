@@ -5,8 +5,12 @@
 import type { BaseNodeData } from './base';
 import type { ProviderType, SelectedModel } from './providers';
 
-export type ImageModel = 'nano-banana' | 'nano-banana-pro';
-export type VideoModel = 'veo-3.1-fast' | 'veo-3.1';
+export type ImageModel = 'nano-banana' | 'nano-banana-pro' | 'nano-banana-2';
+export type VideoModel =
+  | 'veo-3.1-fast'
+  | 'veo-3.1'
+  | 'seedance-2.0'
+  | 'seedance-2.0-fast';
 export type AspectRatio =
   | '1:1'
   | '16:9'

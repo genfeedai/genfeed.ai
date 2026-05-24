@@ -1,9 +1,11 @@
+const TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: 'UTC',
+});
+
 function formatTime(hour: number, minute: number): string {
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: 'UTC',
-  }).format(new Date(Date.UTC(2026, 0, 1, hour, minute)));
+  return TIME_FORMATTER.format(new Date(Date.UTC(2026, 0, 1, hour, minute)));
 }
 
 function parseNumberList(value: string): number[] | null {

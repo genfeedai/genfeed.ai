@@ -9,7 +9,6 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentRuns } from '@hooks/data/agent-runs/use-agent-runs';
 import { useAgentStrategy } from '@hooks/data/agent-strategies/use-agent-strategy';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type {
   AgentDetailPageProps,
   AgentRunRowProps,
@@ -20,6 +19,7 @@ import {
 } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
@@ -33,11 +33,10 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
-import { formatDistanceToNow } from 'date-fns';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useMemo, useState } from 'react';
+import { Suspense, useCallback, useMemo, useState } from 'react';
 import { FaLinkedin, FaXTwitter, FaYoutube } from 'react-icons/fa6';
 import {
   HiArrowLeft,
@@ -53,6 +52,7 @@ import {
   HiOutlineUser,
   HiOutlineVideoCamera,
 } from 'react-icons/hi2';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 const AgentRunContentGrid = dynamic(() => import('./AgentRunContentGrid'), {
   ssr: false,
@@ -118,7 +118,7 @@ function getRunModelLabel(run: AgentRunRowProps['run']): string {
   return actualModel ?? requestedModel ?? 'Untracked';
 }
 
-export default function AgentDetailPage({ agentId }: AgentDetailPageProps) {
+function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   const notificationsService = NotificationsService.getInstance();
   const searchParams = useSearchParams();
   const requestedOpportunityId = searchParams.get('opportunity');
@@ -134,18 +134,15 @@ export default function AgentDetailPage({ agentId }: AgentDetailPageProps) {
   const getService = useAuthedService((token: string) =>
     AgentStrategiesService.getInstance(token),
   );
-  const { data: opportunities, isLoading: isOpportunitiesLoading } =
-    useResource<AgentStrategyOpportunity[]>(
-      async () => {
+  const { data: opportunities = [], isLoading: isOpportunitiesLoading } =
+    useQuery<AgentStrategyOpportunity[]>({
+      queryKey: ['agent-opportunities', agentId, requestedOpportunityId],
+      queryFn: async () => {
         const service = await getService();
         return service.listOpportunities(agentId);
       },
-      {
-        defaultValue: [],
-        dependencies: [agentId, requestedOpportunityId],
-        enabled: Boolean(requestedOpportunityId),
-      },
-    );
+      enabled: Boolean(requestedOpportunityId),
+    });
 
   const handleToggle = useCallback(async () => {
     if (!strategy) return;
@@ -379,9 +376,13 @@ export default function AgentDetailPage({ agentId }: AgentDetailPageProps) {
           </h3>
           {isRunsLoading ? (
             <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
+              {[
+                'run-history-skeleton-1',
+                'run-history-skeleton-2',
+                'run-history-skeleton-3',
+              ].map((skeletonId) => (
                 <div
-                  key={i}
+                  key={skeletonId}
                   className="h-12 animate-pulse rounded bg-foreground/5"
                 />
               ))}
@@ -449,29 +450,29 @@ function RunRow({ run, isExpanded, onToggle }: AgentRunRowProps) {
             <HiChevronRight className="size-4 text-foreground/40" />
           )}
         </TableCell>
-        <TableCell className="px-4 py-4 align-middle">
+        <TableCell className="p-4 align-middle">
           <Badge variant={RUN_STATUS_VARIANTS[run.status] ?? 'secondary'}>
             {run.status}
           </Badge>
         </TableCell>
-        <TableCell className="px-4 py-4 align-middle text-sm">
+        <TableCell className="p-4 align-middle text-sm">
           {run.creditsUsed ?? 0}
         </TableCell>
         <TableCell
-          className="max-w-[18rem] px-4 py-4 align-middle text-sm text-foreground/60"
+          className="max-w-[18rem] p-4 align-middle text-sm text-foreground/60"
           title={getRunModelLabel(run)}
         >
           <span className="block truncate">{getRunModelLabel(run)}</span>
         </TableCell>
-        <TableCell className="px-4 py-4 align-middle text-sm text-foreground/60">
+        <TableCell className="p-4 align-middle text-sm text-foreground/60">
           {run.durationMs ? `${Math.round(run.durationMs / 1000)}s` : '\u2014'}
         </TableCell>
-        <TableCell className="px-4 py-4 align-middle text-sm text-foreground/60">
-          {run.startedAt
-            ? formatDistanceToNow(new Date(run.startedAt), {
-                addSuffix: true,
-              })
-            : '\u2014'}
+        <TableCell className="p-4 align-middle text-sm text-foreground/60">
+          {run.startedAt ? (
+            <ClientFormattedDate format="relative" value={run.startedAt} />
+          ) : (
+            '\u2014'
+          )}
         </TableCell>
       </TableRow>
       {isExpanded && (
@@ -503,5 +504,15 @@ function RunRow({ run, isExpanded, onToggle }: AgentRunRowProps) {
         </TableRow>
       )}
     </>
+  );
+}
+
+export default function AgentDetailPage(
+  props: Parameters<typeof AgentDetailPageContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <AgentDetailPageContent {...props} />
+    </Suspense>
   );
 }

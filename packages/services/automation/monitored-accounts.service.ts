@@ -17,10 +17,7 @@ export class MonitoredAccountsService extends BaseService<MonitoredAccount> {
   }
 
   public static getInstance(token: string): MonitoredAccountsService {
-    return BaseService.getDataServiceInstance(
-      MonitoredAccountsService,
-      token,
-    ) as MonitoredAccountsService;
+    return BaseService.getDataServiceInstance(MonitoredAccountsService, token);
   }
 
   /**

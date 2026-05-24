@@ -1,4 +1,8 @@
 import * as crypto from 'node:crypto';
+import {
+  assertSafeWebhookHeaders,
+  createSafeWebhookHttpsAgent,
+} from '@api/shared/utils/webhook-validator/webhook-validator.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -66,13 +70,10 @@ export class SubstackService {
       };
     }
 
-    if (!isAllowedWebhookUrl(input.webhookUrl)) {
-      return {
-        endpoint: input.webhookUrl,
-        reason: 'webhook_url_blocked',
-        status: 'blocked',
-      };
-    }
+    const httpsAgent = await createSafeWebhookHttpsAgent(input.webhookUrl);
+
+    // Header injection guard: strip forbidden headers and reject CR/LF injection attempts.
+    const safeHeaders = assertSafeWebhookHeaders(input.webhookHeaders);
 
     const rawPayload = JSON.stringify(input.payload);
     const signature = input.webhookSecret
@@ -87,12 +88,14 @@ export class SubstackService {
         this.httpService.post(input.webhookUrl, input.payload, {
           headers: {
             'Content-Type': 'application/json',
-            ...(input.webhookHeaders ?? {}),
+            ...safeHeaders,
             ...(signature
               ? { 'X-Genfeed-Signature': `sha256=${signature}` }
               : {}),
             'X-Genfeed-Event': 'newsletter.draft.ready',
           },
+          httpsAgent,
+          maxRedirects: 0,
           timeout: 30000,
           validateStatus: (status) => status < 500,
         }),
@@ -116,16 +119,5 @@ export class SubstackService {
         status: 'failed',
       };
     }
-  }
-}
-
-export function isAllowedWebhookUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    const isHttp = parsed.protocol === 'https:' || parsed.protocol === 'http:';
-    const blockedHosts = new Set(['localhost', '127.0.0.1', '::1']);
-    return isHttp && !blockedHosts.has(parsed.hostname);
-  } catch {
-    return false;
   }
 }

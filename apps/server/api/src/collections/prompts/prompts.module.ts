@@ -27,19 +27,17 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [PromptsService],
   imports: [
     forwardRef(() => ActivitiesModule),
-    ByokModule,
-    PromptBuilderModule,
-    ReplicateModule,
-    OpenRouterModule,
-
-    WhisperModule,
-
     forwardRef(() => BrandsModule),
+    forwardRef(() => ByokModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => IngredientsModule),
     forwardRef(() => MarketplaceIntegrationModule),
-    ModelsModule,
+    forwardRef(() => ModelsModule),
+    forwardRef(() => OpenRouterModule),
+    forwardRef(() => PromptBuilderModule),
+    forwardRef(() => ReplicateModule),
     forwardRef(() => TemplatesModule),
+    forwardRef(() => WhisperModule),
   ],
   providers: [PromptsService, CreditsGuard, CreditsInterceptor],
 })

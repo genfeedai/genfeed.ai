@@ -3,10 +3,13 @@
 import { SidebarNavigationProvider } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
 import type { AppLayoutProps } from '@genfeedai/props/layout/app-layout.props';
 import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { Button } from '@ui/primitives/button';
+import Image from 'next/image';
 import {
   type CSSProperties,
   cloneElement,
@@ -19,16 +22,19 @@ import {
   useState,
 } from 'react';
 
+const EMPTY_ARRAY: never[] = [];
+
 const SIDEBAR_WIDTH = 240;
-const SIDEBAR_COLLAPSED_WIDTH = 48;
+const SIDEBAR_COLLAPSED_WIDTH = 0;
 const AGENT_PANEL_HEIGHT = 380;
-const AGENT_COLLAPSED_HEIGHT = 48;
+const DESKTOP_TITLEBAR_HEIGHT = 32;
 const SIDEBAR_TRANSITION_DURATION_MS = 300;
 const SIDEBAR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 const SIDEBAR_COLLAPSED_STORAGE_PREFIX = 'genfeed:sidebar:collapsed';
 const AGENT_PANEL_HEIGHT_STORAGE_KEY = 'genfeed:agent-panel:height';
 const AGENT_PANEL_MIN_HEIGHT = 240;
 const AGENT_PANEL_MAX_HEIGHT = 720;
+const IS_DESKTOP_SHELL = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
 
 function getSidebarCollapsedStorageKey(): string {
   if (typeof window === 'undefined') {
@@ -125,21 +131,17 @@ function persistAgentPanelHeight(nextHeight: number): void {
   }
 }
 
-/**
- * Desktop sidebar wrapper — animates width between 240px and 48px with overflow:hidden.
- * MenuShared always renders at full 240px; this container clips content during collapse.
- */
 function DesktopSidebar({
   children,
   collapsedWidth = SIDEBAR_COLLAPSED_WIDTH,
   isCollapsed,
-  shellChromeVariant,
+  shellChromeVariant = 'default',
   width = SIDEBAR_WIDTH,
 }: {
   children: ReactNode;
   collapsedWidth?: number;
   isCollapsed: boolean;
-  shellChromeVariant: 'default' | 'transparent';
+  shellChromeVariant?: AppLayoutProps['shellChromeVariant'];
   width?: number;
 }) {
   const targetWidth = isCollapsed ? collapsedWidth : width;
@@ -148,19 +150,52 @@ function DesktopSidebar({
     <aside
       data-testid="desktop-sidebar-rail"
       className={cn(
-        'fixed inset-y-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
-        shellChromeVariant === 'default'
-          ? 'gen-shell-panel border-r border-white/[0.06] bg-background/92 shadow-[18px_0_48px_rgba(0,0,0,0.28)] backdrop-blur-xl'
-          : 'bg-transparent shadow-none',
+        'fixed bottom-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
+        shellChromeVariant === 'transparent'
+          ? 'bg-transparent'
+          : 'bg-background',
+        !isCollapsed &&
+          shellChromeVariant !== 'transparent' &&
+          'border-r border-border',
       )}
       style={{
         minWidth: targetWidth,
+        top: 'var(--desktop-titlebar-height)',
         transition: `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
         width: targetWidth,
       }}
     >
       {children}
     </aside>
+  );
+}
+
+function CollapsedSidebarLogoToggle({ onClick }: { onClick: () => void }) {
+  const logoUrl = useThemeLogo();
+
+  return (
+    <Button
+      type="button"
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
+      onClick={onClick}
+      ariaLabel="Expand sidebar"
+      className="fixed left-2 z-[60] hidden size-8 items-center justify-center rounded-md bg-background text-foreground shadow-sm transition-colors hover:bg-background-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 md:flex"
+      style={{ top: 'calc(var(--desktop-titlebar-height) + 0.5rem)' }}
+    >
+      {logoUrl ? (
+        <Image
+          src={logoUrl}
+          alt={EnvironmentService.LOGO_ALT}
+          className="size-4 object-contain dark:invert"
+          width={16}
+          height={16}
+          sizes="16px"
+        />
+      ) : (
+        <span className="text-sm font-bold leading-none">G</span>
+      )}
+    </Button>
   );
 }
 
@@ -173,7 +208,7 @@ export default function AppLayout({
   shellChromeVariant = 'default',
   topbarChromeVariant = 'inherit',
   hasSecondaryTopbar: _hasSecondaryTopbar = false,
-  menuItems = [],
+  menuItems = EMPTY_ARRAY,
   agentPanel,
   isAgentCollapsed = false,
   onAgentToggle,
@@ -283,6 +318,7 @@ export default function AppLayout({
 
       const element = menuComponent as ReactElement<{
         collapsedSidebarWidth?: number;
+        currentApp?: string;
         isCollapsed?: boolean;
         mobileSidebarWidth?: number;
         onClose?: (...args: unknown[]) => void;
@@ -297,6 +333,7 @@ export default function AppLayout({
       return cloneElement(element, {
         ...(element.props as Record<string, unknown>),
         ...extraProps,
+        currentApp,
         isCollapsed:
           (extraProps.isCollapsed as boolean | undefined) ?? isDesktopCollapsed,
         onClose: (...args: unknown[]) => {
@@ -311,7 +348,7 @@ export default function AppLayout({
         onToggleCollapse: handleToggleDesktopSidebar,
       });
     },
-    [menuComponent, handleToggleDesktopSidebar, isDesktopCollapsed],
+    [menuComponent, handleToggleDesktopSidebar, isDesktopCollapsed, currentApp],
   );
 
   const topbarProps: TopbarProps | undefined = useMemo(() => {
@@ -319,21 +356,28 @@ export default function AppLayout({
       return undefined;
     }
 
+    const effectiveAgentToggle = agentPanel ? onAgentToggle : undefined;
+
     return {
       brandSlug,
       currentApp,
       isAgentCollapsed,
       isMenuOpen: isSidebarOpen,
-      onAgentToggle,
+      isSidebarCollapsed: isDesktopCollapsed,
+      onAgentToggle: effectiveAgentToggle,
       onMenuToggle: handleToggleSidebar,
+      onSidebarToggle: handleToggleDesktopSidebar,
       orgSlug,
     };
   }, [
     brandSlug,
     currentApp,
     handleToggleSidebar,
+    handleToggleDesktopSidebar,
+    isDesktopCollapsed,
     isSidebarOpen,
     isAgentCollapsed,
+    agentPanel,
     onAgentToggle,
     orgSlug,
     topbarComponent,
@@ -365,14 +409,14 @@ export default function AppLayout({
       ? desktopSidebarCollapsedWidth
       : desktopSidebarExpandedWidth
     : 0;
-  const desktopAgentHeight = agentPanel
-    ? isAgentCollapsed
-      ? AGENT_COLLAPSED_HEIGHT
-      : agentPanelHeight
-    : 0;
+  const desktopAgentHeight =
+    agentPanel && !isAgentCollapsed ? agentPanelHeight : 0;
   const layoutStyle = {
     '--desktop-agent-height': `${desktopAgentHeight}px`,
     '--desktop-sidebar-width': `${desktopSidebarWidth}px`,
+    '--desktop-titlebar-height': IS_DESKTOP_SHELL
+      ? `${DESKTOP_TITLEBAR_HEIGHT}px`
+      : '0px',
   } as CSSProperties;
 
   const handleAgentPanelResizeStart = useCallback(
@@ -406,10 +450,16 @@ export default function AppLayout({
     [agentPanelHeight, isAgentCollapsed],
   );
 
+  const desktopMenuContent = renderMenu();
+  const mobileMenuContent = renderMenu({
+    isCollapsed: false,
+    onClose: handleCloseSidebar,
+  });
+
   const layoutContent = (
     <SidebarNavigationProvider items={menuItems}>
       <div
-        className="min-h-screen overflow-x-hidden bg-background"
+        className="ship-ui min-h-screen overflow-x-hidden bg-background"
         style={layoutStyle}
       >
         {menuComponent && (
@@ -421,8 +471,13 @@ export default function AppLayout({
               shellChromeVariant={shellChromeVariant}
               width={desktopSidebarExpandedWidth}
             >
-              {renderMenu()}
+              {desktopMenuContent}
             </DesktopSidebar>
+            {isDesktopCollapsed ? (
+              <CollapsedSidebarLogoToggle
+                onClick={handleToggleDesktopSidebar}
+              />
+            ) : null}
 
             {/* Mobile sidebar drawer */}
             <div
@@ -443,15 +498,12 @@ export default function AppLayout({
 
               <div
                 className={cn(
-                  'gen-shell-panel relative h-full max-w-[85vw] rounded-r-[1.25rem] border-r border-white/[0.06] shadow-2xl transition-transform duration-200',
+                  'relative h-full max-w-[85vw] border-r border-border bg-background-secondary transition-transform duration-200',
                   isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
                 )}
                 style={{ width: mobileSidebarWidth }}
               >
-                {renderMenu({
-                  isCollapsed: false,
-                  onClose: handleCloseSidebar,
-                })}
+                {mobileMenuContent}
               </div>
             </div>
           </>
@@ -465,10 +517,12 @@ export default function AppLayout({
             <div
               data-testid="app-topbar-shell"
               className={cn(
-                'fixed top-0 right-0 left-0 z-50 h-16 md:left-[var(--desktop-sidebar-width)]',
-                shouldRenderTopbarChrome &&
-                  'gen-shell-toolbar border-b border-white/[0.06] bg-background/84 shadow-[0_18px_40px_-32px_rgba(0,0,0,0.88)] backdrop-blur-xl',
+                'fixed top-0 right-0 left-0 z-50 h-12 md:left-[var(--desktop-sidebar-width)]',
+                shouldRenderTopbarChrome && 'bg-background',
               )}
+              style={{
+                top: 'var(--desktop-titlebar-height)',
+              }}
             >
               {topbarContent}
             </div>
@@ -476,10 +530,12 @@ export default function AppLayout({
 
           <main
             data-testid="app-main-content"
-            className={cn(
-              'relative z-0 bg-background',
-              topbarContent && 'pt-16',
-            )}
+            className={cn('relative z-0 bg-background')}
+            style={{
+              paddingTop: topbarContent
+                ? 'calc(var(--desktop-titlebar-height) + 3rem)'
+                : 'var(--desktop-titlebar-height)',
+            }}
           >
             {bannerComponent ? (
               <div data-testid="app-banner-shell">{bannerComponent}</div>
@@ -489,39 +545,34 @@ export default function AppLayout({
         </section>
 
         {/* Agent panel bottom dock — animated via topbar toggle or Cmd+L */}
-        {agentPanel && (
+        {agentPanel && !isAgentCollapsed && (
           <aside
             data-testid="agent-panel-rail"
             className={cn(
               'fixed right-0 bottom-0 left-0 z-20 hidden overflow-hidden lg:flex',
               shellChromeVariant === 'transparent'
-                ? !isAgentCollapsed &&
-                    'border-t border-white/[0.08] bg-transparent shadow-none'
-                : 'gen-shell-toolbar border-t border-white/[0.06] shadow-[0_-18px_40px_-28px_rgba(0,0,0,0.88)] backdrop-blur-xl',
-              shellChromeVariant === 'transparent'
-                ? 'shadow-none'
-                : isAgentCollapsed
-                  ? 'bg-background/92'
-                  : 'bg-background/90',
+                ? !isAgentCollapsed && 'bg-transparent shadow-none'
+                : 'bg-background-secondary',
+              shellChromeVariant === 'transparent' && 'shadow-none',
               menuComponent && 'md:left-[var(--desktop-sidebar-width)]',
             )}
             style={{
-              height: isAgentCollapsed
-                ? AGENT_COLLAPSED_HEIGHT
-                : agentPanelHeight,
-              minHeight: isAgentCollapsed
-                ? AGENT_COLLAPSED_HEIGHT
-                : agentPanelHeight,
+              height: agentPanelHeight,
+              minHeight: agentPanelHeight,
               transition: `height ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-height ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
             }}
           >
-            {!isAgentCollapsed ? (
-              <div
-                data-testid="agent-panel-resize-handle"
-                className="absolute top-0 left-0 right-0 z-10 h-2 cursor-row-resize border-t border-white/[0.06] bg-white/[0.03]"
-                onMouseDown={handleAgentPanelResizeStart}
-              />
-            ) : null}
+            <div
+              data-testid="agent-panel-resize-handle"
+              role="button"
+              aria-label="Resize agent panel"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
+              }}
+              className="absolute top-0 left-0 right-0 z-10 h-1.5 cursor-row-resize border-t border-border"
+              onMouseDown={handleAgentPanelResizeStart}
+            />
             <div
               data-testid="agent-panel-shell"
               className="absolute inset-x-0 bottom-0 flex flex-col"

@@ -26,6 +26,7 @@ import {
   useState,
 } from 'react';
 import { HiArrowsUpDown, HiChevronLeft, HiChevronRight } from 'react-icons/hi2';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 export interface AnalyticsOrganizationsListProps {
   basePath?: string;
@@ -115,10 +116,10 @@ export default function AnalyticsOrganizationsList({
                 alt={org.name || 'Organization'}
                 width={32}
                 height={32}
-                className="w-8 h-8 rounded-full object-cover"
+                className="size-8 rounded-full object-cover"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
+              <div className="size-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
                 {(org.name || 'U').charAt(0).toUpperCase()}
               </div>
             )}
@@ -183,7 +184,7 @@ export default function AnalyticsOrganizationsList({
         key: 'createdAt',
         render: (org) => (
           <span className="text-sm text-foreground/60">
-            {new Date(org.createdAt).toLocaleDateString()}
+            <ClientFormattedDate format="date" value={org.createdAt} />
           </span>
         ),
       },
@@ -208,7 +209,7 @@ export default function AnalyticsOrganizationsList({
         </h2>
         <FormDropdown
           name="sort"
-          icon={<HiArrowsUpDown className="w-4 h-4" />}
+          icon={<HiArrowsUpDown className="size-4" />}
           label="Sort"
           variant={ButtonVariant.SECONDARY}
           className="h-10 px-3 gap-2 text-sm flex-shrink-0"
@@ -243,8 +244,8 @@ export default function AnalyticsOrganizationsList({
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
               isDisabled={page === 1}
-              onClick={() => setPage(page - 1)}
-              icon={<HiChevronLeft className="w-4 h-4" />}
+              onClick={() => setPage((prev) => prev - 1)}
+              icon={<HiChevronLeft className="size-4" />}
             />
             <span className="text-sm">
               Page {page} of {pagination.totalPages}
@@ -253,8 +254,8 @@ export default function AnalyticsOrganizationsList({
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
               isDisabled={page === pagination.totalPages}
-              onClick={() => setPage(page + 1)}
-              icon={<HiChevronRight className="w-4 h-4" />}
+              onClick={() => setPage((prev) => prev + 1)}
+              icon={<HiChevronRight className="size-4" />}
             />
           </div>
         </div>

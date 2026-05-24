@@ -1,4 +1,4 @@
-import { Callout } from 'nextra/components'
+import { Callout } from 'nextra/components';
 
 # Configuration
 
@@ -10,35 +10,40 @@ bun run env:sync local
 ```
 
 <Callout type="warning">
-**Never commit secrets.** Add `.env.local` to your `.gitignore`. Never commit API keys, tokens, or credentials to version control.
+  **Never commit secrets.** Add `.env.local` to your `.gitignore`. Never commit API keys, tokens, or credentials to
+  version control.
 </Callout>
 
 <Callout type="info">
-The root env files are the source of truth. `bun run env:sync local|staging|production` generates the app and service `.env*` files used by local frontend and backend runtimes.
+  The root env files are the source of truth. `bun run env:sync local|staging|production` generates the app and service
+  `.env*` files used by local frontend and backend runtimes.
 </Callout>
 
 <Callout type="info">
-For EC2 deploys, prefer AWS Systems Manager Parameter Store over a persistent `.env.production` on disk. The deploy scripts can hydrate `.env.staging` or `.env.production` from SSM at deploy time, then render the service env files automatically.
+  For EC2 deploys, prefer AWS Systems Manager Parameter Store over a persistent `.env.production` on disk. The deploy
+  scripts can hydrate `.env.staging` or `.env.production` from SSM at deploy time, then render the service env files
+  automatically.
 </Callout>
 
 ---
 
 ## Database
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `DATABASE_URL` | Yes | -- | PostgreSQL connection string (e.g. `postgresql://genfeed:genfeed_local@localhost:5432/genfeed`) |
-| `REDIS_URL` | Yes | -- | Redis connection string for BullMQ job queues and caching (e.g. `redis://localhost:6379`) |
+| Variable       | Required | Default | Description                                                                                     |
+| -------------- | -------- | ------- | ----------------------------------------------------------------------------------------------- |
+| `DATABASE_URL` | Yes      | --      | PostgreSQL connection string (e.g. `postgresql://genfeed:genfeed_local@localhost:5432/genfeed`) |
+| `REDIS_URL`    | Yes      | --      | Redis connection string for BullMQ job queues and caching (e.g. `redis://localhost:6379`)       |
 
 ---
 
 ## Authentication
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `JWT_SECRET` | Yes | -- | Secret key for signing JWT tokens. Use a long random string. |
-| `CLERK_SECRET_KEY` | Cloud only | -- | Clerk backend secret key for user authentication |
-| `CLERK_PUBLISHABLE_KEY` | Cloud only | -- | Clerk frontend publishable key |
+| Variable                | Required   | Default | Description                                                  |
+| ----------------------- | ---------- | ------- | ------------------------------------------------------------ |
+| `JWT_SECRET`            | Yes        | --      | Secret key for signing JWT tokens. Use a long random string. |
+| `CLERK_SECRET_KEY`      | Auth       | --      | Clerk backend secret key for deployments using Clerk auth     |
+| `CLERK_PUBLISHABLE_KEY` | Auth       | --      | Clerk publishable key used by the API Clerk client           |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Auth | --   | Clerk publishable key exposed to the Next.js frontend        |
 
 ---
 
@@ -46,14 +51,29 @@ For EC2 deploys, prefer AWS Systems Manager Parameter Store over a persistent `.
 
 Add keys for the providers you want to use. At least one is required for content generation.
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `OPENAI_API_KEY` | No | OpenAI API key for GPT models and DALL-E image generation |
-| `ANTHROPIC_API_KEY` | No | Anthropic API key for Claude models |
-| `GOOGLE_API_KEY` | No | Google API key for Gemini models |
-| `REPLICATE_API_TOKEN` | No | Replicate API token for open-source image and video models (Flux, SDXL, Kling, etc.) |
-| `FAL_KEY` | No | fal.ai API key for fast image and video inference |
-| `ELEVENLABS_API_KEY` | No | ElevenLabs API key for voice synthesis and text-to-speech |
+| Variable              | Required | Description                                                                          |
+| --------------------- | -------- | ------------------------------------------------------------------------------------ |
+| `OPENAI_API_KEY`      | No       | OpenAI API key for GPT models and DALL-E image generation                            |
+| `ANTHROPIC_API_KEY`   | No       | Anthropic API key for Claude models                                                  |
+| `GOOGLE_API_KEY`      | No       | Google API key for Gemini models                                                     |
+| `REPLICATE_KEY`       | No       | Replicate API token for server-side image and video models (Flux, SDXL, Kling, etc.) |
+| `FAL_API_KEY`         | No       | fal.ai API key for server-side image and video inference                             |
+| `ELEVENLABS_API_KEY`  | No       | ElevenLabs API key for voice synthesis and text-to-speech                            |
+
+For the model registry and discovery contract, see [Provider Registry](/core/provider-registry).
+
+---
+
+## Managed Cloud Execution
+
+Self-hosted Core can use local/server provider keys or organization BYOK keys without a Genfeed Cloud account. Managed Cloud execution is separate: it requires an explicit Genfeed Cloud API key and only supported generation calls should cross that boundary.
+
+| Variable                        | Required               | Description                                                                                                               |
+| ------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `GENFEED_API_KEY`               | Managed execution only | Genfeed Cloud API key used by the self-hosted backend to call managed Cloud services. Do not expose this to browser code. |
+| `GENFEED_MANAGED_INFERENCE_URL` | No                     | Override for the managed inference API base URL. Defaults to the Genfeed Cloud endpoint when omitted.                     |
+
+For the full runtime contract, see [Execution Boundaries](/core/execution-boundaries).
 
 ---
 
@@ -61,40 +81,61 @@ Add keys for the providers you want to use. At least one is required for content
 
 By default, generated assets are stored locally. For production, configure S3-compatible storage.
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `AWS_ACCESS_KEY_ID` | No | -- | AWS access key for S3 storage |
-| `AWS_SECRET_ACCESS_KEY` | No | -- | AWS secret key for S3 storage |
-| `S3_BUCKET` | No | -- | S3 bucket name for storing generated assets |
-| `S3_REGION` | No | `us-east-1` | AWS region for your S3 bucket |
+| Variable                | Required | Default     | Description                                 |
+| ----------------------- | -------- | ----------- | ------------------------------------------- |
+| `AWS_ACCESS_KEY_ID`     | No       | --          | AWS access key for S3 storage               |
+| `AWS_SECRET_ACCESS_KEY` | No       | --          | AWS secret key for S3 storage               |
+| `S3_BUCKET`             | No       | --          | S3 bucket name for storing generated assets |
+| `S3_REGION`             | No       | `us-east-1` | AWS region for your S3 bucket               |
+
+---
+
+## Discord Notifications
+
+Discord is optional in Core. Configure it only when the notifications service should publish to your own Discord server.
+
+| Variable                      | Required | Default | Description                                                                    |
+| ----------------------------- | -------- | ------- | ------------------------------------------------------------------------------ |
+| `DISCORD_BOT_TOKEN`           | Yes      | --      | Bot token for the Discord application installed in your server                 |
+| `DISCORD_CLIENT_ID`           | Yes      | --      | Discord application client ID                                                  |
+| `DISCORD_GUILD_ID`            | Yes      | --      | Discord server ID where the bot manages notification webhooks                  |
+| `DISCORD_CHANNEL_ID_POSTS`    | No       | --      | Channel ID for published post/article notifications                            |
+| `DISCORD_CHANNEL_ID_STUDIO`   | No       | --      | Channel ID for studio/ingredient notifications                                 |
+| `DISCORD_CHANNEL_ID_USERS`    | No       | --      | Channel ID for user/account notifications                                      |
+| `DISCORD_CHANNEL_ID_MODELS`   | No       | --      | Channel ID for model discovery notifications; falls back to the studio channel |
+| `DISCORD_BOT_AVATAR_URL`      | No       | --      | Optional avatar URL for Discord webhook messages                               |
+| `DISCORD_WEBHOOK_NAME_PREFIX` | No       | --      | Optional prefix for bot-managed webhook names, such as a workspace name        |
+| `DISCORD_WEBHOOK_REASON`      | No       | --      | Optional audit-log reason used when the bot creates Discord webhooks           |
+
+The integration does not require a Genfeed-managed Discord server. Channel IDs, webhook naming, avatar branding, and webhook audit reasons are self-hosted configuration.
 
 ---
 
 ## Payments (Cloud only)
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `STRIPE_SECRET_KEY` | Cloud only | -- | Stripe secret key for subscription billing |
-| `STRIPE_WEBHOOK_SECRET` | Cloud only | -- | Stripe webhook signing secret for payment event verification |
+| Variable                | Required   | Default | Description                                                  |
+| ----------------------- | ---------- | ------- | ------------------------------------------------------------ |
+| `STRIPE_SECRET_KEY`     | Cloud only | --      | Stripe secret key for subscription billing                   |
+| `STRIPE_WEBHOOK_SECRET` | Cloud only | --      | Stripe webhook signing secret for payment event verification |
 
 ---
 
 ## URLs
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `APP_URL` | No | `http://localhost:3000` | Frontend application URL |
-| `API_URL` | No | `http://localhost:3010` | Backend API URL |
-| `MARKETPLACE_API_URL` | No | -- | Marketplace API endpoint (cloud only, for marketplace.genfeed.ai integration) |
+| Variable              | Required | Default                 | Description                                                                   |
+| --------------------- | -------- | ----------------------- | ----------------------------------------------------------------------------- |
+| `APP_URL`             | No       | `http://localhost:3000` | Frontend application URL                                                      |
+| `API_URL`             | No       | `http://localhost:3010` | Backend API URL                                                               |
+| `MARKETPLACE_API_URL` | No       | --                      | Marketplace API endpoint (cloud only, for marketplace.genfeed.ai integration) |
 
 ---
 
 ## Application
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `NODE_ENV` | No | `development` | Environment mode (`development`, `production`, `test`) |
-| `PORT` | No | `3010` | API server port |
+| Variable   | Required | Default       | Description                                            |
+| ---------- | -------- | ------------- | ------------------------------------------------------ |
+| `NODE_ENV` | No       | `development` | Environment mode (`development`, `production`, `test`) |
+| `PORT`     | No       | `3010`        | API server port                                        |
 
 ---
 

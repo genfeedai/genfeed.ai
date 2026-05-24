@@ -1,6 +1,6 @@
 import { ValidationConfigService } from '@api/config/services/validation.config';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 
 /**
  * Comprehensive input validation utility
@@ -37,24 +37,37 @@ export class InputValidationUtil {
     /(\bsp_executesql\b)/gi,
   ];
 
-  // NoSQL injection patterns
+  private static readonly NOSQL_OPERATOR_PREFIX =
+    `\\${String.fromCharCode(36)}`;
+
   private static readonly NOSQL_INJECTION_PATTERNS = [
-    /\$where/gi,
-    /\$regex/gi,
-    /\$ne/gi,
-    /\$nin/gi,
-    /\$or/gi,
-    /\$and/gi,
-    /\$nor/gi,
-    /\$exists/gi,
-    /\$type/gi,
-    /\$expr/gi,
-    /\$jsonSchema/gi,
-    /\$mod/gi,
-    /\$size/gi,
-    /\$all/gi,
-    /\$elemMatch/gi,
-  ];
+    'where',
+    'ne',
+    'gt',
+    'gte',
+    'lt',
+    'lte',
+    'in',
+    'nin',
+    'or',
+    'and',
+    'nor',
+    'not',
+    'regex',
+    'type',
+    'expr',
+    'jsonSchema',
+    'mod',
+    'size',
+    'all',
+    'elemMatch',
+  ].map(
+    (operator) =>
+      new RegExp(
+        `${InputValidationUtil.NOSQL_OPERATOR_PREFIX}${operator}`,
+        'gi',
+      ),
+  );
 
   /**
    * Validate and sanitize string input
@@ -290,7 +303,7 @@ export class InputValidationUtil {
   }
 
   /**
-   * Validate ObjectId
+   * Validate a supported entity id.
    */
   static validateObjectId(value: unknown, fieldName: string): string {
     if (!value || typeof value !== 'string') {
@@ -299,7 +312,12 @@ export class InputValidationUtil {
       );
     }
 
-    ObjectIdUtil.validate(value, fieldName);
+    if (!isEntityId(value)) {
+      throw new ValidationException(
+        `Invalid ${fieldName} format. Must be a valid entity id.`,
+      );
+    }
+
     return value;
   }
 

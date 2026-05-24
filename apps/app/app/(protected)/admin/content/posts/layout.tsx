@@ -8,14 +8,14 @@ import Container from '@ui/layout/container/Container';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { useCallback, useMemo, useState } from 'react';
+import { Suspense, useCallback, useMemo, useState } from 'react';
 import { HiOutlineNewspaper } from 'react-icons/hi2';
 
-export default function PostsLayout({ children }: { children: ReactNode }) {
-  const router = useRouter();
+function PostsLayoutContent({ children }: { children: ReactNode }) {
+  const { push, refresh } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const searchParamsString = searchParams.toString() ?? '';
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -49,21 +49,21 @@ export default function PostsLayout({ children }: { children: ReactNode }) {
       }
 
       if (tab === 'all') {
-        router.push('/content/posts');
+        push('/content/posts');
       } else {
-        router.push(`/content/posts?platform=${tab}`);
+        push(`/content/posts?platform=${tab}`);
       }
     },
-    [router, activeTab],
+    [push, activeTab],
   );
 
   const handleRefresh = useCallback(() => {
     if (refreshFn) {
       refreshFn();
     } else {
-      router.refresh();
+      refresh();
     }
-  }, [refreshFn, router]);
+  }, [refreshFn, refresh]);
 
   if (isDetailRoute) {
     return (
@@ -127,5 +127,15 @@ export default function PostsLayout({ children }: { children: ReactNode }) {
         {children}
       </Container>
     </PostsLayoutContext.Provider>
+  );
+}
+
+export default function PostsLayout(
+  props: Parameters<typeof PostsLayoutContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <PostsLayoutContent {...props} />
+    </Suspense>
   );
 }

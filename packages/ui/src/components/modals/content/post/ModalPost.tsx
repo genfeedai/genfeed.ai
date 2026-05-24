@@ -38,11 +38,13 @@ import {
 } from '@ui-constants/platform-char-limit.constant';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
+const EMPTY_ARRAY: never[] = [];
+
 export default function ModalPost({
   post,
   ingredient,
   credential,
-  credentials = [],
+  credentials = EMPTY_ARRAY,
   parentPost,
   onConfirm,
   onClose,
@@ -270,15 +272,15 @@ export default function ModalPost({
     >
       <form ref={formRef} onSubmit={onSubmit} className="space-y-6">
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold">{modalTitle}</h2>
+          <h2 className="text-2xl font-semibold">{modalTitle}</h2>
           <p className="text-foreground/70 text-sm">{modalDescription}</p>
         </div>
 
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR}>
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -407,7 +409,7 @@ export default function ModalPost({
                 type="submit"
                 label={(() => {
                   if (isSubmitting) {
-                    return 'Saving...';
+                    return 'Saving…';
                   }
                   if (isEditMode) {
                     return 'Save';

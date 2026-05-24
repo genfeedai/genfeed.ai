@@ -33,24 +33,27 @@ const PromptBarFormatControls = memo(function PromptBarFormatControls({
       ? normalizedWatchedModels
       : [watchedModel];
 
-  const filteredRatios = formatVideos
-    .filter((format) => {
-      if (format.isDisabled) {
-        return false;
-      }
+  const filteredRatios = formatVideos.reduce<string[]>((acc, format) => {
+    if (format.isDisabled) {
+      return acc;
+    }
 
-      const aspectRatio = getAspectRatioForFormat(format.id);
-      if (!aspectRatio) {
-        return true;
-      }
+    const aspectRatio = getAspectRatioForFormat(format.id);
+    if (!aspectRatio) {
+      // Include format but no ratio string to add — skip per original logic
+      return acc;
+    }
 
-      return modelsToCheck.some(
-        (modelKey: string) =>
-          modelKey && isAspectRatioSupported(modelKey, aspectRatio),
-      );
-    })
-    .map((format) => getAspectRatioForFormat(format.id))
-    .filter((ratio): ratio is string => ratio != null);
+    const isSupported = modelsToCheck.some(
+      (modelKey: string) =>
+        modelKey && isAspectRatioSupported(modelKey, aspectRatio),
+    );
+
+    if (isSupported) {
+      acc.push(aspectRatio);
+    }
+    return acc;
+  }, []);
 
   const selectedFormatLabel =
     getAspectRatioForFormat(form.getValues('format') as IngredientFormat) ??

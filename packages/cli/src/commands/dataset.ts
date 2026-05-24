@@ -1,10 +1,10 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { deleteDataset, downloadDataset, getDataset, uploadDataset } from '@/api/darkroom-api.js';
-import { requireAdmin } from '@/middleware/auth-guard.js';
-import { formatError, formatHeader, formatLabel, print, printJson } from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
+import { deleteDataset, downloadDataset, getDataset, uploadDataset } from '@/api/darkroom-api';
+import { requireAdmin } from '@/middleware/auth-guard';
+import { formatError, formatHeader, formatLabel, print, printJson } from '@/ui/theme';
+import { handleError } from '@/utils/errors';
 
 export const datasetCommand = new Command('dataset').description(
   'Manage training datasets [admin]'

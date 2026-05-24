@@ -26,16 +26,16 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [AssetsService],
   imports: [
     forwardRef(() => BrandsModule),
-    ByokModule,
+    forwardRef(() => ByokModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => FilesClientModule),
     forwardRef(() => IngredientsModule),
     forwardRef(() => MetadataModule),
     forwardRef(() => ModelsModule),
 
-    NotificationsPublisherModule,
-    PromptBuilderModule,
-    ReplicateModule,
+    forwardRef(() => NotificationsPublisherModule),
+    forwardRef(() => PromptBuilderModule),
+    forwardRef(() => ReplicateModule),
   ],
   providers: [AssetsService, CreditsGuard, CreditsInterceptor],
 })

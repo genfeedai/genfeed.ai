@@ -31,7 +31,7 @@ export function SaveIndicator({
         title="Click to enable auto-save"
         className="text-xs text-muted-foreground hover:text-foreground h-auto p-0"
       >
-        <CloudOff className="h-3.5 w-3.5" />
+        <CloudOff className="size-3.5" />
         <span>Auto-save off</span>
       </Button>
     );
@@ -46,8 +46,8 @@ export function SaveIndicator({
             : 'flex items-center gap-1.5 text-xs text-blue-500'
         }
       >
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        <span>Saving...</span>
+        <Loader2 className="size-3.5 animate-spin" />
+        <span>Saving…</span>
       </div>
     );
   }
@@ -61,7 +61,7 @@ export function SaveIndicator({
             : 'flex items-center gap-1.5 text-xs text-muted-foreground'
         }
       >
-        <Cloud className="h-3.5 w-3.5" />
+        <Cloud className="size-3.5" />
         <span>Unsaved</span>
       </div>
     );
@@ -79,7 +79,7 @@ export function SaveIndicator({
           : 'text-xs text-green-500 hover:text-green-400 h-auto p-0'
       }
     >
-      <Check className="h-3.5 w-3.5" />
+      <Check className="size-3.5" />
       <span>Saved</span>
     </Button>
   );

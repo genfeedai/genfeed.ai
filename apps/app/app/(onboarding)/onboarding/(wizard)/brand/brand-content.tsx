@@ -16,7 +16,7 @@ import { UsersService } from '@services/organization/users.service';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
   HiArrowRight,
   HiBriefcase,
@@ -25,6 +25,11 @@ import {
   HiUserCircle,
   HiUserGroup,
 } from 'react-icons/hi2';
+import {
+  deriveBrandNameFromDomain,
+  extractBrandDomain,
+  ONBOARDING_STORAGE_KEYS,
+} from '@/lib/onboarding/onboarding-access.util';
 
 const ACCOUNT_TYPES = [
   {
@@ -79,16 +84,6 @@ const TIMELINE_STEPS = [
   },
 ];
 
-function deriveBrandNameFromDomain(domain: string): string {
-  return domain
-    .replace(/\.[a-z]{2,}$/i, '')
-    .split(/[.\-_]+/)
-    .filter(Boolean)
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ')
-    .trim();
-}
-
 function normalizeWebsiteUrl(url: string): string | null {
   const trimmedUrl = url.trim();
   if (!trimmedUrl) {
@@ -98,11 +93,12 @@ function normalizeWebsiteUrl(url: string): string | null {
   return trimmedUrl.includes('://') ? trimmedUrl : `https://${trimmedUrl}`;
 }
 
-export default function BrandContent() {
+function BrandContentContent() {
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const { getToken } = useAuth();
-  const router = useRouter();
+  const { push } = useRouter();
   const searchParams = useSearchParams();
+  const isAutoRequested = searchParams.get('auto') === 'true';
 
   const [brandName, setBrandName] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
@@ -117,6 +113,21 @@ export default function BrandContent() {
   useEffect(() => {
     if (prefetchedRef.current) {
       return;
+    }
+
+    const storedBrandName = localStorage.getItem(
+      ONBOARDING_STORAGE_KEYS.brandName,
+    );
+    const storedBrandDomain = localStorage.getItem(
+      ONBOARDING_STORAGE_KEYS.brandDomain,
+    );
+
+    if (storedBrandName?.trim()) {
+      setBrandName((prev) => prev || storedBrandName);
+    }
+
+    if (storedBrandDomain?.trim()) {
+      setWebsiteUrl((prev) => prev || storedBrandDomain);
     }
 
     const controller = new AbortController();
@@ -215,6 +226,21 @@ export default function BrandContent() {
         const brandUrl = skipWebsite
           ? null
           : normalizeWebsiteUrl(urlOverride ?? websiteUrl);
+        const brandDomain = extractBrandDomain(brandUrl);
+
+        localStorage.setItem(
+          ONBOARDING_STORAGE_KEYS.brandName,
+          effectiveBrandName,
+        );
+
+        if (brandDomain) {
+          localStorage.setItem(
+            ONBOARDING_STORAGE_KEYS.brandDomain,
+            brandDomain,
+          );
+        } else {
+          localStorage.removeItem(ONBOARDING_STORAGE_KEYS.brandDomain);
+        }
 
         if (brandUrl) {
           await service.setupBrand({
@@ -225,13 +251,13 @@ export default function BrandContent() {
           await service.updateBrandName(effectiveBrandName);
         }
 
-        router.push('/onboarding/providers');
+        push('/onboarding/providers');
       } catch (error) {
         logger.error('Failed to continue onboarding', error);
         setSubmitting(false);
       }
     },
-    [getToken, brandName, websiteUrl, router],
+    [getToken, brandName, websiteUrl, push],
   );
 
   const handleSkipOnboarding = useCallback(async () => {
@@ -246,12 +272,12 @@ export default function BrandContent() {
       await OnboardingService.getInstance(token).skip(
         'skipped-from-brand-step',
       );
-      router.push('/');
+      push('/');
     } catch (error) {
       logger.error('Failed to skip onboarding', error);
       setSubmitting(false);
     }
-  }, [getToken, router]);
+  }, [getToken, push]);
 
   // Auto-scan from corporate email flow
   useEffect(() => {
@@ -259,11 +285,16 @@ export default function BrandContent() {
       return;
     }
 
-    const isAuto = searchParams.get('auto') === 'true';
-    const storedDomain = localStorage.getItem('gf_brand_domain');
+    const storedDomain = localStorage.getItem(
+      ONBOARDING_STORAGE_KEYS.brandDomain,
+    );
+    const storedBrandName = localStorage.getItem(
+      ONBOARDING_STORAGE_KEYS.brandName,
+    );
 
-    if (isAuto && storedDomain) {
-      const inferredBrandName = deriveBrandNameFromDomain(storedDomain);
+    if (isAutoRequested && storedDomain) {
+      const inferredBrandName =
+        storedBrandName?.trim() || deriveBrandNameFromDomain(storedDomain);
       autoScanRef.current = true;
       setWebsiteUrl(storedDomain);
       setBrandName((prev) => prev || inferredBrandName);
@@ -274,13 +305,13 @@ export default function BrandContent() {
         logger.error('Failed to continue auto onboarding flow', error);
       });
     }
-  }, [handleContinue, searchParams.get]);
+  }, [handleContinue, isAutoRequested]);
 
   return (
     <div ref={sectionRef}>
       {/* Badge */}
       <div className="step-badge opacity-0 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-8">
-        <HiSparkles className="h-3 w-3" />
+        <HiSparkles className="size-3" />
         Step 1 of 3
       </div>
 
@@ -296,7 +327,7 @@ export default function BrandContent() {
       {/* Account type selector */}
       <div className="step-form opacity-0 max-w-md mb-8">
         <p className="text-xs font-medium text-white/50 uppercase tracking-wider mb-3">
-          I am a...
+          I am a…
         </p>
         <div className="grid grid-cols-3 gap-3">
           {ACCOUNT_TYPES.map(({ category, description, icon: Icon, label }) => (
@@ -368,7 +399,7 @@ export default function BrandContent() {
             </span>
           </label>
           <div className="relative">
-            <HiGlobeAlt className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+            <HiGlobeAlt className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-white/30" />
             <Input
               id="brand-website-url"
               type="url"
@@ -390,7 +421,7 @@ export default function BrandContent() {
               variant={ButtonVariant.WHITE}
               size={ButtonSize.DEFAULT}
               label="Continue"
-              icon={<HiArrowRight className="h-4 w-4" />}
+              icon={<HiArrowRight className="size-4" />}
               isLoading={submitting}
               isDisabled={!brandName.trim()}
               onClick={() => handleContinue()}
@@ -408,5 +439,13 @@ export default function BrandContent() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function BrandContent() {
+  return (
+    <Suspense fallback={null}>
+      <BrandContentContent />
+    </Suspense>
   );
 }

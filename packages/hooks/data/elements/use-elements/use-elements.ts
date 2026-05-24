@@ -84,36 +84,69 @@ export function useElements({
   };
 
   // Filter field extractors
-  const filterByKey = useCallback((item: { key: string }) => [item.key], []);
+  const filterByKey = useCallback((item: { key?: string }) => [item.key], []);
   const filterByKeyAndLabel = useCallback(
-    (item: { key: string; label?: string }) =>
+    (item: { key?: string; label?: string }) =>
       [item.key, item.label].filter(Boolean),
     [],
   );
 
-  // Factory for creating filtered data hooks - reduces repetition
-  const createFiltered = <T extends { key?: string }>(
-    data: T[] | undefined,
-    filterFields: (item: T) => (string | undefined)[] = filterByKey as (
-      item: T,
-    ) => (string | undefined)[],
-  ) => useFilteredData({ data: data || [], filter, filterFields });
-
   // Filtered element data
-  const filteredMoods = createFiltered(contextData.moods);
-  const filteredStyles = createFiltered(contextData.styles);
-  const filteredFontFamilies = createFiltered(contextData.fontFamilies);
-  const filteredCameras = createFiltered(contextData.cameras);
-  const filteredPresets = createFiltered(
-    contextData.presets,
-    filterByKeyAndLabel,
-  );
-  const filteredBlacklists = createFiltered(contextData.blacklists);
-  const filteredSounds = createFiltered(contextData.sounds);
-  const filteredScenes = createFiltered(contextData.scenes);
-  const filteredLightings = createFiltered(contextData.lightings);
-  const filteredLenses = createFiltered(contextData.lenses);
-  const filteredCameraMovements = createFiltered(contextData.cameraMovements);
+  const filteredMoods = useFilteredData({
+    data: contextData.moods || [],
+    filter,
+    filterFields: filterByKey,
+  });
+  const filteredStyles = useFilteredData({
+    data: contextData.styles || [],
+    filter,
+    filterFields: filterByKey,
+  });
+  const filteredFontFamilies = useFilteredData({
+    data: contextData.fontFamilies || [],
+    filter,
+    filterFields: filterByKey,
+  });
+  const filteredCameras = useFilteredData({
+    data: contextData.cameras || [],
+    filter,
+    filterFields: filterByKey,
+  });
+  const filteredPresets = useFilteredData({
+    data: contextData.presets || [],
+    filter,
+    filterFields: filterByKeyAndLabel,
+  });
+  const filteredBlacklists = useFilteredData({
+    data: contextData.blacklists || [],
+    filter,
+    filterFields: filterByKey,
+  });
+  const filteredSounds = useFilteredData({
+    data: contextData.sounds || [],
+    filter,
+    filterFields: filterByKey,
+  });
+  const filteredScenes = useFilteredData({
+    data: contextData.scenes || [],
+    filter,
+    filterFields: filterByKey,
+  });
+  const filteredLightings = useFilteredData({
+    data: contextData.lightings || [],
+    filter,
+    filterFields: filterByKey,
+  });
+  const filteredLenses = useFilteredData({
+    data: contextData.lenses || [],
+    filter,
+    filterFields: filterByKey,
+  });
+  const filteredCameraMovements = useFilteredData({
+    data: contextData.cameraMovements || [],
+    filter,
+    filterFields: filterByKey,
+  });
 
   // Helper to filter models by category
   const filterModelsByCategory = useCallback(

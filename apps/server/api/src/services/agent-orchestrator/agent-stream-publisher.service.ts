@@ -13,9 +13,9 @@ import type {
   AgentUIBlock,
   AgentUiAction,
 } from '@genfeedai/interfaces';
+import type { StructuredProgressDebugPayload } from '@genfeedai/utils/progress/structured-progress-event.util';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, Optional } from '@nestjs/common';
-import type { StructuredProgressDebugPayload } from '@utils/progress/structured-progress-event.util';
 import { Effect } from 'effect';
 
 const CHANNEL = 'agent-chat';

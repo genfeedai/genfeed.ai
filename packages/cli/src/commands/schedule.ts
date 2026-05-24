@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { requireAuth } from '@/api/client.js';
+import { requireAuth } from '@/api/client';
 import {
   type BulkScheduleItem,
   bulkSchedule,
@@ -9,9 +9,9 @@ import {
   getOptimalTimes,
   getRepurposeStatus,
   repurposeContent,
-} from '@/api/schedules.js';
-import { formatHeader, formatLabel, formatSuccess, print, printJson } from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
+} from '@/api/schedules';
+import { formatHeader, formatLabel, formatSuccess, print, printJson } from '@/ui/theme';
+import { handleError } from '@/utils/errors';
 
 export const scheduleCommand = new Command('schedule').description(
   'Content scheduling and calendar'

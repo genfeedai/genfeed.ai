@@ -3,7 +3,7 @@
  *
  * Wires dependencies for the HeygenPollProcessor (which lives in this
  * directory but is registered as a provider by the workers app's
- * ProcessorsModule). Re-exports the transitive modules the processor
+ * forwardRef(() => ProcessorsModule)). Re-exports the transitive modules the processor
  * needs so that ProcessorsModule only has to import HeygenPollModule.
  *
  * Queue registration lives in:
@@ -20,14 +20,14 @@ import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   exports: [
-    AvatarVideoModule,
-    WebhooksModule,
-    TasksModule,
-    MetadataModule,
-    IngredientsModule,
+    forwardRef(() => AvatarVideoModule),
+    forwardRef(() => WebhooksModule),
+    forwardRef(() => TasksModule),
+    forwardRef(() => MetadataModule),
+    forwardRef(() => IngredientsModule),
   ],
   imports: [
-    LoggerModule,
+    forwardRef(() => LoggerModule),
     forwardRef(() => AvatarVideoModule),
     forwardRef(() => WebhooksModule),
     forwardRef(() => TasksModule),

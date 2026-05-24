@@ -23,8 +23,15 @@ export default function ModalGalleryItemMusic({
 
   return (
     <div
-      key={music.id}
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(music)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(music);
+        }
+      }}
       className={`relative p-4 border-2 transition-all cursor-pointer group ${
         isSelected
           ? 'border-primary bg-primary/5'
@@ -33,7 +40,7 @@ export default function ModalGalleryItemMusic({
     >
       <div className="flex items-center gap-3">
         <div
-          className={`w-12 h-12 rounded-full flex items-center justify-center ${
+          className={`size-12 rounded-full flex items-center justify-center ${
             isSelected ? 'bg-primary/20' : 'bg-muted'
           }`}
         >
@@ -74,7 +81,7 @@ export default function ModalGalleryItemMusic({
 
       {isSelected && (
         <div className="absolute top-2 right-2">
-          <div className="w-2 h-2 bg-primary rounded-full" />
+          <div className="size-2 bg-primary rounded-full" />
         </div>
       )}
     </div>

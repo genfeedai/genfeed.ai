@@ -96,11 +96,9 @@ describe.skip('ModalBrandInstagram', () => {
     );
 
     // Should show loading spinner when credential is provided
-    // The component shows "Loading Instagram pages..." text and an animated spinner
+    // The component shows "Loading Instagram pages…" text and an animated spinner
     await waitFor(() => {
-      expect(
-        screen.getByText('Loading Instagram pages...'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('Loading Instagram pages…')).toBeInTheDocument();
     });
   });
 

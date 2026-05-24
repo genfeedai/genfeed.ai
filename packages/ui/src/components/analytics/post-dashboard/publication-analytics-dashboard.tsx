@@ -3,12 +3,12 @@
 import { useAuth } from '@clerk/nextjs';
 import { formatDate } from '@genfeedai/helpers/formatting/date/date.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
 import type { IPostAnalyticsSummary } from '@genfeedai/interfaces';
 import type { PostAnalyticsDashboardProps } from '@genfeedai/props/analytics/analytics.props';
 import { PostAnalyticsService } from '@genfeedai/services/analytics/publication-analytics.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { getErrorStatus } from '@genfeedai/utils/error/error-handler.util';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AnalyticsOverview from '@ui/analytics/overview/analytics-overview';
 import PlatformAnalyticsBreakdown from '@ui/analytics/platform-breakdown/platform-analytics-breakdown';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
@@ -32,14 +32,16 @@ export default function PostAnalyticsDashboard({
     [],
   );
 
-  // Load analytics using useResource (handles AbortController cleanup properly)
+  const queryClient = useQueryClient();
+  const publicationAnalyticsKey = ['publication-analytics', publicationId];
+
   const {
     data: analyticsData,
     isLoading,
-    refresh: refreshAnalytics,
-    mutate: setAnalytics,
-  } = useResource(
-    async () => {
+    refetch: refreshAnalytics,
+  } = useQuery({
+    queryKey: publicationAnalyticsKey,
+    queryFn: async () => {
       if (!publicationId) {
         return null;
       }
@@ -47,14 +49,12 @@ export default function PostAnalyticsDashboard({
       const data = await service.getPostAnalytics(publicationId);
       return data.summary;
     },
-    {
-      dependencies: [publicationId],
-      enabled: !!isSignedIn && !!publicationId,
-      onError: () => {
-        notificationsService.error('Failed to load analytics');
-      },
-    },
-  );
+    enabled: !!isSignedIn && !!publicationId,
+  });
+
+  const setAnalytics = (data: IPostAnalyticsSummary | null) => {
+    queryClient.setQueryData(publicationAnalyticsKey, data);
+  };
 
   const analytics: IPostAnalyticsSummary | null = analyticsData ?? null;
 
@@ -153,7 +153,7 @@ export default function PostAnalyticsDashboard({
     <div className={`space-y-4 ${className}`}>
       {/* Header with refresh buttons */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Post Analytics</h2>
+        <h2 className="text-2xl font-semibold">Post Analytics</h2>
         <div className="flex gap-2">
           {publicationId && (
             <ButtonRefresh

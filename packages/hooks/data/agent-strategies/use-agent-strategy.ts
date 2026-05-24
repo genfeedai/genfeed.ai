@@ -6,8 +6,7 @@ import {
   type AgentStrategy,
 } from '@genfeedai/services/automation/agent-strategies.service';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import { useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 export interface UseAgentStrategyReturn {
   strategy: AgentStrategy | null;
@@ -18,26 +17,28 @@ export interface UseAgentStrategyReturn {
 export function useAgentStrategy(id: string): UseAgentStrategyReturn {
   const { getToken } = useAuth();
 
-  const fetchStrategy = useCallback(async () => {
-    if (!id) return null;
-    const token = await resolveClerkToken(getToken);
-    if (!token) return null;
-
-    const service = AgentStrategiesService.getInstance(token);
-    return service.getById(id);
-  }, [getToken, id]);
-
   const {
-    data: strategy,
+    data: strategy = null,
     isLoading,
-    refresh,
-  } = useResource(fetchStrategy, {
-    dependencies: [id],
+    refetch,
+  } = useQuery({
+    queryKey: ['agent-strategy', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const token = await resolveClerkToken(getToken);
+      if (!token) return null;
+
+      const service = AgentStrategiesService.getInstance(token);
+      return service.getById(id);
+    },
+    enabled: !!id,
   });
 
   return {
     isLoading,
-    refresh,
+    refresh: async () => {
+      await refetch();
+    },
     strategy,
   };
 }

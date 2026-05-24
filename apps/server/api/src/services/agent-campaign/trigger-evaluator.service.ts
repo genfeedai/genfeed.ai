@@ -79,6 +79,16 @@ export class TriggerEvaluatorService {
     private readonly logger: LoggerService,
   ) {}
 
+  private readNumber(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value)
+      ? value
+      : undefined;
+  }
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
   async evaluateCampaign(
     campaignId: string,
     organizationId: string,
@@ -344,10 +354,11 @@ export class TriggerEvaluatorService {
   ): Promise<void> {
     await Promise.all(
       strategies.map(async (strategy) => {
+        const platforms = strategy.platforms ?? [];
         const preferredTimes = bestPostingTimes
           .filter((recommendation) =>
-            strategy.platforms.length > 0
-              ? strategy.platforms.includes(recommendation.platform)
+            platforms.length > 0
+              ? platforms.includes(recommendation.platform)
               : true,
           )
           .map(
@@ -463,8 +474,8 @@ export class TriggerEvaluatorService {
     const keywordSet = this.buildKeywordSet(
       input.brandDescription,
       input.campaign.brief || '',
-      input.campaign.label,
-      ...input.strategies.flatMap((strategy) => strategy.topics),
+      this.readString(input.campaign.label) ?? '',
+      ...input.strategies.flatMap((strategy) => strategy.topics ?? []),
     );
 
     let bestCandidate: TriggerCandidate | null = null;
@@ -622,12 +633,15 @@ export class TriggerEvaluatorService {
         return strategy.opportunitySources?.eventTriggersEnabled === true;
       })
       .sort((left, right) => {
+        const leftLabel = this.readString(left.label) ?? '';
+        const rightLabel = this.readString(right.label) ?? '';
+
         if (triggerType !== 'viral_post') {
-          return left.label.localeCompare(right.label);
+          return leftLabel.localeCompare(rightLabel);
         }
 
         if (left.engagementEnabled === right.engagementEnabled) {
-          return left.label.localeCompare(right.label);
+          return leftLabel.localeCompare(rightLabel);
         }
 
         return left.engagementEnabled ? -1 : 1;
@@ -662,10 +676,11 @@ export class TriggerEvaluatorService {
     const actualVideoPercent = Math.round(
       (videoCount / topContent.length) * 100,
     );
-    const plannedVideoPercent = strategy.contentMix.videoPercent ?? 0;
+    const plannedVideoPercent =
+      this.readNumber(strategy.contentMix.videoPercent) ?? 0;
     const plannedStaticPercent =
-      (strategy.contentMix.imagePercent ?? 0) +
-      (strategy.contentMix.carouselPercent ?? 0);
+      (this.readNumber(strategy.contentMix.imagePercent) ?? 0) +
+      (this.readNumber(strategy.contentMix.carouselPercent) ?? 0);
     const actualStaticPercent = 100 - actualVideoPercent;
 
     if (Math.abs(plannedVideoPercent - actualVideoPercent) < 15) {

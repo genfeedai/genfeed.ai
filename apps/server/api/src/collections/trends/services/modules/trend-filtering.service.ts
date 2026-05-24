@@ -15,6 +15,13 @@ export class TrendFilteringService {
     readonly _loggerService: LoggerService,
   ) {}
 
+  private hydrateTrend(doc: Record<string, unknown>): TrendEntity {
+    return new TrendEntity({
+      ...doc,
+      ...(doc.data as Record<string, unknown>),
+    } as unknown as TrendDocument);
+  }
+
   /**
    * Calculate virality score based on mentions, growth rate, and recency
    * Formula: (mentions x 0.5) + (growthRate x 0.3) + (recency x 0.2)
@@ -281,53 +288,42 @@ export class TrendFilteringService {
       // Fetch both org-scoped and global trends then merge
       const [orgTrends, globalTrends] = await Promise.all([
         this.prisma.trend.findMany({
-          orderBy: { viralityScore: 'desc' },
+          orderBy: { createdAt: 'desc' },
           take: limit * 5,
           where: { ...where, organizationId } as never,
         }),
         this.prisma.trend.findMany({
-          orderBy: { viralityScore: 'desc' },
+          orderBy: { createdAt: 'desc' },
           take: limit * 5,
           where: { ...where, organizationId: null } as never,
         }),
       ]);
-      const allTrends = [...orgTrends, ...globalTrends];
+      const allTrends = [...orgTrends, ...globalTrends].map((doc) =>
+        this.hydrateTrend(doc as unknown as Record<string, unknown>),
+      );
       return allTrends
-        .filter((doc) =>
-          keywords.some((kw) => doc.topic.toLowerCase().includes(kw)),
+        .filter((trend) =>
+          keywords.some((kw) => trend.topic.toLowerCase().includes(kw)),
         )
-        .sort(
-          (a, b) =>
-            ((b as unknown as Record<string, number>).viralityScore ?? 0) -
-            ((a as unknown as Record<string, number>).viralityScore ?? 0),
-        )
+        .sort((a, b) => (b.viralityScore ?? 0) - (a.viralityScore ?? 0))
         .slice(0, limit)
-        .map(
-          (doc) =>
-            new TrendEntity({
-              ...doc,
-              ...(doc.data as Record<string, unknown>),
-            } as unknown as TrendDocument),
-        );
+        .map((trend) => trend);
     }
 
     const docs = await this.prisma.trend.findMany({
-      orderBy: { viralityScore: 'desc' } as never,
+      orderBy: { createdAt: 'desc' },
       take: limit * 5,
       where: { ...where, organizationId: null } as never,
     });
 
     return docs
-      .filter((doc) =>
-        keywords.some((kw) => doc.topic.toLowerCase().includes(kw)),
+      .map((doc) =>
+        this.hydrateTrend(doc as unknown as Record<string, unknown>),
+      )
+      .filter((trend) =>
+        keywords.some((kw) => trend.topic.toLowerCase().includes(kw)),
       )
       .slice(0, limit)
-      .map(
-        (doc) =>
-          new TrendEntity({
-            ...doc,
-            ...(doc.data as Record<string, unknown>),
-          } as unknown as TrendDocument),
-      );
+      .map((trend) => trend);
   }
 }

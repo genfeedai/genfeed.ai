@@ -1,4 +1,10 @@
-import jwt from 'jsonwebtoken';
+const jwt = require('jsonwebtoken') as {
+  sign: (
+    payload: Record<string, unknown>,
+    secretOrPrivateKey: string,
+    options?: Record<string, unknown>,
+  ) => string;
+};
 
 export function encodeJwtToken(ak: string, sk: string): string {
   const headers = {

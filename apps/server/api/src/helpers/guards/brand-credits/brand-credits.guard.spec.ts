@@ -125,15 +125,14 @@ describe('BrandCreditsGuard', () => {
     brandsService.findAll.mockResolvedValue({ docs: [] });
     await guard.canActivate(createContext());
     expect(brandsService.findAll).toHaveBeenCalledWith(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            organization: expect.any(String),
-          },
+      {
+        where: {
+          isDeleted: false,
+          organization: expect.any(String),
         },
-      ],
+      },
       { pagination: false },
+      false,
     );
   });
 

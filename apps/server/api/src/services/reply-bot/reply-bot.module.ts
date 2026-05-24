@@ -30,7 +30,7 @@ import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-o
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   exports: [
@@ -45,27 +45,27 @@ import { Module } from '@nestjs/common';
   ],
   imports: [
     // Configuration
-    ConfigModule,
-    LoggerModule,
+    forwardRef(() => ConfigModule),
+    forwardRef(() => LoggerModule),
 
-    BotActivitiesModule,
-    CreditsModule,
-    ModelsModule,
-    MonitoredAccountsModule,
-    ProcessedTweetsModule,
+    forwardRef(() => BotActivitiesModule),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => ModelsModule),
+    forwardRef(() => MonitoredAccountsModule),
+    forwardRef(() => ProcessedTweetsModule),
     // Collection modules
-    ReplyBotConfigsModule,
+    forwardRef(() => ReplyBotConfigsModule),
 
-    PromptBuilderModule,
-    ReplicateModule,
+    forwardRef(() => PromptBuilderModule),
+    forwardRef(() => ReplicateModule),
     // AI generation dependencies
-    TemplatesModule,
+    forwardRef(() => TemplatesModule),
 
     // Apify for multi-platform social media scraping (reading)
-    ApifyModule,
+    forwardRef(() => ApifyModule),
 
     // Instagram for comment replies and DMs
-    InstagramModule,
+    forwardRef(() => InstagramModule),
   ],
   providers: [
     BotActionExecutorService,

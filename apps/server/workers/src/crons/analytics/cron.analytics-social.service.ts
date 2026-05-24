@@ -33,37 +33,30 @@ export class CronAnalyticsSocialService {
 
     try {
       // Find all published social media posts with external IDs and analytics enabled
-      const posts: unknown = await this.postsService.findAll(
-        [
-          {
-            $match: {
-              externalId: { $exists: true, $ne: null },
-              isAnalyticsEnabled: { $ne: false }, // Track unless explicitly disabled
-              isDeleted: false,
-              platform: {
-                $in: [
-                  CredentialPlatform.INSTAGRAM,
-                  CredentialPlatform.TIKTOK,
-                  CredentialPlatform.PINTEREST,
-                ],
-              },
-              status: PostStatus.PUBLIC,
+      const result = await this.postsService.findAll(
+        {
+          include: { credential: true },
+          where: {
+            externalId: { not: null },
+            isAnalyticsEnabled: { not: false }, // Track unless explicitly disabled
+            isDeleted: false,
+            platform: {
+              in: [
+                CredentialPlatform.INSTAGRAM,
+                CredentialPlatform.LINKEDIN,
+                CredentialPlatform.MASTODON,
+                CredentialPlatform.TIKTOK,
+                CredentialPlatform.PINTEREST,
+                CredentialPlatform.LINKEDIN,
+                CredentialPlatform.MASTODON,
+              ],
             },
+            status: PostStatus.PUBLIC,
           },
-          {
-            $lookup: {
-              as: 'credential',
-              foreignField: '_id',
-              from: 'credentials',
-              localField: 'credential',
-            },
-          },
-          {
-            $unwind: '$credential',
-          },
-        ],
+        },
         { customLabels, pagination: false },
       );
+      const posts = result as unknown as { docs: PostEntity[] };
 
       if (!posts.docs || posts.docs.length === 0) {
         this.logger.log(`${url} no social media posts to track`);

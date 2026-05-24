@@ -14,6 +14,12 @@ import { useWorkflowStore } from '../../stores/workflowStore';
 import { Button } from '../../ui/button';
 import { BaseNode } from '../BaseNode';
 
+const PROMPT_CONSTRUCTOR_HEADER_ACTIONS = (
+  <Button variant="ghost" size="icon-sm" title="Expand editor">
+    <Expand className="size-3.5" />
+  </Button>
+);
+
 function PromptConstructorNodeComponent(props: NodeProps) {
   const { id, data } = props;
   const nodeData = data as PromptConstructorNodeData;
@@ -23,28 +29,28 @@ function PromptConstructorNodeComponent(props: NodeProps) {
 
   // Local state for template to prevent cursor jumping
   const [localTemplate, setLocalTemplate] = useState(nodeData.template);
-  const [isEditing, setIsEditing] = useState(false);
+  const isEditingRef = useRef(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Sync from props when not actively editing
   useEffect(() => {
-    if (!isEditing) {
+    if (!isEditingRef.current) {
       setLocalTemplate(nodeData.template);
     }
-  }, [nodeData.template, isEditing]);
+  }, [nodeData.template]);
 
   // Get available variables from connected prompt nodes
   const availableVariables = useMemo((): AvailableVariable[] => {
-    const connectedPromptNodes = edges
-      .filter((e) => e.target === id && e.targetHandle === 'text')
-      .map((e) => nodes.find((n) => n.id === e.source))
-      .filter(
-        (n): n is (typeof nodes)[0] => n !== undefined && n.type === 'prompt',
-      );
-
     const vars: AvailableVariable[] = [];
-    connectedPromptNodes.forEach((promptNode) => {
+    const nodesById = new Map(nodes.map((node) => [node.id, node]));
+
+    for (const edge of edges) {
+      if (edge.target !== id || edge.targetHandle !== 'text') continue;
+
+      const promptNode = nodesById.get(edge.source);
+      if (!promptNode || promptNode.type !== 'prompt') continue;
+
       const promptData = promptNode.data as PromptNodeData;
       const variableName = (promptData as Record<string, unknown>)
         .variableName as string | undefined;
@@ -55,7 +61,7 @@ function PromptConstructorNodeComponent(props: NodeProps) {
           value: promptData.prompt || '',
         });
       }
-    });
+    }
 
     return vars;
   }, [edges, nodes, id]);
@@ -66,7 +72,7 @@ function PromptConstructorNodeComponent(props: NodeProps) {
     autocompletePosition,
     filteredAutocompleteVars,
     selectedAutocompleteIndex,
-    handleChange,
+    handleChange: handleTemplateChange,
     handleKeyDown,
     handleAutocompleteSelect,
     closeAutocomplete,
@@ -83,12 +89,14 @@ function PromptConstructorNodeComponent(props: NodeProps) {
   const unresolvedVars = useMemo(() => {
     const varPattern = /@(\w+)/g;
     const unresolved: string[] = [];
+    const unresolvedNames = new Set<string>();
     const matches = localTemplate.matchAll(varPattern);
     const availableNames = new Set(availableVariables.map((v) => v.name));
 
     for (const match of matches) {
       const varName = match[1];
-      if (!availableNames.has(varName) && !unresolved.includes(varName)) {
+      if (!availableNames.has(varName) && !unresolvedNames.has(varName)) {
+        unresolvedNames.add(varName);
         unresolved.push(varName);
       }
     }
@@ -125,12 +133,12 @@ function PromptConstructorNodeComponent(props: NodeProps) {
     nodeData.outputText,
   ]);
 
-  const handleFocus = useCallback(() => {
-    setIsEditing(true);
+  const startTemplateEditing = useCallback(() => {
+    isEditingRef.current = true;
   }, []);
 
-  const handleBlur = useCallback(() => {
-    setIsEditing(false);
+  const commitTemplateEditing = useCallback(() => {
+    isEditingRef.current = false;
     if (localTemplate !== nodeData.template) {
       updateNodeData<PromptConstructorNodeData>(id, {
         template: localTemplate,
@@ -139,14 +147,8 @@ function PromptConstructorNodeComponent(props: NodeProps) {
     setTimeout(() => closeAutocomplete(), 200);
   }, [id, localTemplate, nodeData.template, updateNodeData, closeAutocomplete]);
 
-  const headerActions = (
-    <Button variant="ghost" size="icon-sm" title="Expand editor">
-      <Expand className="w-3.5 h-3.5" />
-    </Button>
-  );
-
   return (
-    <BaseNode {...props} headerActions={headerActions}>
+    <BaseNode {...props} headerActions={PROMPT_CONSTRUCTOR_HEADER_ACTIONS}>
       <div className="relative flex flex-col gap-2 flex-1">
         {/* Warning badge for unresolved variables */}
         {unresolvedVars.length > 0 && (
@@ -161,9 +163,9 @@ function PromptConstructorNodeComponent(props: NodeProps) {
           <Textarea
             ref={textareaRef}
             value={localTemplate}
-            onChange={handleChange}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
+            onChange={handleTemplateChange}
+            onFocus={startTemplateEditing}
+            onBlur={commitTemplateEditing}
             onKeyDown={handleKeyDown}
             placeholder="Type @ to insert variables..."
             className="nodrag nopan nowheel w-full flex-1 min-h-[70px] resize-none"

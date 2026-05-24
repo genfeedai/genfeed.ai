@@ -19,11 +19,11 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [InsightsController],
   exports: [InsightsService],
   imports: [
-    ByokModule,
-    ConfigModule,
+    forwardRef(() => ByokModule),
+    forwardRef(() => ConfigModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => ModelsModule),
-    ReplicateModule,
+    forwardRef(() => ReplicateModule),
   ],
   providers: [InsightsService, CreditsGuard, CreditsInterceptor],
 })

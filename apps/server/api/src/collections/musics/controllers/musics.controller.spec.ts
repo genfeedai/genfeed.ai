@@ -65,102 +65,104 @@ describe('MusicsController', () => {
     expect(controller.constructorName).toBe('MusicsController');
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build a pipeline with default filters', () => {
+  describe('buildFindAllQuery', () => {
+    it('should build a query with default filters', () => {
       const user = createMockUser();
-      const query = {};
-      const pipeline = controller.buildFindAllPipeline(
+      const inputQuery = {};
+      const query = controller.buildFindAllQuery(
         user as never,
-        query as never,
+        inputQuery as never,
       );
 
-      expect(Array.isArray(pipeline)).toBe(true);
-      expect(pipeline.length).toBeGreaterThanOrEqual(5);
-      // Should have $match, $lookup for metadata, $unwind, $lookup for prompt, $unwind, $sort
-      expect(pipeline[0]).toHaveProperty('$match');
+      expect(query).toEqual({
+        orderBy: { createdAt: -1 },
+        where: {
+          OR: expect.arrayContaining([
+            expect.objectContaining({
+              brand: '507f191e810c19729de860ee',
+              category: 'music',
+              isDeleted: false,
+              user: '507f191e810c19729de860ee',
+            }),
+            expect.objectContaining({
+              category: 'music',
+              isDeleted: false,
+            }),
+          ]),
+        },
+      });
     });
 
-    it('should include metadata lookup stages', () => {
+    it('should include user and default music branches', () => {
       const user = createMockUser();
-      const query = {};
-      const pipeline = controller.buildFindAllPipeline(
+      const inputQuery = {};
+      const query = controller.buildFindAllQuery(
         user as never,
-        query as never,
+        inputQuery as never,
       );
 
-      const lookups = pipeline.filter(
-        (stage: Record<string, unknown>) => '$lookup' in stage,
-      );
-      expect(lookups.length).toBeGreaterThanOrEqual(2);
+      expect(query.where.OR).toHaveLength(2);
     });
 
-    it('should add search filter when search query is provided', () => {
+    it('should keep the default music branch scoped', () => {
       const user = createMockUser();
-      const query = { search: 'test song' };
-      const pipeline = controller.buildFindAllPipeline(
+      const inputQuery = {};
+      const query = controller.buildFindAllQuery(
         user as never,
-        query as never,
+        inputQuery as never,
       );
 
-      const matchStages = pipeline.filter(
-        (stage: Record<string, unknown>) => '$match' in stage,
-      );
-      // Should have at least 2 match stages: initial filter + search filter
-      expect(matchStages.length).toBeGreaterThanOrEqual(2);
+      expect(query.where.OR[1]).toMatchObject({
+        isDefault: { not: null },
+        scope: { not: null },
+      });
     });
 
-    it('should add metadata filters for format and provider', () => {
+    it('should add status filters when provided', () => {
       const user = createMockUser();
-      const query = { format: 'mp3', provider: 'suno' };
-      const pipeline = controller.buildFindAllPipeline(
+      const inputQuery = { status: 'generated' };
+      const query = controller.buildFindAllQuery(
         user as never,
-        query as never,
+        inputQuery as never,
       );
 
-      const matchStages = pipeline.filter(
-        (stage: Record<string, unknown>) => '$match' in stage,
-      );
-      expect(matchStages.length).toBeGreaterThanOrEqual(2);
+      expect(query.where.OR[0]).toMatchObject({ status: 'generated' });
+      expect(query.where.OR[1]).toMatchObject({ status: 'generated' });
     });
 
     it('should apply custom sort when specified', () => {
       const user = createMockUser();
-      const query = { sort: 'createdAt' };
-      const pipeline = controller.buildFindAllPipeline(
+      const inputQuery = { sort: 'createdAt' };
+      const query = controller.buildFindAllQuery(
         user as never,
-        query as never,
+        inputQuery as never,
       );
 
-      const sortStage = pipeline.find(
-        (stage: Record<string, unknown>) => '$sort' in stage,
-      );
-      expect(sortStage).toBeDefined();
+      expect(query.orderBy).toEqual({ createdAt: -1 });
     });
 
     it('should default to createdAt desc sort', () => {
       const user = createMockUser();
-      const query = {};
-      const pipeline = controller.buildFindAllPipeline(
+      const inputQuery = {};
+      const query = controller.buildFindAllQuery(
         user as never,
-        query as never,
+        inputQuery as never,
       );
 
-      const sortStage = pipeline.find(
-        (stage: Record<string, unknown>) => '$sort' in stage,
-      ) as { $sort: Record<string, number> };
-      expect(sortStage?.$sort).toEqual({ createdAt: -1 });
+      expect(query.orderBy).toEqual({ createdAt: -1 });
     });
 
     it('should filter by brand when valid ObjectId is provided', () => {
       const brandId = '507f191e810c19729de860ee';
       const user = createMockUser();
-      const query = { brand: brandId };
-      const pipeline = controller.buildFindAllPipeline(
+      const inputQuery = { brand: brandId };
+      const query = controller.buildFindAllQuery(
         user as never,
-        query as never,
+        inputQuery as never,
       );
 
-      expect(pipeline[0]).toHaveProperty('$match');
+      expect(query.where.OR[0]).toMatchObject({ brand: brandId });
+      expect(query.where.OR[1]).toMatchObject({ brand: brandId });
     });
   });
 
@@ -210,11 +212,8 @@ describe('MusicsController', () => {
       await controller.findLatest(request as never, user as never, 100);
 
       const callArgs = musicsService.findAll.mock.calls[0];
-      const pipeline = callArgs[0];
-      const limitStage = pipeline.find(
-        (stage: Record<string, unknown>) => '$limit' in stage,
-      ) as { $limit: number };
-      expect(limitStage.$limit).toBeLessThanOrEqual(50);
+      const options = callArgs[1];
+      expect(options.limit).toBeLessThanOrEqual(50);
     });
   });
 });

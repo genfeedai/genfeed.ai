@@ -801,7 +801,7 @@ export const createMockConfigService = (
       GENFEEDAI_APP_URL: 'https://test-app.genfeed.ai',
       GENFEEDAI_WEBHOOKS_URL: 'https://test-webhooks.genfeed.ai',
       JWT_SECRET: 'test-jwt-secret',
-      MONGO_URL: 'mongodb://mongo.internal:27017/test',
+      DATABASE_URL: 'postgresql://genfeed:genfeed_local@localhost:5432/test',
       NODE_ENV: 'test',
       PORT: 3001,
       REDIS_URL: 'redis://localhost:6379',

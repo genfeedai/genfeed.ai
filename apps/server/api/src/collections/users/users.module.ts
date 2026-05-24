@@ -21,9 +21,9 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     forwardRef(() => BrandsModule),
     forwardRef(() => ClerkModule),
-    CommonModule,
-    FilesClientModule,
-    MembersModule,
+    forwardRef(() => CommonModule),
+    forwardRef(() => FilesClientModule),
+    forwardRef(() => MembersModule),
     forwardRef(() => OrganizationsModule),
     forwardRef(() => SettingsModule),
     forwardRef(() => SubscriptionsModule),

@@ -1,7 +1,8 @@
 import type { UseCase } from '@data/use-cases.data';
-import Card from '@ui/card/Card';
 import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
+import { Heading } from '@ui/typography/heading';
+import { Text } from '@ui/typography/text';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
@@ -54,81 +55,95 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
       }
     >
       <section className="max-w-6xl mx-auto pb-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <Card label="Problems">
-            <ul className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-edge/5">
+          <div className="bg-background p-8">
+            <Heading as="h3" className="text-sm font-bold mb-6">
+              Problems
+            </Heading>
+            <ul className="space-y-4">
               {useCase.painPoints.map((pain: string) => (
-                <li key={pain} className="flex items-start gap-2">
-                  <HiXMark className="w-4 h-4 text-error mt-1 flex-shrink-0" />
-                  <span className="text-sm">{pain}</span>
+                <li key={pain} className="flex items-start gap-3">
+                  <HiXMark className="size-4 text-error mt-0.5 shrink-0" />
+                  <Text className="text-sm text-surface/65">{pain}</Text>
                 </li>
               ))}
             </ul>
-          </Card>
-          <Card label="Solutions">
-            <ul className="space-y-2">
+          </div>
+          <div className="bg-background p-8">
+            <Heading as="h3" className="text-sm font-bold mb-6">
+              Solutions
+            </Heading>
+            <ul className="space-y-4">
               {useCase.solutions.map((solution: string) => (
-                <li key={solution} className="flex items-start gap-2">
-                  <FaCheck className="w-4 h-4 text-success mt-1 flex-shrink-0" />
-                  <span className="text-sm">{solution}</span>
+                <li key={solution} className="flex items-start gap-3">
+                  <FaCheck className="size-4 text-success mt-0.5 shrink-0" />
+                  <Text className="text-sm text-surface/65">{solution}</Text>
                 </li>
               ))}
             </ul>
-          </Card>
+          </div>
         </div>
       </section>
 
       <section className="max-w-4xl mx-auto pb-20">
-        <h2 className="text-3xl font-bold text-center mb-10">How It Works</h2>
-        <div className="space-y-4">
-          {useCase.workflow.map((step) => (
-            <Card key={step.step}>
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-sm font-bold text-primary">
-                    {step.step}
-                  </span>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-1">{step.title}</h4>
-                  <p className="text-foreground/70">{step.description}</p>
-                  <p className="text-sm text-foreground/50 mt-1 italic">
-                    {step.example}
-                  </p>
-                </div>
+        <Heading as="h2" className="text-3xl font-bold text-center mb-10">
+          How It Works
+        </Heading>
+        <div className="border border-edge/5">
+          {useCase.workflow.map((step, index) => (
+            <div
+              key={step.step}
+              className={`flex items-start gap-5 p-6 ${index > 0 ? 'border-t border-edge/5' : ''}`}
+            >
+              <div className="shrink-0 size-8 flex items-center justify-center bg-fill/10 text-sm font-bold text-surface/50">
+                {step.step}
               </div>
-            </Card>
+              <div>
+                <Heading as="h4" className="font-semibold mb-1">
+                  {step.title}
+                </Heading>
+                <Text className="text-sm text-surface/55">
+                  {step.description}
+                </Text>
+                <Text className="text-sm text-surface/35 mt-1 italic">
+                  {step.example}
+                </Text>
+              </div>
+            </div>
           ))}
         </div>
       </section>
 
       {useCase.results.length > 0 && (
         <section className="max-w-4xl mx-auto pb-20">
-          <h2 className="text-3xl font-bold text-center mb-10">Results</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Heading as="h2" className="text-3xl font-bold text-center mb-10">
+            Results
+          </Heading>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-edge/5 border border-edge/5">
             {useCase.results.map((result) => (
-              <Card key={result}>
-                <div className="flex items-start gap-2">
-                  <FaCheck className="w-4 h-4 text-success mt-1 flex-shrink-0" />
-                  <span>{result}</span>
-                </div>
-              </Card>
+              <div
+                key={result}
+                className="flex items-start gap-3 bg-background p-5"
+              >
+                <FaCheck className="size-4 text-success mt-0.5 shrink-0" />
+                <Text className="text-sm text-surface/65">{result}</Text>
+              </div>
             ))}
           </div>
         </section>
       )}
 
       <section className="max-w-4xl mx-auto pb-20">
-        <Card bodyClassName="text-center">
-          <div className="text-3xl font-bold text-primary mb-2">
+        <div className="border border-edge/5 p-10 text-center">
+          <Heading as="h3" className="text-3xl font-bold mb-2">
             {useCase.pricing.recommended}
-          </div>
-          <p className="text-muted-foreground mb-6">{useCase.pricing.why}</p>
+          </Heading>
+          <Text className="text-surface/50 mb-6">{useCase.pricing.why}</Text>
           <ButtonRequestAccess />
           <Link href="/pricing" className="link mt-4 block">
             View All Pricing
           </Link>
-        </Card>
+        </div>
       </section>
     </PageLayout>
   );

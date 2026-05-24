@@ -69,19 +69,12 @@ describe('TagResolutionService', () => {
 
       expect(result).toEqual(['Technology', 'AI', 'Tutorial']);
       expect(tagsService.findAll).toHaveBeenCalledWith(
-        [
-          {
-            $match: {
-              _id: { $in: tagIds },
-              isDeleted: false,
-            },
+        {
+          where: {
+            _id: { in: tagIds },
+            isDeleted: false,
           },
-          {
-            $project: {
-              label: 1,
-            },
-          },
-        ],
+        },
         {
           limit: tagIds.length,
           page: 1,

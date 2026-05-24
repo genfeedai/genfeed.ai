@@ -1,9 +1,6 @@
 import type { ComponentType, ReactNode } from 'react';
+import { cn } from '../lib/utils';
 import { StatusIcon } from './StatusIcon';
-
-function cn(...classes: (string | false | undefined | null)[]): string {
-  return classes.filter(Boolean).join(' ');
-}
 
 interface IssueRowProps {
   /** Issue/task identifier (e.g., "GEN-42") */

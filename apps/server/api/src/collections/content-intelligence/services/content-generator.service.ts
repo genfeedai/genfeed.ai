@@ -3,6 +3,7 @@ import { GenerateContentDto } from '@api/collections/content-intelligence/dto/ge
 import { type ContentPatternDocument } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
+import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { ConfigService } from '@api/config/config.service';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
@@ -13,6 +14,7 @@ import {
   formatHarnessBrief,
 } from '@api/services/harness/harness-brief.util';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { extractHashtags } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -51,6 +53,8 @@ export class ContentGeneratorService {
     @Optional() private readonly brandsService?: BrandsService,
     @Optional() private readonly personasService?: PersonasService,
     @Optional() private readonly contentHarnessService?: ContentHarnessService,
+    @Optional()
+    private readonly harnessProfilesService?: HarnessProfilesService,
   ) {
     this.defaultModel =
       this.configService.get('XAI_MODEL') || 'x-ai/grok-4-fast';
@@ -202,6 +206,11 @@ export class ContentGeneratorService {
         isDeleted: false,
         organization: organizationId,
       });
+      const profileContribution =
+        await this.harnessProfilesService?.buildContributionForBrand(
+          organizationId.toString(),
+          dto.brandId.toString(),
+        );
 
       const brief = await this.contentHarnessService.composeBrief(
         buildHarnessInput({
@@ -220,6 +229,7 @@ export class ContentGeneratorService {
           },
           organizationId: organizationId.toString(),
           persona,
+          profileContribution: profileContribution ?? undefined,
         }),
       );
 
@@ -246,10 +256,10 @@ export class ContentGeneratorService {
         body: parsed.body,
         content: parsed.content,
         cta: parsed.cta,
-        hashtags: dto.hashtags ?? this.extractHashtags(parsed.content),
+        hashtags: dto.hashtags ?? extractHashtags(parsed.content),
         hook: parsed.hook,
         patternId: pattern._id?.toString(),
-        patternUsed: pattern.extractedFormula,
+        patternUsed: pattern.extractedFormula ?? 'pattern',
       };
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName}: Generation failed`, error);
@@ -274,7 +284,7 @@ export class ContentGeneratorService {
       for (const variation of variations.slice(0, count)) {
         results.push({
           content: variation,
-          hashtags: dto.hashtags ?? this.extractHashtags(variation),
+          hashtags: dto.hashtags ?? extractHashtags(variation),
           patternUsed: 'freeform',
         });
       }
@@ -296,13 +306,14 @@ export class ContentGeneratorService {
     // Sanitize user-provided inputs to prevent prompt injection
     const safeTopic = SecurityUtil.sanitizePromptInput(dto.topic, 500);
     const safeFormula = SecurityUtil.sanitizePromptInput(
-      pattern.extractedFormula,
+      pattern.extractedFormula ?? '',
       1000,
     );
     const safeExample = SecurityUtil.sanitizePromptInput(
-      pattern.rawExample.slice(0, 500),
+      pattern.rawExample?.slice(0, 500) ?? '',
       500,
     );
+    const placeholders = pattern.placeholders ?? [];
 
     let prompt = `Generate a ${dto.platform} post about: "${safeTopic}"
 
@@ -310,7 +321,7 @@ Use this proven pattern:
 FORMULA: ${safeFormula}
 EXAMPLE: ${safeExample}
 
-PLACEHOLDERS TO FILL: ${pattern.placeholders.join(', ')}`;
+PLACEHOLDERS TO FILL: ${placeholders.join(', ')}`;
 
     if (playbookInsights) {
       prompt += `
@@ -462,10 +473,11 @@ Respond with JSON array:
     dto: GenerateContentDto,
     pattern: ContentPatternDocument,
   ): GeneratedContent {
-    let content = pattern.extractedFormula;
+    let content = pattern.extractedFormula ?? dto.topic;
+    const placeholders = pattern.placeholders ?? [];
 
     // Simple placeholder replacement
-    for (const placeholder of pattern.placeholders) {
+    for (const placeholder of placeholders) {
       content = content.replace(
         new RegExp(`\\[${placeholder}\\]`, 'gi'),
         dto.topic,
@@ -476,12 +488,7 @@ Respond with JSON array:
       content,
       hashtags: dto.hashtags ?? [],
       patternId: pattern._id?.toString(),
-      patternUsed: pattern.extractedFormula,
+      patternUsed: pattern.extractedFormula ?? 'pattern',
     };
-  }
-
-  private extractHashtags(text: string): string[] {
-    const matches = text.match(/#\w+/g);
-    return matches ? matches.map((tag) => tag.slice(1)) : [];
   }
 }

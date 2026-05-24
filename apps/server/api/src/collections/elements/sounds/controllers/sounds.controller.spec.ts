@@ -5,6 +5,7 @@ import { ElementsSoundsService } from '@api/collections/elements/sounds/services
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
 import type { User } from '@clerk/backend';
 import { SoundCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -20,12 +21,6 @@ const createBaseQuery = (partial: Partial<BaseQueryDto> = {}): BaseQueryDto =>
     sort: 'createdAt: -1',
     ...partial,
   }) as BaseQueryDto;
-
-const asMatchStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $match: Record<string, unknown> };
-
-const asSortStage = (stage: Record<string, unknown>) =>
-  stage as Record<string, unknown> & { $sort: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -166,7 +161,7 @@ describe('ElementsSoundsController', () => {
         isActive: true,
         isDefault: false,
         isDeleted: false,
-        organization: mockUser.publicMetadata.organization,
+        organizationId: mockUser.publicMetadata.organization,
         type: SoundCategory.MUSIC,
       };
 
@@ -194,7 +189,7 @@ describe('ElementsSoundsController', () => {
         isActive: true,
         isDefault: false,
         isDeleted: false,
-        organization: mockUser.publicMetadata.organization,
+        organizationId: mockUser.publicMetadata.organization,
         type: SoundCategory.MUSIC,
       };
 
@@ -205,7 +200,7 @@ describe('ElementsSoundsController', () => {
       await controller.create(mockRequest, mockUser, createDto);
 
       const createCall = soundsService.create.mock.calls[0][0];
-      expect(createCall).toHaveProperty('organization');
+      expect(createCall).toHaveProperty('organizationId');
     });
   });
 
@@ -225,7 +220,7 @@ describe('ElementsSoundsController', () => {
         key: 'old-sound',
         label: 'Old Sound',
         name: 'Old Sound',
-        organization: mockUser.publicMetadata.organization,
+        organizationId: mockUser.publicMetadata.organization,
         type: SoundCategory.MUSIC,
       };
 
@@ -281,7 +276,7 @@ describe('ElementsSoundsController', () => {
         key: 'sound-to-delete',
         label: 'Sound to Delete',
         name: 'Sound to Delete',
-        organization: mockUser.publicMetadata.organization,
+        organizationId: mockUser.publicMetadata.organization,
         type: SoundCategory.MUSIC,
       };
 
@@ -318,9 +313,7 @@ describe('ElementsSoundsController', () => {
       expect(pipeline).toHaveLength(2);
       const matchStage = asMatchStage(pipeline[0]);
       expect(matchStage.$match.$or).toBeDefined();
-      expect(
-        (matchStage.$match.$or as unknown[]).length,
-      ).toBeGreaterThanOrEqual(2);
+      expect(matchStage.$match.$or).toHaveLength(1);
       expect(matchStage.$match.isDeleted).toBe(false);
     });
 
@@ -332,8 +325,7 @@ describe('ElementsSoundsController', () => {
       );
 
       const matchStage = asMatchStage(pipeline[0]);
-      // Without org, falls back to $or with global items and user items
-      expect(matchStage.$match.$or).toBeDefined();
+      expect(matchStage.$match.$or).toBeUndefined();
       expect(matchStage.$match.isDeleted).toBe(false);
     });
 
@@ -362,7 +354,7 @@ describe('ElementsSoundsController', () => {
       expect(sortStage.$sort).toBeDefined();
     });
 
-    it('should load organization sounds or defaults', () => {
+    it('should load organization sounds', () => {
       const query = createBaseQuery();
       const pipeline = controller.buildFindAllPipeline(mockUser, query);
 
@@ -371,13 +363,12 @@ describe('ElementsSoundsController', () => {
         Record<string, unknown>
       >;
 
-      // orConditions[0] = global (no org, no user)
-      // orConditions[1] = org condition
-      expect(orConditions[0]).toEqual({
-        organization: { $exists: false },
-        user: { $exists: false },
-      });
-      expect(orConditions[1].organization).toEqual(
+      expect(orConditions).toEqual([
+        {
+          organizationId: mockUser.publicMetadata.organization as string,
+        },
+      ]);
+      expect(orConditions[0].organizationId).toEqual(
         mockUser.publicMetadata.organization as string,
       );
     });
@@ -528,7 +519,7 @@ describe('ElementsSoundsController', () => {
         key: 'sound-1',
         label: 'Sound 1',
         name: 'Sound 1',
-        organization: '507f191e810c19729de860ee',
+        organizationId: '507f191e810c19729de860ee',
         type: SoundCategory.MUSIC,
       };
       soundsService.findOne.mockResolvedValueOnce(

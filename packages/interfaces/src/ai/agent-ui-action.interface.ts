@@ -1,16 +1,19 @@
 export type AgentUiActionType =
   | 'oauth_connect_card'
   | 'content_preview_card'
+  | 'completion_summary_card'
   | 'payment_cta_card'
   | 'image_transform_card'
   | 'campaign_create_card'
   | 'campaign_control_card'
   | 'analytics_snapshot_card'
+  | 'publish_post_card'
   | 'review_gate_card'
   | 'generation_action_card'
   | 'ingredient_picker_card'
   | 'workflow_trigger_card'
   | 'clip_workflow_run_card'
+  | 'clip_run_card'
   | 'ingredient_alternatives_card'
   | 'schedule_post_card'
   | 'engagement_opportunity_card'
@@ -22,8 +25,16 @@ export type AgentUiActionType =
   | 'trending_topics_card'
   | 'content_calendar_card'
   | 'batch_generation_card'
+  | 'batch_generation_result_card'
   | 'voice_clone_card'
-  | 'ai_text_action_card';
+  | 'brand_voice_profile_card'
+  | 'ai_text_action_card'
+  | 'ads_search_results_card'
+  | 'ad_detail_summary_card'
+  | 'campaign_launch_prep_card'
+  | 'workflow_created_card'
+  | 'bot_created_card'
+  | 'livestream_bot_status_card';
 
 export interface AgentUiActionBase {
   id: string;
@@ -60,6 +71,8 @@ export interface AgentUiAction extends AgentUiActionBase {
   packs?: Array<{ label: string; price: string; credits: number }>;
   metrics?: Record<string, unknown>;
   status?: string;
+  summaryText?: string;
+  outcomeBullets?: string[];
   items?: Array<{
     id: string;
     title: string;
@@ -81,6 +94,14 @@ export interface AgentUiAction extends AgentUiActionBase {
     description?: string;
     status?: string;
   }[];
+  outputVariants?: Array<{
+    id: string;
+    kind: 'audio' | 'image' | 'text' | 'video';
+    textContent?: string;
+    thumbnailUrl?: string;
+    title?: string;
+    url?: string;
+  }>;
   clipRun?: {
     autonomousMode?: boolean;
     durationSeconds?: number;
@@ -91,6 +112,7 @@ export interface AgentUiAction extends AgentUiActionBase {
     prompt?: string;
     requireStepConfirmation?: boolean;
   };
+  clipRunState?: Record<string, unknown>;
   alternatives?: {
     label: string;
     prompt: string;
@@ -123,6 +145,10 @@ export interface AgentUiAction extends AgentUiActionBase {
   balance?: number;
   usagePercent?: number;
   usageLabel?: string;
+  signupGiftCredits?: number;
+  journeyEarnedCredits?: number;
+  journeyRemainingCredits?: number;
+  totalOnboardingCreditsVisible?: number;
   thumbnailUrl?: string;
   editorType?: string;
   studioUrl?: string;
@@ -131,6 +157,15 @@ export interface AgentUiAction extends AgentUiActionBase {
   workflowId?: string;
   workflowName?: string;
   workflowDescription?: string;
+  primaryCta?: AgentUiActionCta;
+  secondaryCtas?: AgentUiActionCta[];
+  utilityCtas?: AgentUiActionCta[];
+  contentId?: string;
+  scheduleSummary?: string;
+  nextRunAt?: string;
+  botId?: string;
+  botName?: string;
+  sessionStatus?: string;
   trends?: {
     id: string;
     label: string;

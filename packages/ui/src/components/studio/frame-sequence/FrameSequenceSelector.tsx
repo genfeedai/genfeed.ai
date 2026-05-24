@@ -13,7 +13,13 @@ import type { FrameSequenceSelectorProps } from '@genfeedai/props/studio/frame-s
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
-import { HiPhoto, HiPlus, HiTrash } from 'react-icons/hi2';
+import {
+  HiChevronLeft,
+  HiChevronRight,
+  HiPhoto,
+  HiPlus,
+  HiTrash,
+} from 'react-icons/hi2';
 
 const FORMAT_ASPECT_CLASSES: Record<IngredientFormat, string> = {
   [IngredientFormat.LANDSCAPE]: 'aspect-[16/9]',
@@ -80,6 +86,18 @@ export default function FrameSequenceSelector({
     onFramesChange(newFrames);
   };
 
+  const handleMoveFrame = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= frames.length) {
+      return;
+    }
+
+    const nextFrames = [...frames];
+    const [movedFrame] = nextFrames.splice(fromIndex, 1);
+    nextFrames.splice(toIndex, 0, movedFrame);
+    onFrameReorder?.(fromIndex, toIndex);
+    onFramesChange(nextFrames);
+  };
+
   const aspectClass =
     FORMAT_ASPECT_CLASSES[format] ??
     FORMAT_ASPECT_CLASSES[IngredientFormat.PORTRAIT];
@@ -96,27 +114,47 @@ export default function FrameSequenceSelector({
       <div className="space-y-4">
         {/* Frame Grid */}
         <div className={cn('grid gap-3', gridClass)}>
-          {frames.map((frame, index) => (
+          {frames.map((frame, frameIndex) => (
             <div
-              key={`${frame.id}-${index}`}
+              key={frame.id}
               className="group relative bg-background overflow-hidden"
             >
               <div className={cn(aspectClass, 'relative')}>
                 <Image
                   src={frame.ingredientUrl || ''}
-                  alt={`Frame ${index + 1}`}
+                  alt={`Frame ${frameIndex + 1}`}
                   fill
+                  sizes="(max-width: 768px) 50vw, 220px"
                   className="object-cover"
                 />
                 {/* Frame Number Badge */}
                 <div className="absolute top-1 left-1 bg-primary text-primary-foreground px-1.5 py-0.5 text-xs font-semibold z-10">
-                  {index + 1}
+                  {frameIndex + 1}
                 </div>
                 {/* Remove Button */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
                   <Button
+                    ariaLabel={`Move frame ${frameIndex + 1} earlier`}
+                    label={<HiChevronLeft />}
+                    onClick={() => handleMoveFrame(frameIndex, frameIndex - 1)}
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.XS}
+                    isDisabled={frameIndex === 0}
+                    tooltip="Move earlier"
+                  />
+                  <Button
+                    ariaLabel={`Move frame ${frameIndex + 1} later`}
+                    label={<HiChevronRight />}
+                    onClick={() => handleMoveFrame(frameIndex, frameIndex + 1)}
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.XS}
+                    isDisabled={frameIndex === frames.length - 1}
+                    tooltip="Move later"
+                  />
+                  <Button
+                    ariaLabel={`Remove frame ${frameIndex + 1}`}
                     label={<HiTrash />}
-                    onClick={() => handleRemoveFrame(index)}
+                    onClick={() => handleRemoveFrame(frameIndex)}
                     variant={ButtonVariant.DESTRUCTIVE}
                     size={ButtonSize.XS}
                   />
@@ -149,7 +187,7 @@ export default function FrameSequenceSelector({
               {frames.length >= 2 && (
                 <span className="ml-2">
                   Pairs: {frames.length - 1} transition
-                  {frames.length - 1 !== 1 ? 's' : ''} (1→2, 2→3, ...)
+                  {frames.length - 1 !== 1 ? 's' : ''} (1-&gt;2, 2-&gt;3, ...)
                 </span>
               )}
             </p>

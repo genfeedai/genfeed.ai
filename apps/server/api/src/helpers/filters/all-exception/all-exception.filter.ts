@@ -11,7 +11,10 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-import jsonAPI from 'jsonapi-serializer';
+
+const jsonAPI = require('jsonapi-serializer') as {
+  Error: new (payload: unknown) => unknown;
+};
 
 @Catch()
 export class AllExceptionFilter implements ExceptionFilter {
@@ -19,7 +22,8 @@ export class AllExceptionFilter implements ExceptionFilter {
 
   public readonly SENTRY_ENVIRONMENT: string;
   public readonly SENTRY_DSN: string;
-  public readonly JSONAPIError: typeof jsonAPI.Error = jsonAPI.Error;
+  public readonly JSONAPIError = jsonAPI.Error;
+  protected readonly isProduction: boolean;
 
   constructor(
     public readonly loggerService: LoggerService,
@@ -28,6 +32,7 @@ export class AllExceptionFilter implements ExceptionFilter {
     this.SENTRY_ENVIRONMENT =
       this.configService.get('SENTRY_ENVIRONMENT') ?? '';
     this.SENTRY_DSN = this.configService.get('SENTRY_DSN') ?? '';
+    this.isProduction = this.configService.get('NODE_ENV') === 'production';
   }
 
   public catch(exception: unknown, host: ArgumentsHost) {
@@ -59,18 +64,30 @@ export class AllExceptionFilter implements ExceptionFilter {
         title = (exceptionObj.name as string) || title;
       }
     } else if (exceptionObj.errmsg || exceptionObj.codeName) {
-      // MongoDB errors
+      // Legacy database driver errors — never expose raw DB messages in production
       status = HttpStatus.BAD_REQUEST;
-      detail = (exceptionObj.errmsg as string) || detail;
-      title = (exceptionObj.codeName as string) || 'Database Error';
+      detail = this.isProduction
+        ? 'A database error occurred'
+        : (exceptionObj.errmsg as string) || detail;
+      title = this.isProduction
+        ? 'Database Error'
+        : (exceptionObj.codeName as string) || 'Database Error';
     } else if (exceptionObj.message) {
-      // Generic errors
-      detail = exceptionObj.message as string;
-      title = (exceptionObj.name as string) || 'Application Error';
+      // Generic errors — only expose raw message in development
+      detail = this.isProduction
+        ? 'An unexpected error occurred'
+        : (exceptionObj.message as string);
+      title = this.isProduction
+        ? 'Internal Server Error'
+        : (exceptionObj.name as string) || 'Application Error';
     }
 
+    // Log the real error detail internally regardless of production mode — the
+    // redaction only applies to what we send back to the API client.
+    const internalDetail =
+      (exceptionObj.message as string | undefined) ?? detail;
     this.loggerService.error(
-      `${req.method} ${req.originalUrl} ${status} — ${detail}`,
+      `${req.method} ${req.originalUrl} ${status} — ${internalDetail}`,
       {
         operation: 'catch',
         service: this.constructorName,
@@ -81,14 +98,32 @@ export class AllExceptionFilter implements ExceptionFilter {
       Sentry.captureException(exception);
     }
 
-    res.status(status).json(
+    this.writeJsonApiError(res, {
+      detail,
+      pointer: req.originalUrl,
+      status,
+      title,
+    });
+  }
+
+  protected writeJsonApiError(
+    res: ExpressResponse,
+    error: {
+      detail: string;
+      pointer: string;
+      source?: Record<string, unknown>;
+      status: number;
+      title: string;
+    },
+  ) {
+    res.status(error.status).json(
       new this.JSONAPIError({
-        code: status.toString(),
-        detail,
-        source: {
-          pointer: req.originalUrl,
+        code: error.status.toString(),
+        detail: error.detail,
+        source: error.source ?? {
+          pointer: error.pointer,
         },
-        title,
+        title: error.title,
       }),
     );
   }

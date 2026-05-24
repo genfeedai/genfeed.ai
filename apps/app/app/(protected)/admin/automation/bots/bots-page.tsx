@@ -177,7 +177,7 @@ export default function BotsPage() {
                           variant={ButtonVariant.GHOST}
                           size={ButtonSize.ICON}
                         >
-                          <HiEllipsisVertical className="w-4 h-4" />
+                          <HiEllipsisVertical className="size-4" />
                         </Button>
                       }
                       usePortal
@@ -186,7 +186,7 @@ export default function BotsPage() {
                         <li>
                           <Button asChild variant={ButtonVariant.SOFT}>
                             <Link href={`/bots/${bot.id}/edit`}>
-                              <HiPencil className="w-4 h-4" />
+                              <HiPencil className="size-4" />
                               Edit
                             </Link>
                           </Button>
@@ -198,7 +198,7 @@ export default function BotsPage() {
                             className="text-error"
                           >
                             <Link href={`/bots/${bot.id}/delete`}>
-                              <HiTrash className="w-4 h-4" />
+                              <HiTrash className="size-4" />
                               Delete
                             </Link>
                           </Button>

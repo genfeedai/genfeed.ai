@@ -69,13 +69,13 @@ function hasValue(val: unknown): boolean {
   return Boolean(val);
 }
 
-function brandHref(brandId: string, sub?: string): string {
-  const base = `/settings/brands/${brandId}`;
+function brandHref(sub?: string): string {
+  const base = '/settings';
   return sub ? `${base}/${sub}` : base;
 }
 
-function buildFieldDefs(brandId: string): Record<string, FieldDef[]> {
-  const href = (sub?: string) => brandHref(brandId, sub);
+function buildFieldDefs(): Record<string, FieldDef[]> {
+  const href = (sub?: string) => brandHref(sub);
 
   return {
     identity: [
@@ -206,8 +206,7 @@ const GROUP_META: Array<{
 export function computeBrandCompleteness(
   brand: BrandForCompleteness,
 ): BrandCompletenessResult {
-  const brandId = brand.slug ?? brand.id ?? '';
-  const fieldDefs = buildFieldDefs(brandId);
+  const fieldDefs = buildFieldDefs();
   const incompleteFields: BrandCompletenessField[] = [];
 
   const groups: BrandCompletenessGroup[] = GROUP_META.map((meta) => {

@@ -104,7 +104,7 @@ function getModalityBadgeVariant(
 }
 
 export default function OrchestrationSkillsPage() {
-  const router = useRouter();
+  const { push } = useRouter();
   const { getToken } = useAuth();
   const { isReady, selectedBrand } = useBrand();
 
@@ -164,18 +164,18 @@ export default function OrchestrationSkillsPage() {
 
   const filteredSkills = useMemo(() => {
     return skills
-      .filter((skill) =>
-        sourceFilter === 'all' ? true : skill.source === sourceFilter,
-      )
-      .filter((skill) =>
-        modalityFilter === 'all'
-          ? true
-          : skill.modalities.includes(modalityFilter) ||
-            skill.modalities.includes('multi'),
-      )
-      .filter((skill) =>
-        stageFilter === 'all' ? true : skill.workflowStage === stageFilter,
-      )
+      .filter((skill) => {
+        const sourceMatches =
+          sourceFilter === 'all' || skill.source === sourceFilter;
+        const modalityMatches =
+          modalityFilter === 'all' ||
+          skill.modalities.includes(modalityFilter) ||
+          skill.modalities.includes('multi');
+        const stageMatches =
+          stageFilter === 'all' || skill.workflowStage === stageFilter;
+
+        return sourceMatches && modalityMatches && stageMatches;
+      })
       .sort((left, right) => left.name.localeCompare(right.name));
   }, [modalityFilter, skills, sourceFilter, stageFilter]);
 
@@ -263,8 +263,8 @@ export default function OrchestrationSkillsPage() {
     }
 
     const prompt = buildSkillTestPrompt(selectedSkill);
-    router.push(`/chat/new?prompt=${encodeURIComponent(prompt)}`);
-  }, [router, selectedSkill]);
+    push(`/chat/new?prompt=${encodeURIComponent(prompt)}`);
+  }, [push, selectedSkill]);
 
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 px-4 py-6 md:px-6 lg:px-8">
@@ -296,7 +296,7 @@ export default function OrchestrationSkillsPage() {
               onClick={() => void refreshCatalog()}
               variant={ButtonVariant.OUTLINE}
             >
-              <HiOutlineArrowPath className="h-4 w-4" />
+              <HiOutlineArrowPath className="size-4" />
               Refresh
             </Button>
             <Button
@@ -305,7 +305,7 @@ export default function OrchestrationSkillsPage() {
               variant={ButtonVariant.OUTLINE}
             >
               <Link href="/chat">
-                <HiOutlineSparkles className="h-4 w-4" />
+                <HiOutlineSparkles className="size-4" />
                 Open Chat
               </Link>
             </Button>
@@ -384,7 +384,7 @@ export default function OrchestrationSkillsPage() {
           <div className="grid gap-3">
             {loading ? (
               <InsetSurface className="text-sm text-foreground/55">
-                Loading skill catalog...
+                Loading skill catalog…
               </InsetSurface>
             ) : null}
 
@@ -399,65 +399,69 @@ export default function OrchestrationSkillsPage() {
               const isEnabled = enabledSlugs.includes(skill.slug);
 
               return (
-                <Button
-                  className={`h-auto w-full flex-col items-stretch rounded-2xl border p-4 text-left ${
+                <div
+                  className={`relative rounded-2xl border ${
                     isSelected
                       ? 'border-white/30 bg-white/[0.06]'
                       : 'border-white/10 bg-white/[0.03] hover:border-white/20'
                   } ${!isEnabled ? 'opacity-50' : ''}`}
                   key={skill.id}
-                  onClick={() => setSelectedSkillId(skill.id)}
-                  variant={ButtonVariant.UNSTYLED}
                 >
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-foreground">
-                      {skill.name}
-                    </span>
-                    <Badge
-                      className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
-                      variant={getSourceBadgeVariant(skill.source)}
-                    >
-                      {skill.source.replace('_', ' ')}
-                    </Badge>
-                    <Badge
-                      className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
-                      variant="ghost"
-                    >
-                      {skill.workflowStage}
-                    </Badge>
-                    <Switch
-                      checked={isEnabled}
-                      className="ml-auto"
-                      onClick={(event) => event.stopPropagation()}
-                      onCheckedChange={() => void toggleSkill(skill.slug)}
-                    />
-                  </div>
-
-                  <p className="mb-3 text-sm text-foreground/65">
-                    {skill.description}
-                  </p>
-
-                  <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.14em] text-foreground/45">
-                    {skill.modalities.map((modality) => (
+                  <Button
+                    className="h-auto w-full flex-col items-stretch rounded-2xl p-4 pr-16 text-left"
+                    onClick={() => setSelectedSkillId(skill.id)}
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
+                  >
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold text-foreground">
+                        {skill.name}
+                      </span>
                       <Badge
                         className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
-                        key={`${skill.id}-${modality}`}
-                        variant={getModalityBadgeVariant(modality)}
+                        variant={getSourceBadgeVariant(skill.source)}
                       >
-                        {modality}
+                        {skill.source.replace('_', ' ')}
                       </Badge>
-                    ))}
-                    {skill.channels.map((channel) => (
                       <Badge
                         className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
-                        key={`${skill.id}-${channel}`}
-                        variant="outline"
+                        variant="ghost"
                       >
-                        {channel}
+                        {skill.workflowStage}
                       </Badge>
-                    ))}
-                  </div>
-                </Button>
+                    </div>
+
+                    <p className="mb-3 text-sm text-foreground/65">
+                      {skill.description}
+                    </p>
+
+                    <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.14em] text-foreground/45">
+                      {skill.modalities.map((modality) => (
+                        <Badge
+                          className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
+                          key={`${skill.id}-${modality}`}
+                          variant={getModalityBadgeVariant(modality)}
+                        >
+                          {modality}
+                        </Badge>
+                      ))}
+                      {skill.channels.map((channel) => (
+                        <Badge
+                          className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
+                          key={`${skill.id}-${channel}`}
+                          variant="outline"
+                        >
+                          {channel}
+                        </Badge>
+                      ))}
+                    </div>
+                  </Button>
+                  <Switch
+                    checked={isEnabled}
+                    className="absolute top-4 right-4"
+                    onCheckedChange={() => void toggleSkill(skill.slug)}
+                  />
+                </div>
               );
             })}
           </div>
@@ -513,7 +517,7 @@ export default function OrchestrationSkillsPage() {
                   onClick={handleOpenTestInChat}
                   variant={ButtonVariant.OUTLINE}
                 >
-                  <HiOutlineBeaker className="h-4 w-4" />
+                  <HiOutlineBeaker className="size-4" />
                   Test in chat
                 </Button>
               </div>
@@ -537,13 +541,13 @@ export default function OrchestrationSkillsPage() {
                       onClick={() => void handleCustomize()}
                       variant={ButtonVariant.OUTLINE}
                     >
-                      <HiOutlineSparkles className="h-4 w-4" />
-                      {customizing ? 'Customizing...' : 'Customize'}
+                      <HiOutlineSparkles className="size-4" />
+                      {customizing ? 'Customizing…' : 'Customize'}
                     </Button>
                   ) : null}
                 </div>
 
-                <label className="grid gap-2 text-sm text-foreground/70">
+                <span className="grid gap-2 text-sm text-foreground/70">
                   Name
                   <Input
                     className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-foreground outline-none"
@@ -556,9 +560,9 @@ export default function OrchestrationSkillsPage() {
                     }
                     value={skillDraft.name}
                   />
-                </label>
+                </span>
 
-                <label className="grid gap-2 text-sm text-foreground/70">
+                <span className="grid gap-2 text-sm text-foreground/70">
                   Description
                   <Textarea
                     className="min-h-24 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-foreground outline-none"
@@ -571,9 +575,9 @@ export default function OrchestrationSkillsPage() {
                     }
                     value={skillDraft.description}
                   />
-                </label>
+                </span>
 
-                <label className="grid gap-2 text-sm text-foreground/70">
+                <span className="grid gap-2 text-sm text-foreground/70">
                   Default instructions
                   <Textarea
                     className="min-h-28 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-mono text-foreground outline-none"
@@ -586,7 +590,7 @@ export default function OrchestrationSkillsPage() {
                     }
                     value={skillDraft.defaultInstructions}
                   />
-                </label>
+                </span>
 
                 <Collapsible>
                   <CollapsibleTrigger className="text-sm font-medium text-foreground/50 hover:text-foreground/70">
@@ -620,7 +624,7 @@ export default function OrchestrationSkillsPage() {
                     onClick={() => void handleSaveSkill()}
                     variant={ButtonVariant.DEFAULT}
                   >
-                    {savingSkill ? 'Saving...' : 'Save variant'}
+                    {savingSkill ? 'Saving…' : 'Save variant'}
                   </Button>
                 ) : null}
               </InsetSurface>

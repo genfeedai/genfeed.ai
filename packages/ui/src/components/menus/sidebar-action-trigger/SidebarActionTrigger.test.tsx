@@ -7,7 +7,7 @@ describe('SidebarActionTrigger', () => {
   it('renders a menu-style action with a hover-only shortcut badge', () => {
     render(
       <SidebarActionTrigger
-        icon={<HiPlus className="h-4 w-4" />}
+        icon={<HiPlus className="size-4" />}
         label="New Task"
         onClick={vi.fn()}
         shortcut="⌘⇧N"
@@ -20,7 +20,7 @@ describe('SidebarActionTrigger', () => {
     expect(screen.getByText('⌘⇧N')).toHaveClass('opacity-0');
     expect(screen.getByText('New Task')).toHaveClass('min-w-0', 'flex-1');
     expect(button).toHaveClass(
-      'rounded-xl',
+      'rounded',
       'hover:bg-white/[0.035]',
       'focus-visible:ring-offset-background',
     );

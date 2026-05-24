@@ -53,6 +53,7 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import { IngredientFormat } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
@@ -80,7 +81,8 @@ describe('BatchInterpolationController', () => {
     _id: '507f1f77bcf86cd799439020',
     category: 'video',
     cost: 5,
-    key: 'kling-2.1',
+    hasInterpolation: true,
+    key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
   };
 
   const mockBrand = {
@@ -115,7 +117,7 @@ describe('BatchInterpolationController', () => {
     duration: 5,
     format: IngredientFormat.LANDSCAPE,
     isMergeEnabled: false,
-    modelKey: 'kling-2.1' as any,
+    modelKey: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1 as any,
     pairs: mockPairs,
     useTemplate: false,
   };
@@ -263,6 +265,79 @@ describe('BatchInterpolationController', () => {
         });
       });
 
+      it('should generate a fresh group ID for each storyboard batch', async () => {
+        mockBuildReferenceImageUrls
+          .mockReset()
+          .mockResolvedValue(['https://cdn.example.com/frame.jpg']);
+
+        const first = await controller.createBatchInterpolation(
+          mockReq,
+          mockDto,
+          mockUser,
+        );
+        const second = await controller.createBatchInterpolation(
+          mockReq,
+          mockDto,
+          mockUser,
+        );
+
+        expect(first.groupId).toEqual(expect.any(String));
+        expect(second.groupId).toEqual(expect.any(String));
+        expect(first.groupId).not.toBe(second.groupId);
+      });
+
+      it('should start all pair generations without waiting for earlier pairs to finish', async () => {
+        const twoPairDto: BatchInterpolationDto = {
+          ...mockDto,
+          pairs: [
+            {
+              endImageId: '507f1f77bcf86cd799439002',
+              startImageId: '507f1f77bcf86cd799439001',
+            },
+            {
+              endImageId: '507f1f77bcf86cd799439004',
+              startImageId: '507f1f77bcf86cd799439003',
+            },
+          ],
+        };
+        let resolveFirstGeneration!: (value: string) => void;
+        let resolveSecondGeneration!: (value: string) => void;
+        const firstGeneration = new Promise<string>((resolve) => {
+          resolveFirstGeneration = resolve;
+        });
+        const secondGeneration = new Promise<string>((resolve) => {
+          resolveSecondGeneration = resolve;
+        });
+
+        mockBuildReferenceImageUrls
+          .mockReset()
+          .mockResolvedValue(['https://cdn.example.com/frame.jpg']);
+        replicateService.generateTextToVideo
+          .mockReset()
+          .mockImplementationOnce(() => firstGeneration)
+          .mockImplementationOnce(() => secondGeneration);
+
+        const batchPromise = controller.createBatchInterpolation(
+          mockReq,
+          twoPairDto,
+          mockUser,
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(replicateService.generateTextToVideo).toHaveBeenCalledTimes(2);
+
+        resolveFirstGeneration('replicate-generation-id-1');
+        resolveSecondGeneration('replicate-generation-id-2');
+
+        const result = await batchPromise;
+
+        expect(result.jobs).toHaveLength(2);
+        expect(result.jobs.every((job) => job.status === 'processing')).toBe(
+          true,
+        );
+      });
+
       it('should deduct credits after successful generation', async () => {
         await controller.createBatchInterpolation(mockReq, mockDto, mockUser);
 
@@ -272,8 +347,8 @@ describe('BatchInterpolationController', () => {
           '507f1f77bcf86cd799439013',
           '507f1f77bcf86cd799439012',
           5,
-          expect.stringContaining('kling-2.1'),
-          expect.any(String),
+          expect.stringContaining(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1),
+          'video-generate',
         );
       });
 
@@ -363,6 +438,23 @@ describe('BatchInterpolationController', () => {
           expect(err).toBeInstanceOf(HttpException);
           const httpErr = err as HttpException;
           expect(httpErr.getStatus()).toBe(404);
+        }
+      });
+    });
+
+    describe('model without interpolation support', () => {
+      it('should throw 400 when model cannot interpolate between frames', async () => {
+        modelsService.findOne.mockResolvedValue({
+          ...mockModel,
+          hasInterpolation: false,
+        });
+
+        try {
+          await controller.createBatchInterpolation(mockReq, mockDto, mockUser);
+        } catch (err) {
+          expect(err).toBeInstanceOf(HttpException);
+          const httpErr = err as HttpException;
+          expect(httpErr.getStatus()).toBe(400);
         }
       });
     });

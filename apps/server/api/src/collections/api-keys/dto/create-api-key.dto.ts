@@ -79,4 +79,11 @@ export class CreateApiKeyDto {
   @IsArray()
   @IsString({ each: true })
   readonly allowedIps?: string[];
+
+  @ApiProperty({
+    description: 'Optional metadata for managed/system-created keys',
+    required: false,
+  })
+  @IsOptional()
+  readonly metadata?: Record<string, unknown>;
 }

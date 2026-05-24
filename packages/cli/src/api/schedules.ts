@@ -1,10 +1,10 @@
-import { get, post } from './client.js';
+import { get, post } from './client';
 import {
   flattenCollection,
   flattenSingle,
   type JsonApiCollectionResponse,
   type JsonApiSingleResponse,
-} from './json-api.js';
+} from './json-api';
 
 export interface ScheduleEntry {
   id: string;

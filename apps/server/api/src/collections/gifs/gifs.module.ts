@@ -22,8 +22,8 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [GifsService],
   imports: [
     forwardRef(() => BrandsModule),
-    ByokModule,
-    ConfigModule,
+    forwardRef(() => ByokModule),
+    forwardRef(() => ConfigModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => IngredientsModule),
     forwardRef(() => MetadataModule),

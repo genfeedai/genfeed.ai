@@ -257,18 +257,14 @@ export class AvatarsController {
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted,
-          type: 'avatar',
-          user: publicMetadata.user,
-        },
+    const aggregate = {
+      where: {
+        isDeleted,
+        type: 'avatar',
+        user: publicMetadata.user,
       },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+      orderBy: handleQuerySort(query.sort),
+    };
 
     const data: AggregatePaginateResult<IngredientDocument> =
       await this.avatarsService.findAll(aggregate, options);
@@ -278,7 +274,7 @@ export class AvatarsController {
   // Create a new avatar in HeyGen
   @Post('new')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  createNewAvatar(
+  async createNewAvatar(
     @Req() request: Request,
     // @Body() createAvatarDto: CreateAvatarDto,
     // @CurrentUser() user: User,

@@ -191,7 +191,10 @@ export default function StudioClipsPage() {
     return () => {
       cancelled = true;
       abortController.abort();
-      clearPendingPoll();
+      if (analysisPollTimeoutRef.current) {
+        clearTimeout(analysisPollTimeoutRef.current);
+        analysisPollTimeoutRef.current = null;
+      }
     };
   }, [
     step,
@@ -319,7 +322,10 @@ export default function StudioClipsPage() {
     return () => {
       cancelled = true;
       abortController.abort();
-      clearPendingPoll();
+      if (clipsPollTimeoutRef.current) {
+        clearTimeout(clipsPollTimeoutRef.current);
+        clipsPollTimeoutRef.current = null;
+      }
     };
   }, [step, project?.projectId, clipsService, isDocumentVisible]);
 
@@ -363,7 +369,7 @@ export default function StudioClipsPage() {
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="mb-8">
           <div className="flex items-center gap-3">
-            <HiOutlineFilm className="h-6 w-6 text-indigo-400" />
+            <HiOutlineFilm className="size-6 text-primary" />
             <h1 className="text-2xl font-semibold text-zinc-100">
               AI Clip Factory
             </h1>
@@ -379,7 +385,7 @@ export default function StudioClipsPage() {
           {project.status !== 'completed' && project.status !== 'failed' && (
             <div className="mt-4 flex items-center gap-3">
               <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
-                <div className="h-full w-2/3 animate-pulse rounded-full bg-indigo-500 transition-all duration-500" />
+                <div className="h-full w-2/3 animate-pulse rounded-full bg-primary transition-all duration-500" />
               </div>
               <span className="text-xs capitalize text-zinc-500">
                 {project.status}
@@ -401,12 +407,9 @@ export default function StudioClipsPage() {
         ) : (
           project.status !== 'completed' && (
             <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 py-20">
-              <Spinner
-                size={ComponentSize.LG}
-                className="mb-4 text-indigo-500"
-              />
+              <Spinner size={ComponentSize.LG} className="mb-4 text-primary" />
               <p className="text-sm text-zinc-500">
-                Generating avatar clips for selected highlights...
+                Generating avatar clips for selected highlights…
               </p>
             </div>
           )
@@ -435,7 +438,7 @@ export default function StudioClipsPage() {
       <div className="mx-auto max-w-4xl px-6 py-10">
         <div className="mb-8">
           <div className="flex items-center gap-3">
-            <HiOutlineMagnifyingGlass className="h-6 w-6 text-indigo-400" />
+            <HiOutlineMagnifyingGlass className="size-6 text-primary" />
             <h1 className="text-2xl font-semibold text-zinc-100">
               Review Highlights
             </h1>
@@ -451,9 +454,9 @@ export default function StudioClipsPage() {
 
         {isAnalyzing ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 py-20">
-            <Spinner size={ComponentSize.LG} className="mb-4 text-indigo-500" />
+            <Spinner size={ComponentSize.LG} className="mb-4 text-primary" />
             <p className="text-sm text-zinc-500">
-              Transcribing and analyzing video...
+              Transcribing and analyzing video…
             </p>
             <p className="mt-1 text-xs text-zinc-600">
               This usually takes 1-2 minutes
@@ -532,7 +535,7 @@ export default function StudioClipsPage() {
                     onClick={() => setAvatarProvider(opt.value)}
                     className={`relative rounded-lg border px-3 py-2 text-left transition-all ${
                       avatarProvider === opt.value
-                        ? 'border-indigo-500 bg-indigo-500/10'
+                        ? 'border-primary bg-primary/10'
                         : opt.disabled
                           ? 'cursor-not-allowed border-zinc-800 bg-zinc-900/30 opacity-50'
                           : 'border-zinc-700 bg-zinc-800/30 hover:border-zinc-600'
@@ -572,17 +575,17 @@ export default function StudioClipsPage() {
                   isSubmitting || selectedCount === 0 || !avatarId || !voiceId
                 }
                 isLoading={isSubmitting}
-                className="flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
                 icon={
                   isSubmitting ? (
                     <Spinner size={ComponentSize.SM} className="text-white" />
                   ) : (
-                    <HiOutlineSparkles className="h-4 w-4" />
+                    <HiOutlineSparkles className="size-4" />
                   )
                 }
                 label={
                   isSubmitting
-                    ? 'Generating...'
+                    ? 'Generating…'
                     : `Generate ${selectedCount} clip${selectedCount !== 1 ? 's' : ''} (${selectedCount} credit${selectedCount !== 1 ? 's' : ''})`
                 }
               />
@@ -611,8 +614,8 @@ export default function StudioClipsPage() {
     <div className="mx-auto max-w-2xl px-6 py-10">
       <div className="mb-8 text-center">
         <div className="mb-4 flex justify-center">
-          <div className="rounded-2xl bg-indigo-500/10 p-3">
-            <HiOutlineSparkles className="h-8 w-8 text-indigo-400" />
+          <div className="rounded-2xl bg-primary/10 p-3">
+            <HiOutlineSparkles className="size-8 text-primary" />
           </div>
         </div>
         <h1 className="text-3xl font-semibold text-zinc-100">
@@ -658,7 +661,7 @@ export default function StudioClipsPage() {
             max={30}
             value={maxClips}
             onChange={(e) => setMaxClips(Number(e.target.value))}
-            className="w-full accent-indigo-500"
+            className="w-full accent-primary"
           />
           <div className="mt-1 flex justify-between text-[10px] text-zinc-600">
             <span>1</span>
@@ -683,7 +686,7 @@ export default function StudioClipsPage() {
             max={100}
             value={minViralityScore}
             onChange={(e) => setMinViralityScore(Number(e.target.value))}
-            className="w-full accent-indigo-500"
+            className="w-full accent-primary"
           />
           <div className="mt-1 flex justify-between text-[10px] text-zinc-600">
             <span>0</span>
@@ -705,15 +708,15 @@ export default function StudioClipsPage() {
           onClick={handleAnalyze}
           isDisabled={isSubmitting || !youtubeUrl}
           isLoading={isSubmitting}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
           icon={
             isSubmitting ? (
               <Spinner size={ComponentSize.SM} className="text-white" />
             ) : (
-              <HiOutlineMagnifyingGlass className="h-4 w-4" />
+              <HiOutlineMagnifyingGlass className="size-4" />
             )
           }
-          label={isSubmitting ? 'Analyzing...' : 'Analyze Video'}
+          label={isSubmitting ? 'Analyzing…' : 'Analyze Video'}
         />
       </div>
     </div>

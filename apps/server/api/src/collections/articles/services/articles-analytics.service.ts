@@ -10,7 +10,10 @@
  * to help understand article performance and potential.
  */
 import { ViralityAnalysisResponse } from '@api/collections/articles/dto/analyze-virality.dto';
-import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
+import type {
+  ArticleDocument,
+  ArticleViralityAnalysis,
+} from '@api/collections/articles/schemas/article.schema';
 import { ArticleAnalyticsService } from '@api/collections/articles/services/article-analytics.service';
 import {
   buildViralityAnalysisResponse,
@@ -36,6 +39,7 @@ import {
   PromptTemplateKey,
   SystemPromptKey,
 } from '@genfeedai/enums';
+import type { Article as PrismaArticle } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 
@@ -57,22 +61,105 @@ export class ArticlesAnalyticsService {
     private readonly articleAnalyticsService?: ArticleAnalyticsService,
   ) {}
 
+  private readObjectRecord(value: unknown): Record<string, unknown> {
+    return typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private readNumber(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value)
+      ? value
+      : undefined;
+  }
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private readStringArray(value: unknown): string[] {
+    return Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === 'string')
+      : [];
+  }
+
+  private readNumberRecord(value: unknown): Record<string, number> {
+    if (!value || typeof value !== 'object') {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(value).flatMap(([key, entry]) =>
+        typeof entry === 'number' && Number.isFinite(entry)
+          ? [[key, entry]]
+          : [],
+      ),
+    );
+  }
+
+  private readViralityAnalysis(
+    value: unknown,
+  ): ArticleViralityAnalysis | undefined {
+    if (!value || typeof value !== 'object') {
+      return undefined;
+    }
+
+    const record = this.readObjectRecord(value);
+    const score = this.readNumber(record.score);
+    if (score === undefined) {
+      return undefined;
+    }
+
+    const analyzedAt = record.analyzedAt;
+
+    return {
+      score,
+      factors: this.readNumberRecord(record.factors),
+      predictions: this.readNumberRecord(record.predictions),
+      suggestions: this.readStringArray(record.suggestions),
+      ...(analyzedAt instanceof Date || typeof analyzedAt === 'string'
+        ? { analyzedAt }
+        : {}),
+    };
+  }
+
+  private normalizeArticle(
+    article: PrismaArticle & Partial<ArticleDocument>,
+  ): ArticleDocument {
+    const record = this.readObjectRecord(article);
+
+    return {
+      ...article,
+      _id: article.mongoId ?? article.id,
+      brand: this.readString(record.brand) ?? article.brandId ?? undefined,
+      category: this.readString(record.category),
+      label: this.readString(record.label) ?? article.title,
+      organization:
+        this.readString(record.organization) ?? article.organizationId,
+      summary: this.readString(record.summary) ?? article.excerpt ?? undefined,
+      user: this.readString(record.user) ?? article.userId,
+      viralityAnalysis: this.readViralityAnalysis(record.viralityAnalysis),
+    };
+  }
+
   /**
    * Analyze article virality potential using AI
    */
   async analyzeVirality(
     article: ArticleDocument,
   ): Promise<ViralityAnalysisResponse> {
+    const normalizedArticle = this.normalizeArticle(article);
+
     try {
       this.logger.debug(`${this.constructorName} analyzeVirality`, {
-        articleId: article._id,
+        articleId: normalizedArticle._id,
       });
 
       if (!this.replicateService || !this.configService) {
         throw new Error('Replicate service not available');
       }
 
-      if (!this.templatesService || !article.organization) {
+      if (!this.templatesService || !normalizedArticle.organization) {
         throw new Error('Template service not available');
       }
 
@@ -80,19 +167,19 @@ export class ArticlesAnalyticsService {
       const userPrompt = await this.templatesService.getRenderedPrompt(
         PromptTemplateKey.ARTICLE_VIRALITY,
         {
-          category: article.category,
-          content: article.content,
-          summary: article.summary,
-          title: article.label,
+          category: normalizedArticle.category,
+          content: normalizedArticle.content,
+          summary: normalizedArticle.summary,
+          title: normalizedArticle.label,
         },
-        String(article.organization),
+        String(normalizedArticle.organization),
       );
 
       if (!userPrompt) {
         throw new Error('Template service not available');
       }
 
-      await this.assertDefaultTextCreditsAvailable(article);
+      await this.assertDefaultTextCreditsAvailable(normalizedArticle);
 
       // Build prompt with PromptBuilderService then call Replicate
       const { input } = (await this.promptBuilderService?.buildPrompt(
@@ -112,7 +199,11 @@ export class ArticlesAnalyticsService {
           input,
         );
 
-      await this.settleDefaultTextCredits(article, input, responseText);
+      await this.settleDefaultTextCredits(
+        normalizedArticle,
+        input,
+        responseText,
+      );
 
       // Parse JSON response
       let response: ParsedViralityResponse;
@@ -128,25 +219,19 @@ export class ArticlesAnalyticsService {
 
       // Validate + build analysis via shared mapper
       const result = buildViralityAnalysisResponse(
-        article._id.toString(),
+        normalizedArticle._id.toString(),
         response,
       );
 
-      // Update article with analysis
-      await this.prisma?.article.update({
-        data: { viralityAnalysis: result.analysis as never },
-        where: { id: article._id.toString() },
-      });
-
       this.logger.log(`${this.constructorName} completed virality analysis`, {
-        articleId: article._id,
+        articleId: normalizedArticle._id,
         score: result.analysis.score,
       });
 
       return result;
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} analyzeVirality failed`, {
-        articleId: article._id,
+        articleId: normalizedArticle._id,
         error,
       });
       throw error;
@@ -272,12 +357,13 @@ export class ArticlesAnalyticsService {
         timeframe,
       });
 
-      const article = await this.prisma?.article.findUnique({
+      const articleRecord = await this.prisma?.article.findUnique({
         where: { id: articleId },
       });
-      if (!article) {
+      if (!articleRecord) {
         throw new NotFoundException('Article not found');
       }
+      const article = this.normalizeArticle(articleRecord);
 
       const engagementScore = await this.calculateEngagementScore(articleId);
 
@@ -453,11 +539,11 @@ export class ArticlesAnalyticsService {
    * Get top performing factors from virality analysis
    */
   private getTopPerformingFactors(article: ArticleDocument): string[] {
-    if (!article.viralityAnalysis?.factors) {
+    const factors = article.viralityAnalysis?.factors;
+    if (!factors) {
       return [];
     }
 
-    const factors = article.viralityAnalysis.factors;
     const factorEntries = Object.entries(factors);
 
     return factorEntries
@@ -490,8 +576,9 @@ export class ArticlesAnalyticsService {
     }
 
     // Add virality-specific recommendations
-    if (article.viralityAnalysis?.suggestions) {
-      recommendations.push(...article.viralityAnalysis.suggestions.slice(0, 2));
+    const suggestions = article.viralityAnalysis?.suggestions;
+    if (suggestions) {
+      recommendations.push(...suggestions.slice(0, 2));
     }
 
     return recommendations;

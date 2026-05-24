@@ -1,7 +1,13 @@
 import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import ModelsLayoutContent from './models-layout-content';
+
+vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'brand', orgSlug: 'acme' }),
+  usePathname: () => '/acme/~/settings/models/all',
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 describe('ModelsLayoutContent', () => {
   it('should render without crashing', () => {

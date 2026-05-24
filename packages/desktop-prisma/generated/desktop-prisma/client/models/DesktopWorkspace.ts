@@ -9,8 +9,8 @@
  * 🟢 You can import this file directly.
  */
 import type * as runtime from "@prisma/client/runtime/client"
-import type * as $Enums from "../enums.js"
-import type * as Prisma from "../internal/prismaNamespace.js"
+import type * as $Enums from "../enums"
+import type * as Prisma from "../internal/prismaNamespace"
 
 /**
  * Model DesktopWorkspace
@@ -41,6 +41,8 @@ export type DesktopWorkspaceMinAggregateOutputType = {
   name: string | null
   path: string | null
   linkedProjectId: string | null
+  linkedBrandId: string | null
+  syncPolicy: string | null
   fileIndex: string | null
   indexingState: string | null
   localDraftCount: number | null
@@ -55,6 +57,8 @@ export type DesktopWorkspaceMaxAggregateOutputType = {
   name: string | null
   path: string | null
   linkedProjectId: string | null
+  linkedBrandId: string | null
+  syncPolicy: string | null
   fileIndex: string | null
   indexingState: string | null
   localDraftCount: number | null
@@ -69,6 +73,8 @@ export type DesktopWorkspaceCountAggregateOutputType = {
   name: number
   path: number
   linkedProjectId: number
+  linkedBrandId: number
+  syncPolicy: number
   fileIndex: number
   indexingState: number
   localDraftCount: number
@@ -95,6 +101,8 @@ export type DesktopWorkspaceMinAggregateInputType = {
   name?: true
   path?: true
   linkedProjectId?: true
+  linkedBrandId?: true
+  syncPolicy?: true
   fileIndex?: true
   indexingState?: true
   localDraftCount?: true
@@ -109,6 +117,8 @@ export type DesktopWorkspaceMaxAggregateInputType = {
   name?: true
   path?: true
   linkedProjectId?: true
+  linkedBrandId?: true
+  syncPolicy?: true
   fileIndex?: true
   indexingState?: true
   localDraftCount?: true
@@ -123,6 +133,8 @@ export type DesktopWorkspaceCountAggregateInputType = {
   name?: true
   path?: true
   linkedProjectId?: true
+  linkedBrandId?: true
+  syncPolicy?: true
   fileIndex?: true
   indexingState?: true
   localDraftCount?: true
@@ -224,6 +236,8 @@ export type DesktopWorkspaceGroupByOutputType = {
   name: string
   path: string
   linkedProjectId: string | null
+  linkedBrandId: string | null
+  syncPolicy: string
   fileIndex: string
   indexingState: string
   localDraftCount: number
@@ -261,6 +275,8 @@ export type DesktopWorkspaceWhereInput = {
   name?: Prisma.StringFilter<"DesktopWorkspace"> | string
   path?: Prisma.StringFilter<"DesktopWorkspace"> | string
   linkedProjectId?: Prisma.StringNullableFilter<"DesktopWorkspace"> | string | null
+  linkedBrandId?: Prisma.StringNullableFilter<"DesktopWorkspace"> | string | null
+  syncPolicy?: Prisma.StringFilter<"DesktopWorkspace"> | string
   fileIndex?: Prisma.StringFilter<"DesktopWorkspace"> | string
   indexingState?: Prisma.StringFilter<"DesktopWorkspace"> | string
   localDraftCount?: Prisma.IntFilter<"DesktopWorkspace"> | number
@@ -275,6 +291,8 @@ export type DesktopWorkspaceOrderByWithRelationInput = {
   name?: Prisma.SortOrder
   path?: Prisma.SortOrder
   linkedProjectId?: Prisma.SortOrderInput | Prisma.SortOrder
+  linkedBrandId?: Prisma.SortOrderInput | Prisma.SortOrder
+  syncPolicy?: Prisma.SortOrder
   fileIndex?: Prisma.SortOrder
   indexingState?: Prisma.SortOrder
   localDraftCount?: Prisma.SortOrder
@@ -292,6 +310,8 @@ export type DesktopWorkspaceWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.DesktopWorkspaceWhereInput | Prisma.DesktopWorkspaceWhereInput[]
   name?: Prisma.StringFilter<"DesktopWorkspace"> | string
   linkedProjectId?: Prisma.StringNullableFilter<"DesktopWorkspace"> | string | null
+  linkedBrandId?: Prisma.StringNullableFilter<"DesktopWorkspace"> | string | null
+  syncPolicy?: Prisma.StringFilter<"DesktopWorkspace"> | string
   fileIndex?: Prisma.StringFilter<"DesktopWorkspace"> | string
   indexingState?: Prisma.StringFilter<"DesktopWorkspace"> | string
   localDraftCount?: Prisma.IntFilter<"DesktopWorkspace"> | number
@@ -306,6 +326,8 @@ export type DesktopWorkspaceOrderByWithAggregationInput = {
   name?: Prisma.SortOrder
   path?: Prisma.SortOrder
   linkedProjectId?: Prisma.SortOrderInput | Prisma.SortOrder
+  linkedBrandId?: Prisma.SortOrderInput | Prisma.SortOrder
+  syncPolicy?: Prisma.SortOrder
   fileIndex?: Prisma.SortOrder
   indexingState?: Prisma.SortOrder
   localDraftCount?: Prisma.SortOrder
@@ -328,6 +350,8 @@ export type DesktopWorkspaceScalarWhereWithAggregatesInput = {
   name?: Prisma.StringWithAggregatesFilter<"DesktopWorkspace"> | string
   path?: Prisma.StringWithAggregatesFilter<"DesktopWorkspace"> | string
   linkedProjectId?: Prisma.StringNullableWithAggregatesFilter<"DesktopWorkspace"> | string | null
+  linkedBrandId?: Prisma.StringNullableWithAggregatesFilter<"DesktopWorkspace"> | string | null
+  syncPolicy?: Prisma.StringWithAggregatesFilter<"DesktopWorkspace"> | string
   fileIndex?: Prisma.StringWithAggregatesFilter<"DesktopWorkspace"> | string
   indexingState?: Prisma.StringWithAggregatesFilter<"DesktopWorkspace"> | string
   localDraftCount?: Prisma.IntWithAggregatesFilter<"DesktopWorkspace"> | number
@@ -342,6 +366,8 @@ export type DesktopWorkspaceCreateInput = {
   name: string
   path: string
   linkedProjectId?: string | null
+  linkedBrandId?: string | null
+  syncPolicy?: string
   fileIndex?: string
   indexingState?: string
   localDraftCount?: number
@@ -356,6 +382,8 @@ export type DesktopWorkspaceUncheckedCreateInput = {
   name: string
   path: string
   linkedProjectId?: string | null
+  linkedBrandId?: string | null
+  syncPolicy?: string
   fileIndex?: string
   indexingState?: string
   localDraftCount?: number
@@ -370,6 +398,8 @@ export type DesktopWorkspaceUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.StringFieldUpdateOperationsInput | string
   linkedProjectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkedBrandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  syncPolicy?: Prisma.StringFieldUpdateOperationsInput | string
   fileIndex?: Prisma.StringFieldUpdateOperationsInput | string
   indexingState?: Prisma.StringFieldUpdateOperationsInput | string
   localDraftCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -384,6 +414,8 @@ export type DesktopWorkspaceUncheckedUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.StringFieldUpdateOperationsInput | string
   linkedProjectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkedBrandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  syncPolicy?: Prisma.StringFieldUpdateOperationsInput | string
   fileIndex?: Prisma.StringFieldUpdateOperationsInput | string
   indexingState?: Prisma.StringFieldUpdateOperationsInput | string
   localDraftCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -398,6 +430,8 @@ export type DesktopWorkspaceCreateManyInput = {
   name: string
   path: string
   linkedProjectId?: string | null
+  linkedBrandId?: string | null
+  syncPolicy?: string
   fileIndex?: string
   indexingState?: string
   localDraftCount?: number
@@ -412,6 +446,8 @@ export type DesktopWorkspaceUpdateManyMutationInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.StringFieldUpdateOperationsInput | string
   linkedProjectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkedBrandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  syncPolicy?: Prisma.StringFieldUpdateOperationsInput | string
   fileIndex?: Prisma.StringFieldUpdateOperationsInput | string
   indexingState?: Prisma.StringFieldUpdateOperationsInput | string
   localDraftCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -426,6 +462,8 @@ export type DesktopWorkspaceUncheckedUpdateManyInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.StringFieldUpdateOperationsInput | string
   linkedProjectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkedBrandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  syncPolicy?: Prisma.StringFieldUpdateOperationsInput | string
   fileIndex?: Prisma.StringFieldUpdateOperationsInput | string
   indexingState?: Prisma.StringFieldUpdateOperationsInput | string
   localDraftCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -440,6 +478,8 @@ export type DesktopWorkspaceCountOrderByAggregateInput = {
   name?: Prisma.SortOrder
   path?: Prisma.SortOrder
   linkedProjectId?: Prisma.SortOrder
+  linkedBrandId?: Prisma.SortOrder
+  syncPolicy?: Prisma.SortOrder
   fileIndex?: Prisma.SortOrder
   indexingState?: Prisma.SortOrder
   localDraftCount?: Prisma.SortOrder
@@ -459,6 +499,8 @@ export type DesktopWorkspaceMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   path?: Prisma.SortOrder
   linkedProjectId?: Prisma.SortOrder
+  linkedBrandId?: Prisma.SortOrder
+  syncPolicy?: Prisma.SortOrder
   fileIndex?: Prisma.SortOrder
   indexingState?: Prisma.SortOrder
   localDraftCount?: Prisma.SortOrder
@@ -473,6 +515,8 @@ export type DesktopWorkspaceMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   path?: Prisma.SortOrder
   linkedProjectId?: Prisma.SortOrder
+  linkedBrandId?: Prisma.SortOrder
+  syncPolicy?: Prisma.SortOrder
   fileIndex?: Prisma.SortOrder
   indexingState?: Prisma.SortOrder
   localDraftCount?: Prisma.SortOrder
@@ -487,18 +531,6 @@ export type DesktopWorkspaceSumOrderByAggregateInput = {
   pendingSyncCount?: Prisma.SortOrder
 }
 
-export type NullableStringFieldUpdateOperationsInput = {
-  set?: string | null
-}
-
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 
 
 export type DesktopWorkspaceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -506,6 +538,8 @@ export type DesktopWorkspaceSelect<ExtArgs extends runtime.Types.Extensions.Inte
   name?: boolean
   path?: boolean
   linkedProjectId?: boolean
+  linkedBrandId?: boolean
+  syncPolicy?: boolean
   fileIndex?: boolean
   indexingState?: boolean
   localDraftCount?: boolean
@@ -520,6 +554,8 @@ export type DesktopWorkspaceSelectCreateManyAndReturn<ExtArgs extends runtime.Ty
   name?: boolean
   path?: boolean
   linkedProjectId?: boolean
+  linkedBrandId?: boolean
+  syncPolicy?: boolean
   fileIndex?: boolean
   indexingState?: boolean
   localDraftCount?: boolean
@@ -534,6 +570,8 @@ export type DesktopWorkspaceSelectUpdateManyAndReturn<ExtArgs extends runtime.Ty
   name?: boolean
   path?: boolean
   linkedProjectId?: boolean
+  linkedBrandId?: boolean
+  syncPolicy?: boolean
   fileIndex?: boolean
   indexingState?: boolean
   localDraftCount?: boolean
@@ -548,6 +586,8 @@ export type DesktopWorkspaceSelectScalar = {
   name?: boolean
   path?: boolean
   linkedProjectId?: boolean
+  linkedBrandId?: boolean
+  syncPolicy?: boolean
   fileIndex?: boolean
   indexingState?: boolean
   localDraftCount?: boolean
@@ -557,7 +597,7 @@ export type DesktopWorkspaceSelectScalar = {
   lastOpenedAt?: boolean
 }
 
-export type DesktopWorkspaceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "path" | "linkedProjectId" | "fileIndex" | "indexingState" | "localDraftCount" | "pendingSyncCount" | "createdAt" | "updatedAt" | "lastOpenedAt", ExtArgs["result"]["desktopWorkspace"]>
+export type DesktopWorkspaceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "path" | "linkedProjectId" | "linkedBrandId" | "syncPolicy" | "fileIndex" | "indexingState" | "localDraftCount" | "pendingSyncCount" | "createdAt" | "updatedAt" | "lastOpenedAt", ExtArgs["result"]["desktopWorkspace"]>
 
 export type $DesktopWorkspacePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "DesktopWorkspace"
@@ -567,6 +607,8 @@ export type $DesktopWorkspacePayload<ExtArgs extends runtime.Types.Extensions.In
     name: string
     path: string
     linkedProjectId: string | null
+    linkedBrandId: string | null
+    syncPolicy: string
     fileIndex: string
     indexingState: string
     localDraftCount: number
@@ -1001,6 +1043,8 @@ export interface DesktopWorkspaceFieldRefs {
   readonly name: Prisma.FieldRef<"DesktopWorkspace", 'String'>
   readonly path: Prisma.FieldRef<"DesktopWorkspace", 'String'>
   readonly linkedProjectId: Prisma.FieldRef<"DesktopWorkspace", 'String'>
+  readonly linkedBrandId: Prisma.FieldRef<"DesktopWorkspace", 'String'>
+  readonly syncPolicy: Prisma.FieldRef<"DesktopWorkspace", 'String'>
   readonly fileIndex: Prisma.FieldRef<"DesktopWorkspace", 'String'>
   readonly indexingState: Prisma.FieldRef<"DesktopWorkspace", 'String'>
   readonly localDraftCount: Prisma.FieldRef<"DesktopWorkspace", 'Int'>

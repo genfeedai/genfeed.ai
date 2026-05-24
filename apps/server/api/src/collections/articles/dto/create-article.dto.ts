@@ -1,10 +1,10 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ArticleCategory, ArticleStatus, AssetScope } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsDateString,
   IsEnum,
-  IsMongoId,
   IsOptional,
   IsString,
   Matches,
@@ -74,7 +74,7 @@ export class CreateArticleDto {
   })
   @IsOptional()
   @IsArray()
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   tags?: string[];
 
   @ApiProperty({
@@ -82,7 +82,7 @@ export class CreateArticleDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   banner?: string;
 
   @ApiProperty({

@@ -197,7 +197,7 @@ export default function MasonryImage({
         tabIndex={0}
         data-testid={`masonry-ingredient-${image.id}`}
         className={cn(
-          'relative h-full w-full cursor-pointer overflow-hidden border border-white/[0.08] bg-card transition-[border-color,background-color] duration-200 hover:border-white/[0.14]',
+          'relative size-full cursor-pointer overflow-hidden border border-white/[0.08] bg-card transition-[border-color,background-color] duration-200 hover:border-white/[0.14]',
           isDarkroomLocked && 'cursor-not-allowed',
           MASONRY_TILE_RADIUS_CLASS,
         )}
@@ -234,7 +234,7 @@ export default function MasonryImage({
           width={metadata?.width || 1080}
           height={metadata?.height || 1920}
           className={cn(
-            'w-full h-full transition-opacity duration-300',
+            'size-full transition-opacity duration-300',
             (isProcessing || isDarkroomLocked) && 'blur-sm',
             isSquare ? 'object-cover object-center' : 'object-contain',
             isLoading ? 'opacity-0' : 'opacity-100',
@@ -269,6 +269,7 @@ export default function MasonryImage({
       {isProcessing && (
         <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none rounded-lg bg-black/20 backdrop-blur-sm">
           <div
+            role="presentation"
             className="pointer-events-auto"
             onClick={(e) => e.stopPropagation()}
           >
@@ -447,6 +448,7 @@ function QuickActionsWrapper({
 }: QuickActionsWrapperProps): React.ReactElement {
   return (
     <div
+      role="presentation"
       className="quick-actions-wrapper flex items-center gap-2"
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}

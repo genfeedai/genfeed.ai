@@ -100,10 +100,7 @@ export class AgentCampaignsController extends BaseCRUDController<
     return this.executionService.getStatus(id, organizationId);
   }
 
-  public buildFindAllPipeline(
-    user: User,
-    query: AgentCampaignsQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: AgentCampaignsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
@@ -123,12 +120,10 @@ export class AgentCampaignsController extends BaseCRUDController<
       match.status = query.status;
     }
 
-    const pipeline: Record<string, unknown>[] = [
-      { $match: match },
-      { $sort: handleQuerySort(query.sort) },
-    ];
-
-    return pipeline;
+    return {
+      orderBy: handleQuerySort(query.sort),
+      where: match,
+    };
   }
 
   public canUserModifyEntity(

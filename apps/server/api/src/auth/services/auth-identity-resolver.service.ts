@@ -25,6 +25,10 @@ function getEntityId(
   return getRecordId(record, '_id') || getRecordId(record, 'id');
 }
 
+function asMemberRecord(member: MemberDocument): Record<string, unknown> {
+  return member as unknown as Record<string, unknown>;
+}
+
 @Injectable()
 export class AuthIdentityResolverService {
   constructor(
@@ -88,6 +92,10 @@ export class AuthIdentityResolverService {
         isDeleted: false,
       })) ??
       (await this.organizationsService.findOne({
+        clerkOrganizationId: organizationCandidate,
+        isDeleted: false,
+      })) ??
+      (await this.organizationsService.findOne({
         isDeleted: false,
         mongoId: organizationCandidate,
       }));
@@ -102,8 +110,8 @@ export class AuthIdentityResolverService {
 
     const isMember = members.some((member) => {
       const memberOrganizationId =
-        getRecordId(member as Record<string, unknown>, 'organizationId') ||
-        getRecordId(member as Record<string, unknown>, 'organization');
+        getRecordId(asMemberRecord(member), 'organizationId') ||
+        getRecordId(asMemberRecord(member), 'organization');
 
       return memberOrganizationId === resolvedOrganizationId;
     });
@@ -119,7 +127,19 @@ export class AuthIdentityResolverService {
     publicMetadata: Partial<IClerkPublicMetadata>,
     userId: string,
     members: MemberDocument[],
+    clerkOrgId?: string,
   ): Promise<OrganizationDocument | null> {
+    if (clerkOrgId) {
+      const orgFromClerk = await this.findAccessibleOrganization(
+        clerkOrgId,
+        userId,
+        members,
+      );
+      if (orgFromClerk) {
+        return orgFromClerk;
+      }
+    }
+
     const organizationCandidate =
       typeof publicMetadata.organization === 'string'
         ? publicMetadata.organization
@@ -148,8 +168,8 @@ export class AuthIdentityResolverService {
 
     for (const member of members) {
       const memberOrganizationId =
-        getRecordId(member as Record<string, unknown>, 'organizationId') ||
-        getRecordId(member as Record<string, unknown>, 'organization');
+        getRecordId(asMemberRecord(member), 'organizationId') ||
+        getRecordId(asMemberRecord(member), 'organization');
 
       if (!memberOrganizationId) {
         continue;
@@ -201,8 +221,8 @@ export class AuthIdentityResolverService {
 
     const memberForOrganization = members.find((member) => {
       const memberOrganizationId =
-        getRecordId(member as Record<string, unknown>, 'organizationId') ||
-        getRecordId(member as Record<string, unknown>, 'organization');
+        getRecordId(asMemberRecord(member), 'organizationId') ||
+        getRecordId(asMemberRecord(member), 'organization');
 
       return memberOrganizationId === organizationId;
     });
@@ -237,7 +257,10 @@ export class AuthIdentityResolverService {
     });
   }
 
-  async resolve(user: User): Promise<{
+  async resolve(
+    user: User,
+    options?: { clerkOrgId?: string },
+  ): Promise<{
     brandId?: string;
     clerkUserId: string;
     organizationId?: string;
@@ -261,6 +284,7 @@ export class AuthIdentityResolverService {
       publicMetadata,
       resolvedUser.userId,
       members,
+      options?.clerkOrgId,
     );
     const organizationId =
       getEntityId(organization as Record<string, unknown> | null | undefined) ||

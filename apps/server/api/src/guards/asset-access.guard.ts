@@ -53,8 +53,10 @@ export class AssetAccessGuard implements CanActivate {
       throw new NotFoundException('Asset not found');
     }
 
+    const assetScope = asset.scope ?? AssetScope.USER;
+
     // PUBLIC scope → Everyone can access
-    if (asset.scope === AssetScope.PUBLIC) {
+    if (assetScope === AssetScope.PUBLIC) {
       return true;
     }
 
@@ -64,19 +66,10 @@ export class AssetAccessGuard implements CanActivate {
     }
 
     // Check permissions based on scope
-    switch (asset.scope) {
+    switch (assetScope) {
       case AssetScope.ORGANIZATION: {
-        // First check if user is the owner (creator has full access)
-        // asset.user can be either a populated User object or just an ObjectId
-        const assetUserClerkId =
-          typeof asset.user === 'object' &&
-          'clerkId' in asset.user &&
-          asset.user?.clerkId
-            ? asset.user.clerkId
-            : null;
-
-        const assetUserObjectId =
-          asset.user?._id?.toString() || asset.user?.toString();
+        const assetUserClerkId = this.getRefClerkId(asset.user);
+        const assetUserObjectId = this.getRefId(asset.user);
 
         if (
           assetUserClerkId === user.id ||
@@ -87,10 +80,7 @@ export class AssetAccessGuard implements CanActivate {
 
         // Then check organization membership
         // asset.organization can be either a populated Organization object or just an ObjectId
-        const assetOrgId =
-          typeof asset.organization === 'object' && asset.organization?._id
-            ? asset.organization._id.toString()
-            : asset.organization?.toString();
+        const assetOrgId = this.getRefId(asset.organization);
         const userOrgId = user.publicMetadata?.organization?.toString();
 
         if (assetOrgId && userOrgId && assetOrgId === userOrgId) {
@@ -103,16 +93,8 @@ export class AssetAccessGuard implements CanActivate {
       }
 
       case AssetScope.BRAND: {
-        // First check if user is the owner (creator has full access)
-        // asset.user can be either a populated User object or just an ObjectId
-        const brandAssetUserClerkId =
-          typeof asset.user === 'object' &&
-          'clerkId' in asset.user &&
-          asset.user?.clerkId
-            ? asset.user.clerkId
-            : null;
-        const brandAssetUserObjectId =
-          asset.user?._id?.toString() || asset.user?.toString();
+        const brandAssetUserClerkId = this.getRefClerkId(asset.user);
+        const brandAssetUserObjectId = this.getRefId(asset.user);
 
         if (
           brandAssetUserClerkId === user.id ||
@@ -123,10 +105,7 @@ export class AssetAccessGuard implements CanActivate {
 
         // Then check brand membership
         // asset.brand can be either a populated Brand object or just an ObjectId
-        const assetBrandId =
-          typeof asset.brand === 'object' && asset.brand?._id
-            ? asset.brand._id.toString()
-            : asset.brand?.toString();
+        const assetBrandId = this.getRefId(asset.brand);
         const userBrandId = user.publicMetadata?.brand?.toString();
 
         if (assetBrandId && userBrandId && assetBrandId === userBrandId) {
@@ -139,16 +118,8 @@ export class AssetAccessGuard implements CanActivate {
       }
 
       case AssetScope.USER: {
-        // asset.user can be either a populated User object or just an ObjectId
-        const userAssetUserClerkId =
-          typeof asset.user === 'object' &&
-          'clerkId' in asset.user &&
-          asset.user?.clerkId
-            ? asset.user.clerkId
-            : null;
-
-        const userAssetUserObjectId =
-          asset.user?._id?.toString() || asset.user?.toString();
+        const userAssetUserClerkId = this.getRefClerkId(asset.user);
+        const userAssetUserObjectId = this.getRefId(asset.user);
 
         if (
           userAssetUserClerkId === user.id ||
@@ -163,5 +134,25 @@ export class AssetAccessGuard implements CanActivate {
       default:
         throw new ForbiddenException('Invalid asset scope');
     }
+  }
+
+  private getRefId(
+    ref: string | { _id?: string; id?: string } | null | undefined,
+  ): string | undefined {
+    if (typeof ref === 'string') {
+      return ref;
+    }
+
+    return ref?._id?.toString() ?? ref?.id?.toString();
+  }
+
+  private getRefClerkId(
+    ref: string | { clerkId?: string | null } | null | undefined,
+  ): string | undefined {
+    if (typeof ref === 'string') {
+      return undefined;
+    }
+
+    return ref?.clerkId ?? undefined;
   }
 }

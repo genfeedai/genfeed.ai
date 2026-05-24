@@ -18,11 +18,16 @@ import type {
 } from '@genfeedai/types';
 import { DEFAULT_AGENT_RUN_TIME_RANGE } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 type AgentRunStatsSummary = Omit<
   AgentRunStats,
-  'anomalies' | 'routingPaths' | 'timeRange' | 'trends'
+  | 'anomalies'
+  | 'routingPaths'
+  | 'timeRange'
+  | 'topActualModels'
+  | 'topRequestedModels'
+  | 'trends'
 >;
 
 type AgentRunTrendAggregateRow = {
@@ -160,6 +165,62 @@ export class AgentRunsService extends BaseService<
     public readonly logger: LoggerService,
   ) {
     super(prisma, 'agentRun', logger);
+  }
+
+  /**
+   * Override create to prevent body-supplied organizationId from being trusted.
+   * organizationId MUST be derived from authenticated context before calling this method.
+   * The caller (controller) is responsible for stripping body-supplied org and injecting
+   * the auth-derived value; this override validates the result is present.
+   */
+  override async create(
+    createDto: CreateAgentRunDto,
+  ): Promise<AgentRunDocument> {
+    const dto = createDto as CreateAgentRunDto & Record<string, unknown>;
+    const organizationId = dto.organizationId as string | undefined;
+
+    if (!organizationId) {
+      throw new NotFoundException('Organization context is required');
+    }
+
+    // Ensure the org field in the DTO comes only from the validated value above —
+    // strip any raw 'organization' field that may have leaked from the request body.
+    delete dto.organization;
+
+    return super.create(createDto) as Promise<AgentRunDocument>;
+  }
+
+  /**
+   * Override findOne to enforce org-scoped lookup.
+   * Pass { id, organizationId, isDeleted: false } as params.
+   */
+  override async findOne(
+    params: Record<string, unknown>,
+  ): Promise<AgentRunDocument | null> {
+    const id = params.id ?? params._id;
+    const organizationId = params.organizationId;
+
+    if (!organizationId) {
+      // Fall back to unscoped only when explicitly omitted (e.g. internal admin lookups).
+      // All user-facing paths must include organizationId.
+      this.logger?.warn(
+        'AgentRunsService.findOne called without organizationId',
+        {
+          params,
+        },
+      );
+    }
+
+    const scopedParams: Record<string, unknown> = {
+      ...params,
+      isDeleted: params.isDeleted ?? false,
+    };
+
+    if (id) {
+      scopedParams._id = id;
+    }
+
+    return super.findOne(scopedParams) as Promise<AgentRunDocument | null>;
   }
 
   @HandleErrors('start agent run', 'agent-runs')
@@ -446,6 +507,50 @@ export class AgentRunsService extends BaseService<
       topRequestedModels: [],
       trends: [],
     };
+  }
+
+  @HandleErrors('get batch with content', 'agent-runs')
+  async getBatchWithContent(
+    ids: string[],
+    organizationId: string,
+  ): Promise<
+    Array<{ id: string; threadId: string | null; contentCount: number }>
+  > {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const [runs, postGroups, ingredientGroups] = await Promise.all([
+      this.prisma.agentRun.findMany({
+        select: { id: true, threadId: true },
+        where: { id: { in: ids }, isDeleted: false, organizationId },
+      }),
+      this.prisma.post.groupBy({
+        by: ['agentRunId'],
+        where: { agentRunId: { in: ids }, isDeleted: false, organizationId },
+        _count: true,
+      }),
+      this.prisma.ingredient.groupBy({
+        by: ['agentRunId'],
+        where: { agentRunId: { in: ids }, isDeleted: false, organizationId },
+        _count: true,
+      }),
+    ]);
+
+    const postCountByRunId = new Map<string, number>(
+      postGroups.map((g) => [g.agentRunId as string, g._count]),
+    );
+    const ingredientCountByRunId = new Map<string, number>(
+      ingredientGroups.map((g) => [g.agentRunId as string, g._count]),
+    );
+
+    return runs.map((run) => ({
+      contentCount:
+        (postCountByRunId.get(run.id) ?? 0) +
+        (ingredientCountByRunId.get(run.id) ?? 0),
+      id: run.id,
+      threadId: run.threadId ?? null,
+    }));
   }
 
   @HandleErrors('get run content', 'agent-runs')

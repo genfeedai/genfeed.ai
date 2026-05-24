@@ -19,12 +19,19 @@
       "!**/bun.lock",
       "!**/.env",
       "!**/.env.*",
+      "!**/next-env.d.ts",
       "!**/.agents",
       "!**/.agents",
       "!.agents",
       "!.worktrees",
-      "!.shipcode"
+      "!.shipcode",
+      "!.clawpatch"
     ]
+  },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
   },
   "assist": {
     "actions": {
@@ -37,6 +44,11 @@
     "enabled": true,
     "indentStyle": "space",
     "indentWidth": 2
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
   },
   "javascript": {
     "formatter": {
@@ -96,6 +108,23 @@
       },
       "linter": {
         "enabled": false
+      }
+    },
+    {
+      "includes": [
+        "ee/packages/**/*.{controller,service,module,resolver,guard,interceptor,pipe,middleware,filter}.ts"
+      ],
+      "javascript": {
+        "parser": {
+          "unsafeParameterDecoratorsEnabled": true
+        }
+      },
+      "linter": {
+        "rules": {
+          "style": {
+            "useImportType": "off"
+          }
+        }
       }
     },
     {

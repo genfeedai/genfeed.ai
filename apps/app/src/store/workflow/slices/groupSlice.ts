@@ -1,3 +1,8 @@
+import {
+  findGroupContainingNodeId,
+  mergeIds,
+  removeIds,
+} from '@genfeedai/workflow-ui/lib';
 import type { StateCreator } from 'zustand';
 import type { GroupColor, NodeGroup } from '@/types/groups';
 import { DEFAULT_GROUP_COLORS } from '@/types/groups';
@@ -25,9 +30,7 @@ export const createGroupSlice: StateCreator<
   addToGroup: (groupId, nodeIds) => {
     set((state) => ({
       groups: state.groups.map((g) =>
-        g.id === groupId
-          ? { ...g, nodeIds: [...new Set([...g.nodeIds, ...nodeIds])] }
-          : g,
+        g.id === groupId ? { ...g, nodeIds: mergeIds(g.nodeIds, nodeIds) } : g,
       ),
       isDirty: true,
     }));
@@ -67,15 +70,13 @@ export const createGroupSlice: StateCreator<
   },
 
   getGroupByNodeId: (nodeId) => {
-    return get().groups.find((g) => g.nodeIds.includes(nodeId));
+    return findGroupContainingNodeId(get().groups, nodeId);
   },
 
   removeFromGroup: (groupId, nodeIds) => {
     set((state) => ({
       groups: state.groups.map((g) =>
-        g.id === groupId
-          ? { ...g, nodeIds: g.nodeIds.filter((id) => !nodeIds.includes(id)) }
-          : g,
+        g.id === groupId ? { ...g, nodeIds: removeIds(g.nodeIds, nodeIds) } : g,
       ),
       isDirty: true,
     }));

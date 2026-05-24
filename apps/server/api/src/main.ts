@@ -6,14 +6,15 @@ bootstrap({ app: 'api' });
 
 import { timingSafeEqual } from 'node:crypto';
 import { join } from 'node:path';
+import process from 'node:process';
 import { AppModule } from '@api/app.module';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { ConfigService } from '@api/config/config.service';
 import { DocsService } from '@api/endpoints/docs/docs.service';
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
+import { DatabaseExceptionFilter } from '@api/helpers/filters/database-exception/database-exception.filter';
+import { DatabaseValidationExceptionFilter } from '@api/helpers/filters/database-validation-exception/database-validation-exception.filter';
 import { HttpExceptionFilter } from '@api/helpers/filters/http-exception/http-exception.filter';
-import { MongoExceptionFilter } from '@api/helpers/filters/mongo-exception/mongo-exception.filter';
-import { MongoValidationExceptionFilter } from '@api/helpers/filters/mongo-validation-exception/mongo-validation-exception.filter';
 import {
   APIMetricsInterceptor,
   PerformanceInterceptor,
@@ -162,7 +163,7 @@ async function main() {
 
     app.use(
       compression({
-        filter: (req, res) => {
+        filter: (req: Request, res: Response) => {
           if (req.headers['x-no-compression']) {
             return false;
           }
@@ -173,13 +174,7 @@ async function main() {
       }),
     );
 
-    app.useGlobalPipes(
-      new ValidationPipe({
-        forbidNonWhitelisted: true,
-        transform: true,
-        whitelist: true,
-      }),
-    );
+    app.useGlobalPipes(new ValidationPipe());
     app.useLogger(logger);
 
     // Get optional services
@@ -201,9 +196,9 @@ async function main() {
 
     app.useGlobalFilters(new AllExceptionFilter(logger, configService));
     app.useGlobalFilters(new HttpExceptionFilter(logger, configService));
-    app.useGlobalFilters(new MongoExceptionFilter(logger, configService));
+    app.useGlobalFilters(new DatabaseExceptionFilter(logger, configService));
     app.useGlobalFilters(
-      new MongoValidationExceptionFilter(logger, configService),
+      new DatabaseValidationExceptionFilter(logger, configService),
     );
 
     // Bull Board setup

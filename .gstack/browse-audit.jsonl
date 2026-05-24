@@ -1,0 +1,5 @@
+{"ts":"2026-05-11T20:59:52.631Z","cmd":"goto","args":"http://localhost:3000","origin":"about:blank","durationMs":15093,"status":"error","hasCookies":false,"mode":"launched","error":"goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localhost:3000/\", waiting until \"domcontentloaded\"\n"}
+{"ts":"2026-05-11T20:59:56.868Z","cmd":"goto","args":"http://localhost:3000","origin":"http://localhost:3000/login","durationMs":165,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-11T21:00:01.077Z","cmd":"console","args":"--errors","origin":"http://localhost:3000/login","durationMs":8,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-11T21:00:08.063Z","cmd":"text","args":"","origin":"http://localhost:3000/login","durationMs":2,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-11T21:00:17.412Z","cmd":"network","args":"","origin":"http://localhost:3000/login","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}

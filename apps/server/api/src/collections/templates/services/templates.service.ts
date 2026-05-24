@@ -271,7 +271,7 @@ export class TemplatesService {
 
       // Fill in variables
       let generatedContent = this.fillVariables(
-        template.content,
+        template.content ?? '',
         dto.variables,
       );
 
@@ -371,12 +371,17 @@ export class TemplatesService {
 
     const results = await this.prisma.template.findMany({
       include: { metadata: true },
-      orderBy: [{ rating: 'desc' }, { usageCount: 'desc' }],
+      orderBy: { createdAt: 'desc' },
       take: limit,
       where: where as never,
     });
 
-    return results as unknown as Template[];
+    return (results as unknown as Template[]).sort((left, right) => {
+      const leftScore = (left.rating ?? 0) * 0.3 + (left.usageCount ?? 0) * 0.7;
+      const rightScore =
+        (right.rating ?? 0) * 0.3 + (right.usageCount ?? 0) * 0.7;
+      return rightScore - leftScore;
+    });
   }
 
   /**
@@ -636,8 +641,8 @@ Score 0-100. Include top 5 only.`;
       // Fallback: sort by usage and rating
       return templates
         .sort((a, b) => {
-          const scoreA = a.usageCount * 0.7 + a.rating * 0.3;
-          const scoreB = b.usageCount * 0.7 + b.rating * 0.3;
+          const scoreA = (a.usageCount ?? 0) * 0.7 + (a.rating ?? 0) * 0.3;
+          const scoreB = (b.usageCount ?? 0) * 0.7 + (b.rating ?? 0) * 0.3;
           return scoreB - scoreA;
         })
         .slice(0, 5)

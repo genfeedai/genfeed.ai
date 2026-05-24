@@ -17,7 +17,7 @@ export default function ActiveRunsPanel({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
+        <span className="size-2 animate-pulse rounded-full bg-blue-500" />
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Active Runs
         </h2>

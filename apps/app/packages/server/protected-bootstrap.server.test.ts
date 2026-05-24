@@ -45,6 +45,8 @@ describe('loadProtectedBootstrap', () => {
     vi.clearAllMocks();
     vi.resetModules();
     delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
+    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
     process.env.CLERK_SECRET_KEY = 'sk_test';
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test';
     delete process.env.PLAYWRIGHT_TEST;
@@ -141,12 +143,47 @@ describe('loadProtectedBootstrap', () => {
     expect(getInstanceMock).not.toHaveBeenCalled();
   });
 
-  it('returns no token when server auth throws', async () => {
+  it('falls back to self-hosted bootstrap when server auth throws in hybrid mode', async () => {
     vi.doMock('@clerk/nextjs/server', () => ({
       auth: vi.fn(async () => {
         throw new Error('auth middleware missing');
       }),
     }));
+
+    const { getServerAuthToken, loadProtectedBootstrap } = await import(
+      '@app-server/protected-bootstrap.server'
+    );
+
+    await expect(getServerAuthToken()).resolves.toBe('');
+    await expect(loadProtectedBootstrap()).resolves.toEqual(
+      expect.objectContaining({
+        brandId: 'brand_123',
+        organizationId: 'org_123',
+      }),
+    );
+    expect(getInstanceMock).toHaveBeenCalledWith('');
+  });
+
+  it('returns null when server auth throws in cloud mode', async () => {
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+    vi.doMock('@clerk/nextjs/server', () => ({
+      auth: vi.fn(async () => {
+        throw new Error('auth middleware missing');
+      }),
+    }));
+
+    const { getServerAuthToken, loadProtectedBootstrap } = await import(
+      '@app-server/protected-bootstrap.server'
+    );
+
+    await expect(getServerAuthToken()).resolves.toBe('');
+    await expect(loadProtectedBootstrap()).resolves.toBeNull();
+    expect(getInstanceMock).not.toHaveBeenCalled();
+  });
+
+  it('skips cloud bootstrap in desktop shell mode without a desktop session token', async () => {
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
+    getTokenMock.mockResolvedValue('');
 
     const { getServerAuthToken, loadProtectedBootstrap } = await import(
       '@app-server/protected-bootstrap.server'

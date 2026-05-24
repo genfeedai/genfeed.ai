@@ -52,6 +52,12 @@ export default function Datepicker({
 }: DatepickerProps) {
   const [open, setOpen] = useState(false);
   const selectedDate = parseDate(value);
+  const disabledDays = [
+    minDate ? { before: minDate } : null,
+    maxDate ? { after: maxDate } : null,
+  ].filter((matcher): matcher is { before: Date } | { after: Date } =>
+    Boolean(matcher),
+  );
 
   const handleSelect = (date: Date | undefined) => {
     onChange(date ?? null);
@@ -71,7 +77,7 @@ export default function Datepicker({
               className,
             )}
           >
-            <HiCalendarDays className="mr-2 h-4 w-4" />
+            <HiCalendarDays className="mr-2 size-4" />
             {selectedDate ? format(selectedDate, dateFormat) : placeholderText}
           </Button>
         </PopoverTrigger>
@@ -80,13 +86,12 @@ export default function Datepicker({
             mode="single"
             selected={selectedDate}
             onSelect={handleSelect}
-            fromDate={minDate}
-            toDate={maxDate}
+            startMonth={minDate}
+            endMonth={maxDate}
             captionLayout={
               showYearDropdown && showMonthDropdown ? 'dropdown' : 'label'
             }
-            disabled={isDisabled}
-            initialFocus
+            disabled={isDisabled || disabledDays}
           />
         </PopoverContent>
       </Popover>

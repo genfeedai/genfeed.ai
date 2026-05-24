@@ -1,0 +1,50 @@
+# Build outputs
+**/dist/
+**/build/
+**/.next/
+**/.nuxt/
+**/.output/
+**/out/
+
+# Dependencies
+**/node_modules/
+
+# Caches
+**/.cache/
+**/.turbo/
+**/.vite/
+**/.parcel-cache/
+**/.eslintcache/
+**/.swc/
+
+# Logs
+**/*.log
+**/logs/
+
+# OS
+**/.DS_Store
+**/Thumbs.db
+
+# IDE
+**/.vscode/
+**/.idea/
+
+# Temp
+**/tmp/
+**/temp/
+
+# Test coverage
+**/coverage/
+**/.nyc_output/
+
+# TypeScript incremental
+**/*.tsbuildinfo
+
+# Vercel
+**/.vercel/
+
+# Bun
+**/.bun/
+
+# Prisma generated
+**/generated/

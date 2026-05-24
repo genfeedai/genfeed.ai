@@ -1,7 +1,6 @@
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
 
 describe('TrendPreferencesService', () => {
   let service: TrendPreferencesService;
@@ -12,10 +11,16 @@ describe('TrendPreferencesService', () => {
       update: ReturnType<typeof vi.fn>;
     };
   };
+  let loggerService: {
+    debug: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
+    log: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
   const organizationId = '507f1f77bcf86cd799439011';
   const brandId = '507f1f77bcf86cd799439022';
 
-  beforeEach(async () => {
+  beforeEach(() => {
     prisma = {
       trendPreferences: {
         create: vi.fn(),
@@ -23,27 +28,16 @@ describe('TrendPreferencesService', () => {
         update: vi.fn(),
       },
     };
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TrendPreferencesService,
-        {
-          provide: PrismaService,
-          useValue: prisma,
-        },
-        {
-          provide: LoggerService,
-          useValue: {
-            debug: vi.fn(),
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
-        },
-      ],
-    }).compile();
-
-    service = module.get<TrendPreferencesService>(TrendPreferencesService);
+    loggerService = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
+    service = new TrendPreferencesService(
+      prisma as unknown as PrismaService,
+      loggerService as unknown as LoggerService,
+    );
     vi.clearAllMocks();
   });
 
@@ -58,7 +52,12 @@ describe('TrendPreferencesService', () => {
 
       const result = await service.getPreferences(organizationId);
 
-      expect(result).toEqual(mockPrefs);
+      expect(result).toEqual({
+        categories: ['tech'],
+        hashtags: [],
+        keywords: ['ai'],
+        platforms: [],
+      });
       expect(prisma.trendPreferences.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -75,7 +74,13 @@ describe('TrendPreferencesService', () => {
 
       const result = await service.getPreferences(organizationId, brandId);
 
-      expect(result).toEqual(mockPrefs);
+      expect(result).toEqual({
+        brandId: 'brand1',
+        categories: ['fashion'],
+        hashtags: [],
+        keywords: [],
+        platforms: [],
+      });
       expect(prisma.trendPreferences.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -94,7 +99,12 @@ describe('TrendPreferencesService', () => {
 
       const result = await service.getPreferences(organizationId, brandId);
 
-      expect(result).toEqual(orgPrefs);
+      expect(result).toEqual({
+        categories: ['general'],
+        hashtags: [],
+        keywords: [],
+        platforms: [],
+      });
       expect(prisma.trendPreferences.findFirst).toHaveBeenCalledTimes(2);
       expect(prisma.trendPreferences.findFirst).toHaveBeenNthCalledWith(
         2,
@@ -141,13 +151,22 @@ describe('TrendPreferencesService', () => {
       expect(prisma.trendPreferences.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            categories: ['tech'],
-            keywords: ['ai'],
+            config: {
+              categories: ['tech'],
+              hashtags: [],
+              keywords: ['ai'],
+              platforms: [],
+            },
           }),
           where: { id: 'pref-1' },
         }),
       );
-      expect(result).toEqual(updatedDoc);
+      expect(result).toEqual({
+        categories: ['tech'],
+        hashtags: [],
+        keywords: ['ai'],
+        platforms: [],
+      });
     });
 
     it('should create new preferences when none exist', async () => {
@@ -164,11 +183,22 @@ describe('TrendPreferencesService', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             brandId: null,
+            config: {
+              categories: ['tech'],
+              hashtags: [],
+              keywords: ['ai'],
+              platforms: [],
+            },
             organizationId,
           }),
         }),
       );
-      expect(result).toEqual(createdDoc);
+      expect(result).toEqual({
+        categories: ['tech'],
+        hashtags: [],
+        keywords: ['ai'],
+        platforms: [],
+      });
     });
 
     it('should create brand-scoped preferences when brandId is provided', async () => {
@@ -184,6 +214,12 @@ describe('TrendPreferencesService', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             brandId,
+            config: {
+              categories: ['tech'],
+              hashtags: [],
+              keywords: [],
+              platforms: [],
+            },
             organizationId,
           }),
         }),

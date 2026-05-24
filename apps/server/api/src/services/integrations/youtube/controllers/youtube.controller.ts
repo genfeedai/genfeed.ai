@@ -36,6 +36,10 @@ import type { Request } from 'express';
 export class YoutubeController {
   private readonly constructorName: string = String(this.constructor.name);
 
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
   constructor(
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
@@ -136,7 +140,17 @@ export class YoutubeController {
       }
 
       const { brandId, organizationId } = JSON.parse(state);
-      const { tokens } = await this.youtubeService.exchangeCodeForTokens(code);
+      const tokenResponse =
+        await this.youtubeService.exchangeCodeForTokens(code);
+      const tokens = this.isPlainObject(tokenResponse)
+        ? ((tokenResponse.tokens ?? {}) as {
+            access_token?: string;
+            expiry_date?: number;
+            refresh_token?: string;
+            scope?: string;
+            token_type?: string;
+          })
+        : {};
 
       // Find and update the existing credential
       const existingCredential = await this.credentialsService.findOne({
@@ -218,16 +232,19 @@ export class YoutubeController {
           access_token: tokens.access_token,
           expiry_date: tokens.expiry_date,
           refresh_token: tokens.refresh_token,
-          token_type: tokens.token_type,
         });
 
         // Pass the per-request auth client to avoid race conditions
-        const { id: externalId, title: externalHandle } =
-          await this.youtubeService.getChannelDetails(
-            organizationId,
-            brandId,
-            oauth2Client, // Pass per-request client
-          );
+        const channelDetails = (await this.youtubeService.getChannelDetails(
+          organizationId,
+          brandId,
+          oauth2Client,
+        )) as {
+          id?: string;
+          title?: string;
+        };
+        const externalId = channelDetails.id;
+        const externalHandle = channelDetails.title;
 
         credential = await this.credentialsService.patch(credential._id, {
           externalHandle,

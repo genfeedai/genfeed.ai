@@ -2,7 +2,7 @@
 
 import type { NodeType, WorkflowNodeData } from '@genfeedai/types';
 import Image from 'next/image';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { getMediaFromNode } from '../lib/mediaExtraction';
 
@@ -52,7 +52,6 @@ export function PreviewTooltip({
   anchorRect,
   isVisible,
 }: PreviewTooltipProps) {
-  const [mounted, setMounted] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   // Get media info
@@ -67,13 +66,13 @@ export function PreviewTooltip({
   }, [anchorRect]);
 
   // Handle mounting for portal
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
   // Don't render if no media or not visible
-  if (!mounted || !isVisible || !mediaInfo.url || !position) {
+  if (
+    typeof document === 'undefined' ||
+    !isVisible ||
+    !mediaInfo.url ||
+    !position
+  ) {
     return null;
   }
 
@@ -98,6 +97,7 @@ export function PreviewTooltip({
               alt="Preview"
               fill
               className="object-contain"
+              sizes="280px"
               unoptimized
             />
           )}
@@ -108,7 +108,7 @@ export function PreviewTooltip({
               muted
               loop
               playsInline
-              className="w-full h-full object-contain"
+              className="size-full object-contain"
             />
           )}
         </div>
@@ -122,7 +122,7 @@ export function PreviewTooltip({
 
         {/* Arrow indicator */}
         <div
-          className={`absolute left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-transparent ${
+          className={`absolute left-1/2 -translate-x-1/2 size-0 border-l-8 border-r-8 border-transparent ${
             position.placement === 'top'
               ? 'bottom-[-8px] border-t-8 border-t-border'
               : 'top-[-8px] border-b-8 border-b-border'

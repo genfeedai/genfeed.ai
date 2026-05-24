@@ -6,6 +6,8 @@ import type {
   IConfirmBrandDataRequest,
   IGeneratePreviewResponse,
   IPost,
+  OnboardingAccessMode,
+  OnboardingRuntimeAccessMode,
 } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
@@ -66,6 +68,13 @@ export interface ProactiveWorkspaceResponse {
 }
 
 export interface InstallReadinessResponse {
+  access: {
+    byokConfiguredProviders: string[];
+    byokEnabled: boolean;
+    runtimeMode: OnboardingRuntimeAccessMode;
+    selectedMode: OnboardingAccessMode | null;
+    serverDefaultsReady: boolean;
+  };
   authMode: 'clerk' | 'none';
   billingMode: 'cloud_billing' | 'oss_local';
   localTools: {
@@ -107,8 +116,6 @@ export interface InstallReadinessResponse {
  * - Skip onboarding
  */
 export class OnboardingService extends HTTPBaseService {
-  private static instanceMap = new Map<string, OnboardingService>();
-
   constructor(token: string) {
     super(
       `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.ONBOARDING}`,
@@ -120,14 +127,7 @@ export class OnboardingService extends HTTPBaseService {
    * Get singleton instance per token
    */
   public static getInstance(token: string): OnboardingService {
-    const existing = OnboardingService.instanceMap.get(token);
-    if (existing) {
-      return existing;
-    }
-
-    const instance = new OnboardingService(token);
-    OnboardingService.instanceMap.set(token, instance);
-    return instance;
+    return HTTPBaseService.getBaseServiceInstance(OnboardingService, token);
   }
 
   /**

@@ -1,7 +1,8 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsEnum, IsMongoId, IsOptional } from 'class-validator';
+import { IsDateString, IsEnum, IsOptional } from 'class-validator';
 
 export class PostsQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -49,6 +50,6 @@ export class PostsQueryDto extends BaseQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   credential?: string;
 }

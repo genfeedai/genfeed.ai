@@ -12,17 +12,17 @@ import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-ke
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { CombinedAuthGuard } from '@api/helpers/guards/combined-auth/combined-auth.guard';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [ShopifyController, CreditProvisionController],
   imports: [
-    ApiKeysModule,
-    BrandsModule,
-    ConfigModule,
-    CreditsModule,
-    OrganizationsModule,
-    UsersModule,
+    forwardRef(() => ApiKeysModule),
+    forwardRef(() => BrandsModule),
+    forwardRef(() => ConfigModule),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => OrganizationsModule),
+    forwardRef(() => UsersModule),
   ],
   providers: [AdminApiKeyGuard, ApiKeyAuthGuard, ClerkGuard, CombinedAuthGuard],
 })

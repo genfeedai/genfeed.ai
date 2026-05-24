@@ -14,8 +14,8 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [BusinessAnalyticsController],
   exports: [BusinessAnalyticsService],
   imports: [
-    CommonModule,
     forwardRef(() => CacheModule),
+    CommonModule,
     forwardRef(() => StripeModule),
   ],
   providers: [BusinessAnalyticsService],

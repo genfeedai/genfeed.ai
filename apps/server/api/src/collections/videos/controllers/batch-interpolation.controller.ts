@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
@@ -33,6 +34,7 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
+import { hasInterpolation } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -104,10 +106,10 @@ export class BatchInterpolationController {
   ) {
     const publicMetadata = getPublicMetadata(user);
 
-    // Generate group ID to link all videos together
-    const groupId = '507f191e810c19729de860ee'.toString();
+    // Generate group ID to link all videos from this storyboard batch together.
+    const groupId = randomUUID();
 
-    // Validate model exists and supports interpolation
+    // Validate model exists.
     const model = await this.modelsService.findOne({
       isDeleted: false,
       key: dto.modelKey,
@@ -120,6 +122,21 @@ export class BatchInterpolationController {
           title: 'Model not found',
         },
         HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const modelHasInterpolation =
+      typeof model.hasInterpolation === 'boolean'
+        ? model.hasInterpolation
+        : hasInterpolation(dto.modelKey);
+
+    if (!modelHasInterpolation) {
+      throw new HttpException(
+        {
+          detail: `Model ${dto.modelKey} does not support start/end frame interpolation`,
+          title: 'Model does not support interpolation',
+        },
+        HttpStatus.BAD_REQUEST,
       );
     }
 
@@ -148,7 +165,7 @@ export class BatchInterpolationController {
       const lastPair = pairs[pairs.length - 1];
       const firstPair = pairs[0];
 
-      // Add loop-back pair: last frame's end → first frame's start
+      // Add loop-back pair: last frame's end to first frame's start.
       pairs.push({
         endImageId: firstPair.startImageId,
         prompt: dto.cameraPrompt || 'smooth transition back to start',
@@ -162,11 +179,11 @@ export class BatchInterpolationController {
       });
     }
 
-    const jobs: Array<{
+    type InterpolationJobResult = {
       id: string;
       pairIndex: number;
       status: string;
-    }> = [];
+    };
 
     const duration = dto.duration || 5;
     const cameraPrompt = dto.cameraPrompt || '';
@@ -190,10 +207,10 @@ export class BatchInterpolationController {
         break;
     }
 
-    // Process each pair
-    for (let i = 0; i < pairs.length; i++) {
-      const pair = pairs[i];
-
+    const processPair = async (
+      pair: InterpolationPairDto,
+      i: number,
+    ): Promise<InterpolationJobResult> => {
       try {
         // Build reference image URLs for start and end frames
         const [startFrameUrls, endFrameUrls] = await Promise.all([
@@ -225,12 +242,11 @@ export class BatchInterpolationController {
             startImageId: pair.startImageId,
           });
 
-          jobs.push({
+          return {
             id: '',
             pairIndex: i,
             status: 'failed',
-          });
-          continue;
+          };
         }
 
         // Build prompt: pair prompt > camera prompt > default
@@ -363,12 +379,6 @@ export class BatchInterpolationController {
             );
           }
 
-          jobs.push({
-            id: ingredientId,
-            pairIndex: i,
-            status: 'processing',
-          });
-
           this.loggerService.log('Interpolation job started', {
             generationId,
             groupId,
@@ -377,6 +387,12 @@ export class BatchInterpolationController {
             model: dto.modelKey,
             pairIndex: i,
           });
+
+          return {
+            id: ingredientId,
+            pairIndex: i,
+            status: 'processing',
+          };
         } else {
           // Generation failed to start
           const websocketUrl = WebSocketPaths.video(ingredientId);
@@ -388,24 +404,26 @@ export class BatchInterpolationController {
             getUserRoomName(user.id),
           );
 
-          jobs.push({
+          return {
             id: ingredientId,
             pairIndex: i,
             status: 'failed',
-          });
+          };
         }
       } catch (error: unknown) {
         this.loggerService.error('Failed to process interpolation pair', error);
 
-        jobs.push({
+        return {
           id: '',
           pairIndex: i,
           status: 'failed',
-        });
+        };
       }
-    }
+    };
 
-    // Log merge intent - actual merge is triggered by frontend when all videos complete
+    const jobs = await Promise.all(pairs.map(processPair));
+
+    // Log merge intent; webhook auto-merge runs once all group videos complete.
     if (dto.isMergeEnabled) {
       const successfulJobs = jobs.filter((j) => j.status === 'processing');
 

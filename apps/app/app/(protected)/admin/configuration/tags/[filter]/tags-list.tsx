@@ -11,27 +11,34 @@ import {
 import type { IQueryParams, ITag } from '@genfeedai/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { TagsListProps } from '@props/tags/tags-list.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { TagsService } from '@services/content/tags.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalTag } from '@ui/lazy/modal/LazyModal';
 import { Switch } from '@ui/primitives/switch';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useMemo, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
 
 function isGlobalTag(tag: ITag): boolean {
   return !tag.organization && !tag.user;
 }
 
-export default function TagsList({
+function TagsListContent({
   scope,
   filter,
   externalFilters,
@@ -53,10 +60,10 @@ export default function TagsList({
 
   const { openConfirm } = useConfirmModal();
 
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const searchParamsString = searchParams.toString();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -84,11 +91,11 @@ export default function TagsList({
       params.delete('brand');
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   const handleAdminBrandChange = useCallback(
@@ -102,11 +109,11 @@ export default function TagsList({
       }
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   // Use external filters if provided, otherwise use defaults
@@ -120,15 +127,45 @@ export default function TagsList({
     type: '',
   };
 
-  // Fetch tags using useResource
+  const tagsQueryKey = useMemo(
+    () => [
+      'tags',
+      organizationId,
+      brandId,
+      scope,
+      refreshTrigger,
+      filter,
+      filters.sort,
+      filters.search,
+      filters.type,
+      adminOrg,
+      adminBrand,
+    ],
+    [
+      organizationId,
+      brandId,
+      scope,
+      refreshTrigger,
+      filter,
+      filters.sort,
+      filters.search,
+      filters.type,
+      adminOrg,
+      adminBrand,
+    ],
+  );
+
+  const queryClient = useQueryClient();
+
   const {
     data: tags,
     isLoading,
-    isRefreshing,
-    refresh,
-    mutate,
-  } = useResource(
-    async () => {
+    isFetching,
+    error: tagsError,
+    refetch: refresh,
+  } = useQuery<ITag[]>({
+    queryKey: tagsQueryKey,
+    queryFn: async () => {
       if (scope === PageScope.ORGANIZATION && !organizationId) {
         return [];
       }
@@ -140,26 +177,20 @@ export default function TagsList({
 
       const query: IQueryParams = {};
 
-      // Only filter by isActive if not showing inactive tags
       query.isActive = true;
 
-      // Add search parameter to API query
       if (filters.search) {
         query.search = filters.search;
       }
 
-      // Add category filter if type is provided (type maps to category)
       if (filters.type) {
         query.category = filters.type;
       }
 
-      // Add sort parameter to API query
       if (filters.sort) {
-        // Convert frontend sort format to API format
-        // API expects "field: direction" (e.g., "createdAt: -1", "label: 1")
-        let sortDirection = '1'; // Default ascending
+        let sortDirection = '1';
         if (filters.sort === 'createdAt') {
-          sortDirection = '-1'; // Descending for createdAt (newest first)
+          sortDirection = '-1';
         }
         query.sort = `${filters.sort}: ${sortDirection}`;
       }
@@ -188,33 +219,26 @@ export default function TagsList({
       logger.info(`${url} success`, data);
       return data;
     },
-    {
-      dependencies: [
-        organizationId,
-        brandId,
-        scope,
-        refreshTrigger,
-        filter,
-        filters.sort,
-        filters.search,
-        filters.type,
-        adminOrg,
-        adminBrand,
-      ],
-      enabled:
-        scope === PageScope.SUPERADMIN ||
-        (scope === PageScope.ORGANIZATION && !!organizationId),
-      onError: (error: unknown) => {
-        logger.error('Failed to load tags', error);
-        notificationsService.error('Failed to load tags');
-      },
-      onSuccess: () => {
-        if (isRefreshing) {
-          notificationsService.success('Tags refreshed');
-        }
-      },
-    },
-  );
+    enabled:
+      scope === PageScope.SUPERADMIN ||
+      (scope === PageScope.ORGANIZATION && !!organizationId),
+  });
+
+  const wasFetchingRef = useRef(false);
+
+  useEffect(() => {
+    if (wasFetchingRef.current && !isFetching && !isLoading) {
+      notificationsService.success('Tags refreshed');
+    }
+    wasFetchingRef.current = isFetching;
+  }, [isFetching, isLoading, notificationsService]);
+
+  useEffect(() => {
+    if (tagsError) {
+      logger.error('Failed to load tags', tagsError);
+      notificationsService.error('Failed to load tags');
+    }
+  }, [tagsError, notificationsService]);
 
   // Filter tags by scope only (search and other filters are done by API)
   const filteredAndSortedTags = (tags || []).filter((t) => {
@@ -259,7 +283,8 @@ export default function TagsList({
         );
 
         if (tags) {
-          mutate(
+          queryClient.setQueryData(
+            tagsQueryKey,
             tags.map((t) =>
               t.id === tag.id ? { ...t, isActive: newValue } : t,
             ),
@@ -270,7 +295,7 @@ export default function TagsList({
         notificationsService.error('Failed to update tag status');
       }
     },
-    [getTagsService, notificationsService, tags, mutate],
+    [getTagsService, notificationsService, tags, queryClient, tagsQueryKey],
   );
 
   // Build columns dynamically based on scopeFilter - memoized to prevent re-renders
@@ -389,28 +414,27 @@ export default function TagsList({
     openModal(modalId);
   }, []);
 
-  const handleDeleteTag = useCallback(async () => {
-    const url = `DELETE /tags/${selectedTag?.id}`;
-    if (!selectedTag) {
-      return;
-    }
+  const handleDeleteTag = useCallback(
+    async (tag: ITag) => {
+      const url = `DELETE /tags/${tag.id}`;
+      try {
+        const service = await getTagsService();
+        const data = await service.delete(tag.id);
+        logger.info(`${url} success`, data);
 
-    try {
-      const service = await getTagsService();
-      const data = await service.delete(selectedTag.id);
-      logger.info(`${url} success`, data);
+        notificationsService.success('Tag deleted successfully');
 
-      notificationsService.success('Tag deleted successfully');
+        setSelectedTag(null);
+        await refresh();
+      } catch (error) {
+        logger.error('Failed to delete tag', error);
 
-      setSelectedTag(null);
-      await refresh();
-    } catch (error) {
-      logger.error('Failed to delete tag', error);
-
-      notificationsService.error('Failed to delete tag');
-      setSelectedTag(null);
-    }
-  }, [selectedTag, getTagsService, notificationsService, refresh]);
+        notificationsService.error('Failed to delete tag');
+        setSelectedTag(null);
+      }
+    },
+    [getTagsService, notificationsService, refresh],
+  );
 
   const actions = useMemo(
     () =>
@@ -430,7 +454,7 @@ export default function TagsList({
                   isError: true,
                   label: 'Delete Tag',
                   message: `Are you sure you want to delete the tag "${tag.label}"? This action cannot be undone.`,
-                  onConfirm: handleDeleteTag,
+                  onConfirm: () => handleDeleteTag(tag),
                 });
               },
               tooltip: 'Delete',
@@ -492,5 +516,13 @@ export default function TagsList({
         />
       )}
     </>
+  );
+}
+
+export default function TagsList(props: Parameters<typeof TagsListContent>[0]) {
+  return (
+    <Suspense fallback={null}>
+      <TagsListContent {...props} />
+    </Suspense>
   );
 }

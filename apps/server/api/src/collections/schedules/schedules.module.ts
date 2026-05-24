@@ -19,11 +19,11 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [SchedulesController],
   exports: [SchedulesService],
   imports: [
-    ByokModule,
-    ConfigModule,
+    forwardRef(() => ByokModule),
+    forwardRef(() => ConfigModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => ModelsModule),
-    ReplicateModule,
+    forwardRef(() => ReplicateModule),
   ],
   providers: [SchedulesService, CreditsGuard, CreditsInterceptor],
 })

@@ -427,10 +427,10 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
     selector(storeState),
 }));
 
-let AgentChatContainer: typeof import('@genfeedai/agent/components/AgentChatContainer').AgentChatContainer;
+import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
 
 describe('AgentChatContainer', () => {
-  beforeAll(async () => {
+  beforeAll(() => {
     const domElement = globalThis.window?.HTMLElement;
     if (domElement) {
       Object.defineProperty(domElement.prototype, 'scrollIntoView', {
@@ -438,10 +438,6 @@ describe('AgentChatContainer', () => {
         value: scrollIntoViewMock,
       });
     }
-
-    ({ AgentChatContainer } = await import(
-      '@genfeedai/agent/components/AgentChatContainer'
-    ));
   });
 
   beforeEach(() => {

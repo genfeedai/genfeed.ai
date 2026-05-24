@@ -9,7 +9,7 @@ export const generateMetadata = createPageMetadata('Billing Settings');
 
 export default function SettingsOrganizationBillingRoute() {
   if (!isEEEnabled()) {
-    redirect('/settings/organization/api-keys');
+    redirect('/settings/api-keys');
   }
 
   return (

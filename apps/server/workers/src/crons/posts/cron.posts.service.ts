@@ -13,10 +13,6 @@ import type {
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import {
-  childrenPostsLookup,
-  ingredientsLookup,
-} from '@api/shared/utils/aggregation-builders/lookup-builders';
-import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
@@ -29,6 +25,21 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+
+type CronPostChild = {
+  _id?: unknown;
+  category?: unknown;
+  description?: string;
+  ingredients?: unknown[];
+  label?: string;
+  order?: number;
+};
+
+type QuotaCheckResult = {
+  allowed: boolean;
+  currentCount: number;
+  dailyLimit: number;
+};
 
 @Injectable()
 export class CronPostsService {
@@ -69,42 +80,41 @@ export class CronPostsService {
         now.getTime() - this.RETRY_BACKOFF_SECONDS * 1000,
       );
 
-      // Find all scheduled parent posts that are due
-      // Build fresh pipeline array each call to avoid race conditions
+      // Find all scheduled parent posts that are due.
       const posts = await this.postsService.findAll(
-        [
-          {
-            $match: {
-              // Backoff: skip posts that were attempted recently (within RETRY_BACKOFF_SECONDS)
-              // This prevents rapid retries and double-posting from overlapping cron runs
-              $and: [
-                {
-                  $or: [
-                    { lastAttemptAt: { $exists: false } },
-                    { lastAttemptAt: null },
-                    { lastAttemptAt: { $lte: backoffThreshold } },
-                  ],
-                },
-              ],
-              $or: [
-                { scheduledDate: { $lte: now } },
-                { nextScheduledDate: { $lte: now } },
-              ],
-              isDeleted: false,
-              parent: { $exists: false }, // Only parent posts (not thread children)
-              status: { $in: [PostStatus.SCHEDULED, PostStatus.PROCESSING] },
+        {
+          include: {
+            children: {
+              include: {
+                credential: true,
+                ingredients: true,
+              },
+              where: {
+                status: PostStatus.SCHEDULED,
+              },
             },
+            ingredients: true,
           },
-          // Populate ingredients for parent
-          ingredientsLookup(),
-          // Populate children posts (thread replies) with ingredients and credentials
-          // Only include SCHEDULED children - DRAFT children should not be published
-          childrenPostsLookup({
-            includeCredential: true,
-            includeIngredients: true,
-            statusFilter: [PostStatus.SCHEDULED],
-          }),
-        ],
+          where: {
+            // Backoff: skip posts that were attempted recently (within RETRY_BACKOFF_SECONDS)
+            // This prevents rapid retries and double-posting from overlapping cron runs
+            OR: [
+              { scheduledDate: { lte: now } },
+              { nextScheduledDate: { lte: now } },
+            ],
+            AND: [
+              {
+                OR: [
+                  { lastAttemptAt: null },
+                  { lastAttemptAt: { lte: backoffThreshold } },
+                ],
+              },
+            ],
+            isDeleted: false,
+            parent: null, // Only parent posts (not thread children)
+            status: { in: [PostStatus.SCHEDULED, PostStatus.PROCESSING] },
+          },
+        },
         options,
       );
 
@@ -119,7 +129,7 @@ export class CronPostsService {
       }
 
       // Process posts
-      await this.processPostGroup(posts.docs);
+      await this.processPostGroup(posts.docs as unknown as PostEntity[]);
     } catch (error: unknown) {
       this.logger.error(`${url} error`, { error });
     }
@@ -213,10 +223,10 @@ export class CronPostsService {
       }
 
       // Check quota
-      const quotaCheck = await this.quotaService.checkQuota(
+      const quotaCheck = (await this.quotaService.checkQuota(
         credential,
         organization,
-      );
+      )) as QuotaCheckResult;
       if (!quotaCheck.allowed) {
         this.logger.warn(`${url} quota exceeded for ${credential.platform}`, {
           currentCount: quotaCheck.currentCount,
@@ -236,17 +246,15 @@ export class CronPostsService {
       }
 
       // Get publisher for platform
-      const publisher = this.publisherFactory.getPublisher(credential.platform);
+      const platform = credential.platform as CredentialPlatform;
+      const publisher = this.publisherFactory.getPublisher(platform);
       if (!publisher) {
         this.logger.error(`${url} unsupported platform`, {
           platform: credential.platform,
           postId: post._id,
         });
         await this.postsService.patch(post._id, { status: PostStatus.FAILED });
-        return this.createFailedResult(
-          credential.platform,
-          'Unsupported platform',
-        );
+        return this.createFailedResult(platform, 'Unsupported platform');
       }
 
       // Build publish context
@@ -462,7 +470,10 @@ export class CronPostsService {
     ];
 
     const errorMessage = (error as Error)?.message?.toLowerCase() || '';
-    const errorCode = error?.code?.toString() || '';
+    const errorCode =
+      error && typeof error === 'object' && 'code' in error
+        ? String((error as { code?: unknown }).code ?? '')
+        : '';
 
     return retryableErrorPatterns.some(
       (pattern) =>
@@ -540,7 +551,7 @@ export class CronPostsService {
       const newPost = await this.postsService.create(postData);
 
       // Clone children (thread replies) for the new repeat post
-      const children = (post.children || []) as unknown as PostDocument[];
+      const children = (post.children || []) as unknown as CronPostChild[];
       if (children.length > 0) {
         await this.cloneChildrenForRepeat(
           children,
@@ -570,7 +581,7 @@ export class CronPostsService {
    * Clone children posts for a repeat post
    */
   private async cloneChildrenForRepeat(
-    children: unknown[],
+    children: CronPostChild[],
     newParentId: string,
     originalParent: PostEntity,
     newScheduledDate: Date,
@@ -580,13 +591,18 @@ export class CronPostsService {
       try {
         const childIngredients = child.ingredients || [];
         // Extract ingredient IDs (handle both ObjectId and populated objects)
-        const ingredientIds = childIngredients.map((ingredient: unknown) => {
-          return ingredient?._id ? ingredient._id : ingredient;
-        });
+        const ingredientIds = childIngredients
+          .map((ingredient: unknown) =>
+            ingredient && typeof ingredient === 'object' && '_id' in ingredient
+              ? (ingredient as { _id?: unknown })._id
+              : ingredient,
+          )
+          .map((ingredient) => String(ingredient));
 
         const childData = {
           brand: originalParent.brand,
-          category: child.category || PostCategory.TEXT,
+          category:
+            (child.category as PostCategory | undefined) || PostCategory.TEXT,
           credential: originalParent.credential,
           description: child.description || '',
           ingredients: ingredientIds,
@@ -594,7 +610,7 @@ export class CronPostsService {
           order: child.order || 0,
           organization: originalParent.organization,
           parent: newParentId,
-          platform: originalParent.platform,
+          platform: originalParent.platform as never,
           scheduledDate: newScheduledDate, // Use new parent's scheduled date
           status: PostStatus.SCHEDULED,
           user: originalParent.user,
@@ -605,7 +621,7 @@ export class CronPostsService {
         this.logger.error(`${url} failed to clone child for repeat`, {
           error: (error as Error)?.message,
           newParentId,
-          originalChildId: child._id.toString(),
+          originalChildId: String(child._id),
         });
       }
     }
@@ -673,7 +689,7 @@ export class CronPostsService {
    */
   private async logQuotaExceededActivity(
     post: PostEntity,
-    quotaCheck: unknown,
+    quotaCheck: QuotaCheckResult,
     platform: string,
   ): Promise<void> {
     await this.activitiesService.create(

@@ -23,8 +23,8 @@ vi.mock('@ui/overlays/entity/EntityOverlayShell', () => ({
     title?: string;
     onOpenDetail?: () => void;
   }) => (
-    <div data-testid="entity-overlay">
-      <div>{title}</div>
+    <div data-testid="entity-overlay" role="dialog">
+      {title ? <h2>{title}</h2> : null}
       {onOpenDetail ? (
         <button type="button" onClick={onOpenDetail}>
           Open page
@@ -150,15 +150,29 @@ vi.mock('@genfeedai/hooks/data/elements/use-elements/use-elements', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/hooks/data/resource/use-resource/use-resource', () => ({
-  __esModule: true,
-  useResource: () => ({
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: vi.fn(() => ({
     data: null,
+    error: null,
+    isFetching: false,
     isLoading: false,
-    mutate: vi.fn(),
-    refresh: vi.fn(),
-  }),
+    refetch: vi.fn(),
+  })),
+  useQueryClient: vi.fn(() => ({
+    setQueryData: vi.fn(),
+  })),
 }));
+
+vi.mock(
+  '@genfeedai/hooks/data/organization/use-organization/use-organization',
+  () => ({
+    __esModule: true,
+    useOrganization: () => ({
+      isLoading: false,
+      settings: null,
+    }),
+  }),
+);
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   __esModule: true,
@@ -230,9 +244,14 @@ describe('ModalBrand', () => {
     onConfirm: vi.fn(),
   };
 
-  it('renders brand form', () => {
+  it('renders the create brand form in a dialog', () => {
     render(<ModalBrand {...defaultProps} />);
-    expect(screen.getByTestId('entity-overlay')).toBeInTheDocument();
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Brand' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Create brand' }),
+    ).toBeInTheDocument();
   });
 
   it('opens the canonical brand detail page from the overlay header', () => {
@@ -252,8 +271,6 @@ describe('ModalBrand', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Open page' }));
 
-    expect(pushMock).toHaveBeenCalledWith(
-      '/acme-org/~/settings/brands/brand-one',
-    );
+    expect(pushMock).toHaveBeenCalledWith('/acme-org/brand-one/settings');
   });
 });

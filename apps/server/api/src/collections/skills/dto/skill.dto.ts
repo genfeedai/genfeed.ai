@@ -5,13 +5,13 @@ import {
   SKILL_STATUSES,
   SKILL_WORKFLOW_STAGES,
 } from '@api/collections/skills/schemas/skill.schema';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ByokProvider, ContentSkillCategory } from '@genfeedai/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
   IsEnum,
-  IsMongoId,
   IsObject,
   IsOptional,
   IsString,
@@ -106,7 +106,7 @@ export class SkillPayloadDto {
   status?: (typeof SKILL_STATUSES)[number];
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiPropertyOptional({ type: String })
   baseSkill?: string;
 }

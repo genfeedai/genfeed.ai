@@ -112,7 +112,10 @@ export class TrainingsService extends BaseService<
         );
 
         // Use the returned file path from the download job
-        const filePath = result?.outputPath;
+        const filePath =
+          typeof result?.outputPath === 'string'
+            ? result.outputPath
+            : undefined;
         if (!filePath) {
           this.logger.warn(`No output path returned for image ${i}`);
           continue;
@@ -182,35 +185,102 @@ export class TrainingsService extends BaseService<
     training: unknown,
     uploadedUrl: string,
   ): Promise<string> {
+    const launchConfig = this.normalizeLaunchTraining(training);
+
     // Derive destination from training id to avoid persisting user-provided values
-    const destination: `${string}/${string}` = `${this.configService.get('REPLICATE_OWNER')}/${String(training._id)}`;
+    const destination: `${string}/${string}` = `${this.configService.get('REPLICATE_OWNER')}/${launchConfig.id}`;
 
     const externalId = await this.replicateService.runTraining(
       destination,
       {
         input_images: uploadedUrl,
-        lora_type: training.type,
-        seed: training.seed || -1,
-        training_steps: training.steps,
-        trigger_word: training.trigger,
+        lora_type: launchConfig.type,
+        seed: launchConfig.seed,
+        training_steps: launchConfig.steps,
+        trigger_word: launchConfig.trigger,
       },
 
       this.configService.get('REPLICATE_MODELS_TRAINER'),
     );
 
     // Update training with external training ID
-    await this.patch(training._id, {
+    await this.patch(launchConfig.id, {
       externalId,
     });
 
     // Emit websocket event for training processing
     await this.websocketService.publishTrainingStatus(
-      String(training._id),
+      launchConfig.id,
       IngredientStatus.PROCESSING,
-      training.user,
+      launchConfig.user,
       { externalId, training },
     );
 
     return externalId;
+  }
+
+  private normalizeLaunchTraining(training: unknown): {
+    id: string;
+    seed?: number;
+    steps: number;
+    trigger: string;
+    type?: string;
+    user: string;
+  } {
+    const trainingRecord = this.readObjectRecord(training);
+    if (!trainingRecord) {
+      throw new Error('Training payload is invalid');
+    }
+
+    const trainingId = this.readString(trainingRecord._id ?? trainingRecord.id);
+    if (!trainingId) {
+      throw new Error('Training id is missing');
+    }
+
+    return {
+      id: trainingId,
+      seed: this.readNumber(this.readTrainingField(trainingRecord, 'seed')),
+      steps:
+        this.readNumber(this.readTrainingField(trainingRecord, 'steps')) ??
+        1000,
+      trigger:
+        this.readString(this.readTrainingField(trainingRecord, 'trigger')) ??
+        'TOK',
+      type: this.readString(this.readTrainingField(trainingRecord, 'type')),
+      user:
+        this.readString(trainingRecord.user ?? trainingRecord.userId) ??
+        'unknown',
+    };
+  }
+
+  private readTrainingField(
+    training: Record<string, unknown>,
+    field: string,
+  ): unknown {
+    if (field in training) {
+      return training[field];
+    }
+
+    return this.readObjectRecord(training.config)?.[field];
+  }
+
+  private readNumber(value: unknown): number | undefined {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    return undefined;
+  }
+
+  private readObjectRecord(value: unknown): Record<string, unknown> | null {
+    return value && typeof value === 'object'
+      ? (value as Record<string, unknown>)
+      : null;
+  }
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0
+      ? value
+      : undefined;
   }
 }

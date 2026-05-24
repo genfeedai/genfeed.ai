@@ -1,4 +1,4 @@
-import '@styles/globals.scss';
+import '@styles/globals.css';
 
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
 import { fontVariables } from '@genfeedai/fonts';
@@ -110,6 +110,17 @@ export default async function RootLayout({ children }: LayoutProps) {
         initialTheme={initialTheme}
         storageKey={THEME_STORAGE_KEY}
         googleAnalyticsId={EnvironmentService.GA_ID}
+        marketingConsentDefault={EnvironmentService.marketing.consentDefault}
+        marketingGtmContainerId={EnvironmentService.marketing.gtmContainerId}
+        marketingLinkedinConversionIds={
+          EnvironmentService.marketing.linkedinConversionIds
+        }
+        marketingLinkedinPartnerId={
+          EnvironmentService.marketing.linkedinPartnerId
+        }
+        marketingMetaPixelId={EnvironmentService.marketing.metaPixelId}
+        marketingXEventIds={EnvironmentService.marketing.xEventIds}
+        marketingXPixelId={EnvironmentService.marketing.xPixelId}
       >
         {children}
       </AppProviders>

@@ -2,8 +2,13 @@ import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { CreateManagedCheckoutDto } from '@api/services/integrations/stripe/dto/create-managed-checkout.dto';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 const MANAGED_CHECKOUT_RESULT_TTL_SECONDS = 60 * 60;
 const MANAGED_CHECKOUT_PROCESSED_TTL_SECONDS = 60 * 60 * 24 * 7;
@@ -33,6 +38,12 @@ export class ManagedStripeCheckoutService {
   async createCheckoutSession(
     dto: CreateManagedCheckoutDto,
   ): Promise<{ url: string }> {
+    if (IS_SELF_HOSTED) {
+      throw new ServiceUnavailableException(
+        'Managed credit checkout is available from Genfeed Cloud, not the local self-hosted API.',
+      );
+    }
+
     const stripePriceId =
       dto.stripePriceId || this.configService.get('STRIPE_PRICE_PAYG');
 

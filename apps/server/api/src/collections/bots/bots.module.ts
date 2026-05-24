@@ -9,14 +9,17 @@ import { BotsService } from '@api/collections/bots/services/bots.service';
 import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
 import { BotsLivestreamDeliveryService } from '@api/collections/bots/services/bots-livestream-delivery.service';
 import { BotsLivestreamRuntimeService } from '@api/collections/bots/services/bots-livestream-runtime.service';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [BotsController],
   exports: [BotsService, BotsLivestreamService],
-  imports: [CredentialsModule, ReplicateModule],
+  imports: [
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => ReplicateModule),
+  ],
   providers: [
     BotsService,
     BotsLivestreamRuntimeService,

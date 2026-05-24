@@ -16,7 +16,7 @@ import { logger } from '@/lib/logger';
 // TYPES
 // =============================================================================
 
-export type { EdgeStyle, LLMProviderConfig, LLMProviderType, ProviderType };
+export type { EdgeStyle, LLMProviderType, ProviderType };
 
 export interface LLMSettings {
   providers: Record<LLMProviderType, LLMProviderConfig>;
@@ -24,7 +24,7 @@ export interface LLMSettings {
   activeModel: string;
 }
 
-export interface ProviderConfig {
+interface ProviderConfig {
   apiKey: string | null;
   enabled: boolean;
 }
@@ -254,7 +254,7 @@ function saveToStorage(state: {
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch {
-    // Storage error (quota exceeded, etc.)
+    // Storage error (quota exceeded, private mode, etc.)
   }
 }
 
@@ -294,7 +294,6 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
       });
     },
     autoSaveEnabled: initialState.autoSaveEnabled,
-
     clearAllKeys: () => {
       setAndPersist((state) => ({
         llm: {
@@ -321,7 +320,6 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
         },
       }));
     },
-
     clearLLMProviderKey: (provider) => {
       setAndPersist((state) => ({
         llm: {
@@ -337,7 +335,6 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
         },
       }));
     },
-
     clearProviderKey: (provider) => {
       setAndPersist((state) => ({
         providers: {
@@ -352,12 +349,10 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
     debugMode: initialState.debugMode,
     defaults: initialState.defaults,
     edgeStyle: initialState.edgeStyle,
-
     getLLMApiKey: () => {
       const state = get();
       return state.llm.providers[state.llm.activeProvider].apiKey;
     },
-
     getProviderHeader: (provider) => {
       const state = get();
       const key = state.providers[provider]?.apiKey;
@@ -373,30 +368,25 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
       return { [headerMap[provider]]: key };
     },
     hasSeenWelcome: initialState.hasSeenWelcome,
-
     isLLMConfigured: () => {
       const state = get();
       const activeProvider = state.llm.activeProvider;
-      // Replicate can use server-side env var, others need BYOK
+      // Replicate can use server-side env var; other providers need BYOK.
       if (activeProvider === 'replicate') return true;
       return !!state.llm.providers[activeProvider].apiKey;
     },
-
     isProviderConfigured: (provider) => {
       const state = get();
       return !!state.providers[provider].apiKey;
     },
-
     // API Sync
     isSyncing: false,
     llm: initialState.llm,
     providers: initialState.providers,
     recentModels: initialState.recentModels,
-
     setDebugMode: (enabled) => {
       setAndPersist(() => ({ debugMode: enabled }));
     },
-
     setDefaultModel: (type, model, provider) => {
       setAndPersist((state) => ({
         defaults: {
@@ -407,7 +397,6 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
         },
       }));
     },
-
     setEdgeStyle: async (style) => {
       setAndPersist(() => ({ edgeStyle: style }));
       // Also update the current workflow's edges
@@ -423,17 +412,14 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
         throw error;
       }
     },
-
     setHasSeenWelcome: (seen) => {
       setAndPersist(() => ({ hasSeenWelcome: seen }));
     },
-
     setLLMActiveModel: (model) => {
       setAndPersist((state) => ({
         llm: { ...state.llm, activeModel: model },
       }));
     },
-
     setLLMActiveProvider: (provider) => {
       setAndPersist((state) => ({
         llm: {
@@ -443,7 +429,6 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
         },
       }));
     },
-
     setLLMProviderKey: (provider, key) => {
       setAndPersist((state) => ({
         llm: {
@@ -459,7 +444,6 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
         },
       }));
     },
-
     setProviderEnabled: (provider, enabled) => {
       setAndPersist((state) => ({
         providers: {
@@ -471,7 +455,6 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
         },
       }));
     },
-
     setProviderKey: (provider, key) => {
       setAndPersist((state) => ({
         providers: {
@@ -484,12 +467,10 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
         },
       }));
     },
-
     setShowMinimap: (show) => {
       setAndPersist(() => ({ showMinimap: show }));
     },
     showMinimap: initialState.showMinimap,
-
     syncFromServer: async () => {
       const { isSyncing } = get();
       if (isSyncing) return;
@@ -541,7 +522,6 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
         set({ isSyncing: false });
       }
     },
-
     syncToServer: async () => {
       const state = get();
       if (state.isSyncing) return;
@@ -571,7 +551,6 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
         set({ isSyncing: false });
       }
     },
-
     toggleAutoSave: () => {
       setAndPersist((state) => ({ autoSaveEnabled: !state.autoSaveEnabled }));
     },

@@ -5,7 +5,7 @@ dependency management, and workflow execution tracking.
  */
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -64,26 +64,26 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     forwardRef(() => BrandsModule),
     forwardRef(() => CaptionsModule),
-    forwardRef(() => CredentialsModule),
+    forwardRef(() => CredentialsCoreModule),
     forwardRef(() => CreditsModule),
+    forwardRef(() => ElevenLabsModule),
+    forwardRef(() => HeyGenModule),
     forwardRef(() => IngredientsModule),
+    forwardRef(() => InstagramModule),
+    forwardRef(() => MarketplaceIntegrationModule),
     forwardRef(() => MetadataModule),
     forwardRef(() => MusicsModule),
     forwardRef(() => NewslettersModule),
-    forwardRef(() => MarketplaceIntegrationModule),
     forwardRef(() => NotificationsPublisherModule),
+    forwardRef(() => OpenRouterModule),
     forwardRef(() => PostsModule),
     forwardRef(() => SharedModule),
-    forwardRef(() => VideosModule),
-    forwardRef(() => VideoGenerationModule),
-    forwardRef(() => WorkflowExecutionsModule),
     forwardRef(() => TwitterModule),
-    forwardRef(() => InstagramModule),
-    forwardRef(() => OpenRouterModule),
-    forwardRef(() => HeyGenModule),
-    forwardRef(() => ElevenLabsModule),
+    forwardRef(() => VideoGenerationModule),
+    forwardRef(() => VideosModule),
     forwardRef(() => WhisperModule),
-    WorkflowExecutorModule,
+    forwardRef(() => WorkflowExecutionsModule),
+    forwardRef(() => WorkflowExecutorModule),
 
     BullModule.registerQueue({
       defaultJobOptions: {

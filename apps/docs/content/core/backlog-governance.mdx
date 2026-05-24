@@ -1,0 +1,49 @@
+# Backlog Governance
+
+The canonical backlog for the open-source monorepo is GitHub issues and GitHub Projects in [`genfeedai/genfeed.ai`](https://github.com/genfeedai/genfeed.ai).
+
+This page records the V1 consolidation decision tracked by [`#189`](https://github.com/genfeedai/genfeed.ai/issues/189). It is documentation, not a second task list.
+
+## Source Repositories Reviewed
+
+| Repository                                             | State                                                                                                                         | V1 Decision                                                                                           |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `genfeedai/cloud`                                      | Archived private repo with historical product, API, agent, serializer, workflow, settings, Sentry, and SSOT migration issues. | Do not reopen historical issues. Carry forward only still-relevant work as `genfeed.ai` issues.       |
+| `genfeedai/core`                                       | Archived private repo with a closed Command Palette issue visible in GitHub.                                                  | No V1 carry-forward by default. Current OSS/core work belongs in this repo.                           |
+| `genfeedai/cli`                                        | Archived private repo with old CLI issues, including one open Content Engine V1 item.                                         | CLI package lives in `packages/cli`; remaining CLI work must be filed in this repo.                   |
+| `genfeedai/docs`                                       | Archived private docs repo with no open issue surface visible in GitHub.                                                      | Docs work belongs in `apps/docs` and this repo's issues.                                              |
+| `genfeedai/packages`, `genfeedai/api`, `genfeedai/web` | Archived package/API/web sources from the pre-monorepo split.                                                                 | Do not use as active planning sources. Package/API/web follow-up must be represented in `genfeed.ai`. |
+
+## Pulled-Forward Work
+
+The still-relevant historical work is represented in the current repo as these issue families:
+
+| Historical Area                                         | Current `genfeed.ai` Representation                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Self-hosted + Cloud unification                         | Closed epic [`#95`](https://github.com/genfeedai/genfeed.ai/issues/95) and follow-up V1 readiness issues [`#184`](https://github.com/genfeedai/genfeed.ai/issues/184), [`#186`](https://github.com/genfeedai/genfeed.ai/issues/186), [`#188`](https://github.com/genfeedai/genfeed.ai/issues/188).                                                                   |
+| Closed-loop content OS                                  | V1 epic [`#12`](https://github.com/genfeedai/genfeed.ai/issues/12) and tasks [`#13`](https://github.com/genfeedai/genfeed.ai/issues/13) through [`#18`](https://github.com/genfeedai/genfeed.ai/issues/18).                                                                                                                                                          |
+| Trend ingestion, generation service, analytics backbone | V1 epics [`#159`](https://github.com/genfeedai/genfeed.ai/issues/159), [`#160`](https://github.com/genfeedai/genfeed.ai/issues/160), [`#161`](https://github.com/genfeedai/genfeed.ai/issues/161), plus implementation/doc issues [`#199`](https://github.com/genfeedai/genfeed.ai/issues/199) through [`#209`](https://github.com/genfeedai/genfeed.ai/issues/209). |
+| Dynamic model/provider work                             | V1 issues [`#91`](https://github.com/genfeedai/genfeed.ai/issues/91), [`#92`](https://github.com/genfeedai/genfeed.ai/issues/92), [`#93`](https://github.com/genfeedai/genfeed.ai/issues/93).                                                                                                                                                                        |
+| Settings consolidation                                  | Current repo epic [`#29`](https://github.com/genfeedai/genfeed.ai/issues/29) and tasks [`#193`](https://github.com/genfeedai/genfeed.ai/issues/193) through [`#198`](https://github.com/genfeedai/genfeed.ai/issues/198).                                                                                                                                            |
+| Prelaunch trend/reference corpus                        | Current repo epic [`#35`](https://github.com/genfeedai/genfeed.ai/issues/35) and tasks [`#210`](https://github.com/genfeedai/genfeed.ai/issues/210) through [`#216`](https://github.com/genfeedai/genfeed.ai/issues/216).                                                                                                                                            |
+| YouTube clip factory                                    | Current repo epic [`#230`](https://github.com/genfeedai/genfeed.ai/issues/230) and tasks [`#231`](https://github.com/genfeedai/genfeed.ai/issues/231) through [`#236`](https://github.com/genfeedai/genfeed.ai/issues/236).                                                                                                                                          |
+| Desktop app and offline runtime                         | Current repo epics [`#9`](https://github.com/genfeedai/genfeed.ai/issues/9), [`#255`](https://github.com/genfeedai/genfeed.ai/issues/255), and related desktop tasks.                                                                                                                                                                                                |
+| CLI migration                                           | Current repo issue [`#190`](https://github.com/genfeedai/genfeed.ai/issues/190), with the CLI package under `packages/cli`.                                                                                                                                                                                                                                          |
+| Docs migration                                          | Closed issue [`#88`](https://github.com/genfeedai/genfeed.ai/issues/88) and V1 issue [`#192`](https://github.com/genfeedai/genfeed.ai/issues/192), with docs under `apps/docs`.                                                                                                                                                                                      |
+
+## Dropped Or Superseded Work
+
+These historical categories should not be carried forward blindly:
+
+- Closed SSOT migration reports and cleanup reports from `cloud`; their useful output is already represented by current repo issues.
+- Closed Sentry incident mirrors from `cloud`; only active reproducible bugs should be filed as new `genfeed.ai` issues.
+- Closed serializer migration issues from `cloud`; current serializer rules are enforced by repo standards and any remaining gaps should be filed against the affected controller.
+- Archived standalone `cli`, `docs`, `api`, `packages`, and `web` repo maintenance tasks; their active work now belongs to `packages/cli`, `apps/docs`, `apps/server/api`, `packages/*`, and `apps/website` in this monorepo.
+
+## Rules For New Backlog
+
+- Create new work only in `genfeedai/genfeed.ai` issues.
+- Keep milestone, status, and priority in GitHub milestone and Project v2 fields.
+- Do not use labels as status or priority.
+- Do not create local markdown task files as canonical backlog.
+- If historical work is still relevant, rewrite it as a current issue with a concrete done condition and repo-local file ownership.

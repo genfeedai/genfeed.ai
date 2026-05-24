@@ -15,8 +15,8 @@ export function CreditsBalanceCard({
   const { orgHref } = useOrgUrl();
   const billingHref = orgHref(
     process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY
-      ? '/settings/organization/billing'
-      : '/settings/organization/api-keys',
+      ? '/settings/billing'
+      : '/settings/api-keys',
   );
   const balance = action.balance ?? 0;
   const usagePercent = action.usagePercent ?? 0;
@@ -32,7 +32,7 @@ export function CreditsBalanceCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiCurrencyDollar className="h-5 w-5 text-amber-500" />
+        <HiCurrencyDollar className="size-5 text-amber-500" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Credits Balance'}
         </h3>
@@ -85,7 +85,7 @@ export function CreditsBalanceCard({
           href={billingHref}
           className="flex w-full items-center justify-center gap-1.5 bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <HiCurrencyDollar className="h-4 w-4" />
+          <HiCurrencyDollar className="size-4" />
           {process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY
             ? 'Buy Credits'
             : 'Configure Providers'}

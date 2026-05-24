@@ -18,7 +18,7 @@ import Loading from '@ui/loading/default/Loading';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiMusicalNote, HiPause, HiPlay, HiXMark } from 'react-icons/hi2';
 
 export default function ModalMusic({
@@ -30,9 +30,7 @@ export default function ModalMusic({
   const [availableMusic, setAvailableMusic] = useState<Music[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [playingId, setPlayingId] = useState<string>('');
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(
-    null,
-  );
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
 
   const getMusicsService = useAuthedService((token: string) =>
     MusicsService.getInstance(token),
@@ -65,14 +63,16 @@ export default function ModalMusic({
 
     return () => {
       // Clean up audio on unmount
-      if (audioElement) {
-        audioElement.pause();
-        audioElement.src = '';
+      if (audioElementRef.current) {
+        audioElementRef.current.pause();
+        audioElementRef.current.src = '';
       }
     };
-  }, [audioElement, findAllMusics]);
+  }, [findAllMusics]);
 
   const handlePlayPause = (musicId: string, musicUrl: string) => {
+    const audioElement = audioElementRef.current;
+
     if (playingId === musicId) {
       // Pause current
       if (audioElement) {
@@ -88,21 +88,21 @@ export default function ModalMusic({
       const audio = new Audio(musicUrl);
       audio.play();
       audio.onended = () => setPlayingId('');
-      setAudioElement(audio);
+      audioElementRef.current = audio;
       setPlayingId(musicId);
     }
   };
 
   const closeModalMusic = () => {
-    if (audioElement) {
-      audioElement.pause();
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
     }
     closeModal(ModalEnum.MUSIC);
   };
 
   const handleConfirm = () => {
-    if (audioElement) {
-      audioElement.pause();
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
     }
 
     const music = selectedMusic
@@ -156,17 +156,25 @@ export default function ModalMusic({
                 return (
                   <div
                     key={music.id}
+                    role="button"
+                    tabIndex={0}
                     className={`relative p-4 border-2 transition-all cursor-pointer group ${
                       selectedMusic === music.id
                         ? 'border-primary bg-primary/5'
                         : 'border-white/[0.08] hover:border-primary/50 bg-background'
                     }`}
                     onClick={() => setSelectedMusic(music.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelectedMusic(music.id);
+                      }
+                    }}
                   >
                     {/* Music Icon */}
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                        className={`size-12 rounded-full flex items-center justify-center ${
                           selectedMusic === music.id
                             ? 'bg-primary/20'
                             : 'bg-muted'
@@ -215,7 +223,7 @@ export default function ModalMusic({
                     {/* Selected Badge */}
                     {selectedMusic === music.id && (
                       <div className="absolute top-2 right-2">
-                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                        <div className="size-2 bg-primary rounded-full"></div>
                       </div>
                     )}
                   </div>
@@ -226,15 +234,23 @@ export default function ModalMusic({
             {/* No Music Option */}
             <div className="mt-3 pt-3 border-t border-white/[0.08]">
               <div
+                role="button"
+                tabIndex={0}
                 className={`p-3 border-2 transition-all cursor-pointer ${
                   !selectedMusic
                     ? 'border-primary bg-primary/5'
                     : 'border-white/[0.08] hover:border-primary/50'
                 }`}
                 onClick={handleClearSelection}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleClearSelection();
+                  }
+                }}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                  <div className="size-10 rounded-full bg-muted flex items-center justify-center">
                     <HiXMark className="text-foreground/50" />
                   </div>
                   <div>

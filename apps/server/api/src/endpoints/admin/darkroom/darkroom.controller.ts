@@ -618,7 +618,7 @@ export class DarkroomController {
     }
   }
 
-  // === Pipeline ===
+  // === query ===
 
   @Get('pipeline/campaigns')
   @ApiOperation({ summary: 'List campaigns with stats' })

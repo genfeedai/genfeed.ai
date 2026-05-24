@@ -58,7 +58,7 @@ function renderOutputPreview(
     return (
       <div className="flex aspect-square flex-col justify-between border border-border/60 bg-background/80 p-3">
         <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          <HiOutlineSparkles className="h-3.5 w-3.5" />
+          <HiOutlineSparkles className="size-3.5" />
           {variant.title ?? 'Text'}
         </div>
         <p className="line-clamp-6 whitespace-pre-wrap text-sm leading-5 text-foreground/85">
@@ -137,7 +137,7 @@ export function AgentCompletionSummaryCard({
   return (
     <div className="mt-3 border border-border/70 bg-card/70 p-4 text-left shadow-sm backdrop-blur-sm">
       <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-        <HiCheckCircle className="h-4.5 w-4.5 text-emerald-500" />
+        <HiCheckCircle className="size-4.5 text-emerald-500" />
         <span>{action.title || 'Done'}</span>
       </div>
 
@@ -151,7 +151,7 @@ export function AgentCompletionSummaryCard({
         <ul className="mt-3 space-y-1.5 text-sm text-foreground/80">
           {action.outcomeBullets.slice(0, 4).map((bullet) => (
             <li key={bullet} className="flex gap-2">
-              <span className="mt-[0.4rem] h-1.5 w-1.5 rounded-full bg-primary/80" />
+              <span className="mt-[0.4rem] size-1.5 rounded-full bg-primary/80" />
               <span>{bullet}</span>
             </li>
           ))}
@@ -169,9 +169,9 @@ export function AgentCompletionSummaryCard({
                   className="flex aspect-square items-center justify-center border border-dashed border-border/60 bg-background/60 text-muted-foreground"
                 >
                   {variant.kind === 'video' ? (
-                    <HiOutlineVideoCamera className="h-5 w-5" />
+                    <HiOutlineVideoCamera className="size-5" />
                   ) : (
-                    <HiOutlinePhoto className="h-5 w-5" />
+                    <HiOutlinePhoto className="size-5" />
                   )}
                 </div>
               );
@@ -216,7 +216,7 @@ export function AgentCompletionSummaryCard({
             void onCopy?.(copyValue);
           }}
         >
-          <HiOutlineClipboard className="mr-1 h-3.5 w-3.5" />
+          <HiOutlineClipboard className="mr-1 size-3.5" />
           Copy
         </Button>
         <Button
@@ -235,7 +235,7 @@ export function AgentCompletionSummaryCard({
           className="h-8 px-2 text-xs"
           onClick={() => setFeedbackState('positive')}
         >
-          <HiOutlineHandThumbUp className="mr-1 h-3.5 w-3.5" />
+          <HiOutlineHandThumbUp className="mr-1 size-3.5" />
           Good
         </Button>
         <Button
@@ -244,15 +244,15 @@ export function AgentCompletionSummaryCard({
           className="h-8 px-2 text-xs"
           onClick={() => setFeedbackState('negative')}
         >
-          <HiOutlineHandThumbDown className="mr-1 h-3.5 w-3.5" />
+          <HiOutlineHandThumbDown className="mr-1 size-3.5" />
           Bad
         </Button>
         {feedbackState ? (
           <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/80">
             {feedbackState === 'positive' ? (
-              <HiCheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+              <HiCheckCircle className="size-3.5 text-emerald-500" />
             ) : (
-              <HiOutlineFaceFrown className="h-3.5 w-3.5 text-amber-500" />
+              <HiOutlineFaceFrown className="size-3.5 text-amber-500" />
             )}
             Thanks for the feedback.
           </span>

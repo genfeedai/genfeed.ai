@@ -6,6 +6,7 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflow-ui/stores';
 import type { NodeProps } from '@xyflow/react';
+import Image from 'next/image';
 import { memo, useCallback } from 'react';
 import { NodeBadge } from '@/features/workflows/components/ui/badge';
 import { NodeCard, NodeHeader } from '@/features/workflows/components/ui/card';
@@ -63,7 +64,7 @@ function BrandNodeComponent(props: NodeProps): React.JSX.Element {
         value={data.brandId || ''}
         onChange={handleBrandChange}
       >
-        <option value="">Choose a brand...</option>
+        <option value="">Choose a brand…</option>
       </NodeSelect>
 
       {/* Resolved brand info */}
@@ -71,10 +72,13 @@ function BrandNodeComponent(props: NodeProps): React.JSX.Element {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             {data.resolvedLogoUrl && (
-              <img
+              <Image
+                unoptimized
                 src={data.resolvedLogoUrl}
                 alt={data.resolvedLabel || 'Brand logo'}
-                className="h-8 w-8 object-contain rounded"
+                className="size-8 object-contain rounded"
+                width={800}
+                height={600}
               />
             )}
             <div>
@@ -98,15 +102,15 @@ function BrandNodeComponent(props: NodeProps): React.JSX.Element {
               <div className="flex items-center gap-1">
                 <span>Colors:</span>
                 <span
-                  className="inline-block h-3 w-3 rounded-full border border-white/[0.08]"
+                  className="inline-block size-3 rounded-full border border-white/[0.08]"
                   style={{ backgroundColor: data.resolvedColors.primary }}
                 />
                 <span
-                  className="inline-block h-3 w-3 rounded-full border border-white/[0.08]"
+                  className="inline-block size-3 rounded-full border border-white/[0.08]"
                   style={{ backgroundColor: data.resolvedColors.secondary }}
                 />
                 <span
-                  className="inline-block h-3 w-3 rounded-full border border-white/[0.08]"
+                  className="inline-block size-3 rounded-full border border-white/[0.08]"
                   style={{ backgroundColor: data.resolvedColors.accent }}
                 />
               </div>
@@ -129,7 +133,7 @@ function BrandNodeComponent(props: NodeProps): React.JSX.Element {
 
 export const BrandNode = memo(BrandNodeComponent);
 
-export const brandNodeDefaults: Partial<BrandNodeData> = {
+const brandNodeDefaults: Partial<BrandNodeData> = {
   brandId: null,
   label: 'Brand',
   resolvedBrandId: null,

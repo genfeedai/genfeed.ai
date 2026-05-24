@@ -8,6 +8,28 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
+type ElevenLabsVoice = {
+  name?: string | null;
+  previewUrl?: string | null;
+  voiceId: string;
+};
+
+type ElevenLabsAudioWithTimestampsResponse = {
+  alignment?: {
+    characterEndTimesSeconds?: number[];
+  } | null;
+  audioBase64: string;
+  normalizedAlignment?: {
+    characterEndTimesSeconds?: number[];
+  } | null;
+};
+
+type ForcedAlignmentWord = {
+  end: number;
+  start: number;
+  text: string;
+};
+
 @Injectable()
 export class ElevenLabsService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -46,10 +68,10 @@ export class ElevenLabsService {
       const client = this.getClient(apiKeyOverride);
       const voices = await client.voices.getAll();
 
-      return voices.voices.map((voice: unknown) => ({
-        name: voice.name,
-        preview: voice.preview_url,
-        voiceId: voice.voice_id,
+      return voices.voices.map((voice: ElevenLabsVoice) => ({
+        name: voice.name ?? 'Untitled Voice',
+        preview: voice.previewUrl ?? undefined,
+        voiceId: voice.voiceId,
       }));
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
@@ -63,13 +85,13 @@ export class ElevenLabsService {
     _organizationId?: string,
     _userId?: string,
     apiKeyOverride?: string,
-  ) {
+  ): Promise<ElevenLabsAudioWithTimestampsResponse> {
     const client = this.getClient(apiKeyOverride);
-    return await client.textToSpeech.convertWithTimestamps(voiceId, {
+    return (await client.textToSpeech.convertWithTimestamps(voiceId, {
       modelId: this.configService.get('ELEVENLABS_MODEL'),
       outputFormat: 'mp3_44100_128',
       text,
-    });
+    })) as ElevenLabsAudioWithTimestampsResponse;
   }
 
   /**
@@ -98,26 +120,24 @@ export class ElevenLabsService {
 
       // Generate audio with ElevenLabs
       const client = this.getClient(apiKeyOverride);
-      const audioResponse: unknown =
-        await client.textToSpeech.convertWithTimestamps(voiceId, {
+      const audioResponse = (await client.textToSpeech.convertWithTimestamps(
+        voiceId,
+        {
           modelId: this.configService.get('ELEVENLABS_MODEL'),
           outputFormat: 'mp3_44100_128',
           text,
-        });
+        },
+      )) as ElevenLabsAudioWithTimestampsResponse;
 
-      // Convert audio stream to buffer
-      const chunks: Buffer[] = [];
-      for await (const chunk of audioResponse.audio) {
-        chunks.push(Buffer.from(chunk));
-      }
-      const audioBuffer = Buffer.concat(chunks);
+      const audioBuffer = Buffer.from(audioResponse.audioBase64, 'base64');
 
-      // Calculate duration from timestamps if available
+      // Calculate duration from alignment timestamps when available.
       let duration = 0;
-      if (audioResponse.timestamps && audioResponse.timestamps.length > 0) {
-        const lastTimestamp =
-          audioResponse.timestamps[audioResponse.timestamps.length - 1];
-        duration = lastTimestamp.end || 0;
+      const alignment =
+        audioResponse.normalizedAlignment ?? audioResponse.alignment;
+      const characterEndTimes = alignment?.characterEndTimesSeconds;
+      if (characterEndTimes && characterEndTimes.length > 0) {
+        duration = characterEndTimes[characterEndTimes.length - 1] ?? 0;
       }
 
       // Upload to S3/CDN
@@ -167,23 +187,28 @@ export class ElevenLabsService {
       this.loggerService.log(`${url} started`, { name });
 
       const client = this.getClient(apiKeyOverride);
-      const response = await client.voices.add({
-        files,
+      const response = await client.voices.ivc.create({
+        files: files.map((file, index) => ({
+          contentLength: file.length,
+          contentType: 'audio/mpeg',
+          data: file,
+          filename: `voice-sample-${index + 1}.mp3`,
+        })),
         name,
         ...(options?.description && { description: options.description }),
         ...(options?.removeBackgroundNoise !== undefined && {
-          remove_background_noise: options.removeBackgroundNoise,
+          removeBackgroundNoise: options.removeBackgroundNoise,
         }),
       });
 
       this.loggerService.log(`${url} completed`, {
-        name: response.name,
-        voiceId: response.voice_id,
+        name,
+        voiceId: response.voiceId,
       });
 
       return {
-        name: response.name,
-        voiceId: response.voice_id,
+        name,
+        voiceId: response.voiceId,
       };
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
@@ -218,8 +243,8 @@ export class ElevenLabsService {
     return `${date.toISOString().substring(11, 19)},${milliseconds}`;
   }
 
-  private convertToSrt(words: unknown[]): string {
-    const lines = words.map((word: unknown, index: number) => {
+  private convertToSrt(words: ForcedAlignmentWord[]): string {
+    const lines = words.map((word, index: number) => {
       const start = this.toSrtTimestamp(word.start);
       const end = this.toSrtTimestamp(word.end);
       return `${index + 1}\n${start} --> ${end}\n${word.text}\n`;
@@ -244,7 +269,9 @@ export class ElevenLabsService {
         text,
       });
 
-      const srtContent = this.convertToSrt(response.words);
+      const srtContent = this.convertToSrt(
+        response.words as ForcedAlignmentWord[],
+      );
       this.loggerService.log(`${url} completed`);
       return srtContent;
     } catch (error: unknown) {

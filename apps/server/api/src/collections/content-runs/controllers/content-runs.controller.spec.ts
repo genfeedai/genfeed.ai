@@ -1,4 +1,5 @@
 import { ContentRunsController } from '@api/collections/content-runs/controllers/content-runs.controller';
+import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
@@ -21,8 +22,13 @@ describe('ContentRunsController', () => {
   let controller: ContentRunsController;
 
   const mockService = {
+    createBriefRun: vi.fn(),
+    createRemixPack: vi.fn(),
     getRunById: vi.fn(),
     listByBrand: vi.fn(),
+  };
+  const mockRecommendationsService = {
+    analyzeRun: vi.fn(),
   };
 
   const mockReq = { headers: {}, url: '/' } as unknown as Request;
@@ -42,6 +48,10 @@ describe('ContentRunsController', () => {
         {
           provide: ContentRunsService,
           useValue: mockService,
+        },
+        {
+          provide: ContentRunRecommendationsService,
+          useValue: mockRecommendationsService,
         },
       ],
     })
@@ -179,6 +189,67 @@ describe('ContentRunsController', () => {
       await expect(
         controller.getRun(mockReq, 'run-1', mockUser),
       ).rejects.toThrow('DB error');
+    });
+  });
+
+  describe('createBriefRun', () => {
+    it('creates a research brief run scoped to org and brand', async () => {
+      const body = {
+        evidence: ['Source text'],
+        platform: 'twitter',
+        sourceUrl: 'https://x.com/builderx/status/1',
+        title: 'AI agents in workflows',
+        trendId: 'trend-1',
+        trendTopic: '#AIAgents',
+      };
+      mockService.createBriefRun.mockResolvedValue({
+        _id: 'run-1',
+        brief: { evidence: ['Source text'] },
+        status: ContentRunStatus.PENDING,
+      });
+
+      await controller.createBriefRun(mockReq, 'brand-1', mockUser, body);
+
+      expect(mockService.createBriefRun).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        body,
+      );
+    });
+  });
+
+  describe('analyzeRunRecommendations', () => {
+    it('computes recommendations and returns the updated run', async () => {
+      mockRecommendationsService.analyzeRun.mockResolvedValue({
+        updatedRun: {
+          _id: 'run-1',
+          analyticsSummary: { winningVariantId: 'variant-a' },
+          recommendations: [{ metadata: {}, type: 'extend_winner_format' }],
+        },
+      });
+
+      await controller.analyzeRunRecommendations(mockReq, 'run-1', mockUser);
+
+      expect(mockRecommendationsService.analyzeRun).toHaveBeenCalledWith(
+        'org-1',
+        'run-1',
+      );
+    });
+  });
+
+  describe('createRemixPack', () => {
+    it('creates remix variants scoped to the authenticated organization', async () => {
+      mockService.createRemixPack.mockResolvedValue({
+        _id: 'run-1',
+        variants: [{ id: 'post-thread', metadata: {}, type: 'text' }],
+      });
+
+      await controller.createRemixPack(mockReq, 'run-1', mockUser);
+
+      expect(mockService.createRemixPack).toHaveBeenCalledWith(
+        'org-1',
+        'run-1',
+      );
     });
   });
 });

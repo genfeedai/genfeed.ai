@@ -82,6 +82,14 @@ export class VideoMusicOrchestrationService {
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
+  private requireOutputPath(value: unknown): string {
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new Error('Video processing result missing outputPath');
+    }
+
+    return value;
+  }
+
   /**
    * Resolves the music ingredient to use for merging.
    * Either uses an existing ingredient or generates new music.
@@ -110,7 +118,7 @@ export class VideoMusicOrchestrationService {
       }
 
       // Verify music is ready
-      if (existingMusic.status !== IngredientStatus.GENERATED) {
+      if (String(existingMusic.status) !== IngredientStatus.GENERATED) {
         throw new HttpException(
           {
             detail: `Music ingredient ${backgroundMusic.ingredientId} is not ready (status: ${existingMusic.status})`,
@@ -121,7 +129,10 @@ export class VideoMusicOrchestrationService {
       }
 
       return {
-        musicIngredientId: existingMusic._id.toString(),
+        musicIngredientId: String(
+          (existingMusic as { _id?: unknown; id?: unknown })._id ??
+            existingMusic.id,
+        ),
         wasGenerated: false,
       };
     }
@@ -350,7 +361,7 @@ export class VideoMusicOrchestrationService {
         mergedIngredientId,
         'videos',
         {
-          path: result.outputPath,
+          path: this.requireOutputPath(result.outputPath),
           type: FileInputType.FILE,
         },
       );

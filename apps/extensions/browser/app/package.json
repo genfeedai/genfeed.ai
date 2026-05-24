@@ -1,7 +1,7 @@
 {
   "author": "vincent@genfeed.ai",
   "dependencies": {
-    "@clerk/chrome-extension": "3.1.14",
+    "@clerk/chrome-extension": "3.1.30",
     "@genfeedai/client": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
@@ -9,40 +9,47 @@
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/next-config": "workspace:*",
     "@genfeedai/ui": "workspace:*",
+    "@genfeedai/utils": "workspace:*",
     "@plasmohq/storage": "1.15.0",
     "@radix-ui/react-collapsible": "1.1.12",
     "@radix-ui/react-select": "2.2.6",
     "@radix-ui/react-slot": "1.2.4",
-    "@sentry/browser": "10.49.0",
-    "axios": "1.15.1",
+    "@sentry/browser": "10.53.1",
+    "axios": "1.16.1",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
-    "lucide-react": "1.8.0",
+    "lucide-react": "1.16.0",
     "plasmo": "0.90.5",
-    "react": "19.2.5",
-    "react-dom": "19.2.5",
-    "tailwind-merge": "3.5.0",
-    "zustand": "5.0.12"
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "tailwind-merge": "3.6.0",
+    "zustand": "5.0.13"
   },
   "description": "Genfeed.ai - Generate (good) AI content for your business",
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "4.7.1",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "16.3.2",
-    "@types/chrome": "0.1.40",
-    "@types/node": "25.6.0",
-    "@types/react": "19.2.14",
+    "@types/chrome": "0.1.42",
+    "@types/node": "25.9.1",
+    "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",
-    "@vitest/coverage-v8": "4.1.5",
+    "@vitest/coverage-v8": "4.1.7",
     "autoprefixer": "10.5.0",
-    "jsdom": "29.0.2",
-    "postcss": "8.5.10",
+    "jsdom": "29.1.1",
+    "postcss": "8.5.15",
     "prettier": "3.8.3",
-    "tailwindcss": "4.2.4",
+    "tailwindcss": "4.3.0",
     "typescript": "6.0.2",
-    "vitest": "4.1.5"
+    "vitest": "4.1.7"
   },
   "displayName": "Extension genfeed ai",
+  "exports": {
+    "./background": "./src/background.ts",
+    "./content": "./src/content.ts",
+    "./popup": "./src/popup.tsx",
+    "./sidepanel": "./src/sidepanel.tsx"
+  },
   "manifest": {
     "host_permissions": [
       "https://*.twitter.com/*",
@@ -68,7 +75,7 @@
     }
   },
   "name": "@genfeedai/extension-browser",
-  "packageManager": "bun@1.3.13",
+  "packageManager": "bun@1.3.14",
   "scripts": {
     "build": "npm exec plasmo build",
     "cache:clear": "./scripts/bash/cache-clear.sh",

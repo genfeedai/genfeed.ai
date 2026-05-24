@@ -21,7 +21,7 @@ export class TrendPreferencesService {
           where: { brandId, isDeleted: false, organizationId },
         });
         if (brandPrefs) {
-          return brandPrefs as unknown as TrendPreferencesDocument;
+          return this.normalizePreferences(brandPrefs);
         }
       }
 
@@ -29,7 +29,7 @@ export class TrendPreferencesService {
       const orgPrefs = await this.prisma.trendPreferences.findFirst({
         where: { brandId: null, isDeleted: false, organizationId },
       });
-      return orgPrefs as unknown as TrendPreferencesDocument | null;
+      return this.normalizePreferences(orgPrefs);
     } catch (error: unknown) {
       this.loggerService.error('Failed to get trend preferences', error);
       return null;
@@ -48,11 +48,14 @@ export class TrendPreferencesService {
   ): Promise<TrendPreferencesDocument> {
     try {
       const brandId = preferences.brandId ?? null;
-      const updateData = {
+      const normalizedPreferences = {
         categories: preferences.categories ?? [],
         hashtags: preferences.hashtags ?? [],
         keywords: preferences.keywords ?? [],
         platforms: preferences.platforms ?? [],
+      };
+      const updateData = {
+        config: normalizedPreferences,
         updatedAt: new Date(),
       };
 
@@ -65,7 +68,7 @@ export class TrendPreferencesService {
           data: updateData as never,
           where: { id: existing.id },
         });
-        return updated as unknown as TrendPreferencesDocument;
+        return this.normalizePreferences(updated) as TrendPreferencesDocument;
       }
 
       const created = await this.prisma.trendPreferences.create({
@@ -76,10 +79,49 @@ export class TrendPreferencesService {
           organizationId,
         } as never,
       });
-      return created as unknown as TrendPreferencesDocument;
+      return this.normalizePreferences(created) as TrendPreferencesDocument;
     } catch (error: unknown) {
       this.loggerService.error('Failed to save trend preferences', error);
       throw error;
     }
+  }
+
+  private normalizePreferences(
+    doc: Awaited<
+      ReturnType<PrismaService['trendPreferences']['findFirst']>
+    > | null,
+  ): TrendPreferencesDocument | null {
+    if (!doc) {
+      return null;
+    }
+
+    const docRecord = doc as Record<string, unknown>;
+    const config = this.readObjectRecord(doc.config);
+
+    return {
+      ...(doc as TrendPreferencesDocument),
+      categories: this.readStringArray(
+        docRecord.categories ?? config?.categories,
+      ),
+      hashtags: this.readStringArray(docRecord.hashtags ?? config?.hashtags),
+      keywords: this.readStringArray(docRecord.keywords ?? config?.keywords),
+      platforms: this.readStringArray(docRecord.platforms ?? config?.platforms),
+    };
+  }
+
+  private readObjectRecord(value: unknown): Record<string, unknown> | null {
+    return value && typeof value === 'object'
+      ? (value as Record<string, unknown>)
+      : null;
+  }
+
+  private readStringArray(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.filter(
+      (entry): entry is string => typeof entry === 'string' && entry.length > 0,
+    );
   }
 }

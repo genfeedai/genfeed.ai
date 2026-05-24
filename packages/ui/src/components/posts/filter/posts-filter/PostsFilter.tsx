@@ -16,7 +16,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function PostsFilter({ value, onChange }: PostsFilterProps) {
-  const handleChange = (_name: string, selectedValue: string) => {
+  const updatePostsFilter = (_name: string, selectedValue: string) => {
     onChange(selectedValue as PostStatus | '');
   };
 
@@ -25,7 +25,7 @@ export default function PostsFilter({ value, onChange }: PostsFilterProps) {
       name="status"
       value={value || ''}
       options={STATUS_OPTIONS}
-      onChange={handleChange}
+      onChange={updatePostsFilter}
       placeholder="All Statuses"
     />
   );

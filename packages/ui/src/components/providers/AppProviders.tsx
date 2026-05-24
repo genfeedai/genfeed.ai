@@ -4,18 +4,47 @@ import { ClerkProvider } from '@clerk/nextjs';
 import { dark } from '@clerk/themes';
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
 import { GoogleAnalytics } from '@next/third-parties/google';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ThemeCookieSync from '@ui/providers/ThemeCookieSync';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import dynamic from 'next/dynamic';
 import { ThemeProvider, useTheme } from 'next-themes';
-import type { ComponentProps, ReactNode } from 'react';
+import { type ComponentProps, type ReactNode, useState } from 'react';
 import { Toaster } from 'sonner';
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        gcTime: 5 * 60_000,
+        refetchOnWindowFocus: false,
+        retry: 1,
+        // 30s: avoid refetch-on-every-mount storm. Mutations still invalidate
+        // explicitly via queryClient.invalidateQueries — staleness is the floor,
+        // not the ceiling.
+        staleTime: 30_000,
+      },
+    },
+  });
+}
 
 const LazyModalErrorDebug = dynamic(
   () => import('@ui/modals/system/error-debug/ModalErrorDebug'),
   { ssr: false },
 );
+
+// Devtools loaded only in development. Avoids ~50KB in prod bundle.
+const LazyReactQueryDevtools =
+  process.env.NODE_ENV === 'development'
+    ? dynamic(
+        () =>
+          import('@tanstack/react-query-devtools').then((mod) => ({
+            default: mod.ReactQueryDevtools,
+          })),
+        { ssr: false },
+      )
+    : () => null;
 
 type ClerkProviderProps = Omit<
   ComponentProps<typeof ClerkProvider>,
@@ -78,7 +107,7 @@ function MaybeClerkProvider({
   children: ReactNode;
   clerkProps?: ClerkProviderProps;
 }) {
-  if (!cloudConnected) {
+  if (!cloudConnected || !clerkProps) {
     return <>{children}</>;
   }
 
@@ -102,27 +131,32 @@ export default function AppProviders({
   includeVercelAnalytics = true,
   storageKey = THEME_STORAGE_KEY,
 }: AppProvidersProps) {
+  const [queryClient] = useState(makeQueryClient);
+
   return (
-    <ThemeProvider
-      attribute="data-theme"
-      enableSystem={enableSystem}
-      defaultTheme={initialTheme}
-      storageKey={storageKey}
-      disableTransitionOnChange={disableTransitionOnChange}
-    >
-      <MaybeClerkProvider clerkProps={clerkProps}>
-        <ThemeCookieSync />
-        {children}
-        {includeToaster ? (
-          <Toaster richColors closeButton position="top-right" />
-        ) : null}
-        {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
-        {googleAnalyticsId ? (
-          <GoogleAnalytics gaId={googleAnalyticsId} />
-        ) : null}
-        {includeVercelAnalytics ? <Analytics /> : null}
-        {includeSpeedInsights ? <SpeedInsights /> : null}
-      </MaybeClerkProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider
+        attribute="data-theme"
+        enableSystem={enableSystem}
+        defaultTheme={initialTheme}
+        storageKey={storageKey}
+        disableTransitionOnChange={disableTransitionOnChange}
+      >
+        <MaybeClerkProvider clerkProps={clerkProps}>
+          <ThemeCookieSync />
+          {children}
+          {includeToaster ? (
+            <Toaster richColors closeButton position="top-right" />
+          ) : null}
+          {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
+          {googleAnalyticsId ? (
+            <GoogleAnalytics gaId={googleAnalyticsId} />
+          ) : null}
+          {includeVercelAnalytics ? <Analytics /> : null}
+          {includeSpeedInsights ? <SpeedInsights /> : null}
+        </MaybeClerkProvider>
+      </ThemeProvider>
+      <LazyReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
   );
 }

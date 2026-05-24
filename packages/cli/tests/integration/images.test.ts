@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { JsonApiCollectionResponse, JsonApiSingleResponse } from '../../src/api/json-api.js';
-import { flattenCollection, flattenSingle } from '../../src/api/json-api.js';
-import { createTestClient, hasCredentials, testConfig } from './setup.js';
+import type { JsonApiCollectionResponse, JsonApiSingleResponse } from '../../src/api/json-api';
+import { flattenCollection, flattenSingle } from '../../src/api/json-api';
+import { createTestClient, hasCredentials, testConfig } from './setup';
 
 interface Ingredient {
   id: string;

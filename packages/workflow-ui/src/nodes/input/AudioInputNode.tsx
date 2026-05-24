@@ -114,7 +114,7 @@ function AudioInputNodeComponent(props: NodeProps) {
           onClick={() => fileInputRef.current?.click()}
           title="Upload audio"
         >
-          <Upload className="h-3.5 w-3.5" />
+          <Upload className="size-3.5" />
         </Button>
         <Button
           variant="ghost"
@@ -122,7 +122,7 @@ function AudioInputNodeComponent(props: NodeProps) {
           onClick={() => setShowUrlInput(!showUrlInput)}
           title="Paste URL"
         >
-          <Link className="h-3.5 w-3.5" />
+          <Link className="size-3.5" />
         </Button>
         {nodeData.audio && (
           <Button
@@ -131,7 +131,7 @@ function AudioInputNodeComponent(props: NodeProps) {
             onClick={handleExpand}
             title="Expand preview"
           >
-            <Expand className="h-3.5 w-3.5" />
+            <Expand className="size-3.5" />
           </Button>
         )}
       </div>
@@ -184,9 +184,9 @@ function AudioInputNodeComponent(props: NodeProps) {
               variant="secondary"
               size="icon-sm"
               onClick={handleRemoveAudio}
-              className="absolute -right-1 -top-1 h-5 w-5"
+              className="absolute -right-1 -top-1 size-5"
             >
-              <X className="h-3 w-3" />
+              <X className="size-3" />
             </Button>
           </div>
           <div className="text-[10px] text-muted-foreground truncate">
@@ -200,7 +200,7 @@ function AudioInputNodeComponent(props: NodeProps) {
           onClick={() => fileInputRef.current?.click()}
           className="flex flex-1 min-h-16 w-full flex-col items-center justify-center gap-1 border border-dashed border-border/50 bg-secondary/20 hover:border-primary/50 hover:bg-secondary/40 h-auto"
         >
-          <Music className="h-5 w-5 text-muted-foreground/50" />
+          <Music className="size-5 text-muted-foreground/50" />
           <span className="text-[10px] text-muted-foreground/70">
             Drop or click
           </span>

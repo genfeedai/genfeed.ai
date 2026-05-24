@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
+import { Text } from 'react-native';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ScreenErrorBoundary from '@/components/ScreenErrorBoundary';
@@ -20,7 +21,7 @@ describe('ErrorBoundary', () => {
     }
 
     render(
-      <ErrorBoundary fallback={<div>Custom fallback</div>}>
+      <ErrorBoundary fallback={<Text>Custom fallback</Text>}>
         <ThrowingChild />
       </ErrorBoundary>,
     );
@@ -37,7 +38,7 @@ describe('ErrorBoundary', () => {
         throw new Error('Transient failure');
       }
 
-      return <div>Recovered</div>;
+      return <Text>Recovered</Text>;
     }
 
     render(
@@ -83,7 +84,7 @@ describe('ScreenErrorBoundary', () => {
         throw new Error('Screen failed');
       }
 
-      return <div>Recovered screen</div>;
+      return <Text>Recovered screen</Text>;
     }
 
     render(

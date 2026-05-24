@@ -174,7 +174,7 @@ export class PromptBuilderService {
       'system.brand-context',
     );
 
-    if (brandTemplate?.isActive) {
+    if (brandTemplate?.isActive && typeof brandTemplate.content === 'string') {
       return this.templatesService.renderPrompt(
         brandTemplate.content,
         variables,
@@ -205,7 +205,7 @@ export class PromptBuilderService {
       organizationId,
     );
 
-    if (template?.isActive) {
+    if (template?.isActive && typeof template.content === 'string') {
       return this.templatesService.renderPrompt(template.content, variables);
     }
 
@@ -287,7 +287,7 @@ export class PromptBuilderService {
             organizationId,
           );
 
-          if (template?.isActive) {
+          if (template?.isActive && typeof template.content === 'string') {
             templateKey = keyToTry;
             promptText = this.templatesService.renderPrompt(
               template.content,

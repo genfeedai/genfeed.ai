@@ -3,7 +3,6 @@
 import { useAuth } from '@clerk/nextjs';
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
 import type { ITag } from '@genfeedai/interfaces';
 import type { ExtendedIngredientTabsTagsProps } from '@genfeedai/props/content/ingredient-tabs.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
@@ -11,6 +10,7 @@ import { TagsService } from '@genfeedai/services/content/tags.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
+import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
@@ -43,18 +43,14 @@ export default function IngredientTabsTags({
     return IngredientsService.getInstance(token);
   });
 
-  // Load available tags using useResource (handles AbortController cleanup properly)
-  const { data: allTags, isLoading } = useResource(
-    async () => {
+  const { data: allTags = [], isLoading } = useQuery({
+    queryKey: ['ingredient-tabs-tags'],
+    queryFn: async () => {
       const service = await getTagsService();
       return service.findAll();
     },
-    {
-      defaultValue: [] as ITag[],
-      dependencies: [tags],
-      enabled: !!isSignedIn,
-    },
-  );
+    enabled: !!isSignedIn,
+  });
 
   // Filter out already assigned tags
   const availableTags = useMemo(() => {
@@ -195,13 +191,17 @@ export default function IngredientTabsTags({
 
         {/* Create New Tag */}
         <div className="mb-4">
-          <label className="text-sm font-medium mb-1 block">
+          <label
+            htmlFor="ingredient-tabs-new-tag-name"
+            className="text-sm font-medium mb-1 block"
+          >
             Create New Tag
           </label>
           <div className="flex gap-2">
             <Input
+              id="ingredient-tabs-new-tag-name"
               type="text"
-              placeholder="Enter tag name..."
+              placeholder="Enter tag name…"
               className="flex-1"
               value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
@@ -210,7 +210,7 @@ export default function IngredientTabsTags({
             />
 
             <Button
-              label={isCreatingTag ? 'Creating...' : 'Create'}
+              label={isCreatingTag ? 'Creating…' : 'Create'}
               onClick={handleCreateTag}
               isLoading={isCreatingTag}
               isDisabled={!newTagName.trim()}
@@ -228,12 +228,16 @@ export default function IngredientTabsTags({
 
         {/* Search Existing Tags */}
         <div>
-          <label className="text-sm font-medium mb-1 block">
+          <label
+            htmlFor="ingredient-tabs-search-tags"
+            className="text-sm font-medium mb-1 block"
+          >
             Select Existing Tags
           </label>
           <Input
+            id="ingredient-tabs-search-tags"
             type="text"
-            placeholder="Search tags..."
+            placeholder="Search tags…"
             className="mb-3"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -242,7 +246,7 @@ export default function IngredientTabsTags({
           <div className="max-h-64 overflow-y-auto">
             {isLoading ? (
               <div className="text-center py-4">
-                <span className="inline-block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                <span className="inline-block size-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
               </div>
             ) : filteredAvailableTags.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">

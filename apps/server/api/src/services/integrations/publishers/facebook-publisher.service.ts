@@ -7,6 +7,7 @@ import { BasePublisherService } from '@api/services/integrations/publishers/base
 import type {
   PublishContext,
   PublishResult,
+  ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -74,7 +75,7 @@ export class FacebookPublisherService extends BasePublisherService {
         brandId,
       );
       const targetPage = pagesResponse.find(
-        (p: unknown) => p.id === fbCredential.externalId,
+        (page) => page.id === fbCredential.externalId,
       );
 
       if (!targetPage?.accessToken) {
@@ -145,7 +146,7 @@ export class FacebookPublisherService extends BasePublisherService {
    */
   async publishThreadChildren(
     context: PublishContext,
-    children: unknown[],
+    children: ThreadChild[],
     parentExternalId: string,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;

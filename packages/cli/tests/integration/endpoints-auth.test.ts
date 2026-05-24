@@ -9,7 +9,7 @@
  * Affected: images, videos, workflows, images-operations, images-relationships
  */
 import { describe, expect, it } from 'vitest';
-import { createTestClient, hasCredentials, testConfig } from './setup.js';
+import { createTestClient, hasCredentials, testConfig } from './setup';
 
 type AuthResult = 'ok' | 'blocked' | 'error';
 

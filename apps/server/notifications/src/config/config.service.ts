@@ -29,9 +29,14 @@ const notificationsSchema = Joi.object({
   ...twitchSchema,
   API_BASE_URL: Joi.string().uri().default('http://localhost:3010'),
   API_SECRET_KEY: Joi.string().optional().allow(''),
+  GENFEED_LOCAL_TERMINAL: Joi.string()
+    .valid('true', 'false')
+    .optional()
+    .allow(''),
   GENFEEDAI_API_KEY: Joi.string().optional().allow(''),
   // Notifications-specific
   GENFEEDAI_APP_URL: Joi.string().uri().optional().allow(''),
+  GENFEED_TERMINAL_CWD: Joi.string().optional().allow(''),
 });
 
 @Injectable()

@@ -1,9 +1,13 @@
 import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { CreditsUtilsService as CreditsUtilsServiceToken } from '@api/collections/credits/services/credits.utils.service';
-import type { StreakDocument } from '@api/collections/streaks/schemas/streak.schema';
+import type {
+  StreakDocument,
+  StreakMilestoneHistoryEntry,
+} from '@api/collections/streaks/schemas/streak.schema';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivityKey } from '@genfeedai/enums';
+import { Prisma } from '@genfeedai/prisma';
 import {
   IStreakCalendarResponse,
   type IStreakMilestoneDefinition,
@@ -66,6 +70,36 @@ function toTypeLabel(key: ActivityKey): string {
   }
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function toDate(value: unknown): Date | null {
+  if (value instanceof Date) {
+    return value;
+  }
+
+  if (typeof value !== 'string' && typeof value !== 'number') {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function serializeDate(value?: Date | string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString();
+}
+
 @Injectable()
 export class StreaksService {
   constructor(
@@ -75,6 +109,163 @@ export class StreaksService {
     private readonly creditsUtilsService: CreditsUtilsServiceContract,
     private readonly notificationsService: NotificationsService,
   ) {}
+
+  private normalizeStreakRecord(
+    record: Record<string, unknown>,
+  ): StreakDocument {
+    const data = isPlainObject(record.data) ? record.data : {};
+    const merged = { ...record, ...data };
+    const milestones = Array.isArray(merged.milestones)
+      ? merged.milestones.filter(
+          (milestone): milestone is number => typeof milestone === 'number',
+        )
+      : [];
+    const milestoneHistory = Array.isArray(merged.milestoneHistory)
+      ? merged.milestoneHistory.flatMap((entry) => {
+          if (
+            !isPlainObject(entry) ||
+            typeof entry.milestone !== 'number' ||
+            typeof entry.reward !== 'string'
+          ) {
+            return [];
+          }
+
+          const achievedAt = toDate(entry.achievedAt) ?? entry.achievedAt;
+
+          if (!(achievedAt instanceof Date) && typeof achievedAt !== 'string') {
+            return [];
+          }
+
+          return [
+            {
+              achievedAt,
+              milestone: entry.milestone,
+              reward: entry.reward,
+            } satisfies StreakMilestoneHistoryEntry,
+          ];
+        })
+      : [];
+
+    return {
+      ...(record as unknown as StreakDocument),
+      _id:
+        typeof record.mongoId === 'string' && record.mongoId.length > 0
+          ? record.mongoId
+          : String(record.id ?? ''),
+      currentStreak:
+        typeof merged.currentStreak === 'number' ? merged.currentStreak : 0,
+      data,
+      lastActivityDate: toDate(merged.lastActivityDate),
+      lastBrokenAt: toDate(merged.lastBrokenAt),
+      lastBrokenStreak:
+        typeof merged.lastBrokenStreak === 'number'
+          ? merged.lastBrokenStreak
+          : null,
+      lastFreezeUsedAt: toDate(merged.lastFreezeUsedAt),
+      longestStreak:
+        typeof merged.longestStreak === 'number' ? merged.longestStreak : 0,
+      milestoneHistory,
+      milestones,
+      organization:
+        typeof record.organizationId === 'string'
+          ? record.organizationId
+          : undefined,
+      streakFreezes:
+        typeof merged.streakFreezes === 'number' ? merged.streakFreezes : 0,
+      streakStartDate: toDate(merged.streakStartDate),
+      totalContentDays:
+        typeof merged.totalContentDays === 'number'
+          ? merged.totalContentDays
+          : 0,
+      user: typeof record.userId === 'string' ? record.userId : undefined,
+    };
+  }
+
+  private serializeStreakData(
+    streak: Pick<
+      StreakDocument,
+      | 'currentStreak'
+      | 'lastActivityDate'
+      | 'lastBrokenAt'
+      | 'lastBrokenStreak'
+      | 'lastFreezeUsedAt'
+      | 'longestStreak'
+      | 'milestoneHistory'
+      | 'milestones'
+      | 'streakFreezes'
+      | 'streakStartDate'
+      | 'totalContentDays'
+    >,
+  ): Prisma.InputJsonValue {
+    return {
+      currentStreak: streak.currentStreak,
+      lastActivityDate: serializeDate(streak.lastActivityDate),
+      lastBrokenAt: serializeDate(streak.lastBrokenAt),
+      lastBrokenStreak: streak.lastBrokenStreak ?? null,
+      lastFreezeUsedAt: serializeDate(streak.lastFreezeUsedAt),
+      longestStreak: streak.longestStreak,
+      milestoneHistory: (streak.milestoneHistory ?? []).map((entry) => ({
+        achievedAt: serializeDate(entry.achievedAt),
+        milestone: entry.milestone,
+        reward: entry.reward,
+      })),
+      milestones: streak.milestones ?? [],
+      streakFreezes: streak.streakFreezes,
+      streakStartDate: serializeDate(streak.streakStartDate),
+      totalContentDays: streak.totalContentDays,
+    } as Prisma.InputJsonValue;
+  }
+
+  private async createStreak(
+    userId: string,
+    organizationId: string,
+    streak: Pick<
+      StreakDocument,
+      | 'currentStreak'
+      | 'lastActivityDate'
+      | 'lastBrokenAt'
+      | 'lastBrokenStreak'
+      | 'lastFreezeUsedAt'
+      | 'longestStreak'
+      | 'milestoneHistory'
+      | 'milestones'
+      | 'streakFreezes'
+      | 'streakStartDate'
+      | 'totalContentDays'
+    >,
+  ): Promise<StreakDocument> {
+    const created = await this.prisma.streak.create({
+      data: {
+        data: this.serializeStreakData(streak),
+        isDeleted: false,
+        organizationId,
+        userId,
+      },
+    });
+
+    return this.normalizeStreakRecord(created as Record<string, unknown>);
+  }
+
+  private async persistStreak(streak: StreakDocument): Promise<StreakDocument> {
+    const updated = await this.prisma.streak.update({
+      data: {
+        data: this.serializeStreakData(streak),
+      },
+      where: { id: streak.id },
+    });
+
+    return this.normalizeStreakRecord(updated as Record<string, unknown>);
+  }
+
+  private async listStreaks(): Promise<StreakDocument[]> {
+    const streaks = await this.prisma.streak.findMany({
+      where: { isDeleted: false },
+    });
+
+    return streaks.map((streak) =>
+      this.normalizeStreakRecord(streak as Record<string, unknown>),
+    );
+  }
 
   isQualifyingActivityKey(key?: string | null): key is ActivityKey {
     return QUALIFYING_ACTIVITY_KEYS.has(key as ActivityKey);
@@ -87,7 +278,9 @@ export class StreaksService {
     const result = await this.prisma.streak.findFirst({
       where: { isDeleted: false, organizationId, userId },
     });
-    return result as unknown as StreakDocument | null;
+    return result
+      ? this.normalizeStreakRecord(result as Record<string, unknown>)
+      : null;
   }
 
   async getStreakSummary(
@@ -160,26 +353,20 @@ export class StreaksService {
     let streakData: Record<string, unknown>;
 
     if (!streak) {
-      const created = await this.prisma.streak.create({
-        data: {
-          currentStreak: 1,
-          isDeleted: false,
-          lastActivityDate: today,
-          lastBrokenAt: null,
-          lastBrokenStreak: null,
-          lastFreezeUsedAt: null,
-          longestStreak: 1,
-          milestoneHistory: [],
-          milestones: [],
-          organizationId,
-          streakFreezes: 0,
-          streakStartDate: today,
-          totalContentDays: 1,
-          userId,
-        } as never,
+      streak = await this.createStreak(userId, organizationId, {
+        currentStreak: 1,
+        lastActivityDate: today,
+        lastBrokenAt: null,
+        lastBrokenStreak: null,
+        lastFreezeUsedAt: null,
+        longestStreak: 1,
+        milestoneHistory: [],
+        milestones: [],
+        streakFreezes: 0,
+        streakStartDate: today,
+        totalContentDays: 1,
       });
-      streakData = { ...created };
-      streak = created as unknown as StreakDocument;
+      streakData = { ...streak };
     } else {
       const lastActivityDate = streak.lastActivityDate
         ? startOfUtcDay(new Date(streak.lastActivityDate))
@@ -206,10 +393,11 @@ export class StreaksService {
       const newLongestStreak = Math.max(streak.longestStreak, newCurrentStreak);
 
       // Determine new milestones
+      const existingMilestones = streak.milestones ?? [];
       const newMilestonesLocal = STREAK_MILESTONES.filter(
         (milestone) =>
           newCurrentStreak >= milestone.days &&
-          !(streak.milestones ?? []).includes(milestone.days),
+          !existingMilestones.includes(milestone.days),
       );
 
       const updatedMilestones = [
@@ -229,22 +417,16 @@ export class StreaksService {
       ).length;
       const newStreakFreezes = streak.streakFreezes + extraFreezes;
 
-      const updated = await this.prisma.streak.update({
-        data: {
-          currentStreak: newCurrentStreak,
-          lastActivityDate: today,
-          longestStreak: newLongestStreak,
-          milestoneHistory: updatedMilestoneHistory as never,
-          milestones: updatedMilestones,
-          streakFreezes: newStreakFreezes,
-          streakStartDate: newStreakStartDate,
-          totalContentDays: newTotalContentDays,
-        } as never,
-        where: { id: String(streak._id) },
-      });
-
-      streak = updated as unknown as StreakDocument;
-      streakData = { ...updated };
+      streak.currentStreak = newCurrentStreak;
+      streak.lastActivityDate = today;
+      streak.longestStreak = newLongestStreak;
+      streak.milestoneHistory = updatedMilestoneHistory;
+      streak.milestones = updatedMilestones;
+      streak.streakFreezes = newStreakFreezes;
+      streak.streakStartDate = newStreakStartDate;
+      streak.totalContentDays = newTotalContentDays;
+      streak = await this.persistStreak(streak);
+      streakData = { ...streak };
 
       const newMilestones = newMilestonesLocal;
 
@@ -294,15 +476,10 @@ export class StreaksService {
       throw new BadRequestException('No streak freezes available.');
     }
 
-    const updated = await this.prisma.streak.update({
-      data: {
-        lastActivityDate: startOfUtcDay(new Date()),
-        lastFreezeUsedAt: new Date(),
-        streakFreezes: { decrement: 1 },
-      } as never,
-      where: { id: String(streak._id) },
-    });
-    streak = updated as unknown as StreakDocument;
+    streak.lastActivityDate = startOfUtcDay(new Date());
+    streak.lastFreezeUsedAt = new Date();
+    streak.streakFreezes -= 1;
+    streak = await this.persistStreak(streak);
 
     await this.sendDiscordNotification(
       'streak_freeze_used',
@@ -322,12 +499,16 @@ export class StreaksService {
     const today = startOfUtcDay(referenceDate);
     const yesterday = addUtcDays(today, -1);
 
-    const atRiskStreaks = await this.prisma.streak.findMany({
-      where: {
-        currentStreak: { gte: 3 },
-        isDeleted: false,
-        lastActivityDate: yesterday,
-      } as never,
+    const allStreaks = await this.listStreaks();
+    const atRiskStreaks = allStreaks.filter((streak) => {
+      const lastActivityDate = streak.lastActivityDate
+        ? startOfUtcDay(new Date(streak.lastActivityDate))
+        : null;
+
+      return (
+        streak.currentStreak >= 3 &&
+        lastActivityDate?.getTime() === yesterday.getTime()
+      );
     });
 
     for (const streak of atRiskStreaks) {
@@ -339,48 +520,33 @@ export class StreaksService {
       );
     }
 
-    const staleStreaks = await this.prisma.streak.findMany({
-      where: {
-        currentStreak: { gt: 0 },
-        isDeleted: false,
-        lastActivityDate: { lt: yesterday },
-      } as never,
+    const staleStreaks = allStreaks.filter((streak) => {
+      if (streak.currentStreak <= 0) {
+        return false;
+      }
+
+      const lastActivityDate = streak.lastActivityDate
+        ? startOfUtcDay(new Date(streak.lastActivityDate))
+        : null;
+
+      return (
+        !lastActivityDate || lastActivityDate.getTime() < yesterday.getTime()
+      );
     });
 
     let broken = 0;
     let frozen = 0;
 
     for (const streak of staleStreaks) {
-      const streakId = String(
-        (streak as Record<string, unknown>).id ??
-          (streak as Record<string, unknown>)._id,
-      );
-      const streakOrg = String(
-        (streak as Record<string, unknown>).organizationId ??
-          (streak as Record<string, unknown>).organization ??
-          '',
-      );
-      const streakUser = String(
-        (streak as Record<string, unknown>).userId ??
-          (streak as Record<string, unknown>).user ??
-          '',
-      );
-      const streakFreezes = Number(
-        (streak as Record<string, unknown>).streakFreezes ?? 0,
-      );
-      const streakCurrentStreak = Number(
-        (streak as Record<string, unknown>).currentStreak ?? 0,
-      );
+      const streakOrg = String(streak.organization ?? '');
+      const streakUser = String(streak.user ?? '');
+      const streakCurrentStreak = streak.currentStreak;
 
-      if (streakFreezes > 0) {
-        await this.prisma.streak.update({
-          data: {
-            lastActivityDate: yesterday,
-            lastFreezeUsedAt: today,
-            streakFreezes: { decrement: 1 },
-          } as never,
-          where: { id: streakId },
-        });
+      if (streak.streakFreezes > 0) {
+        streak.lastActivityDate = yesterday;
+        streak.lastFreezeUsedAt = today;
+        streak.streakFreezes -= 1;
+        await this.persistStreak(streak);
         frozen += 1;
 
         await this.sendDiscordNotification(
@@ -393,15 +559,11 @@ export class StreaksService {
       }
 
       const brokenStreakLength = streakCurrentStreak;
-      await this.prisma.streak.update({
-        data: {
-          currentStreak: 0,
-          lastBrokenAt: today,
-          lastBrokenStreak: brokenStreakLength,
-          streakStartDate: null,
-        } as never,
-        where: { id: streakId },
-      });
+      streak.currentStreak = 0;
+      streak.lastBrokenAt = today;
+      streak.lastBrokenStreak = brokenStreakLength;
+      streak.streakStartDate = null;
+      await this.persistStreak(streak);
       broken += 1;
 
       await this.sendDiscordNotification(
@@ -487,11 +649,7 @@ export class StreaksService {
 
   private buildMilestoneStates(
     achievedMilestones: number[],
-    milestoneHistory: Array<{
-      achievedAt: Date;
-      milestone: number;
-      reward: string;
-    }>,
+    milestoneHistory: StreakMilestoneHistoryEntry[],
   ): IStreakMilestoneState[] {
     const historyMap = new Map(
       milestoneHistory.map((item) => [item.milestone, item]),

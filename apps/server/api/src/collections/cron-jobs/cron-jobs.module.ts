@@ -1,4 +1,5 @@
 import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
+import { CreditsModule } from '@api/collections/credits/credits.module';
 import { CronJobsController } from '@api/collections/cron-jobs/controllers/cron-jobs.controller';
 import { CronJobsService } from '@api/collections/cron-jobs/services/cron-jobs.service';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
@@ -12,12 +13,14 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [CronJobsController],
   exports: [CronJobsService],
   imports: [
+    forwardRef(() => CreditsModule),
     forwardRef(() => WorkflowsModule),
     forwardRef(() => AgentRunsModule),
     forwardRef(() => QueuesModule),
-    CacheModule,
-    OpenRouterModule,
-    SubstackModule,
+    forwardRef(() => CreditsModule),
+    forwardRef(() => CacheModule),
+    forwardRef(() => OpenRouterModule),
+    forwardRef(() => SubstackModule),
   ],
   providers: [CronJobsService],
 })

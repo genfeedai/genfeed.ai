@@ -1,5 +1,5 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { ConfigModule } from '@api/config/config.module';
 import { SlackController } from '@api/services/integrations/slack/controllers/slack.controller';
 import { SlackService } from '@api/services/integrations/slack/services/slack.service';
@@ -11,11 +11,11 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [SlackController],
   exports: [SlackService],
   imports: [
-    BrandsModule,
-    ConfigModule,
-    forwardRef(() => CredentialsModule),
-    HttpModule,
-    LoggerModule,
+    forwardRef(() => BrandsModule),
+    forwardRef(() => ConfigModule),
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => HttpModule),
+    forwardRef(() => LoggerModule),
   ],
   providers: [SlackService],
 })

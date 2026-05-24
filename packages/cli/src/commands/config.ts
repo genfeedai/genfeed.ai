@@ -1,7 +1,7 @@
 import { confirm } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
-import { defaultProfile, type Profile } from '@/config/schema.js';
+import { defaultProfile, type Profile } from '@/config/schema';
 import {
   getActiveProfile,
   getConfigPath,
@@ -9,9 +9,9 @@ import {
   saveConfig,
   setAgentModel,
   setProfileField,
-} from '@/config/store.js';
-import { formatHeader, formatLabel, formatSuccess, print, printJson } from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
+} from '@/config/store';
+import { formatHeader, formatLabel, formatSuccess, print, printJson } from '@/ui/theme';
+import { handleError } from '@/utils/errors';
 
 const SETTABLE_KEYS: Record<string, keyof Profile> = {
   'agent-model': 'agent',

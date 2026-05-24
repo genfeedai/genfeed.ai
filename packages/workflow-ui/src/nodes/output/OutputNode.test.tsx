@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { OutputNode } from './OutputNode';
+import { DownloadNode } from './OutputNode';
 
 // Mock ReactFlow
 vi.mock('@xyflow/react', () => ({
@@ -27,7 +27,7 @@ vi.mock('../BaseNode', () => ({
 // Mock Next.js Image
 vi.mock('next/image', () => ({
   default: ({ src, alt }: { src: string; alt: string }) => (
-    <img src={src} alt={alt} data-testid="next-image" />
+    <span aria-label={alt} data-src={src} data-testid="next-image" role="img" />
   ),
 }));
 
@@ -75,7 +75,7 @@ vi.mock('../../ui/input', () => ({
   Input: (props: Record<string, unknown>) => <input {...props} />,
 }));
 
-describe('OutputNode', () => {
+describe('DownloadNode', () => {
   const defaultProps = {
     data: {
       inputImage: null,
@@ -106,13 +106,13 @@ describe('OutputNode', () => {
 
   describe('empty state (not connected)', () => {
     it('should show connect prompt when no input and not connected', () => {
-      render(<OutputNode {...defaultProps} />);
+      render(<DownloadNode {...defaultProps} />);
 
       expect(screen.getByText('Connect image or video')).toBeInTheDocument();
     });
 
     it('should not show download button when no media', () => {
-      render(<OutputNode {...defaultProps} />);
+      render(<DownloadNode {...defaultProps} />);
 
       expect(screen.queryByTestId('download-button')).not.toBeInTheDocument();
     });
@@ -129,21 +129,21 @@ describe('OutputNode', () => {
     };
 
     it('should display image when inputImage is provided', () => {
-      render(<OutputNode {...imageProps} />);
+      render(<DownloadNode {...imageProps} />);
 
       expect(screen.getByTestId('next-image')).toBeInTheDocument();
-      expect(screen.getByAltText('Output')).toBeInTheDocument();
+      expect(screen.getByRole('img', { name: 'Output' })).toBeInTheDocument();
     });
 
     it('should show download button', () => {
-      render(<OutputNode {...imageProps} />);
+      render(<DownloadNode {...imageProps} />);
 
       expect(screen.getByText('Download')).toBeInTheDocument();
       expect(screen.getByTestId('download-button')).toBeInTheDocument();
     });
 
     it('should show filename input with extension', () => {
-      render(<OutputNode {...imageProps} />);
+      render(<DownloadNode {...imageProps} />);
 
       expect(screen.getByText('.png')).toBeInTheDocument();
     });
@@ -160,7 +160,7 @@ describe('OutputNode', () => {
     };
 
     it('should display video when inputVideo is provided', () => {
-      render(<OutputNode {...videoProps} />);
+      render(<DownloadNode {...videoProps} />);
 
       const video = document.querySelector('video');
       expect(video).toBeInTheDocument();
@@ -168,7 +168,7 @@ describe('OutputNode', () => {
     });
 
     it('should have autoplay and loop attributes', () => {
-      render(<OutputNode {...videoProps} />);
+      render(<DownloadNode {...videoProps} />);
 
       const video = document.querySelector('video');
       expect(video?.hasAttribute('autoplay')).toBe(true);
@@ -176,13 +176,13 @@ describe('OutputNode', () => {
     });
 
     it('should show download button for video', () => {
-      render(<OutputNode {...videoProps} />);
+      render(<DownloadNode {...videoProps} />);
 
       expect(screen.getByText('Download')).toBeInTheDocument();
     });
 
     it('should show mp4 extension for video', () => {
-      render(<OutputNode {...videoProps} />);
+      render(<DownloadNode {...videoProps} />);
 
       expect(screen.getByText('.mp4')).toBeInTheDocument();
     });
@@ -191,7 +191,7 @@ describe('OutputNode', () => {
   describe('processing state', () => {
     it('should show processing overlay on image when status is processing', () => {
       render(
-        <OutputNode
+        <DownloadNode
           {...defaultProps}
           data={{
             ...defaultProps.data,
@@ -202,12 +202,12 @@ describe('OutputNode', () => {
         />,
       );
 
-      expect(screen.getByText('Processing...')).toBeInTheDocument();
+      expect(screen.getByText('Processing…')).toBeInTheDocument();
     });
 
     it('should show processing overlay on video when status is processing', () => {
       render(
-        <OutputNode
+        <DownloadNode
           {...defaultProps}
           data={{
             ...defaultProps.data,
@@ -218,14 +218,14 @@ describe('OutputNode', () => {
         />,
       );
 
-      expect(screen.getByText('Processing...')).toBeInTheDocument();
+      expect(screen.getByText('Processing…')).toBeInTheDocument();
     });
   });
 
   describe('filename input', () => {
     it('should display default output name in input', () => {
       render(
-        <OutputNode
+        <DownloadNode
           {...defaultProps}
           data={{
             ...defaultProps.data,
@@ -242,7 +242,7 @@ describe('OutputNode', () => {
 
     it('should fall back to "output" when outputName is empty', () => {
       render(
-        <OutputNode
+        <DownloadNode
           {...defaultProps}
           data={{
             ...defaultProps.data,

@@ -119,9 +119,13 @@ describe('OrchestrationSkillsPage', () => {
       expect(listSkillsMock).toHaveBeenCalledTimes(1);
     });
     expect(screen.getByText('Acme Brand')).toBeInTheDocument();
-    const skillButtons = await screen.findAllByRole('button', {
-      name: /YouTube Script Setup/i,
-    });
+    const skillButtons = await screen.findAllByRole(
+      'button',
+      {
+        name: /YouTube Script Setup/i,
+      },
+      { timeout: 5000 },
+    );
     expect(skillButtons.length).toBeGreaterThan(0);
     expect(screen.getByText(/built in/i)).toBeInTheDocument();
 

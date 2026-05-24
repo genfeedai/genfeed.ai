@@ -72,12 +72,15 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
       });
 
       const sessionClaims = resolveClerkSessionClaims(tokenPayload);
+      const clerkOrgId = sessionClaims.clerkOrgId;
+
       if (hasClerkHotPathClaims(sessionClaims)) {
         const hotPathUser = buildClerkHotPathUser(sessionClaims);
         if (hotPathUser) {
           const resolvedIdentity =
             await this.authIdentityResolverService.resolve(
               hotPathUser as unknown as User,
+              { clerkOrgId },
             );
 
           return {
@@ -94,8 +97,10 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
       }
 
       const user = await this.clerkService.getUser(tokenPayload.sub);
-      const resolvedIdentity =
-        await this.authIdentityResolverService.resolve(user);
+      const resolvedIdentity = await this.authIdentityResolverService.resolve(
+        user,
+        { clerkOrgId },
+      );
 
       const userWithResolvedMetadata = {
         ...user,

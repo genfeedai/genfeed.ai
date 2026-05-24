@@ -486,7 +486,7 @@ export class NewslettersService extends BaseService<
         ? `Recent newsletter context:\n${contextNewsletters
             .map(
               (item, index) =>
-                `Issue ${index + 1} - ${item.label}\nTopic: ${item.topic}\nSummary: ${item.summary ?? ''}\nContent excerpt: ${item.content.slice(0, 800)}`,
+                `Issue ${index + 1} - ${item.label}\nTopic: ${item.topic ?? ''}\nSummary: ${item.summary ?? ''}\nContent excerpt: ${(item.content ?? '').slice(0, 800)}`,
             )
             .join('\n\n')}`
         : '',
@@ -510,7 +510,7 @@ export class NewslettersService extends BaseService<
     recent: NewsletterDocument[],
   ): TopicProposal[] {
     const excludedTopics = new Set(
-      recent.map((item) => item.topic.toLowerCase()),
+      recent.flatMap((item) => (item.topic ? [item.topic.toLowerCase()] : [])),
     );
     const defaults: TopicProposal[] = [
       {

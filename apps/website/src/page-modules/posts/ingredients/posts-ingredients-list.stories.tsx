@@ -15,9 +15,13 @@ export default meta;
 type Story = StoryObj<typeof PostsIngredientsList>;
 
 export const Default: Story = {
-  args: {},
+  args: {
+    page: 1,
+  },
 };
 
 export const Interactive: Story = {
-  args: {},
+  args: {
+    page: 1,
+  },
 };

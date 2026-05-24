@@ -10,7 +10,9 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { ArticlesAnalyticsService } from '@api/collections/articles/services/articles-analytics.service';
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import { BrandsModule } from '@api/collections/brands/brands.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
@@ -40,10 +42,12 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     forwardRef(() => ActivitiesModule),
     forwardRef(() => BrandsModule),
-    ByokModule,
+    forwardRef(() => ByokModule),
     forwardRef(() => ConfigModule),
     forwardRef(() => CreditsModule),
+    forwardRef(() => CredentialsCoreModule),
     forwardRef(() => ModelsModule),
+    forwardRef(() => HarnessProfilesModule),
     forwardRef(() => NotificationsModule),
     forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => OrganizationsModule),
@@ -54,7 +58,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => RouterModule),
     forwardRef(() => TemplatesModule),
     forwardRef(() => UsersModule),
-    ContentHarnessModule,
+    forwardRef(() => ContentHarnessModule),
   ],
   providers: [
     ArticleAnalyticsService,

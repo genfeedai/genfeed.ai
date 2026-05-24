@@ -10,13 +10,12 @@ import {
 } from '@helpers/aspect-ratio.helper';
 
 vi.mock('@genfeedai/constants', async () => {
-  const actual = await vi.importActual<typeof import('@genfeedai/constants')>(
-    '@genfeedai/constants',
-  );
-  const enums =
-    await vi.importActual<typeof import('@genfeedai/enums')>(
-      '@genfeedai/enums',
-    );
+  const [actual, enums] = await Promise.all([
+    vi.importActual<typeof import('@genfeedai/constants')>(
+      '@genfeedai/constants',
+    ),
+    vi.importActual<typeof import('@genfeedai/enums')>('@genfeedai/enums'),
+  ]);
   return {
     ...actual,
     MODEL_OUTPUT_CAPABILITIES: {

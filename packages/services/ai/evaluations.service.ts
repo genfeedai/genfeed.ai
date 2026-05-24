@@ -27,10 +27,7 @@ export class EvaluationsService extends BaseService<Evaluation> {
   }
 
   public static getInstance(token: string): EvaluationsService {
-    return BaseService.getDataServiceInstance(
-      EvaluationsService,
-      token,
-    ) as EvaluationsService;
+    return BaseService.getDataServiceInstance(EvaluationsService, token);
   }
 
   /**

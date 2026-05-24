@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import { AlertCategory } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Alert from '@ui/feedback/alert/Alert';

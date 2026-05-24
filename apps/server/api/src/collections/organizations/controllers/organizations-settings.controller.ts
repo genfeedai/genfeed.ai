@@ -11,8 +11,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
-import { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -23,6 +22,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
+import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
 import { ByokProvider, MemberRole } from '@genfeedai/enums';
 import type {
   IByokProviderStatus,

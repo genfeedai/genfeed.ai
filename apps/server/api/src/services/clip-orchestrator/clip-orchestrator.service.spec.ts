@@ -1,5 +1,6 @@
 import { CLIP_ORCHESTRATOR_EVENTS } from '@api/services/clip-orchestrator/clip-orchestrator.events';
 import { ClipOrchestratorService } from '@api/services/clip-orchestrator/clip-orchestrator.service';
+import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
 import { ClipRunState } from '@api/services/clip-orchestrator/clip-run-state.enum';
 import type { StartClipRunDto } from '@api/services/clip-orchestrator/dto/start-clip-run.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -13,20 +14,40 @@ function makeDto(overrides: Partial<StartClipRunDto> = {}): StartClipRunDto {
   };
 }
 
+function createStateStore(): ClipOrchestratorStateStore {
+  const values = new Map<string, unknown>();
+  return {
+    delete: vi.fn(async (namespace: string, id: string) => {
+      values.delete(`${namespace}:${id}`);
+    }),
+    get: vi.fn(
+      async <T>(namespace: string, id: string, revive?: (value: T) => T) => {
+        const value = values.get(`${namespace}:${id}`) as T | undefined;
+        return value && revive ? revive(value) : value;
+      },
+    ),
+    set: vi.fn(async <T>(namespace: string, id: string, value: T) => {
+      values.set(`${namespace}:${id}`, value);
+    }),
+  } as unknown as ClipOrchestratorStateStore;
+}
+
 describe('ClipOrchestratorService', () => {
   let service: ClipOrchestratorService;
   let emitter: EventEmitter2;
+  let stateStore: ClipOrchestratorStateStore;
 
   beforeEach(() => {
     emitter = new EventEmitter2();
-    service = new ClipOrchestratorService(emitter);
+    stateStore = createStateStore();
+    service = new ClipOrchestratorService(emitter, stateStore);
   });
 
   // -------------------------------------------------------------------------
   // 1. Start a run
   // -------------------------------------------------------------------------
-  it('should create a new run in idle state', () => {
-    const run = service.startRun(makeDto());
+  it('should create a new run in idle state', async () => {
+    const run = await service.startRun(makeDto());
     expect(run.currentState).toBe(ClipRunState.Idle);
     expect(run.projectId).toBe('proj-1');
     expect(run.id).toBeDefined();
@@ -35,44 +56,52 @@ describe('ClipOrchestratorService', () => {
   // -------------------------------------------------------------------------
   // 2. Valid transitions
   // -------------------------------------------------------------------------
-  it('should transition idle → generating → reframing (skip merging) → publishing → done', () => {
-    const run = service.startRun(makeDto({ skipMerging: true }));
+  it('should transition idle → generating → reframing (skip merging) → publishing → done', async () => {
+    const run = await service.startRun(makeDto({ skipMerging: true }));
 
-    service.transition(run.id, ClipRunState.Generating);
-    expect(service.getRun(run.id)!.currentState).toBe(ClipRunState.Generating);
+    await service.transition(run.id, ClipRunState.Generating);
+    expect((await service.getRun(run.id))!.currentState).toBe(
+      ClipRunState.Generating,
+    );
 
-    service.transition(run.id, ClipRunState.Reframing);
-    expect(service.getRun(run.id)!.currentState).toBe(ClipRunState.Reframing);
+    await service.transition(run.id, ClipRunState.Reframing);
+    expect((await service.getRun(run.id))!.currentState).toBe(
+      ClipRunState.Reframing,
+    );
 
-    service.transition(run.id, ClipRunState.Publishing);
-    expect(service.getRun(run.id)!.currentState).toBe(ClipRunState.Publishing);
+    await service.transition(run.id, ClipRunState.Publishing);
+    expect((await service.getRun(run.id))!.currentState).toBe(
+      ClipRunState.Publishing,
+    );
 
-    service.transition(run.id, ClipRunState.Done);
-    expect(service.getRun(run.id)!.currentState).toBe(ClipRunState.Done);
+    await service.transition(run.id, ClipRunState.Done);
+    expect((await service.getRun(run.id))!.currentState).toBe(
+      ClipRunState.Done,
+    );
   });
 
   // -------------------------------------------------------------------------
   // 3. Invalid transition throws
   // -------------------------------------------------------------------------
-  it('should throw on invalid transition (idle → publishing)', () => {
-    const run = service.startRun(makeDto());
-    expect(() => service.transition(run.id, ClipRunState.Publishing)).toThrow(
-      'Invalid state transition',
-    );
+  it('should throw on invalid transition (idle → publishing)', async () => {
+    const run = await service.startRun(makeDto());
+    await expect(
+      service.transition(run.id, ClipRunState.Publishing),
+    ).rejects.toThrow('Invalid state transition');
   });
 
   // -------------------------------------------------------------------------
   // 4. Confirmation checkpoint
   // -------------------------------------------------------------------------
-  it('should pause at publishing when confirmationRequired is true', () => {
-    const run = service.startRun(makeDto({ confirmationRequired: true }));
+  it('should pause at publishing when confirmationRequired is true', async () => {
+    const run = await service.startRun(makeDto({ confirmationRequired: true }));
 
-    service.transition(run.id, ClipRunState.Generating);
-    service.transition(run.id, ClipRunState.Reframing);
+    await service.transition(run.id, ClipRunState.Generating);
+    await service.transition(run.id, ClipRunState.Reframing);
 
     // Publishing is a checkpoint — should go to awaiting_confirmation
-    service.transition(run.id, ClipRunState.Publishing);
-    expect(service.getRun(run.id)!.currentState).toBe(
+    await service.transition(run.id, ClipRunState.Publishing);
+    expect((await service.getRun(run.id))!.currentState).toBe(
       ClipRunState.AwaitingConfirmation,
     );
   });
@@ -80,90 +109,102 @@ describe('ClipOrchestratorService', () => {
   // -------------------------------------------------------------------------
   // 5. Confirm and proceed
   // -------------------------------------------------------------------------
-  it('should confirm and move to pending state', () => {
-    const run = service.startRun(makeDto({ confirmationRequired: true }));
+  it('should confirm and move to pending state', async () => {
+    const run = await service.startRun(makeDto({ confirmationRequired: true }));
 
-    service.transition(run.id, ClipRunState.Generating);
-    service.transition(run.id, ClipRunState.Reframing);
-    service.transition(run.id, ClipRunState.Publishing);
-    expect(service.getRun(run.id)!.currentState).toBe(
+    await service.transition(run.id, ClipRunState.Generating);
+    await service.transition(run.id, ClipRunState.Reframing);
+    await service.transition(run.id, ClipRunState.Publishing);
+    expect((await service.getRun(run.id))!.currentState).toBe(
       ClipRunState.AwaitingConfirmation,
     );
 
-    service.confirm(run.id);
-    expect(service.getRun(run.id)!.currentState).toBe(ClipRunState.Publishing);
+    await service.confirm(run.id);
+    expect((await service.getRun(run.id))!.currentState).toBe(
+      ClipRunState.Publishing,
+    );
   });
 
   // -------------------------------------------------------------------------
   // 6. Retry logic — retries under max
   // -------------------------------------------------------------------------
-  it('should allow retries up to MAX_RETRIES and then fail', () => {
-    const run = service.startRun(makeDto());
-    service.transition(run.id, ClipRunState.Generating);
+  it('should allow retries up to MAX_RETRIES and then fail', async () => {
+    const run = await service.startRun(makeDto());
+    await service.transition(run.id, ClipRunState.Generating);
 
     // First two retries should keep the state
-    service.failStep(run.id, 'network error');
-    expect(service.getRun(run.id)!.currentState).toBe(ClipRunState.Generating);
-    expect(service.canRetry(run.id)).toBe(true);
+    await service.failStep(run.id, 'network error');
+    expect((await service.getRun(run.id))!.currentState).toBe(
+      ClipRunState.Generating,
+    );
+    expect(await service.canRetry(run.id)).toBe(true);
 
-    service.failStep(run.id, 'network error');
-    expect(service.getRun(run.id)!.currentState).toBe(ClipRunState.Generating);
-    expect(service.canRetry(run.id)).toBe(true);
+    await service.failStep(run.id, 'network error');
+    expect((await service.getRun(run.id))!.currentState).toBe(
+      ClipRunState.Generating,
+    );
+    expect(await service.canRetry(run.id)).toBe(true);
 
     // Third retry exhausts → fails
-    service.failStep(run.id, 'network error');
-    expect(service.getRun(run.id)!.currentState).toBe(ClipRunState.Failed);
-    expect(service.getRun(run.id)!.error).toContain('3 retries');
+    await service.failStep(run.id, 'network error');
+    expect((await service.getRun(run.id))!.currentState).toBe(
+      ClipRunState.Failed,
+    );
+    expect((await service.getRun(run.id))!.error).toContain('3 retries');
   });
 
   // -------------------------------------------------------------------------
   // 7. Exponential backoff delay
   // -------------------------------------------------------------------------
-  it('should calculate exponential backoff delay', () => {
-    const run = service.startRun(makeDto());
-    service.transition(run.id, ClipRunState.Generating);
+  it('should calculate exponential backoff delay', async () => {
+    const run = await service.startRun(makeDto());
+    await service.transition(run.id, ClipRunState.Generating);
 
     // Initial delay (retryCount=0)
-    expect(service.getRetryDelay(run.id)).toBe(1000);
+    expect(await service.getRetryDelay(run.id)).toBe(1000);
 
-    service.failStep(run.id, 'err');
+    await service.failStep(run.id, 'err');
     // After 1 failure (retryCount=1)
-    expect(service.getRetryDelay(run.id)).toBe(2000);
+    expect(await service.getRetryDelay(run.id)).toBe(2000);
 
-    service.failStep(run.id, 'err');
+    await service.failStep(run.id, 'err');
     // After 2 failures (retryCount=2)
-    expect(service.getRetryDelay(run.id)).toBe(4000);
+    expect(await service.getRetryDelay(run.id)).toBe(4000);
   });
 
   // -------------------------------------------------------------------------
   // 8. Retry from last good state
   // -------------------------------------------------------------------------
-  it('should retry a failed run from the last good state', () => {
-    const run = service.startRun(makeDto());
-    service.transition(run.id, ClipRunState.Generating);
-    service.completeStep(run.id, { clips: 3 });
-    service.transition(run.id, ClipRunState.Reframing);
+  it('should retry a failed run from the last good state', async () => {
+    const run = await service.startRun(makeDto());
+    await service.transition(run.id, ClipRunState.Generating);
+    await service.completeStep(run.id, { clips: 3 });
+    await service.transition(run.id, ClipRunState.Reframing);
 
     // Fail the run
-    service.failStep(run.id, 'crash');
-    service.failStep(run.id, 'crash');
-    service.failStep(run.id, 'crash');
-    expect(service.getRun(run.id)!.currentState).toBe(ClipRunState.Failed);
+    await service.failStep(run.id, 'crash');
+    await service.failStep(run.id, 'crash');
+    await service.failStep(run.id, 'crash');
+    expect((await service.getRun(run.id))!.currentState).toBe(
+      ClipRunState.Failed,
+    );
 
     // Retry — should go back to generating (last completed step)
-    service.retryFromLastGood(run.id);
-    expect(service.getRun(run.id)!.currentState).toBe(ClipRunState.Generating);
+    await service.retryFromLastGood(run.id);
+    expect((await service.getRun(run.id))!.currentState).toBe(
+      ClipRunState.Generating,
+    );
   });
 
   // -------------------------------------------------------------------------
   // 9. Events are emitted on state change
   // -------------------------------------------------------------------------
-  it('should emit state change events', () => {
+  it('should emit state change events', async () => {
     const events: unknown[] = [];
     emitter.on(CLIP_ORCHESTRATOR_EVENTS.STATE_CHANGED, (e) => events.push(e));
 
-    const run = service.startRun(makeDto());
-    service.transition(run.id, ClipRunState.Generating);
+    const run = await service.startRun(makeDto());
+    await service.transition(run.id, ClipRunState.Generating);
 
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({
@@ -176,34 +217,51 @@ describe('ClipOrchestratorService', () => {
   // -------------------------------------------------------------------------
   // 10. getNextState respects skipMerging
   // -------------------------------------------------------------------------
-  it('should skip merging in getNextState when skipMerging is true', () => {
-    const run = service.startRun(makeDto({ skipMerging: true }));
-    service.transition(run.id, ClipRunState.Generating);
+  it('should skip merging in getNextState when skipMerging is true', async () => {
+    const run = await service.startRun(makeDto({ skipMerging: true }));
+    await service.transition(run.id, ClipRunState.Generating);
 
-    const next = service.getNextState(run.id);
+    const next = await service.getNextState(run.id);
     expect(next).toBe(ClipRunState.Reframing);
   });
 
   // -------------------------------------------------------------------------
   // 11. getRun returns undefined for unknown ID
   // -------------------------------------------------------------------------
-  it('should return undefined for unknown run ID', () => {
-    expect(service.getRun('nonexistent')).toBeUndefined();
+  it('should return undefined for unknown run ID', async () => {
+    await expect(service.getRun('nonexistent')).resolves.toBeUndefined();
+  });
+
+  it('should retain runs across service instances', async () => {
+    const run = await service.startRun(
+      makeDto({ projectId: 'proj-persisted' }),
+    );
+    const nextService = new ClipOrchestratorService(
+      new EventEmitter2(),
+      stateStore,
+    );
+
+    expect(await nextService.getRun(run.id)).toMatchObject({
+      id: run.id,
+      projectId: 'proj-persisted',
+    });
   });
 
   // -------------------------------------------------------------------------
   // 12. Full pipeline with merging
   // -------------------------------------------------------------------------
-  it('should transition through full pipeline including merging', () => {
-    const run = service.startRun(makeDto());
+  it('should transition through full pipeline including merging', async () => {
+    const run = await service.startRun(makeDto());
 
-    service.transition(run.id, ClipRunState.Generating);
-    service.transition(run.id, ClipRunState.Merging);
-    service.transition(run.id, ClipRunState.Reframing);
-    service.transition(run.id, ClipRunState.Publishing);
-    service.transition(run.id, ClipRunState.Done);
+    await service.transition(run.id, ClipRunState.Generating);
+    await service.transition(run.id, ClipRunState.Merging);
+    await service.transition(run.id, ClipRunState.Reframing);
+    await service.transition(run.id, ClipRunState.Publishing);
+    await service.transition(run.id, ClipRunState.Done);
 
-    expect(service.getRun(run.id)!.currentState).toBe(ClipRunState.Done);
-    expect(service.getRun(run.id)!.steps).toHaveLength(5); // 5 transitions
+    expect((await service.getRun(run.id))!.currentState).toBe(
+      ClipRunState.Done,
+    );
+    expect((await service.getRun(run.id))!.steps).toHaveLength(5); // 5 transitions
   });
 });

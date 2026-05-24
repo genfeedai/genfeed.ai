@@ -4,7 +4,7 @@
  * authentication, queues, cron jobs, and shared services. Entry point for the NestJS app.
  */
 
-import { join } from 'node:path';
+import process from 'node:process';
 import { AuthModule } from '@api/auth/auth.module';
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { AgentCampaignsModule } from '@api/collections/agent-campaigns/agent-campaigns.module';
@@ -55,6 +55,7 @@ import { FoldersModule } from '@api/collections/folders/folders.module';
 import { FontFamiliesModule } from '@api/collections/font-families/font-families.module';
 import { GifsModule } from '@api/collections/gifs/gifs.module';
 import { GoalsModule } from '@api/collections/goals/goals.module';
+import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { InsightsModule } from '@api/collections/insights/insights.module';
@@ -118,6 +119,7 @@ import { OnboardingModule } from '@api/endpoints/onboarding/onboarding.module';
 import { PublicModule } from '@api/endpoints/public/public.module';
 import { SystemModule } from '@api/endpoints/system/system.module';
 import { HookRemixModule } from '@api/endpoints/v1/hook-remix/hook-remix.module';
+import { ManagedInferenceModule } from '@api/endpoints/v1/managed-inference/managed-inference.module';
 import { WebhooksModule } from '@api/endpoints/webhooks/webhooks.module';
 import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
@@ -192,8 +194,6 @@ import { RedisModule } from '@libs/redis/redis.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { TerminusModule } from '@nestjs/terminus';
 import { SentryModule } from '@sentry/nestjs/setup';
 
 @Module({
@@ -213,15 +213,8 @@ import { SentryModule } from '@sentry/nestjs/setup';
     EventBusModule,
     SentryModule.forRoot(),
     ScheduleModule.forRoot(),
-    TerminusModule,
     FeatureFlagModule,
     SystemModule,
-    ServeStaticModule.forRoot({
-      exclude: ['/v1/{*path}', '/openapi.json'],
-      rootPath: join(__dirname, '..', 'public'),
-      serveRoot: '/',
-    }),
-
     // Docs (OpenAPI, GPT Actions)
     DocsModule,
 
@@ -260,6 +253,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ContextsModule,
     CreativePatternsModule,
     CredentialsModule,
+    CreditsModule,
     DistributionsModule,
     CustomersModule,
     ElementsBlacklistsModule,
@@ -277,6 +271,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     FoldersModule,
     FontFamiliesModule,
     GifsModule,
+    HarnessProfilesModule,
     HealthModule,
     HookRemixModule,
     ImagesModule,
@@ -306,7 +301,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     SettingsModule,
     SpeechModule,
     StreaksModule,
-    SubscriptionAttributionsModule,
     SubscriptionsModule,
     TagsModule,
     TemplatesModule,
@@ -331,7 +325,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
 
     // Services (alphabetical)
     BeehiivModule,
-    // CreditsModule — EE (gated below)
     DiscordModule,
     GhostModule,
     HedraModule,
@@ -346,6 +339,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     // Onboarding
     OnboardingModule,
     MediumModule,
+    ManagedInferenceModule,
     MicroservicesModule,
     ModelRouterModule,
     NotificationsModule,
@@ -445,7 +439,11 @@ import { SentryModule } from '@sentry/nestjs/setup';
 
     // EE-only modules (require GENFEED_LICENSE_KEY)
     ...(isEEEnabled()
-      ? [CreditsModule, UserSubscriptionsModule, BusinessAnalyticsModule]
+      ? [
+          UserSubscriptionsModule,
+          BusinessAnalyticsModule,
+          SubscriptionAttributionsModule,
+        ]
       : []),
   ],
   providers: [

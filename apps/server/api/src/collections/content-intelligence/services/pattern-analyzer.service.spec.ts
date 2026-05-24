@@ -396,9 +396,6 @@ describe('PatternAnalyzerService LLM response parsing', () => {
   });
 
   it('calls openrouter chatCompletion with correct model and post text', async () => {
-    // Note: validateTemplateCategory references undefined TemplateCategory enum at runtime,
-    // causing parseLLMResponse to catch the ReferenceError and return [].
-    // This test verifies the LLM is called correctly, even though patterns end up empty.
     const llmPatterns = [
       {
         description: 'Personal journey hook',
@@ -423,14 +420,9 @@ describe('PatternAnalyzerService LLM response parsing', () => {
         temperature: 0.3,
       }),
     );
-    // Due to runtime bug in validateTemplateCategory (undefined TemplateCategory),
-    // parseLLMResponse returns [] — this is known behavior until the bug is fixed.
   });
 
-  it('attempts to parse JSON from ```json code block (LLM succeeds, patterns empty due to known bug)', async () => {
-    // parseLLMResponse strips ```json fences before JSON.parse.
-    // However validateTemplateCategory throws ReferenceError (undefined TemplateCategory),
-    // causing the try-catch to return []. LLM is called but produces no patterns.
+  it('attempts to parse JSON from ```json code block', async () => {
     const llmPatterns = [
       {
         description: 'CTA',
@@ -447,10 +439,16 @@ describe('PatternAnalyzerService LLM response parsing', () => {
     });
 
     const { patterns } = await service.analyzeCreator(creatorId);
-    // LLM was invoked
+
     expect(mockOpenRouterService.chatCompletion).toHaveBeenCalled();
-    // No patterns due to runtime bug — validated behavior
-    expect(patterns).toHaveLength(0);
+    expect(patterns).toEqual([
+      expect.objectContaining({
+        description: 'CTA',
+        extractedFormula: 'Follow [ACCOUNT] for more',
+        patternType: ContentPatternType.CTA,
+        placeholders: ['ACCOUNT'],
+      }),
+    ]);
   });
 
   it('falls back to rule-based on invalid JSON from LLM', async () => {

@@ -73,25 +73,21 @@ export default function KPISection({
     DESKTOP_GRID_CLASSES[desktop] || 'lg:grid-cols-3',
   );
 
-  const renderContent = (): React.ReactNode => {
-    if (error) {
-      return <Alert type={AlertCategory.ERROR}>{error}</Alert>;
-    }
-
-    return (
-      <div className={gridColsClass}>
-        {items.map((item, index) => (
-          <KPICard key={index} {...item} isLoading={isLoading} />
-        ))}
-      </div>
-    );
-  };
+  const sectionContent: React.ReactNode = error ? (
+    <Alert type={AlertCategory.ERROR}>{error}</Alert>
+  ) : (
+    <div className={gridColsClass}>
+      {items.map((item) => (
+        <KPICard key={item.label} {...item} isLoading={isLoading} />
+      ))}
+    </div>
+  );
 
   return (
     <div className={cn('mb-6', className)}>
       {title && <SectionHeader title={title} headerActions={headerActions} />}
 
-      {renderContent()}
+      {sectionContent}
     </div>
   );
 }

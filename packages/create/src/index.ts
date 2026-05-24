@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import type { ChildProcess } from 'node:child_process';
 import { execFile, spawn, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import {
@@ -76,7 +77,7 @@ NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3011
 NEXT_PUBLIC_CDN_URL=http://localhost:3012
 
 # ─── AI Providers (add your keys during onboarding) ────────────────
-# REPLICATE_API_TOKEN=
+# REPLICATE_KEY=
 # FAL_API_KEY=
 # ELEVENLABS_API_KEY=
 # HF_API_TOKEN=
@@ -196,7 +197,21 @@ async function replaceEnvValue(
  * Start a persistent redis-server process.
  * Data is stored at ~/.genfeed/data/redis with AOF persistence.
  */
-async function startManagedRedis(): Promise<void> {
+interface ProcessExit {
+  code: number | null;
+  signal: NodeJS.Signals | null;
+}
+
+function observeChildExit(child: ChildProcess): Promise<ProcessExit> {
+  return new Promise((resolvePromise, rejectPromise) => {
+    child.once('error', rejectPromise);
+    child.once('close', (code, signal) => {
+      resolvePromise({ code, signal });
+    });
+  });
+}
+
+export async function startManagedRedis(): Promise<void> {
   const redisDir = join(GENFEED_DATA_DIR, 'redis');
   await mkdir(redisDir, { recursive: true });
 
@@ -225,7 +240,20 @@ async function startManagedRedis(): Promise<void> {
   );
 
   redis.unref();
-  await new Promise((r) => setTimeout(r, 1000));
+  const startup = await Promise.race([
+    observeChildExit(redis),
+    new Promise<'started'>((resolvePromise) =>
+      setTimeout(() => resolvePromise('started'), 1000),
+    ),
+  ]);
+
+  if (startup !== 'started') {
+    consola.warn(
+      `redis-server failed to start with exit code ${startup.code ?? startup.signal ?? 'unknown'}`,
+    );
+    return;
+  }
+
   consola.success('Redis started (persistent data at ~/.genfeed/data/redis)');
 }
 
@@ -272,7 +300,7 @@ export async function setupRedis(projectDirectory: string): Promise<void> {
   await startManagedRedis();
 }
 
-async function scaffoldProject(projectName: string): Promise<void> {
+export async function scaffoldProject(projectName: string): Promise<void> {
   const projectDirectory = resolve(process.cwd(), projectName);
 
   consola.start(`Scaffolding ${projectName} from ${TEMPLATE_REPOSITORY}`);
@@ -298,13 +326,25 @@ async function scaffoldProject(projectName: string): Promise<void> {
     cwd: projectDirectory,
     stdio: 'inherit',
   });
+  const devProcessExit = observeChildExit(child);
 
   consola.start('Waiting for services to start…');
 
-  const [apiReady, webReady] = await Promise.all([
+  const readiness = Promise.all([
     waitForServer('http://localhost:3010/v1/health'),
     waitForServer('http://localhost:3000'),
   ]);
+  const startupResult = await Promise.race([readiness, devProcessExit]);
+
+  if (!Array.isArray(startupResult)) {
+    process.exitCode = startupResult.code ?? 1;
+    consola.error(
+      `Development server exited before becoming ready (exit code ${startupResult.code ?? startupResult.signal ?? 'unknown'})`,
+    );
+    return;
+  }
+
+  const [apiReady, webReady] = startupResult;
 
   if (apiReady && webReady) {
     consola.box(
@@ -324,12 +364,8 @@ async function scaffoldProject(projectName: string): Promise<void> {
     consola.info(ONBOARDING_URL);
   }
 
-  await new Promise<void>((resolvePromise) => {
-    child.on('close', (code) => {
-      process.exitCode = code ?? 0;
-      resolvePromise();
-    });
-  });
+  const exit = await devProcessExit;
+  process.exitCode = exit.code ?? 0;
 }
 
 async function main(): Promise<void> {

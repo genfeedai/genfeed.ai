@@ -1,20 +1,15 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   CampaignPlatform,
   CampaignStatus,
   CampaignType,
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsBoolean,
-  IsEnum,
-  IsMongoId,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class OutreachCampaignsQueryDto {
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Filter by organization',
     required: false,

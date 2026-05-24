@@ -22,21 +22,27 @@ import {
 } from 'next/navigation';
 import {
   type PropsWithChildren,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
   useRef,
 } from 'react';
+import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import { ChatWorkspaceContext } from './chat-workspace-context';
 
 const UNSET_THREAD_BASELINE = Symbol('chat-new-route-baseline');
 
-export function ChatWorkspaceLayoutClient({
+function ChatWorkspaceLayoutClientContent({
   children,
 }: PropsWithChildren): JSX.Element {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = useMemo(
+    () => normalizeProtectedPathname(rawPathname),
+    [rawPathname],
+  );
   const params = useParams<{ id?: string; threadId?: string }>();
-  const router = useRouter();
+  const { replace } = useRouter();
   const searchParams = useSearchParams();
   const { getToken, isLoaded } = useAuth();
   const { session } = useSession();
@@ -52,7 +58,8 @@ export function ChatWorkspaceLayoutClient({
   const isJourneyRoute = pathname.startsWith('/chat/journey');
   const isOnboarding = pathname.startsWith('/chat/onboarding');
   const isOnboardingEntryRoute = pathname === '/chat/onboarding';
-  const isStandardNewRoute = pathname === '/chat/new';
+  const conversationBasePath = '/chat';
+  const isStandardNewRoute = pathname === '/chat' || pathname === '/chat/new';
   const isUnthreadedRoute = isOnboardingEntryRoute || isStandardNewRoute;
   const prefillPrompt = searchParams.get('prompt')?.trim() || '';
   const effectiveIsLoaded = isLoaded || playwrightAuth?.isLoaded === true;
@@ -110,8 +117,8 @@ export function ChatWorkspaceLayoutClient({
             ? `/chat/onboarding/${threadId}`
             : '/chat/onboarding'
           : threadId
-            ? `/chat/${threadId}`
-            : '/chat/new';
+            ? `${conversationBasePath}/${threadId}`
+            : `${conversationBasePath}/new`;
         const separator = credential.url.includes('?') ? '&' : '?';
         window.open(
           `${credential.url}${separator}return_to=${encodeURIComponent(returnTo)}`,
@@ -187,12 +194,18 @@ export function ChatWorkspaceLayoutClient({
     ) {
       const nextRoute = isOnboarding
         ? `/chat/onboarding/${activeThreadId}`
-        : `/chat/${activeThreadId}`;
+        : `${conversationBasePath}/${activeThreadId}`;
       newRouteBaselineThreadRef.current = activeThreadId;
       pendingNavigationThreadRef.current = activeThreadId;
-      router.replace(nextRoute);
+      replace(nextRoute);
     }
-  }, [activeThreadId, isJourneyRoute, isOnboarding, isUnthreadedRoute, router]);
+  }, [
+    activeThreadId,
+    isJourneyRoute,
+    isOnboarding,
+    isUnthreadedRoute,
+    replace,
+  ]);
 
   const contextValue = useMemo(
     () => ({
@@ -215,5 +228,17 @@ export function ChatWorkspaceLayoutClient({
     <ChatWorkspaceContext.Provider value={contextValue}>
       {children}
     </ChatWorkspaceContext.Provider>
+  );
+}
+
+export function ChatWorkspaceLayoutClient({
+  children,
+}: PropsWithChildren): JSX.Element {
+  return (
+    <Suspense fallback={null}>
+      <ChatWorkspaceLayoutClientContent>
+        {children}
+      </ChatWorkspaceLayoutClientContent>
+    </Suspense>
   );
 }

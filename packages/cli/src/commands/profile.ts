@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
-import type { Profile } from '@/config/schema.js';
+import type { Profile } from '@/config/schema';
 import {
   createProfile,
   getConfigPath,
@@ -8,7 +8,7 @@ import {
   setActiveProfileName,
   setAgentModel,
   setProfileField,
-} from '@/config/store.js';
+} from '@/config/store';
 import {
   formatError,
   formatHeader,
@@ -16,8 +16,8 @@ import {
   formatSuccess,
   print,
   printJson,
-} from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
+} from '@/ui/theme';
+import { handleError } from '@/utils/errors';
 
 export const profileCommand = new Command('profile').description('Manage CLI profiles');
 
@@ -116,7 +116,7 @@ profileCommand
   .option('-p, --profile <name>', 'Profile name (defaults to active)')
   .action(async (field, value, options) => {
     try {
-      const fieldMap: Record<string, keyof import('@/config/schema.js').Profile> = {
+      const fieldMap: Record<string, keyof import('@/config/schema').Profile> = {
         'active-brand': 'activeBrand',
         'active-persona': 'activePersona',
         'agent-model': 'agent',

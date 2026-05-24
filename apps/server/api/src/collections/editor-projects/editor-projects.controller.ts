@@ -79,7 +79,11 @@ export class EditorProjectsController {
     const orgId = publicMetadata.organization;
     const DEFAULT_FPS = 30;
 
-    const projectPayload: Record<string, unknown> = {
+    const projectPayload: Record<string, unknown> & {
+      brand?: string;
+      organization: string;
+      user: string;
+    } = {
       ...createDto,
       ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
       organization: orgId,
@@ -155,8 +159,9 @@ export class EditorProjectsController {
       }
     }
 
-    const data: EditorProjectDocument =
-      await this.editorProjectsService.create(projectPayload);
+    const data: EditorProjectDocument = await this.editorProjectsService.create(
+      projectPayload as unknown as CreateEditorProjectDto,
+    );
 
     return serializeSingle(request, EditorProjectSerializer, data);
   }
@@ -175,20 +180,16 @@ export class EditorProjectsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
-          isDeleted: false,
-          organization: publicMetadata.organization,
-        },
+    const aggregate = {
+      where: {
+        ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
+        isDeleted: false,
+        organization: publicMetadata.organization,
       },
-      {
-        $sort: query.sort
-          ? handleQuerySort(query.sort)
-          : ({ updatedAt: -1 } as SortObject),
-      },
-    ];
+      orderBy: query.sort
+        ? handleQuerySort(query.sort)
+        : ({ updatedAt: -1 } as SortObject),
+    };
 
     const data: AggregatePaginateResult<EditorProjectDocument> =
       await this.editorProjectsService.findAll(aggregate, options);

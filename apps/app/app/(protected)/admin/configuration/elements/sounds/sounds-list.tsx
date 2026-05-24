@@ -19,10 +19,17 @@ import { LazyModalSound } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
 
-export default function SoundsList({
+function SoundsListContent({
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -34,10 +41,10 @@ export default function SoundsList({
     useCallback((token: string) => SoundsService.getInstance(token), []),
   );
 
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const searchParamsString = searchParams.toString();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -71,11 +78,11 @@ export default function SoundsList({
       params.delete('brand');
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   const handleAdminBrandChange = useCallback(
@@ -89,11 +96,11 @@ export default function SoundsList({
       }
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   // Use refs for callback props to prevent unnecessary re-renders
@@ -171,7 +178,7 @@ export default function SoundsList({
                 isError: true,
                 label: 'Delete Sound',
                 message: `Are you sure you want to delete "${sound.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(sound),
               });
             },
             tooltip: 'Delete',
@@ -180,7 +187,7 @@ export default function SoundsList({
       : [];
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams?.get('page')) || 1;
+  const currentPage = Number(searchParams.get('page')) || 1;
 
   const findAllSounds = useCallback(
     async (isRefresh = false) => {
@@ -239,7 +246,7 @@ export default function SoundsList({
     ],
   );
 
-  // Fetch data on mount and when searchParams change
+  // Fetch data on mount and when search params change
   useEffect(() => {
     findAllSounds();
   }, [findAllSounds]);
@@ -286,14 +293,10 @@ export default function SoundsList({
     }
   };
 
-  const handleDelete = async () => {
-    if (!selectedSound) {
-      return;
-    }
-
+  const handleDelete = async (sound: Sound) => {
     try {
       const service = await getSoundsService();
-      await service.delete(selectedSound.id);
+      await service.delete(sound.id);
       notificationsService.success('Sound deleted');
       setSelectedSound(null);
       findAllSounds(true);
@@ -340,5 +343,15 @@ export default function SoundsList({
         <AutoPagination showTotal totalLabel="sounds" />
       </div>
     </>
+  );
+}
+
+export default function SoundsList(
+  props: Parameters<typeof SoundsListContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <SoundsListContent {...props} />
+    </Suspense>
   );
 }

@@ -126,7 +126,7 @@ function VideoGenNodeComponent(props: NodeProps) {
         {/* Hint when model doesn't support image input */}
         {!modelSupportsImageInput && nodeData.inputImage && (
           <div className="text-xs text-amber-500 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
+            <AlertCircle className="size-3" />
             This model doesn&apos;t use image inputs
           </div>
         )}
@@ -136,7 +136,7 @@ function VideoGenNodeComponent(props: NodeProps) {
           <div className="relative aspect-video w-full rounded-md overflow-hidden bg-black/20">
             <video
               src={nodeData.outputVideo}
-              className="absolute inset-0 w-full h-full object-contain cursor-pointer"
+              className="absolute inset-0 size-full object-contain cursor-pointer"
               controls
             >
               <track kind="captions" />
@@ -148,7 +148,7 @@ function VideoGenNodeComponent(props: NodeProps) {
           </div>
         ) : (
           <div className="relative flex aspect-video w-full flex-col items-center justify-center gap-1 border border-dashed border-border/50 bg-secondary/20">
-            <Video className="h-6 w-6 text-muted-foreground/50" />
+            <Video className="size-6 text-muted-foreground/50" />
             {nodeData.status === 'processing' && (
               <ProcessingOverlay onStop={handleStop} />
             )}
@@ -158,7 +158,7 @@ function VideoGenNodeComponent(props: NodeProps) {
         {/* Help text for required inputs */}
         {!canGenerate && nodeData.status !== 'processing' && (
           <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
+            <AlertCircle className="size-3" />
             Connect a prompt to generate
           </div>
         )}

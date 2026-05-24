@@ -21,10 +21,7 @@ export class SubscriptionsService extends BaseService<Subscription> {
   }
 
   public static getInstance(token: string): SubscriptionsService {
-    return BaseService.getDataServiceInstance(
-      SubscriptionsService,
-      token,
-    ) as SubscriptionsService;
+    return BaseService.getDataServiceInstance(SubscriptionsService, token);
   }
 
   public async changeSubscriptionPlan(newPriceId: string): Promise<unknown> {

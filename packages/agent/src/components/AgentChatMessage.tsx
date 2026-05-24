@@ -44,6 +44,7 @@ import type {
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button, buttonVariants } from '@ui/primitives/button';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
@@ -132,12 +133,24 @@ function GenericOAuthConnectCard({
 }: {
   action: AgentUiAction;
 }): ReactElement {
+  const { orgHref } = useOrgUrl();
   const description =
     action.description ??
     'Connect Instagram, X, LinkedIn, TikTok, YouTube, or another supported platform to continue.';
-  const integrationHref =
-    action.ctas?.find((cta) => cta.href)?.href ??
-    '/settings/organization/credentials';
+  const rawIntegrationHref =
+    action.ctas?.find((cta) => cta.href)?.href ?? '/settings/api-keys';
+  const integrationHref = rawIntegrationHref.startsWith(
+    '/settings/organization/credentials',
+  )
+    ? orgHref(
+        rawIntegrationHref.replace(
+          '/settings/organization/credentials',
+          '/settings/api-keys',
+        ),
+      )
+    : rawIntegrationHref.startsWith('/settings/api-keys')
+      ? orgHref(rawIntegrationHref)
+      : rawIntegrationHref;
 
   return (
     <div className="mt-2 rounded-lg border border-border bg-background p-3">
@@ -457,7 +470,17 @@ export function UiActionRenderer({
     case 'livestream_bot_status_card':
       return <LivestreamBotCard action={action} onUiAction={onUiAction} />;
     case 'ai_text_action_card':
-      return <AiTextActionCard action={action} />;
+      return (
+        <AiTextActionCard
+          action={action}
+          onApply={({ text, selectedAction }) =>
+            onUiAction?.('apply_to_draft', {
+              sourceAction: selectedAction,
+              text,
+            })
+          }
+        />
+      );
     default:
       return null;
   }
@@ -591,6 +614,15 @@ export function AgentChatMessage({
   const visibleMessageContent = shouldAnimateAssistantText
     ? animatedMessageContent
     : message.content;
+  const handleInsertGeneratedContent = useCallback(
+    (content: string) => {
+      void onUiAction?.('apply_to_draft', {
+        sourceAction: 'generated_content',
+        text: content,
+      });
+    },
+    [onUiAction],
+  );
 
   return (
     <div
@@ -604,17 +636,35 @@ export function AgentChatMessage({
         data-message-role={message.role}
         data-message-surface={isUser ? 'bubble' : 'inline'}
         className={cn(
-          'group relative text-sm transition-shadow duration-700',
+          'group relative overflow-hidden border text-sm transition-[border-color,background-color,box-shadow] duration-300',
           isHighlighted && SCROLL_FOCUS_SURFACE_CLASS,
           isUser
-            ? 'max-w-[85%] rounded-xl bg-primary px-3 py-2 text-primary-foreground'
-            : 'w-full max-w-none rounded-none border-l border-white/[0.08] bg-transparent py-1 pl-4 pr-0 text-foreground md:pl-5',
+            ? 'max-w-[82%] rounded-md border-border/70 bg-background/78 px-4 py-3 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]'
+            : 'w-full max-w-none rounded-md border-border/65 bg-background-secondary/72 px-4 py-3 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]',
         )}
       >
+        <div
+          aria-label={isUser ? 'Your message' : 'Assistant message'}
+          className={cn(
+            'mb-2.5 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.14em]',
+            isUser ? 'text-foreground/38' : 'text-foreground/44',
+          )}
+          role="heading"
+          aria-level={3}
+        >
+          <span>{isUser ? 'You' : 'Assistant'}</span>
+          {!isUser && (toolCalls?.length ?? 0) > 0 ? (
+            <span className="rounded-full border border-border/60 bg-background/60 px-2 py-0.5 text-[9px] tracking-[0.12em] text-foreground/52">
+              {toolCalls?.length} tool
+              {(toolCalls?.length ?? 0) === 1 ? '' : 's'}
+            </span>
+          ) : null}
+        </div>
+
         {shouldRenderMessageContent && (
           <div
             className={cn(
-              'relative overflow-hidden rounded-sm',
+              'relative overflow-hidden rounded-lg',
               !isExpanded && shouldTruncateContent && 'rounded-b-xl',
             )}
             style={{
@@ -626,7 +676,7 @@ export function AgentChatMessage({
               className={cn(
                 'prose prose-sm max-w-none break-words text-inherit prose-headings:text-inherit prose-p:text-inherit prose-strong:text-inherit prose-li:text-inherit prose-code:text-inherit prose-pre:bg-transparent',
                 !isUser &&
-                  'prose-p:my-2.5 prose-p:leading-7 prose-headings:mb-3 prose-headings:mt-5 prose-ul:my-3 prose-ol:my-3 prose-li:my-1 prose-li:leading-7 prose-pre:px-0 prose-pre:py-0',
+                  'prose-p:my-2 prose-p:leading-6 prose-headings:mb-3 prose-headings:mt-5 prose-ul:my-3 prose-ol:my-3 prose-li:my-1 prose-li:leading-6 prose-pre:px-0 prose-pre:py-0',
               )}
             />
             {isMessageAnimating && !shouldTruncateContent ? (
@@ -638,7 +688,7 @@ export function AgentChatMessage({
           </div>
         )}
         {shouldSuppressFallbackMessage && !completionSummaryAction ? (
-          <div className="rounded border border-white/[0.08] bg-background/40 px-2.5 py-2 text-xs text-muted-foreground">
+          <div className="rounded-md border border-border/65 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
             Results are ready below.
           </div>
         ) : null}
@@ -658,7 +708,7 @@ export function AgentChatMessage({
             {userAttachments.map((attachment) => (
               <div
                 key={attachment.ingredientId}
-                className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-white/10"
+                className="size-10 shrink-0 overflow-hidden rounded-lg border border-border/60"
               >
                 <img
                   src={attachment.url}
@@ -675,6 +725,7 @@ export function AgentChatMessage({
             title={generatedContentTitle}
             content={generatedContent ?? ''}
             onCopy={onCopy}
+            onInsert={onUiAction ? handleInsertGeneratedContent : undefined}
             onRegenerate={
               onRegenerate ? () => onRegenerate(message) : undefined
             }
@@ -716,10 +767,10 @@ export function AgentChatMessage({
           <div
             className={cn(
               'flex items-center gap-1.5',
-              isUser ? 'text-primary-foreground/60' : 'text-foreground/42',
+              isUser ? 'text-foreground/38' : 'text-foreground/42',
             )}
           >
-            {!isUser && <HiOutlineClock className="h-3 w-3" />}
+            {!isUser && <HiOutlineClock className="size-3" />}
             {metaItems.map((item, index) => (
               <span
                 key={`${item}-${index}`}
@@ -744,7 +795,7 @@ export function AgentChatMessage({
                   ariaLabel="Copy message"
                   onClick={() => onCopy(copyContent)}
                 >
-                  <HiOutlineClipboard className="h-3.5 w-3.5" />
+                  <HiOutlineClipboard className="size-3.5" />
                 </Button>
               ) : null}
               {shouldShowAssistantActions && onRetry ? (
@@ -757,7 +808,7 @@ export function AgentChatMessage({
                   ariaLabel="Retry message"
                   onClick={() => onRetry(message)}
                 >
-                  <HiOutlineArrowPath className="h-3.5 w-3.5" />
+                  <HiOutlineArrowPath className="size-3.5" />
                 </Button>
               ) : null}
               {shouldShowAssistantActions && onRemember ? (
@@ -770,7 +821,7 @@ export function AgentChatMessage({
                   ariaLabel="Remember message"
                   onClick={() => onRemember(message)}
                 >
-                  <HiSparkles className="h-3.5 w-3.5 text-purple-300" />
+                  <HiSparkles className="size-3.5 text-purple-300" />
                 </Button>
               ) : null}
             </div>

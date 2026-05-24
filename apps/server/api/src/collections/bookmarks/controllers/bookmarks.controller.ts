@@ -119,31 +119,11 @@ export class BookmarksController {
       matchConditions.brand = query.brand;
     }
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: matchConditions as Record<string, unknown>,
-      },
-      // Add search if provided
-      ...(query.search
-        ? [
-            {
-              $match: {
-                $or: [
-                  { title: { $options: 'i', $regex: query.search } },
-                  { content: { $options: 'i', $regex: query.search } },
-                  { description: { $options: 'i', $regex: query.search } },
-                  { author: { $options: 'i', $regex: query.search } },
-                ],
-              },
-            },
-          ]
-        : []),
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+    const aggregate = {
+      where: matchConditions as Record<string, unknown>,
+      orderBy: handleQuerySort(query.sort),
+    };
 
-    // @ts-expect-error TS2322
     const data: AggregatePaginateResult<BookmarkDocument> =
       await this.bookmarksService.findAll(aggregate, options);
     return serializeCollection(request, BookmarkSerializer, data);

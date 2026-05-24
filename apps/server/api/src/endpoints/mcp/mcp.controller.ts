@@ -66,7 +66,7 @@ export class MCPController {
       sort: { createdAt: -1 } as Record<string, 1 | -1>,
     };
 
-    const data = await this.analyticsService.findAll([], options);
+    const data = await this.analyticsService.findAll({ where: {} }, options);
     return serializeCollection(request, AnalyticSerializer, data);
   }
 }

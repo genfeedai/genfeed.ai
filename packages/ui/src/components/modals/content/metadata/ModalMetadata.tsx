@@ -77,7 +77,7 @@ export default function ModalMetadata({
     form.reset();
   };
 
-  const handleSubmit = async () => {
+  const submitModalMetadata = async () => {
     const url = `PATCH /${ingredientCategory}/${ingredientId}`;
     try {
       const service = await getIngredientsService();
@@ -101,7 +101,7 @@ export default function ModalMetadata({
   };
 
   const { isSubmitting, onSubmit } = useFormSubmitWithState(() =>
-    handleSubmit(),
+    submitModalMetadata(),
   );
 
   const { setValue } = form;
@@ -148,7 +148,7 @@ export default function ModalMetadata({
     };
   }, [getFoldersService]); // getFoldersService is stable via ref pattern, safe to include
 
-  const handleChange = (
+  const updateModalMetadata = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
@@ -171,8 +171,8 @@ export default function ModalMetadata({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -183,7 +183,7 @@ export default function ModalMetadata({
             type="text"
             name="label"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalMetadata}
             isDisabled={isSubmitting}
           />
         </FormControl>
@@ -192,7 +192,7 @@ export default function ModalMetadata({
           <Textarea
             name="description"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalMetadata}
             isDisabled={isSubmitting}
           />
         </FormControl>
@@ -202,7 +202,7 @@ export default function ModalMetadata({
             type="text"
             name="tags"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalMetadata}
             placeholder="tag1, tag2"
             isDisabled={isSubmitting}
           />

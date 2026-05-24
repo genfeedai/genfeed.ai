@@ -8,13 +8,12 @@ import { IngredientEntity } from '@api/collections/ingredients/entities/ingredie
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ValidationConfigService } from '@api/config/services/validation.config';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
-import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -31,8 +30,6 @@ import { IngredientUploadSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Controller,
-  HttpException,
-  HttpStatus,
   Post,
   Req,
   UploadedFile,
@@ -52,7 +49,6 @@ export class VideosUploadController {
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
     private readonly sharedService: SharedService,
-    private readonly validationConfigService: ValidationConfigService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
@@ -68,27 +64,23 @@ export class VideosUploadController {
   async createUpload(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new UploadValidationPipe({
+        allowedExtensions: ['mp4', 'avi', 'mov', 'mkv', 'webm'],
+        allowedMimeTypes: [
+          'video/mp4',
+          'video/avi',
+          'video/quicktime',
+          'video/x-matroska',
+          'video/webm',
+        ],
+        maxSizeBytes: 100 * 1024 * 1024,
+      }),
+    )
+    file: Express.Multer.File,
   ) {
     const publicMetadata = getPublicMetadata(user);
-
-    const validatedFile = InputValidationUtil.validateFileUpload(file, 'file', {
-      allowedExtensions:
-        this.validationConfigService.getAllowedVideoExtensions(),
-      allowedMimeTypes: this.validationConfigService.getAllowedVideoMimeTypes(),
-      required: true,
-      validationConfig: this.validationConfigService,
-    });
-
-    if (!validatedFile) {
-      throw new HttpException(
-        {
-          detail: 'Video file is required',
-          title: 'File validation failed',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+    const validatedFile = file;
 
     const { ingredientData, metadataData } =
       await this.sharedService.saveDocuments(user, {
@@ -116,12 +108,9 @@ export class VideosUploadController {
         type: FileInputType.BUFFER,
       })
       .then(async (res) => {
-        await this.ingredientsService.patch(
-          ingredientData._id,
-          new IngredientEntity({
-            status: IngredientStatus.UPLOADED,
-          }),
-        );
+        await this.ingredientsService.patch(ingredientData._id, {
+          status: IngredientStatus.UPLOADED,
+        });
 
         await this.metadataService.patch(
           metadataData._id,

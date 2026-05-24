@@ -7,6 +7,11 @@ type PrismaTransactionClient = Omit<
   PrismaService,
   '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
 >;
+type PrismaTransactionOptions = {
+  isolationLevel?: Prisma.TransactionIsolationLevel;
+  maxWait?: number;
+  timeout?: number;
+};
 
 /**
  * Transaction utility for running database operations atomically.
@@ -37,12 +42,12 @@ export class TransactionUtil {
    */
   async runInTransaction<T>(
     fn: (tx: PrismaTransactionClient) => Promise<T>,
-    options?: Prisma.TransactionOptions,
+    options?: PrismaTransactionOptions,
   ): Promise<T> {
     try {
       return await this.prismaService.$transaction(
-        (tx) => fn(tx as PrismaTransactionClient),
-        options,
+        (tx) => fn(tx as unknown as PrismaTransactionClient),
+        options as never,
       );
     } catch (error) {
       this.loggerService.error('Transaction aborted', {

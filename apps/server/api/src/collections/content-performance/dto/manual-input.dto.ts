@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ContentType, CredentialPlatform } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -5,7 +6,6 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -37,7 +37,7 @@ export class ManualMetricEntryDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   post?: string;
 
   @ApiProperty({ required: false })
@@ -94,7 +94,7 @@ export class ManualMetricEntryDto {
 
 export class ManualInputDto {
   @ApiProperty({ description: 'Brand ID', required: true })
-  @IsMongoId()
+  @IsEntityId()
   brand!: string;
 
   @ApiProperty({

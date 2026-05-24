@@ -18,7 +18,7 @@ vi.mock('next/image', () => ({
     priority: _priority,
     ...props
   }: ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean }) => (
-    <img {...props} alt={alt} />
+    <input type="image" {...props} alt={alt} />
   ),
 }));
 

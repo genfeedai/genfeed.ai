@@ -11,7 +11,7 @@ import {
 } from '@ui/primitives/select';
 import { Slider } from '@ui/primitives/slider';
 import { Check, RefreshCw, Sparkles } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useId } from 'react';
 
 export type TweetTone = 'professional' | 'casual' | 'witty' | 'viral';
 
@@ -53,6 +53,8 @@ function TweetRemixNodeComponent({
   onUpdate,
   onExecute,
 }: TweetRemixNodeProps) {
+  const toneId = useId();
+  const maxLengthId = useId();
   const handleSelectVariation = useCallback(
     (index: number) => {
       const variation = data.variations[index];
@@ -72,12 +74,14 @@ function TweetRemixNodeComponent({
     <div className="space-y-3">
       {/* Tone Selector */}
       <div>
-        <label className="text-xs text-muted-foreground">Tone</label>
+        <label htmlFor={toneId} className="text-xs text-muted-foreground">
+          Tone
+        </label>
         <Select
           value={data.tone}
           onValueChange={(value) => onUpdate(id, { tone: value as TweetTone })}
         >
-          <SelectTrigger className="mt-1">
+          <SelectTrigger id={toneId} className="mt-1">
             <SelectValue placeholder="Select a tone" />
           </SelectTrigger>
           <SelectContent>
@@ -92,10 +96,11 @@ function TweetRemixNodeComponent({
 
       {/* Max Length Slider */}
       <div>
-        <label className="text-xs text-muted-foreground">
+        <label htmlFor={maxLengthId} className="text-xs text-muted-foreground">
           Max Length: {data.maxLength}
         </label>
         <Slider
+          id={maxLengthId}
           min={100}
           max={280}
           step={10}
@@ -135,14 +140,14 @@ function TweetRemixNodeComponent({
             >
               <div className="flex items-start gap-2">
                 <div
-                  className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
+                  className={`size-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
                     data.selectedIndex === index
                       ? 'border-primary bg-primary'
                       : 'border-white/[0.08]'
                   }`}
                 >
                   {data.selectedIndex === index && (
-                    <Check className="w-2.5 h-2.5 text-white" />
+                    <Check className="size-2.5 text-white" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -169,12 +174,12 @@ function TweetRemixNodeComponent({
         >
           {data.variations.length > 0 ? (
             <>
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="size-4" />
               Regenerate
             </>
           ) : (
             <>
-              <Sparkles className="w-4 h-4" />
+              <Sparkles className="size-4" />
               Generate Variations
             </>
           )}

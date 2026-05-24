@@ -18,7 +18,6 @@ import {
 import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
 import { stopAndResetVideo } from '@genfeedai/hooks/media/video-utils/video.utils';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useIngredientActions } from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
@@ -37,6 +36,7 @@ import {
   isImageIngredient,
   isVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
+import { useQuery } from '@tanstack/react-query';
 import Alert from '@ui/feedback/alert/Alert';
 import IngredientDetailImage from '@ui/ingredients/detail-image/IngredientDetailImage';
 import IngredientDetailVideo from '@ui/ingredients/detail-video/IngredientDetailVideo';
@@ -55,7 +55,7 @@ export default function IngredientOverlay({
   onClose,
 }: IngredientOverlayProps) {
   const { isSignedIn } = useAuth();
-  const router = useRouter();
+  const { push } = useRouter();
   const { href } = useOrgUrl();
   const { credentials } = useBrand();
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -140,7 +140,7 @@ export default function IngredientOverlay({
       } else {
         closeModal(ModalEnum.INGREDIENT);
         const routeType = `${ingredient.category.toLowerCase()}s`;
-        router.push(href(`/${routeType}/${ingredient.id}`));
+        push(href(`/${routeType}/${ingredient.id}`));
       }
     },
     onShare: async (ingredient: IIngredient) => {
@@ -173,10 +173,10 @@ export default function IngredientOverlay({
         [field]: value,
       };
 
-      setLocalIngredient({
-        ...localIngredient,
+      setLocalIngredient((prev) => ({
+        ...prev!,
         metadata: updatedMetadata,
-      });
+      }));
 
       setIsUpdating(true);
 
@@ -189,10 +189,10 @@ export default function IngredientOverlay({
       } catch (error) {
         logger.error('Failed to update metadata', error);
         setError('Failed to update');
-        setLocalIngredient({
-          ...localIngredient,
+        setLocalIngredient((prev) => ({
+          ...prev!,
           metadata: originalMetadata,
-        });
+        }));
 
         setIsUpdating(false);
       }
@@ -208,10 +208,10 @@ export default function IngredientOverlay({
 
       const originalValue = (localIngredient as any)[field];
 
-      setLocalIngredient({
-        ...localIngredient,
+      setLocalIngredient((prev) => ({
+        ...prev!,
         [field]: value,
-      });
+      }));
 
       setIsUpdating(true);
 
@@ -226,10 +226,10 @@ export default function IngredientOverlay({
         logger.error('Failed to update sharing settings', error);
         setError('Failed to update sharing settings');
 
-        setLocalIngredient({
-          ...localIngredient,
+        setLocalIngredient((prev) => ({
+          ...prev!,
           [field]: originalValue,
-        });
+        }));
 
         setIsUpdating(false);
       }
@@ -284,9 +284,9 @@ export default function IngredientOverlay({
       }
 
       closeModal(ModalEnum.INGREDIENT);
-      router.push(href(`/studio/image?referenceImageId=${image.id}`));
+      push(href(`/studio/image?referenceImageId=${image.id}`));
     },
-    [router, notificationsService],
+    [notificationsService, push, href],
   );
 
   // Handle using prompt from ingredient - navigate to Studio with full config pre-filled
@@ -309,11 +309,11 @@ export default function IngredientOverlay({
         ({ buildUsePromptUrl }) => {
           const url = buildUsePromptUrl(ingredientToUse, targetRoute);
           closeModal(ModalEnum.INGREDIENT);
-          router.push(href(url));
+          push(href(url));
         },
       );
     },
-    [router, notificationsService],
+    [notificationsService, push, href],
   );
 
   // Helper to get the appropriate service for the ingredient type
@@ -333,10 +333,16 @@ export default function IngredientOverlay({
     [getImagesService, getVideosService, getGifsService],
   );
 
-  // Load child ingredients using useResource (handles AbortController cleanup properly)
-  const { data: childIngredients, refresh: refreshChildIngredients } =
-    useResource(
-      async (): Promise<IIngredient[]> => {
+  const ingredientChildrenKey = [
+    'ingredient-children',
+    ingredient?.id,
+    ingredient?.category,
+  ];
+
+  const { data: childIngredients = [], refetch: refreshChildIngredients } =
+    useQuery({
+      queryKey: ingredientChildrenKey,
+      queryFn: async (): Promise<IIngredient[]> => {
         const type = ingredient?.category;
         if (!type || !ingredient?.id) {
           return [];
@@ -351,19 +357,11 @@ export default function IngredientOverlay({
           ingredient.id,
         )) as unknown as IIngredient[];
       },
-      {
-        defaultValue: [] as IIngredient[],
-        dependencies: [ingredient?.id, ingredient?.category],
-        enabled: !!isSignedIn && !!ingredient?.id,
-        onError: (error) => {
-          logger.error('Failed to load child ingredients', error);
-        },
-      },
-    );
+      enabled: !!isSignedIn && !!ingredient?.id,
+    });
 
   const findAllIngredientChildren = useCallback(
     async (_parentId: string) => {
-      // Just refresh the useResource data
       await refreshChildIngredients();
     },
     [refreshChildIngredients],
@@ -394,10 +392,10 @@ export default function IngredientOverlay({
       } else if (localIngredient) {
         // Fallback: update manually if updatedIngredient not provided
         const originalScope = localIngredient.scope;
-        setLocalIngredient({
-          ...localIngredient,
+        setLocalIngredient((prev) => ({
+          ...prev!,
           scope,
-        });
+        }));
         setIsUpdating(true);
 
         try {
@@ -411,10 +409,10 @@ export default function IngredientOverlay({
         } catch (error) {
           logger.error('Failed to update scope', error);
           setError('Failed to update scope');
-          setLocalIngredient({
-            ...localIngredient,
+          setLocalIngredient((prev) => ({
+            ...prev!,
             scope: originalScope,
-          });
+          }));
           setIsUpdating(false);
         }
       }

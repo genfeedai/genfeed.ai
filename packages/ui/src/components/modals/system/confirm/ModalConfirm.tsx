@@ -69,8 +69,8 @@ export default function ModalConfirm({
     <Modal id={ModalEnum.CONFIRM} isError={isError}>
       <div className="text-center">
         {isError && (
-          <div className="mx-auto flex items-center justify-center w-12 h-12 mb-4 bg-error/10 rounded-full">
-            <HiOutlineExclamationTriangle className="w-6 h-6 text-error" />
+          <div className="mx-auto flex items-center justify-center size-12 mb-4 bg-error/10 rounded-full">
+            <HiOutlineExclamationTriangle className="size-6 text-error" />
           </div>
         )}
 

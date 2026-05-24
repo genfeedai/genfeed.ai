@@ -8,6 +8,10 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type {
+  IngredientDocument,
+  IngredientRefDocument,
+} from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
@@ -16,10 +20,7 @@ import {
   type PostDocument,
   Post as PostModel,
 } from '@api/collections/posts/schemas/post.schema';
-import {
-  POST_ANALYTICS_PLATFORM_GROUP_PIPELINE,
-  PostAnalyticsService,
-} from '@api/collections/posts/services/post-analytics.service';
+import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -28,9 +29,11 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
+import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnBadRequest,
+  serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
@@ -51,7 +54,7 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
-import { PostSerializer } from '@genfeedai/serializers';
+import { PostListSerializer, PostSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -118,6 +121,32 @@ export class PostsController extends BaseCRUDController<
     return `${truncated}...`;
   }
 
+  private getIngredientRefId(
+    value: string | IngredientRefDocument | null | undefined,
+  ): string | undefined {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    return value?._id ?? value?.id;
+  }
+
+  private getPostCategoryFromIngredient(
+    ingredient: Pick<IngredientDocument, 'category'> | null,
+  ): PostCategory {
+    const category = String(ingredient?.category ?? '').toLowerCase();
+
+    if (category === IngredientCategory.IMAGE.toLowerCase()) {
+      return PostCategory.IMAGE;
+    }
+
+    if (category === IngredientCategory.VIDEO.toLowerCase()) {
+      return PostCategory.VIDEO;
+    }
+
+    return PostCategory.TEXT;
+  }
+
   @Post()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
@@ -145,11 +174,21 @@ export class PostsController extends BaseCRUDController<
         );
       }
 
-      // Validate TEXT category only allowed for Twitter when scheduling
+      // Platforms that support text-only scheduled posts
+      const textOnlyPlatforms = new Set([
+        CredentialPlatform.THREADS,
+        CredentialPlatform.TWITTER,
+        CredentialPlatform.LINKEDIN,
+      ]);
+      const isTextOnlyPlatform = textOnlyPlatforms.has(
+        credential.platform as CredentialPlatform,
+      );
+
+      // Validate TEXT category only allowed for text-capable platforms when scheduling
       if (
         createPostDto.status === PostStatus.SCHEDULED &&
         createPostDto.category === PostCategory.TEXT &&
-        credential.platform !== CredentialPlatform.TWITTER
+        !isTextOnlyPlatform
       ) {
         throw new HttpException(
           {
@@ -160,10 +199,10 @@ export class PostsController extends BaseCRUDController<
         );
       }
 
-      // Validate ingredients required when scheduling for non-Twitter platforms
+      // Validate ingredients required when scheduling for platforms that require media
       if (
         createPostDto.status === PostStatus.SCHEDULED &&
-        credential.platform !== CredentialPlatform.TWITTER
+        !isTextOnlyPlatform
       ) {
         if (
           !createPostDto.ingredients ||
@@ -179,7 +218,7 @@ export class PostsController extends BaseCRUDController<
         }
       }
 
-      let firstIngredient = null;
+      let firstIngredient: IngredientDocument | null = null;
       let ingredientIds: string[] = [];
 
       if (createPostDto.ingredients && createPostDto.ingredients.length > 0) {
@@ -212,9 +251,8 @@ export class PostsController extends BaseCRUDController<
           ingredients.map((i) => [i._id.toString(), i]),
         );
         ingredientIds = createPostDto.ingredients.map((id) => id);
-        firstIngredient = ingredientMap.get(
-          createPostDto.ingredients[0].toString(),
-        );
+        firstIngredient =
+          ingredientMap.get(createPostDto.ingredients[0].toString()) ?? null;
       } else if (createPostDto.campaign) {
         const campaignIngredients =
           await this.ingredientsService.findApprovedImagesByCampaign(
@@ -235,7 +273,7 @@ export class PostsController extends BaseCRUDController<
         }
 
         ingredientIds = campaignIngredients.map((ingredient) => ingredient._id);
-        [firstIngredient] = campaignIngredients;
+        [firstIngredient = null] = campaignIngredients;
       }
 
       await this.quotaService.verifyQuota(
@@ -245,16 +283,13 @@ export class PostsController extends BaseCRUDController<
 
       const data = await this.postsService.create({
         ...createPostDto,
-        brand: firstIngredient ? firstIngredient.brand : publicMetadata.brand,
+        brand: firstIngredient
+          ? (this.getIngredientRefId(firstIngredient.brand) ??
+            publicMetadata.brand)
+          : publicMetadata.brand,
         category:
           createPostDto.category ||
-          (firstIngredient
-            ? firstIngredient.category === IngredientCategory.IMAGE
-              ? PostCategory.IMAGE
-              : firstIngredient.category === IngredientCategory.VIDEO
-                ? PostCategory.VIDEO
-                : PostCategory.TEXT
-            : PostCategory.TEXT),
+          this.getPostCategoryFromIngredient(firstIngredient),
         credential: createPostDto.credential,
         description: createPostDto.description || credential.description || '',
         ingredients: ingredientIds,
@@ -265,9 +300,10 @@ export class PostsController extends BaseCRUDController<
             ? this.extractLabelFromText(createPostDto.description.trim())
             : ''),
         organization: firstIngredient
-          ? firstIngredient.organization
+          ? (this.getIngredientRefId(firstIngredient.organization) ??
+            publicMetadata.organization)
           : publicMetadata.organization,
-        platform: credential.platform, // Save platform from credential
+        platform: credential.platform as never, // Save platform from credential
         publicationDate: createPostDto.publicationDate,
         scheduledDate: createPostDto.scheduledDate,
         status: createPostDto.status,
@@ -277,12 +313,16 @@ export class PostsController extends BaseCRUDController<
 
       await this.activitiesService.create(
         new ActivityEntity({
-          brand: firstIngredient ? firstIngredient.brand : publicMetadata.brand,
+          brand: firstIngredient
+            ? (this.getIngredientRefId(firstIngredient.brand) ??
+              publicMetadata.brand)
+            : publicMetadata.brand,
           entityId: data._id,
           entityModel: ActivityEntityModel.POST,
           key: ActivityKey.VIDEO_SCHEDULED,
           organization: firstIngredient
-            ? firstIngredient.organization
+            ? (this.getIngredientRefId(firstIngredient.organization) ??
+              publicMetadata.organization)
             : publicMetadata.organization,
           source: ActivitySource.SCRIPT,
           user: publicMetadata.user,
@@ -290,7 +330,7 @@ export class PostsController extends BaseCRUDController<
         }),
       );
 
-      if (credential.platform === CredentialPlatform.YOUTUBE) {
+      if (String(credential.platform) === CredentialPlatform.YOUTUBE) {
         this.postsService.handleYoutubePost(data).catch((error) => {
           this.loggerService.error(
             `Failed to trigger YouTube upload for post ${data._id}: ${error.message}`,
@@ -302,20 +342,23 @@ export class PostsController extends BaseCRUDController<
       return serializeSingle(request, this.serializer, data);
     } catch (error: unknown) {
       if (error instanceof Error && 'response' in error) {
-        return returnBadRequest((error as { response: unknown }).response);
+        const response = (error as { response?: unknown }).response;
+        return returnBadRequest(
+          typeof response === 'string' ||
+            (response !== null && typeof response === 'object')
+            ? (response as string | Record<string, unknown>)
+            : 'Bad request',
+        );
       }
       throw error;
     }
   }
 
   /**
-   * Override buildFindAllPipeline for custom Posts aggregation
+   * Override buildFindAllQuery for custom Posts aggregation
    * Includes ingredients array with metadata and credential lookups
    */
-  public buildFindAllPipeline(
-    user: User,
-    query: PostsQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: PostsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
@@ -330,14 +373,14 @@ export class PostsController extends BaseCRUDController<
 
       if (query.startDate) {
         // @ts-expect-error TS2571
-        (dateFilter as Record<string, unknown>).scheduledDate.$gte = new Date(
+        (dateFilter as Record<string, unknown>).scheduledDate.gte = new Date(
           query.startDate,
         );
       }
 
       if (query.endDate) {
         // @ts-expect-error TS2571
-        (dateFilter as Record<string, unknown>).scheduledDate.$lte = new Date(
+        (dateFilter as Record<string, unknown>).scheduledDate.lte = new Date(
           query.endDate,
         );
       }
@@ -350,7 +393,7 @@ export class PostsController extends BaseCRUDController<
       ...dateFilter,
       // Only show parent posts (not children/replies)
       // Handle both null and undefined (undefined fields aren't stored in MongoDB)
-      $or: [{ parent: null }, { parent: { $exists: false } }],
+      OR: [{ parent: null }, { parent: { not: false } }],
     };
 
     if (query.platform) {
@@ -365,158 +408,24 @@ export class PostsController extends BaseCRUDController<
       matchFilter.credential = query.credential;
     }
 
-    return [
-      {
-        $match: matchFilter,
-      },
-      // lookup ingredients array with metadata
-      {
-        $lookup: {
-          as: 'ingredients',
-          foreignField: '_id',
-          from: 'ingredients',
-          localField: 'ingredients',
-          pipeline: [
-            {
-              $lookup: {
-                as: 'metadata',
-                foreignField: '_id',
-                from: 'metadata',
-                localField: 'metadata',
-              },
-            },
-            {
-              $unwind: {
-                path: '$metadata',
-                preserveNullAndEmptyArrays: true,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $lookup: {
-          as: 'credential',
-          foreignField: '_id',
-          from: 'credentials',
-          localField: 'credential',
-        },
-      },
-      {
-        $unwind: {
-          path: '$credential',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // Lookup post-analytics to get KPIs (views, likes, comments, etc.)
-      {
-        $lookup: {
-          as: 'analyticsData',
-          foreignField: 'post',
-          from: 'post-analytics',
-          localField: '_id',
-          // @ts-expect-error TS2322
-          pipeline: [
-            ...(POST_ANALYTICS_PLATFORM_GROUP_PIPELINE as unknown[]),
-            {
-              $group: {
-                _id: null,
-                avgEngagementRate: { $avg: '$avgEngagementRate' },
-                totalComments: { $sum: '$totalComments' },
-                totalLikes: { $sum: '$totalLikes' },
-                totalSaves: { $sum: '$totalSaves' },
-                totalShares: { $sum: '$totalShares' },
-                totalViews: { $sum: '$totalViews' },
-              },
-            },
-          ] as Record<string, unknown>[],
-        },
-      },
-      // Flatten analytics data to top level
-      {
-        $addFields: {
-          avgEngagementRate: {
-            $ifNull: [
-              { $arrayElemAt: ['$analyticsData.avgEngagementRate', 0] },
-              0,
-            ],
-          },
-          totalComments: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalComments', 0] }, 0],
-          },
-          totalLikes: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalLikes', 0] }, 0],
-          },
-          totalSaves: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalSaves', 0] }, 0],
-          },
-          totalShares: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalShares', 0] }, 0],
-          },
-          totalViews: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalViews', 0] }, 0],
-          },
-        },
-      },
-      // Remove the temporary analyticsData array
-      {
-        $project: {
-          analyticsData: 0,
-        },
-      },
-      // Lookup latest COMPLETED evaluation for each post
-      {
-        $lookup: {
-          as: 'evaluationData',
-          from: 'evaluations',
-          let: { postId: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$content', '$$postId'] },
-                contentType: 'post',
-                isDeleted: false,
-                status: 'COMPLETED',
-              },
-            },
-            { $sort: { updatedAt: -1 } },
-            { $limit: 1 },
-            { $project: { overallScore: 1 } },
-          ],
-        },
-      },
-      // Flatten evaluation score to top level
-      {
-        $addFields: {
-          evalScore: {
-            $ifNull: [
-              { $arrayElemAt: ['$evaluationData.overallScore', 0] },
-              null,
-            ],
-          },
-        },
-      },
-      // Remove the temporary evaluationData array
-      {
-        $project: {
-          evaluationData: 0,
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+    return { where: matchFilter, orderBy: handleQuerySort(query.sort) };
   }
 
   @Get()
   @RolesDecorator('superadmin')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  findAll(
+  async findAll(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Query() query: PostsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    return super.findAll(request, user, query);
+    const options = {
+      customLabels,
+      ...QueryDefaultsUtil.getPaginationDefaults(query),
+    };
+    const aggregate = this.buildFindAllQuery(user, query);
+    const data = await this.postsService.findAll(aggregate, options);
+    return serializeCollection(request, PostListSerializer, data);
   }
 
   @Get(':postId')
@@ -528,84 +437,13 @@ export class PostsController extends BaseCRUDController<
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    // Build aggregation pipeline to fetch post with ingredients, credential, and evaluation
-    const pipeline: Record<string, unknown>[] = [
-      {
-        $match: {
-          _id: postId,
-          isDeleted: false,
-        },
+    // Build findAll query to fetch post with ingredients, credential, and evaluation
+    const pipeline = {
+      where: {
+        _id: postId,
+        isDeleted: false,
       },
-      // Lookup ingredients array with metadata
-      {
-        $lookup: {
-          as: 'ingredients',
-          foreignField: '_id',
-          from: 'ingredients',
-          localField: 'ingredients',
-          pipeline: [
-            {
-              $lookup: {
-                as: 'metadata',
-                foreignField: '_id',
-                from: 'metadata',
-                localField: 'metadata',
-              },
-            },
-            {
-              $unwind: {
-                path: '$metadata',
-                preserveNullAndEmptyArrays: true,
-              },
-            },
-          ],
-        },
-      },
-      // Lookup credential
-      {
-        $lookup: {
-          as: 'credential',
-          foreignField: '_id',
-          from: 'credentials',
-          localField: 'credential',
-        },
-      },
-      {
-        $unwind: {
-          path: '$credential',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // Lookup latest COMPLETED evaluation for this post (full document)
-      {
-        $lookup: {
-          as: 'evaluation',
-          from: 'evaluations',
-          let: { postId: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$content', '$$postId'] },
-                contentType: 'post',
-                isDeleted: false,
-                status: 'COMPLETED',
-              },
-            },
-            { $sort: { updatedAt: -1 } },
-            { $limit: 1 },
-            // NO $project - include full evaluation document
-          ],
-        },
-      },
-      // Flatten evaluation to single object (or null)
-      {
-        $addFields: {
-          evaluation: {
-            $ifNull: [{ $arrayElemAt: ['$evaluation', 0] }, null],
-          },
-        },
-      },
-    ];
+    };
 
     // Execute aggregation using service method
     const result = await this.postsService.findAll(pipeline, {

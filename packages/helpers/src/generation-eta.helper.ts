@@ -501,9 +501,12 @@ export function estimateWorkflowCriticalPath(
     inDegree.set(edge.target, (inDegree.get(edge.target) ?? 0) + 1);
   }
 
-  const queue = Array.from(inDegree.entries())
-    .filter(([, degree]) => degree === 0)
-    .map(([nodeId]) => nodeId);
+  const queue: string[] = [];
+  for (const [nodeId, degree] of inDegree.entries()) {
+    if (degree === 0) {
+      queue.push(nodeId);
+    }
+  }
   const visited: string[] = [];
 
   while (queue.length > 0) {

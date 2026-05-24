@@ -84,22 +84,58 @@
       "@config/*": ["../../packages/config/src/*"],
       "@configs/*": ["../../packages/next-config/*"],
       "@contexts/*": ["../../packages/contexts/*"],
-      "@genfeedai/client": ["../../packages/client/dist/index"],
-      "@genfeedai/client/*": ["../../packages/client/dist/*"],
-      "@genfeedai/client/schemas": ["../../packages/client/dist/schemas"],
+      "@genfeedai/client": ["../../packages/client/src/index.ts"],
+      "@genfeedai/client/*": ["../../packages/client/src/*"],
+      "@genfeedai/client/schemas": ["../../packages/client/src/schemas"],
       "@genfeedai/client/schemas/*": [
-        "../../packages/client/dist/schemas/*/index",
-        "../../packages/client/dist/schemas/*"
+        "../../packages/client/src/schemas/*/index",
+        "../../packages/client/src/schemas/*"
       ],
-      "@genfeedai/enums": ["../../packages/enums/dist/index"],
-      "@genfeedai/enums/*": ["../../packages/enums/dist/*"],
+      "@genfeedai/enums": ["../../packages/enums/src/index.ts"],
+      "@genfeedai/enums/*": ["../../packages/enums/src/*"],
+      "@genfeedai/core": ["../../packages/core/src/index.ts"],
+      "@genfeedai/core/*": ["../../packages/core/src/*"],
       "@genfeedai/constants": ["../../packages/constants/src/index.ts"],
       "@genfeedai/constants/*": ["../../packages/constants/src/*"],
       "@genfeedai/fonts": ["../../packages/fonts/index.ts"],
       "@genfeedai/helpers": ["../../packages/helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../../packages/helpers/src/*"],
       "@genfeedai/hooks/*": ["../../packages/hooks/*"],
+      "@genfeedai/next-config": [
+        "../../packages/next-config/next.config.base.ts"
+      ],
+      "@genfeedai/next-config/tailwind": [
+        "../../packages/next-config/tailwind.config.base.ts"
+      ],
       "@genfeedai/ui": ["../../packages/ui/src/index.ts"],
+      "@genfeedai/workflow-ui": ["../../packages/workflow-ui/src/index.ts"],
+      "@genfeedai/workflow-ui/canvas": [
+        "../../packages/workflow-ui/src/canvas/index.ts"
+      ],
+      "@genfeedai/workflow-ui/hooks": [
+        "../../packages/workflow-ui/src/hooks/index.ts"
+      ],
+      "@genfeedai/workflow-ui/lib": [
+        "../../packages/workflow-ui/src/lib/index.ts"
+      ],
+      "@genfeedai/workflow-ui/nodes": [
+        "../../packages/workflow-ui/src/nodes/index.ts"
+      ],
+      "@genfeedai/workflow-ui/panels": [
+        "../../packages/workflow-ui/src/panels/index.ts"
+      ],
+      "@genfeedai/workflow-ui/provider": [
+        "../../packages/workflow-ui/src/provider/index.ts"
+      ],
+      "@genfeedai/workflow-ui/stores": [
+        "../../packages/workflow-ui/src/stores/index.ts"
+      ],
+      "@genfeedai/workflow-ui/toolbar": [
+        "../../packages/workflow-ui/src/toolbar/index.ts"
+      ],
+      "@genfeedai/workflow-ui/ui": [
+        "../../packages/workflow-ui/src/ui/index.ts"
+      ],
       "@helpers/*": ["../../packages/helpers/src/*"],
       "@hooks/*": ["../../packages/hooks/*"],
       "@models/*": ["../../packages/models/*"],

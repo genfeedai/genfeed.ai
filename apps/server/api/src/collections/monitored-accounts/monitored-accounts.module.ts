@@ -6,13 +6,12 @@
 import { MonitoredAccountsController } from '@api/collections/monitored-accounts/controllers/monitored-accounts.controller';
 import { MonitoredAccountsService } from '@api/collections/monitored-accounts/services/monitored-accounts.service';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
-import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [MonitoredAccountsController],
   exports: [MonitoredAccountsService],
-  imports: [ApifyModule, forwardRef(() => ReplyBotModule)],
+  imports: [forwardRef(() => ApifyModule)],
   providers: [MonitoredAccountsService],
 })
 export class MonitoredAccountsModule {}

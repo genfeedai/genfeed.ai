@@ -2,12 +2,17 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
-import { HiOutlineArrowPath, HiOutlineClipboard } from 'react-icons/hi2';
+import {
+  HiOutlineArrowDownTray,
+  HiOutlineArrowPath,
+  HiOutlineClipboard,
+} from 'react-icons/hi2';
 
 interface AgentGeneratedTextCardProps {
   content: string;
   title?: string;
   onCopy?: (content: string) => void | Promise<void>;
+  onInsert?: (content: string) => void | Promise<void>;
   onRegenerate?: () => void | Promise<void>;
   isBusy?: boolean;
   className?: string;
@@ -18,12 +23,13 @@ export function AgentGeneratedTextCard({
   content,
   title,
   onCopy,
+  onInsert,
   onRegenerate,
   isBusy = false,
   className,
   contentClassName,
 }: AgentGeneratedTextCardProps): ReactElement {
-  const hasActions = Boolean(onCopy || onRegenerate);
+  const hasActions = Boolean(onCopy || onInsert || onRegenerate);
 
   return (
     <div
@@ -49,7 +55,20 @@ export function AgentGeneratedTextCard({
                   ariaLabel="Copy generated content"
                   onClick={() => onCopy(content)}
                 >
-                  <HiOutlineClipboard className="h-3.5 w-3.5" />
+                  <HiOutlineClipboard className="size-3.5" />
+                </Button>
+              )}
+              {onInsert && (
+                <Button
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.XS}
+                  isDisabled={isBusy}
+                  tooltip="Use in draft"
+                  tooltipPosition="top"
+                  ariaLabel="Use generated content in draft"
+                  onClick={() => onInsert(content)}
+                >
+                  <HiOutlineArrowDownTray className="size-3.5" />
                 </Button>
               )}
               {onRegenerate && (
@@ -62,7 +81,7 @@ export function AgentGeneratedTextCard({
                   ariaLabel="Regenerate content"
                   onClick={() => onRegenerate()}
                 >
-                  <HiOutlineArrowPath className="h-3.5 w-3.5" />
+                  <HiOutlineArrowPath className="size-3.5" />
                 </Button>
               )}
             </div>

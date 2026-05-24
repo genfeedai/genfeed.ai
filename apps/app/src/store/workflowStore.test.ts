@@ -2,8 +2,11 @@ import type {
   PromptNodeData,
   WorkflowEdge,
   WorkflowFile,
+  WorkflowNode,
 } from '@genfeedai/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { workflowsApi } from '@/lib/api';
+import { useExecutionStore } from './executionStore';
 import { useWorkflowStore } from './workflowStore';
 
 // Mock the API
@@ -32,17 +35,44 @@ vi.mock('@/lib/api', () => ({
 
 describe('useWorkflowStore', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(workflowsApi.create).mockResolvedValue({
+      _id: 'new-workflow-id',
+      name: 'Test Workflow',
+    } as never);
+    vi.mocked(workflowsApi.delete).mockResolvedValue({} as never);
+    vi.mocked(workflowsApi.duplicate).mockResolvedValue({
+      _id: 'duplicate-id',
+      name: 'Workflow (Copy)',
+    } as never);
+    vi.mocked(workflowsApi.getAll).mockResolvedValue([]);
+    vi.mocked(workflowsApi.getById).mockResolvedValue({
+      _id: 'workflow-id',
+      edgeStyle: 'default',
+      edges: [],
+      name: 'Loaded Workflow',
+      nodes: [],
+    } as never);
+    vi.mocked(workflowsApi.update).mockResolvedValue({
+      _id: 'workflow-id',
+      name: 'Updated Workflow',
+    } as never);
     // Reset store to initial state
     useWorkflowStore.setState({
       edgeStyle: 'default',
       edges: [],
+      groups: [],
       isDirty: false,
       isLoading: false,
       isSaving: false,
       nodes: [],
+      selectedNodeIds: [],
+      viewedCommentIds: new Set<string>(),
       workflowId: null,
       workflowName: 'Untitled Workflow',
+      workflowTags: [],
     });
+    useExecutionStore.getState().setEstimatedCost(0);
   });
 
   describe('initial state', () => {
@@ -219,7 +249,15 @@ describe('useWorkflowStore', () => {
         createdAt: new Date().toISOString(),
         description: '',
         edgeStyle: 'straight',
-        edges: [],
+        edges: [
+          {
+            id: 'edge-1',
+            source: 'node-1',
+            target: 'node-2',
+            type: 'bezier',
+          } as WorkflowEdge,
+        ],
+        groups: [{ id: 'group-1', nodeIds: ['node-1'] }],
         name: 'Loaded Workflow',
         nodes: [
           {
@@ -233,6 +271,16 @@ describe('useWorkflowStore', () => {
             position: { x: 0, y: 0 },
             type: 'prompt',
           },
+          {
+            data: {
+              label: 'Image',
+              model: 'nano-banana',
+              status: 'idle',
+            },
+            id: 'node-2',
+            position: { x: 200, y: 0 },
+            type: 'imageGen',
+          },
         ],
         updatedAt: new Date().toISOString(),
         version: 1,
@@ -241,10 +289,13 @@ describe('useWorkflowStore', () => {
 
       const state = useWorkflowStore.getState();
       expect(state.workflowName).toBe('Loaded Workflow');
-      expect(state.nodes).toHaveLength(1);
+      expect(state.nodes).toHaveLength(2);
       expect(state.edgeStyle).toBe('straight');
+      expect(state.edges[0].type).toBe('default');
+      expect(state.groups).toEqual([{ id: 'group-1', nodeIds: ['node-1'] }]);
       expect(state.workflowId).toBeNull(); // Should reset ID
       expect(state.isDirty).toBe(false);
+      expect(useExecutionStore.getState().estimatedCost).toBe(0.039);
     });
   });
 
@@ -369,13 +420,61 @@ describe('useWorkflowStore', () => {
 
         await saveWorkflow();
 
+        expect(workflowsApi.update).toHaveBeenCalledWith(
+          'existing-id',
+          expect.objectContaining({
+            name: 'Untitled Workflow',
+            tags: [],
+          }),
+          undefined,
+        );
         const state = useWorkflowStore.getState();
         expect(state.isDirty).toBe(false);
+      });
+
+      it('should reset saving state and rethrow when save fails', async () => {
+        vi.mocked(workflowsApi.create).mockRejectedValueOnce(
+          new Error('save failed'),
+        );
+        const { saveWorkflow } = useWorkflowStore.getState();
+
+        await expect(saveWorkflow()).rejects.toThrow('save failed');
+
+        expect(useWorkflowStore.getState().isSaving).toBe(false);
       });
     });
 
     describe('loadWorkflowById', () => {
       it('should load workflow from API', async () => {
+        vi.mocked(workflowsApi.getById).mockResolvedValueOnce({
+          _id: 'workflow-id',
+          edgeStyle: 'bezier',
+          edges: [
+            {
+              id: 'edge-1',
+              source: 'prompt-1',
+              target: 'image-1',
+              type: 'bezier',
+            },
+          ],
+          groups: [{ id: 'group-1', nodeIds: ['prompt-1'] }],
+          name: 'Loaded Workflow',
+          nodes: [
+            {
+              data: { label: 'Prompt', prompt: 'hello' },
+              id: 'prompt-1',
+              position: { x: 0, y: 0 },
+              type: 'prompt',
+            },
+            {
+              data: { label: 'Image', model: 'nano-banana' },
+              id: 'image-1',
+              position: { x: 200, y: 0 },
+              type: 'imageGen',
+            },
+          ],
+          tags: ['launch'],
+        } as never);
         const { loadWorkflowById } = useWorkflowStore.getState();
 
         await loadWorkflowById('workflow-id');
@@ -383,8 +482,27 @@ describe('useWorkflowStore', () => {
         const state = useWorkflowStore.getState();
         expect(state.workflowId).toBe('workflow-id');
         expect(state.workflowName).toBe('Loaded Workflow');
+        expect(state.workflowTags).toEqual(['launch']);
+        expect(state.edges[0].type).toBe('default');
+        expect(state.groups).toEqual([
+          { id: 'group-1', nodeIds: ['prompt-1'] },
+        ]);
         expect(state.isDirty).toBe(false);
         expect(state.isLoading).toBe(false);
+        expect(useExecutionStore.getState().estimatedCost).toBe(0.039);
+      });
+
+      it('should reset loading state and rethrow when API loading fails', async () => {
+        vi.mocked(workflowsApi.getById).mockRejectedValueOnce(
+          new Error('load failed'),
+        );
+        const { loadWorkflowById } = useWorkflowStore.getState();
+
+        await expect(loadWorkflowById('workflow-id')).rejects.toThrow(
+          'load failed',
+        );
+
+        expect(useWorkflowStore.getState().isLoading).toBe(false);
       });
     });
 
@@ -412,6 +530,255 @@ describe('useWorkflowStore', () => {
         expect(state.nodes).toHaveLength(1);
         expect(state.workflowId).toBe('current-workflow');
       });
+    });
+
+    it('should create, list, and duplicate workflows through the API helpers', async () => {
+      useWorkflowStore.setState({ edgeStyle: 'straight' });
+      vi.mocked(workflowsApi.getAll).mockResolvedValueOnce([
+        { _id: 'workflow-1', name: 'Workflow 1' },
+      ] as never);
+      const { createNewWorkflow, duplicateWorkflowApi, listWorkflows } =
+        useWorkflowStore.getState();
+
+      await expect(createNewWorkflow()).resolves.toBe('new-workflow-id');
+      expect(workflowsApi.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          edgeStyle: 'straight',
+          name: 'Untitled Workflow',
+        }),
+        undefined,
+      );
+      expect(useWorkflowStore.getState().workflowId).toBe('new-workflow-id');
+
+      await expect(listWorkflows()).resolves.toEqual([
+        { _id: 'workflow-1', name: 'Workflow 1' },
+      ]);
+      expect(workflowsApi.getAll).toHaveBeenCalledWith(undefined, undefined);
+
+      await expect(duplicateWorkflowApi('workflow-1')).resolves.toEqual({
+        _id: 'duplicate-id',
+        name: 'Workflow (Copy)',
+      });
+      expect(workflowsApi.duplicate).toHaveBeenCalledWith(
+        'workflow-1',
+        undefined,
+      );
+    });
+  });
+
+  describe('comments and navigation', () => {
+    it('sorts comments, tracks viewed comments, and stores navigation targets', () => {
+      const commentedNodes = [
+        {
+          data: { comment: 'Second row', label: 'B' },
+          id: 'b',
+          position: { x: 0, y: 100 },
+          type: 'prompt',
+        },
+        {
+          data: { comment: 'First row right', label: 'A2' },
+          id: 'a2',
+          position: { x: 200, y: 0 },
+          type: 'prompt',
+        },
+        {
+          data: { comment: 'First row left', label: 'A1' },
+          id: 'a1',
+          position: { x: 0, y: 20 },
+          type: 'prompt',
+        },
+        {
+          data: { comment: '   ', label: 'Empty comment' },
+          id: 'empty',
+          position: { x: 0, y: 300 },
+          type: 'prompt',
+        },
+      ] as WorkflowNode[];
+      useWorkflowStore.setState({ nodes: commentedNodes });
+      const {
+        getNodesWithComments,
+        getUnviewedCommentCount,
+        markCommentViewed,
+        setNavigationTarget,
+      } = useWorkflowStore.getState();
+
+      expect(getNodesWithComments().map((node) => node.id)).toEqual([
+        'a1',
+        'a2',
+        'b',
+      ]);
+      expect(getUnviewedCommentCount()).toBe(3);
+
+      markCommentViewed('a1');
+      expect(useWorkflowStore.getState().viewedCommentIds.has('a1')).toBe(true);
+      expect(getUnviewedCommentCount()).toBe(2);
+
+      setNavigationTarget('b');
+      expect(useWorkflowStore.getState().navigationTargetId).toBe('b');
+      setNavigationTarget(null);
+      expect(useWorkflowStore.getState().navigationTargetId).toBeNull();
+    });
+  });
+
+  describe('connection helpers', () => {
+    it('returns connected inputs and upstream node ids', () => {
+      useWorkflowStore.setState({
+        edges: [
+          {
+            id: 'edge-1',
+            source: 'prompt-1',
+            sourceHandle: 'text',
+            target: 'image-1',
+            targetHandle: 'prompt',
+          } as WorkflowEdge,
+          {
+            id: 'edge-2',
+            source: 'image-1',
+            sourceHandle: 'output',
+            target: 'video-1',
+            targetHandle: 'image',
+          } as WorkflowEdge,
+        ],
+        nodes: [
+          {
+            data: { label: 'Prompt', prompt: 'A prompt' },
+            id: 'prompt-1',
+            position: { x: 0, y: 0 },
+            type: 'prompt',
+          },
+          {
+            data: { label: 'Image' },
+            id: 'image-1',
+            position: { x: 200, y: 0 },
+            type: 'imageGen',
+          },
+          {
+            data: { label: 'Video' },
+            id: 'video-1',
+            position: { x: 400, y: 0 },
+            type: 'videoGen',
+          },
+        ] as WorkflowNode[],
+      });
+      const { getConnectedInputs, getConnectedNodeIds } =
+        useWorkflowStore.getState();
+
+      expect(getConnectedInputs('image-1').get('prompt')).toBe('A prompt');
+      expect(getConnectedNodeIds(['video-1'])).toEqual([
+        'video-1',
+        'image-1',
+        'prompt-1',
+      ]);
+    });
+  });
+
+  describe('validation branches', () => {
+    it('detects empty connected source inputs', () => {
+      useWorkflowStore.setState({
+        edges: [
+          {
+            id: 'edge-1',
+            source: 'prompt-1',
+            target: 'image-1',
+            targetHandle: 'prompt',
+          } as WorkflowEdge,
+        ],
+        nodes: [
+          {
+            data: { label: 'Prompt', prompt: '   ' },
+            id: 'prompt-1',
+            position: { x: 0, y: 0 },
+            type: 'prompt',
+          },
+          {
+            data: { label: 'Image' },
+            id: 'image-1',
+            position: { x: 200, y: 0 },
+            type: 'imageGen',
+          },
+        ] as WorkflowNode[],
+      });
+
+      const result = useWorkflowStore.getState().validateWorkflow();
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          message: 'Prompt is empty',
+          nodeId: 'prompt-1',
+        }),
+      );
+    });
+
+    it('detects cycles', () => {
+      useWorkflowStore.setState({
+        edges: [
+          { id: 'edge-1', source: 'a', target: 'b' } as WorkflowEdge,
+          { id: 'edge-2', source: 'b', target: 'a' } as WorkflowEdge,
+        ],
+        nodes: [
+          {
+            data: { label: 'A', prompt: 'a' },
+            id: 'a',
+            position: { x: 0, y: 0 },
+            type: 'prompt',
+          },
+          {
+            data: { label: 'B', prompt: 'b' },
+            id: 'b',
+            position: { x: 200, y: 0 },
+            type: 'prompt',
+          },
+        ] as WorkflowNode[],
+      });
+
+      const result = useWorkflowStore.getState().validateWorkflow();
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({ message: 'Workflow contains a cycle' }),
+      );
+    });
+
+    it('validates workflow reference nodes', () => {
+      useWorkflowStore.setState({
+        edges: [
+          { id: 'edge-1', source: 'ref-1', target: 'ref-2' } as WorkflowEdge,
+        ],
+        nodes: [
+          {
+            data: { label: 'Broken subworkflow' },
+            id: 'ref-1',
+            position: { x: 0, y: 0 },
+            type: 'workflowRef',
+          },
+          {
+            data: {
+              label: 'Stale subworkflow',
+              referencedWorkflowId: 'workflow-2',
+            },
+            id: 'ref-2',
+            position: { x: 200, y: 0 },
+            type: 'workflowRef',
+          },
+        ] as WorkflowNode[],
+      });
+
+      const result = useWorkflowStore.getState().validateWorkflow();
+
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          message: 'Subworkflow node must reference a workflow',
+          nodeId: 'ref-1',
+        }),
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          message:
+            'Subworkflow interface not loaded - refresh to update handles',
+          nodeId: 'ref-2',
+        }),
+      );
     });
   });
 });

@@ -38,17 +38,22 @@ export class AdCreativeMappingsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
+      // The Prisma model only has: id, mongoId, organizationId, brandId, data, isDeleted, timestamps.
+      // All domain-specific fields live in the `data` JSON column.
       const doc = await this.prisma.adCreativeMapping.create({
         data: {
-          adAccountId: input.adAccountId,
-          brandId: input.brand,
-          externalAdId: input.externalAdId,
-          externalCreativeId: input.externalCreativeId,
-          genfeedContentId: input.genfeedContentId,
-          metadata: (input.metadata ?? {}) as never,
+          brandId: input.brand ?? null,
+          data: {
+            adAccountId: input.adAccountId,
+            externalAdId: input.externalAdId,
+            externalCreativeId: input.externalCreativeId,
+            genfeedContentId: input.genfeedContentId,
+            metadata: input.metadata ?? {},
+            platform: input.platform ?? 'meta',
+            status: input.status ?? 'draft',
+          } as never,
+          isDeleted: false,
           organizationId: input.organization,
-          platform: input.platform ?? 'meta',
-          status: input.status ?? 'draft',
         },
       });
 
@@ -77,12 +82,16 @@ export class AdCreativeMappingsService {
     genfeedContentId: string,
     organizationId: string,
   ): Promise<Record<string, unknown>[]> {
-    return this.prisma.adCreativeMapping.findMany({
+    // genfeedContentId lives in data JSON — fetch by org then filter in memory
+    const rows = await this.prisma.adCreativeMapping.findMany({
       where: {
-        genfeedContentId,
         isDeleted: false,
         organizationId,
       },
+    });
+    return rows.filter((row) => {
+      const d = row.data as Record<string, unknown> | null;
+      return d?.genfeedContentId === genfeedContentId;
     });
   }
 
@@ -90,25 +99,35 @@ export class AdCreativeMappingsService {
     externalAdId: string,
     organizationId: string,
   ): Promise<Record<string, unknown> | null> {
-    return this.prisma.adCreativeMapping.findFirst({
+    // externalAdId lives in data JSON — fetch by org then filter in memory
+    const rows = await this.prisma.adCreativeMapping.findMany({
       where: {
-        externalAdId,
         isDeleted: false,
         organizationId,
       },
     });
+    return (
+      rows.find((row) => {
+        const d = row.data as Record<string, unknown> | null;
+        return d?.externalAdId === externalAdId;
+      }) ?? null
+    );
   }
 
   async findByAdAccount(
     adAccountId: string,
     organizationId: string,
   ): Promise<Record<string, unknown>[]> {
-    return this.prisma.adCreativeMapping.findMany({
+    // adAccountId lives in data JSON — fetch by org then filter in memory
+    const rows = await this.prisma.adCreativeMapping.findMany({
       where: {
-        adAccountId,
         isDeleted: false,
         organizationId,
       },
+    });
+    return rows.filter((row) => {
+      const d = row.data as Record<string, unknown> | null;
+      return d?.adAccountId === adAccountId;
     });
   }
 
@@ -128,8 +147,25 @@ export class AdCreativeMappingsService {
         return null;
       }
 
+      const existingData = (existing.data as Record<string, unknown>) ?? {};
+
+      // Build updated data — only include keys that are explicitly provided
+      const patchData: Record<string, unknown> = {};
+      if (input.externalAdId !== undefined) {
+        patchData.externalAdId = input.externalAdId;
+      }
+      if (input.externalCreativeId !== undefined) {
+        patchData.externalCreativeId = input.externalCreativeId;
+      }
+      if (input.status !== undefined) {
+        patchData.status = input.status;
+      }
+      if (input.metadata !== undefined) {
+        patchData.metadata = input.metadata;
+      }
+
       const doc = await this.prisma.adCreativeMapping.update({
-        data: input as never,
+        data: { data: { ...existingData, ...patchData } as never },
         where: { id },
       });
 

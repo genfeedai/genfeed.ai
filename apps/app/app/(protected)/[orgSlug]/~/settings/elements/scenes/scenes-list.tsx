@@ -11,12 +11,12 @@ import { ScenesService } from '@services/elements/scenes.service';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 
-export default function ScenesList() {
+function ScenesListContent() {
   const notificationsService = NotificationsService.getInstance();
   const searchParams = useSearchParams();
-  const currentPage = Number(searchParams?.get('page')) || 1;
+  const currentPage = Number(searchParams.get('page')) || 1;
 
   const getScenesService = useAuthedService(
     useCallback((token: string) => ScenesService.getInstance(token), []),
@@ -75,5 +75,13 @@ export default function ScenesList() {
         <AutoPagination showTotal totalLabel="scenes" />
       </div>
     </>
+  );
+}
+
+export default function ScenesList() {
+  return (
+    <Suspense fallback={null}>
+      <ScenesListContent />
+    </Suspense>
   );
 }

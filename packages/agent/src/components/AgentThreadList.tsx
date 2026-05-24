@@ -159,7 +159,7 @@ function getThreadStatusA11yLabel(
 }
 
 function sortThreads(threads: AgentThread[]): AgentThread[] {
-  return [...threads].sort((left, right) => {
+  return threads.toSorted((left, right) => {
     const pinnedDelta =
       Number(right.isPinned ?? false) - Number(left.isPinned ?? false);
     if (pinnedDelta !== 0) {
@@ -223,6 +223,11 @@ export function AgentThreadList({
   const abortRef = useRef<AbortController | null>(null);
   const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const renameInputRef = useRef<HTMLInputElement | null>(null);
+  const getThreadHref = useCallback(
+    (threadId: string) => `/chat/${threadId}`,
+    [],
+  );
+  const getNewThreadHref = useCallback(() => '/chat/new', []);
 
   useEffect(() => {
     if (renamingThreadId) {
@@ -398,7 +403,7 @@ export function AgentThreadList({
       abortRef.current = new AbortController();
 
       if (onNavigate) {
-        onNavigate(`/chat/${thread.id}`);
+        onNavigate(getThreadHref(thread.id));
         return;
       }
 
@@ -444,6 +449,7 @@ export function AgentThreadList({
       activeThreadId,
       apiService,
       clearThreadAttention,
+      getThreadHref,
       onNavigate,
       setError,
       setActiveRun,
@@ -465,7 +471,7 @@ export function AgentThreadList({
         if (thread.id === activeThreadId) {
           clearMessages();
           if (onNavigate) {
-            onNavigate('/chat/new');
+            onNavigate(getNewThreadHref());
           }
         }
       } catch {
@@ -474,7 +480,14 @@ export function AgentThreadList({
         setOpenMenuThreadId(null);
       }
     },
-    [apiService, activeThreadId, clearMessages, onNavigate, setThreads],
+    [
+      apiService,
+      activeThreadId,
+      clearMessages,
+      getNewThreadHref,
+      onNavigate,
+      setThreads,
+    ],
   );
 
   const handleUnarchiveFromMenu = useCallback(
@@ -507,7 +520,7 @@ export function AgentThreadList({
         );
 
         if (onNavigate) {
-          onNavigate(`/chat/${branchedThread.id}`);
+          onNavigate(getThreadHref(branchedThread.id));
           return;
         }
 
@@ -526,6 +539,7 @@ export function AgentThreadList({
     [
       apiService,
       clearMessages,
+      getThreadHref,
       onNavigate,
       resetStreamState,
       setActiveRun,
@@ -572,13 +586,20 @@ export function AgentThreadList({
       if (archivedActiveThread) {
         clearMessages();
         if (onNavigate) {
-          onNavigate('/chat/new');
+          onNavigate(getNewThreadHref());
         }
       }
     } catch {
       // Silently ignore failed bulk archive
     }
-  }, [activeThreadId, apiService, clearMessages, onNavigate, setThreads]);
+  }, [
+    activeThreadId,
+    apiService,
+    clearMessages,
+    getNewThreadHref,
+    onNavigate,
+    setThreads,
+  ]);
 
   const handleStartRename = useCallback((thread: AgentThread) => {
     setOpenMenuThreadId(null);
@@ -675,7 +696,7 @@ export function AgentThreadList({
                 );
               }}
             >
-              <HiArrowPath className="h-3.5 w-3.5" />
+              <HiArrowPath className="size-3.5" />
             </Button>
           </SimpleTooltip>
         )}
@@ -691,7 +712,7 @@ export function AgentThreadList({
                 handleArchiveAllThreads().catch(() => undefined);
               }}
             >
-              <HiOutlineArchiveBoxXMark className="h-3.5 w-3.5" />
+              <HiOutlineArchiveBoxXMark className="size-3.5" />
             </Button>
           </SimpleTooltip>
         )}
@@ -710,7 +731,7 @@ export function AgentThreadList({
               );
             }}
           >
-            <HiArchiveBox className="h-3.5 w-3.5" />
+            <HiArchiveBox className="size-3.5" />
           </Button>
         </SimpleTooltip>
       </div>
@@ -765,7 +786,7 @@ export function AgentThreadList({
       ) : (
         <span
           className={cn(
-            'h-2.5 w-2.5 shrink-0 rounded-full border border-white/15',
+            'size-2.5 shrink-0 rounded-full border border-white/15',
             statusDotClass,
           )}
           role="img"
@@ -819,7 +840,7 @@ export function AgentThreadList({
             </div>
           ) : (
             <Link
-              href={`/chat/${conv.id}`}
+              href={getThreadHref(conv.id)}
               className="flex h-full min-w-0 flex-1 items-center gap-1.5 rounded-md px-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
               onClick={() => {
                 handleSelect(conv).catch(() => undefined);
@@ -836,7 +857,7 @@ export function AgentThreadList({
                 <div className="flex min-w-0 flex-1 items-center gap-1.5">
                   {conv.isPinned ? (
                     <PiPushPinSimple
-                      className="h-3 w-3 shrink-0 -rotate-45 text-white/40"
+                      className="size-3 shrink-0 -rotate-45 text-white/40"
                       title="Pinned conversation"
                     />
                   ) : null}
@@ -879,7 +900,7 @@ export function AgentThreadList({
                     event.stopPropagation();
                   }}
                 >
-                  <HiEllipsisHorizontal className="h-4 w-4" />
+                  <HiEllipsisHorizontal className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
@@ -888,7 +909,7 @@ export function AgentThreadList({
                     handleTogglePinned(conv).catch(() => undefined);
                   }}
                 >
-                  <PiPushPinSimple className="h-4 w-4 -rotate-45" />
+                  <PiPushPinSimple className="size-4 -rotate-45" />
                   {conv.isPinned ? 'Unpin conversation' : 'Pin conversation'}
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -896,7 +917,7 @@ export function AgentThreadList({
                     handleForkThread(conv).catch(() => undefined);
                   }}
                 >
-                  <HiOutlineArrowTurnDownRight className="h-4 w-4" />
+                  <HiOutlineArrowTurnDownRight className="size-4" />
                   Fork thread
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -904,7 +925,7 @@ export function AgentThreadList({
                     handleStartRename(conv);
                   }}
                 >
-                  <HiOutlinePencilSquare className="h-4 w-4" />
+                  <HiOutlinePencilSquare className="size-4" />
                   Rename
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -918,9 +939,9 @@ export function AgentThreadList({
                   }}
                 >
                   {isArchivedView ? (
-                    <HiArrowUturnLeft className="h-4 w-4" />
+                    <HiArrowUturnLeft className="size-4" />
                   ) : (
-                    <HiOutlineArchiveBoxXMark className="h-4 w-4" />
+                    <HiOutlineArchiveBoxXMark className="size-4" />
                   )}
                   {isArchivedView ? 'Restore' : 'Archive'}
                 </DropdownMenuItem>
@@ -942,6 +963,7 @@ export function AgentThreadList({
       handleThreadContextMenu,
       handleTogglePinned,
       handleUnarchiveFromMenu,
+      getThreadHref,
       isArchivedView,
       isStreaming,
       openMenuThreadId,
@@ -989,12 +1011,12 @@ export function AgentThreadList({
       >
         {isLoading && threads.length === 0 ? (
           <div className="flex items-center justify-center p-8">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
         ) : shouldShowLoadFailureState ? (
           <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 ring-1 ring-inset ring-orange-500/20">
-              <HiOutlineExclamationTriangle className="h-5 w-5 text-orange-200/80" />
+            <div className="flex size-10 items-center justify-center rounded-xl bg-orange-500/10 ring-1 ring-inset ring-orange-500/20">
+              <HiOutlineExclamationTriangle className="size-5 text-orange-200/80" />
             </div>
             <div className="space-y-1">
               <p className="text-sm font-medium text-foreground/70">
@@ -1017,8 +1039,8 @@ export function AgentThreadList({
           </div>
         ) : shouldShowEmptyState ? (
           <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.04] ring-1 ring-inset ring-white/10">
-              <HiOutlineChatBubbleLeftRight className="h-5 w-5 text-foreground/30" />
+            <div className="flex size-10 items-center justify-center rounded-xl bg-white/[0.04] ring-1 ring-inset ring-white/10">
+              <HiOutlineChatBubbleLeftRight className="size-5 text-foreground/30" />
             </div>
             <div>
               <p className="text-sm font-medium text-foreground/50">

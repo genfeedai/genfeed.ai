@@ -5,13 +5,13 @@
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-export interface LoggerOptions {
+interface LoggerOptions {
   context?: string;
   metadata?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
-export interface LoggerErrorPayload {
+interface LoggerErrorPayload {
   message: string;
   error?: unknown;
   options?: LoggerOptions;

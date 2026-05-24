@@ -4,7 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
 
 const useBrandMock = vi.fn();
-let useResourceCallIndex = 0;
+const createRemixWorkflowMock = vi.fn();
+const generateAdPackMock = vi.fn();
+const getAdsResearchServiceMock = vi.fn();
+const prepareCampaignForReviewMock = vi.fn();
+let useQueryCallIndex = 0;
 
 const publicAd = {
   accountName: 'Founders Club',
@@ -101,24 +105,24 @@ const adAccountsState = [
   },
 ];
 
-const useResourceStates = [
+const useQueryStates = [
   {
     data: resultsState,
     error: null,
     isLoading: false,
-    refresh: vi.fn(),
+    refetch: vi.fn(),
   },
   {
     data: adAccountsState,
     error: null,
     isLoading: false,
-    refresh: vi.fn(),
+    refetch: vi.fn(),
   },
   {
     data: detailResult,
     error: null,
     isLoading: false,
-    refresh: vi.fn(),
+    refetch: vi.fn(),
   },
 ];
 
@@ -149,12 +153,14 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => vi.fn(),
+  useAuthedService: () => getAdsResearchServiceMock,
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: () =>
-    useResourceStates[useResourceCallIndex++ % useResourceStates.length],
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: () => useQueryStates[useQueryCallIndex++ % useQueryStates.length],
+  useQueryClient: () => ({
+    setQueryData: vi.fn(),
+  }),
 }));
 
 vi.mock('@ui/layout/container/Container', () => ({
@@ -200,14 +206,12 @@ vi.mock('@ui/buttons/dropdown/button-dropdown/ButtonDropdown', () => ({
   default: ({
     name,
     onChange,
-    value,
   }: {
     name: string;
     onChange: (_name: string, value: string) => void;
-    value: string;
   }) => (
-    <button onClick={() => onChange(name, value)} type="button">
-      {value}
+    <button onClick={() => onChange(name, 'ctr')} type="button">
+      Sort by CTR
     </button>
   ),
 }));
@@ -249,7 +253,16 @@ vi.mock('@ui/primitives/searchbar', () => ({
 }));
 
 vi.mock('@ui/navigation/view-toggle/ViewToggle', () => ({
-  default: () => <div data-testid="view-toggle" />,
+  default: ({ onChange }: { onChange: (value: string) => void }) => (
+    <div data-testid="view-toggle">
+      <button type="button" onClick={() => onChange('table')}>
+        Table view
+      </button>
+      <button type="button" onClick={() => onChange('grid')}>
+        Grid view
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock('@ui/primitives/input', () => ({
@@ -271,7 +284,23 @@ vi.mock('@ui/primitives/input', () => ({
 }));
 
 vi.mock('@ui/primitives/select', () => ({
-  Select: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  Select: ({
+    children,
+    onValueChange,
+  }: {
+    children?: ReactNode;
+    onValueChange?: (value: string) => void;
+  }) => (
+    <div>
+      {children}
+      <button type="button" onClick={() => onValueChange?.('cred-google')}>
+        Select Google Credential
+      </button>
+      <button type="button" onClick={() => onValueChange?.('acct-google-1')}>
+        Select Google Account
+      </button>
+    </div>
+  ),
   SelectContent: ({ children }: { children?: ReactNode }) => (
     <div>{children}</div>
   ),
@@ -295,7 +324,74 @@ import AdsResearchPageClient from './AdsResearchPageClient';
 describe('AdsResearchPageClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useResourceCallIndex = 0;
+    useQueryCallIndex = 0;
+    useQueryStates[0].data = resultsState;
+    useQueryStates[0].error = null;
+    useQueryStates[0].isLoading = false;
+    useQueryStates[1].data = adAccountsState;
+    useQueryStates[1].error = null;
+    useQueryStates[1].isLoading = false;
+    useQueryStates[2].data = detailResult;
+    useQueryStates[2].error = null;
+    useQueryStates[2].isLoading = false;
+    createRemixWorkflowMock.mockResolvedValue({
+      adPack: {
+        assetCreativeBrief: 'Workflow creative brief',
+        campaignRecipe: {
+          budgetStrategy: 'Start with a $50 daily validation budget.',
+          channel: 'search',
+          placements: ['Search'],
+          platform: 'google',
+        },
+        cta: 'Book demo',
+        headlines: ['Workflow headline'],
+        primaryText: 'Workflow primary text',
+        targetingNotes: 'Target founders.',
+      },
+      workflowDescription: 'Workflow description',
+      workflowId: 'workflow-1',
+      workflowName: 'Ads remix workflow',
+    });
+    generateAdPackMock.mockResolvedValue({
+      assetCreativeBrief: 'Ad pack creative brief',
+      campaignRecipe: {
+        budgetStrategy: 'Spend carefully.',
+        channel: 'search',
+        placements: ['Search'],
+        platform: 'google',
+      },
+      cta: 'Start now',
+      headlines: ['Ad pack headline'],
+      primaryText: 'Ad pack primary text',
+      targetingNotes: 'Target operators.',
+    });
+    prepareCampaignForReviewMock.mockResolvedValue({
+      ad: { name: 'Launch ad' },
+      adPack: {
+        assetCreativeBrief: 'Launch creative brief',
+        campaignRecipe: {
+          budgetStrategy: 'Launch with a constrained test budget.',
+          channel: 'search',
+          placements: ['Search'],
+          platform: 'google',
+        },
+        cta: 'Launch',
+        headlines: ['Launch headline'],
+        primaryText: 'Launch primary text',
+        targetingNotes: 'Target high-intent searches.',
+      },
+      adSet: { name: 'Launch ad set', optimizationGoal: 'Conversions' },
+      campaign: { name: 'Launch campaign', objective: 'Conversions' },
+      notes: ['Review creative before publishing.'],
+      publishMode: 'paused',
+      workflowId: 'workflow-launch',
+      workflowName: 'Launch workflow',
+    });
+    getAdsResearchServiceMock.mockResolvedValue({
+      createRemixWorkflow: createRemixWorkflowMock,
+      generateAdPack: generateAdPackMock,
+      prepareCampaignForReview: prepareCampaignForReviewMock,
+    });
     useBrandMock.mockReturnValue({
       brandId: 'brand-1',
       credentials: [
@@ -308,9 +404,9 @@ describe('AdsResearchPageClient', () => {
   });
 
   it('filters ads, opens detail sidebar, and exposes launch actions', () => {
-    useResourceStates[0].refresh.mockClear();
-    useResourceStates[1].refresh.mockClear();
-    useResourceStates[2].refresh.mockClear();
+    useQueryStates[0].refetch.mockClear();
+    useQueryStates[1].refetch.mockClear();
+    useQueryStates[2].refetch.mockClear();
 
     const { container } = render(<AdsResearchPageClient />);
 
@@ -364,5 +460,148 @@ describe('AdsResearchPageClient', () => {
     ).toHaveAttribute('href', 'https://example.com/landing');
     expect(screen.queryByText('Workflow Created')).not.toBeInTheDocument();
     expect(container).toBeInTheDocument();
+  });
+
+  it('switches to table mode, refreshes, and runs remix workflow actions', async () => {
+    render(<AdsResearchPageClient />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Table view' }));
+    expect(screen.getByText('Platform')).toBeInTheDocument();
+    expect(screen.getByText('Title')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sort by CTR' }));
+    expect(screen.getByText('2.40')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    expect(useQueryStates[0].refetch).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText('Google lead gen winner'));
+    fireEvent.click(screen.getByRole('button', { name: /create workflow/i }));
+
+    expect(await screen.findByText('Workflow Created')).toBeInTheDocument();
+    expect(screen.getByText('Ads remix workflow')).toBeInTheDocument();
+    expect(createRemixWorkflowMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        adId: 'source-google-1',
+        brandName: 'Moonrise Studio',
+        source: 'my_accounts',
+      }),
+    );
+    expect(
+      screen.getByRole('link', { name: /open workflow editor/i }),
+    ).toHaveAttribute(
+      'href',
+      '/moonrise-org/moonrise-studio/workflows/workflow-1',
+    );
+  });
+
+  it('generates ad packs and campaign launch prep for selected connected ads', async () => {
+    render(<AdsResearchPageClient initialPlatform="google" />);
+
+    fireEvent.click(screen.getByRole('button', { name: /filters/i }));
+    expect(screen.getByText('Google Channel')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('MCC / manager ID')).toBeInTheDocument();
+    expect(screen.queryByText('Platform')).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Google lead gen winner/i }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /remix for my brand/i }),
+    );
+
+    expect(await screen.findByText('Ad Pack Ready')).toBeInTheDocument();
+    expect(screen.getByText('Ad pack headline')).toBeInTheDocument();
+    expect(generateAdPackMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        adAccountId: 'acct-google-1',
+        credentialId: 'cred-google',
+        platform: 'google',
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /prepare campaign/i }));
+
+    expect(await screen.findByText('Review Required')).toBeInTheDocument();
+    expect(screen.getByText('Launch campaign')).toBeInTheDocument();
+    expect(
+      screen.getByText('Review creative before publishing.'),
+    ).toBeInTheDocument();
+    expect(prepareCampaignForReviewMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        campaignName: 'Moonrise Studio Google Campaign',
+        createWorkflow: true,
+        dailyBudget: 50,
+      }),
+    );
+    expect(
+      screen.getByRole('link', { name: /open linked workflow/i }),
+    ).toHaveAttribute(
+      'href',
+      '/moonrise-org/moonrise-studio/workflows/workflow-launch',
+    );
+  });
+
+  it('shows empty, loading, error, and action failure states', async () => {
+    useQueryStates[0].data = {
+      ...resultsState,
+      connectedAds: [],
+      publicAds: [],
+      summary: {
+        ...resultsState.summary,
+        connectedCount: 0,
+        publicCount: 0,
+      },
+    };
+    useQueryStates[0].error = new Error('research unavailable');
+    useQueryStates[1].error = new Error('accounts unavailable');
+    useQueryStates[2].error = new Error('detail unavailable');
+    useQueryStates[2].isLoading = true;
+
+    const { rerender } = render(<AdsResearchPageClient />);
+
+    expect(screen.getAllByRole('alert')[0]).toHaveTextContent(
+      'detail unavailable',
+    );
+    expect(
+      screen.getByText(
+        'No ads match the current filters. Adjust filters or widen the timeframe.',
+      ),
+    ).toBeInTheDocument();
+
+    useQueryCallIndex = 0;
+    useQueryStates[0].isLoading = true;
+    rerender(<AdsResearchPageClient />);
+    expect(
+      screen.queryByText(
+        'No ads match the current filters. Adjust filters or widen the timeframe.',
+      ),
+    ).not.toBeInTheDocument();
+
+    useQueryCallIndex = 0;
+    useQueryStates[0].data = resultsState;
+    useQueryStates[0].error = null;
+    useQueryStates[0].isLoading = false;
+    useQueryStates[1].error = null;
+    useQueryStates[2].data = null;
+    useQueryStates[2].error = null;
+    useQueryStates[2].isLoading = true;
+    createRemixWorkflowMock.mockRejectedValueOnce(new Error('workflow failed'));
+    rerender(<AdsResearchPageClient />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Google lead gen winner/i }),
+    );
+    expect(screen.getByText('Loading ad detail…')).toBeInTheDocument();
+
+    useQueryCallIndex = 0;
+    useQueryStates[2].data = detailResult;
+    useQueryStates[2].isLoading = false;
+    rerender(<AdsResearchPageClient />);
+    fireEvent.click(screen.getByRole('button', { name: /create workflow/i }));
+
+    expect(await screen.findByText('workflow failed')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /close detail/i }));
+    expect(screen.queryByRole('heading', { name: 'Ad Detail' })).toBeNull();
   });
 });

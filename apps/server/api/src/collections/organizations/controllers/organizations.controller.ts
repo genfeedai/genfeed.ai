@@ -1,18 +1,15 @@
 import { type ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { BrandEntity } from '@api/collections/brands/entities/brand.entity';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MemberEntity } from '@api/collections/members/entities/member.entity';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
 import { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
 import { UpdateOrganizationDto } from '@api/collections/organizations/dto/update-organization.dto';
-import { OrganizationEntity } from '@api/collections/organizations/entities/organization.entity';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
@@ -31,7 +28,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { BrandFilterUtil } from '@api/helpers/utils/brand-filter/brand-filter.util';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
@@ -45,10 +41,10 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { generateLabel } from '@api/shared/utils/label/label.util';
-import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import type {
@@ -82,11 +78,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 @AutoSwagger()
 @ApiTags('organizations')
 @ApiBearerAuth()
@@ -209,19 +200,14 @@ export class OrganizationsController extends BaseCRUDController<
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted,
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
-
     const data: AggregatePaginateResult<OrganizationDocument> =
-      await this.organizationsService.findAll(aggregate, options);
+      await this.organizationsService.findAll(
+        {
+          orderBy: handleQuerySort(query.sort),
+          where: { isDeleted },
+        },
+        options,
+      );
     return serializeCollection(request, OrganizationSerializer, data);
   }
 
@@ -241,25 +227,21 @@ export class OrganizationsController extends BaseCRUDController<
     };
 
     const publicMetadata = getPublicMetadata(user);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          $or: [
-            { user: publicMetadata.user },
-            { organization: organizationId },
-          ],
-          isDeleted,
-        },
-      },
-      // Lookup brand assets (logo, banner, references, credentials)
-      ...BrandFilterUtil.buildBrandAssetLookups(),
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
-
     const data: AggregatePaginateResult<BrandDocument> =
-      await this.brandsService.findAll(aggregate, options);
+      await this.brandsService.findAll(
+        {
+          include: { credentials: true },
+          orderBy: handleQuerySort(query.sort),
+          where: {
+            OR: [
+              { user: publicMetadata.user },
+              { organization: organizationId },
+            ],
+            isDeleted,
+          },
+        },
+        options,
+      );
     return serializeCollection(request, BrandSerializer, data);
   }
 
@@ -298,35 +280,33 @@ export class OrganizationsController extends BaseCRUDController<
       query.parent,
     );
 
-    const matchConditions = {
+    const where = {
+      ...(Object.keys(parentConditions).length > 0 ? parentConditions : {}),
       isDeleted,
       organization: organizationId,
       ...statusFilter,
       ...(query.search && {
-        $or: [
-          { label: { $options: 'i', $regex: query.search } },
-          { description: { $options: 'i', $regex: query.search } },
+        OR: [
+          { label: { contains: query.search, mode: 'insensitive' } },
+          { description: { contains: query.search, mode: 'insensitive' } },
         ],
       }),
       ...(query.category && { category: query.category }),
       ...(query.brand &&
-        isValidObjectId(query.brand) && {
+        isEntityId(query.brand) && {
           brand: query.brand,
         }),
-      ...(Object.keys(parentConditions).length > 0 && {
-        $and: [parentConditions],
-      }),
     };
 
-    const aggregate = PipelineBuilder.create()
-      .match(matchConditions)
-      .add(...IngredientFilterUtil.buildMetadataLookup())
-      .add(...IngredientFilterUtil.buildFormatFilterStage(query.format))
-      .sort(handleQuerySort(query.sort))
-      .build();
-
     const data: AggregatePaginateResult<IngredientDocument> =
-      await this.ingredientsService.findAll(aggregate, options);
+      await this.ingredientsService.findAll(
+        {
+          include: { metadata: true },
+          orderBy: handleQuerySort(query.sort),
+          where,
+        },
+        options,
+      );
     return serializeCollection(request, IngredientSerializer, data);
   }
 
@@ -345,21 +325,18 @@ export class OrganizationsController extends BaseCRUDController<
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted,
-          organization: organizationId,
-          user: publicMetadata.user,
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
-
     const data: AggregatePaginateResult<IngredientDocument> =
-      await this.videosService.findAll(aggregate, options);
+      await this.videosService.findAll(
+        {
+          orderBy: handleQuerySort(query.sort),
+          where: {
+            isDeleted,
+            organization: organizationId,
+            user: publicMetadata.user,
+          },
+        },
+        options,
+      );
     return serializeCollection(request, VideoSerializer, data);
   }
 
@@ -378,27 +355,21 @@ export class OrganizationsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
-    // Build match conditions to return:
-    // 1. Global tags (no organization and no user)
-    // 2. Tags for this specific organization
-    // 3. Tags for the current user
-    const aggregate = PipelineBuilder.create()
-      .match({
-        $or: [
-          // Global tags (default/system tags)
-          { organization: { $exists: false }, user: { $exists: false } },
-          // Tags for this organization
-          { organization: organizationId },
-          // Tags for the current user
-          { user: publicMetadata.user },
-        ],
-        isDeleted,
-      })
-      .sort(handleQuerySort(query.sort))
-      .build();
-
     const data: AggregatePaginateResult<TagDocument> =
-      await this.tagsService.findAll(aggregate, options);
+      await this.tagsService.findAll(
+        {
+          orderBy: handleQuerySort(query.sort),
+          where: {
+            OR: [
+              { organizationId: null, userId: null },
+              { organization: organizationId },
+              { user: publicMetadata.user },
+            ],
+            isDeleted,
+          },
+        },
+        options,
+      );
     return serializeCollection(request, TagSerializer, data);
   }
 
@@ -423,111 +394,22 @@ export class OrganizationsController extends BaseCRUDController<
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted,
-          organization: organizationId,
-        },
-      },
-      {
-        $lookup: {
-          as: 'ingredients',
-          foreignField: '_id',
-          from: 'ingredients',
-          localField: 'ingredients',
-        },
-      },
-      {
-        $addFields: {
-          ingredients: {
-            $map: {
-              as: 'ing',
-              in: {
-                _id: '$$ing._id',
-                category: '$$ing.category',
-                status: '$$ing.status',
-              },
-              input: '$ingredients',
-            },
-          },
-        },
-      },
-      {
-        $lookup: {
-          as: 'credential',
-          foreignField: '_id',
-          from: 'credentials',
-          localField: 'credential',
-        },
-      },
-      {
-        $unwind: {
-          path: '$credential',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // Lookup post-analytics to get KPIs (views, likes, comments, etc.)
-      {
-        $lookup: {
-          as: 'analyticsData',
-          foreignField: 'post',
-          from: 'post-analytics',
-          localField: '_id',
-          pipeline: [
-            {
-              $group: {
-                _id: null,
-                avgEngagementRate: { $avg: '$engagementRate' },
-                totalComments: { $sum: '$totalComments' },
-                totalLikes: { $sum: '$totalLikes' },
-                totalSaves: { $sum: '$totalSaves' },
-                totalShares: { $sum: '$totalShares' },
-                totalViews: { $sum: '$totalViews' },
-              },
-            },
-          ],
-        },
-      },
-      // Flatten analytics data to top level
-      {
-        $addFields: {
-          avgEngagementRate: {
-            $ifNull: [
-              { $arrayElemAt: ['$analyticsData.avgEngagementRate', 0] },
-              0,
-            ],
-          },
-          totalComments: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalComments', 0] }, 0],
-          },
-          totalLikes: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalLikes', 0] }, 0],
-          },
-          totalSaves: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalSaves', 0] }, 0],
-          },
-          totalShares: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalShares', 0] }, 0],
-          },
-          totalViews: {
-            $ifNull: [{ $arrayElemAt: ['$analyticsData.totalViews', 0] }, 0],
-          },
-        },
-      },
-      // Remove the temporary analyticsData array
-      {
-        $project: {
-          analyticsData: 0,
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
-
     const data: AggregatePaginateResult<PostDocument> =
-      await this.postsService.findAll(aggregate, options);
+      await this.postsService.findAll(
+        {
+          include: {
+            credential: true,
+            ingredients: true,
+            postAnalytics: true,
+          },
+          orderBy: handleQuerySort(query.sort),
+          where: {
+            isDeleted,
+            organization: organizationId,
+          },
+        },
+        options,
+      );
     return serializeCollection(request, PostSerializer, data);
   }
 
@@ -552,23 +434,19 @@ export class OrganizationsController extends BaseCRUDController<
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted,
-          organization: organizationId,
-        },
-      },
-      ...ActivitiesService.buildEntityLookup(),
-      {
-        $sort: query.sort
-          ? handleQuerySort(query.sort)
-          : ({ createdAt: -1, key: 1, label: 1 } as SortObject),
-      },
-    ];
-
     const data: AggregatePaginateResult<ActivityDocument> =
-      await this.activitiesService.findAll(aggregate, options);
+      await this.activitiesService.findAll(
+        {
+          orderBy: query.sort
+            ? handleQuerySort(query.sort)
+            : ({ createdAt: -1, key: 1, label: 1 } as SortObject),
+          where: {
+            isDeleted,
+            organization: organizationId,
+          },
+        },
+        options,
+      );
     return serializeCollection(request, ActivitySerializer, data);
   }
 
@@ -681,9 +559,9 @@ export class OrganizationsController extends BaseCRUDController<
 
     // Prefer the member's last-used brand; fall back to any brand in the org
     let brand = null;
-    if (member?.lastUsedBrand) {
+    if (member?.lastUsedBrandId) {
       brand = await this.brandsService.findOne({
-        _id: member.lastUsedBrand,
+        _id: member.lastUsedBrandId,
         isDeleted: false,
         organization: orgId,
       });
@@ -761,13 +639,15 @@ export class OrganizationsController extends BaseCRUDController<
     }
 
     // Step 1: Create organization
-    const org = await this.organizationsService.create(
-      new OrganizationEntity({
-        isSelected: false,
-        label: body.label.trim(),
-        user: userId,
-      }),
+    const orgSlug = await this.organizationsService.generateUniqueSlug(
+      body.label.trim(),
     );
+    const org = await this.organizationsService.create({
+      isSelected: false,
+      label: body.label.trim(),
+      slug: orgSlug,
+      userId,
+    } as unknown as Parameters<typeof this.organizationsService.create>[0]);
 
     const orgId = org._id;
 
@@ -791,7 +671,7 @@ export class OrganizationsController extends BaseCRUDController<
       isWatermarkEnabled: true,
       isWebhookEnabled: false,
       isWhitelabelEnabled: false,
-      organization: orgId,
+      organizationId: orgId,
       seatsLimit: 3,
       timezone: 'UTC',
     } as unknown as Parameters<
@@ -799,21 +679,19 @@ export class OrganizationsController extends BaseCRUDController<
     >[0]);
 
     // Step 3: Create default brand
-    const brand = await this.brandsService.create(
-      new BrandEntity({
-        backgroundColor: '#000000',
-        description:
-          body.description ?? 'Default description. Use it as a pre-prompt',
-        fontFamily: 'montserrat-black',
-        handle: generateLabel('brand'),
-        isSelected: true,
-        label: body.label.trim(),
-        organization: orgId,
-        primaryColor: '#000000',
-        secondaryColor: '#FFFFFF',
-        user: userId,
-      }),
-    );
+    const brand = await this.brandsService.create({
+      backgroundColor: '#000000',
+      description:
+        body.description ?? 'Default description. Use it as a pre-prompt',
+      fontFamily: 'montserrat-black',
+      isSelected: true,
+      label: body.label.trim(),
+      organizationId: orgId,
+      primaryColor: '#000000',
+      secondaryColor: '#FFFFFF',
+      slug: generateLabel('brand'),
+      userId,
+    } as unknown as Parameters<BrandsService['create']>[0]);
 
     // Step 4: Find admin role and create member
     let adminRole = await this.rolesService.findOne({
@@ -834,14 +712,12 @@ export class OrganizationsController extends BaseCRUDController<
       );
     }
 
-    await this.membersService.create(
-      new MemberEntity({
-        isActive: true,
-        organization: orgId,
-        role: adminRole._id,
-        user: userId,
-      }),
-    );
+    await this.membersService.create({
+      isActive: true,
+      organizationId: orgId,
+      roleId: String(adminRole._id),
+      userId,
+    } as unknown as Parameters<typeof this.membersService.create>[0]);
 
     // Step 5: Update Clerk publicMetadata to switch to new org
     await this.clerkService.updateUserPublicMetadata(user.id, {
@@ -850,8 +726,8 @@ export class OrganizationsController extends BaseCRUDController<
     });
 
     await Promise.all([
-      this.requestContextCacheService.invalidateForUser(user.id),
-      this.accessBootstrapCacheService.invalidateForUser(user.id),
+      this.requestContextCacheService.invalidateForUser(userId),
+      this.accessBootstrapCacheService.invalidateForUser(userId),
     ]);
 
     return {

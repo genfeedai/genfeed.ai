@@ -1,5 +1,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
+import { Input } from '@ui/primitives/input';
 import {
   Select,
   SelectContent,
@@ -204,7 +206,469 @@ function formatSnapshotTime(value: string | null): string {
   return parsed.toLocaleString();
 }
 
-export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
+function CreatePanelHeader(): ReactElement {
+  return (
+    <div className="border-b border-border px-4 py-3">
+      <h2 className="text-sm font-semibold text-foreground">Content Engine</h2>
+      <p className="text-xs text-muted-foreground">
+        Generate, preview, post, and analyze from the side panel.
+      </p>
+    </div>
+  );
+}
+
+function ExecutionContextSection({
+  activeBrandLabel,
+  canCompose,
+  platform,
+}: {
+  activeBrandLabel?: string;
+  canCompose: boolean;
+  platform: string | null;
+}): ReactElement {
+  return (
+    <section className="border border-border bg-card p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Execution Context
+        </p>
+        <span className="text-[11px] text-muted-foreground">
+          {activeBrandLabel
+            ? `Brand: ${activeBrandLabel}`
+            : 'No brand selected'}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="border border-border bg-background px-2 py-1.5 text-muted-foreground">
+          Platform: {platform || 'Not detected'}
+        </div>
+        <div className="border border-border bg-background px-2 py-1.5 text-muted-foreground">
+          Composer: {canCompose ? 'Ready' : 'Unavailable'}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ActiveRunSection({
+  events,
+  run,
+}: {
+  events: RunEventRecord[];
+  run: RunRecord | null;
+}): ReactElement | null {
+  if (!run) {
+    return null;
+  }
+
+  return (
+    <section className="border border-border bg-card p-3">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Active Run
+          </p>
+          <p className="text-sm text-foreground">
+            {run._id || run.id || 'unknown'}
+          </p>
+        </div>
+        <span
+          className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+            run.status === 'completed'
+              ? 'bg-emerald-500/15 text-emerald-500'
+              : run.status === 'failed'
+                ? 'bg-destructive/15 text-destructive'
+                : 'bg-primary/15 text-primary'
+          }`}
+        >
+          {formatRunStatus(run.status)}
+        </span>
+      </div>
+      <div className="mt-2 h-1.5 rounded-full bg-border">
+        <div
+          className="h-1.5 rounded-full bg-primary transition-all"
+          style={{ width: `${Math.max(2, Math.min(100, run.progress || 0))}%` }}
+        />
+      </div>
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        Progress {formatPercent(run.progress || 0)}
+      </p>
+      {events.length > 0 ? (
+        <div className="mt-2 max-h-28 space-y-1 overflow-y-auto border border-border bg-background p-2">
+          {events.slice(-5).map((event) => (
+            <div key={`${event.type}-${event.createdAt}`}>
+              <p className="text-[11px] text-foreground">
+                {event.message || event.type}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                {event.createdAt.split('T')[1]?.slice(0, 8) ?? event.createdAt}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function PanelNotice({
+  tone,
+  children,
+}: {
+  tone: 'error' | 'primary';
+  children: string | null;
+}): ReactElement | null {
+  if (!children) {
+    return null;
+  }
+
+  const className =
+    tone === 'error'
+      ? 'border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive'
+      : 'border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary';
+
+  return <div className={className}>{children}</div>;
+}
+
+function WorkflowTemplatesSection({
+  isRunning,
+  onRunTemplate,
+}: {
+  isRunning: boolean;
+  onRunTemplate: (template: RunTemplate) => void;
+}): ReactElement {
+  return (
+    <section className="border border-border bg-card p-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        Workflow Templates
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        {RUN_TEMPLATES.map((template) => (
+          <Button
+            key={template.id}
+            type="button"
+            variant={ButtonVariant.UNSTYLED}
+            disabled={isRunning}
+            onClick={() => onRunTemplate(template)}
+            className="border border-border bg-background p-2 text-left transition-colors hover:bg-muted disabled:opacity-60"
+          >
+            <p className="text-xs font-medium text-foreground">
+              {template.label}
+            </p>
+            <p className="mt-0.5 text-[10px] text-muted-foreground">
+              {template.description}
+            </p>
+          </Button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function GenerateSection({
+  currentRun,
+  generatePrompt,
+  isRunning,
+  onGenerate,
+  onPromptChange,
+}: {
+  currentRun: RunRecord | null;
+  generatePrompt: string;
+  isRunning: boolean;
+  onGenerate: () => void;
+  onPromptChange: (value: string) => void;
+}): ReactElement {
+  return (
+    <section className="border border-border bg-card p-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        1. Generate
+      </p>
+      <Textarea
+        value={generatePrompt}
+        onChange={(event) => onPromptChange(event.target.value)}
+        placeholder="Write a prompt for generated content…"
+        className="min-h-20 w-full border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
+      />
+      <Button
+        type="button"
+        variant={ButtonVariant.DEFAULT}
+        disabled={isRunning || !generatePrompt.trim()}
+        onClick={onGenerate}
+        className="mt-2 w-full text-xs"
+      >
+        {isRunning && currentRun?.actionType === 'generate'
+          ? 'Running Generate…'
+          : 'Run Generate'}
+      </Button>
+    </section>
+  );
+}
+
+function PreviewSection({
+  canSubmit,
+  canCompose,
+  previewContent,
+  onPreviewChange,
+  onRelay,
+}: {
+  canSubmit: boolean;
+  canCompose: boolean;
+  previewContent: string;
+  onPreviewChange: (value: string) => void;
+  onRelay: (actionType: ComposerActionType) => void;
+}): ReactElement {
+  return (
+    <section className="border border-border bg-card p-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        2. Preview
+      </p>
+      <Textarea
+        value={previewContent}
+        onChange={(event) => onPreviewChange(event.target.value)}
+        placeholder="Generated preview appears here…"
+        className="min-h-24 w-full border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
+      />
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <Button
+          type="button"
+          variant={ButtonVariant.OUTLINE}
+          disabled={!previewContent.trim() || !canCompose}
+          onClick={() => onRelay('INSERT_CONTENT')}
+          className="p-2 text-xs font-medium"
+        >
+          Insert In Composer
+        </Button>
+        <Button
+          type="button"
+          variant={ButtonVariant.OUTLINE}
+          disabled={!previewContent.trim() || !canSubmit}
+          onClick={() => onRelay('INSERT_AND_PUBLISH_CONTENT')}
+          className="p-2 text-xs font-medium"
+        >
+          Insert + Publish
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function PostSection({
+  credentials,
+  currentRun,
+  isRunning,
+  postResults,
+  postToComposer,
+  previewContent,
+  selectedCredentialId,
+  onCredentialChange,
+  onPost,
+  onPostToComposerChange,
+}: {
+  credentials: Credential[];
+  currentRun: RunRecord | null;
+  isRunning: boolean;
+  postResults: PostResultEntry[];
+  postToComposer: boolean;
+  previewContent: string;
+  selectedCredentialId: string | null;
+  onCredentialChange: (value: string | null) => void;
+  onPost: () => void;
+  onPostToComposerChange: (value: boolean) => void;
+}): ReactElement {
+  return (
+    <section className="border border-border bg-card p-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        3. Post
+      </p>
+
+      <Select
+        value={selectedCredentialId ?? ''}
+        onValueChange={(value) => onCredentialChange(value || null)}
+      >
+        <SelectTrigger className="w-full border border-border bg-background px-3 py-2 text-xs text-foreground">
+          <SelectValue placeholder="Default connected account" />
+        </SelectTrigger>
+        <SelectContent>
+          {credentials.map((credential) => (
+            <SelectItem key={credential.id} value={credential.id}>
+              {credential.platform}
+              {credential.externalHandle
+                ? ` (@${credential.externalHandle})`
+                : ''}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <label
+        className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"
+        htmlFor="create-panel-post-to-composer"
+      >
+        <Checkbox
+          id="create-panel-post-to-composer"
+          isChecked={postToComposer}
+          onChange={(event) => onPostToComposerChange(event.target.checked)}
+        />
+        Also publish from current page composer after run completes
+      </label>
+
+      <Button
+        type="button"
+        variant={ButtonVariant.DEFAULT}
+        disabled={isRunning || !previewContent.trim()}
+        onClick={onPost}
+        className="mt-2 w-full text-xs"
+      >
+        {isRunning && currentRun?.actionType === 'post'
+          ? 'Running Post…'
+          : 'Run Post'}
+      </Button>
+
+      {postResults.length > 0 ? (
+        <div className="mt-2 max-h-32 space-y-1 overflow-y-auto border border-border bg-background p-2">
+          {postResults.slice(0, 5).map((result) => (
+            <div
+              key={
+                result.publishedUrl ||
+                result.timestamp ||
+                `${result.platform || 'platform'}-${result.status}`
+              }
+              className="text-[11px]"
+            >
+              <p className="font-medium text-foreground">
+                {result.platform || 'platform'} · {result.status}
+              </p>
+              {result.publishedUrl ? (
+                <a
+                  href={result.publishedUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary underline"
+                >
+                  {result.publishedUrl}
+                </a>
+              ) : null}
+              {result.message ? (
+                <p className="text-muted-foreground">{result.message}</p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function AnalyticsSection({
+  analyticsQuery,
+  currentRun,
+  isRunning,
+  kpis,
+  onAnalytics,
+  onAnalyticsQueryChange,
+}: {
+  analyticsQuery: string;
+  currentRun: RunRecord | null;
+  isRunning: boolean;
+  kpis: AnalyticsSnapshot;
+  onAnalytics: () => void;
+  onAnalyticsQueryChange: (value: string) => void;
+}): ReactElement {
+  return (
+    <section className="border border-border bg-card p-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        4. Analytics
+      </p>
+      <Input
+        value={analyticsQuery}
+        onChange={(event) => onAnalyticsQueryChange(event.target.value)}
+        placeholder="Analytics query"
+        className="w-full border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
+      />
+      <Button
+        type="button"
+        variant={ButtonVariant.DEFAULT}
+        disabled={isRunning || !analyticsQuery.trim()}
+        onClick={onAnalytics}
+        className="mt-2 w-full text-xs"
+      >
+        {isRunning && currentRun?.actionType === 'analytics'
+          ? 'Running Analytics…'
+          : 'Run Analytics'}
+      </Button>
+
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <div className="border border-border bg-background p-2">
+          <p className="text-[10px] text-muted-foreground">Generated</p>
+          <p className="text-sm font-semibold text-foreground">
+            {kpis.generated}
+          </p>
+        </div>
+        <div className="border border-border bg-background p-2">
+          <p className="text-[10px] text-muted-foreground">Published</p>
+          <p className="text-sm font-semibold text-foreground">
+            {kpis.published}
+          </p>
+        </div>
+        <div className="border border-border bg-background p-2">
+          <p className="text-[10px] text-muted-foreground">Publish Success</p>
+          <p className="text-sm font-semibold text-foreground">
+            {formatPercent(kpis.publishSuccessRate)}
+          </p>
+        </div>
+        <div className="border border-border bg-background p-2">
+          <p className="text-[10px] text-muted-foreground">Last Snapshot</p>
+          <p className="text-[11px] font-medium text-foreground">
+            {formatSnapshotTime(kpis.lastSnapshotAt)}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ChatTemplatesSection({
+  onSelectTemplate,
+}: {
+  onSelectTemplate: (template: ChatTemplate) => void;
+}): ReactElement {
+  return (
+    <section>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        Chat Templates
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        {CHAT_TEMPLATES.map((template) => (
+          <TemplateCard
+            key={template.id}
+            template={template}
+            onSelect={() => onSelectTemplate(template)}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function RunningFooter({
+  currentRun,
+  isRunning,
+}: {
+  currentRun: RunRecord | null;
+  isRunning: boolean;
+}): ReactElement | null {
+  if (!isRunning || !currentRun || TERMINAL_STATUSES.has(currentRun.status)) {
+    return null;
+  }
+
+  return (
+    <div className="border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
+      Processing {currentRun.actionType} run…
+    </div>
+  );
+}
+
+function useCreatePanelController(onStartChat: () => void) {
   const setActiveThread = useChatStore((s) => s.setActiveThread);
   const clearMessages = useChatStore((s) => s.clearMessages);
   const addMessage = useChatStore((s) => s.addMessage);
@@ -589,333 +1053,133 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
     }
   }
 
+  return {
+    activeBrand,
+    analyticsQuery,
+    canSubmitFromComposer,
+    composeBoxAvailable,
+    composerFeedback,
+    credentials,
+    currentPlatform,
+    currentRun,
+    currentRunEvents,
+    generatePrompt,
+    handleAnalyticsRun,
+    handleGenerateRun,
+    handlePostRun,
+    handleRunTemplate,
+    handleSelectTemplate,
+    isRunning,
+    kpis,
+    postResults,
+    postToComposer,
+    previewContent,
+    relayComposer,
+    runError,
+    selectedCredentialId,
+    setAnalyticsQuery,
+    setGeneratePrompt,
+    setPostToComposer,
+    setPreviewContent,
+    setSelectedCredentialId,
+  };
+}
+
+export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
+  const {
+    activeBrand,
+    analyticsQuery,
+    canSubmitFromComposer,
+    composeBoxAvailable,
+    composerFeedback,
+    credentials,
+    currentPlatform,
+    currentRun,
+    currentRunEvents,
+    generatePrompt,
+    handleAnalyticsRun,
+    handleGenerateRun,
+    handlePostRun,
+    handleRunTemplate,
+    handleSelectTemplate,
+    isRunning,
+    kpis,
+    postResults,
+    postToComposer,
+    previewContent,
+    relayComposer,
+    runError,
+    selectedCredentialId,
+    setAnalyticsQuery,
+    setGeneratePrompt,
+    setPostToComposer,
+    setPreviewContent,
+    setSelectedCredentialId,
+  } = useCreatePanelController(onStartChat);
+
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <div className="border-b border-border px-4 py-3">
-        <h2 className="text-sm font-semibold text-foreground">
-          Content Engine
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          Generate, preview, post, and analyze from the side panel.
-        </p>
-      </div>
+      <CreatePanelHeader />
 
       <div className="space-y-4 p-3">
-        <section className="border border-border bg-card p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Execution Context
-            </p>
-            <span className="text-[11px] text-muted-foreground">
-              {activeBrand
-                ? `Brand: ${activeBrand.label}`
-                : 'No brand selected'}
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="border border-border bg-background px-2 py-1.5 text-muted-foreground">
-              Platform: {currentPlatform || 'Not detected'}
-            </div>
-            <div className="border border-border bg-background px-2 py-1.5 text-muted-foreground">
-              Composer: {composeBoxAvailable ? 'Ready' : 'Unavailable'}
-            </div>
-          </div>
-        </section>
-
-        {currentRun ? (
-          <section className="border border-border bg-card p-3">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Active Run
-                </p>
-                <p className="text-sm text-foreground">
-                  {currentRun._id || currentRun.id || 'unknown'}
-                </p>
-              </div>
-              <span
-                className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                  currentRun.status === 'completed'
-                    ? 'bg-emerald-500/15 text-emerald-500'
-                    : currentRun.status === 'failed'
-                      ? 'bg-destructive/15 text-destructive'
-                      : 'bg-primary/15 text-primary'
-                }`}
-              >
-                {formatRunStatus(currentRun.status)}
-              </span>
-            </div>
-            <div className="mt-2 h-1.5 rounded-full bg-border">
-              <div
-                className="h-1.5 rounded-full bg-primary transition-all"
-                style={{
-                  width: `${Math.max(2, Math.min(100, currentRun.progress || 0))}%`,
-                }}
-              />
-            </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Progress {formatPercent(currentRun.progress || 0)}
-            </p>
-            {currentRunEvents.length > 0 ? (
-              <div className="mt-2 max-h-28 space-y-1 overflow-y-auto border border-border bg-background p-2">
-                {currentRunEvents.slice(-5).map((event) => (
-                  <div key={`${event.type}-${event.createdAt}`}>
-                    <p className="text-[11px] text-foreground">
-                      {event.message || event.type}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {new Date(event.createdAt).toLocaleTimeString()}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </section>
-        ) : null}
-
-        {runError ? (
-          <div className="border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            {runError}
-          </div>
-        ) : null}
-
-        {composerFeedback ? (
-          <div className="border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
-            {composerFeedback}
-          </div>
-        ) : null}
-
-        <section className="border border-border bg-card p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Workflow Templates
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {RUN_TEMPLATES.map((template) => (
-              <Button
-                key={template.id}
-                type="button"
-                variant={ButtonVariant.UNSTYLED}
-                disabled={isRunning}
-                onClick={() => handleRunTemplate(template)}
-                className="border border-border bg-background px-2 py-2 text-left transition-colors hover:bg-muted disabled:opacity-60"
-              >
-                <p className="text-xs font-medium text-foreground">
-                  {template.label}
-                </p>
-                <p className="mt-0.5 text-[10px] text-muted-foreground">
-                  {template.description}
-                </p>
-              </Button>
-            ))}
-          </div>
-        </section>
-
-        <section className="border border-border bg-card p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            1. Generate
-          </p>
-          <Textarea
-            value={generatePrompt}
-            onChange={(event) => setGeneratePrompt(event.target.value)}
-            placeholder="Write a prompt for generated content..."
-            className="min-h-20 w-full border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
-          />
-          <Button
-            type="button"
-            variant={ButtonVariant.DEFAULT}
-            disabled={isRunning || !generatePrompt.trim()}
-            onClick={handleGenerateRun}
-            className="mt-2 w-full text-xs"
-          >
-            {isRunning && currentRun?.actionType === 'generate'
-              ? 'Running Generate...'
-              : 'Run Generate'}
-          </Button>
-        </section>
-
-        <section className="border border-border bg-card p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            2. Preview
-          </p>
-          <Textarea
-            value={previewContent}
-            onChange={(event) => setPreviewContent(event.target.value)}
-            placeholder="Generated preview appears here..."
-            className="min-h-24 w-full border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
-          />
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <Button
-              type="button"
-              variant={ButtonVariant.OUTLINE}
-              disabled={!previewContent.trim() || !composeBoxAvailable}
-              onClick={() => relayComposer('INSERT_CONTENT')}
-              className="px-2 py-2 text-xs font-medium"
-            >
-              Insert In Composer
-            </Button>
-            <Button
-              type="button"
-              variant={ButtonVariant.OUTLINE}
-              disabled={!previewContent.trim() || !canSubmitFromComposer}
-              onClick={() => relayComposer('INSERT_AND_PUBLISH_CONTENT')}
-              className="px-2 py-2 text-xs font-medium"
-            >
-              Insert + Publish
-            </Button>
-          </div>
-        </section>
-
-        <section className="border border-border bg-card p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            3. Post
-          </p>
-
-          <Select
-            value={selectedCredentialId ?? ''}
-            onValueChange={(value) => setSelectedCredentialId(value || null)}
-          >
-            <SelectTrigger className="w-full border border-border bg-background px-3 py-2 text-xs text-foreground">
-              <SelectValue placeholder="Default connected account" />
-            </SelectTrigger>
-            <SelectContent>
-              {credentials.map((credential) => (
-                <SelectItem key={credential.id} value={credential.id}>
-                  {credential.platform}
-                  {credential.externalHandle
-                    ? ` (@${credential.externalHandle})`
-                    : ''}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={postToComposer}
-              onChange={(event) => setPostToComposer(event.target.checked)}
-            />
-            Also publish from current page composer after run completes
-          </label>
-
-          <Button
-            type="button"
-            variant={ButtonVariant.DEFAULT}
-            disabled={isRunning || !previewContent.trim()}
-            onClick={handlePostRun}
-            className="mt-2 w-full text-xs"
-          >
-            {isRunning && currentRun?.actionType === 'post'
-              ? 'Running Post...'
-              : 'Run Post'}
-          </Button>
-
-          {postResults.length > 0 ? (
-            <div className="mt-2 max-h-32 space-y-1 overflow-y-auto border border-border bg-background p-2">
-              {postResults.slice(0, 5).map((result) => (
-                <div
-                  key={
-                    result.publishedUrl ||
-                    result.timestamp ||
-                    `${result.platform || 'platform'}-${result.status}`
-                  }
-                  className="text-[11px]"
-                >
-                  <p className="font-medium text-foreground">
-                    {result.platform || 'platform'} · {result.status}
-                  </p>
-                  {result.publishedUrl ? (
-                    <a
-                      href={result.publishedUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-primary underline"
-                    >
-                      {result.publishedUrl}
-                    </a>
-                  ) : null}
-                  {result.message ? (
-                    <p className="text-muted-foreground">{result.message}</p>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </section>
-
-        <section className="border border-border bg-card p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            4. Analytics
-          </p>
-          <input
-            value={analyticsQuery}
-            onChange={(event) => setAnalyticsQuery(event.target.value)}
-            placeholder="Analytics query"
-            className="w-full border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
-          />
-          <Button
-            type="button"
-            variant={ButtonVariant.DEFAULT}
-            disabled={isRunning || !analyticsQuery.trim()}
-            onClick={handleAnalyticsRun}
-            className="mt-2 w-full text-xs"
-          >
-            {isRunning && currentRun?.actionType === 'analytics'
-              ? 'Running Analytics...'
-              : 'Run Analytics'}
-          </Button>
-
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <div className="border border-border bg-background p-2">
-              <p className="text-[10px] text-muted-foreground">Generated</p>
-              <p className="text-sm font-semibold text-foreground">
-                {kpis.generated}
-              </p>
-            </div>
-            <div className="border border-border bg-background p-2">
-              <p className="text-[10px] text-muted-foreground">Published</p>
-              <p className="text-sm font-semibold text-foreground">
-                {kpis.published}
-              </p>
-            </div>
-            <div className="border border-border bg-background p-2">
-              <p className="text-[10px] text-muted-foreground">
-                Publish Success
-              </p>
-              <p className="text-sm font-semibold text-foreground">
-                {formatPercent(kpis.publishSuccessRate)}
-              </p>
-            </div>
-            <div className="border border-border bg-background p-2">
-              <p className="text-[10px] text-muted-foreground">Last Snapshot</p>
-              <p className="text-[11px] font-medium text-foreground">
-                {formatSnapshotTime(kpis.lastSnapshotAt)}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Chat Templates
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {CHAT_TEMPLATES.map((template) => (
-              <TemplateCard
-                key={template.id}
-                template={template}
-                onSelect={() => handleSelectTemplate(template)}
-              />
-            ))}
-          </div>
-        </section>
+        <ExecutionContextSection
+          activeBrandLabel={activeBrand?.label}
+          canCompose={composeBoxAvailable}
+          platform={currentPlatform}
+        />
+        <ActiveRunSection run={currentRun} events={currentRunEvents} />
+        <PanelNotice tone="error">{runError}</PanelNotice>
+        <PanelNotice tone="primary">{composerFeedback}</PanelNotice>
+        <WorkflowTemplatesSection
+          isRunning={isRunning}
+          onRunTemplate={(template) => {
+            void handleRunTemplate(template);
+          }}
+        />
+        <GenerateSection
+          currentRun={currentRun}
+          generatePrompt={generatePrompt}
+          isRunning={isRunning}
+          onGenerate={() => {
+            void handleGenerateRun();
+          }}
+          onPromptChange={setGeneratePrompt}
+        />
+        <PreviewSection
+          canCompose={composeBoxAvailable}
+          canSubmit={canSubmitFromComposer}
+          previewContent={previewContent}
+          onPreviewChange={setPreviewContent}
+          onRelay={relayComposer}
+        />
+        <PostSection
+          credentials={credentials}
+          currentRun={currentRun}
+          isRunning={isRunning}
+          postResults={postResults}
+          postToComposer={postToComposer}
+          previewContent={previewContent}
+          selectedCredentialId={selectedCredentialId}
+          onCredentialChange={setSelectedCredentialId}
+          onPost={() => {
+            void handlePostRun();
+          }}
+          onPostToComposerChange={setPostToComposer}
+        />
+        <AnalyticsSection
+          analyticsQuery={analyticsQuery}
+          currentRun={currentRun}
+          isRunning={isRunning}
+          kpis={kpis}
+          onAnalytics={() => {
+            void handleAnalyticsRun();
+          }}
+          onAnalyticsQueryChange={setAnalyticsQuery}
+        />
+        <ChatTemplatesSection onSelectTemplate={handleSelectTemplate} />
       </div>
 
-      {isRunning && currentRun && !TERMINAL_STATUSES.has(currentRun.status) ? (
-        <div className="border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
-          Processing {currentRun.actionType} run...
-        </div>
-      ) : null}
+      <RunningFooter currentRun={currentRun} isRunning={isRunning} />
     </div>
   );
 }

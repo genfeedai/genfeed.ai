@@ -1,0 +1,25 @@
+{
+  "ignorePaths": [
+    "**/.env",
+    "**/.env.*",
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/.turbo/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/generated/**",
+    "**/src/generated/**",
+    "**/bun.lock",
+    "**/package-lock.json",
+    "**/pnpm-lock.yaml",
+    "**/yarn.lock"
+  ],
+  "priorityPaths": [
+    "apps/server/api/src/",
+    "apps/server/workers/src/",
+    "apps/server/notifications/src/",
+    "apps/extensions/",
+    "ee/packages/"
+  ]
+}

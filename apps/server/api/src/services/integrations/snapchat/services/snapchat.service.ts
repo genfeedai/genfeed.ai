@@ -137,7 +137,11 @@ export class SnapchatService {
         isConnected: true,
         isDeleted: false,
         refreshToken: refresh_token || credential.refreshToken,
-      });
+      }) as Promise<{
+        accessToken: string;
+        refreshToken?: string;
+        accessTokenExpiry?: Date;
+      }>;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;

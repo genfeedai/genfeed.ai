@@ -11,7 +11,7 @@ export function isEEEnabled(): boolean {
 }
 
 /** True when running in self-hosted core mode (no auth, no billing) */
-export function isCoreMode(): boolean {
+function _isCoreMode(): boolean {
   return !isEEEnabled();
 }
 

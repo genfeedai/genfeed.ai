@@ -1,8 +1,10 @@
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -16,6 +18,7 @@ import {
   ByokUsageSummarySerializer,
   CreditUsageSerializer,
   LastPurchaseBaselineSerializer,
+  TopbarBalancesSerializer,
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Get, Optional, Req } from '@nestjs/common';
@@ -26,6 +29,7 @@ import type { Request } from 'express';
 export class CreditsController {
   constructor(
     private readonly creditTransactionsService: CreditTransactionsService,
+    private readonly topbarBalancesService: TopbarBalancesService,
     readonly _loggerService: LoggerService,
     @Optional() private readonly byokBillingService?: ByokBillingService,
   ) {}
@@ -88,6 +92,22 @@ export class CreditsController {
     const data =
       await this.byokBillingService.getByokUsageSummary(organizationId);
     return serializeSingle(req, ByokUsageSummarySerializer, data);
+  }
+
+  @Get('topbar-balances')
+  @RateLimit({ limit: 30, scope: 'user', windowMs: 60000 })
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async getTopbarBalances(
+    @Req() req: RequestWithContext,
+    @CurrentUser() user: User,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+    const organizationId =
+      req.context?.organizationId ?? publicMetadata.organization.toString();
+
+    const data =
+      await this.topbarBalancesService.getTopbarBalances(organizationId);
+    return serializeSingle(req, TopbarBalancesSerializer, data);
   }
 
   @Get('last-purchase-baseline')

@@ -1,11 +1,12 @@
-import { Callout, Steps, Tabs } from 'nextra/components'
+import { Callout, Steps, Tabs } from 'nextra/components';
 
 # Self-Host GenFeed in 5 Minutes
 
 Get GenFeed Core running on your own infrastructure. Generate AI content with full control over models, data, and costs.
 
 <Callout type="info">
-**Just want to use GenFeed?** [GenFeed Cloud](https://genfeed.ai) is the fastest way to start — no setup required, all features included, free tier available.
+  **Just want to use GenFeed?** [GenFeed Cloud](https://genfeed.ai) is the fastest way to start — no setup required, all
+  features included, free tier available.
 </Callout>
 
 ## Prerequisites
@@ -30,14 +31,18 @@ cd core
 
 <Tabs items={['Bun (Recommended)', 'npm']}>
   <Tabs.Tab>
+
 ```bash
 bun install
 ```
+
   </Tabs.Tab>
   <Tabs.Tab>
+
 ```bash
 npm install
 ```
+
   </Tabs.Tab>
 </Tabs>
 
@@ -56,8 +61,8 @@ DATABASE_URL=postgresql://genfeed:genfeed_local@localhost:5432/genfeed
 REDIS_URL=redis://localhost:6379
 
 # AI Providers (at least one required)
-REPLICATE_API_TOKEN=your_token_here
-FAL_KEY=your_key_here
+REPLICATE_KEY=your_token_here
+FAL_API_KEY=your_key_here
 
 # Optional
 PORT=3010
@@ -68,14 +73,18 @@ NODE_ENV=development
 
 <Tabs items={['Bun', 'npm']}>
   <Tabs.Tab>
+
 ```bash
 bun run dev
 ```
+
   </Tabs.Tab>
   <Tabs.Tab>
+
 ```bash
 npm run dev
 ```
+
   </Tabs.Tab>
 </Tabs>
 
@@ -106,11 +115,11 @@ services:
   genfeed:
     build: .
     ports:
-      - "3010:3010"
+      - '3010:3010'
     environment:
       - DATABASE_URL=postgresql://genfeed:genfeed_local@postgres:5432/genfeed
       - REDIS_URL=redis://redis:6379
-      - REPLICATE_API_TOKEN=${REPLICATE_API_TOKEN}
+      - REPLICATE_KEY=${REPLICATE_KEY}
     depends_on:
       - postgres
       - redis
@@ -124,12 +133,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - '5432:5432'
 
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - '6379:6379'
 
 volumes:
   postgres_data:
@@ -152,25 +161,27 @@ docker compose up -d
 
 Some features require the full GenFeed Cloud platform:
 
-| Feature | Core (OSS) | Cloud |
-|---------|-----------|-------|
-| Image generation | Yes | Yes |
-| Video generation | Yes | Yes |
-| Brand kits | Yes | Yes |
-| Multi-tenancy | No | Yes |
-| Publisher (auto-post to socials) | No | Yes |
-| Analytics dashboard | No | Yes |
-| Team collaboration | No | Yes |
-| Managed infrastructure | No | Yes |
-| SLA and support | No | Yes |
+| Feature                          | Core (OSS) | Cloud |
+| -------------------------------- | ---------- | ----- |
+| Image generation                 | Yes        | Yes   |
+| Video generation                 | Yes        | Yes   |
+| Brand kits                       | Yes        | Yes   |
+| Multi-tenancy                    | No         | Yes   |
+| Publisher (auto-post to socials) | No         | Yes   |
+| Analytics dashboard              | No         | Yes   |
+| Team collaboration               | No         | Yes   |
+| Managed infrastructure           | No         | Yes   |
+| SLA and support                  | No         | Yes   |
 
 <Callout type="info">
-Need multi-tenancy, publishing, or analytics? [Try GenFeed Cloud](https://genfeed.ai) — same engine, fully managed, with all the features your team needs.
+  Need multi-tenancy, publishing, or analytics? [Try GenFeed Cloud](https://genfeed.ai) — same engine, fully managed,
+  with all the features your team needs.
 </Callout>
 
 ## Next Steps
 
 - [API Reference](/api-reference/overview) — Full API documentation
 - [Models](/models) — Supported AI models and providers
+- [Execution Boundaries](/core/execution-boundaries) — Local, BYOK, managed, and Cloud runtime contract
 - [Deployment Options](/deployment/overview) — Production deployment guides
 - [GenFeed Cloud](https://genfeed.ai) — Managed platform with all features

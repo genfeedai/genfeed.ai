@@ -49,7 +49,6 @@ export class MemberCreditsGuard extends CreditsGuard implements CanActivate {
       publicMetadata.organization;
 
     const settings = await this.organizationSettingsService.findOne({
-      // @ts-expect-error TS2769
       organization: organizationId,
     });
 
@@ -58,16 +57,14 @@ export class MemberCreditsGuard extends CreditsGuard implements CanActivate {
     }
 
     const activeMembers = await this.membersService.findAll(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            // @ts-expect-error TS2769
-            organization: organizationId,
-          },
+      {
+        where: {
+          isDeleted: false,
+          organization: organizationId,
         },
-      ],
+      },
       { pagination: false },
+      false,
     );
 
     const activeMembersCount = activeMembers.docs.length;

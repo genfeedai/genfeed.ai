@@ -10,14 +10,14 @@ import { createServiceModule } from '@api/shared/service-module.factory';
 import { PollUntilModule } from '@api/shared/services/poll-until/poll-until.module';
 import { RedisModule } from '@libs/redis/redis.module';
 import type { Provider } from '@nestjs/common';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(LlmDispatcherService, {
   additionalImports: [
-    AnthropicModule,
-    OpenAiLlmModule,
-    OpenRouterModule,
-    ByokModule,
+    forwardRef(() => AnthropicModule),
+    forwardRef(() => OpenAiLlmModule),
+    forwardRef(() => OpenRouterModule),
+    forwardRef(() => ByokModule),
   ],
 });
 
@@ -29,7 +29,7 @@ const BaseModule = createServiceModule(LlmDispatcherService, {
       configModule: ConfigModule,
       configService: ConfigService,
     }),
-    PollUntilModule,
+    forwardRef(() => PollUntilModule),
   ],
   providers: [
     ...((BaseModule.providers ?? []) as Provider[]),

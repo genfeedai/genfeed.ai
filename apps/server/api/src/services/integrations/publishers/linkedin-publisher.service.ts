@@ -6,6 +6,7 @@ import { BasePublisherService } from '@api/services/integrations/publishers/base
 import type {
   PublishContext,
   PublishResult,
+  ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -15,11 +16,24 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class LinkedInPublisherService extends BasePublisherService {
   readonly platform = CredentialPlatform.LINKEDIN;
-  readonly supportsTextOnly = false;
+  readonly supportsTextOnly = true;
   readonly supportsImages = true;
   readonly supportsVideos = true;
   readonly supportsCarousel = false;
   readonly supportsThreads = true; // Supports TEXT children as first comments
+
+  private getLinkedInPublishId(result: unknown): string | null {
+    if (
+      result &&
+      typeof result === 'object' &&
+      'id' in result &&
+      typeof result.id === 'string'
+    ) {
+      return result.id;
+    }
+
+    return null;
+  }
 
   constructor(
     protected readonly configService: ConfigService,
@@ -53,24 +67,29 @@ export class LinkedInPublisherService extends BasePublisherService {
       // Sanitize HTML to plain text - LinkedIn doesn't support HTML markup
       const caption = this.sanitizeDescription(post.description);
 
-      if (mediaInfo.isImagePost) {
-        // Upload single image with caption
+      if (post.category === PostCategory.TEXT && !mediaInfo.hasIngredients) {
+        const result = await this.linkedInService.createTextPost(
+          organizationId,
+          brandId,
+          caption,
+        );
+        externalId = this.getLinkedInPublishId(result);
+      } else if (mediaInfo.isImagePost) {
         const result = await this.linkedInService.uploadImage(
           organizationId,
           brandId,
           mediaInfo.mediaUrls[0],
           caption,
         );
-        externalId = result?.id || null;
+        externalId = this.getLinkedInPublishId(result);
       } else {
-        // Upload video with caption
         const result = await this.linkedInService.uploadVideo(
           organizationId,
           brandId,
           mediaInfo.mediaUrls[0],
           caption,
         );
-        externalId = result?.id || null;
+        externalId = this.getLinkedInPublishId(result);
       }
 
       if (!externalId) {
@@ -108,7 +127,7 @@ export class LinkedInPublisherService extends BasePublisherService {
    */
   async publishThreadChildren(
     context: PublishContext,
-    children: unknown[],
+    children: ThreadChild[],
     parentExternalId: string,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;

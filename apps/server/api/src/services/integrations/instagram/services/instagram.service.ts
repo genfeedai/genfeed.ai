@@ -1,3 +1,4 @@
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
@@ -17,6 +18,28 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
+
+function requireString(
+  value: string | null | undefined,
+  field: string,
+): string {
+  if (!value) {
+    throw new Error(`Instagram credential is missing ${field}`);
+  }
+
+  return value;
+}
+
+function toInstagramCredentialResponse(
+  credential: CredentialDocument,
+): InstagramCredentialResponse {
+  return {
+    _id: credential._id,
+    accessToken: requireString(credential.accessToken, 'accessToken'),
+    externalId: credential.externalId ?? undefined,
+    isConnected: credential.isConnected,
+  };
+}
 
 @Injectable()
 export class InstagramService {
@@ -127,7 +150,7 @@ export class InstagramService {
             // Empty POST to media endpoint to test publishing capability
             await firstValueFrom(
               this.httpService.post(
-                `${this.graphUrl}/${this.apiVersion}/${page.id}/media`,
+                `${this.graphUrl}/${this.apiVersion}/${page._id}/media`,
                 null,
                 {
                   params: { access_token: accessToken },
@@ -155,7 +178,7 @@ export class InstagramService {
         } catch (error: unknown) {
           // Skip accounts we can't access or verify
           this.loggerService.warn(
-            `${url} - Could not verify Instagram account ${page.id}`,
+            `${url} - Could not verify Instagram account ${page._id}`,
             error,
           );
         }
@@ -233,7 +256,7 @@ export class InstagramService {
         },
       );
 
-      return updatedCredential;
+      return toInstagramCredentialResponse(updatedCredential);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       // Mark credential as disconnected if refresh fails (e.g., expired token)
@@ -371,15 +394,15 @@ export class InstagramService {
 
     try {
       const credential = await this.refreshToken(organizationId, brandId);
+      const accessToken = credential.accessToken;
+      const externalId = requireString(credential.externalId, 'externalId');
 
       // Decrypt access token before use
-      const decryptedAccessToken = EncryptionUtil.decrypt(
-        credential.accessToken,
-      );
+      const decryptedAccessToken = EncryptionUtil.decrypt(accessToken);
 
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${credential.externalId}/messages`,
+          `${this.graphUrl}/${this.apiVersion}/${externalId}/messages`,
           {
             message: { text: message },
             messaging_product: 'instagram',
@@ -408,19 +431,9 @@ export class InstagramService {
   ): Promise<{ mediaId: string; shortcode: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    await this.refreshToken(organizationId, brandId);
-
-    const credential = await this.credentialsService.findOne({
-      brand: brandId,
-      organization: organizationId,
-      platform: CredentialPlatform.INSTAGRAM,
-    });
-
-    if (!credential) {
-      throw new Error('Instagram credential not found');
-    }
-
-    const { externalId, accessToken } = credential;
+    const credential = await this.refreshToken(organizationId, brandId);
+    const externalId = requireString(credential.externalId, 'externalId');
+    const accessToken = credential.accessToken;
     const fullCaption = this.formatCaption(caption, hashtags);
 
     try {
@@ -483,19 +496,9 @@ export class InstagramService {
   ): Promise<{ mediaId: string; shortcode: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    await this.refreshToken(organizationId, brandId);
-
-    const credential = await this.credentialsService.findOne({
-      brand: brandId,
-      organization: organizationId,
-      platform: CredentialPlatform.INSTAGRAM,
-    });
-
-    if (!credential) {
-      throw new Error('Instagram credential not found');
-    }
-
-    const { externalId, accessToken } = credential;
+    const credential = await this.refreshToken(organizationId, brandId);
+    const externalId = requireString(credential.externalId, 'externalId');
+    const accessToken = credential.accessToken;
     const fullCaption = this.formatCaption(caption, hashtags);
 
     try {
@@ -560,17 +563,9 @@ export class InstagramService {
   ): Promise<{ mediaId: string; shortcode: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.credentialsService.findOne({
-      brand: brandId,
-      organization: organizationId,
-      platform: CredentialPlatform.INSTAGRAM,
-    });
-
-    if (!credential) {
-      throw new Error('Instagram credential not found');
-    }
-
-    const { externalId, accessToken } = credential;
+    const credential = await this.refreshToken(organizationId, brandId);
+    const externalId = requireString(credential.externalId, 'externalId');
+    const accessToken = credential.accessToken;
     const fullCaption = this.formatCaption(caption, hashtags);
 
     try {

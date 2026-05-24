@@ -30,8 +30,22 @@ export class NewsService {
       const res = await firstValueFrom(this.httpService.get(url));
       this.loggerService.log(`${logUrl} success`, res.data);
 
-      const articles = res.data?.articles || [];
-      return articles.map((a: unknown) => a.title);
+      const articles = Array.isArray(res.data?.articles)
+        ? res.data.articles
+        : [];
+      return articles
+        .map((article: unknown) =>
+          typeof article === 'object' &&
+          article !== null &&
+          'title' in article &&
+          typeof article.title === 'string'
+            ? article.title
+            : undefined,
+        )
+        .filter(
+          (title: string | undefined): title is string =>
+            typeof title === 'string',
+        );
     } catch (error: unknown) {
       this.loggerService.error(`${logUrl} failed`, error);
       return [];

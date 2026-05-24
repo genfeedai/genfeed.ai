@@ -13,9 +13,9 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [BatchContentQueueService, BatchContentService],
   imports: [
     forwardRef(() => BrandsModule),
-    LoggerModule,
-    NotificationsPublisherModule,
-    SkillExecutorModule,
+    forwardRef(() => LoggerModule),
+    forwardRef(() => NotificationsPublisherModule),
+    forwardRef(() => SkillExecutorModule),
     BullModule.registerQueue({
       defaultJobOptions: {
         attempts: 3,

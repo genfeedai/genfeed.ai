@@ -2,12 +2,12 @@ import {
   AGENT_GOAL_METRICS,
   type AgentGoalMetric,
 } from '@api/collections/agent-goals/schemas/agent-goal.schema';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -15,17 +15,17 @@ import {
 } from 'class-validator';
 
 export class CreateAgentGoalDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'Organization ID', required: false })
   organization?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'User ID', required: false })
   user?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'Brand ID', required: false })
   brand?: string;

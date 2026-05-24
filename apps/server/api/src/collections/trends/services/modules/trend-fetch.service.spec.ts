@@ -36,6 +36,7 @@ describe('TrendFetchService', () => {
     mockCacheService.get.mockResolvedValue(null);
     mockCacheService.set.mockResolvedValue(undefined);
     mockApifyService.getTwitterTrends.mockResolvedValue([]);
+    mockXaiService.getTrends.mockResolvedValue([]);
     mockLinkedInService.getTrends.mockResolvedValue([]);
 
     service = new TrendFetchService(
@@ -158,5 +159,68 @@ describe('TrendFetchService', () => {
         topic: '#ai',
       },
     ]);
+  });
+
+  it('persists fetched provider trends as current tenant-scoped trend documents', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-15T12:00:00.000Z'));
+
+    mockApifyService.getTikTokTrends.mockResolvedValue([
+      {
+        growthRate: 81,
+        mentions: 42500,
+        metadata: {
+          hashtags: ['#AIVideo'],
+          sampleContent: 'Creators are remixing AI video demos.',
+        },
+        platform: 'tiktok',
+        topic: 'AI video remix',
+      },
+    ]);
+    mockApifyService.getInstagramTrends.mockResolvedValue([]);
+    mockApifyService.getPinterestTrends.mockResolvedValue([]);
+    mockApifyService.getRedditTrends.mockResolvedValue([]);
+    mockApifyService.getYouTubeTrends.mockResolvedValue([]);
+    mockPrisma.trend.create.mockImplementation(({ data }) =>
+      Promise.resolve({
+        brandId: data.brandId,
+        data,
+        id: 'trend-1',
+        organizationId: data.organizationId,
+      }),
+    );
+
+    const result = await service.fetchAndCacheTrends(
+      'org-1',
+      'brand-1',
+      () => 93,
+    );
+
+    expect(mockApifyService.getTikTokTrends).toHaveBeenCalledWith({
+      limit: 20,
+    });
+    expect(mockPrisma.trend.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        brandId: 'brand-1',
+        growthRate: 81,
+        isCurrent: true,
+        mentions: 42500,
+        organizationId: 'org-1',
+        platform: 'tiktok',
+        requiresAuth: true,
+        topic: 'AI video remix',
+        viralityScore: 93,
+      }),
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      platform: 'tiktok',
+      topic: 'AI video remix',
+      viralityScore: 93,
+    });
+
+    vi.useRealTimers();
   });
 });

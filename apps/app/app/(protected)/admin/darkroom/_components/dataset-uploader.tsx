@@ -9,6 +9,7 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import Image from 'next/image';
 import { useCallback, useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import {
@@ -63,9 +64,18 @@ export default function DatasetUploader({
 
   const captions = useMemo(
     () =>
-      pairedFiles
-        .filter(hasCaption)
-        .map((p) => ({ caption: p.caption, filenameStem: p.filenameStem })),
+      pairedFiles.reduce<Array<{ caption: string; filenameStem: string }>>(
+        (items, file) => {
+          if (hasCaption(file)) {
+            items.push({
+              caption: file.caption,
+              filenameStem: file.filenameStem,
+            });
+          }
+          return items;
+        },
+        [],
+      ),
     [pairedFiles],
   );
 
@@ -194,7 +204,7 @@ export default function DatasetUploader({
         })}
       >
         <Input {...getInputProps()} />
-        <HiOutlineCloudArrowUp className="w-10 h-10 mx-auto mb-3 text-foreground/40" />
+        <HiOutlineCloudArrowUp className="size-10 mx-auto mb-3 text-foreground/40" />
         <p className="text-sm font-medium text-foreground/70">
           {isDragActive
             ? 'Drop files here...'
@@ -247,19 +257,21 @@ export default function DatasetUploader({
                   className="flex items-center gap-3 p-2 rounded bg-foreground/[0.03] group"
                 >
                   {/* Thumbnail */}
-                  <div className="w-10 h-10 rounded overflow-hidden bg-foreground/5 flex-shrink-0">
-                    {/* biome-ignore lint/performance/noImgElement: object URLs are local preview blobs */}
-                    <img
+                  <div className="size-10 rounded overflow-hidden bg-foreground/5 flex-shrink-0">
+                    <Image
+                      unoptimized
                       alt={pair.image.name}
                       className="w-full h-full object-cover"
                       src={URL.createObjectURL(pair.image)}
+                      width={800}
+                      height={600}
                     />
                   </div>
 
                   {/* File info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <HiOutlinePhoto className="w-3.5 h-3.5 text-foreground/40 flex-shrink-0" />
+                      <HiOutlinePhoto className="size-3.5 text-foreground/40 flex-shrink-0" />
                       <span
                         className="text-sm truncate"
                         title={pair.image.name}
@@ -269,7 +281,7 @@ export default function DatasetUploader({
                     </div>
                     {pair.caption && (
                       <div className="flex items-center gap-2 mt-0.5">
-                        <HiOutlineDocumentText className="w-3.5 h-3.5 text-success/60 flex-shrink-0" />
+                        <HiOutlineDocumentText className="size-3.5 text-success/60 flex-shrink-0" />
                         <span
                           className="text-xs text-foreground/50 truncate"
                           title={pair.caption}
@@ -291,7 +303,7 @@ export default function DatasetUploader({
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1"
                     onClick={() => handleRemoveFile(index)}
                   >
-                    <HiOutlineTrash className="w-4 h-4 text-foreground/40 hover:text-error" />
+                    <HiOutlineTrash className="size-4 text-foreground/40 hover:text-error" />
                   </Button>
                 </div>
               ))}
@@ -304,7 +316,7 @@ export default function DatasetUploader({
       {isUploading && (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-foreground/60">Uploading...</span>
+            <span className="text-foreground/60">Uploading…</span>
             <span className="font-medium">{uploadProgress}%</span>
           </div>
           <div className="w-full bg-foreground/10 rounded-full h-2 overflow-hidden">
@@ -322,14 +334,14 @@ export default function DatasetUploader({
           <div className="p-4 space-y-2">
             {uploadResult.uploadedCount > 0 && (
               <div className="flex items-center gap-2 text-sm text-success">
-                <HiOutlineCheckCircle className="w-4 h-4" />
+                <HiOutlineCheckCircle className="size-4" />
                 {uploadResult.uploadedCount} image(s) uploaded successfully
               </div>
             )}
             {uploadResult.failedCount > 0 && (
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-sm text-error">
-                  <HiOutlineExclamationCircle className="w-4 h-4" />
+                  <HiOutlineExclamationCircle className="size-4" />
                   {uploadResult.failedCount} image(s) failed
                 </div>
                 {uploadResult.failed.map((f) => (

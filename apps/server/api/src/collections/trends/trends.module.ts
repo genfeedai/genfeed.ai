@@ -1,5 +1,5 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { TrendsController } from '@api/collections/trends/controllers/trends.controller';
@@ -34,20 +34,20 @@ import { forwardRef, Module } from '@nestjs/common';
     TrendReferenceCorpusService,
   ],
   imports: [
-    ApifyModule,
+    forwardRef(() => ApifyModule),
     forwardRef(() => BrandsModule),
-    ByokModule,
-    CacheModule,
-    ConfigModule,
+    forwardRef(() => ByokModule),
+    forwardRef(() => CacheModule),
+    forwardRef(() => ConfigModule),
     forwardRef(() => CreditsModule),
-    CredentialsModule,
-    InstagramModule,
-    LinkedInModule,
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => InstagramModule),
+    forwardRef(() => LinkedInModule),
     forwardRef(() => ModelsModule),
-    ReplicateModule,
-    TiktokModule,
-    TwitterModule,
-    XaiModule,
+    forwardRef(() => ReplicateModule),
+    forwardRef(() => TiktokModule),
+    forwardRef(() => TwitterModule),
+    forwardRef(() => XaiModule),
   ],
   providers: [
     TrendAnalysisService,

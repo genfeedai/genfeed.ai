@@ -19,4 +19,5 @@ export enum ContentRunStatus {
 export enum ContentRunSource {
   BYOK = 'byok',
   HOSTED = 'hosted',
+  MANAGED = 'managed',
 }

@@ -12,14 +12,16 @@
 
 import * as process from 'node:process'
 import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
+globalThis['__dirname'] = path.dirname(fileURLToPath(import.meta.url))
 
 import * as runtime from "@prisma/client/runtime/client"
-import * as $Enums from "./enums.js"
-import * as $Class from "./internal/class.js"
-import * as Prisma from "./internal/prismaNamespace.js"
+import * as $Enums from "./enums"
+import * as $Class from "./internal/class"
+import * as Prisma from "./internal/prismaNamespace"
 
-export * as $Enums from './enums.js'
-export * from "./enums.js"
+export * as $Enums from './enums'
+export * from "./enums"
 /**
  * ## Prisma Client
  * 
@@ -29,8 +31,8 @@ export * from "./enums.js"
  * const prisma = new PrismaClient({
  *   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
  * })
- * // Fetch zero or more DesktopKvs
- * const desktopKvs = await prisma.desktopKv.findMany()
+ * // Fetch zero or more Users
+ * const users = await prisma.user.findMany()
  * ```
  * 
  * Read more in our [docs](https://pris.ly/d/client).
@@ -39,6 +41,46 @@ export const PrismaClient = $Class.getPrismaClientClass()
 export type PrismaClient<LogOpts extends Prisma.LogLevel = never, OmitOpts extends Prisma.PrismaClientOptions["omit"] = Prisma.PrismaClientOptions["omit"], ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = $Class.PrismaClient<LogOpts, OmitOpts, ExtArgs>
 export { Prisma }
 
+/**
+ * Model User
+ * 
+ */
+export type User = Prisma.UserModel
+/**
+ * Model Organization
+ * 
+ */
+export type Organization = Prisma.OrganizationModel
+/**
+ * Model Post
+ * 
+ */
+export type Post = Prisma.PostModel
+/**
+ * Model Ingredient
+ * 
+ */
+export type Ingredient = Prisma.IngredientModel
+/**
+ * Model Trend
+ * 
+ */
+export type Trend = Prisma.TrendModel
+/**
+ * Model AgentStrategy
+ * 
+ */
+export type AgentStrategy = Prisma.AgentStrategyModel
+/**
+ * Model Workflow
+ * 
+ */
+export type Workflow = Prisma.WorkflowModel
+/**
+ * Model WorkflowExecution
+ * 
+ */
+export type WorkflowExecution = Prisma.WorkflowExecutionModel
 /**
  * Model DesktopKv
  * 
@@ -50,6 +92,21 @@ export type DesktopKv = Prisma.DesktopKvModel
  */
 export type DesktopWorkspace = Prisma.DesktopWorkspaceModel
 /**
+ * Model DesktopBrand
+ * 
+ */
+export type DesktopBrand = Prisma.DesktopBrandModel
+/**
+ * Model DesktopAsset
+ * 
+ */
+export type DesktopAsset = Prisma.DesktopAssetModel
+/**
+ * Model DesktopSyncOp
+ * 
+ */
+export type DesktopSyncOp = Prisma.DesktopSyncOpModel
+/**
  * Model DesktopSyncJob
  * 
  */
@@ -59,53 +116,3 @@ export type DesktopSyncJob = Prisma.DesktopSyncJobModel
  * 
  */
 export type DesktopRecentItem = Prisma.DesktopRecentItemModel
-/**
- * Model DesktopOrganization
- * 
- */
-export type DesktopOrganization = Prisma.DesktopOrganizationModel
-/**
- * Model DesktopUser
- * 
- */
-export type DesktopUser = Prisma.DesktopUserModel
-/**
- * Model DesktopProject
- * 
- */
-export type DesktopProject = Prisma.DesktopProjectModel
-/**
- * Model DesktopContentItem
- * 
- */
-export type DesktopContentItem = Prisma.DesktopContentItemModel
-/**
- * Model DesktopTrend
- * 
- */
-export type DesktopTrend = Prisma.DesktopTrendModel
-/**
- * Model DesktopIngredient
- * 
- */
-export type DesktopIngredient = Prisma.DesktopIngredientModel
-/**
- * Model DesktopAgent
- * 
- */
-export type DesktopAgent = Prisma.DesktopAgentModel
-/**
- * Model DesktopAgentRun
- * 
- */
-export type DesktopAgentRun = Prisma.DesktopAgentRunModel
-/**
- * Model DesktopWorkflow
- * 
- */
-export type DesktopWorkflow = Prisma.DesktopWorkflowModel
-/**
- * Model DesktopWorkflowRun
- * 
- */
-export type DesktopWorkflowRun = Prisma.DesktopWorkflowRunModel

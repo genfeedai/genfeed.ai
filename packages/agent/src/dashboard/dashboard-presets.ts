@@ -357,9 +357,15 @@ function buildKpiGrid(
   analytics: Partial<IAnalytics>,
   columns = 3,
 ): AgentUIBlock {
-  const cards = DASHBOARD_KPI_CATALOG.filter((item) =>
-    item.scopes.includes(scope),
-  ).map((item) => buildKpiCard(item, { analytics }));
+  const cards = DASHBOARD_KPI_CATALOG.reduce<ReturnType<typeof buildKpiCard>[]>(
+    (acc, item) => {
+      if (item.scopes.includes(scope)) {
+        acc.push(buildKpiCard(item, { analytics }));
+      }
+      return acc;
+    },
+    [],
+  );
 
   return {
     cards,
@@ -383,16 +389,16 @@ function pickSuperAdminSecondaryCards(
     'totalCredits',
   ];
 
-  const definitions = DASHBOARD_KPI_CATALOG.filter((item) =>
-    secondaryKeys.includes(item.key),
-  );
-
-  return definitions
-    .filter((definition) => {
-      const value = analytics[definition.key as keyof IAnalytics];
-      return typeof value === 'number' && Number.isFinite(value);
-    })
-    .map((definition) => buildKpiCard(definition, { analytics }));
+  return DASHBOARD_KPI_CATALOG.reduce<MetricCardBlock[]>((acc, item) => {
+    if (!secondaryKeys.includes(item.key)) {
+      return acc;
+    }
+    const value = analytics[item.key as keyof IAnalytics];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      acc.push(buildKpiCard(item, { analytics }));
+    }
+    return acc;
+  }, []);
 }
 
 function buildOrganizationPreset(

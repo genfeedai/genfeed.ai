@@ -1,21 +1,15 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { TrainingProvider } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsArray,
-  IsIn,
-  IsMongoId,
-  IsNumber,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsArray, IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateTrainingDto {
-  // @IsMongoId()
+  // @IsEntityId()
   // @IsNotEmpty()
   // @ApiProperty({ required: true })
   // readonly organization!: string;
 
-  // @IsMongoId()
+  // @IsEntityId()
   // @IsNotEmpty()
   // @ApiProperty({ required: true })
   // readonly brand!: string;
@@ -28,7 +22,7 @@ export class CreateTrainingDto {
   @ApiProperty({ description: 'Array of source ObjectIds', required: false })
   @IsOptional()
   @IsArray()
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   readonly sources?: string[];
 
   @ApiProperty({ required: true })

@@ -5,7 +5,7 @@ import { getUserRoomName } from '@libs/websockets/room-name.util';
  */
 export interface PopulatedUserDoc {
   _id?: string;
-  clerkId?: string;
+  clerkId?: string | null;
 }
 
 /**
@@ -39,7 +39,12 @@ export class UserExtractionUtil {
    * @returns ExtractedUserIds with all available user identifiers
    */
   static extractUserIds(
-    userField: PopulatedUserDoc | string | undefined,
+    userField:
+      | PopulatedUserDoc
+      | { _id?: string; clerkId?: string | null }
+      | string
+      | null
+      | undefined,
   ): ExtractedUserIds {
     if (!userField) {
       return {};
@@ -62,7 +67,7 @@ export class UserExtractionUtil {
       }
 
       // Extract clerkId
-      clerkUserId = userDoc.clerkId;
+      clerkUserId = userDoc.clerkId ?? undefined;
     }
 
     const userId = clerkUserId || dbUserId;
@@ -81,7 +86,7 @@ export class UserExtractionUtil {
    * Handles populated and unpopulated references.
    */
   static extractBrandId(
-    brandField: { _id?: string } | string | undefined,
+    brandField: { _id?: string } | string | null | undefined,
   ): string | undefined {
     if (!brandField) {
       return undefined;

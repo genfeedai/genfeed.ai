@@ -10,7 +10,6 @@ import type {
 } from '@genfeedai/interfaces/utils/filters.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { Folder } from '@models/content/folder.model';
 import type { ContentProps } from '@props/layout/content.props';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -18,6 +17,7 @@ import { useConfirmModal } from '@providers/global-modals/global-modals.provider
 import { FoldersService } from '@services/content/folders.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
@@ -28,18 +28,18 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { HiFolderOpen, HiPencil, HiPlus, HiTrash } from 'react-icons/hi2';
 
-export default function FoldersList({ scope = PageScope.BRAND }: ContentProps) {
+function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
   const { isSignedIn } = useAuth();
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
 
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const searchParamsString = searchParams.toString();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -73,11 +73,11 @@ export default function FoldersList({ scope = PageScope.BRAND }: ContentProps) {
       params.delete('brand');
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   const handleAdminBrandChange = useCallback(
@@ -91,11 +91,11 @@ export default function FoldersList({ scope = PageScope.BRAND }: ContentProps) {
       }
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   // Filters state
@@ -110,21 +110,29 @@ export default function FoldersList({ scope = PageScope.BRAND }: ContentProps) {
   });
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams?.get('page')) || 1;
+  const currentPage = Number(searchParams.get('page')) || 1;
 
-  // Load folders using useResource (handles AbortController cleanup properly)
   const {
-    data: folders,
+    data: folders = [] as Folder[],
     isLoading,
-    isRefreshing,
-    refresh: refreshFolders,
-  } = useResource(
-    async () => {
+    isFetching,
+    error: foldersError,
+    refetch: refreshFolders,
+  } = useQuery({
+    queryKey: [
+      'folders',
+      query,
+      filters,
+      currentPage,
+      scope,
+      adminOrg,
+      adminBrand,
+    ],
+    queryFn: async () => {
       const url = `GET /folders`;
 
       const service = await getFoldersService();
 
-      // Build API query with proper sort format
       const queryParams: IQueryParams = {
         ...query,
         limit: ITEMS_PER_PAGE,
@@ -145,16 +153,17 @@ export default function FoldersList({ scope = PageScope.BRAND }: ContentProps) {
       logger.info(`${url} success`, data);
       return data;
     },
-    {
-      defaultValue: [] as Folder[],
-      dependencies: [query, filters, currentPage, scope, adminOrg, adminBrand],
-      enabled: !!isSignedIn,
-      onError: (error) => {
-        logger.error('GET /folders failed', error);
-        notificationsService.error('Failed to load folders');
-      },
-    },
-  );
+    enabled: !!isSignedIn,
+  });
+
+  const isRefreshing = isFetching && !isLoading;
+
+  useEffect(() => {
+    if (foldersError) {
+      logger.error('GET /folders failed', foldersError);
+      notificationsService.error('Failed to load folders');
+    }
+  }, [foldersError, notificationsService]);
 
   const handleToggleActive = useCallback(
     async (folder: IFolder) => {
@@ -173,23 +182,22 @@ export default function FoldersList({ scope = PageScope.BRAND }: ContentProps) {
     [getFoldersService, refreshFolders, notificationsService],
   );
 
-  const handleDelete = useCallback(async () => {
-    if (!selectedFolder) {
-      return;
-    }
-
-    try {
-      const service = await getFoldersService();
-      await service.delete(selectedFolder.id);
-      notificationsService.success('Folder deleted');
-      setSelectedFolder(null);
-      refreshFolders();
-    } catch (error) {
-      logger.error('Failed to delete folder', error);
-      notificationsService.error('Failed to delete folder');
-      setSelectedFolder(null);
-    }
-  }, [selectedFolder, getFoldersService, notificationsService, refreshFolders]);
+  const handleDelete = useCallback(
+    async (folder: IFolder) => {
+      try {
+        const service = await getFoldersService();
+        await service.delete(folder.id);
+        notificationsService.success('Folder deleted');
+        setSelectedFolder(null);
+        refreshFolders();
+      } catch (error) {
+        logger.error('Failed to delete folder', error);
+        notificationsService.error('Failed to delete folder');
+        setSelectedFolder(null);
+      }
+    },
+    [getFoldersService, notificationsService, refreshFolders],
+  );
 
   const openFoldersModal = useCallback(
     (modalId: ModalEnum, folder?: IFolder) => {
@@ -246,7 +254,7 @@ export default function FoldersList({ scope = PageScope.BRAND }: ContentProps) {
             isError: true,
             label: 'Delete Folder',
             message: `Are you sure you want to delete "${folder.label}"? This action cannot be undone.`,
-            onConfirm: () => handleDelete(),
+            onConfirm: () => handleDelete(folder),
           });
         },
         tooltip: 'Delete',
@@ -336,5 +344,15 @@ export default function FoldersList({ scope = PageScope.BRAND }: ContentProps) {
         <AutoPagination showTotal totalLabel="folders" />
       </div>
     </Container>
+  );
+}
+
+export default function FoldersList(
+  props: Parameters<typeof FoldersListContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <FoldersListContent {...props} />
+    </Suspense>
   );
 }

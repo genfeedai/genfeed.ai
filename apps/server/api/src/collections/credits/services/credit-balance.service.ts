@@ -1,3 +1,4 @@
+import type { CreditBalanceDocument } from '@api/collections/credits/schemas/credit-balance.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -17,14 +18,14 @@ export class CreditBalanceService {
     balance: number;
     isDeleted: boolean;
     organizationId: string;
-  }): Promise<Record<string, unknown>> {
+  }): Promise<CreditBalanceDocument> {
     return this.prisma.creditBalance.create({ data });
   }
 
   @HandleErrors('find by organization', 'credits')
   async findByOrganization(
     organizationId: string,
-  ): Promise<Record<string, unknown> | null> {
+  ): Promise<CreditBalanceDocument | null> {
     if (!organizationId) {
       this.logger.warn(`${this.constructorName} findByOrganization failed`, {
         organizationId,
@@ -43,7 +44,7 @@ export class CreditBalanceService {
   @HandleErrors('get or create balance', 'credits')
   async getOrCreateBalance(
     organizationId: string,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CreditBalanceDocument> {
     if (!organizationId) {
       throw new Error(`Invalid organization ID: ${organizationId}`);
     }
@@ -61,12 +62,12 @@ export class CreditBalanceService {
   async updateBalance(
     organizationId: string,
     newBalance: number,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CreditBalanceDocument> {
     const balance = await this.getOrCreateBalance(organizationId);
 
     return this.prisma.creditBalance.update({
       data: { balance: newBalance },
-      where: { id: balance.id as string },
+      where: { id: balance.id },
     });
   }
 

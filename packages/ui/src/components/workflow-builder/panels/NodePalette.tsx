@@ -19,12 +19,12 @@ import {
 } from 'react-icons/hi2';
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  ai: <HiOutlineCpuChip className="h-4 w-4" />,
-  control: <HiOutlineClock className="h-4 w-4" />,
-  effects: <HiOutlineSparkles className="h-4 w-4" />,
-  input: <HiOutlinePhoto className="h-4 w-4" />,
-  output: <HiOutlineArrowUpTray className="h-4 w-4" />,
-  processing: <HiOutlineCog6Tooth className="h-4 w-4" />,
+  ai: <HiOutlineCpuChip className="size-4" />,
+  control: <HiOutlineClock className="size-4" />,
+  effects: <HiOutlineSparkles className="size-4" />,
+  input: <HiOutlinePhoto className="size-4" />,
+  output: <HiOutlineArrowUpTray className="size-4" />,
+  processing: <HiOutlineCog6Tooth className="size-4" />,
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -76,9 +76,9 @@ function CategorySection({
         {CATEGORY_ICONS[category]}
         <span className="flex-1 text-left">{CATEGORY_LABELS[category]}</span>
         {isExpanded ? (
-          <HiOutlineChevronDown className="h-4 w-4" />
+          <HiOutlineChevronDown className="size-4" />
         ) : (
-          <HiOutlineChevronRight className="h-4 w-4" />
+          <HiOutlineChevronRight className="size-4" />
         )}
       </Button>
       {isExpanded && (
@@ -118,7 +118,7 @@ export default function NodePalette({
           size={ButtonSize.SM}
           onClick={onToggleCollapse}
           ariaLabel="Expand palette"
-          icon={<HiOutlineChevronRight className="h-4 w-4" />}
+          icon={<HiOutlineChevronRight className="size-4" />}
         />
       </div>
     );
@@ -144,7 +144,7 @@ export default function NodePalette({
           size={ButtonSize.XS}
           onClick={onToggleCollapse}
           ariaLabel="Collapse palette"
-          icon={<HiOutlineChevronLeft className="h-4 w-4" />}
+          icon={<HiOutlineChevronLeft className="size-4" />}
         />
       </div>
 

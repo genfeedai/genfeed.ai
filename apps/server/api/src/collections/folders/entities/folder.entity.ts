@@ -7,7 +7,7 @@ export class FolderEntity extends BaseEntity implements Folder {
   declare readonly brand?: string;
 
   declare readonly label: string;
-  declare readonly description?: string;
+  declare readonly description: string | null;
   declare readonly tags: string[];
 
   declare readonly isActive: boolean;

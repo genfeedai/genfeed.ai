@@ -6,6 +6,7 @@ import type {
   MediaInfo,
   PublishContext,
   PublishResult,
+  ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
@@ -81,7 +82,14 @@ export class RedditPublisherService extends BasePublisherService {
       // Sanitize HTML to plain text - Reddit doesn't support HTML markup
       const description = this.sanitizeDescription(post.description);
       const title = post.label ?? 'Untitled';
-      const subreddit = credential.externalId; // Validated in validatePost()
+      const subreddit = credential.externalId;
+
+      if (!subreddit) {
+        return this.createFailedResult(
+          this.platform,
+          'Reddit subreddit not configured in credential (externalId required)',
+        );
+      }
 
       let externalId: string | undefined;
 
@@ -161,7 +169,7 @@ export class RedditPublisherService extends BasePublisherService {
    */
   async publishThreadChildren(
     context: PublishContext,
-    children: unknown[],
+    children: ThreadChild[],
     parentExternalId: string,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;

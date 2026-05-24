@@ -49,7 +49,7 @@ export class NodeErrorBoundary extends Component<
     if (this.state.hasError) {
       return (
         <div className="flex flex-col items-center justify-center gap-3 p-4 text-center min-h-[100px]">
-          <AlertTriangle className="h-8 w-8 text-destructive" />
+          <AlertTriangle className="size-8 text-destructive" />
           <div className="space-y-1">
             <p className="text-sm font-medium text-destructive">Node Error</p>
             <p className="text-xs text-muted-foreground max-w-[200px] truncate">
@@ -62,7 +62,7 @@ export class NodeErrorBoundary extends Component<
             onClick={this.handleRetry}
             className="gap-1.5"
           >
-            <RefreshCw className="h-3 w-3" />
+            <RefreshCw className="size-3" />
             Retry
           </Button>
         </div>

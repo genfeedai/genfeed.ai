@@ -180,9 +180,9 @@ function LLMKeyInput({ provider }: { provider: LLMProviderType }) {
                 className="shrink-0 text-muted-foreground hover:text-foreground transition"
                 icon={
                   showKey ? (
-                    <EyeOff className="w-3.5 h-3.5" />
+                    <EyeOff className="size-3.5" />
                   ) : (
-                    <Eye className="w-3.5 h-3.5" />
+                    <Eye className="size-3.5" />
                   )
                 }
               />
@@ -193,7 +193,7 @@ function LLMKeyInput({ provider }: { provider: LLMProviderType }) {
               onClick={handleClear}
               className="shrink-0 p-1.5 text-muted-foreground hover:text-destructive transition rounded hover:bg-destructive/10"
               tooltip="Remove key"
-              icon={<Trash2 className="w-3.5 h-3.5" />}
+              icon={<Trash2 className="size-3.5" />}
             />
           </div>
         ) : (
@@ -213,7 +213,7 @@ function LLMKeyInput({ provider }: { provider: LLMProviderType }) {
               isDisabled={!inputValue.trim() || isSaving}
               className="shrink-0 p-1.5 bg-primary text-primary-foreground rounded hover:opacity-90 transition disabled:opacity-50"
               tooltip="Save key"
-              icon={<Check className="w-3.5 h-3.5" />}
+              icon={<Check className="size-3.5" />}
             />
           </div>
         )}

@@ -31,7 +31,7 @@ export interface ProtectedProvidersProps extends LayoutProps {
   additionalProviders?: (children: ReactNode) => ReactNode;
 }
 
-function ProtectedAuthGate({ children }: LayoutProps): ReactNode {
+export function ProtectedAuthGate({ children }: LayoutProps): ReactNode {
   const { getToken, isLoaded: isAuthLoaded, isSignedIn, userId } = useAuth();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =

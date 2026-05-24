@@ -18,7 +18,7 @@ import {
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { useMemo } from 'react';
+import { Suspense, useMemo } from 'react';
 
 function isNavigationTab(
   tab: NavigationTab | RouteTabItem | TabItem,
@@ -47,7 +47,7 @@ function getRouteParts(href: string) {
   };
 }
 
-export default function Tabs({
+function TabsContent({
   items,
   tabs,
   activeTab,
@@ -96,9 +96,12 @@ export default function Tabs({
       return activeTab;
     }
 
-    const activeNavTab = normalizedTabs
-      .filter(isNavigationTab)
-      .map((tab) => {
+    const activeNavTab = normalizedTabs.reduce<{
+      score: number;
+      tab: (typeof normalizedTabs)[number] | null;
+    }>(
+      (best, tab) => {
+        if (!isNavigationTab(tab)) return best;
         const routeParts = getRouteParts(tab.href);
         const exactMatch =
           tab.matchPaths?.includes(pathname || '') ||
@@ -109,22 +112,24 @@ export default function Tabs({
           pathname === routeParts.path ||
           Boolean(pathname?.startsWith(`${routeParts.path}/`));
 
+        let score: number;
         if (tab.matchMode === 'exact') {
-          return { score: exactMatch ? 3 : -1, tab };
+          score = exactMatch ? 3 : -1;
+        } else if (exactMatch) {
+          score = 2;
+        } else if (prefixMatch) {
+          score = 1;
+        } else {
+          score = -1;
         }
 
-        if (exactMatch) {
-          return { score: 2, tab };
+        if (score > best.score) {
+          return { score, tab };
         }
-
-        if (prefixMatch) {
-          return { score: 1, tab };
-        }
-
-        return { score: -1, tab };
-      })
-      .filter((match) => match.score >= 0)
-      .sort((left, right) => right.score - left.score)[0]?.tab;
+        return best;
+      },
+      { score: -1, tab: null },
+    ).tab;
 
     return activeNavTab ? getTabId(activeNavTab) : activeTab;
   };
@@ -147,11 +152,11 @@ export default function Tabs({
               cn(
                 fullWidth && 'w-full',
                 variant === 'pills'
-                  ? 'rounded-2xl border border-white/10 bg-white/[0.03] p-1'
+                  ? 'rounded-2xl border border-border bg-secondary/60 p-1'
                   : variant === 'underline'
-                    ? 'gap-1 border-b border-foreground/10'
+                    ? 'gap-0 border-b border-border'
                     : variant === 'segmented'
-                      ? 'rounded-xl bg-muted p-1'
+                      ? 'rounded-xl border border-border bg-secondary/50 p-1'
                       : 'gap-0.5',
               ),
             ),
@@ -251,11 +256,11 @@ export default function Tabs({
         className={cn(
           fullWidth && 'w-full',
           variant === 'pills'
-            ? 'rounded-2xl border border-white/10 bg-white/[0.03] p-1'
+            ? 'rounded-2xl border border-border bg-secondary/60 p-1'
             : variant === 'underline'
-              ? 'gap-1 border-b border-foreground/10'
+              ? 'gap-0 border-b border-border'
               : variant === 'segmented'
-                ? 'rounded-xl bg-muted p-1'
+                ? 'rounded-xl border border-border bg-secondary/50 p-1'
                 : 'gap-0.5',
         )}
       >
@@ -292,5 +297,13 @@ export default function Tabs({
         })}
       </TabsList>
     </TabsRoot>
+  );
+}
+
+export default function Tabs(props: TabsEnhancedProps) {
+  return (
+    <Suspense fallback={null}>
+      <TabsContent {...props} />
+    </Suspense>
   );
 }

@@ -1,6 +1,7 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { VoteEntityModel } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsMongoId, IsString } from 'class-validator';
+import { IsEnum, IsString } from 'class-validator';
 
 export class CreateVoteDto {
   @IsString()
@@ -13,7 +14,7 @@ export class CreateVoteDto {
   })
   readonly entityModel!: VoteEntityModel;
 
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The ID of the entity being voted on',
     required: true,

@@ -26,6 +26,10 @@ export const electronMockState = {
   menu: {
     applicationMenu: null as ElectronMenuItem[] | null,
   },
+  protocol: {
+    handledSchemes: [] as string[],
+    privilegedSchemes: [] as string[],
+  },
   safeStorage: {
     decryptString: (buffer: Buffer) => buffer.toString('utf8'),
     encryptString: (value: string) => Buffer.from(value, 'utf8'),
@@ -59,6 +63,8 @@ export const resetElectronMockState = (): void => {
     filePaths: [],
   };
   electronMockState.menu.applicationMenu = null;
+  electronMockState.protocol.handledSchemes = [];
+  electronMockState.protocol.privilegedSchemes = [];
   electronMockState.shell.externalUrls = [];
   electronMockState.shell.revealedPaths = [];
   electronMockState.shortcuts.registered = [];
@@ -125,6 +131,16 @@ mock.module('electron', () => ({
     },
   },
   safeStorage: electronMockState.safeStorage,
+  protocol: {
+    handle: (scheme: string) => {
+      electronMockState.protocol.handledSchemes.push(scheme);
+    },
+    registerSchemesAsPrivileged: (schemes: Array<{ scheme: string }>) => {
+      electronMockState.protocol.privilegedSchemes.push(
+        ...schemes.map(({ scheme }) => scheme),
+      );
+    },
+  },
   shell: {
     openExternal: async (targetUrl: string) => {
       electronMockState.shell.externalUrls.push(targetUrl);

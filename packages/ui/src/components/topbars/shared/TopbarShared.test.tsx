@@ -35,7 +35,7 @@ describe('TopbarShared', () => {
     render(<TopbarShared />);
     const header = screen.getByRole('banner');
     expect(header).toBeInTheDocument();
-    expect(header).toHaveClass('h-full', 'w-full', 'bg-transparent');
+    expect(header).toHaveClass('size-full', 'bg-transparent');
   });
 
   it('uses tighter right padding so inbox sits closer to the agent rail', () => {

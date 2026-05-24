@@ -57,10 +57,7 @@ export class BotsController extends BaseCRUDController<
     ]);
   }
 
-  public buildFindAllPipeline(
-    user: User,
-    query: BotsQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: BotsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
@@ -104,21 +101,15 @@ export class BotsController extends BaseCRUDController<
 
     const statusFilter = CollectionFilterUtil.buildStatusFilter(query.status);
 
-    const pipeline: Record<string, unknown>[] = [
-      {
-        $match: {
-          ...match,
-          ...platformFilter,
-          ...categoryFilter,
-          ...statusFilter,
-        },
+    return {
+      orderBy: handleQuerySort(query.sort),
+      where: {
+        ...match,
+        ...platformFilter,
+        ...categoryFilter,
+        ...statusFilter,
       },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
-
-    return pipeline;
+    };
   }
 
   public canUserModifyEntity(user: User, entity: unknown): boolean {

@@ -54,7 +54,7 @@ describe('UsersController', () => {
       hasOnboardingField: vi.fn(),
       patch: vi.fn(),
     };
-    settingsService = { patch: vi.fn() };
+    settingsService = { findOne: vi.fn(), patch: vi.fn() };
     brandsService = {
       clearBrandSelectionForUser: vi.fn(),
       findAll: vi.fn(),
@@ -227,6 +227,92 @@ describe('UsersController', () => {
         settingsId,
         expect.objectContaining({
           isSidebarProgressCollapsed: false,
+        }),
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('should update settings when Prisma relation exposes id instead of _id', async () => {
+      usersService.findOne.mockResolvedValue({
+        _id: userId,
+        id: 'prisma-user-id',
+        settings: { id: settingsId },
+      });
+      settingsService.patch.mockResolvedValue({
+        id: settingsId,
+        isSidebarProgressCollapsed: true,
+      });
+
+      const result = await controller.updateMeSettings(mockRequest, mockUser, {
+        isSidebarProgressCollapsed: true,
+      } as never);
+
+      expect(settingsService.patch).toHaveBeenCalledWith(
+        settingsId,
+        expect.objectContaining({
+          isSidebarProgressCollapsed: true,
+        }),
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('should find settings by Prisma user id when relation is not populated', async () => {
+      usersService.findOne.mockResolvedValue({
+        _id: userId,
+        id: 'prisma-user-id',
+        settings: null,
+      });
+      settingsService.findOne.mockResolvedValue({
+        id: settingsId,
+        theme: 'dark',
+      });
+      settingsService.patch.mockResolvedValue({
+        id: settingsId,
+        theme: 'light',
+      });
+
+      const result = await controller.updateMeSettings(mockRequest, mockUser, {
+        theme: 'light',
+      } as never);
+
+      expect(settingsService.findOne).toHaveBeenCalledWith({
+        isDeleted: false,
+        user: 'prisma-user-id',
+      });
+      expect(settingsService.patch).toHaveBeenCalledWith(
+        settingsId,
+        expect.objectContaining({
+          theme: 'light',
+        }),
+      );
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('updateSettings', () => {
+    it('should update user settings by user id route', async () => {
+      usersService.findOne.mockResolvedValue({
+        _id: userId,
+        id: 'prisma-user-id',
+        settings: { id: settingsId },
+      });
+      settingsService.patch.mockResolvedValue({
+        id: settingsId,
+        theme: 'light',
+      });
+
+      const result = await controller.updateSettings(mockRequest, userId, {
+        theme: 'light',
+      } as never);
+
+      expect(usersService.findOne).toHaveBeenCalledWith({
+        _id: userId,
+        isDeleted: false,
+      });
+      expect(settingsService.patch).toHaveBeenCalledWith(
+        settingsId,
+        expect.objectContaining({
+          theme: 'light',
         }),
       );
       expect(result).toBeDefined();

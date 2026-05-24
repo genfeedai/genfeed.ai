@@ -9,9 +9,6 @@ export class LensesService extends BaseService<ElementLens> {
   }
 
   public static getInstance(token: string): LensesService {
-    return BaseService.getDataServiceInstance(
-      LensesService,
-      token,
-    ) as LensesService;
+    return BaseService.getDataServiceInstance(LensesService, token);
   }
 }

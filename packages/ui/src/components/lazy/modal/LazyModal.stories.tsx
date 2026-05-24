@@ -20,7 +20,7 @@ export const AllModals: Story = {
     );
     return (
       <div className="p-8">
-        <h2 className="text-2xl font-bold mb-4">Available Lazy Modals</h2>
+        <h2 className="text-2xl font-semibold mb-4">Available Lazy Modals</h2>
         <ul className="list-disc list-inside space-y-2">
           {modalNames.map((name) => (
             <li key={name} className="font-mono text-sm">
@@ -28,7 +28,7 @@ export const AllModals: Story = {
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-sm text-gray-600">
+        <p className="mt-4 text-sm text-zinc-600">
           All modals are lazy-loaded using Next.js dynamic imports. Each modal
           requires specific props to render. See individual modal stories for
           usage examples.

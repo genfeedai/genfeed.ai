@@ -4,12 +4,11 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AppSwitcherItemConfig } from '@genfeedai/interfaces';
 import type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import Link from 'next/link';
 import {
-  HiChevronDown,
+  HiOutlineChartBar,
   HiOutlineChartBarSquare,
-  HiOutlineCog6Tooth,
+  HiOutlineChatBubbleLeftRight,
   HiOutlineDocumentText,
   HiOutlineFolder,
   HiOutlinePencilSquare,
@@ -17,12 +16,16 @@ import {
   HiOutlineSparkles,
   HiOutlineSquares2X2,
 } from 'react-icons/hi2';
+import { TbGridDots } from 'react-icons/tb';
 import { Button } from '../../../primitives/button';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '../../../primitives/popover';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../../../primitives/dropdown-menu';
 
 const CONTENT_APPS: AppSwitcherItemConfig[] = [
   {
@@ -46,7 +49,14 @@ const PLATFORM_APPS: AppSwitcherItemConfig[] = [
     icon: HiOutlineSquares2X2,
     id: 'workspace',
     label: 'Workspace',
-    route: (org) => `/${org}/~/overview`,
+    route: (org, brand) =>
+      brand ? `/${org}/${brand}/workspace` : `/${org}/~/overview`,
+  },
+  {
+    icon: HiOutlineChatBubbleLeftRight,
+    id: 'agent',
+    label: 'Agent',
+    route: (org) => `/${org}/~/chat`,
   },
   {
     icon: HiOutlineSparkles,
@@ -56,37 +66,36 @@ const PLATFORM_APPS: AppSwitcherItemConfig[] = [
       brand ? `/${org}/${brand}/studio/image` : `/${org}/~/overview`,
   },
   {
-    icon: HiOutlineCog6Tooth,
+    icon: HiOutlineChartBar,
     id: 'workflows',
     label: 'Workflows',
-    route: (org) => `/${org}/~/workflows`,
+    route: (org, brand) =>
+      brand ? `/${org}/${brand}/workflows` : `/${org}/~/overview`,
   },
   {
     icon: HiOutlinePencilSquare,
     id: 'editor',
     label: 'Editor',
-    route: (org) => `/${org}/~/editor`,
+    route: (org, brand) =>
+      brand ? `/${org}/${brand}/editor` : `/${org}/~/overview`,
   },
   {
     icon: HiOutlineRectangleGroup,
     id: 'compose',
-    label: 'Compose',
-    route: (org) => `/${org}/~/compose/post`,
+    label: 'Write',
+    route: (org, brand) =>
+      brand ? `/${org}/${brand}/compose/post` : `/${org}/~/overview`,
   },
   {
     icon: HiOutlineChartBarSquare,
     id: 'analytics',
     label: 'Analytics',
-    route: (org) => `/${org}/~/analytics/overview`,
+    route: (org, brand) =>
+      brand
+        ? `/${org}/${brand}/analytics/overview`
+        : `/${org}/~/analytics/overview`,
   },
 ];
-
-const APP_SECTIONS = [
-  { items: CONTENT_APPS, key: 'content' },
-  { items: PLATFORM_APPS, key: 'platform' },
-] as const;
-
-const ALL_APPS = [...CONTENT_APPS, ...PLATFORM_APPS];
 
 function withPreservedSearch(path: string, preservedSearch?: string): string {
   if (!preservedSearch) {
@@ -114,91 +123,90 @@ function withPreservedSearch(path: string, preservedSearch?: string): string {
   return nextSearch ? `${pathname}?${nextSearch}` : pathname;
 }
 
+function AppDropdownItem({
+  app,
+  isActive,
+  href,
+}: {
+  app: AppSwitcherItemConfig;
+  isActive: boolean;
+  href: string;
+}) {
+  const Icon = app.icon;
+
+  return (
+    <DropdownMenuItem asChild>
+      <Link
+        href={href}
+        aria-current={isActive ? 'page' : undefined}
+        className={cn(
+          'flex items-center gap-2.5 px-3 py-1.5 text-[13px]',
+          isActive && 'bg-white/[0.06] font-medium',
+        )}
+      >
+        <Icon
+          className={cn(
+            'size-4 shrink-0',
+            isActive ? 'text-foreground' : 'text-foreground/50',
+          )}
+        />
+        <span
+          className={cn(isActive ? 'text-foreground' : 'text-foreground/80')}
+        >
+          {app.label}
+        </span>
+      </Link>
+    </DropdownMenuItem>
+  );
+}
+
 export function AppSwitcher({
   brandSlug,
   currentApp,
   orgSlug,
   preservedSearch,
 }: AppSwitcherProps) {
-  const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
-
-  const activeApp = ALL_APPS.find((app) => app.id === currentApp);
-
-  function handleAppSelect(app: AppSwitcherItemConfig) {
-    router.push(
-      withPreservedSearch(app.route(orgSlug, brandSlug), preservedSearch),
-    );
-    setIsOpen(false);
+  function getAppHref(app: AppSwitcherItemConfig) {
+    return withPreservedSearch(app.route(orgSlug, brandSlug), preservedSearch);
   }
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <Button
-          ariaLabel={`Current app: ${activeApp?.label ?? currentApp}. Click to switch apps.`}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          className="gen-shell-control inline-flex h-10 items-center gap-2.5 rounded-xl px-3 text-sm font-medium text-foreground/90"
-          data-active={isOpen ? 'true' : 'false'}
+          type="button"
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
+          className="size-7"
+          ariaLabel="Switch app"
         >
-          {activeApp ? (
-            <activeApp.icon className="h-4 w-4 text-foreground/55" />
-          ) : null}
-          <span>{activeApp?.label ?? currentApp}</span>
-          <HiChevronDown
-            className={cn(
-              'h-3.5 w-3.5 text-foreground/42 transition-transform duration-200',
-              isOpen && 'rotate-180',
-            )}
-          />
+          <TbGridDots className="size-4" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="gen-shell-panel w-60 rounded-[1.25rem] p-1.5"
-        side="bottom"
-        sideOffset={10}
-      >
-        <nav className="flex flex-col gap-1">
-          {APP_SECTIONS.map((section, sectionIndex) => (
-            <div
-              key={section.key}
-              className={cn(
-                sectionIndex > 0 && 'border-t border-white/[0.08] pt-1.5',
-              )}
-            >
-              {section.items.map((app) => {
-                const isActive = app.id === currentApp;
-                const Icon = app.icon;
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" sideOffset={8} className="w-48">
+        <DropdownMenuLabel>Content</DropdownMenuLabel>
+        {CONTENT_APPS.map((app) => (
+          <AppDropdownItem
+            key={app.id}
+            app={app}
+            isActive={app.id === currentApp}
+            href={getAppHref(app)}
+          />
+        ))}
 
-                return (
-                  <Button
-                    key={app.id}
-                    variant={ButtonVariant.UNSTYLED}
-                    withWrapper={false}
-                    size={ButtonSize.SM}
-                    aria-current={isActive ? 'page' : undefined}
-                    className="gen-shell-surface flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-colors"
-                    data-active={isActive ? 'true' : 'false'}
-                    onClick={() => handleAppSelect(app)}
-                  >
-                    <Icon
-                      className={cn(
-                        'h-4 w-4 shrink-0',
-                        isActive ? 'text-foreground' : 'text-foreground/42',
-                      )}
-                    />
-                    <span>{app.label}</span>
-                  </Button>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
-      </PopoverContent>
-    </Popover>
+        <DropdownMenuSeparator />
+
+        <DropdownMenuLabel>Tools</DropdownMenuLabel>
+        {PLATFORM_APPS.map((app) => (
+          <AppDropdownItem
+            key={app.id}
+            app={app}
+            isActive={app.id === currentApp}
+            href={getAppHref(app)}
+          />
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

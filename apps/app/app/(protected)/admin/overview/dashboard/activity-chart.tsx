@@ -3,21 +3,42 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
-import {
-  Area,
-  AreaChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import dynamic from 'next/dynamic';
+
+const Area = dynamic(() => import('recharts').then((module) => module.Area), {
+  ssr: false,
+});
+const AreaChart = dynamic(
+  () => import('recharts').then((module) => module.AreaChart),
+  { ssr: false },
+);
+const ResponsiveContainer = dynamic(
+  () => import('recharts').then((module) => module.ResponsiveContainer),
+  { ssr: false },
+);
+const Tooltip = dynamic(
+  () => import('recharts').then((module) => module.Tooltip),
+  { ssr: false },
+);
+const XAxis = dynamic(() => import('recharts').then((module) => module.XAxis), {
+  ssr: false,
+});
+const YAxis = dynamic(() => import('recharts').then((module) => module.YAxis), {
+  ssr: false,
+});
+
+const _dateFormatter = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  month: 'short',
+});
+
+const _compactNumberFormatter = new Intl.NumberFormat('en-US', {
+  notation: 'compact',
+});
 
 function formatDate(dateStr: string) {
   const date = new Date(dateStr);
-  return new Intl.DateTimeFormat('en-US', {
-    day: 'numeric',
-    month: 'short',
-  }).format(date);
+  return _dateFormatter.format(date);
 }
 
 interface ActivityChartProps {
@@ -58,7 +79,7 @@ export default function ActivityChart({ data, isLoading }: ActivityChartProps) {
         {isLoading ? (
           <div className="h-full flex items-center justify-center">
             <div className="animate-pulse text-muted-foreground">
-              Loading chart...
+              Loading chart…
             </div>
           </div>
         ) : (
@@ -94,11 +115,7 @@ export default function ActivityChart({ data, isLoading }: ActivityChartProps) {
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(value) =>
-                  new Intl.NumberFormat('en-US', {
-                    notation: 'compact',
-                  }).format(value)
-                }
+                tickFormatter={(value) => _compactNumberFormatter.format(value)}
               />
               <Tooltip
                 contentStyle={{

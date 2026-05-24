@@ -1,6 +1,6 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -33,6 +33,6 @@ export class GenerateHooksDto {
   tone?: string;
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   credentialId?: string;
 }

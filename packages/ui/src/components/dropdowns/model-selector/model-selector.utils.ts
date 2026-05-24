@@ -31,12 +31,16 @@ const KNOWN_VARIANT_SUFFIXES = new Set([
 function titleCaseToken(value: string): string {
   return value
     .split(/[-_\s]+/)
-    .filter(Boolean)
-    .map((token) =>
-      token.length <= 3 && token === token.toUpperCase()
-        ? token
-        : token.charAt(0).toUpperCase() + token.slice(1).toLowerCase(),
-    )
+    .reduce<string[]>((acc, token) => {
+      if (token) {
+        acc.push(
+          token.length <= 3 && token === token.toUpperCase()
+            ? token
+            : token.charAt(0).toUpperCase() + token.slice(1).toLowerCase(),
+        );
+      }
+      return acc;
+    }, [])
     .join(' ');
 }
 
@@ -47,13 +51,16 @@ function formatVersion(version: string): string {
 function humanizeSlug(slug: string): string {
   return slug
     .split('-')
-    .filter(Boolean)
-    .map((token) => {
-      if (/^\d+(?:\.\d+)?$/.test(token)) {
-        return formatVersion(token);
+    .reduce<string[]>((acc, token) => {
+      if (token) {
+        acc.push(
+          /^\d+(?:\.\d+)?$/.test(token)
+            ? formatVersion(token)
+            : titleCaseToken(token),
+        );
       }
-      return titleCaseToken(token);
-    })
+      return acc;
+    }, [])
     .join(' ');
 }
 

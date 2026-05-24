@@ -8,6 +8,17 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 
+const currencyFormatterCache = new Map<string, Intl.NumberFormat>();
+
+function getCurrencyFormatter(currency: string): Intl.NumberFormat {
+  let formatter = currencyFormatterCache.get(currency);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat('en-US', { currency, style: 'currency' });
+    currencyFormatterCache.set(currency, formatter);
+  }
+  return formatter;
+}
+
 export default function SubscriptionPlanChanger({
   subscription,
   onPreviewChange,
@@ -65,10 +76,7 @@ export default function SubscriptionPlanChanger({
   };
 
   const formatAmount = (amount: number, currency: string = 'usd') => {
-    return new Intl.NumberFormat('en-US', {
-      currency: currency.toUpperCase(),
-      style: 'currency',
-    }).format(amount / 100);
+    return getCurrencyFormatter(currency.toUpperCase()).format(amount / 100);
   };
 
   return (
@@ -144,7 +152,7 @@ export default function SubscriptionPlanChanger({
 
       {/* Preview Modal */}
       {showModal && preview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-neutral-950 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">
               Confirm Subscription Change

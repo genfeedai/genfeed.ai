@@ -11,7 +11,7 @@ import { BotsLivestreamService } from '@api/collections/bots/services/bots-lives
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
@@ -33,6 +33,7 @@ import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
+import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
 import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
@@ -46,7 +47,7 @@ import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
-  controllers: [AgentOrchestratorController],
+  controllers: [AgentOrchestratorController, AgentToolsController],
   exports: [AgentOrchestratorService],
   imports: [
     forwardRef(() => AgentCampaignsModule),
@@ -55,29 +56,29 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => AgentContextAssemblyModule),
     forwardRef(() => AgentThreadsModule),
     forwardRef(() => AgentMemoriesModule),
-    AgentMessageBusModule,
-    AgentMessagesModule,
+    forwardRef(() => AgentMessageBusModule),
+    forwardRef(() => AgentMessagesModule),
     forwardRef(() => AgentThreadingModule),
     forwardRef(() => AgentRunsModule),
     forwardRef(() => AiActionsModule),
-    AgentStreamPublisherModule,
+    forwardRef(() => AgentStreamPublisherModule),
     forwardRef(() => AnalyticsModule),
     forwardRef(() => BatchGenerationModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => BotsModule),
     forwardRef(() => OutreachCampaignsModule),
-    ConfigModule,
+    forwardRef(() => ConfigModule),
     forwardRef(() => ContentIntelligenceModule),
     forwardRef(() => ContentQualityModule),
-    forwardRef(() => CredentialsModule),
+    forwardRef(() => CredentialsCoreModule),
     forwardRef(() => CreditsModule),
-    HttpModule,
+    forwardRef(() => HttpModule),
     forwardRef(() => ImagesModule),
     forwardRef(() => ClerkModule),
-    LoggerModule,
-    LlmDispatcherModule,
-    MarketplaceIntegrationModule,
-    OrganizationSettingsModule,
+    forwardRef(() => LoggerModule),
+    forwardRef(() => LlmDispatcherModule),
+    forwardRef(() => MarketplaceIntegrationModule),
+    forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => OrganizationsModule),
     forwardRef(() => PostsModule),
     forwardRef(() => SettingsModule),
@@ -87,7 +88,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => WorkflowExecutionsModule),
     forwardRef(() => WorkflowsModule),
     forwardRef(() => AgentSpawnModule),
-    SkillRuntimeModule,
+    forwardRef(() => SkillRuntimeModule),
   ],
   providers: [
     AgentOrchestratorService,

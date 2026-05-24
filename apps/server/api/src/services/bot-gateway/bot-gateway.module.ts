@@ -1,5 +1,5 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -20,11 +20,11 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [BotGatewayController],
   exports: [BotGatewayService, BotGenerationService],
   imports: [
-    ConfigModule,
+    forwardRef(() => ConfigModule),
     forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsModule),
+    forwardRef(() => CredentialsCoreModule),
     forwardRef(() => CreditsModule),
-    HttpModule,
+    forwardRef(() => HttpModule),
     forwardRef(() => IngredientsModule),
     forwardRef(() => MetadataModule),
     forwardRef(() => OrganizationSettingsModule),

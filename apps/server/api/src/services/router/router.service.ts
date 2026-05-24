@@ -47,6 +47,29 @@ export class RouterService {
     private readonly modelsService: ModelsService,
   ) {}
 
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private requireString(value: unknown, field: string): string {
+    const stringValue = this.readString(value);
+    if (!stringValue) {
+      throw new NotFoundException(`Model ${field} is missing`);
+    }
+
+    return stringValue;
+  }
+
+  private normalizeModelCategory(
+    value: unknown,
+    fallback: ModelCategory,
+  ): ModelCategory {
+    return (
+      Object.values(ModelCategory).find((category) => category === value) ??
+      fallback
+    );
+  }
+
   /**
    * Get all active models for a category from the database
    */
@@ -372,7 +395,12 @@ export class RouterService {
     const otherModels = models.filter((m) => m.key !== selectedModelKey);
 
     // Score remaining models
-    const scoredModels = otherModels.map((model) => {
+    const scoredModels = otherModels.flatMap((model) => {
+      const modelKey = this.readString(model.key);
+      if (!modelKey) {
+        return [];
+      }
+
       const score = this.scoreModel(model, analysis, options);
       const reasons: string[] = [];
 
@@ -389,11 +417,13 @@ export class RouterService {
         reasons.push('stylized output');
       }
 
-      return {
-        model: model.key,
-        reason: reasons.join(', ') || 'alternative option',
-        score,
-      };
+      return [
+        {
+          model: modelKey,
+          reason: reasons.join(', ') || 'alternative option',
+          score,
+        },
+      ];
     });
 
     return scoredModels.sort((a, b) => b.score - a.score).slice(0, 2);
@@ -440,11 +470,14 @@ export class RouterService {
           alternatives: [],
           analysis,
           modelDetails: {
-            category: defaultModel.category,
+            category: this.normalizeModelCategory(
+              defaultModel.category,
+              options.category,
+            ),
             cost: defaultModel.cost,
             id: String(defaultModel._id),
-            key: defaultModel.key,
-            provider: defaultModel.provider,
+            key: this.requireString(defaultModel.key, 'key'),
+            provider: this.requireString(defaultModel.provider, 'provider'),
           },
           reason: 'Default model (no other models available)',
           selectedModel: defaultKey,
@@ -462,10 +495,11 @@ export class RouterService {
 
       // Generate reason based on the selected model
       const reason = this.generateReason(analysis, selectedModel, options);
+      const selectedModelKey = this.requireString(selectedModel.key, 'key');
 
       // Get alternatives from the same models list
       const alternatives = this.getAlternativesFromModels(
-        selectedModel.key,
+        selectedModelKey,
         models,
         options,
         analysis,
@@ -475,21 +509,24 @@ export class RouterService {
         alternatives,
         analysis,
         modelDetails: {
-          category: selectedModel.category,
+          category: this.normalizeModelCategory(
+            selectedModel.category,
+            options.category,
+          ),
           cost: selectedModel.cost,
           id: String(selectedModel._id),
-          key: selectedModel.key,
-          provider: selectedModel.provider,
+          key: selectedModelKey,
+          provider: this.requireString(selectedModel.provider, 'provider'),
         },
         reason,
-        selectedModel: selectedModel.key,
+        selectedModel: selectedModelKey,
       };
 
       this.logger.log(`${url} completed`, {
         category: options.category,
         complexity: analysis.complexity,
         modelsEvaluated: models.length,
-        selectedModel: selectedModel.key,
+        selectedModel: selectedModelKey,
       });
 
       return recommendation;
@@ -566,7 +603,7 @@ export class RouterService {
       isDeleted: false,
     });
 
-    if (defaultModel) {
+    if (defaultModel?.key) {
       return defaultModel.key;
     }
 

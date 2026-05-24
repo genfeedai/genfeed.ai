@@ -1,7 +1,8 @@
 'use client';
 
-import { ButtonSize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
+import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import {
   Table,
@@ -19,7 +20,6 @@ import {
 } from '@web-components/content/NeuralGrid';
 import PageLayout from '@web-components/PageLayout';
 import Image from 'next/image';
-import Link from 'next/link';
 import {
   HiCheck,
   HiCloud,
@@ -36,28 +36,28 @@ import { LuArrowRight } from 'react-icons/lu';
 const BENEFITS = [
   {
     description:
-      'We handle servers, databases, updates, and security. You focus on creating content.',
+      'We handle servers, databases, updates, and security for teams that need shared workspaces.',
     icon: HiServerStack,
     shortLabel: 'Infra',
     title: 'Zero DevOps',
   },
   {
     description:
-      'SSO, audit logs, team management, and role-based access control included.',
+      'Teams, roles, organization boundaries, brand workspaces, and approval flows.',
     icon: HiShieldCheck,
-    shortLabel: 'Security',
-    title: 'Enterprise Features',
+    shortLabel: 'Teams',
+    title: 'Collaboration Layer',
   },
   {
     description:
-      'GPT-4, Claude, Gemini, and 10+ premium AI models ready to use out of the box.',
+      'Separate brands, clients, and organizations without turning every workspace into a one-off setup.',
     icon: HiSparkles,
-    shortLabel: 'Models',
-    title: 'Premium AI Models',
+    shortLabel: 'Brands',
+    title: 'Multi-Brand Ops',
   },
   {
     description:
-      'Dedicated support team, 99.9% uptime SLA, and priority issue resolution.',
+      'Priority support, managed billing, and uptime expectations for production teams.',
     icon: HiLifebuoy,
     shortLabel: 'Support',
     title: 'Priority Support',
@@ -71,38 +71,46 @@ interface ComparisonRow {
 }
 
 const COMPARISON_DATA: ComparisonRow[] = [
-  { cloud: '10+ included', core: 'Bring your own', feature: 'AI Models' },
+  { cloud: 'Managed PAYG', core: 'Bring your own', feature: 'AI Models' },
   { cloud: 'Fully managed', core: 'Self-managed', feature: 'Infrastructure' },
-  { cloud: 'Dedicated team', core: 'Community', feature: 'Support' },
-  { cloud: true, core: false, feature: 'SSO / SAML' },
-  { cloud: true, core: false, feature: 'Audit Logs' },
+  { cloud: 'Priority support', core: 'Community', feature: 'Support' },
+  { cloud: true, core: false, feature: 'Team roles' },
+  { cloud: true, core: false, feature: 'Multi-org accounts' },
+  { cloud: true, core: false, feature: 'Multi-brand workspaces' },
+  { cloud: true, core: false, feature: 'Shared approvals' },
   { cloud: 'Automatic', core: 'Manual', feature: 'Updates' },
-  { cloud: '99.9% SLA', core: 'Self-managed', feature: 'Uptime' },
+  { cloud: 'Managed', core: 'Self-managed', feature: 'Uptime' },
   { cloud: true, core: true, feature: 'API Access' },
-  { cloud: true, core: true, feature: 'White-Label' },
 ];
 
 const TEAMS = [
   {
-    description: 'Create and publish content without technical overhead.',
+    description:
+      'Create, review, and publish content across shared workspaces.',
     title: 'Marketing Teams',
   },
   {
-    description: 'Manage multiple clients with team workspaces.',
+    description:
+      'Manage clients, organizations, brands, and approvals in one managed environment.',
     title: 'Content Agencies',
   },
   {
-    description: 'Scale content production as you grow.',
-    title: 'Startups',
+    description:
+      'Keep multiple brand systems separate while centralizing billing and operations.',
+    title: 'Multi-Brand Operators',
   },
 ];
+
+const CALENDLY_URL =
+  process.env.NEXT_PUBLIC_CALENDLY_URL ||
+  'https://calendly.com/vincent-genfeed/30min';
 
 function ComparisonValue({ value }: { value: boolean | string }) {
   if (typeof value === 'boolean') {
     return value ? (
-      <HiCheck className="h-5 w-5 text-green-500 mx-auto" />
+      <HiCheck className="size-5 text-green-500 mx-auto" />
     ) : (
-      <HiXMark className="h-5 w-5 text-surface/20 mx-auto" />
+      <HiXMark className="size-5 text-surface/20 mx-auto" />
     );
   }
   return <span className="text-sm">{value}</span>;
@@ -110,6 +118,7 @@ function ComparisonValue({ value }: { value: boolean | string }) {
 
 export default function CloudContent() {
   const containerRef = useMarketingEntrance();
+  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
 
   return (
     <div ref={containerRef}>
@@ -118,10 +127,10 @@ export default function CloudContent() {
         badgeIcon={HiCloud}
         title={
           <>
-            Genfeed <span className="italic font-light">Cloud</span>
+            Genfeed <span className="italic font-light">Cloud App</span>
           </>
         }
-        description="Focus on content, not servers. Managed AI platform for teams."
+        description="The managed path for creating, approving, publishing, and paying as you go for output."
       >
         {/* Benefits */}
         <WebSection maxWidth="xl">
@@ -146,9 +155,9 @@ export default function CloudContent() {
             <div className="bg-fill/[0.03] px-4 py-3 border-b border-edge/5">
               <div className="flex items-center gap-2">
                 <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-fill/20" />
-                  <div className="w-3 h-3 rounded-full bg-fill/20" />
-                  <div className="w-3 h-3 rounded-full bg-fill/20" />
+                  <div className="size-3 rounded-full bg-fill/20" />
+                  <div className="size-3 rounded-full bg-fill/20" />
+                  <div className="size-3 rounded-full bg-fill/20" />
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="bg-fill/[0.03] border border-edge/5 px-3 py-1.5 text-xs text-surface/30 text-center font-mono uppercase tracking-widest">
@@ -196,13 +205,14 @@ export default function CloudContent() {
         <WebSection maxWidth="xl" className="gsap-section">
           <div className="text-center mb-16">
             <div className="flex items-center justify-center gap-3 mb-6">
-              <HiUserGroup className="h-5 w-5 text-surface/40" />
+              <HiUserGroup className="size-5 text-surface/40" />
               <span className="text-xs font-black uppercase tracking-widest text-surface/20">
                 Built for Growing Teams
               </span>
             </div>
             <p className="text-surface/50 max-w-xl mx-auto">
-              Perfect for SMBs, agencies, and startups
+              Built for agencies, marketing teams, and operators managing
+              multiple brands or organizations
             </p>
           </div>
 
@@ -233,13 +243,13 @@ export default function CloudContent() {
                   </TableHead>
                   <TableHead className="text-center py-4 px-6 text-xs font-black uppercase tracking-widest text-surface/30">
                     <div className="flex items-center justify-center gap-2">
-                      <HiCpuChip className="h-4 w-4" />
+                      <HiCpuChip className="size-4" />
                       Core
                     </div>
                   </TableHead>
                   <TableHead className="text-center py-4 px-6 text-xs font-black uppercase tracking-widest text-surface/30">
                     <div className="flex items-center justify-center gap-2">
-                      <HiCloud className="h-4 w-4" />
+                      <HiCloud className="size-4" />
                       Cloud
                     </div>
                   </TableHead>
@@ -269,14 +279,23 @@ export default function CloudContent() {
 
         {/* Pricing CTA */}
         <CtaSection
-          title="Ready to Get Started?"
-          description="Start with Core for free or choose a managed plan. Upgrade when you need more power."
+          title="Start with the cloud app."
+          description="Book a demo when collaboration, multi-brand rollout, or enterprise terms need design first."
         >
           <Button size={ButtonSize.PUBLIC} asChild>
-            <Link href="/pricing">
-              View Pricing
-              <LuArrowRight className="h-4 w-4" />
-            </Link>
+            <a href={signUpHref} target="_blank" rel="noopener noreferrer">
+              Start Cloud App
+              <LuArrowRight className="size-4" />
+            </a>
+          </Button>
+          <Button
+            size={ButtonSize.PUBLIC}
+            variant={ButtonVariant.SECONDARY}
+            asChild
+          >
+            <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
+              Book a Demo
+            </a>
           </Button>
         </CtaSection>
       </PageLayout>

@@ -86,7 +86,7 @@ export const Black: Story = {
   },
   decorators: [
     (Story) => (
-      <div className="bg-gray-100 p-8">
+      <div className="bg-zinc-100 p-8">
         <Story />
       </div>
     ),
@@ -135,7 +135,7 @@ export const AllVariants: Story = {
           variant={ButtonVariant.WHITE}
         />
       </div>
-      <div className="space-y-2 bg-gray-100 p-4">
+      <div className="space-y-2 bg-zinc-100 p-4">
         <h3 className="text-sm font-semibold">Black (on light)</h3>
         <ButtonRequestAccess
           label="Request Access"

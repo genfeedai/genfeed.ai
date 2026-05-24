@@ -1,39 +1,50 @@
+import { Badge as ShipBadge } from '@shipshitdev/ui/primitives';
 import { cva, type VariantProps } from 'class-variance-authority';
-import type { HTMLAttributes } from 'react';
+import type { ComponentPropsWithoutRef } from 'react';
 import { cn } from '../lib/utils';
 
 const badgeVariants = cva(
-  'inline-flex items-center border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+  'ship-ui focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
   {
     defaultVariants: {
       variant: 'default',
     },
     variants: {
       variant: {
-        default:
-          'border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80',
-        destructive:
-          'border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80',
-        info: 'border-transparent bg-info text-info-foreground shadow hover:bg-info/80',
-        outline: 'text-foreground',
-        secondary:
-          'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        success:
-          'border-transparent bg-success text-success-foreground shadow hover:bg-success/80',
-        warning:
-          'border-transparent bg-warning text-warning-foreground shadow hover:bg-warning/80',
+        default: '',
+        destructive: '',
+        info: '',
+        outline:
+          'border-white/[0.08] bg-transparent text-foreground shadow-none',
+        secondary: 'bg-hover text-primary border-border',
+        success: '',
+        warning: '',
       },
     },
   },
 );
 
 export interface BadgeProps
-  extends HTMLAttributes<HTMLDivElement>,
+  extends ComponentPropsWithoutRef<'span'>,
     VariantProps<typeof badgeVariants> {}
+
+const SHIP_VARIANT_MAP = {
+  default: 'default',
+  destructive: 'danger',
+  info: 'info',
+  outline: 'accent',
+  secondary: 'default',
+  success: 'success',
+  warning: 'warning',
+} as const;
 
 function Badge({ className, variant, ...props }: BadgeProps) {
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    <ShipBadge
+      className={cn(badgeVariants({ variant }), className)}
+      variant={SHIP_VARIANT_MAP[variant ?? 'default']}
+      {...props}
+    />
   );
 }
 

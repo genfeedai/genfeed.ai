@@ -6,7 +6,7 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
   },
-  format: ['esm', 'cjs'],
+  format: ['esm'],
   sourcemap: true,
   splitting: true,
   treeshake: true,

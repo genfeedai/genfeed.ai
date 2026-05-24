@@ -9,13 +9,27 @@ import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { buildUpdateOperations } from '@api/helpers/utils/objectid/update-operations.util';
 import {
   returnNotFound,
+  serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
-import { Body, Controller, Param, Patch, Req, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -25,6 +39,40 @@ export class IngredientsController {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(private readonly ingredientsService: IngredientsService) {}
+
+  @Get('batch')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get multiple ingredients by ID' })
+  @ApiResponse({ description: 'Batch ingredients returned', status: 200 })
+  async getBatch(
+    @Req() request: Request,
+    @Query('ids') idsParam: string,
+    @CurrentUser() user: User,
+  ) {
+    if (!idsParam || idsParam.trim().length === 0) {
+      throw new BadRequestException('ids query parameter is required');
+    }
+
+    const ids = idsParam
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0)
+      .slice(0, 50);
+
+    if (ids.length === 0) {
+      throw new BadRequestException('At least one valid ID is required');
+    }
+
+    const publicMetadata = getPublicMetadata(user);
+    const ingredients = await this.ingredientsService.findByIds(
+      ids,
+      publicMetadata.organization,
+    );
+
+    return serializeCollection(request, IngredientSerializer, {
+      docs: ingredients,
+    });
+  }
 
   @Patch(':ingredientId')
   @UseGuards(AssetAccessGuard)
@@ -37,25 +85,17 @@ export class IngredientsController {
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    // Build update operations for relationship fields (folder, parent)
-    // This separates fields into $set (non-null) and $unset (null) operations
-    const updateOps = await buildUpdateOperations(updateIngredientDto, [
-      'folder',
-      'parent',
-    ]);
+    const processedDto = await buildUpdateOperations(
+      updateIngredientDto as unknown as Record<string, unknown>,
+      ['folder', 'parent'],
+    );
 
-    // Start with the update operations
-    const processedDto: Record<string, unknown> = { ...updateOps };
-
-    // Convert tags array to ObjectIds (if present in $set)
     if (
-      updateOps.$set &&
-      Object.hasOwn(updateOps.$set, 'tags') &&
-      Array.isArray(updateOps.$set.tags)
+      Object.hasOwn(processedDto, 'tags') &&
+      Array.isArray(processedDto.tags)
     ) {
-      updateOps.$set.tags = updateOps.$set.tags.map(
+      processedDto.tags = processedDto.tags.map(
         (tag: string | { _id: string }) => {
-          // If tag is a string ID, convert to ObjectId
           if (typeof tag === 'string') {
             return tag;
           }
@@ -75,7 +115,7 @@ export class IngredientsController {
     const ingredient = await this.ingredientsService.findOne(
       {
         _id: ingredientId,
-        $or: [
+        OR: [
           { user: publicMetadata.user },
           { organization: publicMetadata.organization },
         ],
@@ -87,7 +127,6 @@ export class IngredientsController {
       return returnNotFound(this.constructorName, ingredientId);
     }
 
-    // Update the ingredient - processedDto may contain $set/$unset operators
     await this.ingredientsService.patch(
       ingredientId,
       processedDto as unknown as UpdateIngredientDto,

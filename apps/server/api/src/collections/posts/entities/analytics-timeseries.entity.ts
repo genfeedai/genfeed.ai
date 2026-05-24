@@ -9,14 +9,23 @@ export class TimeSeriesDataPoint {
   totalEngagement: number;
 
   constructor(data: unknown) {
-    this.date = data.date;
-    this.views = data.views || 0;
-    this.likes = data.likes || 0;
-    this.comments = data.comments || 0;
-    this.shares = data.shares || 0;
-    this.saves = data.saves || 0;
-    this.engagementRate = data.engagementRate || 0;
-    this.totalEngagement = data.totalEngagement || 0;
+    const record =
+      data && typeof data === 'object' && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : {};
+
+    this.date = typeof record.date === 'string' ? record.date : '';
+    this.views = this.asNumber(record.views);
+    this.likes = this.asNumber(record.likes);
+    this.comments = this.asNumber(record.comments);
+    this.shares = this.asNumber(record.shares);
+    this.saves = this.asNumber(record.saves);
+    this.engagementRate = this.asNumber(record.engagementRate);
+    this.totalEngagement = this.asNumber(record.totalEngagement);
+  }
+
+  private asNumber(value: unknown): number {
+    return typeof value === 'number' ? value : 0;
   }
 }
 

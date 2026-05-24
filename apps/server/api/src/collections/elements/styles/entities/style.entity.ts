@@ -8,7 +8,7 @@ export class ElementStyleEntity extends BaseEntity implements ElementStyle {
 
   declare readonly key: string;
   declare readonly label: string;
-  declare readonly description?: string;
+  declare readonly description: string | null;
   declare readonly models?: string[];
   declare readonly category?: ModelCategory | null;
 }

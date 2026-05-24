@@ -56,18 +56,14 @@ export default function KPICard({
     ? HiOutlineArrowTrendingUp
     : HiOutlineArrowTrendingDown;
 
-  const renderValue = () => {
-    if (isLoading) {
-      return <div className="h-12 w-20 bg-white/10 animate-pulse" />;
-    }
-
-    // Animate if value is a string that looks like a formatted number
-    if (typeof value === 'string' && /^[\d.]+[KMB]?$/.test(value)) {
-      return <AnimatedValue value={value} />;
-    }
-
-    return value;
-  };
+  let valueContent: React.ReactNode;
+  if (isLoading) {
+    valueContent = <div className="h-12 w-20 bg-white/10 animate-pulse" />;
+  } else if (typeof value === 'string' && /^[\d.]+[KMB]?$/.test(value)) {
+    valueContent = <AnimatedValue value={value} />;
+  } else {
+    valueContent = value;
+  }
 
   return (
     <Card
@@ -80,11 +76,11 @@ export default function KPICard({
         {Icon && (
           <div
             className={cn(
-              'w-10 h-10 rounded-lg bg-white/5 text-foreground/60 flex items-center justify-center',
+              'size-10 rounded-lg bg-white/5 text-foreground/60 flex items-center justify-center',
               iconClassName,
             )}
           >
-            <Icon className="w-5 h-5" />
+            <Icon className="size-5" />
           </div>
         )}
 
@@ -97,7 +93,7 @@ export default function KPICard({
                 : 'bg-red-500/20 text-red-400',
             )}
           >
-            <TrendIcon className="w-3 h-3" />
+            <TrendIcon className="size-3" />
             {Math.abs(trend)}%
             {trendLabel && <span className="ml-0.5">{trendLabel}</span>}
           </span>
@@ -112,7 +108,7 @@ export default function KPICard({
         <div
           className={cn('text-5xl font-serif text-foreground', valueClassName)}
         >
-          {renderValue()}
+          {valueContent}
         </div>
       </div>
     </Card>

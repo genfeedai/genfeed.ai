@@ -64,7 +64,7 @@ export default function AiActionGroup({
               isThisActive ? (
                 <Spinner size={ComponentSize.XS} />
               ) : (
-                <HiSparkles className="w-3.5 h-3.5" />
+                <HiSparkles className="size-3.5" />
               )
             }
             variant={ButtonVariant.GHOST}

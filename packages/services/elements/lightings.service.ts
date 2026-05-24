@@ -9,9 +9,6 @@ export class LightingsService extends BaseService<ElementLighting> {
   }
 
   public static getInstance(token: string): LightingsService {
-    return BaseService.getDataServiceInstance(
-      LightingsService,
-      token,
-    ) as LightingsService;
+    return BaseService.getDataServiceInstance(LightingsService, token);
   }
 }

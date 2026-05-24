@@ -3,9 +3,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { XArticleSectionCardProps } from '@genfeedai/props/content/x-article.props';
 import { Blockquote } from '@genfeedai/ui';
-import { createMarkup } from '@genfeedai/utils/sanitize-html';
+import { sanitizeHtml } from '@genfeedai/utils/sanitize-html';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import parse from 'html-react-parser';
 import { HiClipboard } from 'react-icons/hi2';
 
 export default function XArticleSectionCard({
@@ -20,18 +21,16 @@ export default function XArticleSectionCard({
             label="Copy"
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
-            icon={<HiClipboard className="h-4 w-4" />}
+            icon={<HiClipboard className="size-4" />}
             onClick={() => onCopy(section.id)}
           />
         </div>
 
-        <h2 className="pr-20 text-xl font-bold">{section.heading}</h2>
+        <h2 className="pr-20 text-xl font-semibold">{section.heading}</h2>
 
-        <div
-          className="prose prose-sm max-w-none mt-3 text-foreground/80"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized content from createMarkup
-          dangerouslySetInnerHTML={createMarkup(section.content)}
-        />
+        <div className="prose prose-sm max-w-none mt-3 text-foreground/80">
+          {parse(sanitizeHtml(section.content))}
+        </div>
 
         {section.pullQuote && (
           <Blockquote className="mt-4">{section.pullQuote}</Blockquote>

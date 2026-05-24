@@ -4,19 +4,35 @@ packages/prisma/generated/
 .next/
 .turbo/
 *.tsbuildinfo
-# Compiled output never belongs in src/ — catch any misconfigured tsc emitting inline
+# Compiled output never belongs in src/ or app/ — catch misconfigured tsc/swc emitting inline
 **/src/**/*.js
 **/src/**/*.js.map
 **/src/**/*.d.ts.map
+**/src/**/*.d.ts
+# Next.js App Router source dirs — no compiled .js alongside .tsx
+apps/app/app/**/*.js
+apps/app/app/**/*.js.map
+apps/app/packages/**/*.js
+apps/app/packages/**/*.js.map
+# Hand-authored ambient module declarations / generated API types — keep tracked
+!apps/app/src/types/*.d.ts
+!apps/desktop/app/src/shared/*.d.ts
+!apps/server/api/src/helpers/test/*.d.ts
+!apps/server/api/src/types/*.d.ts
+!packages/api-types/src/generated/*.d.ts
+!packages/ui/src/css.d.ts
+!packages/workflow-ui/src/css.d.ts
 .env
 .env.local
 .env.*.local
 .DS_Store
 coverage/
+apps/*/.vitest-reports/
 .vercel
 out/
 *.log
 next-env.d.ts
+apps/desktop/app/build/
 apps/desktop/app/release/
 *.dmg
 *.zip
@@ -27,10 +43,12 @@ apps/desktop/app/release/
 .claude/skills/
 .worktrees/
 .agents/SESSIONS/
+.agents/plans/
+.clawpatch/
+.genfeed/
 
 # Claude Code skill runtime (should never be committed)
 .superpowers/
 # Agent scratch dirs at any depth (apps/<name>/.agents/, apps/<surface>/<name>/.agents/)
 # Covers apps/app/.agents, apps/mobile/app/.agents, apps/extensions/browser/app/.agents, etc.
 **/apps/**/.agents/
-

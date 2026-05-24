@@ -10,14 +10,157 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  pull-requests: write
+
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TZ: UTC
 
 jobs:
+  trust:
+    name: Trust Check
+    runs-on: ubuntu-latest
+    outputs:
+      is-trusted: ${{ steps.non_pr.outputs.trusted || steps.check.outputs.trusted }}
+    steps:
+      - name: Allow non-PR events
+        id: non_pr
+        if: github.event_name != 'pull_request'
+        run: echo "trusted=true" >> "$GITHUB_OUTPUT"
+
+      - name: Check contributor trust
+        id: check
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            const association = pr.author_association;
+            const trustedRoles = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            const isSameRepository =
+              pr.head.repo?.full_name === `${context.repo.owner}/${context.repo.repo}`;
+            const isTrusted = isSameRepository || trustedRoles.includes(association);
+            const hasLabel = pr.labels.some(l => l.name === 'run-ci');
+
+            if (isTrusted) {
+              const trustReason = isSameRepository
+                ? 'same-repo PR'
+                : `trusted contributor (${association})`;
+              core.info(`${trustReason} - CI allowed`);
+              core.setOutput('trusted', 'true');
+            } else if (hasLabel) {
+              core.info('External contributor with run-ci label - CI allowed');
+              core.setOutput('trusted', 'true');
+            } else {
+              core.setOutput('trusted', 'false');
+              core.setFailed(
+                `External contributor (${association}) - add the \`run-ci\` label to allow CI. ` +
+                'A maintainer must review the code and add the label.'
+              );
+            }
+
+  gitleaks:
+    name: Gitleaks
+    runs-on: ubuntu-latest
+    needs: trust
+    if: needs.trust.outputs.is-trusted == 'true'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  secretlint:
+    name: Secretlint (changed files)
+    runs-on: ubuntu-latest
+    needs: trust
+    if: needs.trust.outputs.is-trusted == 'true'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            FILES=$(git diff --name-only --diff-filter=ACMR "${{ github.event.pull_request.base.sha }}" HEAD | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|json|yml|yaml|toml|sh|env.*)$' || true)
+          else
+            FILES=$(git diff --name-only --diff-filter=ACMR HEAD~1 HEAD | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|json|yml|yaml|toml|sh|env.*)$' || true)
+          fi
+          if [ -z "$FILES" ]; then
+            echo "files=" >> "$GITHUB_OUTPUT"
+            echo "No scannable files changed"
+          else
+            {
+              echo "files<<EOF"
+              echo "$FILES"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+            echo "Scanning $(echo "$FILES" | wc -l | xargs) files"
+          fi
+
+      - uses: oven-sh/setup-bun@v2
+        if: steps.changed.outputs.files != ''
+        with:
+          bun-version: '1.3.13'
+
+      - run: bun install --frozen-lockfile
+        if: steps.changed.outputs.files != ''
+
+      - name: Run secretlint on changed files
+        if: steps.changed.outputs.files != ''
+        run: echo "${{ steps.changed.outputs.files }}" | xargs bunx secretlint
+        timeout-minutes: 5
+
+  react-doctor:
+    name: React Health Check
+    runs-on: ubuntu-latest
+    needs: trust
+    if: github.event_name == 'pull_request' && needs.trust.outputs.is-trusted == 'true'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Detect React changes
+        id: react_changes
+        run: |
+          if git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD | grep -E '^(apps/(app|website|docs|desktop|mobile)|packages/(ui|hooks|contexts|providers|pages|workflow-ui))/' >/dev/null; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No React surface changes detected"
+          fi
+
+      - name: Run React Doctor
+        if: steps.react_changes.outputs.changed == 'true'
+        uses: millionco/react-doctor@main
+        with:
+          directory: '.'
+          diff: ${{ github.event.pull_request.base.ref }}
+          fail-on: 'error'
+          verbose: 'true'
+
   format:
     name: Format
     runs-on: ubuntu-latest
+    needs: trust
+    if: needs.trust.outputs.is-trusted == 'true'
     steps:
       - uses: actions/checkout@v5
         with:
@@ -38,6 +181,8 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    needs: trust
+    if: needs.trust.outputs.is-trusted == 'true'
     steps:
       - uses: actions/checkout@v5
         with:
@@ -63,14 +208,38 @@ jobs:
       - name: Run lint
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bunx turbo lint --affected
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run lint --affected
           else
             bun run lint
           fi
 
+  design:
+    name: Design System
+    runs-on: ubuntu-latest
+    needs: trust
+    if: needs.trust.outputs.is-trusted == 'true'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.13'
+      - name: Cache bun modules
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - run: bun install --frozen-lockfile
+      - run: bun run design:check
+
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
+    needs: trust
+    if: needs.trust.outputs.is-trusted == 'true'
     steps:
       - uses: actions/checkout@v5
         with:
@@ -96,14 +265,51 @@ jobs:
       - name: Run typecheck
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bunx turbo type-check --affected
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run type-check --affected
           else
             bun run type-check
           fi
 
-  test:
-    name: Test
+  test-scope:
+    name: Test Scope
     runs-on: ubuntu-latest
+    needs: trust
+    if: needs.trust.outputs.is-trusted == 'true'
+    outputs:
+      app: ${{ steps.scope.outputs.app }}
+      api: ${{ steps.scope.outputs.api }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Detect app/API test scope
+        id: scope
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "app=true" >> "$GITHUB_OUTPUT"
+            echo "api=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR "${{ github.event.pull_request.base.sha }}" HEAD)
+
+          if echo "$CHANGED_FILES" | grep -E '^(apps/app|packages/|package\.json|bun\.lock|turbo\.json|vitest\.config\.ts|\.github/workflows/ci\.yml)' >/dev/null; then
+            echo "app=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "app=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$CHANGED_FILES" | grep -E '^(apps/server/api|packages/|package\.json|bun\.lock|turbo\.json|vitest\.config\.ts|\.github/workflows/ci\.yml)' >/dev/null; then
+            echo "api=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "api=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  test-packages:
+    name: Test Packages
+    runs-on: ubuntu-latest
+    needs: trust
+    if: needs.trust.outputs.is-trusted == 'true'
     steps:
       - uses: actions/checkout@v5
         with:
@@ -129,15 +335,198 @@ jobs:
       - name: Run tests
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bunx turbo test --affected
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter='./packages/*' --filter='./ee/packages/*'
           else
-            bun run test
+            bunx turbo run test --filter='./packages/*' --filter='./ee/packages/*'
           fi
+
+  test-server-services:
+    name: Test Server Services
+    runs-on: ubuntu-latest
+    needs: trust
+    if: needs.trust.outputs.is-trusted == 'true'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.13'
+      - name: Cache bun modules
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - name: Cache Turbo
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ hashFiles('turbo.json', '**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+      - run: bun install --frozen-lockfile
+      - name: Run server service tests
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter='./apps/server/*' --filter='!@genfeedai/api'
+          else
+            bunx turbo run test --filter='./apps/server/*' --filter='!@genfeedai/api'
+          fi
+
+  test-web-desktop-mobile:
+    name: Test Web, Desktop, Mobile
+    runs-on: ubuntu-latest
+    needs: trust
+    if: needs.trust.outputs.is-trusted == 'true'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.13'
+      - name: Cache bun modules
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - name: Cache Turbo
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ hashFiles('turbo.json', '**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+      - run: bun install --frozen-lockfile
+      - name: Run web, desktop, and mobile tests
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/desktop --filter=@genfeedai/mobile
+          else
+            bunx turbo run test --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/desktop --filter=@genfeedai/mobile
+          fi
+
+  test-extensions:
+    name: Test Extensions
+    runs-on: ubuntu-latest
+    needs: trust
+    if: needs.trust.outputs.is-trusted == 'true'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.13'
+      - name: Cache bun modules
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - name: Cache Turbo
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ hashFiles('turbo.json', '**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+      - run: bun install --frozen-lockfile
+      - name: Run extension tests
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter=@genfeedai/extension-browser --filter=extension-ide
+          else
+            bunx turbo run test --filter=@genfeedai/extension-browser --filter=extension-ide
+          fi
+
+  test-app:
+    name: Test App (Shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    needs: [trust, test-scope]
+    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.app == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.13'
+      - name: Cache bun modules
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - name: Cache Turbo
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ hashFiles('turbo.json', '**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+      - run: bun install --frozen-lockfile
+      - name: Build app workspace
+        run: bunx turbo run build --filter='./apps/app...'
+      - name: Run app test shard
+        run: cd apps/app && bunx vitest run --config ./vitest.config.mts --maxWorkers=2 --shard=${{ matrix.shard }}/4
+        env:
+          NODE_ENV: test
+
+  test-api:
+    name: Test API (Shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    needs: [trust, test-scope]
+    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.13'
+      - name: Cache bun modules
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - name: Cache Turbo
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ hashFiles('turbo.json', '**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+      - run: bun install --frozen-lockfile
+      - name: Build API dependencies
+        run: bunx turbo run build --filter=./packages/**
+      - name: Run API test shard
+        run: cd apps/server/api && bunx vitest run --config vitest.config.ts --shard=${{ matrix.shard }}/4
+        env:
+          NODE_ENV: test
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
 
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [format, lint, typecheck]
+    needs: [trust, format, lint, design, typecheck]
+    if: needs.trust.outputs.is-trusted == 'true'
     steps:
       - uses: actions/checkout@v5
         with:
@@ -163,7 +552,7 @@ jobs:
       - name: Run build
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bunx turbo build --filter='./packages/*' --affected
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run build --filter='./packages/*' --affected
           else
             bun run build
           fi

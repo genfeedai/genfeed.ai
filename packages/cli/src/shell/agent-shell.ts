@@ -1,6 +1,6 @@
 import { createInterface } from 'node:readline/promises';
 import chalk from 'chalk';
-import { requireAuth } from '@/api/client.js';
+import { requireAuth } from '@/api/client';
 import {
   type AgentPendingInputRequest,
   type AgentThreadEvent,
@@ -11,13 +11,13 @@ import {
   listThreads,
   respondToInputRequest,
   startAgentChatStream,
-} from '@/api/threads.js';
+} from '@/api/threads';
 import {
   clearLastAgentThreadId,
   getLastAgentThreadId,
   getOrganizationId,
   setLastAgentThreadId,
-} from '@/config/store.js';
+} from '@/config/store';
 import {
   formatError,
   formatHeader,
@@ -26,8 +26,9 @@ import {
   formatSuccess,
   formatWarning,
   print,
-} from '@/ui/theme.js';
-import { setReplMode } from '@/utils/errors.js';
+} from '@/ui/theme';
+import { setReplMode } from '@/utils/errors';
+import { extractString, isRecord } from '@/utils/extract';
 
 interface AgentShellOptions {
   initialThreadId?: string;
@@ -40,10 +41,6 @@ interface AgentShellState {
   model?: string;
   pendingInputRequest: AgentPendingInputRequest | null;
   threadId?: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }
 
 function shortId(value?: string): string {
@@ -168,14 +165,6 @@ async function attachThread(
       chalk.dim(`Last assistant message: ${snapshot.lastAssistantMessage.content.slice(0, 120)}`)
     );
   }
-}
-
-function extractString(
-  record: Record<string, unknown> | undefined,
-  key: string
-): string | undefined {
-  const value = record?.[key];
-  return typeof value === 'string' ? value : undefined;
 }
 
 async function handleThreadEvent(

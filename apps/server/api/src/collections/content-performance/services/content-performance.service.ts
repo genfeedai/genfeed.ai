@@ -38,6 +38,10 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
       : ContentType.CAPTION;
   }
 
+  private toCredentialPlatform(platform?: string): string | undefined {
+    return platform ? platform.toUpperCase() : undefined;
+  }
+
   /**
    * Create a content performance record
    */
@@ -133,7 +137,10 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
 
     const postMatchConditions = dto.entries
       .filter((e) => e.externalPostId && e.platform)
-      .map((e) => ({ externalId: e.externalPostId, platform: e.platform }));
+      .map((e) => ({
+        externalId: e.externalPostId,
+        platform: this.toCredentialPlatform(e.platform),
+      }));
 
     const matchedPosts =
       postMatchConditions.length > 0
@@ -143,7 +150,7 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
               organizationId,
               OR: postMatchConditions.map((c) => ({
                 externalId: c.externalId,
-                platform: c.platform,
+                platform: c.platform as never,
               })),
             },
           })
@@ -220,7 +227,7 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
           externalId: dto.externalPostId,
           isDeleted: false,
           organizationId,
-          platform: dto.platform,
+          platform: this.toCredentialPlatform(dto.platform) as never,
         },
       });
     }

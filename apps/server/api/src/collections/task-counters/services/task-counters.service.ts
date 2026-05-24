@@ -15,7 +15,7 @@ export class TaskCountersService {
    * Creates the counter document if it doesn't exist.
    */
   async getNextNumber(organizationId: string): Promise<number> {
-    // Prisma upsert: find by organizationId, increment lastNumber if exists, create with lastNumber=1 if not
+    // Prisma upsert: find by organizationId, increment counter if exists, create with counter=1 if not
     const existing = await this.prisma.taskCounter.findFirst({
       where: { organizationId },
     });
@@ -24,12 +24,12 @@ export class TaskCountersService {
 
     if (existing) {
       result = (await this.prisma.taskCounter.update({
-        data: { lastNumber: { increment: 1 } },
+        data: { counter: { increment: 1 } },
         where: { id: existing.id },
       })) as unknown as TaskCounterDocument;
     } else {
       result = (await this.prisma.taskCounter.create({
-        data: { lastNumber: 1, organizationId },
+        data: { counter: 1, organizationId },
       })) as unknown as TaskCounterDocument;
     }
 
@@ -38,6 +38,6 @@ export class TaskCountersService {
       throw new Error('Failed to generate next task number');
     }
 
-    return (result as unknown as { lastNumber: number }).lastNumber;
+    return (result as unknown as { counter: number }).counter;
   }
 }

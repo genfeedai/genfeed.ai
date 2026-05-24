@@ -24,8 +24,11 @@ export function SaveAsDialog({
   useEffect(() => {
     if (isOpen) {
       setName(`${currentName} (copy)`);
-      setTimeout(() => inputRef.current?.select(), 0);
+      const timer = window.setTimeout(() => inputRef.current?.select(), 0);
+      return () => window.clearTimeout(timer);
     }
+
+    return undefined;
   }, [isOpen, currentName]);
 
   const handleSubmit = useCallback(
@@ -67,7 +70,7 @@ export function SaveAsDialog({
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">Save As</h2>
           <Button variant="ghost" size="icon-sm" onClick={onClose}>
-            <X className="h-4 w-4" />
+            <X className="size-4" />
           </Button>
         </div>
 
@@ -88,7 +91,6 @@ export function SaveAsDialog({
                 setName(e.target.value)
               }
               placeholder="Enter workflow name"
-              autoFocus
               className="w-full"
             />
           </div>

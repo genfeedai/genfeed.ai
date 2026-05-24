@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getBrand, listBrands } from '../../src/api/brands.js';
+import { getBrand, listBrands } from '../../src/api/brands';
 
 const mockApiKey = vi.fn<[], string | undefined>();
 const mockApiUrl = vi.fn<[], string>();
 const mockFetch = vi.fn();
 
-vi.mock('../../src/config/store.js', () => ({
+vi.mock('../../src/config/store', () => ({
   getApiKey: () => mockApiKey(),
   getApiUrl: () => mockApiUrl(),
 }));

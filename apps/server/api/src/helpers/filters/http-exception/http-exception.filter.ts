@@ -6,16 +6,13 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import type {
-  Request as ExpressRequest,
-  Response as ExpressResponse,
-} from 'express';
+import type { Request as ExpressRequest } from 'express';
 
 @Catch(HttpException)
 export class HttpExceptionFilter extends AllExceptionFilter {
   public catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const res = ctx.getResponse<ExpressResponse>();
+    const res = ctx.getResponse();
     const req = ctx.getRequest<ExpressRequest>();
     const status: HttpStatus = exception.getStatus();
     const response: unknown = exception.getResponse();
@@ -53,15 +50,12 @@ export class HttpExceptionFilter extends AllExceptionFilter {
       });
     }
 
-    res.status(status).json(
-      new this.JSONAPIError({
-        code: status.toString(),
-        detail,
-        source: source || {
-          pointer: req.originalUrl,
-        },
-        title,
-      }),
-    );
+    this.writeJsonApiError(res, {
+      detail,
+      pointer: req.originalUrl,
+      source,
+      status,
+      title,
+    });
   }
 }

@@ -2,11 +2,12 @@
  * Genfeed.ai Pricing Configuration
  *
  * SINGLE SOURCE OF TRUTH for all pricing across the platform.
- * See: https://github.com/genfeedai/cloud/issues?q=is%3Aissue+pricing
+ * See: https://github.com/genfeedai/genfeed.ai/issues?q=is%3Aissue+pricing
  *
  * Pricing Strategy:
- * - Output-based pricing (videos, images, voice) - NOT credit-based
- * - Premium positioning ($499-$4,999/month)
+ * - Self-hosted core is free with bring-your-own AI keys
+ * - Cloud App starts at $49/month plus pay-as-you-go output
+ * - Cloud is higher-entry B2B for collaboration, multi-org, and multi-brand use
  * - Credits are tracked internally but NEVER shown to users
  * - Auto-select premium AI models (no user decision fatigue)
  *
@@ -23,7 +24,7 @@ interface PricingOutputsProps {
 }
 
 interface PricingPlanProps {
-  /** Display label (e.g., "Pro", "Scale", "Enterprise") */
+  /** Display label (e.g., "Hosted", "Cloud Teams", "Enterprise") */
   label: string;
   /** Stripe price ID for checkout */
   stripePriceId?: string;
@@ -123,7 +124,7 @@ export function applyMargin(providerCostUsd: number): number {
  * Exchange rate: 1 credit = $0.01
  * Pricing formula: Sell Price = Cost / 0.30 (70% margin target)
  *
- * See: https://github.com/genfeedai/cloud/issues?q=is%3Aissue+pricing
+ * See: https://github.com/genfeedai/genfeed.ai/issues?q=is%3Aissue+pricing
  */
 export const INTERNAL_CREDIT_COSTS = {
   /** Avatar/Lip-sync per second: 100 credits = $1.00/sec */
@@ -166,7 +167,7 @@ export const AVATAR_CREDIT_COSTS = {
 
 /**
  * Website pricing plans - displayed on public pricing page
- * Output-based pricing for premium positioning
+ * OSS core, hosted PAYG, and B2B cloud positioning
  */
 export const websitePlans: PricingPlanProps[] = [
   // Self-Hosted Tier - Deploy on your own infrastructure ($0)
@@ -190,80 +191,69 @@ export const websitePlans: PricingPlanProps[] = [
     valueProposition: 'Full platform on your servers. You manage everything.',
   },
 
-  // Pro Tier - $499/month
+  // Hosted / Cloud App Tier - $49/month + PAYG output
   {
-    cta: 'Subscribe',
-    ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=pro`,
-    description: 'For serious creators and small agencies',
+    cta: 'Start Cloud App',
+    ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=hosted`,
+    description: 'Managed app access with usage-based output',
     features: [
-      '5 min video/month',
-      '500 images/month',
-      '60 min voice/month',
-      '2 team seats',
-      '1 brand kit',
+      '$49/month platform access',
+      'Pay-as-you-go videos, images, and voice',
+      'No infrastructure to manage',
       'Premium AI models (auto-selected)',
+      'Personal workspace',
+      '1 brand kit',
       'Multi-platform publishing',
-      'Email support (48hr)',
+      'Email support',
     ],
-    interval: 'month',
-    label: 'Pro',
-    outputs: {
-      images: 500,
-      videoMinutes: 5,
-      voiceMinutes: 60,
-    },
-    price: 499,
+    interval: 'payg',
+    label: 'Hosted',
+    outputs: null,
+    price: 49,
     stripePriceId: STRIPE_PRICE_IDS.pro,
-    target: 'Serious creators, small agencies (1-3 people)',
-    type: 'subscription',
+    target: 'Creators and founders who want managed Genfeed without DevOps',
+    type: 'payg',
     valueProposition:
-      'Studio-quality video, images, and voice—for less than a single production day.',
+      'Start hosted for a small platform fee, then pay only for the output you create.',
   },
 
-  // Scale Tier - $1,499/month
+  // Cloud Teams Tier - higher-entry B2B cloud
   {
-    cta: 'Subscribe',
-    ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=scale`,
-    description: 'For agencies managing multiple brands',
+    cta: 'Talk to Sales',
+    ctaHref: CALENDLY_URL,
+    description: 'B2B cloud for teams, organizations, and brands',
     features: [
-      '15 min video/month',
-      '2,000 images/month',
-      '200 min voice/month',
-      '10 team seats',
-      '5 brand kits',
-      'All AI models (your choice)',
+      'Collaboration workspaces',
+      'Multi-organization account model',
+      'Multi-brand operations',
+      'Roles and team permissions',
+      'Shared brand kits and approvals',
+      'Managed infrastructure and updates',
       'Priority support (24hr)',
-      'Read-only API access',
       'Advanced analytics',
-      'Custom domains',
+      'PAYG output with managed billing',
     ],
     interval: 'month',
-    label: 'Scale',
-    outputs: {
-      images: 2000,
-      videoMinutes: 15,
-      voiceMinutes: 200,
-    },
-    price: 1499,
+    label: 'Cloud Teams',
+    outputs: null,
+    price: 499,
     stripePriceId: STRIPE_PRICE_IDS.scale,
-    target: 'Agencies managing multiple brands (5-15 people)',
+    target: 'Agencies and teams managing multiple brands or organizations',
     type: 'subscription',
     valueProposition:
-      'Run 5 client accounts with enough output for daily content across all channels.',
+      'A managed collaboration layer for teams that have outgrown a single hosted workspace.',
   },
 
-  // Enterprise Tier - $4,999/month
+  // Enterprise Tier - custom B2B deployment
   {
     cta: 'Book a Demo',
     ctaHref: CALENDLY_URL,
-    description: 'For studios and large teams',
+    description: 'Custom cloud, governance, and support',
     features: [
-      'Unlimited video',
-      'Unlimited images',
-      'Unlimited voice',
+      'Custom output terms',
       'Unlimited team seats',
-      'Unlimited brand kits',
-      'Full read/write API access',
+      'Unlimited organizations and brand kits',
+      'Full API access',
       'White-label (custom domain + branding)',
       'Dedicated Slack support',
       'SSO & team management',
@@ -272,12 +262,12 @@ export const websitePlans: PricingPlanProps[] = [
     ],
     interval: 'month',
     label: 'Enterprise',
-    outputs: null, // Unlimited
-    price: 4999,
+    outputs: null,
+    price: null,
     stripePriceId: STRIPE_PRICE_IDS.enterprise,
     target: 'Studios, white-label partners, large teams',
     type: 'enterprise',
-    valueProposition: 'Your own AI content studio, fully managed.',
+    valueProposition: 'Your own AI content operating system, fully managed.',
   },
 ];
 
@@ -301,17 +291,31 @@ function getRequiredPlan(label: string): PricingPlanProps {
 }
 
 /**
- * Get Pro tier plan
+ * Get Hosted tier plan
  */
-export function getProPlan(): PricingPlanProps {
-  return getRequiredPlan('Pro');
+export function getHostedPlan(): PricingPlanProps {
+  return getRequiredPlan('Hosted');
 }
 
 /**
- * Get Scale tier plan
+ * Get Cloud Teams tier plan
+ */
+export function getCloudTeamsPlan(): PricingPlanProps {
+  return getRequiredPlan('Cloud Teams');
+}
+
+/**
+ * @deprecated Use getHostedPlan.
+ */
+export function getProPlan(): PricingPlanProps {
+  return getHostedPlan();
+}
+
+/**
+ * @deprecated Use getCloudTeamsPlan.
  */
 export function getScalePlan(): PricingPlanProps {
-  return getRequiredPlan('Scale');
+  return getCloudTeamsPlan();
 }
 
 /**

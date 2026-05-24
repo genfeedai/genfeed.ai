@@ -29,6 +29,46 @@ const DATETIME_PARTS_FORMAT: Intl.DateTimeFormatOptions = {
   year: 'numeric',
 };
 
+const datetimePartsFormatters = new Map<string, Intl.DateTimeFormat>();
+const displayFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function getDateTimePartsFormatter(timezone: string): Intl.DateTimeFormat {
+  const cached = datetimePartsFormatters.get(timezone);
+  if (cached) {
+    return cached;
+  }
+
+  const formatter = Intl.DateTimeFormat('en-US', {
+    ...DATETIME_PARTS_FORMAT,
+    timeZone: timezone,
+  });
+  datetimePartsFormatters.set(timezone, formatter);
+  return formatter;
+}
+
+function getDisplayFormatter(
+  timezone: string,
+  format: string,
+): Intl.DateTimeFormat {
+  const cacheKey = `${timezone}:${format}`;
+  const cached = displayFormatters.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const formatter = Intl.DateTimeFormat('en-US', {
+    day: 'numeric',
+    hour: '2-digit',
+    hour12: true,
+    minute: '2-digit',
+    month: format === 'short' ? 'short' : 'long',
+    timeZone: timezone,
+    year: format === 'short' ? undefined : 'numeric',
+  });
+  displayFormatters.set(cacheKey, formatter);
+  return formatter;
+}
+
 function extractDateParts(
   formatter: Intl.DateTimeFormat,
   date: Date,
@@ -49,12 +89,10 @@ function getTimezoneOffset(timezone: string): number {
 
 export function convertToUTC(localDate: Date, timezone: string = 'UTC'): Date {
   try {
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      ...DATETIME_PARTS_FORMAT,
-      timeZone: timezone,
-    });
-
-    const dateParts = extractDateParts(formatter, localDate);
+    const dateParts = extractDateParts(
+      getDateTimePartsFormatter(timezone),
+      localDate,
+    );
     const isoString = `${dateParts.year}-${dateParts.month}-${dateParts.day}T${dateParts.hour}:${dateParts.minute}:${dateParts.second}`;
 
     return new Date(`${isoString}Z`);
@@ -71,12 +109,7 @@ export function convertFromUTC(utcDate: Date, timezone: string = 'UTC'): Date {
   }
 
   try {
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      ...DATETIME_PARTS_FORMAT,
-      timeZone: timezone,
-    });
-
-    const formatted = formatter.format(utcDate);
+    const formatted = getDateTimePartsFormatter(timezone).format(utcDate);
     const [datePart, timePart] = formatted.split(', ');
     const [month, day, year] = datePart.split('/');
     const [hour, minute, second] = timePart.split(':');
@@ -104,17 +137,7 @@ export function formatDateInTimezone(
   const dateObj = typeof date === 'string' ? new Date(date) : date;
 
   try {
-    const options: Intl.DateTimeFormatOptions = {
-      day: 'numeric',
-      hour: '2-digit',
-      hour12: true,
-      minute: '2-digit',
-      month: format === 'short' ? 'short' : 'long',
-      timeZone: timezone,
-      year: format === 'short' ? undefined : 'numeric',
-    };
-
-    return new Intl.DateTimeFormat('en-US', options).format(dateObj);
+    return getDisplayFormatter(timezone, format).format(dateObj);
   } catch (_error) {
     return dateObj.toLocaleString();
   }
@@ -130,7 +153,7 @@ export function getBrowserTimezone(): string {
 
 export function isValidTimezone(timezone: string): boolean {
   try {
-    new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+    Intl.DateTimeFormat('en-US', { timeZone: timezone });
     return true;
   } catch (_error) {
     return false;
@@ -151,11 +174,6 @@ export function createDateFromTimezone(
 
   const baseUtcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes));
 
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    ...DATETIME_PARTS_FORMAT,
-    timeZone: timezone,
-  });
-
   function getPartValue(
     parts: Intl.DateTimeFormatPart[],
     type: string,
@@ -163,7 +181,7 @@ export function createDateFromTimezone(
     return parseInt(parts.find((p) => p.type === type)?.value || '0', 10);
   }
 
-  const parts = formatter.formatToParts(baseUtcDate);
+  const parts = getDateTimePartsFormatter(timezone).formatToParts(baseUtcDate);
   const formattedYear = getPartValue(parts, 'year');
   const formattedMonth = getPartValue(parts, 'month');
   const formattedDay = getPartValue(parts, 'day');

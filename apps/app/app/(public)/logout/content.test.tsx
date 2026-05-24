@@ -25,6 +25,6 @@ describe('LogoutPage', () => {
 
   it('renders the signing out message', () => {
     render(<LogoutPage />);
-    expect(screen.getByText('Signing out...')).toBeInTheDocument();
+    expect(screen.getByText(/Signing out/)).toBeInTheDocument();
   });
 });

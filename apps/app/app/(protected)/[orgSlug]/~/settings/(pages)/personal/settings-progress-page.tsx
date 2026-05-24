@@ -3,6 +3,7 @@
 import type { IStreakMilestoneState } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useSetupCard } from '@hooks/utils/use-setup-card/use-setup-card';
 import { useSidebarProgressPreference } from '@hooks/utils/use-sidebar-progress-preference/use-sidebar-progress-preference';
 import Card from '@ui/card/Card';
@@ -49,6 +50,7 @@ export default function SettingsProgressPage({
   showOverviewCard = true,
 }: SettingsProgressPageProps) {
   const { completedCount, steps, totalCount } = useSetupCard();
+  const { orgHref } = useOrgUrl();
   const { calendar, isLoading, streak } = useStreak();
   const { isSaving, isVisible, setVisibility } = useSidebarProgressPreference();
 
@@ -85,10 +87,10 @@ export default function SettingsProgressPage({
 
             {nextSetupStep ? (
               <Link
-                href={nextSetupStep.href}
+                href={orgHref(nextSetupStep.href)}
                 className="inline-flex items-center gap-2 rounded-full border border-orange-400/25 bg-orange-400/10 px-4 py-2 text-sm font-medium text-orange-100 transition-colors hover:bg-orange-400/15"
               >
-                <HiOutlineSparkles className="h-4 w-4" />
+                <HiOutlineSparkles className="size-4" />
                 Finish {nextSetupStep.label}
               </Link>
             ) : (
@@ -96,7 +98,7 @@ export default function SettingsProgressPage({
                 href="/compose"
                 className="inline-flex items-center gap-2 rounded-full border border-orange-400/25 bg-orange-400/10 px-4 py-2 text-sm font-medium text-orange-100 transition-colors hover:bg-orange-400/15"
               >
-                <HiOutlineSparkles className="h-4 w-4" />
+                <HiOutlineSparkles className="size-4" />
                 Create something new
               </Link>
             )}
@@ -187,7 +189,7 @@ export default function SettingsProgressPage({
                   )}
                 >
                   {step.isCompleted ? 'Review' : 'Complete'}
-                  <HiMiniArrowUpRight className="h-3.5 w-3.5" />
+                  <HiMiniArrowUpRight className="size-3.5" />
                 </Link>
               </div>
             ))}
@@ -290,7 +292,7 @@ export default function SettingsProgressPage({
                   key={milestone}
                   variant="success"
                 >
-                  <HiOutlineGift className="h-3.5 w-3.5" />
+                  <HiOutlineGift className="size-3.5" />
                   {milestone}-day badge
                 </Badge>
               ))
@@ -321,11 +323,11 @@ export default function SettingsProgressPage({
                         {milestone.days} days
                       </span>
                       {milestone.days === 7 ? (
-                        <HiOutlineShieldCheck className="h-4 w-4 text-sky-300" />
+                        <HiOutlineShieldCheck className="size-4 text-sky-300" />
                       ) : milestone.rewardCredits > 0 ? (
-                        <HiOutlineGift className="h-4 w-4 text-emerald-300" />
+                        <HiOutlineGift className="size-4 text-emerald-300" />
                       ) : (
-                        <HiOutlineFire className="h-4 w-4 text-orange-300" />
+                        <HiOutlineFire className="size-4 text-orange-300" />
                       )}
                     </div>
                     <p className="mt-1 text-sm text-foreground/65">

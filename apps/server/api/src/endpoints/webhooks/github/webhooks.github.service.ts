@@ -90,10 +90,10 @@ export class GitHubWebhookService {
       };
     }
 
-    await this.apiKeysService.revoke(apiKey._id.toString());
+    await this.apiKeysService.revoke(apiKey.id);
 
     this.logger.warn('API key auto-revoked via GitHub Secret Scanning', {
-      keyId: apiKey._id.toString(),
+      keyId: apiKey.id,
       source: alert.source,
       url: alert.url,
     });

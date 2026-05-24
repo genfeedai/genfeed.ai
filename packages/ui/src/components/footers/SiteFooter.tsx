@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Card from '@ui/card/Card';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Button } from '@ui/primitives';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -93,8 +94,7 @@ export default function SiteFooter({
               alt="Genfeed"
               width={120}
               height={20}
-              className="h-5 invert mb-10"
-              style={{ width: 'auto' }}
+              className="h-5 w-auto invert mb-10"
             />
 
             <p className="text-white/30 max-w-sm mb-12 leading-relaxed font-medium">
@@ -112,8 +112,8 @@ export default function SiteFooter({
                   className="group"
                   aria-label={social.label}
                 >
-                  <div className="w-12 h-12 border border-white/[0.08] group-hover:border-white flex items-center justify-center group-hover:bg-white transition-all duration-300 ease-out">
-                    <social.icon className="w-5 h-5 text-white/60 group-hover:text-black transition-colors duration-300 ease-out" />
+                  <div className="size-12 border border-white/[0.08] group-hover:border-white flex items-center justify-center group-hover:bg-white transition-all duration-300 ease-out">
+                    <social.icon className="size-5 text-white/60 group-hover:text-black transition-colors duration-300 ease-out" />
                   </div>
                 </Link>
               ))}
@@ -124,10 +124,10 @@ export default function SiteFooter({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-12">
             {sections.map((section) => (
               <div key={section.title}>
-                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-10">
+                <h4 className="text-[10px] font-semibold uppercase tracking-[0.3em] mb-10">
                   {section.title}
                 </h4>
-                <ul className="space-y-6 text-xs text-white/30 font-bold uppercase tracking-widest">
+                <ul className="space-y-6 text-xs text-white/30 font-semibold uppercase tracking-widest">
                   {section.links.map((link) => (
                     <li key={link.href}>
                       <Link
@@ -149,8 +149,8 @@ export default function SiteFooter({
             {/* Newsletter Column */}
             {showNewsletter && (
               <div>
-                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-10 flex items-center gap-2">
-                  <HiEnvelope className="h-4 w-4" />
+                <h4 className="text-[10px] font-semibold uppercase tracking-[0.3em] mb-10 flex items-center gap-2">
+                  <HiEnvelope className="size-4" />
                   Newsletter
                 </h4>
                 <p className="text-sm text-white/30 mb-6 leading-relaxed font-medium">
@@ -179,12 +179,12 @@ export default function SiteFooter({
           >
             <div className="flex flex-col sm:flex-row items-center justify-between gap-8">
               <div className="flex items-center gap-6">
-                <div className="w-16 h-16 border border-black/10 flex items-center justify-center">
-                  <HiCalendarDays className="h-7 w-7 text-black" />
+                <div className="size-16 border border-black/10 flex items-center justify-center">
+                  <HiCalendarDays className="size-7 text-black" />
                 </div>
 
                 <div>
-                  <h4 className="text-xl font-black uppercase tracking-wide mb-1 text-black">
+                  <h4 className="text-xl font-semibold uppercase tracking-wide mb-1 text-black">
                     Want to chat?
                   </h4>
 
@@ -217,9 +217,9 @@ export default function SiteFooter({
         justify-between items-center text-xs text-white/20 font-black py-10"
         >
           <p>
-            <span suppressHydrationWarning>
-              &copy; {new Date().getFullYear()} GENFEED.AI. ALL RIGHTS RESERVED.
-            </span>
+            &copy;{' '}
+            <ClientDateTime format={(date) => date.getFullYear().toString()} />{' '}
+            GENFEED.AI. ALL RIGHTS RESERVED.
           </p>
 
           <div className="flex flex-wrap justify-center gap-10">

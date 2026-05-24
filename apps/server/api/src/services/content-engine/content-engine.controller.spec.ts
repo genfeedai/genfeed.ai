@@ -336,12 +336,10 @@ describe('ContentEngineController', () => {
         ['draft-1', 'draft-2'],
         userId,
       );
-      expect(result).toEqual({
-        data: [
-          { _id: 'draft-1', status: 'approved' },
-          { _id: 'draft-2', status: 'approved' },
-        ],
-      });
+      expect(result).toEqual([
+        { _id: 'draft-1', status: 'approved' },
+        { _id: 'draft-2', status: 'approved' },
+      ]);
     });
   });
 });

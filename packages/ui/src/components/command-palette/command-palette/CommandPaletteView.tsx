@@ -30,7 +30,7 @@ export function CommandPaletteView({
   selectedIndex,
   query,
   maxResults = 10,
-  placeholder = 'Type a command or search...',
+  placeholder = 'Type a command or search…',
   noResultsMessage = 'No commands found',
   className,
   inputRef,

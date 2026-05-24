@@ -9,8 +9,7 @@ import {
   type NestInterceptor,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { type Observable, of } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { firstValueFrom, Observable, of } from 'rxjs';
 
 /**
  * Redis-based caching interceptor that works with the @Cache decorator
@@ -76,7 +75,6 @@ export class RedisCacheInterceptor implements NestInterceptor {
     const cacheKey = this.generateCacheKey(context, cacheOptions, request);
 
     try {
-      // Try to get from cache first
       const cachedResult = await this.cacheService.get(cacheKey);
 
       if (cachedResult != null) {
@@ -86,19 +84,18 @@ export class RedisCacheInterceptor implements NestInterceptor {
 
       this.logger.debug(`Cache miss for key: ${cacheKey}`);
 
-      // Cache miss, execute handler and cache result
-      return next.handle().pipe(
-        tap((result) => {
-          if (this.shouldCacheResult(result, cacheOptions)) {
-            this.cacheResult(cacheKey, result, cacheOptions).catch((err) =>
-              this.logger.error('Failed to cache result', err),
-            );
-          }
-        }),
-      );
+      const result = await firstValueFrom(next.handle());
+
+      if (this.shouldCacheResult(result, cacheOptions)) {
+        await this.cacheService.set(cacheKey, result, {
+          tags: cacheOptions.tags,
+          ttl: cacheOptions.ttl,
+        });
+      }
+
+      return of(result);
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} failed`, error);
-      // On cache error, proceed without caching
       return next.handle();
     }
   }
@@ -235,90 +232,5 @@ export class RedisCacheInterceptor implements NestInterceptor {
     }
 
     return true;
-  }
-
-  /**
-   * Cache the result with TTL and tags
-   */
-  private async cacheResult(
-    key: string,
-    result: unknown,
-    options: CacheOptions,
-  ): Promise<void> {
-    try {
-      await this.cacheService.set(key, result, {
-        tags: options.tags,
-        ttl: options.ttl,
-      });
-
-      this.logger.debug(`Cached result for key: ${key}, TTL: ${options.ttl}s`);
-    } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} failed`, error);
-    }
-  }
-}
-
-/**
- * Cache invalidation service
- * Provides methods to invalidate cache by tags or patterns
- */
-@Injectable()
-export class CacheInvalidationService {
-  private readonly constructorName: string = String(this.constructor.name);
-  private readonly logger = new Logger(CacheInvalidationService.name);
-
-  constructor(private readonly cacheService: CacheService) {}
-
-  /**
-   * Invalidate all cache entries with specific tags
-   */
-  async invalidateByTags(tags: string[]): Promise<void> {
-    try {
-      const invalidatedCount = await this.cacheService.invalidateByTags(tags);
-      this.logger.log(
-        `Invalidated ${invalidatedCount} cache entries for tags: ${tags.join(',')}`,
-      );
-    } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} failed`, error);
-    }
-  }
-
-  /**
-   * Invalidate cache entries matching a pattern
-   * Note: Redis pattern matching requires a custom implementation
-   */
-  async invalidateByPattern(pattern: string): Promise<void> {
-    try {
-      // For now, we'll use a simple approach for common patterns
-      // In production, you might want to implement SCAN for large datasets
-      if (pattern.includes('*')) {
-        this.logger.warn(
-          `Pattern matching with wildcards (${pattern}) requires custom implementation. Use invalidateByTags instead.`,
-        );
-        return;
-      }
-
-      // For exact key deletion
-      const deleted = await this.cacheService.del(pattern);
-      if (deleted) {
-        this.logger.log(`Invalidated cache entry: ${pattern}`);
-      }
-    } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} failed`, error);
-    }
-  }
-
-  /**
-   * Invalidate all cache for a specific user
-   */
-  async invalidateForUser(userId: string): Promise<void> {
-    await this.invalidateByTags([`user:${userId}`]);
-  }
-
-  /**
-   * Invalidate all cache for a specific controller
-   */
-  async invalidateForController(controllerName: string): Promise<void> {
-    await this.invalidateByTags([controllerName.toLowerCase()]);
   }
 }

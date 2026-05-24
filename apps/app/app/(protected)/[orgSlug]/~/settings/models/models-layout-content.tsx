@@ -3,6 +3,7 @@
 import { useModelsContext } from '@contexts/models/models-context/models-context';
 import { useTrainingsContext } from '@contexts/models/trainings-context/trainings-context';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { NavigationTab } from '@genfeedai/interfaces/ui/navigation.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
@@ -20,6 +21,7 @@ export default function ModelsLayoutContent({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const { orgHref } = useOrgUrl();
 
   const { refreshTrainings, isRefreshing: isRefreshingTrainings } =
     useTrainingsContext();
@@ -29,32 +31,32 @@ export default function ModelsLayoutContent({
   const tabs: NavigationTab[] = useMemo(
     () => [
       {
-        href: '/settings/models/all',
+        href: orgHref('/settings/models/all'),
         id: 'all',
         label: 'All',
       },
       {
-        href: '/settings/models/images',
+        href: orgHref('/settings/models/images'),
         id: 'images',
         label: 'Images',
       },
       {
-        href: '/settings/models/videos',
+        href: orgHref('/settings/models/videos'),
         id: 'videos',
         label: 'Videos',
       },
       {
-        href: '/settings/models/text',
+        href: orgHref('/settings/models/text'),
         id: 'text',
         label: 'Text',
       },
       {
-        href: '/settings/models/trainings',
+        href: orgHref('/settings/models/trainings'),
         id: 'trainings',
         label: 'Trainings',
       },
     ],
-    [],
+    [orgHref],
   );
 
   // Determine active tab based on pathname

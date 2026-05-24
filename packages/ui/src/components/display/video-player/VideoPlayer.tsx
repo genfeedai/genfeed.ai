@@ -6,6 +6,75 @@ import Spinner from '@ui/feedback/spinner/Spinner';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 
+interface VideoOverlayContentProps {
+  hasError: boolean;
+  thumbnail: string;
+  showLoader: boolean;
+  isMetadataLoaded: boolean;
+  priority: boolean;
+}
+
+function VideoOverlayContent({
+  hasError,
+  thumbnail,
+  showLoader,
+  isMetadataLoaded,
+  priority,
+}: VideoOverlayContentProps): React.ReactNode {
+  const imageSizes = '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw';
+  const imageLoading = priority ? 'eager' : 'lazy';
+
+  if (hasError) {
+    return (
+      <div className="relative size-full">
+        <Image
+          src={
+            thumbnail ||
+            `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`
+          }
+          alt="Video unavailable"
+          fill
+          sizes={imageSizes}
+          className="object-cover object-center"
+          priority={priority}
+          loading={imageLoading}
+        />
+      </div>
+    );
+  }
+
+  if (thumbnail) {
+    return (
+      <div className="relative size-full">
+        <Image
+          src={thumbnail}
+          alt="Video thumbnail"
+          fill
+          sizes={imageSizes}
+          className="object-cover object-center"
+          priority={priority}
+          loading={imageLoading}
+        />
+        {showLoader && !isMetadataLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+            <Spinner size={ComponentSize.SM} className="text-white" />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (showLoader) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-card">
+        <Spinner />
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export default function VideoPlayer({
   videoRef,
   src = '',
@@ -76,67 +145,19 @@ export default function VideoPlayer({
     [],
   );
 
-  const renderOverlayContent = (): React.ReactNode => {
-    const imageSizes =
-      '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw';
-    const imageLoading = priority ? 'eager' : 'lazy';
-
-    if (hasError) {
-      return (
-        <div className="relative w-full h-full">
-          <Image
-            src={
-              thumbnail ||
-              `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`
-            }
-            alt="Video unavailable"
-            fill
-            sizes={imageSizes}
-            className="object-cover object-center"
-            priority={priority}
-            loading={imageLoading}
-          />
-        </div>
-      );
-    }
-
-    if (thumbnail) {
-      return (
-        <div className="relative w-full h-full">
-          <Image
-            src={thumbnail}
-            alt="Video thumbnail"
-            fill
-            sizes={imageSizes}
-            className="object-cover object-center"
-            priority={priority}
-            loading={imageLoading}
-          />
-          {showLoader && !isMetadataLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-              <Spinner size={ComponentSize.SM} className="text-white" />
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    if (showLoader) {
-      return (
-        <div className="absolute inset-0 flex items-center justify-center bg-card">
-          <Spinner />
-        </div>
-      );
-    }
-
-    return null;
-  };
-
   return (
-    <div className={`relative w-full h-full ${className}`}>
+    <div className={`relative size-full ${className}`}>
       {/* Show thumbnail or loading state when video isn't ready */}
       {((showLoader && !isLoaded) || hasError) && (
-        <div className="absolute inset-0 z-10">{renderOverlayContent()}</div>
+        <div className="absolute inset-0 z-10">
+          <VideoOverlayContent
+            hasError={hasError}
+            thumbnail={thumbnail}
+            showLoader={showLoader}
+            isMetadataLoaded={isMetadataLoaded}
+            priority={priority}
+          />
+        </div>
       )}
 
       <video
@@ -156,7 +177,7 @@ export default function VideoPlayer({
         onCanPlay={handleCanPlay}
         onError={handleError}
         // crossOrigin="anonymous"
-        className={`w-full h-full object-contain object-center ${
+        className={`size-full object-contain object-center ${
           isLoaded && !hasError ? 'opacity-100' : 'opacity-0'
         }`}
       />

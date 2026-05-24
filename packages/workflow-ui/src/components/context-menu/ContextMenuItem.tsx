@@ -82,7 +82,7 @@ export function ContextMenuItem({
       >
         {icon && (
           <span
-            className={`w-4 h-4 flex items-center justify-center ${danger ? 'text-red-400' : 'text-[var(--muted-foreground)]'}`}
+            className={`size-4 flex items-center justify-center ${danger ? 'text-red-400' : 'text-[var(--muted-foreground)]'}`}
           >
             {icon}
           </span>
@@ -94,7 +94,7 @@ export function ContextMenuItem({
           </span>
         )}
         {hasSubmenu && (
-          <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)]" />
+          <ChevronRight className="size-4 text-[var(--muted-foreground)]" />
         )}
       </Button>
 
@@ -123,7 +123,7 @@ export function ContextMenuItem({
               >
                 {item.icon && (
                   <span
-                    className={`w-4 h-4 flex items-center justify-center ${item.danger ? 'text-red-400' : 'text-[var(--muted-foreground)]'}`}
+                    className={`size-4 flex items-center justify-center ${item.danger ? 'text-red-400' : 'text-[var(--muted-foreground)]'}`}
                   >
                     {item.icon}
                   </span>

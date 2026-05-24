@@ -473,7 +473,7 @@ async function setupAuthLocalStorage(page: Page): Promise<void> {
 // ----------------------------------------------------------------------------
 
 export const test = base.extend<OnboardingFixtures>({
-  onboardingPage: async ({ page, context }, use) => {
+  onboardingPage: async ({ page, context }, runFixture) => {
     const networkGuard = await setupStrictNetworkGuard(page);
 
     // Set up authentication cookies
@@ -498,7 +498,7 @@ export const test = base.extend<OnboardingFixtures>({
     });
     await setupAuthLocalStorage(page);
 
-    await use(page);
+    await runFixture(page);
     networkGuard.assertNoBlockedRequests();
   },
 });

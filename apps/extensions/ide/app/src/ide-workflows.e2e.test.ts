@@ -490,6 +490,7 @@ mock.module('@services/error-tracking.service', () => ({
 }));
 
 mock.module('@services/workspace.service', () => ({
+  // biome-ignore lint/complexity/noStaticOnlyClass: mirrors the static WorkspaceService API used by extension commands.
   WorkspaceService: class WorkspaceService {
     static createTimelineEvent(
       stage: string,

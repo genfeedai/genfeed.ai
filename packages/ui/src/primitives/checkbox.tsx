@@ -1,20 +1,18 @@
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
-import { Check } from 'lucide-react';
-import {
-  type ChangeEvent,
-  type ComponentPropsWithoutRef,
-  type ComponentRef,
-  forwardRef,
-  type ReactElement,
-  type ReactNode,
-  type Ref,
+import { Checkbox as ShipCheckbox } from '@shipshitdev/ui/primitives';
+import type {
+  ChangeEvent,
+  ComponentPropsWithoutRef,
+  ReactElement,
+  ReactNode,
+  Ref,
 } from 'react';
 import type { Control, FieldValues, Path } from 'react-hook-form';
 import { useController } from 'react-hook-form';
 import { cn } from '../lib/utils';
 
 type CheckboxBaseProps = Omit<
-  ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>,
+  ComponentPropsWithoutRef<typeof ShipCheckbox>,
   'disabled' | 'name' | 'onChange' | 'onCheckedChange' | 'required'
 >;
 
@@ -29,18 +27,17 @@ export interface CheckboxProps<T extends FieldValues = FieldValues>
   name?: Path<T> | string;
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
   onCheckedChange?: (checked: CheckboxPrimitive.CheckedState) => void;
+  ref?: Ref<HTMLButtonElement>;
   required?: boolean;
 }
 
 interface CheckboxInnerProps<T extends FieldValues = FieldValues>
   extends CheckboxProps<T> {
   checked?: CheckboxPrimitive.CheckedState;
-  externalRef?: Ref<ComponentRef<typeof CheckboxPrimitive.Root>>;
+  externalRef?: Ref<HTMLButtonElement>;
   fieldOnBlur?: () => void;
   fieldOnChange?: (checked: boolean) => void;
-  fieldRef?: (
-    element: ComponentRef<typeof CheckboxPrimitive.Root> | null,
-  ) => void;
+  fieldRef?: (element: HTMLButtonElement | null) => void;
 }
 
 function CheckboxInner<T extends FieldValues = FieldValues>({
@@ -65,7 +62,7 @@ function CheckboxInner<T extends FieldValues = FieldValues>({
   const resolvedChecked = checked ?? isChecked;
 
   const checkbox = (
-    <CheckboxPrimitive.Root
+    <ShipCheckbox
       {...props}
       ref={(element) => {
         if (typeof externalRef === 'function') {
@@ -77,10 +74,7 @@ function CheckboxInner<T extends FieldValues = FieldValues>({
         fieldRef?.(element);
       }}
       checked={resolvedChecked}
-      className={cn(
-        'peer h-4 w-4 shrink-0 border border-primary shadow focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground',
-        className,
-      )}
+      className={cn('ship-ui', className)}
       disabled={isDisabled ?? disabled}
       name={name}
       onBlur={(event) => {
@@ -99,13 +93,7 @@ function CheckboxInner<T extends FieldValues = FieldValues>({
         }
       }}
       required={isRequired ?? required}
-    >
-      <CheckboxPrimitive.Indicator
-        className={cn('flex items-center justify-center text-current')}
-      >
-        <Check className="h-4 w-4" />
-      </CheckboxPrimitive.Indicator>
-    </CheckboxPrimitive.Root>
+    />
   );
 
   if (!label) {
@@ -125,7 +113,7 @@ function HookedCheckboxInner<T extends FieldValues = FieldValues>({
   ...props
 }: CheckboxProps<T> & {
   control: Control<T>;
-  externalRef?: Ref<ComponentRef<typeof CheckboxPrimitive.Root>>;
+  externalRef?: Ref<HTMLButtonElement>;
 }): ReactElement {
   const { field } = useController({
     control,
@@ -143,10 +131,7 @@ function HookedCheckboxInner<T extends FieldValues = FieldValues>({
   );
 }
 
-const Checkbox = forwardRef<
-  ComponentRef<typeof CheckboxPrimitive.Root>,
-  CheckboxProps
->(({ control, ...props }, ref) => {
+function Checkbox({ ref, control, ...props }: CheckboxProps) {
   if (control && props.name) {
     return (
       <HookedCheckboxInner {...props} control={control} externalRef={ref} />
@@ -154,7 +139,8 @@ const Checkbox = forwardRef<
   }
 
   return <CheckboxInner {...props} externalRef={ref} />;
-});
-Checkbox.displayName = CheckboxPrimitive.Root.displayName;
+}
+Checkbox.displayName =
+  ShipCheckbox.displayName ?? CheckboxPrimitive.Root.displayName;
 
 export { Checkbox };

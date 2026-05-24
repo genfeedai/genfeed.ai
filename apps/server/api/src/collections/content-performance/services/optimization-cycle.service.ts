@@ -1,3 +1,4 @@
+import type { ContentPerformanceDocument } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
@@ -185,26 +186,55 @@ export class OptimizationCycleService {
     organizationId: string,
     brandId: string,
   ): Promise<CycleHistoryEntry[]> {
-    const rows = await this.prisma.contentPerformance.groupBy({
-      _avg: { engagementRate: true, performanceScore: true },
-      _count: { id: true },
-      _max: { measuredAt: true },
-      _min: { measuredAt: true },
-      by: ['cycleNumber'],
-      orderBy: { cycleNumber: 'asc' },
+    const rows = (await this.prisma.contentPerformance.findMany({
+      orderBy: { createdAt: 'asc' },
       where: { brandId, isDeleted: false, organizationId },
-    });
+    })) as unknown as ContentPerformanceDocument[];
 
-    return rows.map((r) => ({
-      avgEngagementRate: r._avg.engagementRate ?? 0,
-      avgPerformanceScore: r._avg.performanceScore ?? 0,
-      cycleNumber: r.cycleNumber ?? 0,
-      dateRange: {
-        end: r._max.measuredAt ?? new Date(),
-        start: r._min.measuredAt ?? new Date(),
-      },
-      totalContent: r._count.id,
-    }));
+    const grouped = new Map<number, ContentPerformanceDocument[]>();
+
+    for (const row of rows) {
+      const cycleNumber = row.cycleNumber ?? 0;
+      const existing = grouped.get(cycleNumber) ?? [];
+      existing.push(row);
+      grouped.set(cycleNumber, existing);
+    }
+
+    return Array.from(grouped.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([cycleNumber, items]) => {
+        const avgEngagementRate =
+          items.reduce((sum, item) => sum + (item.engagementRate ?? 0), 0) /
+          Math.max(items.length, 1);
+        const avgPerformanceScore =
+          items.reduce((sum, item) => sum + (item.performanceScore ?? 0), 0) /
+          Math.max(items.length, 1);
+        const measuredAtDates = items
+          .map((item) => item.measuredAt)
+          .filter(Boolean)
+          .map((value) => new Date(value as Date | string));
+
+        return {
+          avgEngagementRate,
+          avgPerformanceScore,
+          cycleNumber,
+          dateRange: {
+            end:
+              measuredAtDates.length > 0
+                ? new Date(
+                    Math.max(...measuredAtDates.map((date) => date.getTime())),
+                  )
+                : new Date(),
+            start:
+              measuredAtDates.length > 0
+                ? new Date(
+                    Math.min(...measuredAtDates.map((date) => date.getTime())),
+                  )
+                : new Date(),
+          },
+          totalContent: items.length,
+        };
+      });
   }
 
   // ─── Private ─────────────────────────────────────────────────────
@@ -238,10 +268,10 @@ export class OptimizationCycleService {
     where: Record<string, unknown>,
     limit: number,
   ): Promise<RankedContentResult[]> {
-    const rows = await this.prisma.contentPerformance.findMany({
+    const rows = (await this.prisma.contentPerformance.findMany({
       take: limit * 3, // Fetch more to sort by combinedScore in memory
       where: where as never,
-    });
+    })) as unknown as ContentPerformanceDocument[];
 
     return rows
       .map((r) => ({
@@ -251,7 +281,12 @@ export class OptimizationCycleService {
         engagementRate: r.engagementRate ?? 0,
         hookUsed: (r as Record<string, unknown>).hookUsed as string | undefined,
         id: r.id,
-        measuredAt: r.measuredAt ?? undefined,
+        measuredAt:
+          r.measuredAt instanceof Date
+            ? r.measuredAt
+            : typeof r.measuredAt === 'string'
+              ? new Date(r.measuredAt)
+              : undefined,
         performanceScore: r.performanceScore ?? 0,
         platform: r.platform ?? undefined,
         promptUsed: (r as Record<string, unknown>).promptUsed as
@@ -266,25 +301,47 @@ export class OptimizationCycleService {
     where: Record<string, unknown>,
     options: OptimizationCycleOptions,
   ): Promise<CycleStats> {
-    const agg = await this.prisma.contentPerformance.aggregate({
-      _avg: { engagementRate: true, performanceScore: true },
-      _count: { id: true },
-      _max: { cycleNumber: true, engagementRate: true, measuredAt: true },
-      _min: { engagementRate: true, measuredAt: true },
+    const rows = (await this.prisma.contentPerformance.findMany({
       where: where as never,
-    });
+    })) as unknown as ContentPerformanceDocument[];
+
+    const engagementRates = rows.map((row) => row.engagementRate ?? 0);
+    const performanceScores = rows.map((row) => row.performanceScore ?? 0);
+    const cycleNumbers = rows.map((row) => row.cycleNumber ?? 1);
+    const measuredAtDates = rows
+      .map((row) => row.measuredAt)
+      .filter(Boolean)
+      .map((value) => new Date(value as Date | string));
 
     return {
-      avgEngagementRate: agg._avg.engagementRate ?? 0,
-      avgPerformanceScore: agg._avg.performanceScore ?? 0,
-      bottomEngagementRate: agg._min.engagementRate ?? 0,
-      cycleNumber: options.cycleNumber ?? agg._max.cycleNumber ?? 1,
+      avgEngagementRate:
+        engagementRates.reduce((sum, value) => sum + value, 0) /
+        Math.max(engagementRates.length, 1),
+      avgPerformanceScore:
+        performanceScores.reduce((sum, value) => sum + value, 0) /
+        Math.max(performanceScores.length, 1),
+      bottomEngagementRate:
+        engagementRates.length > 0 ? Math.min(...engagementRates) : 0,
+      cycleNumber:
+        options.cycleNumber ??
+        (cycleNumbers.length > 0 ? Math.max(...cycleNumbers) : 1),
       dateRange: {
-        end: agg._max.measuredAt ?? new Date(),
-        start: agg._min.measuredAt ?? new Date(),
+        end:
+          measuredAtDates.length > 0
+            ? new Date(
+                Math.max(...measuredAtDates.map((date) => date.getTime())),
+              )
+            : new Date(),
+        start:
+          measuredAtDates.length > 0
+            ? new Date(
+                Math.min(...measuredAtDates.map((date) => date.getTime())),
+              )
+            : new Date(),
       },
-      topEngagementRate: agg._max.engagementRate ?? 0,
-      totalContent: agg._count.id,
+      topEngagementRate:
+        engagementRates.length > 0 ? Math.max(...engagementRates) : 0,
+      totalContent: rows.length,
     };
   }
 

@@ -2,7 +2,7 @@
  * ClipProjectsCoreModule
  *
  * Minimal module providing ClipProjectsService + schema registration only.
- * Intentionally has NO dependency on ClipAnalyzeModule or ClipFactoryModule,
+ * Intentionally has NO dependency on ClipAnalyzeModule or forwardRef(() => ClipFactoryModule),
  * allowing queue modules to import it without creating circular references.
  *
  * ClipProjectsModule re-exports everything from here and adds the queue modules.
@@ -15,7 +15,7 @@ import { ClipResultsModule } from '@api/collections/clip-results/clip-results.mo
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { AvatarVideoModule } from '@api/services/avatar-video/avatar-video.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   exports: [
@@ -24,10 +24,10 @@ import { Module } from '@nestjs/common';
     HighlightRewriteService,
   ],
   imports: [
-    ClipResultsModule,
-    CreditsModule,
-    AvatarVideoModule,
-    OpenRouterModule,
+    forwardRef(() => ClipResultsModule),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => AvatarVideoModule),
+    forwardRef(() => OpenRouterModule),
   ],
   providers: [
     ClipProjectsService,

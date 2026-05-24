@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": true
     },
-    "name": "mobile.genfeed.ai",
+    "name": "Genfeed",
     "newArchEnabled": true,
     "orientation": "portrait",
     "plugins": [
@@ -33,7 +33,7 @@
       ]
     ],
     "scheme": "mobilegenfeedai",
-    "slug": "mobile.genfeed.ai",
+    "slug": "genfeed-mobile",
     "userInterfaceStyle": "automatic",
     "version": "1.0.0",
     "web": {

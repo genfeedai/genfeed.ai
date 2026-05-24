@@ -2,6 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { CreateAgentGoalDto } from '@api/collections/agent-goals/dto/create-agent-goal.dto';
 import { UpdateAgentGoalDto } from '@api/collections/agent-goals/dto/update-agent-goal.dto';
 import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
+import type {
+  AgentMemoryContentType,
+  AgentMemoryKind,
+  AgentMemoryScope,
+} from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
@@ -97,7 +102,7 @@ import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
 import { firstValueFrom } from 'rxjs';
 
-interface ToolExecutionContext {
+export interface ToolExecutionContext {
   /** URLs of user-attached images from the chat message */
   attachmentUrls?: string[];
   userId: string;
@@ -123,6 +128,11 @@ interface ToolExecutionContext {
   strategyId?: string;
   /** Keep batch generation attached to the current live run and stream item previews */
   streamBatchToUser?: boolean;
+}
+
+interface ToolRouteSlugs {
+  brandSlug?: string;
+  orgSlug: string;
 }
 
 interface DashboardHydrationState {
@@ -172,6 +182,23 @@ const SAVE_BRAND_VOICE_PROFILE_TOOL =
   'save_brand_voice_profile' as AgentToolName;
 const GET_WORKFLOW_INPUTS_TOOL = 'get_workflow_inputs' as AgentToolName;
 const LIVESTREAM_BOT_CATEGORY = 'livestream_chat';
+const ROUTE_HREF_KEYS = new Set(['href', 'ctaHref', 'editorUrl']);
+const ORG_LEVEL_ROUTE_PREFIXES = new Set([
+  'agent',
+  'chat',
+  'overview',
+  'settings',
+]);
+const UNSCOPED_ROUTE_PREFIXES = new Set([
+  'admin',
+  'login',
+  'logout',
+  'oauth',
+  'onboarding',
+  'playwright-ready',
+  'request-access',
+  'sign-up',
+]);
 
 interface AgentLivestreamBotRecord {
   _id: unknown;
@@ -197,7 +224,7 @@ interface AgentBrandsServiceLike {
     createDto: Record<string, unknown>,
   ) => Promise<Record<string, unknown>>;
   findAll: (
-    aggregate: Record<string, unknown>[],
+    aggregate: Record<string, unknown> | Record<string, unknown>[],
     options: Record<string, unknown>,
   ) => Promise<{ docs?: Record<string, unknown>[] }>;
   findOne: (
@@ -695,6 +722,7 @@ export class AgentToolExecutorService {
 
     try {
       const result = await this.dispatch(toolName, parameters, context);
+      const scopedResult = await this.scopeToolResultHrefs(result, context);
       const durationMs = Date.now() - startTime;
 
       this.loggerService.log(
@@ -702,7 +730,7 @@ export class AgentToolExecutorService {
         this.constructorName,
       );
 
-      return result;
+      return scopedResult;
     } catch (error: unknown) {
       const durationMs = Date.now() - startTime;
       const errorMessage =
@@ -721,7 +749,178 @@ export class AgentToolExecutorService {
     }
   }
 
-  private dispatch(
+  private async scopeToolResultHrefs(
+    result: AgentToolResult,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    if (!this.hasScopeableHref(result)) {
+      return result;
+    }
+
+    const routeSlugs = await this.resolveToolRouteSlugs(ctx);
+    if (!routeSlugs) {
+      return result;
+    }
+
+    return this.scopeHrefFields(result, routeSlugs) as AgentToolResult;
+  }
+
+  private async resolveToolRouteSlugs(
+    ctx: ToolExecutionContext,
+  ): Promise<ToolRouteSlugs | null> {
+    if (!this.organizationsService) {
+      return null;
+    }
+
+    try {
+      const organization = await this.organizationsService.findOne({
+        _id: ctx.organizationId,
+        isDeleted: false,
+      });
+      const orgSlug = this.readRecordString(organization, 'slug');
+
+      if (!orgSlug) {
+        return null;
+      }
+
+      const brand = await this.resolveToolRouteBrand(ctx);
+      const brandSlug = this.readRecordString(brand, 'slug');
+
+      return {
+        ...(brandSlug ? { brandSlug } : {}),
+        orgSlug,
+      };
+    } catch (error: unknown) {
+      this.loggerService.warn('Failed to resolve tool route slugs', {
+        error: error instanceof Error ? error.message : String(error),
+        organizationId: ctx.organizationId,
+      });
+      return null;
+    }
+  }
+
+  private async resolveToolRouteBrand(
+    ctx: ToolExecutionContext,
+  ): Promise<Record<string, unknown> | null> {
+    if (ctx.brandId) {
+      return this.brandsService.findOne({
+        _id: ctx.brandId,
+        isDeleted: false,
+        organization: ctx.organizationId,
+      });
+    }
+
+    return this.brandsService.findOne({
+      isDeleted: false,
+      isSelected: true,
+      organization: ctx.organizationId,
+      user: ctx.userId,
+    });
+  }
+
+  private hasScopeableHref(value: unknown): boolean {
+    if (Array.isArray(value)) {
+      return value.some((item) => this.hasScopeableHref(item));
+    }
+
+    if (!this.isPlainRecord(value)) {
+      return false;
+    }
+
+    return Object.entries(value).some(([key, nestedValue]) => {
+      if (
+        ROUTE_HREF_KEYS.has(key) &&
+        typeof nestedValue === 'string' &&
+        this.isScopeableInternalHref(nestedValue)
+      ) {
+        return true;
+      }
+
+      return this.hasScopeableHref(nestedValue);
+    });
+  }
+
+  private scopeHrefFields(value: unknown, slugs: ToolRouteSlugs): unknown {
+    if (Array.isArray(value)) {
+      return value.map((item) => this.scopeHrefFields(item, slugs));
+    }
+
+    if (!this.isPlainRecord(value)) {
+      return value;
+    }
+
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nestedValue]) => {
+        if (ROUTE_HREF_KEYS.has(key) && typeof nestedValue === 'string') {
+          return [key, this.scopeInternalHref(nestedValue, slugs)];
+        }
+
+        return [key, this.scopeHrefFields(nestedValue, slugs)];
+      }),
+    );
+  }
+
+  private scopeInternalHref(href: string, slugs: ToolRouteSlugs): string {
+    if (!this.isScopeableInternalHref(href)) {
+      return href;
+    }
+
+    const { path, suffix } = this.splitHrefSuffix(href);
+    const firstSegment = path.split('/').filter(Boolean)[0];
+
+    if (!firstSegment || UNSCOPED_ROUTE_PREFIXES.has(firstSegment)) {
+      return href;
+    }
+
+    if (path.startsWith(`/${slugs.orgSlug}/`)) {
+      return href;
+    }
+
+    if (ORG_LEVEL_ROUTE_PREFIXES.has(firstSegment)) {
+      return `/${slugs.orgSlug}/~${path}${suffix}`;
+    }
+
+    if (slugs.brandSlug) {
+      return `/${slugs.orgSlug}/${slugs.brandSlug}${path}${suffix}`;
+    }
+
+    return `/${slugs.orgSlug}/~${path}${suffix}`;
+  }
+
+  private isScopeableInternalHref(href: string): boolean {
+    return href.startsWith('/') && !href.startsWith('//');
+  }
+
+  private splitHrefSuffix(href: string): { path: string; suffix: string } {
+    const suffixStart = href.search(/[?#]/);
+
+    if (suffixStart === -1) {
+      return { path: href, suffix: '' };
+    }
+
+    return {
+      path: href.slice(0, suffixStart),
+      suffix: href.slice(suffixStart),
+    };
+  }
+
+  private isPlainRecord(value: unknown): value is Record<string, unknown> {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      return false;
+    }
+
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+  }
+
+  private readRecordString(
+    value: Record<string, unknown> | null | undefined,
+    key: string,
+  ): string | undefined {
+    return value ? this.readOptionalString(value[key]) : undefined;
+  }
+
+  private async dispatch(
     toolName: AgentToolName,
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -1007,13 +1206,10 @@ export class AgentToolExecutorService {
         confidence:
           typeof params.confidence === 'number' ? params.confidence : undefined,
         content,
-        contentType:
-          typeof params.contentType === 'string'
-            ? params.contentType
-            : undefined,
+        contentType: this.normalizeAgentMemoryContentType(params.contentType),
         importance:
           typeof params.importance === 'number' ? params.importance : undefined,
-        kind: typeof params.kind === 'string' ? params.kind : undefined,
+        kind: this.normalizeAgentMemoryKind(params.kind),
         performanceSnapshot:
           params.performanceSnapshot &&
           typeof params.performanceSnapshot === 'object'
@@ -1022,7 +1218,7 @@ export class AgentToolExecutorService {
         platform:
           typeof params.platform === 'string' ? params.platform : undefined,
         saveToContextMemory: params.saveToContextMemory === true,
-        scope: typeof params.scope === 'string' ? params.scope : undefined,
+        scope: this.normalizeAgentMemoryScope(params.scope),
         sourceContentId:
           typeof params.sourceContentId === 'string'
             ? params.sourceContentId
@@ -1536,7 +1732,7 @@ export class AgentToolExecutorService {
     }
 
     const missions = this.organizationSettingsService.normalizeJourneyState(
-      settings.onboardingJourneyMissions as
+      settings.onboardingJourneyMissions as unknown as
         | IOnboardingJourneyMissionState[]
         | undefined,
     );
@@ -1864,8 +2060,8 @@ export class AgentToolExecutorService {
    */
   private presentPaymentOptions(_ctx: ToolExecutionContext): AgentToolResult {
     const billingHref = isEEEnabled()
-      ? '/settings/organization/billing'
-      : '/settings/organization/api-keys';
+      ? '/settings/billing'
+      : '/settings/api-keys';
     const billingLabel = isEEEnabled()
       ? 'View all plans'
       : 'Configure providers';
@@ -2030,16 +2226,18 @@ export class AgentToolExecutorService {
     });
   }
 
-  private formatBrandVoiceProfile(profile: BrandVoiceProfileDraft): string {
+  private formatBrandVoiceProfile(
+    profile: Partial<BrandVoiceProfileDraft>,
+  ): string {
     const sections = [
       `Tone: ${profile.tone || 'Not set'}`,
       `Style: ${profile.style || 'Not set'}`,
-      `Audience: ${profile.audience.join(', ') || 'Not set'}`,
-      `Messaging pillars: ${profile.messagingPillars.join(', ') || 'Not set'}`,
-      `Core values: ${profile.values.join(', ') || 'Not set'}`,
-      `Avoid: ${profile.doNotSoundLike.join(', ') || 'Not set'}`,
-      `Taglines: ${profile.taglines.join(', ') || 'Not set'}`,
-      `Hashtags: ${profile.hashtags.join(', ') || 'Not set'}`,
+      `Audience: ${profile.audience?.join(', ') || 'Not set'}`,
+      `Messaging pillars: ${profile.messagingPillars?.join(', ') || 'Not set'}`,
+      `Core values: ${profile.values?.join(', ') || 'Not set'}`,
+      `Avoid: ${profile.doNotSoundLike?.join(', ') || 'Not set'}`,
+      `Taglines: ${profile.taglines?.join(', ') || 'Not set'}`,
+      `Hashtags: ${profile.hashtags?.join(', ') || 'Not set'}`,
       `Sample output:\n${profile.sampleOutput || 'Not set'}`,
     ];
 
@@ -2238,26 +2436,12 @@ export class AgentToolExecutorService {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const brands = await this.brandsService.findAll(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            organization: ctx.organizationId,
-          },
+      {
+        where: {
+          isDeleted: false,
+          organization: ctx.organizationId,
         },
-        { $limit: 50 },
-        {
-          $project: {
-            _id: 1,
-            description: 1,
-            handle: 1,
-            isActive: 1,
-            label: 1,
-            name: 1,
-            text: 1,
-          },
-        },
-      ],
+      },
       {},
     );
 
@@ -2732,22 +2916,7 @@ export class AgentToolExecutorService {
     }
 
     const posts = await this.postsService.findAll(
-      [
-        { $match: matchStage },
-        { $sort: { createdAt: -1 } },
-        { $limit: limit },
-        {
-          $project: {
-            _id: 1,
-            createdAt: 1,
-            description: { $substr: ['$description', 0, 200] },
-            label: 1,
-            platform: 1,
-            scheduledDate: 1,
-            status: 1,
-          },
-        },
-      ],
+      { where: matchStage, orderBy: { createdAt: -1 } },
       {},
     );
 
@@ -2780,26 +2949,13 @@ export class AgentToolExecutorService {
     const limit = (params.limit as number) || 10;
 
     const workflows = await this.workflowsService.findAll(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            organization: ctx.organizationId,
-          },
+      {
+        where: {
+          isDeleted: false,
+          organization: ctx.organizationId,
         },
-        { $sort: { updatedAt: -1 } },
-        { $limit: limit },
-        {
-          $project: {
-            _id: 1,
-            createdAt: 1,
-            description: 1,
-            name: 1,
-            status: 1,
-            updatedAt: 1,
-          },
-        },
-      ],
+        orderBy: { updatedAt: -1 },
+      },
       {},
     );
 
@@ -2898,7 +3054,7 @@ export class AgentToolExecutorService {
     };
 
     if (params.platforms && params.platforms.length > 0) {
-      filter.platform = { $in: params.platforms };
+      filter.platform = { in: params.platforms };
     }
 
     return (await this.credentialsService.find(filter)) as unknown as Array<
@@ -3029,25 +3185,20 @@ export class AgentToolExecutorService {
     organizationId: string,
   ): Promise<Record<string, unknown> | null> {
     const results = await this.postsService.findAll(
-      [
-        {
-          $match: {
-            ingredients: ingredientId,
-            isDeleted: false,
-            organization: organizationId,
-            status: {
-              $in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
-            },
+      {
+        where: {
+          ingredients: ingredientId,
+          isDeleted: false,
+          organization: organizationId,
+          status: {
+            in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
           },
         },
-        {
-          $sort: {
-            createdAt: -1,
-            publicationDate: -1,
-          },
+        orderBy: {
+          createdAt: -1,
+          publicationDate: -1,
         },
-        { $limit: 1 },
-      ],
+      },
       { pagination: false },
     );
 
@@ -3352,7 +3503,7 @@ export class AgentToolExecutorService {
       return {
         ctas: [
           {
-            href: `/settings/organization/credentials?returnTo=${encodeURIComponent(returnTo)}`,
+            href: `/settings/api-keys?returnTo=${encodeURIComponent(returnTo)}`,
             label: 'Open integrations',
           },
         ],
@@ -3363,7 +3514,7 @@ export class AgentToolExecutorService {
       };
     }
 
-    const connectHref = `/settings/organization/credentials?connect=${normalizedPlatform}&returnTo=${encodeURIComponent(returnTo)}`;
+    const connectHref = `/settings/api-keys?connect=${normalizedPlatform}&returnTo=${encodeURIComponent(returnTo)}`;
     const label = normalizedPlatform;
 
     return {
@@ -4711,7 +4862,11 @@ export class AgentToolExecutorService {
       user: ctx.userId,
     };
 
-    const campaign = await this.campaignsService.create(createDto);
+    const campaign = await this.campaignsService.createScoped(createDto, {
+      brandId: ctx.brandId,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
     const campaignId = String(campaign._id);
 
     return {
@@ -6988,29 +7143,15 @@ export class AgentToolExecutorService {
 
     // Get published posts from the period
     const posts = await this.postsService.findAll(
-      [
-        {
-          $match: {
-            createdAt: { $gte: startDate, $lte: endDate },
-            isDeleted: false,
-            organization: ctx.organizationId,
-            status: PostStatus.PUBLIC,
-          },
+      {
+        where: {
+          createdAt: { gte: startDate, lte: endDate },
+          isDeleted: false,
+          organization: ctx.organizationId,
+          status: PostStatus.PUBLIC,
         },
-        { $sort: { createdAt: -1 } },
-        { $limit: 100 },
-        {
-          $project: {
-            _id: 1,
-            createdAt: 1,
-            description: { $substr: ['$description', 0, 100] },
-            engagement: 1,
-            impressions: 1,
-            likes: 1,
-            platform: 1,
-          },
-        },
-      ],
+        orderBy: { createdAt: -1 },
+      },
       {},
     );
 
@@ -7062,29 +7203,17 @@ export class AgentToolExecutorService {
 
     // Get scheduled and draft posts for the coming week
     const posts = await this.postsService.findAll(
-      [
-        {
-          $match: {
-            $or: [
-              { scheduledDate: { $gte: now, $lte: endDate } },
-              { status: PostStatus.DRAFT },
-            ],
-            isDeleted: false,
-            organization: ctx.organizationId,
-          },
+      {
+        where: {
+          OR: [
+            { scheduledDate: { gte: now, lte: endDate } },
+            { status: PostStatus.DRAFT },
+          ],
+          isDeleted: false,
+          organization: ctx.organizationId,
         },
-        { $sort: { createdAt: -1, scheduledDate: 1 } },
-        { $limit: 50 },
-        {
-          $project: {
-            _id: 1,
-            description: { $substr: ['$description', 0, 100] },
-            platform: 1,
-            scheduledDate: 1,
-            status: 1,
-          },
-        },
-      ],
+        orderBy: { createdAt: -1, scheduledDate: 1 },
+      },
       {},
     );
 
@@ -7500,7 +7629,7 @@ export class AgentToolExecutorService {
     }
 
     const baseFilters: Record<string, unknown> = {
-      category: { $in: categoryFilter },
+      category: { in: categoryFilter },
       status: IngredientStatus.GENERATED,
     };
 
@@ -7622,17 +7751,13 @@ export class AgentToolExecutorService {
     const limit = Math.min((params.limit as number) || 5, 5);
 
     const workflows = await this.workflowsService.findAll(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            organization: ctx.organizationId,
-          },
+      {
+        where: {
+          isDeleted: false,
+          organization: ctx.organizationId,
         },
-        { $sort: { updatedAt: -1 } },
-        { $limit: limit },
-        { $project: { _id: 1, description: 1, name: 1, status: 1 } },
-      ],
+        orderBy: { updatedAt: -1 },
+      },
       {},
     );
 
@@ -7690,26 +7815,15 @@ export class AgentToolExecutorService {
 
     const clonedVoices = this.voicesService
       ? await this.voicesService.findAll(
-          [
-            {
-              $match: {
-                isCloned: true,
-                isDeleted: false,
-                organization: ctx.organizationId,
-                type: 'voice',
-              },
+          {
+            where: {
+              isCloned: true,
+              isDeleted: false,
+              organization: ctx.organizationId,
+              type: 'voice',
             },
-            { $sort: { createdAt: -1 } },
-            {
-              $project: {
-                _id: 1,
-                cloneStatus: 1,
-                metadataLabel: 1,
-                provider: 1,
-              },
-            },
-            { $limit: 20 },
-          ],
+            orderBy: { createdAt: -1 },
+          },
           {},
         )
       : { docs: [] };
@@ -7809,17 +7923,13 @@ export class AgentToolExecutorService {
     const mergeGeneratedVideos = Boolean(params.mergeGeneratedVideos ?? true);
 
     const workflows = await this.workflowsService.findAll(
-      [
-        {
-          $match: {
-            isDeleted: false,
-            organization: ctx.organizationId,
-          },
+      {
+        where: {
+          isDeleted: false,
+          organization: ctx.organizationId,
         },
-        { $sort: { updatedAt: -1 } },
-        { $limit: 5 },
-        { $project: { _id: 1, description: 1, name: 1, status: 1 } },
-      ],
+        orderBy: { updatedAt: -1 },
+      },
       {},
     );
 
@@ -8280,11 +8390,15 @@ export class AgentToolExecutorService {
       });
 
       if (existing) {
+        const existingRecord = existing as Record<string, unknown>;
+        const existingVoteId = String(
+          existingRecord.id ?? existingRecord.mongoId ?? '',
+        );
         await this.votesService.patchAll(
           {
-            _id: existing._id,
+            OR: [{ id: existingVoteId }, { mongoId: existingVoteId }],
           },
-          { $set: { isDeleted: true } },
+          { isDeleted: true },
         );
 
         return {
@@ -8302,15 +8416,16 @@ export class AgentToolExecutorService {
           entity: ingredientId,
           entityModel: VoteEntityModel.INGREDIENT,
           user: ctx.userId,
-        }),
+        }) as unknown as Parameters<VotesService['create']>[0],
       );
+      const voteRecord = vote as Record<string, unknown>;
 
       return {
         creditsUsed: 0,
         data: {
           action: 'added',
           ingredientId,
-          voteId: String(vote._id),
+          voteId: String(voteRecord.id ?? voteRecord.mongoId ?? ''),
         },
         success: true,
       };
@@ -8464,6 +8579,52 @@ export class AgentToolExecutorService {
         error: `Replicate ingredient failed: ${errorMessage}`,
         success: false,
       };
+    }
+  }
+
+  private normalizeAgentMemoryContentType(
+    value: unknown,
+  ): AgentMemoryContentType | undefined {
+    switch (value) {
+      case 'article':
+      case 'generic':
+      case 'newsletter':
+      case 'post':
+      case 'thread':
+      case 'tweet':
+        return value;
+      default:
+        return undefined;
+    }
+  }
+
+  private normalizeAgentMemoryKind(
+    value: unknown,
+  ): AgentMemoryKind | undefined {
+    switch (value) {
+      case 'instruction':
+      case 'negative_example':
+      case 'pattern':
+      case 'positive_example':
+      case 'preference':
+      case 'reference':
+      case 'winner':
+        return value;
+      default:
+        return undefined;
+    }
+  }
+
+  private normalizeAgentMemoryScope(
+    value: unknown,
+  ): AgentMemoryScope | undefined {
+    switch (value) {
+      case 'brand':
+      case 'campaign':
+      case 'user':
+        return value;
+      default:
+        return undefined;
     }
   }
 }

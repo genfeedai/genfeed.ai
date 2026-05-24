@@ -1,15 +1,9 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BotCategory, BotPlatform, BotStatus } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import {
-  IsArray,
-  IsEnum,
-  IsIn,
-  IsMongoId,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsArray, IsEnum, IsIn, IsOptional, IsString } from 'class-validator';
 
 export class BotsQueryDto extends BaseQueryDto {
   @IsString()
@@ -22,17 +16,17 @@ export class BotsQueryDto extends BaseQueryDto {
   })
   scope?: 'organization' | 'brand' | 'user';
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'Organization ID filter', required: false })
   organization?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'Brand ID filter', required: false })
   brand?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'User ID filter', required: false })
   user?: string;

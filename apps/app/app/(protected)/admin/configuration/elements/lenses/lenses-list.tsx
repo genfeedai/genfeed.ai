@@ -7,22 +7,29 @@ import type { IElementLens, IQueryParams } from '@genfeedai/interfaces';
 import type { IElementContentProps } from '@genfeedai/interfaces/ui/elements-content.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { ElementLens } from '@models/elements/lens.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { LensesService } from '@services/elements/lenses.service';
+import { useQuery } from '@tanstack/react-query';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalLens } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
 
-export default function LensesList({
+function LensesListContent({
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -32,10 +39,10 @@ export default function LensesList({
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
 
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const searchParamsString = searchParams.toString();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -69,11 +76,11 @@ export default function LensesList({
       params.delete('brand');
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   const handleAdminBrandChange = useCallback(
@@ -87,11 +94,11 @@ export default function LensesList({
       }
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   // Use refs for callback props to prevent unnecessary re-renders
@@ -104,19 +111,19 @@ export default function LensesList({
   });
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams?.get('page')) || 1;
+  const currentPage = Number(searchParams.get('page')) || 1;
 
-  // Load lenses using useResource (handles AbortController cleanup properly)
   const {
-    data: lenses,
+    data: lenses = [] as ElementLens[],
     isLoading,
-    isRefreshing,
-    refresh: refreshLenses,
-  } = useResource(
-    async () => {
+    isFetching,
+    error: lensesError,
+    refetch: refreshLenses,
+  } = useQuery({
+    queryKey: ['lenses', currentPage, scope, adminOrg, adminBrand],
+    queryFn: async () => {
       const service = await getLensesService();
 
-      // Build API query
       const query: IQueryParams = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
@@ -135,16 +142,17 @@ export default function LensesList({
       logger.info('GET /lenses success', data);
       return data;
     },
-    {
-      defaultValue: [] as ElementLens[],
-      dependencies: [currentPage, scope, adminOrg, adminBrand],
-      enabled: !!isSignedIn,
-      onError: (error) => {
-        logger.error('GET /lenses failed', error);
-        notificationsService.error('Failed to load lenses');
-      },
-    },
-  );
+    enabled: !!isSignedIn,
+  });
+
+  const isRefreshing = isFetching && !isLoading;
+
+  useEffect(() => {
+    if (lensesError) {
+      logger.error('GET /lenses failed', lensesError);
+      notificationsService.error('Failed to load lenses');
+    }
+  }, [lensesError, notificationsService]);
 
   // Notify parent of loading state changes
   useEffect(() => {
@@ -182,7 +190,7 @@ export default function LensesList({
                 isError: true,
                 label: 'Delete Lens',
                 message: `Are you sure you want to delete "${lens.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(lens),
               });
             },
             tooltip: 'Delete',
@@ -202,14 +210,10 @@ export default function LensesList({
     openModal(modalId);
   };
 
-  const handleDelete = async () => {
-    if (!selectedLens) {
-      return;
-    }
-
+  const handleDelete = async (lens: IElementLens) => {
     try {
       const service = await getLensesService();
-      await service.delete(selectedLens.id);
+      await service.delete(lens.id);
       notificationsService.success('Lens deleted');
       setSelectedLens(null);
       refreshLenses();
@@ -257,5 +261,15 @@ export default function LensesList({
         <AutoPagination showTotal totalLabel="lenses" />
       </div>
     </>
+  );
+}
+
+export default function LensesList(
+  props: Parameters<typeof LensesListContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <LensesListContent {...props} />
+    </Suspense>
   );
 }

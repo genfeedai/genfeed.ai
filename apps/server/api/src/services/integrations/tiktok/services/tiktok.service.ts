@@ -1,4 +1,5 @@
 import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { ConfigService } from '@api/config/config.service';
@@ -301,7 +302,7 @@ export class TiktokService {
 
       this.loggerService.log(`${url} success`);
       return new CredentialEntity({
-        ...updatedCredential.toObject(),
+        ...updatedCredential,
         oauthTokenHash: updatedCredential.oauthTokenHash ?? '',
       });
     } catch (error: unknown) {
@@ -461,7 +462,7 @@ export class TiktokService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
-    let credential: { _id: string; accessToken?: string } | null = null;
+    let credential: CredentialDocument | null = null;
 
     try {
       let decryptedAccessToken: string;
@@ -823,7 +824,7 @@ export class TiktokService {
     mediaId: string,
   ): Promise<ITikTokMediaAnalytics> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    let credential: { _id: string; accessToken?: string } | null = null;
+    let credential: CredentialDocument | null = null;
 
     try {
       credential = await this.credentialsService.findOne({

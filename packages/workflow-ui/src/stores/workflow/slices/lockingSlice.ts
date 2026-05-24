@@ -1,4 +1,5 @@
 import type { StateCreator } from 'zustand';
+import { createIdLookup } from '../../../lib';
 import { getNodeOutput } from '../helpers/propagation';
 import type { WorkflowStore } from '../types';
 
@@ -55,7 +56,8 @@ export const createLockingSlice: StateCreator<
   },
 
   lockMultipleNodes: (nodeIds) => {
-    get()._setNodeLockState((id) => nodeIds.includes(id), true);
+    const nodeIdLookup = createIdLookup(nodeIds);
+    get()._setNodeLockState((id) => nodeIdLookup.has(id), true);
   },
 
   lockNode: (nodeId) => {
@@ -76,7 +78,8 @@ export const createLockingSlice: StateCreator<
   },
 
   unlockMultipleNodes: (nodeIds) => {
-    get()._setNodeLockState((id) => nodeIds.includes(id), false);
+    const nodeIdLookup = createIdLookup(nodeIds);
+    get()._setNodeLockState((id) => nodeIdLookup.has(id), false);
   },
 
   unlockNode: (nodeId) => {

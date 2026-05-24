@@ -7,17 +7,30 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { BrandPerformanceChartProps } from '@genfeedai/props/analytics/charts.props';
 import Card from '@ui/card/Card';
+import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
-import { useState } from 'react';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import dynamic from 'next/dynamic';
+import { useMemo, useState } from 'react';
+
+const BarChart = dynamic(() => import('recharts').then((m) => m.BarChart), {
+  ssr: false,
+});
+const Bar = dynamic(() => import('recharts').then((m) => m.Bar), {
+  ssr: false,
+});
+const CartesianGrid = dynamic(
+  () => import('recharts').then((m) => m.CartesianGrid),
+  { ssr: false },
+);
+const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), {
+  ssr: false,
+});
+const XAxis = dynamic(() => import('recharts').then((m) => m.XAxis), {
+  ssr: false,
+});
+const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), {
+  ssr: false,
+});
 
 const METRIC_COLORS = {
   engagement: 'var(--accent-rose)',
@@ -43,17 +56,30 @@ export function BrandPerformanceChart({
   const [activeMetric, setActiveMetric] = useState<BrandMetricKey>(
     String(metric).toLowerCase() as BrandMetricKey,
   );
+  const chartConfig = useMemo(
+    () =>
+      Object.fromEntries(
+        (Object.keys(METRIC_LABELS) as BrandMetricKey[]).map((metricKey) => [
+          metricKey,
+          {
+            color: METRIC_COLORS[metricKey],
+            label: METRIC_LABELS[metricKey],
+          },
+        ]),
+      ),
+    [],
+  );
 
   const isEmpty = !data || data.length === 0;
 
   // Sort and take top 10 brands by selected metric
-  const sortedData = [...data]
-    .sort((a, b) => b[activeMetric] - a[activeMetric])
+  const sortedData = data
+    .toSorted((a, b) => b[activeMetric] - a[activeMetric])
     .slice(0, 10);
 
   // Truncate long brand names
   const formatBrandName = (name: string) => {
-    return name.length > 15 ? `${name.substring(0, 15)}...` : name;
+    return name.length > 15 ? `${name.substring(0, 15)}…` : name;
   };
 
   return (
@@ -76,7 +102,7 @@ export function BrandPerformanceChart({
               } ${isLoading || isEmpty ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <span
-                className="inline-block w-3 h-3 rounded-full mr-2"
+                className="inline-block size-3 rounded-full mr-2"
                 style={{ backgroundColor: METRIC_COLORS[metricKey] }}
               />
 
@@ -89,7 +115,7 @@ export function BrandPerformanceChart({
         <div className="relative" style={{ height }}>
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-card/50 z-10">
-              <span className="animate-pulse w-12 h-12 rounded-full bg-primary/30" />
+              <span className="animate-pulse size-12 rounded-full bg-primary/30" />
             </div>
           )}
 
@@ -99,7 +125,12 @@ export function BrandPerformanceChart({
             </div>
           )}
 
-          <ResponsiveContainer width="100%" height={height}>
+          <ChartContainer
+            config={chartConfig}
+            className="border-0 bg-transparent p-0 shadow-none"
+            height="100%"
+            style={{ minWidth: 0 }}
+          >
             <BarChart
               data={sortedData}
               margin={{ bottom: 60, left: 20, right: 30, top: 5 }}
@@ -124,24 +155,20 @@ export function BrandPerformanceChart({
                 stroke="var(--overlay-white-20)"
               />
               <Tooltip
-                formatter={(value) => [
-                  formatFullNumber(
-                    typeof value === 'number'
-                      ? value
-                      : typeof value === 'string'
-                        ? Number(value)
-                        : undefined,
-                  ),
-                  METRIC_LABELS[activeMetric],
-                ]}
-                contentStyle={{
-                  backdropFilter: 'blur(10px)',
-                  backgroundColor: 'var(--overlay-black-90)',
-                  border: '1px solid var(--overlay-white-10)',
-                  borderRadius: '12px',
-                }}
-                labelStyle={{ color: 'hsl(var(--foreground))' }}
-                itemStyle={{ color: 'var(--overlay-white-20)' }}
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={(label) => String(label)}
+                    valueFormatter={(value) =>
+                      formatFullNumber(
+                        typeof value === 'number'
+                          ? value
+                          : typeof value === 'string'
+                            ? Number(value)
+                            : undefined,
+                      )
+                    }
+                  />
+                }
               />
               <Bar
                 dataKey={activeMetric as 'engagement' | 'posts' | 'views'}
@@ -150,7 +177,7 @@ export function BrandPerformanceChart({
                 maxBarSize={60}
               />
             </BarChart>
-          </ResponsiveContainer>
+          </ChartContainer>
         </div>
       </div>
     </Card>

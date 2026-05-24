@@ -46,7 +46,7 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
         onClick={() => setIsOpen(!isOpen)}
         title="More options"
       >
-        <MoreVertical className="h-4 w-4" />
+        <MoreVertical className="size-4" />
       </Button>
 
       {isOpen && (
@@ -61,7 +61,7 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
               }}
               className="w-full justify-start gap-2.5 px-3 py-2 text-sm text-foreground"
             >
-              <span className="h-4 w-4 shrink-0">{item.icon}</span>
+              <span className="size-4 shrink-0">{item.icon}</span>
               <span>{item.label}</span>
               {item.external && (
                 <span className="ml-auto text-xs text-muted-foreground">↗</span>

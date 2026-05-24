@@ -5,15 +5,29 @@ import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
 import type { PostAnalyticsDocument } from '@api/collections/posts/schemas/post-analytics.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import type { CredentialPlatform } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+
+const CREDENTIAL_PLATFORM = {
+  FACEBOOK: 'FACEBOOK' as CredentialPlatform,
+  INSTAGRAM: 'INSTAGRAM' as CredentialPlatform,
+  LINKEDIN: 'LINKEDIN' as CredentialPlatform,
+  MASTODON: 'MASTODON' as CredentialPlatform,
+  PINTEREST: 'PINTEREST' as CredentialPlatform,
+  THREADS: 'THREADS' as CredentialPlatform,
+  TIKTOK: 'TIKTOK' as CredentialPlatform,
+  TWITTER: 'TWITTER' as CredentialPlatform,
+  YOUTUBE: 'YOUTUBE' as CredentialPlatform,
+};
 
 @Injectable()
 export class PostAnalyticsService extends BaseService<
@@ -27,6 +41,8 @@ export class PostAnalyticsService extends BaseService<
 
     private readonly postsService: PostsService,
     @Optional() private readonly instagramService?: InstagramService,
+    @Optional() private readonly linkedInService?: LinkedInService,
+    @Optional() private readonly mastodonService?: MastodonService,
     @Optional() private readonly pinterestService?: PinterestService,
     @Optional() private readonly tiktokService?: TiktokService,
     @Optional() private readonly youtubeService?: YoutubeService,
@@ -189,7 +205,7 @@ export class PostAnalyticsService extends BaseService<
       totalViews: number;
     }>;
 
-    // Group in-memory (replaces MongoDB $group aggregation)
+    // Group in memory
     const platformMap = new Map<
       string,
       {
@@ -326,7 +342,7 @@ export class PostAnalyticsService extends BaseService<
       }
 
       switch (platform) {
-        case CredentialPlatform.YOUTUBE:
+        case CREDENTIAL_PLATFORM.YOUTUBE:
           analytics = await this.getYoutubeAnalytics(
             post.organization.toString(),
             post.brand.toString(),
@@ -334,7 +350,7 @@ export class PostAnalyticsService extends BaseService<
           );
           break;
 
-        case CredentialPlatform.TIKTOK:
+        case CREDENTIAL_PLATFORM.TIKTOK:
           analytics = await this.getTiktokAnalytics(
             post.organization.toString(),
             post.brand.toString(),
@@ -342,7 +358,7 @@ export class PostAnalyticsService extends BaseService<
           );
           break;
 
-        case CredentialPlatform.INSTAGRAM:
+        case CREDENTIAL_PLATFORM.INSTAGRAM:
           analytics = await this.getInstagramAnalytics(
             post.organization.toString(),
             post.brand.toString(),
@@ -350,12 +366,28 @@ export class PostAnalyticsService extends BaseService<
           );
           break;
 
-        case CredentialPlatform.TWITTER:
+        case CREDENTIAL_PLATFORM.TWITTER:
           analytics = await this.getTwitterAnalytics(post.externalId);
           break;
 
-        case CredentialPlatform.PINTEREST:
+        case CREDENTIAL_PLATFORM.PINTEREST:
           analytics = await this.getPinterestAnalytics(
+            post.organization.toString(),
+            post.brand.toString(),
+            post.externalId,
+          );
+          break;
+
+        case CREDENTIAL_PLATFORM.LINKEDIN:
+          analytics = await this.getLinkedInAnalytics(
+            post.organization.toString(),
+            post.brand.toString(),
+            post.externalId,
+          );
+          break;
+
+        case CREDENTIAL_PLATFORM.MASTODON:
+          analytics = await this.getMastodonAnalytics(
             post.organization.toString(),
             post.brand.toString(),
             post.externalId,
@@ -367,12 +399,10 @@ export class PostAnalyticsService extends BaseService<
       }
 
       if (analytics) {
-        if (
-          !post._id ||
-          !post.ingredients ||
-          post.ingredients.length === 0 ||
-          !post.user
-        ) {
+        const postIngredients = Array.isArray(post.ingredients)
+          ? post.ingredients
+          : [];
+        if (!post._id || postIngredients.length === 0 || !post.user) {
           this.logger.error(`${url} Missing required post fields`, {
             postId: postId,
           });
@@ -589,7 +619,7 @@ export class PostAnalyticsService extends BaseService<
     },
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CredentialPlatform.TWITTER, {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.TWITTER, {
         totalComments: analytics.comments,
         totalLikes: analytics.likes,
         totalShares: analytics.retweets || 0,
@@ -631,7 +661,7 @@ export class PostAnalyticsService extends BaseService<
     },
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CredentialPlatform.YOUTUBE, {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.YOUTUBE, {
         totalComments: analytics.comments,
         totalLikes: analytics.likes,
         totalShares: analytics.shares || 0,
@@ -666,7 +696,7 @@ export class PostAnalyticsService extends BaseService<
     },
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CredentialPlatform.INSTAGRAM, {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.INSTAGRAM, {
         totalComments: analytics.comments,
         totalLikes: analytics.likes,
         totalShares: analytics.shares || 0,
@@ -702,7 +732,7 @@ export class PostAnalyticsService extends BaseService<
     },
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CredentialPlatform.TIKTOK, {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.TIKTOK, {
         totalComments: analytics.comments,
         totalLikes: analytics.likes,
         totalShares: analytics.shares,
@@ -735,7 +765,7 @@ export class PostAnalyticsService extends BaseService<
     },
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CredentialPlatform.PINTEREST, {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.PINTEREST, {
         totalComments: analytics.comments,
         totalLikes: analytics.likes,
         totalShares: 0,
@@ -749,6 +779,204 @@ export class PostAnalyticsService extends BaseService<
         error,
       );
       throw error;
+    }
+  }
+
+  /**
+   * Process LinkedIn analytics and update post analytics
+   */
+  async processLinkedInAnalytics(
+    postId: string,
+    analytics: {
+      views: number;
+      likes: number;
+      comments: number;
+      shares?: number;
+      impressions?: number;
+      clicks?: number;
+      engagementRate?: number;
+      reach?: number;
+      mediaType?: 'text' | 'image' | 'video' | 'article' | 'document' | 'mixed';
+    },
+  ): Promise<void> {
+    try {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.LINKEDIN, {
+        totalComments: analytics.comments,
+        totalLikes: analytics.likes,
+        totalShares: analytics.shares || 0,
+        totalViews: analytics.impressions || analytics.views,
+      });
+
+      this.logger.log(`Updated LinkedIn analytics for post ${postId}`);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to process LinkedIn analytics for post ${postId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Process Mastodon analytics and update post analytics
+   * Note: Mastodon API does not expose view counts — views default to 0
+   */
+  async processMastodonAnalytics(
+    postId: string,
+    analytics: {
+      views: number;
+      likes: number;
+      comments: number;
+      boosts: number;
+    },
+  ): Promise<void> {
+    try {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.MASTODON, {
+        totalComments: analytics.comments,
+        totalLikes: analytics.likes,
+        totalShares: analytics.boosts,
+        totalViews: 0, // Mastodon does not expose view counts
+      });
+
+      this.logger.log(`Updated Mastodon analytics for post ${postId}`);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to process Mastodon analytics for post ${postId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Process Facebook analytics and update post analytics
+   */
+  async processFacebookAnalytics(
+    postId: string,
+    analytics: {
+      views: number;
+      likes: number;
+      comments: number;
+      shares: number;
+      reach?: number;
+      impressions?: number;
+      engagementRate?: number;
+    },
+  ): Promise<void> {
+    try {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.FACEBOOK, {
+        totalComments: analytics.comments,
+        totalLikes: analytics.likes,
+        totalShares: analytics.shares,
+        totalViews: analytics.impressions || analytics.views,
+      });
+
+      this.logger.log(`Updated Facebook analytics for post ${postId}`);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to process Facebook analytics for post ${postId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Process Threads analytics and update post analytics
+   */
+  async processThreadsAnalytics(
+    postId: string,
+    analytics: {
+      views: number;
+      likes: number;
+      replies: number;
+      reposts: number;
+      quotes: number;
+    },
+  ): Promise<void> {
+    try {
+      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.THREADS, {
+        totalComments: analytics.replies,
+        totalLikes: analytics.likes,
+        totalShares: analytics.reposts + analytics.quotes,
+        totalViews: analytics.views,
+      });
+
+      this.logger.log(`Updated Threads analytics for post ${postId}`);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to process Threads analytics for post ${postId}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  private async getLinkedInAnalytics(
+    organizationId: string,
+    brandId: string,
+    shareId: string,
+  ): Promise<{
+    totalViews: number;
+    totalLikes: number;
+    totalComments: number;
+    totalShares: number;
+    totalSaves: number;
+  } | null> {
+    try {
+      if (!this.linkedInService) {
+        this.logger.warn('LinkedInService not available');
+        return null;
+      }
+      const stats = await this.linkedInService.getMediaAnalytics(
+        organizationId,
+        brandId,
+        shareId,
+      );
+      return {
+        totalComments: stats.comments,
+        totalLikes: stats.likes,
+        totalSaves: 0,
+        totalShares: stats.shares || 0,
+        totalViews: stats.impressions || stats.views || 0,
+      };
+    } catch (error: unknown) {
+      this.logger.error('Failed to get LinkedIn analytics', error);
+      return null;
+    }
+  }
+
+  private async getMastodonAnalytics(
+    organizationId: string,
+    brandId: string,
+    statusId: string,
+  ): Promise<{
+    totalViews: number;
+    totalLikes: number;
+    totalComments: number;
+    totalShares: number;
+    totalSaves: number;
+  } | null> {
+    try {
+      if (!this.mastodonService) {
+        this.logger.warn('MastodonService not available');
+        return null;
+      }
+      const stats = await this.mastodonService.getMediaAnalytics(
+        organizationId,
+        brandId,
+        statusId,
+      );
+      return {
+        totalComments: stats.comments,
+        totalLikes: stats.likes,
+        totalSaves: 0,
+        totalShares: stats.boosts,
+        totalViews: stats.views,
+      };
+    } catch (error: unknown) {
+      this.logger.error('Failed to get Mastodon analytics', error);
+      return null;
     }
   }
 }

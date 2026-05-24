@@ -1,14 +1,17 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import type { IGenfeedDesktopBridge } from '@genfeedai/desktop-contracts';
 import { ButtonVariant, CredentialPlatform } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { getDesktopBridge, isDesktopShell } from '@/lib/desktop/runtime';
 
 function buildTwitterRemixTopic(params: {
   sourceAuthor?: string;
@@ -29,8 +32,22 @@ function buildTwitterRemixTopic(params: {
   return parts.filter(Boolean).join(' ');
 }
 
-export default function TrendRemixPage() {
-  const router = useRouter();
+async function generateDesktopRemix(params: {
+  bridge: IGenfeedDesktopBridge;
+  mode: 'thread' | 'tweet';
+  topic: string;
+}) {
+  return params.bridge.cloud.generateContent({
+    platform: 'twitter',
+    prompt: params.topic,
+    publishIntent: 'review',
+    type: params.mode === 'thread' ? 'thread' : 'caption',
+  });
+}
+
+function TrendRemixPageContent() {
+  const { push, replace } = useRouter();
+  const { href, orgHref } = useOrgUrl();
   const searchParams = useSearchParams();
   const { credentials, isReady } = useBrand();
   const hasStartedRef = useRef(false);
@@ -62,13 +79,17 @@ export default function TrendRemixPage() {
   );
 
   useEffect(() => {
-    if (!isReady || hasStartedRef.current) {
+    const desktop = isDesktopShell();
+
+    if ((!isReady && !desktop) || hasStartedRef.current) {
       return;
     }
 
     hasStartedRef.current = true;
 
-    if (!twitterCredential?.id) {
+    const desktopBridge = desktop ? getDesktopBridge() : null;
+
+    if (!twitterCredential?.id && !desktopBridge) {
       const nextError = 'Connect a Twitter/X account for this brand first.';
       setError(nextError);
       setIsSubmitting(false);
@@ -85,6 +106,43 @@ export default function TrendRemixPage() {
 
     const run = async () => {
       try {
+        if (!twitterCredential?.id && desktopBridge) {
+          const generated = await generateDesktopRemix({
+            bridge: desktopBridge,
+            mode,
+            topic: remixTopic,
+          });
+          await desktopBridge.sync
+            .queueJob(
+              'post-draft',
+              JSON.stringify({
+                content: generated.content,
+                generatedId: generated.id,
+                mode,
+                platform: generated.platform,
+                prompt: remixTopic,
+                title: topic || 'Twitter remix',
+                type: generated.type,
+              }),
+            )
+            .catch(() => undefined);
+          notificationsService.success(
+            mode === 'thread'
+              ? 'Thread remix draft created'
+              : 'Tweet remix draft created',
+          );
+          const params = new URLSearchParams({
+            description: generated.content,
+            title: topic || 'Twitter remix',
+          });
+          replace(href(`/compose/post?${params.toString()}`));
+          return;
+        }
+
+        if (!twitterCredential?.id) {
+          throw new Error('Connect a Twitter/X account for this brand first.');
+        }
+
         const postsService = await getPostsService();
 
         if (mode === 'thread') {
@@ -118,7 +176,7 @@ export default function TrendRemixPage() {
             ? 'Thread remix draft created'
             : 'Tweet remix draft created',
         );
-        router.replace('/posts?platform=twitter');
+        replace('/posts?platform=twitter');
       } catch (runError) {
         logger.error('Failed to create trend remix draft', runError);
         setError('Failed to create the remix draft.');
@@ -132,10 +190,11 @@ export default function TrendRemixPage() {
     });
   }, [
     getPostsService,
+    href,
     isReady,
     mode,
     notificationsService,
-    router,
+    replace,
     sourceAuthor,
     sourceReferenceId,
     sourceText,
@@ -145,20 +204,16 @@ export default function TrendRemixPage() {
     twitterCredential?.id,
   ]);
 
-  if (isSubmitting) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
-          <p className="mt-4 text-sm text-foreground/70">
-            Creating your Twitter remix draft...
-          </p>
-        </div>
+  return isSubmitting ? (
+    <div className="flex min-h-[50vh] items-center justify-center">
+      <div className="text-center">
+        <div className="mx-auto size-12 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
+        <p className="mt-4 text-sm text-foreground/70">
+          Creating your Twitter remix draft…
+        </p>
       </div>
-    );
-  }
-
-  return (
+    </div>
+  ) : (
     <div className="flex min-h-[50vh] items-center justify-center px-6">
       <div className="max-w-md space-y-4 text-center">
         <h1 className="text-xl font-semibold">Unable to create remix draft</h1>
@@ -169,15 +224,23 @@ export default function TrendRemixPage() {
           <Button
             label="Go to Drafts"
             variant={ButtonVariant.SECONDARY}
-            onClick={() => router.push('/posts?platform=twitter')}
+            onClick={() => push('/posts?platform=twitter')}
           />
           <Button
             label="Go to Credentials"
             variant={ButtonVariant.OUTLINE}
-            onClick={() => router.push('/settings/organization/credentials')}
+            onClick={() => push(orgHref('/settings/api-keys'))}
           />
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TrendRemixPage() {
+  return (
+    <Suspense fallback={null}>
+      <TrendRemixPageContent />
+    </Suspense>
   );
 }

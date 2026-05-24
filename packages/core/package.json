@@ -4,26 +4,23 @@
   },
   "description": "Core utilities for Genfeed workflow engine",
   "devDependencies": {
-    "@vitest/coverage-v8": "4.1.5",
+    "@vitest/coverage-v8": "4.1.7",
     "tsup": "8.5.1",
     "typescript": "6.0.2",
-    "vitest": "4.1.5"
+    "vitest": "4.1.7"
   },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./topological-sort": {
       "types": "./dist/topological-sort.d.ts",
-      "import": "./dist/topological-sort.mjs",
-      "require": "./dist/topological-sort.js"
+      "default": "./dist/topological-sort.js"
     },
     "./validation": {
       "types": "./dist/validation.d.ts",
-      "import": "./dist/validation.mjs",
-      "require": "./dist/validation.js"
+      "default": "./dist/validation.js"
     }
   },
   "files": [
@@ -31,7 +28,6 @@
   ],
   "license": "AGPL-3.0",
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "name": "@genfeedai/core",
   "publishConfig": {
     "access": "public",
@@ -51,6 +47,7 @@
     "test:watch": "vitest"
   },
   "sideEffects": false,
+  "type": "module",
   "types": "./dist/index.d.ts",
   "version": "0.2.1"
 }

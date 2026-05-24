@@ -5,7 +5,8 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import type { TrendSoundInspirationNodeData } from '@ui/workflow-builder/types/workflow-saas.types';
 import { Loader2, Music, Play, TrendingUp } from 'lucide-react';
-import { memo, useCallback, useState } from 'react';
+import Image from 'next/image';
+import { memo, useCallback, useId, useState } from 'react';
 
 export type { TrendSoundInspirationNodeData };
 
@@ -23,6 +24,8 @@ function TrendSoundInspirationNodeComponent({
   onExecute,
 }: TrendSoundInspirationNodeProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const minUsageCountId = useId();
+  const maxDurationId = useId();
 
   const handleUsageCountChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,11 +71,15 @@ function TrendSoundInspirationNodeComponent({
     <div className="space-y-3">
       {/* Min Usage Count */}
       <div>
-        <label className="text-xs text-muted-foreground flex items-center gap-1">
-          <TrendingUp className="w-3 h-3" />
+        <label
+          htmlFor={minUsageCountId}
+          className="text-xs text-muted-foreground flex items-center gap-1"
+        >
+          <TrendingUp className="size-3" />
           Min Usage Count
         </label>
         <Input
+          id={minUsageCountId}
           type="number"
           value={data.minUsageCount}
           onChange={handleUsageCountChange}
@@ -86,10 +93,14 @@ function TrendSoundInspirationNodeComponent({
 
       {/* Max Duration */}
       <div>
-        <label className="text-xs text-muted-foreground">
+        <label
+          htmlFor={maxDurationId}
+          className="text-xs text-muted-foreground"
+        >
           Max Duration (seconds, optional)
         </label>
         <Input
+          id={maxDurationId}
           type="number"
           value={data.maxDuration || ''}
           onChange={handleMaxDurationChange}
@@ -108,12 +119,12 @@ function TrendSoundInspirationNodeComponent({
       >
         {isProcessing ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Finding Sounds...
+            <Loader2 className="size-4 animate-spin" />
+            Finding Sounds…
           </>
         ) : (
           <>
-            <Music className="w-4 h-4" />
+            <Music className="size-4" />
             Get Trending Sound
           </>
         )}
@@ -125,11 +136,14 @@ function TrendSoundInspirationNodeComponent({
           <div className="flex items-start gap-3">
             {/* Cover Art */}
             {data.coverUrl && (
-              <div className="w-12 h-12 overflow-hidden flex-shrink-0">
-                <img
+              <div className="relative size-12 overflow-hidden flex-shrink-0">
+                <Image
                   src={data.coverUrl}
                   alt={data.soundName || 'Sound cover'}
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="48px"
+                  className="size-full object-cover"
+                  unoptimized
                 />
               </div>
             )}
@@ -165,8 +179,8 @@ function TrendSoundInspirationNodeComponent({
               variant={ButtonVariant.UNSTYLED}
               className="w-full mt-2 py-1.5 bg-background border border-white/[0.08] text-xs flex items-center justify-center gap-1 hover:bg-border transition"
             >
-              <Play className="w-3 h-3" />
-              {isPlaying ? 'Playing...' : 'Preview Sound'}
+              <Play className="size-3" />
+              {isPlaying ? 'Playing…' : 'Preview Sound'}
             </Button>
           )}
 

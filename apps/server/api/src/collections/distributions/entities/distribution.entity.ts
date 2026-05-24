@@ -7,6 +7,11 @@ import type {
 } from '@genfeedai/enums';
 
 export class DistributionEntity extends BaseEntity implements Distribution {
+  declare readonly organizationId: string;
+  declare readonly userId: string;
+  declare readonly brandId: string | null;
+  declare readonly config: Distribution['config'];
+  declare readonly isActive: boolean;
   declare readonly organization: string;
   declare readonly user: string;
   declare readonly brand?: string;

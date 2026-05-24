@@ -19,13 +19,13 @@ export default function PageHeader({
   actions,
   className,
 }: PageHeaderProps) {
-  const router = useRouter();
+  const { push } = useRouter();
 
   const handleBack = () => {
     if (onBack) {
       onBack();
     } else if (backRoute) {
-      router.push(backRoute);
+      push(backRoute);
     }
   };
 
@@ -46,14 +46,14 @@ export default function PageHeader({
             <Link href={backRoute}>
               <Button
                 label={backLabel}
-                icon={<HiArrowLeft className="h-4 w-4" />}
+                icon={<HiArrowLeft className="size-4" />}
                 variant={ButtonVariant.GHOST}
               />
             </Link>
           ) : (
             <Button
               label={backLabel}
-              icon={<HiArrowLeft className="h-4 w-4" />}
+              icon={<HiArrowLeft className="size-4" />}
               variant={ButtonVariant.GHOST}
               onClick={handleBack}
             />

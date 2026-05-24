@@ -2,6 +2,7 @@ import { ComponentSize } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IBadgeStatusConfig } from '@genfeedai/interfaces/ui/badge-status-config.interface';
 import type { BadgeProps } from '@genfeedai/props/ui/display/badge.props';
+import { Badge as PrimitiveBadge } from '@ui/primitives/badge';
 import { cva, type VariantProps } from 'class-variance-authority';
 import {
   HiArrowPath,
@@ -22,7 +23,7 @@ import {
  * - validated/operational (green) - use based on context
  */
 const badgeVariants = cva(
-  'inline-flex items-center gap-2 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors whitespace-nowrap',
+  'rounded-full gap-2 px-2.5 py-0.5 text-xs font-medium normal-case tracking-normal shadow-none whitespace-nowrap',
   {
     defaultVariants: {
       size: 'default',
@@ -67,6 +68,31 @@ const badgeVariants = cva(
   },
 );
 
+const PRIMITIVE_VARIANT_MAP = {
+  accent: 'default',
+  amber: 'warning',
+  audio: 'warning',
+  blue: 'info',
+  default: 'default',
+  destructive: 'destructive',
+  error: 'destructive',
+  ghost: 'secondary',
+  image: 'info',
+  info: 'info',
+  multimodal: 'default',
+  operational: 'success',
+  outline: 'outline',
+  primary: 'default',
+  purple: 'default',
+  secondary: 'secondary',
+  slate: 'secondary',
+  success: 'success',
+  text: 'success',
+  validated: 'success',
+  video: 'default',
+  warning: 'warning',
+} as const;
+
 /**
  * Get complete badge configuration from status string
  * Returns variant, icon, label, and animation state
@@ -80,14 +106,14 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'active':
     case 'success':
       return {
-        icon: <HiCheckCircle className="h-3 w-3" />,
+        icon: <HiCheckCircle className="size-3" />,
         label: 'Completed',
         variant: 'success',
       };
 
     case 'scheduled':
       return {
-        icon: <HiCalendar className="h-3 w-3" />,
+        icon: <HiCalendar className="size-3" />,
         label: 'Scheduled',
         shouldSpin: false,
         variant: 'info',
@@ -97,7 +123,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'running':
     case 'uploading':
       return {
-        icon: <HiArrowPath className="h-3 w-3" />,
+        icon: <HiArrowPath className="size-3" />,
         label: 'Processing',
         shouldSpin: true,
         variant: 'accent',
@@ -108,7 +134,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'inactive':
     case 'warning':
       return {
-        icon: <HiClock className="h-3 w-3" />,
+        icon: <HiClock className="size-3" />,
         label: 'Pending',
         variant: 'secondary',
       };
@@ -118,7 +144,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'cancelled':
     case 'canceled':
       return {
-        icon: <HiXCircle className="h-3 w-3" />,
+        icon: <HiXCircle className="size-3" />,
         label: 'Failed',
         variant: 'error',
       };
@@ -128,7 +154,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'unlisted':
     case 'skipped':
       return {
-        icon: <HiClock className="h-3 w-3" />,
+        icon: <HiClock className="size-3" />,
         label: 'Draft',
         variant: 'ghost',
       };
@@ -164,7 +190,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'validated':
     case 'operational':
       return {
-        icon: <HiCheckCircle className="h-3 w-3" />,
+        icon: <HiCheckCircle className="size-3" />,
         label: 'Operational',
         variant: 'validated',
       };
@@ -221,7 +247,14 @@ export default function Badge({
   );
 
   return (
-    <span className={badgeClasses}>
+    <PrimitiveBadge
+      className={badgeClasses}
+      variant={
+        PRIMITIVE_VARIANT_MAP[
+          effectiveVariant as keyof typeof PRIMITIVE_VARIANT_MAP
+        ] ?? 'default'
+      }
+    >
       {effectiveIcon && (
         <span
           className={cn(
@@ -238,7 +271,7 @@ export default function Badge({
       ) : (
         effectiveLabel
       )}
-    </span>
+    </PrimitiveBadge>
   );
 }
 

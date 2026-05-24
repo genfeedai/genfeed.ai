@@ -307,8 +307,7 @@ export class MusicsOperationsController {
 
     try {
       const firstGenerationId = await runMusicGeneration(
-        // @ts-expect-error TS2345
-        metadataData._id,
+        metadataData._id.toString(),
         ingredientData._id,
         0,
         baseSeed,
@@ -364,9 +363,8 @@ export class MusicsOperationsController {
                 status: IngredientStatus.PROCESSING,
               });
 
-              // @ts-expect-error TS2322
-              additionalMetadataId = additionalMetadata._id;
-              additionalIngredientId = additionalIngredient._id;
+              additionalMetadataId = additionalMetadata._id.toString();
+              additionalIngredientId = additionalIngredient._id.toString();
 
               pendingIngredientIds.push(additionalIngredient._id.toString());
 

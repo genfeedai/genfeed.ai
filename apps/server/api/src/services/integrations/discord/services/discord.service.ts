@@ -8,6 +8,10 @@ import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 @Injectable()
 export class DiscordService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -31,6 +35,27 @@ export class DiscordService {
     this.clientId = this.configService.get('DISCORD_CLIENT_ID');
     this.clientSecret = this.configService.get('DISCORD_CLIENT_SECRET');
     this.redirectUri = this.configService.get('DISCORD_REDIRECT_URI');
+  }
+
+  private getErrorDetail(error: unknown, fallback: string): string {
+    if (isPlainObject(error) && isPlainObject(error.response)) {
+      const responseData = error.response.data;
+      if (isPlainObject(responseData)) {
+        if (typeof responseData.error_description === 'string') {
+          return responseData.error_description;
+        }
+
+        if (typeof responseData.message === 'string') {
+          return responseData.message;
+        }
+      }
+    }
+
+    if (error instanceof Error && error.message) {
+      return error.message;
+    }
+
+    return fallback;
   }
 
   /**
@@ -108,9 +133,10 @@ export class DiscordService {
       this.loggerService.error(`${url} failed`, error);
       throw new HttpException(
         {
-          detail:
-            (error as unknown).response?.data?.error_description ||
+          detail: this.getErrorDetail(
+            error,
             'Failed to exchange code for token',
+          ),
           title: 'Token Exchange Failed',
         },
         HttpStatus.BAD_REQUEST,
@@ -146,9 +172,7 @@ export class DiscordService {
       this.loggerService.error(`${url} failed`, error);
       throw new HttpException(
         {
-          detail:
-            (error as unknown).response?.data?.message ||
-            'Failed to get Discord user info',
+          detail: this.getErrorDetail(error, 'Failed to get Discord user info'),
           title: 'Get User Failed',
         },
         HttpStatus.UNAUTHORIZED,
@@ -259,9 +283,7 @@ export class DiscordService {
 
       throw new HttpException(
         {
-          detail:
-            (error as unknown).response?.data?.error_description ||
-            'Failed to refresh Discord token',
+          detail: this.getErrorDetail(error, 'Failed to refresh Discord token'),
           title: 'Refresh Failed',
         },
         HttpStatus.UNAUTHORIZED,

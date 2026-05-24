@@ -92,7 +92,7 @@ describe('OfflinePage', () => {
       const retryButton = screen.getByRole('button', {
         name: 'Try Again',
       });
-      expect(retryButton).toHaveClass('bg-primary');
+      expect(retryButton).toHaveClass('bg-accent', 'text-accent-foreground');
     });
   });
 
@@ -124,7 +124,7 @@ describe('OfflinePage', () => {
     it('title has correct styling', () => {
       render(<OfflinePage appName="studio" />);
       const title = screen.getByText('You are offline');
-      expect(title).toHaveClass('text-2xl', 'font-bold', 'text-foreground');
+      expect(title).toHaveClass('text-2xl', 'font-semibold', 'text-foreground');
     });
 
     it('message paragraph has muted text styling', () => {

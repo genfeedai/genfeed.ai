@@ -19,7 +19,6 @@ import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';
 import type { SortObject } from '@genfeedai/interfaces';
@@ -40,10 +39,9 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
+type MatchConditions = Record<string, unknown>;
+
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 
 @AutoSwagger()
 @Controller('elements/blacklists')
@@ -69,15 +67,12 @@ export class ElementsBlacklistsController extends BaseCRUDController<
   }
 
   /**
-   * Override buildFindAllPipeline to implement blacklist-specific filtering
+   * Override buildFindAllQuery to implement blacklist-specific filtering
    * - Blacklists don't have a user field, they have addedBy and organization
    * - Filter by organization for non-superadmins
    * - Show all for superadmins
    */
-  public buildFindAllPipeline(
-    user: User,
-    query: BlacklistsQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: BlacklistsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,
@@ -85,51 +80,45 @@ export class ElementsBlacklistsController extends BaseCRUDController<
     );
 
     // Build OR conditions for ownership: global items OR user's org items OR user's items
-    const orConditions: unknown = [
-      { organization: { $exists: false }, user: { $exists: false } }, // global items
-    ];
+    const orConditions: MatchConditions[] = [];
 
     if (publicMetadata.organization) {
       orConditions.push({
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       });
     }
 
-    if (publicMetadata.user) {
-      orConditions.push({ user: publicMetadata.user });
-    }
-
-    // Build conditions array for $and
-    const conditions = [];
+    // Build conditions array for AND
+    const conditions: MatchConditions[] = [];
 
     // Filter by value if provided (search functionality)
     if (query.value) {
       conditions.push({
-        $or: [
-          { label: { $options: 'i', $regex: query.value } },
-          { description: { $options: 'i', $regex: query.value } },
+        OR: [
+          { label: { mode: 'insensitive', contains: query.value } },
+          { description: { mode: 'insensitive', contains: query.value } },
         ],
       });
     }
 
-    // Add ownership condition to $and array (skip when admin filter is active)
-    if (!adminFilter) {
-      conditions.push({ $or: orConditions });
+    // Add ownership condition to AND array (skip when admin filter is active)
+    if (!adminFilter && orConditions.length > 0) {
+      conditions.push({ OR: orConditions });
     }
 
-    const builder = PipelineBuilder.create().match({
+    const match: MatchConditions = {
       isDeleted: query.isDeleted ?? false,
       ...(query.category && { category: query.category }),
-      ...(adminFilter ?? {}),
-      ...(conditions.length > 0 && { $and: conditions }),
-    });
+      ...((adminFilter as MatchConditions | undefined) ?? {}),
+      ...(conditions.length > 0 && { AND: conditions }),
+    };
 
-    // Add sorting - default to newest first
-    builder.sort(
-      query.sort ? handleQuerySort(query.sort) : ({ label: 1 } as SortObject),
-    );
-
-    return builder.build();
+    return {
+      orderBy: query.sort
+        ? handleQuerySort(query.sort)
+        : ({ label: 1 } as SortObject),
+      where: match,
+    };
   }
 
   /**
@@ -140,15 +129,17 @@ export class ElementsBlacklistsController extends BaseCRUDController<
     user: User,
   ): CreateElementBlacklistDto {
     const publicMetadata = getPublicMetadata(user);
-    const enriched: unknown = { ...createDto };
+    const enriched: CreateElementBlacklistDto & { organizationId?: string } = {
+      ...createDto,
+    };
 
     // Add organization if not super admin
     if (!getIsSuperAdmin(user) && publicMetadata.organization) {
-      enriched.organization = publicMetadata.organization;
+      enriched.organizationId = publicMetadata.organization;
     }
 
     // Do NOT add user field - Blacklist schema doesn't have it
-    return enriched;
+    return enriched as CreateElementBlacklistDto;
   }
 
   /**
@@ -156,22 +147,18 @@ export class ElementsBlacklistsController extends BaseCRUDController<
    */
   public enrichUpdateDto(
     updateDto: UpdateElementBlacklistDto,
+    _user?: User,
   ): Promise<UpdateElementBlacklistDto> {
-    const enriched: unknown = { ...updateDto };
-
-    // Only add organization if it's being updated
-    if (enriched.organization) {
-      enriched.organization = enriched.organization;
-    }
-
-    // Do NOT add user field - Blacklist schema doesn't have it
-    return enriched;
+    return Promise.resolve({ ...updateDto });
   }
 
   /**
    * Override canUserModifyEntity to use organization/addedBy authorization
    */
-  public canUserModifyEntity(user: User, entity: unknown): boolean {
+  public canUserModifyEntity(
+    user: User,
+    entity: ElementBlacklistDocument,
+  ): boolean {
     const publicMetadata = getPublicMetadata(user);
 
     // Superadmins can modify any blacklist entry
@@ -180,8 +167,7 @@ export class ElementsBlacklistsController extends BaseCRUDController<
     }
 
     // Check organization ownership (for organization-level blacklists)
-    const entityOrgId =
-      entity.organization?._id?.toString() || entity.organization?.toString();
+    const entityOrgId = entity.organizationId;
     if (entityOrgId && entityOrgId === publicMetadata.organization) {
       return true;
     }
@@ -222,7 +208,7 @@ export class ElementsBlacklistsController extends BaseCRUDController<
     @Param('blacklistId') blacklistId: string,
     @Body() updateDto: UpdateElementBlacklistDto,
   ) {
-    if (!isValidObjectId(blacklistId)) {
+    if (!isEntityId(blacklistId)) {
       ErrorResponse.notFound(this.entityName, blacklistId);
     }
 
@@ -235,8 +221,6 @@ export class ElementsBlacklistsController extends BaseCRUDController<
     if (!existing) {
       ErrorResponse.notFound(this.entityName, blacklistId);
     }
-
-    const publicMetadata = getPublicMetadata(user);
 
     // Return 404 instead of 403 for security
     if (!this.canUserModifyEntity(user, existing) && !getIsSuperAdmin(user)) {

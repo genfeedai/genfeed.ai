@@ -252,7 +252,7 @@ export default function HomeShowcase(): React.ReactElement {
         <div className="gen-card-featured px-6 py-4">
           <HStack className="items-center justify-between">
             <HStack className="items-center gap-3">
-              <HiSparkles className="h-4 w-4 text-inv-fg" />
+              <HiSparkles className="size-4 text-inv-fg" />
               <Heading
                 as="h3"
                 className="text-sm font-black text-inv-fg uppercase tracking-wider"
@@ -269,7 +269,7 @@ export default function HomeShowcase(): React.ReactElement {
             >
               <Link href="/pricing">
                 View Plans
-                <LuArrowRight className="h-3 w-3" />
+                <LuArrowRight className="size-3" />
               </Link>
             </ButtonTracked>
           </HStack>

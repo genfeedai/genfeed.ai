@@ -3,6 +3,29 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { TimeSeriesChart } from '@ui/analytics/charts/time-series/time-series-chart';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('@ui/charts', () => ({
+  ChartContainer: ({
+    children,
+    className,
+    height,
+    style,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+    height?: number | string;
+    style?: React.CSSProperties;
+  }) => (
+    <div
+      data-testid="responsive-container"
+      className={className}
+      style={{ ...style, height }}
+    >
+      {children}
+    </div>
+  ),
+  ChartTooltipContent: () => <div data-testid="chart-tooltip-content" />,
+}));
+
 // Mock recharts to avoid ResizeObserver issues in tests
 vi.mock('recharts', () => ({
   Area: ({ dataKey }: { dataKey: string }) => (
@@ -12,9 +35,6 @@ vi.mock('recharts', () => ({
     <div data-testid="area-chart">{children}</div>
   ),
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
-  ),
   Tooltip: () => <div data-testid="tooltip" />,
   XAxis: () => <div data-testid="x-axis" />,
   YAxis: () => <div data-testid="y-axis" />,
@@ -57,7 +77,7 @@ describe('TimeSeriesChart', () => {
   describe('Loading State', () => {
     it('shows loading spinner when isLoading is true', () => {
       render(<TimeSeriesChart data={[]} isLoading />);
-      expect(screen.getByText('Loading chart data...')).toBeInTheDocument();
+      expect(screen.getByText('Loading chart data…')).toBeInTheDocument();
     });
 
     it('shows animated spinner element', () => {
@@ -214,7 +234,7 @@ describe('TimeSeriesChart', () => {
         />,
       );
       const colorIndicators = container.querySelectorAll(
-        '.rounded-full.w-3.h-3',
+        '.rounded-full.size-3',
       );
       expect(colorIndicators.length).toBe(2);
     });

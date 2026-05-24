@@ -22,10 +22,10 @@ import {
 } from 'react-icons/hi2';
 
 const SCOPE_ICONS: Record<AssetScope, React.ReactNode> = {
-  [AssetScope.USER]: <HiLockClosed className="w-4 h-4" />,
-  [AssetScope.BRAND]: <HiUsers className="w-4 h-4" />,
-  [AssetScope.ORGANIZATION]: <HiBuildingOffice className="w-4 h-4" />,
-  [AssetScope.PUBLIC]: <HiGlobeAlt className="w-4 h-4" />,
+  [AssetScope.USER]: <HiLockClosed className="size-4" />,
+  [AssetScope.BRAND]: <HiUsers className="size-4" />,
+  [AssetScope.ORGANIZATION]: <HiBuildingOffice className="size-4" />,
+  [AssetScope.PUBLIC]: <HiGlobeAlt className="size-4" />,
 };
 
 const VARIANT_COLORS: Record<string, string> = {
@@ -148,7 +148,7 @@ export default function DropdownScope({
               {/* Privacy indicator dot - shows current privacy level color */}
               <span
                 className={cn(
-                  'absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-background',
+                  'absolute -bottom-0.5 -right-0.5 size-2 rounded-full border border-background',
                   currentScope === AssetScope.PUBLIC && 'bg-purple-500',
                   currentScope === AssetScope.ORGANIZATION && 'bg-green-500',
                   currentScope === AssetScope.BRAND && 'bg-blue-500',
@@ -185,7 +185,7 @@ export default function DropdownScope({
             {/* Scope Icon */}
             <div
               className={cn(
-                'flex-shrink-0 w-4 h-4 flex items-center justify-center',
+                'flex-shrink-0 size-4 flex items-center justify-center',
                 'transition-colors duration-150',
                 isActive
                   ? getActiveIconColorClass(opt.variant)

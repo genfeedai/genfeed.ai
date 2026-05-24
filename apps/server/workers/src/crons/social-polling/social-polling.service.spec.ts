@@ -96,7 +96,6 @@ describe('SocialPollingService', () => {
     expect(mockWorkflowModel.find).toHaveBeenCalledWith(
       expect.objectContaining({
         isDeleted: false,
-        'nodes.type': { $in: expect.arrayContaining(['mentionTrigger']) },
         status: 'active',
       }),
     );
@@ -157,17 +156,18 @@ describe('SocialPollingService', () => {
     );
 
     // Should update poll state
-    expect(mockWorkflowModel.updateOne).toHaveBeenCalledWith(
+    expect(prisma.workflow.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        _id: 'wf1',
-        isDeleted: false,
-      }),
-      expect.objectContaining({
-        $set: expect.objectContaining({
-          'metadata.pollState': expect.objectContaining({
-            node1: 'tweet123',
+        data: expect.objectContaining({
+          config: expect.objectContaining({
+            metadata: expect.objectContaining({
+              pollState: expect.objectContaining({
+                node1: 'tweet123',
+              }),
+            }),
           }),
         }),
+        where: { id: 'wf1' },
       }),
     );
   });

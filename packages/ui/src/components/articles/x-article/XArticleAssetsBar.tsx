@@ -10,6 +10,7 @@ import {
   HiClipboardDocument,
   HiClock,
   HiPhoto,
+  HiSparkles,
 } from 'react-icons/hi2';
 
 export default function XArticleAssetsBar({
@@ -18,7 +19,10 @@ export default function XArticleAssetsBar({
   onCopyFullArticle,
   onDownloadImage,
   onGenerateHeaderImage,
+  onGenerateTeaserPost,
+  onGenerateTeaserThread,
   isGeneratingImage,
+  isGeneratingTeaser = false,
 }: XArticleAssetsBarProps) {
   const hasHeaderImage = !!metadata.headerImageUrl;
 
@@ -29,7 +33,7 @@ export default function XArticleAssetsBar({
         <div className="flex items-center gap-4 text-sm text-foreground/60">
           <span>{metadata.wordCount.toLocaleString()} words</span>
           <span className="flex items-center gap-1">
-            <HiClock className="h-4 w-4" />
+            <HiClock className="size-4" />
             {metadata.estimatedReadTime} min read
           </span>
         </div>
@@ -37,12 +41,36 @@ export default function XArticleAssetsBar({
         <div className="ml-auto flex items-center gap-2">
           {/* Copy Full Article */}
           <Button
-            label="Copy Full Article"
+            label="Copy for X Article"
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
-            icon={<HiClipboardDocument className="h-4 w-4" />}
+            icon={<HiClipboardDocument className="size-4" />}
             onClick={onCopyFullArticle}
           />
+
+          {onGenerateTeaserPost && (
+            <Button
+              label="Create X Post"
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              icon={<HiSparkles className="size-4" />}
+              isLoading={isGeneratingTeaser}
+              isDisabled={isGeneratingTeaser}
+              onClick={onGenerateTeaserPost}
+            />
+          )}
+
+          {onGenerateTeaserThread && (
+            <Button
+              label="Create X Thread"
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              icon={<HiSparkles className="size-4" />}
+              isLoading={isGeneratingTeaser}
+              isDisabled={isGeneratingTeaser}
+              onClick={onGenerateTeaserThread}
+            />
+          )}
 
           {/* Header Image */}
           {hasHeaderImage ? (
@@ -60,7 +88,7 @@ export default function XArticleAssetsBar({
                 label="Download"
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.SM}
-                icon={<HiArrowDownTray className="h-4 w-4" />}
+                icon={<HiArrowDownTray className="size-4" />}
                 onClick={() =>
                   onDownloadImage(
                     metadata.headerImageUrl as string,
@@ -72,11 +100,11 @@ export default function XArticleAssetsBar({
           ) : (
             <Button
               label={
-                isGeneratingImage ? 'Generating...' : 'Generate Header Image'
+                isGeneratingImage ? 'Generating…' : 'Generate Header Image'
               }
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
-              icon={<HiPhoto className="h-4 w-4" />}
+              icon={<HiPhoto className="size-4" />}
               isLoading={isGeneratingImage}
               isDisabled={isGeneratingImage}
               onClick={onGenerateHeaderImage}

@@ -1,11 +1,11 @@
 /**
- * Credentials Module
- * Third-party credentials: store API keys for external services (OpenAI, Replicate, etc),
-encrypted credential storage, and credential rotation.
+ * Credentials Module (Full)
+ * Includes CredentialsController with platform token refresh + quota endpoints.
+ * Most callers should import CredentialsCoreModule instead.
  */
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsController } from '@api/collections/credentials/controllers/credentials.controller';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { TagsModule } from '@api/collections/tags/tags.module';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
@@ -22,23 +22,22 @@ import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [CredentialsController],
-  exports: [CredentialsService],
+  exports: [CredentialsCoreModule],
   imports: [
-    forwardRef(() => QuotaModule),
-
     forwardRef(() => BrandsModule),
+    forwardRef(() => CredentialsCoreModule),
     forwardRef(() => FacebookModule),
     forwardRef(() => GoogleAdsModule),
     forwardRef(() => InstagramModule),
     forwardRef(() => LinkedInModule),
     forwardRef(() => OrganizationsModule),
     forwardRef(() => PinterestModule),
+    forwardRef(() => QuotaModule),
     forwardRef(() => RedditModule),
     forwardRef(() => TagsModule),
     forwardRef(() => TiktokModule),
     forwardRef(() => TwitterModule),
     forwardRef(() => YoutubeModule),
   ],
-  providers: [CredentialsService],
 })
 export class CredentialsModule {}

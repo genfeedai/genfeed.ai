@@ -1,6 +1,6 @@
 import { ofetch } from 'ofetch';
-import { getApiKey, getApiUrl } from '@/config/store.js';
-import { ApiError, AuthError } from '@/utils/errors.js';
+import { getApiKey, getApiUrl } from '@/config/store';
+import { ApiError, AuthError } from '@/utils/errors';
 
 export interface ApiResponse<T> {
   data: T;

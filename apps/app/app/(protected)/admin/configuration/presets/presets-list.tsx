@@ -7,13 +7,13 @@ import type { IOrganization } from '@genfeedai/interfaces';
 import type { IElementContentProps } from '@genfeedai/interfaces/ui/elements-content.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { Preset } from '@models/elements/preset.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { PresetsService } from '@services/elements/presets.service';
+import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import Badge from '@ui/display/badge/Badge';
@@ -24,10 +24,17 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { HiPencil, HiPlus, HiTrash } from 'react-icons/hi2';
 
-export default function PresetsList({
+function PresetsListContent({
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -40,10 +47,10 @@ export default function PresetsList({
     PresetsService.getInstance(token),
   );
 
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const searchParamsString = searchParams.toString();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -73,11 +80,11 @@ export default function PresetsList({
       params.delete('brand');
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   const handleAdminBrandChange = useCallback(
@@ -91,11 +98,11 @@ export default function PresetsList({
       }
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   // Use refs for callback props to prevent unnecessary re-renders
@@ -108,16 +115,17 @@ export default function PresetsList({
   });
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams?.get('page')) || 1;
+  const currentPage = Number(searchParams.get('page')) || 1;
 
-  // Load presets using useResource (handles AbortController cleanup properly)
   const {
-    data: presets,
+    data: presets = [] as Preset[],
     isLoading,
-    isRefreshing,
-    refresh: refreshPresets,
-  } = useResource(
-    async () => {
+    isFetching,
+    error: presetsError,
+    refetch: refreshPresets,
+  } = useQuery({
+    queryKey: ['presets', currentPage, scope, adminOrg, adminBrand],
+    queryFn: async () => {
       const url = `GET /presets`;
       const service = await getPresetsService();
 
@@ -140,16 +148,17 @@ export default function PresetsList({
       logger.info(`${url} success`, data);
       return data;
     },
-    {
-      defaultValue: [] as Preset[],
-      dependencies: [currentPage, scope, adminOrg, adminBrand],
-      enabled: !!isSignedIn,
-      onError: (error) => {
-        logger.error('GET /presets failed', error);
-        notificationsService.error('Failed to load presets');
-      },
-    },
-  );
+    enabled: !!isSignedIn,
+  });
+
+  const isRefreshing = isFetching && !isLoading;
+
+  useEffect(() => {
+    if (presetsError) {
+      logger.error('GET /presets failed', presetsError);
+      notificationsService.error('Failed to load presets');
+    }
+  }, [presetsError, notificationsService]);
 
   // Notify parent of loading state changes
   useEffect(() => {
@@ -276,7 +285,7 @@ export default function PresetsList({
                 isError: true,
                 label: 'Delete Preset',
                 message: `Are you sure you want to delete "${preset.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(preset),
               });
             },
             tooltip: 'Delete',
@@ -309,14 +318,10 @@ export default function PresetsList({
     }
   };
 
-  const handleDelete = async () => {
-    if (!selectedPreset) {
-      return;
-    }
-
+  const handleDelete = async (preset: Preset) => {
     try {
       const service = await getPresetsService();
-      await service.delete(selectedPreset.id);
+      await service.delete(preset.id);
       notificationsService.success('Preset deleted');
 
       setSelectedPreset(null);
@@ -384,5 +389,15 @@ export default function PresetsList({
         <AutoPagination showTotal totalLabel="presets" />
       </div>
     </Container>
+  );
+}
+
+export default function PresetsList(
+  props: Parameters<typeof PresetsListContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <PresetsListContent {...props} />
+    </Suspense>
   );
 }

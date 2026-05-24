@@ -64,7 +64,7 @@ export default function SocialLinks({
           className="text-foreground/50 transition-colors hover:text-foreground"
           title={`${link.label}: @${link.handle}`}
         >
-          <link.icon className="h-4 w-4" />
+          <link.icon className="size-4" />
         </a>
       ))}
     </div>

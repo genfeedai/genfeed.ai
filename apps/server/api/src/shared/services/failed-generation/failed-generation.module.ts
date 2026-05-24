@@ -5,7 +5,10 @@ import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   exports: [FailedGenerationService],
-  imports: [forwardRef(() => ActivitiesModule), NotificationsPublisherModule],
+  imports: [
+    forwardRef(() => ActivitiesModule),
+    forwardRef(() => NotificationsPublisherModule),
+  ],
   providers: [FailedGenerationService],
 })
 export class FailedGenerationModule {}

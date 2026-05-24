@@ -57,6 +57,8 @@ describe('DiscordBotService', () => {
           DISCORD_CHANNEL_ID_POSTS: 'channel-posts-123',
           DISCORD_CHANNEL_ID_STUDIO: 'channel-studio-456',
           DISCORD_CHANNEL_ID_USERS: 'channel-users-789',
+          DISCORD_WEBHOOK_NAME_PREFIX: '',
+          DISCORD_WEBHOOK_REASON: '',
         };
         return config[key];
       }),
@@ -261,9 +263,37 @@ describe('DiscordBotService', () => {
 
       expect(mockChannel.createWebhook).toHaveBeenCalledWith({
         name: 'TestHook',
-        reason: 'Genfeed.ai notification webhook',
+        reason: 'Notification webhook',
       });
       expect(result).not.toBeNull();
+    });
+
+    it('should use configured webhook creation reason', async () => {
+      mockConfigService.get.mockImplementation((key: string) => {
+        const config: Record<string, string> = {
+          DISCORD_BOT_TOKEN: 'test-bot-token',
+          DISCORD_WEBHOOK_REASON: 'Self-hosted notification webhook',
+        };
+        return config[key];
+      });
+
+      const mockWebhook = { id: 'wh-123', url: 'https://discord.webhook/123' };
+      const mockChannel = Object.create(TextChannel.prototype);
+      Object.assign(mockChannel, {
+        createWebhook: vi.fn().mockResolvedValue(mockWebhook),
+        fetchWebhooks: vi.fn().mockResolvedValue({
+          find: vi.fn().mockReturnValue(undefined),
+        }),
+      });
+
+      mockClient.channels.fetch.mockResolvedValue(mockChannel);
+
+      await service.getOrCreateWebhook('channel-123', 'TestHook');
+
+      expect(mockChannel.createWebhook).toHaveBeenCalledWith({
+        name: 'TestHook',
+        reason: 'Self-hosted notification webhook',
+      });
     });
 
     it('should reuse existing webhook owned by bot', async () => {
@@ -358,6 +388,38 @@ describe('DiscordBotService', () => {
       expect(mockClient.channels.fetch).toHaveBeenCalledWith(
         'channel-posts-123',
       );
+    });
+
+    it('should prefix bot-managed webhook names when configured', async () => {
+      mockConfigService.get.mockImplementation((key: string) => {
+        const config: Record<string, string> = {
+          DISCORD_BOT_TOKEN: 'test-bot-token',
+          DISCORD_CHANNEL_ID_POSTS: 'channel-posts-123',
+          DISCORD_WEBHOOK_NAME_PREFIX: 'Self-hosted',
+        };
+        return config[key];
+      });
+
+      const mockWebhook = { id: 'wh-123', url: 'https://discord.webhook/123' };
+      const mockChannel = Object.create(TextChannel.prototype);
+      Object.assign(mockChannel, {
+        createWebhook: vi.fn().mockResolvedValue(mockWebhook),
+        fetchWebhooks: vi.fn().mockResolvedValue({
+          find: vi.fn().mockReturnValue(undefined),
+        }),
+      });
+
+      mockClient.channels.fetch.mockResolvedValue(mockChannel);
+      await service.onModuleInit();
+      const readyCallback = mockClient.once.mock.calls[0][1];
+      readyCallback();
+
+      await service.getPostsWebhook();
+
+      expect(mockChannel.createWebhook).toHaveBeenCalledWith({
+        name: 'Self-hosted Posts',
+        reason: 'Notification webhook',
+      });
     });
   });
 

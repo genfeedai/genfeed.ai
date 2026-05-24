@@ -36,25 +36,25 @@ interface PriorityOption {
 const GENERATION_PRIORITY_OPTIONS: PriorityOption[] = [
   {
     description: 'Premium models, highest quality output',
-    icon: <HiOutlineTrophy className="h-4 w-4" />,
+    icon: <HiOutlineTrophy className="size-4" />,
     key: 'quality',
     label: 'Best Quality',
   },
   {
     description: 'Smart balance of quality, speed, and cost',
-    icon: <HiOutlineScale className="h-4 w-4" />,
+    icon: <HiOutlineScale className="size-4" />,
     key: 'balanced',
     label: 'Balanced',
   },
   {
     description: 'Fastest generation, may use lighter models',
-    icon: <HiOutlineBolt className="h-4 w-4" />,
+    icon: <HiOutlineBolt className="size-4" />,
     key: 'speed',
     label: 'Fast',
   },
   {
     description: 'Cheapest models, saves credits',
-    icon: <HiOutlineCurrencyDollar className="h-4 w-4" />,
+    icon: <HiOutlineCurrencyDollar className="size-4" />,
     key: 'cost',
     label: 'Budget',
   },
@@ -191,7 +191,7 @@ export function AgentSettings({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -222,7 +222,7 @@ export function AgentSettings({
             >
               <div
                 className={cn(
-                  'flex h-8 w-8 shrink-0 items-center justify-center',
+                  'flex size-8 shrink-0 items-center justify-center',
                   generationPriority === option.key
                     ? 'bg-primary/10 text-primary'
                     : 'bg-white/[0.05] text-muted-foreground',
@@ -239,7 +239,7 @@ export function AgentSettings({
                 </span>
               </div>
               {generationPriority === option.key && (
-                <HiOutlineCheck className="h-4 w-4 shrink-0 text-primary" />
+                <HiOutlineCheck className="size-4 shrink-0 text-primary" />
               )}
             </Button>
           ))}
@@ -272,7 +272,7 @@ export function AgentSettings({
               <div className="flex flex-1 flex-col gap-0.5">
                 <div className="flex items-center gap-1.5">
                   {model.isReasoning && (
-                    <HiOutlineSparkles className="h-3.5 w-3.5 text-purple-400" />
+                    <HiOutlineSparkles className="size-3.5 text-purple-400" />
                   )}
                   <span className="text-sm font-medium text-foreground">
                     {model.label}
@@ -293,7 +293,7 @@ export function AgentSettings({
                 </span>
               )}
               {selectedModel === model.key && (
-                <HiOutlineCheck className="h-4 w-4 text-primary" />
+                <HiOutlineCheck className="size-4 text-primary" />
               )}
             </Button>
           ))}

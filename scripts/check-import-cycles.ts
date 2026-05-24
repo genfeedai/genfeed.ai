@@ -14,10 +14,13 @@ const BASELINE_FILE = path.join(ROOT_DIR, 'scripts/import-cycle-baseline.json');
 const EXCLUDE_REGEX = String.raw`(^|/)(node_modules|dist|coverage|storybook-static|public|docs|e2e|__tests__|__mocks__|\.next)(/|$)|\.(spec|test)\.[jt]sx?$|\.d\.ts$`;
 const WORKSPACE_GLOBS = ['packages/*', 'apps/server/*', 'apps/app/*'];
 const CODE_DIR_HINTS = ['src', 'app', 'packages', 'components', 'lib'];
+const DEFAULT_MADGE_TIMEOUT_MS = 60_000;
+const SOURCE_FILE_PATTERN = '*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}';
 
 type CliArgs = {
   files: string[];
   json: boolean;
+  timeoutMs: number;
   updateBaseline: boolean;
 };
 
@@ -42,6 +45,7 @@ type JsonReport = {
 function parseArgs(argv: string[]): CliArgs {
   const files: string[] = [];
   let json = false;
+  let timeoutMs = DEFAULT_MADGE_TIMEOUT_MS;
   let updateBaseline = false;
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -57,6 +61,20 @@ function parseArgs(argv: string[]): CliArgs {
       continue;
     }
 
+    if (arg === '--timeout-ms') {
+      const rawTimeout = argv[index + 1];
+      if (!rawTimeout || rawTimeout.startsWith('--')) {
+        throw new Error('--timeout-ms requires a numeric value');
+      }
+      const parsedTimeout = Number(rawTimeout);
+      if (!Number.isFinite(parsedTimeout) || parsedTimeout <= 0) {
+        throw new Error('--timeout-ms must be a positive number');
+      }
+      timeoutMs = parsedTimeout;
+      index += 1;
+      continue;
+    }
+
     if (arg === '--files') {
       for (let nextIndex = index + 1; nextIndex < argv.length; nextIndex += 1) {
         const nextArg = argv[nextIndex];
@@ -69,7 +87,7 @@ function parseArgs(argv: string[]): CliArgs {
     }
   }
 
-  return { files, json, updateBaseline };
+  return { files, json, timeoutMs, updateBaseline };
 }
 
 function toPosixPath(value: string): string {
@@ -90,11 +108,53 @@ function hasCodeTree(workspaceRoot: string): boolean {
 
   return (
     Array.from(
-      new Bun.Glob('*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}').scanSync({
+      new Bun.Glob(`**/${SOURCE_FILE_PATTERN}`).scanSync({
         cwd: workspaceRoot,
         absolute: false,
       }),
-    ).length > 0
+    ).filter((file) => !new RegExp(EXCLUDE_REGEX).test(file)).length > 0
+  );
+}
+
+function discoverScanTargets(workspaceRoot: string): string[] {
+  const hintedTargets = CODE_DIR_HINTS.map((dir) =>
+    path.join(workspaceRoot, dir),
+  ).filter((candidatePath) => {
+    try {
+      return existsSync(candidatePath) && statSync(candidatePath).isDirectory();
+    } catch {
+      return false;
+    }
+  });
+
+  if (hintedTargets.length > 0) {
+    return hintedTargets;
+  }
+
+  const codeFiles = Array.from(
+    new Bun.Glob(`**/${SOURCE_FILE_PATTERN}`).scanSync({
+      cwd: workspaceRoot,
+      absolute: false,
+    }),
+  ).filter((file) => !new RegExp(EXCLUDE_REGEX).test(file));
+
+  const topLevelDirs = new Set<string>();
+  const rootFiles: string[] = [];
+
+  for (const file of codeFiles) {
+    const [firstSegment] = toPosixPath(file).split('/');
+    if (!firstSegment) {
+      continue;
+    }
+    if (firstSegment === file) {
+      rootFiles.push(path.join(workspaceRoot, file));
+    } else {
+      topLevelDirs.add(path.join(workspaceRoot, firstSegment));
+    }
+  }
+
+  return [...topLevelDirs, ...rootFiles].sort((left, right) =>
+    left.localeCompare(right),
   );
 }
 
@@ -165,7 +225,16 @@ function resolveTsconfig(workspaceRoot: string): string {
   return ROOT_TSCONFIG;
 }
 
-function runMadge(workspaceRoot: string, tsconfigPath: string): string[][] {
+function runMadge(
+  workspaceRoot: string,
+  tsconfigPath: string,
+  scanTargets: string[],
+  timeoutMs: number,
+): string[][] {
+  if (scanTargets.length === 0) {
+    return [];
+  }
+
   const commandArgs = [
     '--yes',
     'madge@8',
@@ -177,17 +246,24 @@ function runMadge(workspaceRoot: string, tsconfigPath: string): string[][] {
     tsconfigPath,
     '--exclude',
     EXCLUDE_REGEX,
-    workspaceRoot,
+    ...scanTargets,
   ];
 
   const result = spawnSync('npx', commandArgs, {
     cwd: ROOT_DIR,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: timeoutMs,
   });
 
   if (result.error) {
-    throw new Error(result.error.message);
+    const workspace = toRepoRelative(workspaceRoot);
+    if (result.error.message.includes('ETIMEDOUT')) {
+      throw new Error(
+        `madge timed out after ${timeoutMs}ms while scanning ${workspace}`,
+      );
+    }
+    throw new Error(`${workspace}: ${result.error.message}`);
   }
 
   const exitStatus = result.status ?? 1;
@@ -371,7 +447,20 @@ async function main(): Promise<void> {
 
   const detectedCycles = workspaceRoots.flatMap((workspaceRoot) => {
     const tsconfigPath = resolveTsconfig(workspaceRoot);
-    const cycles = runMadge(workspaceRoot, tsconfigPath);
+    const scanTargets = discoverScanTargets(workspaceRoot);
+    if (!args.json) {
+      process.stdout.write(
+        `Scanning ${toRepoRelative(workspaceRoot)} (${scanTargets
+          .map((target) => toRepoRelative(target))
+          .join(', ')})...\n`,
+      );
+    }
+    const cycles = runMadge(
+      workspaceRoot,
+      tsconfigPath,
+      scanTargets,
+      args.timeoutMs,
+    );
     return cycles.map((cycleFiles) => toCycleRecord(cycleFiles, workspaceRoot));
   });
 

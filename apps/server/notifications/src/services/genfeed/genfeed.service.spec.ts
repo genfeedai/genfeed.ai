@@ -3,15 +3,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@notifications/config/config.service';
 import { GenFeedService } from '@notifications/services/genfeed/genfeed.service';
 import axios from 'axios';
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  type Mocked,
-  vi,
-} from 'vitest';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 
 // Mock axios
 vi.mock('axios');
@@ -63,10 +55,6 @@ describe('GenFeedService', () => {
     service = module.get<GenFeedService>(GenFeedService);
     module.get<ConfigService>(ConfigService);
     module.get<LoggerService>(LoggerService);
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   it('should be defined', () => {

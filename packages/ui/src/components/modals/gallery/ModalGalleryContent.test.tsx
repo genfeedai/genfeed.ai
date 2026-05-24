@@ -56,7 +56,7 @@ vi.mock('@ui/display/masonry/Masonry', () => ({
 vi.mock('@ui/feedback/spinner/Spinner', () => ({
   default: ({ size }: { size?: string }) => (
     <div data-testid="spinner" data-size={size}>
-      Loading...
+      Loading…
     </div>
   ),
 }));
@@ -64,7 +64,7 @@ vi.mock('@ui/feedback/spinner/Spinner', () => ({
 vi.mock('@ui/display/skeleton/skeleton', () => ({
   SkeletonList: ({ count }: { count: number }) => (
     <div data-testid="skeleton-list" data-count={count}>
-      Loading skeleton...
+      Loading skeleton…
     </div>
   ),
 }));

@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { IsModelKeyOrTraining } from '@api/helpers/validators/model-key-or-training.validator';
 import { AssetScope, PromptCategory, PromptStatus } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
@@ -5,19 +6,18 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
 } from 'class-validator';
 
 export class CreatePromptDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
   readonly organization?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
   readonly brand?: string;

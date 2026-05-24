@@ -9,6 +9,6 @@ export const HiggsFieldModule = createServiceModule(HiggsFieldService, {
   additionalImports: [
     HttpModule,
     forwardRef(() => ByokModule),
-    PollUntilModule,
+    forwardRef(() => PollUntilModule),
   ],
 });

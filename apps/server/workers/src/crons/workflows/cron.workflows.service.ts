@@ -1,3 +1,4 @@
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -60,12 +61,20 @@ export class CronWorkflowsService {
   // Lock TTL: 10 minutes (should be longer than max expected execution time)
   private static readonly LOCK_TTL_SECONDS = 600;
 
+  private static readonly WORKFLOW_STEP_CREDIT_COST: Record<string, number> = {
+    [WorkflowStepCategory.GENERATE_ARTICLE]: 3,
+    [WorkflowStepCategory.GENERATE_IMAGE]: 5,
+    [WorkflowStepCategory.GENERATE_MUSIC]: 5,
+    [WorkflowStepCategory.GENERATE_VIDEO]: 10,
+  };
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly generateImageTask: GenerateImageTask,
     private readonly generateVideoTask: GenerateVideoTask,
     private readonly generateMusicTask: GenerateMusicTask,
     private readonly generateArticleTask: GenerateArticleTask,
+    private readonly creditsUtilsService: CreditsUtilsService,
     private readonly notificationsService: NotificationsService,
     private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
@@ -176,6 +185,28 @@ export class CronWorkflowsService {
     const cfg = (workflow.config ?? {}) as WorkflowConfig;
     const executionCount = (cfg.executionCount ?? 0) + 1;
 
+    const steps = (workflow.steps as WorkflowStep[]) ?? [];
+    const estimatedCredits = steps.reduce((sum, step) => {
+      return (
+        sum +
+        (CronWorkflowsService.WORKFLOW_STEP_CREDIT_COST[step.category] ?? 1)
+      );
+    }, 0);
+
+    const hasCredits =
+      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+        workflow.organizationId,
+        estimatedCredits,
+      );
+
+    if (!hasCredits) {
+      this.logger.warn(
+        `Workflow ${workflow.id} skipped: insufficient credits (${estimatedCredits} estimated)`,
+        'CronWorkflowsService',
+      );
+      return;
+    }
+
     try {
       // Update workflow status to RUNNING
       await this.prisma.workflow.update({
@@ -191,7 +222,6 @@ export class CronWorkflowsService {
       });
 
       // Execute each step in the workflow
-      const steps = (workflow.steps as WorkflowStep[]) ?? [];
       const updatedSteps = [...steps];
 
       for (let i = 0; i < updatedSteps.length; i++) {
@@ -256,7 +286,7 @@ export class CronWorkflowsService {
               message: `Workflow "${workflow.label}" completed successfully`,
             },
             type: 'telegram',
-          },
+          } as never,
           type: 'telegram',
           userId: workflow.userId,
         });
@@ -299,7 +329,7 @@ export class CronWorkflowsService {
               message: `Workflow "${workflow.label}" failed: ${(error as Error)?.message}`,
             },
             type: 'telegram',
-          },
+          } as never,
           type: 'telegram',
           userId: workflow.userId,
         });

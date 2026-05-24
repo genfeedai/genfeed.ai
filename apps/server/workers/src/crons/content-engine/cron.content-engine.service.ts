@@ -52,13 +52,26 @@ export class CronContentEngineService {
       );
 
       const brands = await this.brandsService.find({
-        'agentConfig.autoPublish.enabled': true,
-        'agentConfig.strategy.contentTypes.0': { $exists: true },
         isActive: true,
         isDeleted: false,
       });
 
-      const eligibleBrands = brands.slice(0, MAX_BRANDS_PER_CYCLE);
+      const eligibleBrands = brands
+        .filter((brand) => {
+          const agentConfig = brand.agentConfig as
+            | {
+                autoPublish?: { enabled?: boolean };
+                strategy?: { contentTypes?: unknown[] };
+              }
+            | undefined;
+
+          return (
+            agentConfig?.autoPublish?.enabled === true &&
+            Array.isArray(agentConfig.strategy?.contentTypes) &&
+            agentConfig.strategy.contentTypes.length > 0
+          );
+        })
+        .slice(0, MAX_BRANDS_PER_CYCLE);
 
       this.logger.log(
         `Found ${eligibleBrands.length} brands with active content strategy`,
@@ -96,21 +109,29 @@ export class CronContentEngineService {
 
   private async processBrand(brand: {
     _id: string;
-    organization: { toString: () => string };
-    user?: { toString: () => string };
-    agentConfig?: {
-      strategy?: {
-        contentTypes?: string[];
-        platforms?: string[];
-        frequency?: string;
-        goals?: string[];
-      };
-    };
+    organization?: unknown;
+    organizationId?: string | null;
+    user?: unknown;
+    userId?: string | null;
+    agentConfig?: unknown;
   }): Promise<void> {
     const brandId = String(brand._id);
-    const organizationId = brand.organization.toString();
-    const userId = brand.user?.toString() ?? organizationId;
-    const strategy = brand.agentConfig?.strategy;
+    const organizationId = String(brand.organization ?? brand.organizationId);
+    const userId = brand.user
+      ? String(brand.user)
+      : (brand.userId ?? organizationId);
+    const strategy = (
+      brand.agentConfig as
+        | {
+            strategy?: {
+              contentTypes?: string[];
+              frequency?: string;
+              goals?: string[];
+              platforms?: string[];
+            };
+          }
+        | undefined
+    )?.strategy;
 
     if (!strategy?.contentTypes?.length) {
       return;

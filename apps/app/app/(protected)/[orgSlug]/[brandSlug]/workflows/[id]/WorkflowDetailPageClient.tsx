@@ -26,7 +26,7 @@ import {
 } from '@genfeedai/workflow-ui/stores';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import '@genfeedai/workflow-ui/styles';
-import '@/features/workflows/styles/workflow-scope.scss';
+import '@/features/workflows/styles/workflow-scope.css';
 
 import { ExecutionPanel } from '@/features/workflows/components/ExecutionPanel';
 import { CloudCreditsIndicator } from '@/features/workflows/components/editor/CloudCreditsIndicator';
@@ -175,7 +175,7 @@ export default function WorkflowDetailPageClient({
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="animate-pulse text-[var(--muted-foreground)]">
-          Loading editor...
+          Loading editor…
         </div>
       </div>
     );
@@ -232,7 +232,7 @@ export default function WorkflowDetailPageClient({
                         onClick={handleRun}
                         disabled={isRunning}
                       >
-                        {isRunning ? 'Running...' : 'Run'}
+                        {isRunning ? 'Running…' : 'Run'}
                       </Button>
                       {lifecycle === 'draft' && (
                         <Button

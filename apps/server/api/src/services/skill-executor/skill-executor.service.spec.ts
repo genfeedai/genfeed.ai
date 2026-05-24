@@ -4,6 +4,7 @@ import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-fac
 import { ContentWritingHandler } from '@api/services/skill-executor/handlers/content-writing.handler';
 import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
 import { TrendDiscoveryHandler } from '@api/services/skill-executor/handlers/trend-discovery.handler';
+import { TrendRemixHandler } from '@api/services/skill-executor/handlers/trend-remix.handler';
 import { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
 import { ByokProvider, ContentRunStatus } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -23,7 +24,7 @@ describe('SkillExecutorService', () => {
 
   const mockSkillsService = {
     assertBrandSkillEnabled: vi.fn(),
-    getSkillBySlug: vi.fn(),
+    getSkillById: vi.fn(),
   };
 
   const mockContentRunsService = {
@@ -65,6 +66,7 @@ describe('SkillExecutorService', () => {
         { provide: ContentWritingHandler, useValue: mockHandler },
         { provide: ImageGenerationHandler, useValue: mockHandler },
         { provide: TrendDiscoveryHandler, useValue: mockHandler },
+        { provide: TrendRemixHandler, useValue: mockHandler },
       ],
     }).compile();
 
@@ -72,7 +74,7 @@ describe('SkillExecutorService', () => {
   });
 
   it('executes a registered skill and tracks content run', async () => {
-    mockSkillsService.getSkillBySlug.mockResolvedValue({
+    mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: true,
       requiredProviders: [],
       slug: 'content-writing',
@@ -87,7 +89,12 @@ describe('SkillExecutorService', () => {
 
     const result = await service.execute('content-writing', baseContext, {
       audience: 'founders',
+      channelFit: 'X thread',
+      confidence: 0.72,
       hypothesis: 'founder pain wins',
+      risk: 'Avoid hype claims',
+      sourceReferenceId: 'source-ref-1',
+      sourceUrl: 'https://x.com/builderx/status/1',
       topic: 'AI strategy',
     });
 
@@ -97,7 +104,12 @@ describe('SkillExecutorService', () => {
       expect.objectContaining({
         brief: expect.objectContaining({
           audience: 'founders',
+          channelFit: 'X thread',
+          confidence: 0.72,
           hypothesis: 'founder pain wins',
+          risk: 'Avoid hype claims',
+          sourceId: 'source-ref-1',
+          sourceUrl: 'https://x.com/builderx/status/1',
         }),
         input: expect.objectContaining({
           audience: 'founders',
@@ -130,7 +142,7 @@ describe('SkillExecutorService', () => {
   });
 
   it('throws when skill does not exist', async () => {
-    mockSkillsService.getSkillBySlug.mockResolvedValue(null);
+    mockSkillsService.getSkillById.mockResolvedValue(null);
 
     await expect(
       service.execute('unknown-skill', baseContext),
@@ -138,7 +150,7 @@ describe('SkillExecutorService', () => {
   });
 
   it('throws when skill is disabled', async () => {
-    mockSkillsService.getSkillBySlug.mockResolvedValue({
+    mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: false,
       slug: 'content-writing',
     });
@@ -149,7 +161,7 @@ describe('SkillExecutorService', () => {
   });
 
   it('marks run as failed when handler throws', async () => {
-    mockSkillsService.getSkillBySlug.mockResolvedValue({
+    mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: true,
       requiredProviders: [],
       slug: 'content-writing',
@@ -173,7 +185,7 @@ describe('SkillExecutorService', () => {
   });
 
   it('resolves BYOK source when skill has required providers', async () => {
-    mockSkillsService.getSkillBySlug.mockResolvedValue({
+    mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: true,
       requiredProviders: [ByokProvider.OPENAI],
       slug: 'content-writing',
@@ -202,7 +214,7 @@ describe('SkillExecutorService', () => {
   });
 
   it('marks run as failed for unregistered handler slug', async () => {
-    mockSkillsService.getSkillBySlug.mockResolvedValue({
+    mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: true,
       requiredProviders: [],
       slug: 'video-editing',
@@ -223,7 +235,7 @@ describe('SkillExecutorService', () => {
   });
 
   it('records duration on both success and failure', async () => {
-    mockSkillsService.getSkillBySlug.mockResolvedValue({
+    mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: true,
       requiredProviders: [],
       slug: 'content-writing',
@@ -248,8 +260,97 @@ describe('SkillExecutorService', () => {
     );
   });
 
+  it('stores Remix Pack definitions as run variants', async () => {
+    mockSkillsService.getSkillById.mockResolvedValue({
+      isEnabled: true,
+      requiredProviders: [],
+      slug: 'trend-remix',
+    });
+    mockHandler.execute.mockResolvedValue({
+      content: 'Primary thread content',
+      metadata: {
+        remixPackVariants: [
+          {
+            angle: 'Operator pain point',
+            content: 'Primary thread content',
+            format: 'post-thread',
+            hypothesis: 'Pain-first threads convert',
+            platform: 'twitter',
+            type: 'text',
+          },
+          {
+            angle: 'Visual proof',
+            content: 'Image creative prompt',
+            format: 'social-image-creative',
+            hypothesis: 'A proof visual increases shares',
+            platform: 'twitter',
+            type: 'image',
+          },
+          {
+            angle: 'Video hook',
+            content: 'Short-form script',
+            format: 'short-form-video-script',
+            hypothesis: 'Fast hooks retain attention',
+            platform: 'twitter',
+            type: 'video-script',
+          },
+          {
+            angle: 'Long-form breakdown',
+            content: 'Newsletter outline',
+            format: 'article-newsletter-angle',
+            hypothesis: 'Deeper analysis captures high-intent users',
+            platform: 'newsletter',
+            type: 'article',
+          },
+          {
+            angle: 'Reply derivative',
+            content: 'Follow-up reply',
+            format: 'follow-up-reply',
+            hypothesis: 'Replies extend the loop',
+            platform: 'twitter',
+            type: 'reply',
+          },
+        ],
+        trendId: 'trend-1',
+      },
+      platforms: ['twitter'],
+      skillSlug: 'trend-remix',
+      type: 'text',
+    });
+
+    await service.execute('trend-remix', baseContext, {
+      trendId: 'trend-1',
+    });
+
+    expect(mockContentRunsService.patchRun).toHaveBeenCalledWith(
+      orgId,
+      runId,
+      expect.objectContaining({
+        status: ContentRunStatus.COMPLETED,
+        variants: [
+          expect.objectContaining({
+            angle: 'Operator pain point',
+            format: 'post-thread',
+            hypothesis: 'Pain-first threads convert',
+            id: `${runId}-trend-remix-post-thread`,
+            metadata: expect.objectContaining({
+              remixPack: true,
+              trendId: 'trend-1',
+            }),
+            platform: 'twitter',
+            type: 'text',
+          }),
+          expect.objectContaining({ format: 'social-image-creative' }),
+          expect.objectContaining({ format: 'short-form-video-script' }),
+          expect.objectContaining({ format: 'article-newsletter-angle' }),
+          expect.objectContaining({ format: 'follow-up-reply' }),
+        ],
+      }),
+    );
+  });
+
   it('captures publish context when scheduling metadata is present', async () => {
-    mockSkillsService.getSkillBySlug.mockResolvedValue({
+    mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: true,
       requiredProviders: [],
       slug: 'content-writing',

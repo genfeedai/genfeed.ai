@@ -2,7 +2,9 @@
 
 export const DESKTOP_IPC_CHANNELS = {
   appBootstrap: 'desktop:app:bootstrap',
+  appEnableOfflineMode: 'desktop:app:enableOfflineMode',
   appGetDiagnostics: 'desktop:app:getDiagnostics',
+  appOpenExternalPath: 'desktop:app:openExternalPath',
   authChanged: 'desktop:auth:changed',
   authGetSession: 'desktop:auth:getSession',
   authLogin: 'desktop:auth:login',
@@ -25,22 +27,44 @@ export const DESKTOP_IPC_CHANNELS = {
   draftsGet: 'desktop:drafts:get',
   draftsList: 'desktop:drafts:list',
   draftsSave: 'desktop:drafts:save',
+  filesGetAssetUrl: 'desktop:files:getAssetUrl',
   filesImportAssets: 'desktop:files:importAssets',
+  filesListAssets: 'desktop:files:listAssets',
   filesRead: 'desktop:files:read',
   filesWrite: 'desktop:files:write',
+  generationClearProviderConfig: 'desktop:generation:clearProviderConfig',
+  generationCancelAssetGeneration: 'desktop:generation:cancelAssetGeneration',
+  generationEnqueueAssetGeneration: 'desktop:generation:enqueueAssetGeneration',
+  generationGenerateWorkflow: 'desktop:generation:generateWorkflow',
+  generationGetGenerationJob: 'desktop:generation:getGenerationJob',
+  generationGetProviderConfig: 'desktop:generation:getProviderConfig',
+  generationListGenerationJobs: 'desktop:generation:listGenerationJobs',
+  generationSaveProviderConfig: 'desktop:generation:saveProviderConfig',
+  generationTestProviderConfig: 'desktop:generation:testProviderConfig',
   getPlatform: 'desktop:getPlatform',
   notify: 'desktop:notify',
   openFileDialog: 'desktop:openFileDialog',
   quickGenerate: 'desktop:quickGenerate',
   appGetOnboardingState: 'desktop:app:getOnboardingState',
   appSetOnboardingCompleted: 'desktop:app:setOnboardingCompleted',
+  syncApplyBrandManifest: 'desktop:sync:applyBrandManifest',
+  syncAckOps: 'desktop:sync:ackOps',
   syncGetCursor: 'desktop:sync:getCursor',
   syncGetJobs: 'desktop:sync:getJobs',
+  syncGetOps: 'desktop:sync:getOps',
   syncGetState: 'desktop:sync:getState',
   syncQueueJob: 'desktop:sync:queueJob',
+  syncQueueOp: 'desktop:sync:queueOp',
+  syncRecordAssetSync: 'desktop:sync:recordAssetSync',
   syncSetCursor: 'desktop:sync:setCursor',
   syncThreadsRequested: 'desktop:sync:threadsRequested',
   syncTriggerThreads: 'desktop:sync:triggerThreads',
+  terminalCreate: 'desktop:terminal:create',
+  terminalData: 'desktop:terminal:data',
+  terminalExit: 'desktop:terminal:exit',
+  terminalKill: 'desktop:terminal:kill',
+  terminalResize: 'desktop:terminal:resize',
+  terminalWrite: 'desktop:terminal:write',
   toggleSidebar: 'desktop:view:toggleSidebar',
   workspaceLinkProject: 'desktop:workspace:linkProject',
   workspaceOpen: 'desktop:workspace:open',
@@ -109,15 +133,134 @@ export interface IDesktopWorkspace {
   id: string;
   indexingState: 'idle' | 'indexing';
   lastOpenedAt: string;
+  linkedBrandId?: string;
   linkedProjectId?: string;
   localDraftCount: number;
   name: string;
   path: string;
   pendingSyncCount: number;
+  syncPolicy: DesktopSyncPolicy;
   updatedAt: string;
 }
 
 /* ─── Sync ─── */
+
+export type DesktopSyncPolicy =
+  | 'full-asset-sync'
+  | 'local-only'
+  | 'metadata-sync'
+  | 'sync-paused';
+
+export type DesktopAssetResidency =
+  | 'cloud-only'
+  | 'local-only'
+  | 'missing-local'
+  | 'synced'
+  | 'upload-pending';
+
+export type DesktopAssetOrigin =
+  | 'cloud-generation'
+  | 'local-generation'
+  | 'local-import';
+
+export type DesktopAssetKind = 'audio' | 'document' | 'image' | 'video';
+
+export type DesktopAssetUploadPolicy = 'full' | 'metadata-only' | 'never';
+
+export type DesktopSyncCursorScope = 'brandManifest' | 'threads';
+
+export type DesktopAssetUploadMode = 'api-proxy' | 'presigned-put';
+
+export interface IDesktopBrand {
+  cloudId?: string;
+  cloudVersion?: string;
+  createdAt: string;
+  id: string;
+  lastPulledAt?: string;
+  name: string;
+  organizationId: string;
+  slug: string;
+  syncPolicy: DesktopSyncPolicy | 'none';
+  updatedAt: string;
+}
+
+export interface IDesktopBrandManifest {
+  assets: Array<{
+    cloudObjectKey?: string;
+    createdAt: string;
+    deletedAt?: string;
+    displayName?: string;
+    id: string;
+    isDeleted?: boolean;
+    kind?: DesktopAssetKind | string;
+    localAssetId?: string;
+    mimeType?: string;
+    origin?: DesktopAssetOrigin | string;
+    originalFileName?: string;
+    parentBrandId?: string;
+    parentOrgId?: string;
+    residency?: DesktopAssetResidency | string;
+    sha256?: string;
+    sizeBytes?: number;
+    updatedAt: string;
+    uploadPolicy?: DesktopAssetUploadPolicy | string;
+  }>;
+  brands: Array<{
+    id: string;
+    isDeleted?: boolean;
+    label: string;
+    organizationId: string;
+    slug: string;
+    updatedAt: string;
+  }>;
+  ingredients: Array<{
+    brandId?: string;
+    category?: string;
+    cdnUrl?: string;
+    createdAt: string;
+    fileSize?: number;
+    id: string;
+    isDeleted?: boolean;
+    metadata?: {
+      description?: string;
+      label?: string;
+    } | null;
+    mimeType?: string;
+    organizationId?: string;
+    s3Key?: string;
+    status?: string;
+    updatedAt: string;
+  }>;
+  organization?: {
+    id: string;
+    label: string;
+    slug: string;
+    updatedAt: string;
+  } | null;
+  updatedCursor: string;
+}
+
+export interface IDesktopAsset {
+  brandId?: string;
+  cloudId?: string;
+  cloudObjectKey?: string;
+  createdAt: string;
+  deletedAt?: string;
+  displayName: string;
+  id: string;
+  kind: DesktopAssetKind;
+  localPath?: string;
+  mimeType: string;
+  organizationId: string;
+  origin: DesktopAssetOrigin;
+  originalFileName: string;
+  residency: DesktopAssetResidency;
+  sha256: string;
+  sizeBytes: number;
+  updatedAt: string;
+  uploadPolicy: DesktopAssetUploadPolicy;
+  workspaceId?: string;
+}
 
 export interface IDesktopSyncJob {
   createdAt: string;
@@ -131,12 +274,127 @@ export interface IDesktopSyncJob {
   workspaceId?: string;
 }
 
+export interface IDesktopSyncOp {
+  acknowledgedAt?: string;
+  baseVersion?: string;
+  createdAt: string;
+  entityId: string;
+  entityType: string;
+  error?: string;
+  id: string;
+  operation: 'create' | 'delete' | 'update';
+  payload: string;
+  retryCount: number;
+  status: 'acked' | 'conflict' | 'failed' | 'pending' | 'running';
+  updatedAt: string;
+  workspaceId?: string;
+}
+
+export interface IDesktopSyncOpAck {
+  acknowledgedAt?: string;
+  error?: string;
+  id: string;
+  status: 'acked' | 'conflict' | 'failed';
+}
+
+export interface IDesktopAssetSyncUpdate {
+  cloudId?: string;
+  cloudObjectKey?: string;
+  deletedAt?: string;
+  localAssetId: string;
+  residency?: DesktopAssetResidency;
+  updatedAt?: string;
+  uploadPolicy?: DesktopAssetUploadPolicy;
+}
+
 export interface IDesktopSyncState {
   failedCount: number;
   lastSyncAt?: string;
+  pendingAssetCount?: number;
   pendingCount: number;
   retryingCount: number;
   runningCount: number;
+}
+
+/* ─── Local Generation ─── */
+
+export type DesktopGenerationProviderKind =
+  | 'fal'
+  | 'lm-studio'
+  | 'ollama'
+  | 'openai-compatible'
+  | 'replicate';
+
+export interface IDesktopGenerationProviderConfig {
+  apiKey?: string;
+  baseUrl: string;
+  displayName?: string;
+  model: string;
+  provider: DesktopGenerationProviderKind;
+}
+
+export interface IDesktopGenerationProviderPublicConfig {
+  apiKeyConfigured: boolean;
+  baseUrl: string;
+  displayName?: string;
+  model: string;
+  provider: DesktopGenerationProviderKind;
+}
+
+export interface IDesktopGenerationProviderTestResult {
+  latencyMs: number;
+  ok: boolean;
+  outputPreview?: string;
+}
+
+export interface IDesktopWorkflowGenerationOptions {
+  description: string;
+  targetPlatforms?: string[];
+}
+
+export interface IDesktopWorkflowGenerationResult {
+  tokensUsed: number;
+  workflow: Record<string, unknown>;
+}
+
+export type DesktopGenerationAssetKind = 'image';
+
+export type DesktopAssetGenerationProviderKind = 'fal' | 'replicate';
+
+export type DesktopGenerationJobStatus =
+  | 'cancelled'
+  | 'failed'
+  | 'queued'
+  | 'running'
+  | 'succeeded';
+
+export interface IDesktopAssetGenerationRequest {
+  aspectRatio?: string;
+  height?: number;
+  inputAssetIds?: string[];
+  kind?: DesktopGenerationAssetKind;
+  model: string;
+  negativePrompt?: string;
+  prompt: string;
+  provider: DesktopAssetGenerationProviderKind;
+  seed?: number;
+  uploadPolicy?: DesktopAssetUploadPolicy;
+  width?: number;
+  workspaceId: string;
+}
+
+export interface IDesktopGenerationJob {
+  assetIds: string[];
+  createdAt: string;
+  error?: string;
+  id: string;
+  kind: 'asset-generation';
+  model: string;
+  progress?: number;
+  provider: DesktopAssetGenerationProviderKind;
+  status: DesktopGenerationJobStatus;
+  updatedAt: string;
+  workspaceId: string;
 }
 
 /* ─── Recents ─── */
@@ -157,30 +415,58 @@ export interface IDesktopCloudProject {
   status?: string;
 }
 
+export interface IDesktopLocalUser {
+  id: string;
+  name: string;
+  organizationId: string;
+  userEmail?: string;
+}
+
+export interface IDesktopLocalOrganization {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export type IDesktopDataResult<T> =
+  | {
+      data: T;
+      status: 'success';
+    }
+  | {
+      message: string;
+      status: 'queued_offline';
+      syncJobId: string;
+    };
+
 export interface IDesktopDataService {
   generateContent: (
     params: IDesktopGenerationOptions,
-  ) => Promise<IDesktopGeneratedContent>;
-  generateHooks: (topic: string) => Promise<string[]>;
-  getAnalytics: (params: { days: number }) => Promise<IDesktopAnalytics>;
+  ) => Promise<IDesktopDataResult<IDesktopGeneratedContent>>;
+  generateHooks: (topic: string) => Promise<IDesktopDataResult<string[]>>;
+  getAnalytics: (params: {
+    days: number;
+  }) => Promise<IDesktopDataResult<IDesktopAnalytics>>;
   getIngredients: (filter?: {
     limit?: number;
     platform?: string;
-  }) => Promise<IDesktopIngredient[]>;
-  getTrends: (platform: string) => Promise<IDesktopTrend[]>;
-  listAgents: () => Promise<IDesktopAgent[]>;
-  listProjects: () => Promise<IDesktopCloudProject[]>;
-  listWorkflows: () => Promise<IDesktopWorkflow[]>;
+  }) => Promise<IDesktopDataResult<IDesktopIngredient[]>>;
+  getTrends: (platform: string) => Promise<IDesktopDataResult<IDesktopTrend[]>>;
+  listAgents: () => Promise<IDesktopDataResult<IDesktopAgent[]>>;
+  listProjects: () => Promise<IDesktopDataResult<IDesktopCloudProject[]>>;
+  listWorkflows: () => Promise<IDesktopDataResult<IDesktopWorkflow[]>>;
   publishPost: (params: {
     content: string;
     draftId?: string;
     platform: DesktopContentPlatform | string;
-  }) => Promise<IDesktopPublishResult>;
-  runAgent: (agentId: string) => Promise<IDesktopAgentRunResult>;
+  }) => Promise<IDesktopDataResult<IDesktopPublishResult>>;
+  runAgent: (
+    agentId: string,
+  ) => Promise<IDesktopDataResult<IDesktopAgentRunResult>>;
   runWorkflow: (params: {
     batch?: boolean;
     workflowId: string;
-  }) => Promise<IDesktopWorkflowRunResult>;
+  }) => Promise<IDesktopDataResult<IDesktopWorkflowRunResult>>;
 }
 
 /* ─── Preferences ─── */
@@ -195,9 +481,13 @@ export interface IDesktopBootstrap {
   /** Clerk user ID persisted locally after first cloud sign-in; null if never signed in */
   clerkId: string | null;
   environment: IDesktopEnvironment;
+  isOfflineMode: boolean;
+  localOrganization: IDesktopLocalOrganization;
+  localUser: IDesktopLocalUser;
   /** Stable local UUID set on first boot — the sync anchor for Phase 2 PGlite */
   localUserId: string;
   preferences: IDesktopPreferences;
+  brands: IDesktopBrand[];
   recents: IDesktopRecentItem[];
   session: IDesktopSession | null;
   syncState: IDesktopSyncState;
@@ -310,6 +600,37 @@ export interface IDesktopThread {
   workspaceId?: string;
 }
 
+/* ─── Terminal ─── */
+
+export type DesktopTerminalKind = 'claude' | 'codex' | 'genfeed' | 'shell';
+
+export interface IDesktopTerminalCreateOptions {
+  cols?: number;
+  kind?: DesktopTerminalKind;
+  rows?: number;
+  workspaceId?: string | null;
+}
+
+export interface IDesktopTerminalSession {
+  command: string;
+  createdAt: string;
+  cwd: string;
+  id: string;
+  kind: DesktopTerminalKind;
+  pid: number;
+}
+
+export interface IDesktopTerminalDataEvent {
+  data: string;
+  sessionId: string;
+}
+
+export interface IDesktopTerminalExitEvent {
+  exitCode?: number;
+  sessionId: string;
+  signal?: number;
+}
+
 /* ─── Agents ─── */
 
 export interface IDesktopAgentRun {
@@ -364,6 +685,7 @@ export interface IDesktopWorkflowRunResult {
 
 export interface IGenfeedDesktopBridge {
   app: {
+    enableOfflineMode: () => Promise<void>;
     getDiagnostics: () => Promise<{
       isPackaged: boolean;
       platform: string;
@@ -375,6 +697,7 @@ export interface IGenfeedDesktopBridge {
       callback: (bootstrap: IDesktopBootstrap) => void,
     ) => () => void;
     onToggleSidebar: (callback: () => void) => () => void;
+    openExternalPath: (pathname: string) => Promise<void>;
   };
   auth: {
     getSession: () => Promise<IDesktopSession | null>;
@@ -426,10 +749,12 @@ export interface IGenfeedDesktopBridge {
     ) => Promise<IDesktopContentRunDraft>;
   };
   files: {
+    getAssetUrl: (assetId: string) => Promise<string>;
     importAssets: (
       workspaceId: string,
       filePaths?: string[],
-    ) => Promise<string[]>;
+    ) => Promise<IDesktopAsset[]>;
+    listAssets: (workspaceId?: string) => Promise<IDesktopAsset[]>;
     openFileDialog: () => Promise<{ canceled: boolean; filePaths: string[] }>;
     readFile: (workspaceId: string, relativePath: string) => Promise<string>;
     writeFile: (
@@ -437,6 +762,27 @@ export interface IGenfeedDesktopBridge {
       relativePath: string,
       contents: string,
     ) => Promise<void>;
+  };
+  generation: {
+    cancelGenerationJob: (jobId: string) => Promise<IDesktopGenerationJob>;
+    clearProviderConfig: () => Promise<void>;
+    enqueueAssetGeneration: (
+      request: IDesktopAssetGenerationRequest,
+    ) => Promise<IDesktopGenerationJob>;
+    generateWorkflow: (
+      params: IDesktopWorkflowGenerationOptions,
+    ) => Promise<IDesktopWorkflowGenerationResult>;
+    getGenerationJob: (jobId: string) => Promise<IDesktopGenerationJob | null>;
+    getProviderConfig: () => Promise<IDesktopGenerationProviderPublicConfig | null>;
+    listGenerationJobs: (
+      workspaceId?: string,
+    ) => Promise<IDesktopGenerationJob[]>;
+    saveProviderConfig: (
+      config: IDesktopGenerationProviderConfig,
+    ) => Promise<IDesktopGenerationProviderPublicConfig>;
+    testProviderConfig: (
+      config?: IDesktopGenerationProviderConfig,
+    ) => Promise<IDesktopGenerationProviderTestResult>;
   };
   notifications: {
     notify: (title: string, body: string) => Promise<void>;
@@ -447,8 +793,11 @@ export interface IGenfeedDesktopBridge {
   };
   platform: string;
   sync: {
-    getCursor: () => Promise<string | null>;
+    ackOps: (ops: IDesktopSyncOpAck[]) => Promise<void>;
+    applyBrandManifest: (manifest: IDesktopBrandManifest) => Promise<void>;
+    getCursor: (scope?: DesktopSyncCursorScope) => Promise<string | null>;
     getJobs: (workspaceId?: string) => Promise<IDesktopSyncJob[]>;
+    getOps: (workspaceId?: string) => Promise<IDesktopSyncOp[]>;
     getState: () => Promise<IDesktopSyncState>;
     onSyncThreadsRequested: (callback: () => void) => () => void;
     queueJob: (
@@ -456,8 +805,34 @@ export interface IGenfeedDesktopBridge {
       payload: string,
       workspaceId?: string,
     ) => Promise<IDesktopSyncJob>;
-    setCursor: (cursor: string) => Promise<void>;
+    queueOp: (
+      entityType: string,
+      entityId: string,
+      operation: IDesktopSyncOp['operation'],
+      payload: string,
+      workspaceId?: string,
+      baseVersion?: string,
+    ) => Promise<IDesktopSyncOp>;
+    recordAssetSync: (update: IDesktopAssetSyncUpdate) => Promise<void>;
+    setCursor: (
+      cursor: string,
+      scope?: DesktopSyncCursorScope,
+    ) => Promise<void>;
     triggerThreads: () => Promise<{ ok: boolean; error?: string }>;
+  };
+  terminal: {
+    create: (
+      options?: IDesktopTerminalCreateOptions,
+    ) => Promise<IDesktopTerminalSession>;
+    kill: (sessionId: string) => Promise<void>;
+    onData: (
+      callback: (event: IDesktopTerminalDataEvent) => void,
+    ) => () => void;
+    onExit: (
+      callback: (event: IDesktopTerminalExitEvent) => void,
+    ) => () => void;
+    resize: (sessionId: string, cols: number, rows: number) => Promise<void>;
+    write: (sessionId: string, data: string) => Promise<void>;
   };
   workspace: {
     getRecentWorkspaces: () => Promise<IDesktopWorkspace[]>;

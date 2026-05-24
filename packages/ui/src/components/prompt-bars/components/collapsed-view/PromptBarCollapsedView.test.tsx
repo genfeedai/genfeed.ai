@@ -27,7 +27,7 @@ vi.mock('@ui/prompt-bars/components/divider/PromptBarDivider', () => ({
 }));
 
 vi.mock('next/image', () => ({
-  default: ({ src, alt }: any) => <img src={src} alt={alt} />,
+  default: ({ src, alt }: any) => <input type="image" src={src} alt={alt} />,
 }));
 
 vi.mock('@genfeedai/services/core/environment.service', () => ({
@@ -66,7 +66,7 @@ describe('PromptBarCollapsedView', () => {
     onSubmit: vi.fn(),
     onTextChange: vi.fn(),
     outputs: 1,
-    placeholder: 'Enter text...',
+    placeholder: 'Enter text…',
     referenceSource: null,
     references: [],
     selectedModelCost: 1,

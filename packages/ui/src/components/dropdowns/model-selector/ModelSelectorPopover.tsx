@@ -111,7 +111,11 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
   const sourceGroups = useMemo(() => {
     const groups = Array.from(
-      new Set(allOptions.map((option) => option.sourceGroup).filter(Boolean)),
+      new Set(
+        allOptions.flatMap((option) =>
+          option.sourceGroup ? [option.sourceGroup] : [],
+        ),
+      ),
     ) as string[];
 
     return groups.map((group) => ({
@@ -218,33 +222,33 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
       groupedByBrand.set(option.brandSlug, brandFamilies);
     }
 
-    return (
+    const brandSlugs =
       activeBrand && activeBrand !== 'favorites'
         ? [activeBrand]
-        : brands.map((brand) => brand.slug)
-    )
-      .map((brandSlug) => {
-        const families = groupedByBrand.get(brandSlug);
-        if (!families) {
-          return null;
-        }
+        : brands.map((brand) => brand.slug);
 
-        return {
-          brandSlug,
-          families: Array.from(families.entries()).map(
-            ([familyKey, familyData]) => ({
-              familyKey,
-              familyLabel: familyData.familyLabel,
-              options: familyData.options.sort((left, right) =>
-                left.variantLabel.localeCompare(right.variantLabel, undefined, {
-                  numeric: true,
-                }),
-              ),
-            }),
-          ),
-        };
-      })
-      .filter((group): group is GroupedFamilies[number] => group !== null);
+    return brandSlugs.reduce<GroupedFamilies>((acc, brandSlug) => {
+      const families = groupedByBrand.get(brandSlug);
+      if (!families) {
+        return acc;
+      }
+
+      acc.push({
+        brandSlug,
+        families: Array.from(families.entries()).map(
+          ([familyKey, familyData]) => ({
+            familyKey,
+            familyLabel: familyData.familyLabel,
+            options: familyData.options.sort((left, right) =>
+              left.variantLabel.localeCompare(right.variantLabel, undefined, {
+                numeric: true,
+              }),
+            ),
+          }),
+        ),
+      });
+      return acc;
+    }, []);
   }, [activeBrand, brands, visibleOptions]);
 
   const groupedSections = useMemo((): GroupedSection[] => {
@@ -441,7 +445,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
             <Command className="bg-transparent" shouldFilter={false}>
               {shouldShowManualCatalog && (
                 <CommandInput
-                  placeholder="Search models..."
+                  placeholder="Search models…"
                   value={searchTerm}
                   onValueChange={setSearchTerm}
                 />
@@ -479,16 +483,16 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                         >
                           <div
                             className={cn(
-                              'flex h-4 w-4 items-center justify-center rounded-sm border transition-colors',
+                              'flex size-4 items-center justify-center rounded-sm border transition-colors',
                               isAutoSelected
                                 ? 'border-blue-500 bg-blue-500 text-white'
                                 : 'border-white/20 bg-transparent text-transparent',
                             )}
                           >
-                            <HiCheck className="h-3 w-3" />
+                            <HiCheck className="size-3" />
                           </div>
-                          <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center text-primary">
-                            <HiSparkles className="h-4 w-4" />
+                          <div className="mt-0.5 flex size-4 shrink-0 items-center justify-center text-primary">
+                            <HiSparkles className="size-4" />
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-medium text-foreground">

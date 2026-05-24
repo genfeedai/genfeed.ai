@@ -18,5 +18,6 @@ describe('Alert', () => {
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
     expect(rootElement).toHaveClass('rounded-lg');
+    expect(rootElement).toHaveClass('ship-ui');
   });
 });

@@ -145,7 +145,11 @@ describe('IngredientsController (cloneIngredient)', () => {
       );
 
       expect(serviceFindOneSpy).toHaveBeenCalledWith(
-        { _id: '507f191e810c19729de860ea' },
+        {
+          _id: '507f191e810c19729de860ea',
+          isDeleted: false,
+          organization: '507f1f77bcf86cd799439012',
+        },
         [PopulatePatterns.metadataFull],
       );
 

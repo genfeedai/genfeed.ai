@@ -14,7 +14,9 @@ describe('WORKFLOWS_MENU_ITEMS', () => {
   });
 
   it('has no duplicate hrefs', () => {
-    const hrefs = WORKFLOWS_MENU_ITEMS.map((item) => item.href).filter(Boolean);
+    const hrefs = WORKFLOWS_MENU_ITEMS.flatMap((item) =>
+      item.href ? [item.href] : [],
+    );
     const unique = new Set(hrefs);
 
     expect(hrefs.length).toBe(unique.size);

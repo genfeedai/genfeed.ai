@@ -48,7 +48,7 @@ function getOutputTitle(post: IPost): string {
 }
 
 export default function ProactiveContent() {
-  const router = useRouter();
+  const { push } = useRouter();
   const { getToken } = useAuth();
   const [workspace, setWorkspace] = useState<ProactiveWorkspaceResponse | null>(
     null,
@@ -133,48 +133,42 @@ export default function ProactiveContent() {
     };
   }, [getToken]);
 
-  if (isLoading) {
-    return <PageLoadingState />;
-  }
-
-  if (!workspace) {
-    return (
-      <div className="max-w-3xl">
-        <Card
-          bodyClassName="gap-0 p-8"
-          className="rounded-3xl border-white/10 bg-white/[0.03]"
-        >
-          <p className="text-sm uppercase tracking-[0.24em] text-white/35">
-            Proactive Onboarding
-          </p>
-          <h1 className="mt-4 text-4xl font-serif text-white">
-            Your workspace is almost ready.
-          </h1>
-          <p className="mt-4 max-w-xl text-white/55">
-            {error ?? 'Please refresh in a moment or use the fallback path.'}
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button
-              variant={ButtonVariant.DEFAULT}
-              size={ButtonSize.SM}
-              label="Continue self-serve"
-              onClick={() => router.push('/onboarding/brand')}
-            />
-            <Button
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.SM}
-              label="Book a call"
-              onClick={() => {
-                window.location.href = EnvironmentService.calendly;
-              }}
-            />
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
+  return isLoading ? (
+    <PageLoadingState />
+  ) : !workspace ? (
+    <div className="max-w-3xl">
+      <Card
+        bodyClassName="gap-0 p-8"
+        className="rounded-3xl border-white/10 bg-white/[0.03]"
+      >
+        <p className="text-sm uppercase tracking-[0.24em] text-white/35">
+          Proactive Onboarding
+        </p>
+        <h1 className="mt-4 text-4xl font-serif text-white">
+          Your workspace is almost ready.
+        </h1>
+        <p className="mt-4 max-w-xl text-white/55">
+          {error ?? 'Please refresh in a moment or use the fallback path.'}
+        </p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.SM}
+            label="Continue self-serve"
+            onClick={() => push('/onboarding/brand')}
+          />
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.SM}
+            label="Book a call"
+            onClick={() => {
+              window.location.href = EnvironmentService.calendly;
+            }}
+          />
+        </div>
+      </Card>
+    </div>
+  ) : (
     <div className="space-y-8">
       <Card
         bodyClassName="gap-0 p-8"
@@ -186,7 +180,7 @@ export default function ProactiveContent() {
               className="px-4 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-white/55"
               variant="ghost"
             >
-              <HiSparkles className="h-3 w-3" />
+              <HiSparkles className="size-3" />
               Prepared Before You Arrived
             </Badge>
             <h1 className="mt-5 text-4xl font-serif leading-none tracking-tight text-white md:text-5xl">
@@ -222,7 +216,7 @@ export default function ProactiveContent() {
             variant={ButtonVariant.DEFAULT}
             size={ButtonSize.SM}
             label="Configure providers"
-            onClick={() => router.push('/onboarding/providers')}
+            onClick={() => push('/onboarding/providers')}
           />
           <Button
             variant={ButtonVariant.GHOST}
@@ -236,7 +230,7 @@ export default function ProactiveContent() {
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
             label="Continue self-serve"
-            onClick={() => router.push('/onboarding/brand')}
+            onClick={() => push('/onboarding/brand')}
           />
         </div>
       </Card>
@@ -330,7 +324,7 @@ export default function ProactiveContent() {
                     {workspace.brand.colors.map((color) => (
                       <div
                         key={color}
-                        className="h-6 w-6 rounded-full border border-white/10"
+                        className="size-6 rounded-full border border-white/10"
                         style={{ backgroundColor: color }}
                         title={color}
                       />
@@ -346,7 +340,7 @@ export default function ProactiveContent() {
             className="rounded-3xl border-white/10 bg-white/[0.03]"
           >
             <div className="flex items-center gap-2 text-white">
-              <HiBriefcase className="h-4 w-4 text-white/45" />
+              <HiBriefcase className="size-4 text-white/45" />
               <h2 className="text-lg font-medium">Live refinement</h2>
             </div>
             <div className="mt-4 space-y-3">
@@ -362,12 +356,12 @@ export default function ProactiveContent() {
                     density="compact"
                     tone="contrast"
                   >
-                    <div className="flex h-5 w-5 items-center justify-center">
+                    <div className="flex size-5 items-center justify-center">
                       {isComplete ? (
-                        <HiCheckCircle className="h-5 w-5 text-emerald-300" />
+                        <HiCheckCircle className="size-5 text-emerald-300" />
                       ) : (
                         <div
-                          className={`h-3 w-3 rounded-full ${
+                          className={`size-3 rounded-full ${
                             isActive ? 'animate-pulse bg-white' : 'bg-white/20'
                           }`}
                         />

@@ -1,10 +1,10 @@
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { XaiService } from '@api/services/integrations/xai/services/xai.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(XaiService, {
-  additionalImports: [OpenRouterModule],
+  additionalImports: [forwardRef(() => OpenRouterModule)],
 });
 
 @Module({

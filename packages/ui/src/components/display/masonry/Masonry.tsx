@@ -1,7 +1,14 @@
 'use client';
 
 import type { MasonryProps } from '@genfeedai/props/content/masonry.props';
-import { Children, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Children,
+  isValidElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 const BREAKPOINTS = [
   { key: 'xl' as const, width: 1280 },
@@ -33,8 +40,10 @@ export default function Masonry({
       return;
     }
 
-    containerRef.current.style.display = 'grid';
-    containerRef.current.style.gap = `${gap}px`;
+    Object.assign(containerRef.current.style, {
+      display: 'grid',
+      gap: `${gap}px`,
+    });
 
     const updateColumns = (): void => {
       if (!containerRef.current) {
@@ -63,15 +72,22 @@ export default function Masonry({
       className={`flex flex-wrap ${className}`}
       style={!mounted ? { gap: `${gap}px` } : undefined}
     >
-      {childArray.map((child, index) => (
-        <div
-          key={index}
-          className={!mounted ? 'flex-1' : 'w-full'}
-          style={!mounted ? { minWidth: '200px' } : undefined}
-        >
-          {child}
-        </div>
-      ))}
+      {childArray.map((child) => {
+        const childKey =
+          isValidElement(child) && child.key !== null
+            ? child.key
+            : String(child);
+
+        return (
+          <div
+            key={childKey}
+            className={!mounted ? 'flex-1' : 'w-full'}
+            style={!mounted ? { minWidth: '200px' } : undefined}
+          >
+            {child}
+          </div>
+        );
+      })}
     </div>
   );
 }

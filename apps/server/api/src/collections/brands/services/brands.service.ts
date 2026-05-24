@@ -43,6 +43,8 @@ export class BrandsService extends BaseService<
     createBrandDto: CreateBrandDto & {
       organization?: unknown;
       organizationId?: string;
+      user?: unknown;
+      userId?: string;
     },
   ): Promise<BrandDocument> {
     this.logger.debug('Creating brand', {
@@ -88,6 +90,13 @@ export class BrandsService extends BaseService<
     }
 
     return this.delegate.findMany({
+      include: {
+        organization: {
+          select: {
+            slug: true,
+          },
+        },
+      },
       where,
       orderBy: { label: 'asc' },
     }) as Promise<BrandDocument[]>;
@@ -115,6 +124,12 @@ export class BrandsService extends BaseService<
     );
 
     return brand;
+  }
+
+  findOneBySlug(
+    params: Record<string, unknown>,
+  ): Promise<BrandDocument | null> {
+    return super.findOne(params);
   }
 
   async updateAgentConfig(
@@ -336,20 +351,30 @@ Respond ONLY with the JSON object, no markdown fences or extra text.`;
       userId,
     });
 
-    // Deselect all brands for user, then select the target
+    const targetBrand = await this.findOne({
+      _id: brandId,
+      isDeleted: false,
+      organization: organizationId,
+    });
+
+    if (!targetBrand) {
+      throw new NotFoundException('Brand', brandId);
+    }
+
+    // Deselect all brands for user, then select the resolved target brand.
     await this.delegate.updateMany({
       where: { isDeleted: false, organizationId, userId },
       data: { isSelected: false },
     });
 
     await this.delegate.updateMany({
-      where: { id: brandId, organizationId, isDeleted: false },
+      where: { id: targetBrand.id, organizationId, isDeleted: false },
       data: { isSelected: true },
     });
 
     // Return the updated brand
     const updatedBrand = await this.findOne({
-      id: brandId,
+      id: targetBrand.id,
       isDeleted: false,
       organizationId,
     });

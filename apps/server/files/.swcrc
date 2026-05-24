@@ -21,7 +21,7 @@
   "module": {
     "lazy": false,
     "noInterop": false,
-    "strict": true,
+    "strict": false,
     "strictMode": true,
     "type": "commonjs"
   },

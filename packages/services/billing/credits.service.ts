@@ -1,9 +1,10 @@
+import type { ITopbarBalances } from '@genfeedai/interfaces';
+import { EnvironmentService } from '@services/core/environment.service';
+import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
   deserializeResource,
   type JsonApiResponseDocument,
-} from '@genfeedai/helpers/data/json-api/json-api.helper';
-import { EnvironmentService } from '@services/core/environment.service';
-import { HTTPBaseService } from '@services/core/interceptor.service';
+} from '@services/core/json-api';
 
 export interface ByokUsageSummary {
   totalUsage: number;
@@ -29,11 +30,18 @@ export class CreditsService extends HTTPBaseService {
     ) as CreditsService;
   }
 
-  async getByokUsageSummary(): Promise<ByokUsageSummary> {
+  public async getByokUsageSummary(): Promise<ByokUsageSummary> {
     const response = await this.instance.get<JsonApiResponseDocument>(
       '/byok-usage-summary',
     );
 
     return deserializeResource<ByokUsageSummary>(response.data);
+  }
+
+  public async getTopbarBalances(): Promise<ITopbarBalances> {
+    const response =
+      await this.instance.get<JsonApiResponseDocument>('/topbar-balances');
+
+    return deserializeResource<ITopbarBalances>(response.data);
   }
 }

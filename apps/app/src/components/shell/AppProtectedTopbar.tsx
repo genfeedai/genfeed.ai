@@ -1,31 +1,38 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import { Button } from '@ui/primitives/button';
-import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
+import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { HiBars3, HiOutlineCommandLine, HiXMark } from 'react-icons/hi2';
+import { Suspense } from 'react';
+import {
+  HiBars3,
+  HiOutlineCog6Tooth,
+  HiOutlineCommandLine,
+  HiXMark,
+} from 'react-icons/hi2';
+import { PiSidebarSimple } from 'react-icons/pi';
+import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 
-export default function AppProtectedTopbar({
+function AppProtectedTopbarContent({
   isMenuOpen,
   onMenuToggle,
-  currentApp,
-  orgSlug,
-  brandSlug,
+  isSidebarCollapsed,
+  onSidebarToggle,
   isAgentCollapsed,
   onAgentToggle,
 }: TopbarProps = {}) {
   const searchParams = useSearchParams();
-  const { href } = useOrgUrl();
+  const { href, orgHref } = useOrgUrl();
 
-  const taskId = searchParams?.get('taskId');
-  const taskTitle = searchParams?.get('taskTitle');
+  const taskId = searchParams.get('taskId');
+  const taskTitle = searchParams.get('taskTitle');
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
   const backToTaskHref = taskId
     ? href(
@@ -37,32 +44,46 @@ export default function AppProtectedTopbar({
     : null;
 
   return (
-    <header className="h-full w-full bg-transparent">
-      <div className="flex h-full w-full items-center justify-between gap-3 pl-4 pr-2 sm:pl-6 sm:pr-3 lg:pl-8 lg:pr-2">
-        <div className="flex min-w-0 items-center gap-3">
+    <header className="ship-ui h-full w-full bg-transparent">
+      <div className="flex h-full w-full items-center justify-between gap-2.5 pl-3 pr-2 sm:px-4 lg:px-5">
+        <div className="flex min-w-0 items-center gap-2.5">
           {onMenuToggle ? (
             <Button
               type="button"
-              variant={ButtonVariant.UNSTYLED}
-              className="gen-shell-control inline-flex h-10 w-10 items-center justify-center rounded-xl md:hidden"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
+              className="size-7 md:hidden"
               data-active={isMenuOpen ? 'true' : 'false'}
               ariaLabel={
                 isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
               }
               onClick={onMenuToggle}
             >
-              <ToggleIcon className="h-5 w-5" />
+              <ToggleIcon className="size-5" />
             </Button>
           ) : null}
 
-          <div className="hidden min-w-0 md:block">
+          {isSidebarCollapsed && onSidebarToggle ? (
+            <Button
+              type="button"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
+              className="hidden size-7 md:flex"
+              ariaLabel="Expand sidebar"
+              onClick={onSidebarToggle}
+            >
+              <PiSidebarSimple className="size-4" />
+            </Button>
+          ) : null}
+
+          <div className="min-w-0">
             <TopbarBreadcrumbs />
           </div>
         </div>
 
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-1.5">
           {taskId ? (
-            <div className="gen-shell-surface hidden items-center gap-2 rounded-full px-3 py-1.5 text-xs lg:flex">
+            <div className="hidden items-center gap-2 rounded border border-border bg-background-secondary px-2 py-1 text-[11px] lg:flex">
               <span className="font-semibold uppercase tracking-[0.14em] text-emerald-200/80">
                 Task context
               </span>
@@ -82,33 +103,47 @@ export default function AppProtectedTopbar({
             </div>
           ) : null}
 
-          {currentApp && orgSlug ? (
-            <AppSwitcher
-              currentApp={currentApp}
-              orgSlug={orgSlug}
-              brandSlug={brandSlug}
-              preservedSearch={searchParams?.toString()}
-            />
-          ) : null}
-
           {onAgentToggle ? (
             <Button
               type="button"
-              variant={ButtonVariant.UNSTYLED}
-              className="gen-shell-control inline-flex h-10 w-10 items-center justify-center rounded-xl"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
+              className="size-7"
               data-active={isAgentCollapsed ? 'false' : 'true'}
               ariaLabel={
                 isAgentCollapsed ? 'Open terminal dock' : 'Close terminal dock'
               }
               onClick={onAgentToggle}
             >
-              <HiOutlineCommandLine className="h-4 w-4" />
+              <HiOutlineCommandLine className="size-4" />
             </Button>
           ) : null}
+
+          <CloudSyncIndicator />
+
+          <TopbarCreditsBar />
+
+          <Link
+            href={orgHref('/settings')}
+            className="inline-flex size-7 items-center justify-center rounded-md bg-transparent text-foreground/56 transition-colors hover:bg-hover hover:text-foreground"
+            title="Settings"
+          >
+            <HiOutlineCog6Tooth className="size-4" />
+          </Link>
 
           <TopbarEnd />
         </div>
       </div>
     </header>
+  );
+}
+
+export default function AppProtectedTopbar(
+  props: Parameters<typeof AppProtectedTopbarContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <AppProtectedTopbarContent {...props} />
+    </Suspense>
   );
 }

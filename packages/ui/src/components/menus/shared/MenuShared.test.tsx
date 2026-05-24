@@ -144,16 +144,12 @@ vi.mock('@ui/buttons/credits/ButtonCredits', () => ({
   default: () => <div data-testid="button-credits" />,
 }));
 
-vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
-  default: () => <div data-testid="organization-switcher" />,
+vi.mock('@ui/menus/workspace-switcher/WorkspaceSwitcher', () => ({
+  default: () => <div data-testid="workspace-switcher" />,
 }));
 
-vi.mock('@ui/menus/sidebar-brand-rail/SidebarBrandRail', () => ({
-  default: () => <div data-testid="sidebar-brand-rail-content" />,
-}));
-
-vi.mock('@ui/cards/progress-sidebar-card/ProgressSidebarCard', () => ({
-  default: () => <div data-testid="progress-sidebar-card" />,
+vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
+  AppSwitcher: () => <div data-testid="app-switcher" />,
 }));
 
 vi.mock('@genfeedai/services/core/environment.service', () => ({
@@ -200,13 +196,13 @@ describe('MenuShared', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('renders the sidebar header shell', () => {
+  it('renders the sidebar header spacer', () => {
     render(<MenuShared config={config} />);
 
-    expect(screen.getByTestId('sidebar-header-shell')).toBeInTheDocument();
+    expect(screen.queryByTestId('sidebar-header-shell')).toBeInTheDocument();
   });
 
-  it('renders a top slot below the header when provided', () => {
+  it('renders a top slot before navigation items when provided', () => {
     render(
       <MenuShared
         config={config}
@@ -215,50 +211,24 @@ describe('MenuShared', () => {
     );
 
     const topSlot = screen.getByTestId('sidebar-top-slot');
-    const header = screen.getByTestId('sidebar-header-shell');
     const firstMenuItem = screen.getByText('Dashboard');
 
     expect(topSlot).toBeInTheDocument();
-    expect(
-      header.compareDocumentPosition(topSlot) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
     expect(
       topSlot.compareDocumentPosition(firstMenuItem) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
-  it('renders the workspace shell rail when enabled', () => {
-    const workspaceConfig: MenuShellConfig = {
-      brandRailMode: 'workspace',
-      items: [
-        {
-          href: '/workspace/overview',
-          label: 'Dashboard',
-        },
-      ],
-      logoHref: '/',
-    };
+  it('renders the workspace switcher inside the sidebar header shell', () => {
+    render(<MenuShared config={config} />);
 
-    render(<MenuShared config={workspaceConfig} />);
-
-    expect(screen.getByTestId('sidebar-brand-rail')).toBeInTheDocument();
-    expect(
-      screen.getByTestId('sidebar-brand-rail-content'),
-    ).toBeInTheDocument();
-    // Org switcher is now in the topbar, not the sidebar
-    expect(
-      screen.queryByTestId('organization-switcher'),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId('sidebar-header-shell'),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-header-shell')).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-switcher')).toBeInTheDocument();
   });
 
   it('attaches the actionable inbox count to the workspace inbox row', () => {
-    const workspaceConfig: MenuShellConfig = {
-      brandRailMode: 'workspace',
+    const inboxConfig: MenuShellConfig = {
       items: [
         {
           href: '/workspace/overview',
@@ -272,7 +242,7 @@ describe('MenuShared', () => {
       logoHref: '/',
     };
 
-    render(<MenuShared config={workspaceConfig} />);
+    render(<MenuShared config={inboxConfig} />);
 
     expect(screen.getByText('Inbox (40)')).toBeInTheDocument();
   });
@@ -343,7 +313,7 @@ describe('MenuShared', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Tasks')).toBeInTheDocument();
-    expect(screen.getByText('Inbox')).toBeInTheDocument();
+    expect(screen.getByText(/Inbox/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Library' })).toBeInTheDocument();
   });
 
@@ -370,6 +340,49 @@ describe('MenuShared', () => {
 
     expect(screen.getByTestId('sidebar-secondary-items')).toBeInTheDocument();
     expect(screen.getByText('Activity')).toBeInTheDocument();
+  });
+
+  it('does not reuse raw href keys for settings items with different scopes', () => {
+    mockPathname.value = '/acme/~/settings/brands';
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    const settingsConfig: MenuConfig = {
+      items: [
+        {
+          href: '/settings',
+          hrefScope: 'personal',
+          label: 'Personal',
+        },
+        {
+          href: '/settings',
+          hrefScope: 'organization',
+          label: 'Organization',
+        },
+        {
+          href: '/settings/brands',
+          hrefScope: 'organization',
+          label: 'Brands',
+        },
+      ],
+      logoHref: '/',
+    };
+
+    try {
+      render(<MenuShared config={settingsConfig} sectionLabel="Settings" />);
+
+      expect(
+        consoleError.mock.calls.some((call) =>
+          call.some(
+            (arg) =>
+              typeof arg === 'string' &&
+              arg.includes('Encountered two children with the same key'),
+          ),
+        ),
+      ).toBe(false);
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it('routes the conversations new chat CTA directly to /chat/new', () => {
@@ -418,12 +431,6 @@ describe('MenuShared', () => {
     expect(screen.getByTestId('thread-list')).toBeInTheDocument();
   });
 
-  it('renders the consolidated progress module in the default sidebar body', () => {
-    render(<MenuShared config={config} />);
-
-    expect(screen.getByTestId('progress-sidebar-card')).toBeInTheDocument();
-  });
-
   it('can hide primary CTA when rendering contextual sidebar content', () => {
     const primaryConfig: MenuConfig = {
       items: [
@@ -461,35 +468,6 @@ describe('MenuShared', () => {
     expect(labels.length).toBeLessThanOrEqual(1);
   });
 
-  it('shows the Genfeed mark in the toggle button when expanded', () => {
-    mockLogoUrl.value = '/logo.svg';
-
-    render(
-      <MenuShared
-        config={config}
-        isCollapsed={false}
-        onToggleCollapse={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByAltText('Genfeed')).toBeInTheDocument();
-  });
-
-  it('keeps default sidebar header chrome styling', () => {
-    render(<MenuShared config={config} />);
-
-    expect(screen.getByTestId('sidebar-header-shell')).toHaveClass('border-b');
-  });
-
-  it('removes sidebar header chrome styling for transparent shell variant', () => {
-    render(<MenuShared config={config} shellChromeVariant="transparent" />);
-
-    const headerShell = screen.getByTestId('sidebar-header-shell');
-
-    expect(headerShell).toHaveClass('h-16', 'items-center', 'gap-2');
-    expect(headerShell).not.toHaveClass('border-b');
-  });
-
   it('uses a transparent shell background for the transparent variant', () => {
     render(<MenuShared config={config} shellChromeVariant="transparent" />);
 
@@ -503,7 +481,7 @@ describe('MenuShared', () => {
     { group: 'Settings', href: '/settings/models/all', label: 'Models' },
     { group: 'Insights', href: '/insights/overview', label: 'Overview' },
     { group: 'Content', href: '/content/posts', label: 'Posts' },
-  ])('routes to default nested page when clicking $group drill-down row', ({
+  ])('routes to default nested page when clicking group drill-down row', ({
     group,
     href,
     label,

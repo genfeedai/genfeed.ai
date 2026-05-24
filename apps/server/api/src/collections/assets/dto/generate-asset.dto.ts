@@ -1,9 +1,10 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetCategory, AssetParent } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsMongoId, IsString } from 'class-validator';
+import { IsEnum, IsString } from 'class-validator';
 
 export class GenerateAssetDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({ required: true })
   readonly parent!: string;
 

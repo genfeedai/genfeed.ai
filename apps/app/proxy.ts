@@ -63,11 +63,9 @@ const ORG_SCOPED_PREFIXES = ['chat', 'settings'] as const;
 
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
   ['/analytics', '/analytics/overview'],
-  ['/chat', '/chat/new'],
   ['/compose', '/compose/article'],
   ['/library', '/library/ingredients'],
   ['/research', '/research/discovery'],
-  ['/settings', '/settings/personal'],
   ['/studio', '/studio/image'],
   ['/workspace', '/workspace/overview'],
   ['/workspace/inbox', '/workspace/inbox/unread'],
@@ -85,8 +83,22 @@ function canonicalizeFlatProtectedPath(pathname: string): string {
   return FLAT_PATH_REDIRECTS.get(pathname) ?? pathname;
 }
 
+/** Slug segments must be alphanumeric + hyphens only (no dots, slashes, etc.). */
+const SLUG_RE = /^[a-zA-Z0-9-]+$/;
+
 function redirectPreservingSearch(req: NextRequest, pathname: string) {
   const url = new URL(pathname, req.url);
+  const requestOrigin = req.nextUrl.origin ?? new URL(req.url).origin;
+  // Guard: the resolved URL must share the same origin as the incoming request.
+  // This prevents slugs like `//attacker.example` from becoming cross-origin
+  // redirects via the `new URL(pathname, base)` constructor.
+  if (url.origin !== requestOrigin) {
+    // Fall back to the workspace home rather than redirecting off-origin.
+    const safe = new URL(SEEDED_WORKSPACE_PATH, req.url);
+    const search = req.nextUrl.search;
+    if (search) safe.search = search;
+    return NextResponse.redirect(safe);
+  }
   const search = req.nextUrl.search;
   if (search) {
     url.search = search;
@@ -99,11 +111,27 @@ function getTopLevelSegment(pathname: string): string | null {
   return segment ?? null;
 }
 
+/**
+ * Validate a workspace slug to prevent open redirects.
+ * Slugs must start with a lowercase letter or digit and consist only of
+ * lowercase letters, digits, and hyphens. A slug starting with "/" or
+ * containing "//" could create cross-origin redirect vectors.
+ */
+const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
+
+function isValidSlug(slug: string | undefined): slug is string {
+  return typeof slug === 'string' && SLUG_PATTERN.test(slug);
+}
+
 function isBareProtectedPath(pathname: string): boolean {
   const topLevelSegment = getTopLevelSegment(pathname);
 
   if (!topLevelSegment) {
     return false;
+  }
+
+  if (topLevelSegment === 'settings') {
+    return pathname !== '/settings';
   }
 
   return (
@@ -122,35 +150,192 @@ type WorkspaceSlugs = {
   orgSlug: string;
 };
 
+const WORKSPACE_SLUG_CACHE_TTL_MS = 300_000;
+const WORKSPACE_SLUG_COOKIE_NAME = 'gf_ws';
+const WORKSPACE_SLUG_COOKIE_MAX_AGE_S = 300;
+const workspaceSlugCache = new Map<
+  string,
+  {
+    expiresAt: number;
+    slugs: WorkspaceSlugs;
+  }
+>();
+
+async function getCookieSecret(): Promise<CryptoKey | null> {
+  const secret = process.env.COOKIE_SECRET;
+  if (!secret) return null;
+  const encoder = new TextEncoder();
+  return crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign', 'verify'],
+  );
+}
+
+function uint8ToBase64Url(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+function base64UrlToUint8(str: string): Uint8Array<ArrayBuffer> {
+  const padded = str.replace(/-/g, '+').replace(/_/g, '/');
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function encodeSlugCookie(slugs: WorkspaceSlugs): Promise<string | null> {
+  const key = await getCookieSecret();
+  if (!key) return null;
+  const payload = JSON.stringify({
+    e: Date.now() + WORKSPACE_SLUG_CACHE_TTL_MS,
+    s: slugs,
+  });
+  const encoder = new TextEncoder();
+  const payloadBytes = encoder.encode(payload);
+  const sig = new Uint8Array(
+    await crypto.subtle.sign('HMAC', key, payloadBytes),
+  );
+  return `${uint8ToBase64Url(payloadBytes)}.${uint8ToBase64Url(sig)}`;
+}
+
+async function decodeSlugCookie(value: string): Promise<WorkspaceSlugs | null> {
+  try {
+    const key = await getCookieSecret();
+    if (!key) return null;
+    const [payloadPart, sigPart] = value.split('.');
+    if (!payloadPart || !sigPart) return null;
+    const payloadBytes = base64UrlToUint8(payloadPart);
+    const sigBytes = base64UrlToUint8(sigPart);
+    const valid = await crypto.subtle.verify(
+      'HMAC',
+      key,
+      sigBytes,
+      payloadBytes,
+    );
+    if (!valid) return null;
+    const decoder = new TextDecoder();
+    const parsed = JSON.parse(decoder.decode(payloadBytes)) as {
+      e: number;
+      s: WorkspaceSlugs;
+    };
+    if (parsed.e <= Date.now()) return null;
+    if (!parsed.s?.orgSlug || !parsed.s?.brandSlug) return null;
+    if (!isValidSlug(parsed.s.orgSlug) || !isValidSlug(parsed.s.brandSlug))
+      return null;
+    return parsed.s;
+  } catch {
+    return null;
+  }
+}
+
+function setSlugCookie(response: NextResponse, cookieValue: string): void {
+  response.cookies.set(WORKSPACE_SLUG_COOKIE_NAME, cookieValue, {
+    httpOnly: true,
+    maxAge: WORKSPACE_SLUG_COOKIE_MAX_AGE_S,
+    path: '/',
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  });
+}
+
+function deleteSlugCookie(response: NextResponse): void {
+  response.cookies.delete(WORKSPACE_SLUG_COOKIE_NAME);
+}
+
+function readWorkspaceSlugCache(
+  cacheKey?: string | null,
+): WorkspaceSlugs | null {
+  if (!cacheKey || process.env.NODE_ENV === 'test') {
+    return null;
+  }
+
+  const entry = workspaceSlugCache.get(cacheKey);
+  if (!entry) {
+    return null;
+  }
+
+  if (entry.expiresAt <= Date.now()) {
+    workspaceSlugCache.delete(cacheKey);
+    return null;
+  }
+
+  return entry.slugs;
+}
+
+function writeWorkspaceSlugCache(
+  cacheKey: string | null | undefined,
+  slugs: WorkspaceSlugs,
+) {
+  if (!cacheKey || process.env.NODE_ENV === 'test') {
+    return;
+  }
+
+  workspaceSlugCache.set(cacheKey, {
+    expiresAt: Date.now() + WORKSPACE_SLUG_CACHE_TTL_MS,
+    slugs,
+  });
+}
+
+type SlugResolution = {
+  cookieValue: string | null;
+  slugs: WorkspaceSlugs;
+};
+
 async function resolveActiveWorkspaceSlugs(
   token: string,
-): Promise<WorkspaceSlugs | null> {
+  cacheKey?: string | null,
+  req?: NextRequest,
+): Promise<SlugResolution | null> {
+  const cached = readWorkspaceSlugCache(cacheKey);
+  if (cached) {
+    return { cookieValue: null, slugs: cached };
+  }
+
+  if (req) {
+    const cookieRaw = req.cookies.get(WORKSPACE_SLUG_COOKIE_NAME)?.value;
+    if (cookieRaw) {
+      const fromCookie = await decodeSlugCookie(cookieRaw);
+      if (fromCookie) {
+        writeWorkspaceSlugCache(cacheKey, fromCookie);
+        return { cookieValue: null, slugs: fromCookie };
+      }
+    }
+  }
+
   const headers = {
     Authorization: `Bearer ${token}`,
     Accept: 'application/json',
   };
 
-  const [bootstrapResponse, organizationsResponse] = await Promise.all([
-    fetch(`${getApiBaseUrl()}/auth/bootstrap`, {
-      cache: 'no-store',
-      headers,
-    }),
-    fetch(`${getApiBaseUrl()}/organizations/mine`, {
-      cache: 'no-store',
-      headers,
-    }),
-  ]);
+  let bootstrapResponse: Response;
 
-  if (!bootstrapResponse.ok || !organizationsResponse.ok) {
+  try {
+    bootstrapResponse = await fetch(`${getApiBaseUrl()}/auth/bootstrap`, {
+      cache: 'no-store',
+      headers,
+    });
+  } catch {
+    return null;
+  }
+
+  if (!bootstrapResponse.ok) {
     return null;
   }
 
   const bootstrap =
     (await bootstrapResponse.json()) as BootstrapResponse | null;
-  const organizations = (await organizationsResponse.json()) as
-    | OrganizationMineResponseItem[]
-    | null;
-
   const brands = bootstrap?.brands ?? [];
   const activeBrandId = bootstrap?.access?.brandId ?? '';
   const matchedBrand = brands.find((brand) => {
@@ -161,30 +346,106 @@ async function resolveActiveWorkspaceSlugs(
     brands.find((brand) => Boolean(brand.slug)) ??
     matchedBrand;
   const brandSlug = resolvedBrand?.slug;
-  const orgSlug =
-    resolvedBrand?.organization?.slug ??
-    organizations?.find((organization) => organization.isActive)?.slug ??
-    organizations?.[0]?.slug;
+  let orgSlug = resolvedBrand?.organization?.slug;
+
+  if (!orgSlug) {
+    let organizationsResponse: Response;
+
+    try {
+      organizationsResponse = await fetch(
+        `${getApiBaseUrl()}/organizations/mine`,
+        {
+          cache: 'no-store',
+          headers,
+        },
+      );
+    } catch {
+      return null;
+    }
+
+    if (!organizationsResponse.ok) {
+      return null;
+    }
+
+    const organizations = (await organizationsResponse.json()) as
+      | OrganizationMineResponseItem[]
+      | null;
+    orgSlug =
+      organizations?.find((organization) => organization.isActive)?.slug ??
+      organizations?.[0]?.slug;
+  }
 
   if (!orgSlug || !brandSlug) {
     return null;
   }
 
-  return { brandCount: brands.length, brandSlug, orgSlug };
+  // Validate slugs before caching and using them in redirect paths.
+  // This prevents an attacker-controlled API response from injecting a slug
+  // like `//attacker.example` and causing a cross-origin redirect.
+  if (!SLUG_RE.test(orgSlug) || !SLUG_RE.test(brandSlug)) {
+    return null;
+  }
+
+  const slugs = { brandCount: brands.length, brandSlug, orgSlug };
+  writeWorkspaceSlugCache(cacheKey, slugs);
+  const cookieValue = await encodeSlugCookie(slugs);
+  return { cookieValue, slugs };
 }
+
+type CanonicalResolution = {
+  cookieValue: string | null;
+  path: string;
+};
 
 async function resolveCanonicalProtectedPath(
   pathname: string,
   token: string,
-): Promise<string | null> {
+  cacheKey?: string | null,
+  req?: NextRequest,
+): Promise<CanonicalResolution | null> {
   const canonicalPath = canonicalizeFlatProtectedPath(pathname);
-  const slugs = await resolveActiveWorkspaceSlugs(token);
+  const resolution = await resolveActiveWorkspaceSlugs(token, cacheKey, req);
 
-  if (!slugs) {
+  if (!resolution) {
     return null;
   }
 
+  const { cookieValue, slugs } = resolution;
   const topLevelSegment = getTopLevelSegment(canonicalPath);
+
+  if (topLevelSegment === 'settings') {
+    if (canonicalPath === '/settings/personal') {
+      return { cookieValue, path: '/settings' };
+    }
+
+    if (canonicalPath === '/settings/organization') {
+      return { cookieValue, path: `/${slugs.orgSlug}/~/settings` };
+    }
+
+    if (canonicalPath.startsWith('/settings/organization/')) {
+      return {
+        cookieValue,
+        path: `/${slugs.orgSlug}/~${canonicalPath.replace(
+          '/settings/organization',
+          '/settings',
+        )}`,
+      };
+    }
+
+    if (canonicalPath.startsWith('/settings/brands/')) {
+      const [, , , routeBrandSlug, ...rest] = canonicalPath.split('/');
+
+      if (routeBrandSlug) {
+        const suffix = rest.length > 0 ? `/${rest.join('/')}` : '';
+        return {
+          cookieValue,
+          path: `/${slugs.orgSlug}/${routeBrandSlug}/settings${suffix}`,
+        };
+      }
+    }
+
+    return { cookieValue, path: `/${slugs.orgSlug}/~${canonicalPath}` };
+  }
 
   if (
     topLevelSegment &&
@@ -192,10 +453,13 @@ async function resolveCanonicalProtectedPath(
       topLevelSegment as (typeof ORG_SCOPED_PREFIXES)[number],
     )
   ) {
-    return `/${slugs.orgSlug}/~${canonicalPath}`;
+    return { cookieValue, path: `/${slugs.orgSlug}/~${canonicalPath}` };
   }
 
-  return `/${slugs.orgSlug}/${slugs.brandSlug}${canonicalPath}`;
+  return {
+    cookieValue,
+    path: `/${slugs.orgSlug}/${slugs.brandSlug}${canonicalPath}`,
+  };
 }
 
 const isPublicRoute = isCloudConnected
@@ -234,12 +498,20 @@ const clerkProxy = isCloudConnected
 
           const token = await session.getToken?.();
           if (token) {
-            const slugs = await resolveActiveWorkspaceSlugs(token);
-            if (slugs) {
-              return redirectPreservingSearch(
+            const resolution = await resolveActiveWorkspaceSlugs(
+              token,
+              sessionId,
+              req,
+            );
+            if (resolution) {
+              const response = redirectPreservingSearch(
                 req,
-                `/${slugs.orgSlug}/${slugs.brandSlug}/workspace/overview`,
+                `/${resolution.slugs.orgSlug}/${resolution.slugs.brandSlug}/workspace/overview`,
               );
+              if (resolution.cookieValue) {
+                setSlugCookie(response, resolution.cookieValue);
+              }
+              return response;
             }
           }
           return NextResponse.next();
@@ -250,17 +522,32 @@ const clerkProxy = isCloudConnected
           const shouldSkipRedirect = skipRedirectPrefixes.some((p) =>
             pathname.startsWith(p),
           );
-          if (userId && sessionId && !shouldSkipRedirect) {
+          if (shouldSkipRedirect) {
+            if (pathname.startsWith('/logout')) {
+              const response = NextResponse.next();
+              deleteSlugCookie(response);
+              return response;
+            }
+            return NextResponse.next();
+          }
+
+          if (userId && sessionId) {
             const token = await session.getToken?.();
-            const resolvedPath = token
+            const resolved = token
               ? await resolveCanonicalProtectedPath(
                   '/workspace/overview',
                   token,
+                  sessionId,
+                  req,
                 )
               : null;
 
-            if (resolvedPath) {
-              return redirectPreservingSearch(req, resolvedPath);
+            if (resolved) {
+              const response = redirectPreservingSearch(req, resolved.path);
+              if (resolved.cookieValue) {
+                setSlugCookie(response, resolved.cookieValue);
+              }
+              return response;
             }
 
             return NextResponse.next();
@@ -269,24 +556,38 @@ const clerkProxy = isCloudConnected
         }
 
         if (!userId || !sessionId) {
-          // Desktop offline: no session is valid — pass straight through.
           if (isDesktopShell) {
             return NextResponse.next();
           }
           return redirectPreservingSearch(req, '/login');
         }
 
+        if (pathname.startsWith('/logout')) {
+          const response = NextResponse.next();
+          deleteSlugCookie(response);
+          return response;
+        }
+
         if (isBareProtectedPath(pathname)) {
           const token = await session.getToken?.();
-          const resolvedPath = token
-            ? await resolveCanonicalProtectedPath(pathname, token)
+          const resolved = token
+            ? await resolveCanonicalProtectedPath(
+                pathname,
+                token,
+                sessionId,
+                req,
+              )
             : null;
 
-          if (!resolvedPath) {
+          if (!resolved) {
             return NextResponse.next();
           }
 
-          return redirectPreservingSearch(req, resolvedPath);
+          const response = redirectPreservingSearch(req, resolved.path);
+          if (resolved.cookieValue) {
+            setSlugCookie(response, resolved.cookieValue);
+          }
+          return response;
         }
 
         return NextResponse.next();
@@ -310,53 +611,77 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
       pathname.startsWith('/sign-up') ||
       pathname.startsWith('/logout') ||
       pathname.startsWith('/onboarding');
-    const resolveDesktopWorkspacePath = async (): Promise<string | null> => {
-      if (!desktopToken) {
-        return null;
-      }
+    const resolveDesktopWorkspace =
+      async (): Promise<CanonicalResolution | null> => {
+        if (!desktopToken) {
+          return null;
+        }
 
-      return await resolveCanonicalProtectedPath(
-        '/workspace/overview',
-        desktopToken,
-      );
-    };
+        return await resolveCanonicalProtectedPath(
+          '/workspace/overview',
+          desktopToken,
+          undefined,
+          req,
+        );
+      };
 
-    // Offline / no active session: skip all token-dependent logic and go
-    // straight to the default seeded workspace (same as self-hosted mode).
     if (!hasDesktopToken) {
-      if (pathname === '/' || isBareProtectedPath(pathname)) {
+      if (
+        pathname === '/' ||
+        pathname === '/settings' ||
+        isBareProtectedPath(pathname)
+      ) {
         return redirectPreservingSearch(req, SEEDED_WORKSPACE_PATH);
       }
       return NextResponse.next();
     }
 
     if (pathname === '/') {
-      const resolvedPath = await resolveDesktopWorkspacePath();
-      return redirectPreservingSearch(req, resolvedPath ?? '/login');
+      const resolved = await resolveDesktopWorkspace();
+      const response = redirectPreservingSearch(
+        req,
+        resolved?.path ?? '/login',
+      );
+      if (resolved?.cookieValue) {
+        setSlugCookie(response, resolved.cookieValue);
+      }
+      return response;
     }
 
     if (pathname === '/logout') {
-      return NextResponse.next();
+      const response = NextResponse.next();
+      deleteSlugCookie(response);
+      return response;
     }
 
     if (isAuthRoute) {
-      const resolvedPath = await resolveDesktopWorkspacePath();
+      const resolved = await resolveDesktopWorkspace();
 
-      if (resolvedPath) {
-        return redirectPreservingSearch(req, resolvedPath);
+      if (resolved) {
+        const response = redirectPreservingSearch(req, resolved.path);
+        if (resolved.cookieValue) {
+          setSlugCookie(response, resolved.cookieValue);
+        }
+        return response;
       }
 
       return NextResponse.next();
     }
 
     if (hasDesktopToken && isBareProtectedPath(pathname) && desktopToken) {
-      const resolvedPath = await resolveCanonicalProtectedPath(
+      const resolved = await resolveCanonicalProtectedPath(
         pathname,
         desktopToken,
+        undefined,
+        req,
       );
 
-      if (resolvedPath) {
-        return redirectPreservingSearch(req, resolvedPath);
+      if (resolved) {
+        const response = redirectPreservingSearch(req, resolved.path);
+        if (resolved.cookieValue) {
+          setSlugCookie(response, resolved.cookieValue);
+        }
+        return response;
       }
 
       return redirectPreservingSearch(req, '/login');

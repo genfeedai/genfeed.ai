@@ -39,19 +39,19 @@ export default function FeatureGrid({
             const Icon = feature.icon;
             const content = (
               <>
-                <div className="mb-12 text-xs font-black uppercase tracking-widest text-surface/20">
+                <div className="mb-12 text-xs font-semibold uppercase tracking-widest text-surface/20">
                   {feature.number} / {feature.label}
                 </div>
-                <Icon className="mb-8 h-10 w-10 text-surface/40 transition-all group-hover:text-surface" />
-                <h3 className="mb-4 text-xl font-black uppercase tracking-tight">
+                <Icon className="mb-8 size-10 text-surface/40 transition-all group-hover:text-surface" />
+                <h3 className="mb-4 text-xl font-semibold uppercase tracking-tight">
                   {feature.title}
                 </h3>
                 <p className="mb-8 text-sm leading-relaxed text-surface/40">
                   {feature.description}
                 </p>
                 {feature.href ? (
-                  <span className="mt-auto flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all hover:gap-4">
-                    View Spec <LuArrowRight className="h-3 w-3" />
+                  <span className="mt-auto flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest transition-all hover:gap-4">
+                    View Spec <LuArrowRight className="size-3" />
                   </span>
                 ) : null}
               </>

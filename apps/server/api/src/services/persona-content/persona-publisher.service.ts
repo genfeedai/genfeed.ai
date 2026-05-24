@@ -30,6 +30,12 @@ export interface PublishResult {
 export class PersonaPublisherService {
   private readonly constructorName: string = String(this.constructor.name);
 
+  private readStringArray(value: unknown): string[] {
+    return Array.isArray(value)
+      ? value.filter((entry): entry is string => typeof entry === 'string')
+      : [];
+  }
+
   constructor(
     private readonly loggerService: LoggerService,
     private readonly personasService: PersonasService,
@@ -44,7 +50,7 @@ export class PersonaPublisherService {
       input.organization,
     );
 
-    const credentialIds = persona.credentials ?? [];
+    const credentialIds = this.readStringArray(persona.credentials);
     const postIds: string[] = [];
     const failedCredentials: string[] = [];
 
@@ -79,6 +85,7 @@ export class PersonaPublisherService {
           description: input.description,
           groupId,
           ingredients: input.ingredientIds ?? [],
+          label: persona.label ?? 'Persona post',
           organization: input.organization,
           persona: input.personaId,
           platform: credential.platform as CredentialPlatform,
@@ -87,7 +94,7 @@ export class PersonaPublisherService {
             ? PostStatus.SCHEDULED
             : PostStatus.PENDING,
           user: input.user,
-        } as unknown);
+        } as Parameters<PostsService['create']>[0]);
 
         postIds.push(String(post._id));
       } catch (error) {

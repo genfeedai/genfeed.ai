@@ -1,4 +1,4 @@
-# Genfeed Mobile (`mobile.genfeed.ai`)
+# Genfeed Mobile (`@genfeedai/mobile`)
 
 Expo/React Native application delivering Genfeed on the go—approvals, notifications, media previews, and soon lightweight editing.
 

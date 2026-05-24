@@ -1,5 +1,6 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsMongoId, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class InviteMemberDto {
   @IsEmail()
@@ -17,7 +18,7 @@ export class InviteMemberDto {
   readonly lastName?: string;
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({ required: false })
   readonly role?: string;
 }

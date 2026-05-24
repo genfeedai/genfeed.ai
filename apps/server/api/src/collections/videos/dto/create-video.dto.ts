@@ -1,5 +1,6 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   IngredientCategory,
   RouterPriority,
@@ -13,7 +14,6 @@ import {
   IsBoolean,
   IsEnum,
   IsIn,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -23,7 +23,7 @@ import {
 } from 'class-validator';
 
 export class CreateVideoWithCaptionsDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({ required: true })
   readonly caption?: string;
 
@@ -43,7 +43,7 @@ export class CreateMergedVideoDto {
   })
   readonly category!: IngredientCategory;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
   readonly music?: string;
@@ -168,7 +168,7 @@ export class AutoGenerateMusicDto {
 }
 
 export class BackgroundMusicDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description:
@@ -529,7 +529,7 @@ export class CreateVideoDto extends OmitType(CreateIngredientDto, [
   readonly outputs?: number;
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The bookmark ID that this video was generated from',
     required: false,

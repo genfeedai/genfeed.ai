@@ -11,7 +11,7 @@ import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import PromptBarShell from '@ui/prompt-bars/components/shell/PromptBarShell';
-import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react';
+import type { ChangeEvent, FormEvent, KeyboardEvent, ReactNode } from 'react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import {
   HiArrowUp,
@@ -22,12 +22,77 @@ import {
   HiSquaresPlus,
 } from 'react-icons/hi2';
 
+const EMPTY_ARRAY: never[] = [];
+const POST_COUNT_OPTIONS = [
+  { key: '1', label: '1x' },
+  { key: '2', label: '2x' },
+  { key: '3', label: '3x' },
+  { key: '5', label: '5x' },
+  { key: '10', label: '10x' },
+];
+const POST_COUNT_CYCLE: Record<number, number> = {
+  1: 2,
+  2: 3,
+  3: 5,
+  5: 10,
+  10: 1,
+};
+const DEFAULT_PLATFORMS = [
+  Platform.YOUTUBE,
+  Platform.INSTAGRAM,
+  Platform.TWITTER,
+  Platform.TIKTOK,
+];
+
 const CONTROL_CLASS =
   'h-9 px-3 gap-2 text-sm flex-shrink-0 !border-white/10 !bg-white/[0.03] text-white/80 hover:!bg-white/[0.06] hover:text-white';
 const COLLAPSE_BUTTON_CLASS =
-  'h-8 w-8 border border-white/10 bg-black/20 p-0 text-white/70 backdrop-blur-sm hover:bg-black/30 hover:text-white';
+  'size-8 border border-white/10 bg-black/20 p-0 text-white/70 backdrop-blur-sm hover:bg-black/30 hover:text-white';
 
-function PromptBarPost({
+type PlatformOption = {
+  icon: ReactNode;
+  key: Platform;
+  label: string;
+};
+
+type PresetOption = {
+  key: string;
+  label: string;
+};
+
+interface PromptBarPostViewProps {
+  buttonLabel: string;
+  count: number;
+  isEnhancing: boolean;
+  isThread: boolean;
+  platform: Platform | 'all';
+  presetOptions: PresetOption[];
+  prompt: string;
+  promptPlaceholder: string;
+  selectedPresetKey: string;
+  showCountDropdown: boolean;
+  showThreadToggle: boolean;
+  onCountChange: (count: number) => void;
+  onKeyDown: (
+    event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => void;
+  onPresetChange: (value: string) => void;
+  onPromptChange: (value: string) => void;
+  onSubmit: (event: FormEvent) => void;
+  onThreadChange: (value: boolean) => void;
+}
+
+interface PromptBarPostExpandedViewProps extends PromptBarPostViewProps {
+  platformOptions: PlatformOption[];
+  onCollapse: () => void;
+  onPlatformChange?: (platform: Platform | 'all') => void;
+}
+
+interface PromptBarPostCollapsedViewProps extends PromptBarPostViewProps {
+  onExpand: () => void;
+}
+
+function usePromptBarPostController({
   onSubmit,
   isEnhancing,
   showCountDropdown = false,
@@ -35,13 +100,8 @@ function PromptBarPost({
   buttonLabel = 'Enhance',
   platform = 'all',
   onPlatformChange,
-  availablePlatforms = [
-    Platform.YOUTUBE,
-    Platform.INSTAGRAM,
-    Platform.TWITTER,
-    Platform.TIKTOK,
-  ],
-  presets = [],
+  availablePlatforms = DEFAULT_PLATFORMS,
+  presets = EMPTY_ARRAY,
 }: PromptBarContentProps) {
   const [prompt, setPrompt] = useState('');
   const [count, setCount] = useState(3);
@@ -60,7 +120,7 @@ function PromptBarPost({
     }
   }, [platform]);
 
-  const platformOptions = useMemo(
+  const platformOptions = useMemo<PlatformOption[]>(
     () =>
       availablePlatforms.map((currentPlatform: Platform) => ({
         icon: getPlatformIcon(currentPlatform),
@@ -72,56 +132,52 @@ function PromptBarPost({
 
   const promptPlaceholder = useMemo(() => {
     if (!showCountDropdown) {
-      return 'Describe how you want to enhance your post...';
+      return 'Describe how you want to enhance your post…';
     }
 
     const platformPlaceholders: Record<Platform | 'all', string> = {
-      all: 'e.g., AI productivity tips, startup advice, tech trends...',
+      all: 'e.g., AI productivity tips, startup advice, tech trends…',
       [Platform.TWITTER]:
-        'e.g., viral tweet ideas, trending topics, quick tips...',
+        'e.g., viral tweet ideas, trending topics, quick tips…',
       [Platform.INSTAGRAM]:
-        'e.g., visual content ideas, story concepts, captions...',
-      [Platform.YOUTUBE]:
-        'e.g., video topics, tutorial ideas, content series...',
+        'e.g., visual content ideas, story concepts, captions…',
+      [Platform.YOUTUBE]: 'e.g., video topics, tutorial ideas, content series…',
       [Platform.TIKTOK]:
-        'e.g., trending challenges, short-form content, viral ideas...',
+        'e.g., trending challenges, short-form content, viral ideas…',
       [Platform.FACEBOOK]:
-        'e.g., community posts, engagement content, updates...',
+        'e.g., community posts, engagement content, updates…',
       [Platform.LINKEDIN]:
-        'e.g., professional insights, industry thoughts, career tips...',
+        'e.g., professional insights, industry thoughts, career tips…',
       [Platform.PINTEREST]:
-        'e.g., pin ideas, visual inspiration, DIY projects...',
+        'e.g., pin ideas, visual inspiration, DIY projects…',
       [Platform.REDDIT]:
-        'e.g., discussion topics, AMA questions, community posts...',
-      [Platform.DISCORD]:
-        'e.g., community announcements, discussion prompts...',
-      [Platform.TELEGRAM]: 'e.g., channel updates, news sharing, tips...',
+        'e.g., discussion topics, AMA questions, community posts…',
+      [Platform.DISCORD]: 'e.g., community announcements, discussion prompts…',
+      [Platform.TELEGRAM]: 'e.g., channel updates, news sharing, tips…',
       [Platform.THREADS]:
-        'e.g., conversational threads, community discussions...',
+        'e.g., conversational threads, community discussions…',
       [Platform.TWITCH]:
-        'e.g., stream topics, gaming content, community engagement...',
+        'e.g., stream topics, gaming content, community engagement…',
       [Platform.MEDIUM]:
-        'e.g., article topics, deep dives, thought leadership...',
+        'e.g., article topics, deep dives, thought leadership…',
       [Platform.FANVUE]:
-        'e.g., exclusive creator content, fan engagement, premium posts...',
+        'e.g., exclusive creator content, fan engagement, premium posts…',
       [Platform.SLACK]:
-        'e.g., team updates, announcements, workspace discussions...',
-      [Platform.WORDPRESS]:
-        'e.g., blog posts, tutorials, long-form articles...',
-      [Platform.SNAPCHAT]:
-        'e.g., snap stories, visual content, quick updates...',
+        'e.g., team updates, announcements, workspace discussions…',
+      [Platform.WORDPRESS]: 'e.g., blog posts, tutorials, long-form articles…',
+      [Platform.SNAPCHAT]: 'e.g., snap stories, visual content, quick updates…',
       [Platform.WHATSAPP]:
-        'e.g., broadcast messages, status updates, group content...',
+        'e.g., broadcast messages, status updates, group content…',
       [Platform.MASTODON]:
-        'e.g., community posts, federated discussions, toots...',
+        'e.g., community posts, federated discussions, toots…',
       [Platform.GHOST]:
-        'e.g., newsletter content, blog articles, member posts...',
+        'e.g., newsletter content, blog articles, member posts…',
       [Platform.SHOPIFY]:
-        'e.g., product descriptions, store updates, promotions...',
+        'e.g., product descriptions, store updates, promotions…',
       [Platform.BEEHIIV]:
-        'e.g., newsletter topics, subscriber updates, curated content...',
+        'e.g., newsletter topics, subscriber updates, curated content…',
       [Platform.GOOGLE_ADS]:
-        'e.g., ad copy, campaign ideas, keyword strategies...',
+        'e.g., ad copy, campaign ideas, keyword strategies…',
     };
 
     return (
@@ -140,7 +196,7 @@ function PromptBarPost({
     }
   }, [presets, selectedPresetKey]);
 
-  const presetOptions = useMemo(
+  const presetOptions = useMemo<PresetOption[]>(
     () =>
       presets.map(
         (preset: { key: string; label: string; description: string }) => ({
@@ -190,15 +246,193 @@ function PromptBarPost({
     }
   };
 
+  return {
+    availablePlatforms,
+    buttonLabel,
+    count,
+    handleKeyDown,
+    handlePresetChange,
+    handleSubmit,
+    isCollapsed,
+    isEnhancing,
+    isThread,
+    onPlatformChange,
+    platform,
+    platformOptions,
+    presetOptions,
+    prompt,
+    promptPlaceholder,
+    selectedPresetKey,
+    setCount,
+    setIsCollapsed,
+    setIsThread,
+    setPrompt,
+    showCountDropdown,
+    showThreadToggle,
+  };
+}
+
+function PromptBarPostCollapsedView({
+  buttonLabel,
+  count,
+  isEnhancing,
+  isThread,
+  platform,
+  presetOptions,
+  prompt,
+  promptPlaceholder,
+  selectedPresetKey,
+  showCountDropdown,
+  showThreadToggle,
+  onCountChange,
+  onExpand,
+  onKeyDown,
+  onPresetChange,
+  onPromptChange,
+  onSubmit,
+  onThreadChange,
+}: PromptBarPostCollapsedViewProps) {
   return (
-    <PromptBarShell
-      className={cn(
-        'flex flex-col transition-all duration-300',
-        isCollapsed ? 'overflow-hidden p-2' : 'overflow-visible p-2',
+    <div className="flex items-center gap-2">
+      {presetOptions.length > 0 && (
+        <FormDropdown
+          name="preset"
+          icon={<HiBookmark />}
+          label="Preset"
+          value={selectedPresetKey}
+          isFullWidth={false}
+          isNoneEnabled={true}
+          dropdownDirection="up"
+          className={CONTROL_CLASS}
+          options={presetOptions}
+          isDisabled={isEnhancing}
+          onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+            onPresetChange(event.target.value)
+          }
+        />
       )}
-    >
-      {isCollapsed ? (
-        <div className="flex items-center gap-2">
+
+      <Input
+        name="prompt"
+        type="text"
+        value={prompt}
+        onChange={(event) => onPromptChange(event.target.value)}
+        onKeyDown={onKeyDown}
+        placeholder={promptPlaceholder}
+        isDisabled={isEnhancing}
+        className="h-9 flex-1 border border-white/10 bg-white/[0.03] px-3 text-sm text-white/90 focus:border-white/20 focus:outline-none"
+      />
+
+      {(showCountDropdown || showThreadToggle) && (
+        <>
+          <PromptBarDivider className="h-5 bg-white/10" />
+          <div className="flex items-center gap-2">
+            {showCountDropdown && (
+              <Button
+                label={`${count}x`}
+                variant={ButtonVariant.SECONDARY}
+                size={ButtonSize.SM}
+                className="h-9 px-3"
+                tooltip="Outputs"
+                tooltipPosition="left"
+                icon={<HiSquaresPlus className="size-4" />}
+                onClick={() => onCountChange(POST_COUNT_CYCLE[count] ?? 1)}
+                isDisabled={isEnhancing}
+              />
+            )}
+            {showThreadToggle && platform === Platform.TWITTER && (
+              <Button
+                onClick={() => onThreadChange(!isThread)}
+                tooltip={isThread ? 'Thread mode' : 'Individual posts'}
+                tooltipPosition="top"
+                variant={
+                  isThread ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
+                }
+                className="size-9 p-0"
+                icon={<HiQueueList className="size-4" />}
+                isDisabled={isEnhancing}
+              />
+            )}
+          </div>
+        </>
+      )}
+
+      <PromptBarDivider className="h-5 bg-white/10" />
+
+      <div className="flex items-center gap-2">
+        <Button
+          variant={ButtonVariant.GENERATE}
+          icon={<HiArrowUp />}
+          label={buttonLabel}
+          tooltip={buttonLabel}
+          isLoading={isEnhancing}
+          isDisabled={!prompt.trim()}
+          onClick={onSubmit}
+          className="h-9 px-3.5"
+        />
+        <Button
+          onClick={onExpand}
+          tooltip="Expand prompt bar"
+          tooltipPosition="top"
+          variant={ButtonVariant.GHOST}
+          className={COLLAPSE_BUTTON_CLASS}
+          icon={<HiChevronUp className="size-4" />}
+        />
+      </div>
+    </div>
+  );
+}
+
+function PromptBarPostExpandedView({
+  buttonLabel,
+  count,
+  isEnhancing,
+  isThread,
+  platform,
+  platformOptions,
+  presetOptions,
+  prompt,
+  promptPlaceholder,
+  selectedPresetKey,
+  showCountDropdown,
+  showThreadToggle,
+  onCollapse,
+  onCountChange,
+  onKeyDown,
+  onPlatformChange,
+  onPresetChange,
+  onPromptChange,
+  onSubmit,
+  onThreadChange,
+}: PromptBarPostExpandedViewProps) {
+  return (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {onPlatformChange && (
+            <FormDropdown
+              name="platform"
+              icon={
+                platform === 'all' ? (
+                  <HiSquares2X2 />
+                ) : (
+                  getPlatformIcon(platform as Platform)
+                )
+              }
+              label={PLATFORM_LABEL_MAP[platform as Platform]}
+              isFullWidth={false}
+              dropdownDirection="up"
+              className={CONTROL_CLASS}
+              value={platform}
+              options={platformOptions}
+              isNoneEnabled={false}
+              isDisabled={isEnhancing}
+              onChange={(event: ChangeEvent<HTMLSelectElement>) => {
+                onPlatformChange(event.target.value as Platform | 'all');
+              }}
+            />
+          )}
+
           {presetOptions.length > 0 && (
             <FormDropdown
               name="preset"
@@ -212,219 +446,122 @@ function PromptBarPost({
               options={presetOptions}
               isDisabled={isEnhancing}
               onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                handlePresetChange(event.target.value)
+                onPresetChange(event.target.value)
               }
             />
           )}
-
-          <Input
-            name="prompt"
-            type="text"
-            value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={promptPlaceholder}
-            isDisabled={isEnhancing}
-            className="h-9 flex-1 border border-white/10 bg-white/[0.03] px-3 text-sm text-white/90 focus:border-white/20 focus:outline-none"
-          />
-
-          {(showCountDropdown || showThreadToggle) && (
-            <>
-              <PromptBarDivider className="h-5 bg-white/10" />
-              <div className="flex items-center gap-2">
-                {showCountDropdown && (
-                  <Button
-                    label={`${count}x`}
-                    variant={ButtonVariant.SECONDARY}
-                    size={ButtonSize.SM}
-                    className="h-9 px-3"
-                    tooltip="Outputs"
-                    tooltipPosition="left"
-                    icon={<HiSquaresPlus className="w-4 h-4" />}
-                    onClick={() => {
-                      const countCycle: Record<number, number> = {
-                        1: 2,
-                        2: 3,
-                        3: 5,
-                        5: 10,
-                        10: 1,
-                      };
-                      setCount(countCycle[count] ?? 1);
-                    }}
-                    isDisabled={isEnhancing}
-                  />
-                )}
-                {showThreadToggle && platform === Platform.TWITTER && (
-                  <Button
-                    onClick={() => setIsThread(!isThread)}
-                    tooltip={isThread ? 'Thread mode' : 'Individual posts'}
-                    tooltipPosition="top"
-                    variant={
-                      isThread ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
-                    }
-                    className="h-9 w-9 p-0"
-                    icon={<HiQueueList className="w-4 h-4" />}
-                    isDisabled={isEnhancing}
-                  />
-                )}
-              </div>
-            </>
-          )}
-
-          <PromptBarDivider className="h-5 bg-white/10" />
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant={ButtonVariant.GENERATE}
-              icon={<HiArrowUp />}
-              label={buttonLabel}
-              tooltip={buttonLabel}
-              isLoading={isEnhancing}
-              isDisabled={!prompt.trim()}
-              onClick={handleSubmit}
-              className="h-9 px-3.5"
-            />
-            <Button
-              onClick={() => setIsCollapsed(false)}
-              tooltip="Expand prompt bar"
-              tooltipPosition="top"
-              variant={ButtonVariant.GHOST}
-              className={COLLAPSE_BUTTON_CLASS}
-              icon={<HiChevronUp className="w-4 h-4" />}
-            />
-          </div>
         </div>
-      ) : (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              {onPlatformChange && (
-                <FormDropdown
-                  name="platform"
-                  icon={
-                    platform === 'all' ? (
-                      <HiSquares2X2 />
-                    ) : (
-                      getPlatformIcon(platform as Platform)
-                    )
-                  }
-                  label={PLATFORM_LABEL_MAP[platform as Platform]}
-                  isFullWidth={false}
-                  dropdownDirection="up"
-                  className={CONTROL_CLASS}
-                  value={platform}
-                  options={platformOptions}
-                  isNoneEnabled={false}
-                  isDisabled={isEnhancing}
-                  onChange={(event: ChangeEvent<HTMLSelectElement>) => {
-                    const newPlatform = event.target.value as Platform | 'all';
-                    onPlatformChange(newPlatform);
-                  }}
-                />
-              )}
 
-              {presetOptions.length > 0 && (
-                <FormDropdown
-                  name="preset"
-                  icon={<HiBookmark />}
-                  label="Preset"
-                  value={selectedPresetKey}
-                  isFullWidth={false}
-                  isNoneEnabled={true}
-                  dropdownDirection="up"
-                  className={CONTROL_CLASS}
-                  options={presetOptions}
-                  isDisabled={isEnhancing}
-                  onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                    handlePresetChange(event.target.value)
-                  }
-                />
-              )}
-            </div>
-
-            <Button
-              onClick={() => setIsCollapsed(true)}
-              tooltip="Collapse"
-              tooltipPosition="top"
-              variant={ButtonVariant.GHOST}
-              className={COLLAPSE_BUTTON_CLASS}
-              icon={
-                <HiChevronUp
-                  className="rotate-180 transition-transform"
-                  size={16}
-                />
-              }
+        <Button
+          onClick={onCollapse}
+          tooltip="Collapse"
+          tooltipPosition="top"
+          variant={ButtonVariant.GHOST}
+          className={COLLAPSE_BUTTON_CLASS}
+          icon={
+            <HiChevronUp
+              className="rotate-180 transition-transform"
+              size={16}
             />
-          </div>
+          }
+        />
+      </div>
 
-          <form onSubmit={handleSubmit} className="mt-2 flex flex-col gap-2">
-            <Textarea
-              name="prompt"
-              value={prompt}
-              onChange={(event) => setPrompt(event.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={promptPlaceholder}
+      <form onSubmit={onSubmit} className="mt-2 flex flex-col gap-2">
+        <Textarea
+          name="prompt"
+          value={prompt}
+          onChange={(event) => onPromptChange(event.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder={promptPlaceholder}
+          isDisabled={isEnhancing}
+          className="min-h-[96px] w-full resize-none border border-white/10 bg-transparent p-2 text-sm text-white/90 shadow-none focus:border-transparent focus-visible:ring-0"
+        />
+
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/8 pt-2">
+          {showCountDropdown && (
+            <FormDropdown
+              name="count"
+              icon={<HiSquaresPlus />}
+              label="Posts"
+              isFullWidth={false}
+              dropdownDirection="up"
+              className={CONTROL_CLASS}
+              value={String(count)}
+              options={POST_COUNT_OPTIONS}
+              isNoneEnabled={false}
               isDisabled={isEnhancing}
-              className="min-h-[96px] w-full resize-none border border-white/10 bg-transparent px-2 py-2 text-sm text-white/90 shadow-none focus:border-transparent focus-visible:ring-0"
+              onChange={(event: ChangeEvent<HTMLSelectElement>) => {
+                onCountChange(Number(event.target.value));
+              }}
             />
+          )}
+          {showThreadToggle && platform === Platform.TWITTER && (
+            <Button
+              onClick={() => onThreadChange(!isThread)}
+              tooltip={
+                isThread ? 'Generate as thread' : 'Generate individual posts'
+              }
+              tooltipPosition="top"
+              variant={
+                isThread ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
+              }
+              className="h-9 px-3 text-sm"
+              icon={<HiQueueList className="size-4" />}
+              isDisabled={isEnhancing}
+            >
+              Thread
+            </Button>
+          )}
+          <Button
+            variant={ButtonVariant.GENERATE}
+            icon={<HiArrowUp />}
+            label={buttonLabel}
+            tooltip={buttonLabel}
+            isLoading={isEnhancing}
+            isDisabled={!prompt.trim()}
+            onClick={onSubmit}
+            type="submit"
+            className="h-9 px-3.5"
+          />
+        </div>
+      </form>
+    </>
+  );
+}
 
-            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/8 pt-2">
-              {showCountDropdown && (
-                <FormDropdown
-                  name="count"
-                  icon={<HiSquaresPlus />}
-                  label="Posts"
-                  isFullWidth={false}
-                  dropdownDirection="up"
-                  className={CONTROL_CLASS}
-                  value={String(count)}
-                  options={[
-                    { key: '1', label: '1x' },
-                    { key: '2', label: '2x' },
-                    { key: '3', label: '3x' },
-                    { key: '5', label: '5x' },
-                    { key: '10', label: '10x' },
-                  ]}
-                  isNoneEnabled={false}
-                  isDisabled={isEnhancing}
-                  onChange={(event: ChangeEvent<HTMLSelectElement>) => {
-                    setCount(Number(event.target.value));
-                  }}
-                />
-              )}
-              {showThreadToggle && platform === Platform.TWITTER && (
-                <Button
-                  onClick={() => setIsThread(!isThread)}
-                  tooltip={
-                    isThread
-                      ? 'Generate as thread'
-                      : 'Generate individual posts'
-                  }
-                  tooltipPosition="top"
-                  variant={
-                    isThread ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
-                  }
-                  className="h-9 px-3 text-sm"
-                  icon={<HiQueueList className="w-4 h-4" />}
-                  isDisabled={isEnhancing}
-                >
-                  Thread
-                </Button>
-              )}
-              <Button
-                variant={ButtonVariant.GENERATE}
-                icon={<HiArrowUp />}
-                label={buttonLabel}
-                tooltip={buttonLabel}
-                isLoading={isEnhancing}
-                isDisabled={!prompt.trim()}
-                onClick={handleSubmit}
-                type="submit"
-                className="h-9 px-3.5"
-              />
-            </div>
-          </form>
-        </>
+function PromptBarPost(props: PromptBarContentProps) {
+  const controller = usePromptBarPostController(props);
+
+  return (
+    <PromptBarShell
+      className={cn(
+        'flex flex-col transition-all duration-300',
+        controller.isCollapsed ? 'overflow-hidden p-2' : 'overflow-visible p-2',
+      )}
+    >
+      {controller.isCollapsed ? (
+        <PromptBarPostCollapsedView
+          {...controller}
+          onCountChange={controller.setCount}
+          onExpand={() => controller.setIsCollapsed(false)}
+          onKeyDown={controller.handleKeyDown}
+          onPresetChange={controller.handlePresetChange}
+          onPromptChange={controller.setPrompt}
+          onSubmit={controller.handleSubmit}
+          onThreadChange={controller.setIsThread}
+        />
+      ) : (
+        <PromptBarPostExpandedView
+          {...controller}
+          onCollapse={() => controller.setIsCollapsed(true)}
+          onCountChange={controller.setCount}
+          onKeyDown={controller.handleKeyDown}
+          onPresetChange={controller.handlePresetChange}
+          onPromptChange={controller.setPrompt}
+          onSubmit={controller.handleSubmit}
+          onThreadChange={controller.setIsThread}
+        />
       )}
     </PromptBarShell>
   );

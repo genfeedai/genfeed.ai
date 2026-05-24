@@ -10,6 +10,7 @@ import AppProtectedLayout from './app-protected-layout';
 const {
   appLayoutSpy,
   appSidebarSpy,
+  agentThreadListSpy,
   agentPanelSpy,
   beginOverlaySessionSpy,
   commandPaletteOpenSpy,
@@ -22,6 +23,7 @@ const {
   toggleOpenSpy,
 } = vi.hoisted(() => ({
   agentPanelSpy: vi.fn(),
+  agentThreadListSpy: vi.fn(),
   appLayoutSpy: vi.fn(),
   appSidebarSpy: vi.fn(),
   beginOverlaySessionSpy: vi.fn(),
@@ -87,7 +89,7 @@ vi.mock('@ui/layouts/app/AppLayout', () => ({
     shellChromeVariant?: 'default' | 'transparent';
     topbarChromeVariant?: 'inherit' | 'default' | 'transparent';
   }) => {
-    appLayoutSpy({ bannerComponent, ...props });
+    appLayoutSpy({ agentPanel, bannerComponent, ...props });
     return (
       <div data-testid="app-layout">
         {menuComponent}
@@ -175,11 +177,11 @@ vi.mock('@app-config/menu-items.config', () => ({
   APP_SECONDARY_MENU_ITEMS: [
     { href: '/workspace/activity', label: 'Activity' },
   ],
-  getAppSecondaryMenuItems: (brandId?: string | null) =>
-    brandId
+  getAppSecondaryMenuItems: (brandSlug?: string | null) =>
+    brandSlug
       ? [
           { href: '/workspace/activity', label: 'Activity' },
-          { href: `/settings/brands/${brandId}`, label: 'Settings' },
+          { href: '/settings', hrefScope: 'brand', label: 'Settings' },
         ]
       : [{ href: '/workspace/activity', label: 'Activity' }],
   POSTS_INSERT_AFTER_LABEL: 'Posts',
@@ -244,6 +246,7 @@ vi.mock('@genfeedai/agent', () => ({
   AgentThreadList: (props: {
     onActionsChange?: (actions: ReactNode) => void;
   }) => {
+    agentThreadListSpy(props);
     useEffect(() => {
       props.onActionsChange?.(
         <button type="button">Conversation header action</button>,
@@ -389,6 +392,7 @@ describe('AppProtectedLayout', () => {
     beginOverlaySessionSpy.mockClear();
     endOverlaySessionSpy.mockClear();
     agentPanelSpy.mockClear();
+    agentThreadListSpy.mockClear();
     commandPaletteOpenSpy.mockClear();
     dispatchOpenTaskComposerSpy.mockClear();
     onboardingGuardSpy.mockClear();
@@ -396,6 +400,8 @@ describe('AppProtectedLayout', () => {
     protectedProvidersSpy.mockClear();
     setIsOpenSpy.mockClear();
     toggleOpenSpy.mockClear();
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
 
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
@@ -427,7 +433,7 @@ describe('AppProtectedLayout', () => {
     expect(screen.getByTestId('low-credits-banner')).toBeInTheDocument();
   });
 
-  it('wires transparent shell chrome through the protected app shell', () => {
+  it('wires default shell chrome through the protected app shell', () => {
     render(
       <AppProtectedLayout>
         <div>Protected content</div>
@@ -439,23 +445,24 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         bannerComponent: expect.anything(),
         hasSecondaryTopbar: false,
-        shellChromeVariant: 'transparent',
+        shellChromeVariant: 'default',
         topbarChromeVariant: 'default',
       }),
     );
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        collapsedSidebarWidth: 64,
+        collapsedSidebarWidth: 0,
         mobileSidebarWidth: 304,
         renderTopSlot: expect.any(Function),
         secondaryItems: [
           { href: '/workspace/activity', label: 'Activity' },
           {
-            href: '/settings/brands/brand-123',
+            href: '/settings',
+            hrefScope: 'brand',
             label: 'Settings',
           },
         ],
-        shellChromeVariant: 'transparent',
+        shellChromeVariant: 'default',
         shellMode: 'workspace',
         sidebarWidth: 304,
       }),
@@ -466,26 +473,20 @@ describe('AppProtectedLayout', () => {
     expect(screen.getByTestId('agent-panel')).toBeInTheDocument();
   });
 
-  it('renders the workspace switcher before the workspace quick actions', () => {
+  it('renders the workspace quick actions in the sidebar top slot', () => {
     render(
       <AppProtectedLayout>
         <div>Protected content</div>
       </AppProtectedLayout>,
     );
 
-    const workspaceSwitcher = screen.getByTestId('workspace-switcher');
-    const newSearchButton = screen.getByRole('button', { name: 'New Search' });
     const newTaskButton = screen.getByRole('button', { name: 'New Task' });
+    const newSearchButton = screen.getByRole('button', { name: 'New Search' });
 
-    expect(workspaceSwitcher).toBeInTheDocument();
-    expect(newSearchButton).toBeInTheDocument();
     expect(newTaskButton).toBeInTheDocument();
+    expect(newSearchButton).toBeInTheDocument();
     expect(
-      workspaceSwitcher.compareDocumentPosition(newSearchButton) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      newSearchButton.compareDocumentPosition(newTaskButton) &
+      newTaskButton.compareDocumentPosition(newSearchButton) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
@@ -599,6 +600,24 @@ describe('AppProtectedLayout', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('marks the focused chat route as the Agent app', async () => {
+    mockPathname.value = '/chat/new';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
+    expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
+    expect(appLayoutSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'agent',
+      }),
+    );
+  });
+
   it('hides sidebar and topbar chrome for focused onboarding chat routes', () => {
     mockPathname.value = '/chat/onboarding';
 
@@ -634,6 +653,25 @@ describe('AppProtectedLayout', () => {
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
   });
 
+  it('hides the terminal dock on hosted cloud', () => {
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+    mockPathname.value = '/workspace';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
+    expect(appLayoutSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentPanel: undefined,
+        onAgentToggle: undefined,
+      }),
+    );
+  });
+
   it('disables prompt bar and elements providers on workspace home routes', () => {
     mockPathname.value = '/workspace';
 
@@ -663,7 +701,7 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        shellChromeVariant: 'transparent',
+        shellChromeVariant: 'default',
       }),
     );
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
@@ -683,7 +721,7 @@ describe('AppProtectedLayout', () => {
         backHref: '/org-123/brand-123/library/ingredients',
         backLabel: 'Library',
         sectionLabel: 'Studio',
-        shellChromeVariant: 'transparent',
+        shellChromeVariant: 'default',
       }),
     );
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();

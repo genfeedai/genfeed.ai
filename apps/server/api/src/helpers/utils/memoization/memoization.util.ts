@@ -57,7 +57,11 @@ export class MemoizationUtil {
    */
   static enrichWithUserContext = GlobalCaches.getObjectIdCache().memoize(
     (dto: unknown, publicMetadata: IClerkPublicMetadata) => {
-      return ObjectIdUtil.enrichWithUserContext(dto, publicMetadata);
+      const dtoRecord =
+        typeof dto === 'object' && dto !== null
+          ? (dto as Record<string, unknown>)
+          : {};
+      return ObjectIdUtil.enrichWithUserContext(dtoRecord, publicMetadata);
     },
     (dto: unknown, publicMetadata: IClerkPublicMetadata) =>
       `userContext:${JSON.stringify(publicMetadata)}:${JSON.stringify(dto)}`,

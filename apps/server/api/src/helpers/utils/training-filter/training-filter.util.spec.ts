@@ -2,91 +2,47 @@ import { TrainingFilterUtil } from '@api/helpers/utils/training-filter/training-
 import { IngredientCategory } from '@genfeedai/enums';
 
 describe('TrainingFilterUtil', () => {
-  afterEach(() => {
-    vi.clearAllMocks();
-    vi.clearAllTimers();
-    vi.useRealTimers();
-  });
-
-  describe('buildSourceImagesLookup', () => {
-    it('builds lookup stage with normalized variables and filters', () => {
-      const lookup = TrainingFilterUtil.buildSourceImagesLookup({
-        as: 'sourceImagesOut',
+  describe('buildSourceImagesFilter', () => {
+    it('builds source image where fragment with user filter', () => {
+      const filter = TrainingFilterUtil.buildSourceImagesFilter({
         category: IngredientCategory.IMAGE,
-        sourceIdsVar: 'sources',
-        userIdVar: '$$userId',
+        sourceIds: ['image-1', 'image-2'],
+        userId: 'user-1',
       });
 
-      expect(lookup.$lookup.from).toBe('ingredients');
-      expect(lookup.$lookup.let).toEqual({
-        sourceIds: '$sources',
-        userId: '$$userId',
+      expect(filter).toEqual({
+        category: IngredientCategory.IMAGE,
+        id: { in: ['image-1', 'image-2'] },
+        isDeleted: false,
+        user: 'user-1',
       });
-      expect(lookup.$lookup.as).toBe('sourceImagesOut');
-
-      const matchExpr = lookup.$lookup.pipeline[0].$match.$expr.$and;
-      expect(matchExpr).toEqual(
-        expect.arrayContaining([
-          { $eq: ['$user', '$$userId'] },
-          { $eq: ['$category', IngredientCategory.IMAGE] },
-          { $in: ['$_id', '$$sourceIds'] },
-          { $eq: ['$isDeleted', false] },
-        ]),
-      );
     });
 
-    it('uses default alias and category when not provided', () => {
-      const lookup = TrainingFilterUtil.buildSourceImagesLookup({
-        sourceIdsVar: '$$sourceIds',
-        userIdVar: 'user',
+    it('omits user filter when userId is missing', () => {
+      const filter = TrainingFilterUtil.buildSourceImagesFilter({
+        category: IngredientCategory.IMAGE,
+        sourceIds: ['image-1'],
       });
 
-      expect(lookup.$lookup.as).toBe('sourceImages');
-      const matchExpr = lookup.$lookup.pipeline[0].$match.$expr.$and;
-      expect(matchExpr).toEqual(
-        expect.arrayContaining([
-          { $eq: ['$category', IngredientCategory.IMAGE] },
-        ]),
-      );
+      expect(filter).toEqual({
+        category: IngredientCategory.IMAGE,
+        id: { in: ['image-1'] },
+        isDeleted: false,
+      });
     });
   });
 
-  describe('buildGeneratedImagesLookup', () => {
-    it('builds lookup stage for generated images with metadata filtering', () => {
-      const lookup = TrainingFilterUtil.buildGeneratedImagesLookup({
-        as: 'generated',
-        category: IngredientCategory.VIDEO,
-        metadataIdsVar: 'metadataIds',
+  describe('buildGeneratedImagesFilter', () => {
+    it('builds generated image where fragment with metadata filtering', () => {
+      const filter = TrainingFilterUtil.buildGeneratedImagesFilter({
+        metadataIds: ['metadata-1', 'metadata-2'],
       });
 
-      expect(lookup.$lookup.from).toBe('ingredients');
-      expect(lookup.$lookup.let).toEqual({
-        metadataIds: '$metadataIds',
+      expect(filter).toEqual({
+        category: 'IMAGE',
+        isDeleted: false,
+        metadata: { in: ['metadata-1', 'metadata-2'] },
       });
-      expect(lookup.$lookup.as).toBe('generated');
-
-      const matchExpr = lookup.$lookup.pipeline[0].$match.$expr.$and;
-      expect(matchExpr).toEqual(
-        expect.arrayContaining([
-          { $eq: ['$category', IngredientCategory.VIDEO] },
-          { $in: ['$metadata', '$$metadataIds'] },
-          { $eq: ['$isDeleted', false] },
-        ]),
-      );
-    });
-
-    it('defaults to image category and generatedImages alias', () => {
-      const lookup = TrainingFilterUtil.buildGeneratedImagesLookup({
-        metadataIdsVar: '$$metadataIds',
-      });
-
-      expect(lookup.$lookup.as).toBe('generatedImages');
-      const matchExpr = lookup.$lookup.pipeline[0].$match.$expr.$and;
-      expect(matchExpr).toEqual(
-        expect.arrayContaining([
-          { $eq: ['$category', IngredientCategory.IMAGE] },
-        ]),
-      );
     });
   });
 });

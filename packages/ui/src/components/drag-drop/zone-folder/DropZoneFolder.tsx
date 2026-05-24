@@ -4,7 +4,7 @@ import type { IIngredient } from '@genfeedai/interfaces';
 import type { FolderDropZoneProps } from '@genfeedai/props/content/folder-drop-zone.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { readIngredientTransferData } from '@ui/drag-drop/shared/ingredient-transfer';
-import type { DragEvent } from 'react';
+import type { DragEvent, KeyboardEvent } from 'react';
 import { useState } from 'react';
 import { HiFolder, HiFolderOpen } from 'react-icons/hi2';
 
@@ -51,12 +51,24 @@ export default function DropZoneFolder({
     }
   };
 
+  const activateFolder = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    onClick?.();
+  };
+
   return (
     <div
+      role="button"
+      tabIndex={0}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       onClick={onClick}
+      onKeyDown={activateFolder}
       className={`
         rounded-lg border p-3 transition-colors duration-200 cursor-pointer
         hover:bg-white/[0.04]

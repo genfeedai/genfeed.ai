@@ -54,7 +54,7 @@ export default function AiActionButton({
   const resolvedLabel = label ?? AI_ACTION_LABELS[action];
   const resolvedTooltip = tooltip ?? AI_ACTION_DESCRIPTIONS[action];
 
-  const handleClick = useCallback(async () => {
+  const activateAiActionButton = useCallback(async () => {
     const result = await execute(content, context);
     if (result) {
       onResult(result);
@@ -77,7 +77,7 @@ export default function AiActionButton({
           isLoading ? (
             <Spinner size={ComponentSize.XS} />
           ) : (
-            <HiSparkles className="w-3.5 h-3.5" />
+            <HiSparkles className="size-3.5" />
           )
         }
         variant={variant}
@@ -86,12 +86,12 @@ export default function AiActionButton({
         isDisabled={isDisabled || isLoading || !content}
         tooltip={resolvedTooltip}
         tooltipPosition="top"
-        onClick={handleClick}
+        onClick={activateAiActionButton}
       />
 
       {showUndo && previousValue !== null && !isLoading && (
         <Button
-          icon={<HiArrowUturnLeft className="w-3 h-3" />}
+          icon={<HiArrowUturnLeft className="size-3" />}
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
           tooltip="Undo"

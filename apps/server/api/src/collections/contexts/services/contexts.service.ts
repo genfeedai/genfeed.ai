@@ -15,7 +15,11 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform, PublishStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 const PLATFORM_MAP: Record<string, CredentialPlatform> = {
   instagram: CredentialPlatform.INSTAGRAM,
@@ -34,6 +38,149 @@ export class ContextsService {
     private readonly replicateService: ReplicateService,
   ) {}
 
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  /**
+   * Throws BadRequestException when the supplied brandId does not belong to
+   * the given organizationId. Used to prevent cross-tenant brand linking.
+   */
+  private async assertBrandOwnership(
+    brandId: string,
+    organizationId: string,
+  ): Promise<void> {
+    const brand = await this.prisma.brand.findFirst({
+      select: { id: true },
+      where: { id: brandId, isDeleted: false, organizationId },
+    });
+
+    if (!brand) {
+      throw new BadRequestException(
+        `Brand ${brandId} does not belong to this organization`,
+      );
+    }
+  }
+
+  private getDataRecord(value: unknown): Record<string, unknown> {
+    return this.isPlainObject(value) ? { ...value } : {};
+  }
+
+  private normalizeContextBase(contextBase: {
+    id: string;
+    mongoId: string | null;
+    organizationId: string;
+    createdById?: string | null;
+    sourceBrandId?: string | null;
+    data?: unknown;
+    [key: string]: unknown;
+  }): ContextBase {
+    return {
+      ...contextBase,
+      ...this.getDataRecord(contextBase.data),
+      _id: contextBase.mongoId || contextBase.id,
+      createdBy: contextBase.createdById ?? undefined,
+      organization: contextBase.organizationId,
+      sourceBrand: contextBase.sourceBrandId ?? undefined,
+    } as ContextBase;
+  }
+
+  private normalizeContextBases(
+    contextBases: Array<{
+      id: string;
+      mongoId: string | null;
+      organizationId: string;
+      createdById?: string | null;
+      sourceBrandId?: string | null;
+      data?: unknown;
+      [key: string]: unknown;
+    }>,
+  ): ContextBase[] {
+    return contextBases.map((contextBase) =>
+      this.normalizeContextBase(contextBase),
+    );
+  }
+
+  private normalizeContextEntry(entry: {
+    id: string;
+    mongoId: string | null;
+    contextBaseId: string;
+    organizationId: string;
+    data?: unknown;
+    [key: string]: unknown;
+  }): ContextEntry {
+    return {
+      ...entry,
+      ...this.getDataRecord(entry.data),
+      _id: entry.mongoId || entry.id,
+      contextBase: entry.contextBaseId,
+      organization: entry.organizationId,
+    } as ContextEntry;
+  }
+
+  private normalizeContextEntries(
+    entries: Array<{
+      id: string;
+      mongoId: string | null;
+      contextBaseId: string;
+      organizationId: string;
+      data?: unknown;
+      [key: string]: unknown;
+    }>,
+  ): ContextEntry[] {
+    return entries.map((entry) => this.normalizeContextEntry(entry));
+  }
+
+  private async adjustContextBaseMetric(
+    contextBaseId: string,
+    metric: 'entryCount' | 'usageCount',
+    delta: number,
+  ): Promise<void> {
+    const existing = await this.prisma.contextBase.findUnique({
+      where: { id: contextBaseId },
+    });
+
+    if (!existing) {
+      return;
+    }
+
+    const data = this.getDataRecord(existing.data);
+    const currentValue = typeof data[metric] === 'number' ? data[metric] : 0;
+
+    await this.prisma.contextBase.update({
+      data: {
+        data: {
+          ...data,
+          [metric]: Math.max(0, Number(currentValue) + delta),
+        } as never,
+      },
+      where: { id: contextBaseId },
+    });
+  }
+
+  private async updateContextEntryData(
+    entryId: string,
+    patch: Record<string, unknown>,
+  ): Promise<void> {
+    const existing = await this.prisma.contextEntry.findUnique({
+      where: { id: entryId },
+    });
+
+    if (!existing) {
+      return;
+    }
+
+    await this.prisma.contextEntry.update({
+      data: {
+        data: {
+          ...this.getDataRecord(existing.data),
+          ...patch,
+        } as never,
+      },
+      where: { id: entryId },
+    });
+  }
+
   @HandleErrors('create context base', 'contexts')
   async create(
     dto: CreateContextDto,
@@ -46,11 +193,24 @@ export class ContextsService {
       type: dto.type,
     });
 
+    // Validate that the supplied sourceBrand belongs to the caller's org to
+    // prevent cross-tenant brand linking.
+    if (dto.sourceBrand) {
+      await this.assertBrandOwnership(dto.sourceBrand, organizationId);
+    }
+
     const contextBase = await this.prisma.contextBase.create({
       data: {
-        ...dto,
-        category: dto.type,
-        createdBy: userId,
+        ...(userId ? { createdById: userId } : {}),
+        ...(dto.sourceBrand ? { sourceBrandId: dto.sourceBrand } : {}),
+        data: {
+          ...dto,
+          category: dto.type,
+          entryCount: 0,
+          isActive: true,
+          type: dto.type,
+          usageCount: 0,
+        },
         organizationId,
       },
     });
@@ -59,7 +219,7 @@ export class ContextsService {
       contextBaseId: contextBase.id,
     });
 
-    return contextBase as unknown as ContextBase;
+    return this.normalizeContextBase(contextBase);
   }
 
   async findAll(
@@ -70,27 +230,33 @@ export class ContextsService {
       search?: string;
     },
   ): Promise<ContextBase[]> {
-    const where: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId,
-    };
-
-    if (filters?.category) {
-      where.category = filters.category;
-    }
-
-    if (filters?.isActive !== undefined) {
-      where.isActive = filters.isActive;
-    }
-
-    if (filters?.search) {
-      where.label = { contains: filters.search, mode: 'insensitive' };
-    }
-
-    return (await this.prisma.contextBase.findMany({
+    const rows = await this.prisma.contextBase.findMany({
       orderBy: { createdAt: 'desc' },
-      where,
-    })) as unknown as ContextBase[];
+      where: { isDeleted: false, organizationId },
+    });
+
+    let results = rows;
+
+    if (
+      filters?.category ||
+      filters?.isActive !== undefined ||
+      filters?.search
+    ) {
+      results = rows.filter((row) => {
+        const d = (row.data as Record<string, unknown>) ?? {};
+        if (filters?.category && d.category !== filters.category) return false;
+        if (filters?.isActive !== undefined && d.isActive !== filters.isActive)
+          return false;
+        if (filters?.search) {
+          const label = (d.label as string) ?? '';
+          if (!label.toLowerCase().includes(filters.search.toLowerCase()))
+            return false;
+        }
+        return true;
+      });
+    }
+
+    return this.normalizeContextBases(results);
   }
 
   async findOne(id: string, organizationId: string): Promise<ContextBase> {
@@ -106,7 +272,7 @@ export class ContextsService {
       throw new NotFoundException('Context base not found');
     }
 
-    return contextBase as unknown as ContextBase;
+    return this.normalizeContextBase(contextBase);
   }
 
   async update(
@@ -122,12 +288,27 @@ export class ContextsService {
       throw new NotFoundException('Context base not found');
     }
 
+    // Validate that the supplied sourceBrand belongs to the caller's org to
+    // prevent cross-tenant brand linking on update.
+    if (dto.sourceBrand) {
+      await this.assertBrandOwnership(dto.sourceBrand, organizationId);
+    }
+
     const contextBase = await this.prisma.contextBase.update({
-      data: dto as Record<string, unknown>,
+      data: {
+        ...(dto.sourceBrand !== undefined
+          ? { sourceBrandId: dto.sourceBrand }
+          : {}),
+        data: {
+          ...this.getDataRecord(existing.data),
+          ...dto,
+          ...(dto.type ? { category: dto.type } : {}),
+        },
+      },
       where: { id },
     });
 
-    return contextBase as unknown as ContextBase;
+    return this.normalizeContextBase(contextBase);
   }
 
   async remove(id: string, organizationId: string): Promise<void> {
@@ -167,23 +348,22 @@ export class ContextsService {
 
       const entry = await this.prisma.contextEntry.create({
         data: {
-          content: dto.content,
           contextBaseId,
-          embedding,
-          metadata: dto.metadata as Record<string, unknown>,
+          data: {
+            content: dto.content,
+            embedding,
+            metadata: dto.metadata as Record<string, unknown>,
+            relevanceWeight: dto.relevanceWeight || 1.0,
+          } as never,
           organizationId,
-          relevanceWeight: dto.relevanceWeight || 1.0,
         },
       });
 
-      await this.prisma.contextBase.update({
-        data: { entryCount: { increment: 1 } },
-        where: { id: contextBaseId },
-      });
+      await this.adjustContextBaseMetric(contextBaseId, 'entryCount', 1);
 
       this.logger.debug('Entry added', { entryId: entry.id });
 
-      return entry as unknown as ContextEntry;
+      return this.normalizeContextEntry(entry);
     } catch (error: unknown) {
       this.logger.error('Failed to add entry', { error });
       throw error;
@@ -213,10 +393,7 @@ export class ContextsService {
       where: { id: entryId },
     });
 
-    await this.prisma.contextBase.update({
-      data: { entryCount: { decrement: 1 } },
-      where: { id: contextBaseId },
-    });
+    await this.adjustContextBaseMetric(contextBaseId, 'entryCount', -1);
   }
 
   async enhancePrompt(
@@ -277,10 +454,7 @@ export class ContextsService {
           (base as Record<string, unknown>).id ??
             (base as Record<string, unknown>)._id,
         );
-        await this.prisma.contextBase.update({
-          data: { usageCount: { increment: 1 } },
-          where: { id: baseId },
-        });
+        await this.adjustContextBaseMetric(baseId, 'usageCount', 1);
       }
 
       const avgRelevance =
@@ -365,7 +539,7 @@ export class ContextsService {
           brandId: dto.brandId.toString(),
           isDeleted: false,
           organizationId,
-          platform: credentialPlatform,
+          platform: credentialPlatform as never,
           publishStatus: PublishStatus.PUBLISHED,
           ...(dto.dateRange
             ? {
@@ -391,18 +565,20 @@ export class ContextsService {
 
         await this.prisma.contextEntry.create({
           data: {
-            content,
             contextBaseId,
-            isDeleted: false,
-            metadata: {
-              platform: dto.platform,
-              postId: post.id,
-              publishedAt: post.publicationDate || post.scheduledDate,
-              source: 'social-post',
-              sourceId: post.id,
+            data: {
+              content,
+              metadata: {
+                platform: dto.platform,
+                postId: post.id,
+                publishedAt: post.publicationDate || post.scheduledDate,
+                source: 'social-post',
+                sourceId: post.id,
+              },
+              relevanceWeight: 1,
             },
+            isDeleted: false,
             organizationId,
-            relevanceWeight: 1,
           },
         });
       }
@@ -426,9 +602,11 @@ export class ContextsService {
   }> {
     const contextBase = await this.findOne(id, organizationId);
 
-    const entries = await this.prisma.contextEntry.findMany({
-      where: { contextBaseId: id, isDeleted: false },
-    });
+    const entries = this.normalizeContextEntries(
+      await this.prisma.contextEntry.findMany({
+        where: { contextBaseId: id, isDeleted: false },
+      }),
+    );
 
     const avgRelevanceWeight =
       entries.length > 0
@@ -459,31 +637,32 @@ export class ContextsService {
     organizationId: string,
     dto: EnhancePromptDto,
   ): Promise<ContextBase[]> {
-    const where: Record<string, unknown> = {
-      isActive: true,
+    const baseWhere: Record<string, unknown> = {
       isDeleted: false,
       organizationId,
     };
 
     if (dto.contextBaseIds?.length) {
-      where.id = { in: dto.contextBaseIds };
-      return (await this.prisma.contextBase.findMany({
-        where,
-      })) as unknown as ContextBase[];
+      baseWhere.id = { in: dto.contextBaseIds };
     }
+
+    const rows = await this.prisma.contextBase.findMany({
+      where: baseWhere,
+    });
 
     const types: string[] = [];
     if (dto.useBrandVoice) types.push('brand_voice');
     if (dto.useContentLibrary) types.push('content_library');
     if (dto.useAudience) types.push('audience');
 
-    if (types.length > 0) {
-      where.type = { in: types };
-    }
+    const filtered = rows.filter((row) => {
+      const d = (row.data as Record<string, unknown>) ?? {};
+      if (!d.isActive) return false;
+      if (types.length > 0 && !types.includes(d.type as string)) return false;
+      return true;
+    });
 
-    return (await this.prisma.contextBase.findMany({
-      where,
-    })) as unknown as ContextBase[];
+    return this.normalizeContextBases(filtered);
   }
 
   private async retrieveRelevantEntries(
@@ -514,7 +693,7 @@ export class ContextsService {
         allEntries.push({
           content: e.content,
           relevance: e.similarity,
-          source: contextBase.label,
+          source: contextBase.label ?? 'context',
         });
       }
     }
@@ -534,9 +713,11 @@ export class ContextsService {
       metadata?: Record<string, unknown>;
     }>
   > {
-    const entries = await this.prisma.contextEntry.findMany({
-      where: { contextBaseId, isDeleted: false },
-    });
+    const entries = this.normalizeContextEntries(
+      await this.prisma.contextEntry.findMany({
+        where: { contextBaseId, isDeleted: false },
+      }),
+    );
 
     const preparedEntries: Array<{
       content: string;
@@ -556,7 +737,10 @@ export class ContextsService {
       if (embedding.length !== queryEmbedding.length) {
         mismatchedDimensions.add(embedding.length);
         try {
-          embedding = await this.rebuildEntryEmbedding(entry.id, entry.content);
+          embedding = await this.rebuildEntryEmbedding(
+            entry.id,
+            entry.content ?? '',
+          );
           reembeddedCount += 1;
         } catch (error: unknown) {
           this.logger.error('Failed to re-embed context entry', {
@@ -570,7 +754,7 @@ export class ContextsService {
       }
 
       preparedEntries.push({
-        content: entry.content,
+        content: entry.content ?? '',
         embedding,
         metadata: entry.metadata as Record<string, unknown> | undefined,
       });
@@ -601,10 +785,7 @@ export class ContextsService {
     content: string,
   ): Promise<number[]> {
     const embedding = await this.generateEmbedding(content);
-    await this.prisma.contextEntry.update({
-      data: { embedding },
-      where: { id: entryId },
-    });
+    await this.updateContextEntryData(entryId, { embedding });
     return embedding;
   }
 

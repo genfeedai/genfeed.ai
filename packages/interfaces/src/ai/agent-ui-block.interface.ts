@@ -25,7 +25,13 @@ export interface AgentBlockTrend {
   percentage: number;
 }
 
+export interface AgentBlockHydrationState {
+  staggerMs?: number;
+  status?: 'idle' | 'loading' | 'ready';
+}
+
 interface BaseBlock {
+  hydration?: AgentBlockHydrationState;
   id: string;
   type: AgentUIBlockType;
   title?: string;

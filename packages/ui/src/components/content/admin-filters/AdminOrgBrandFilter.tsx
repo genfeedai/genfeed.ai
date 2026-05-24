@@ -1,30 +1,11 @@
 'use client';
 
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
 import type { IBrand, IOrganization } from '@genfeedai/interfaces';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
+import { useQuery } from '@tanstack/react-query';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import { useCallback, useMemo } from 'react';
-
-type CachedEntry<T> = {
-  data: T | null;
-  fetchedAt: number;
-  promise: Promise<T> | null;
-};
-
-const ORG_CACHE_TTL_MS = 5 * 60 * 1000;
-
-const organizationsCache: CachedEntry<IOrganization[]> = {
-  data: null,
-  fetchedAt: 0,
-  promise: null,
-};
-
-const brandsCache = new Map<string, CachedEntry<IBrand[]>>();
-
-const isFresh = <T,>(entry: CachedEntry<T>): boolean =>
-  entry.data !== null && Date.now() - entry.fetchedAt < ORG_CACHE_TTL_MS;
 
 export interface AdminOrgBrandFilterProps {
   organization: string;
@@ -43,86 +24,26 @@ export default function AdminOrgBrandFilter({
     OrganizationsService.getInstance(token),
   );
 
-  // Fetch all organizations
-  const { data: organizations } = useResource(
-    async () => {
-      if (isFresh(organizationsCache)) {
-        return organizationsCache.data ?? [];
-      }
-      if (organizationsCache.promise) {
-        return organizationsCache.promise;
-      }
+  const { data: organizations = [] } = useQuery({
+    queryKey: ['admin-organizations'],
+    queryFn: async () => {
+      const service = await getOrganizationsService();
+      return service.findAll({ pagination: false });
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-      const promise = (async () => {
-        const service = await getOrganizationsService();
-        const result = await service.findAll({ pagination: false });
-        organizationsCache.data = result;
-        organizationsCache.fetchedAt = Date.now();
-        organizationsCache.promise = null;
-        return result;
-      })();
-
-      organizationsCache.promise = promise;
-
-      return promise.catch((error) => {
-        organizationsCache.promise = null;
-        throw error;
+  const { data: brands = [] } = useQuery({
+    queryKey: ['admin-org-brands', organization],
+    queryFn: async () => {
+      const service = await getOrganizationsService();
+      return service.findOrganizationBrands(organization, {
+        pagination: false,
       });
     },
-    {
-      defaultValue: organizationsCache.data ?? ([] as IOrganization[]),
-      dependencies: [],
-    },
-  );
-
-  // Fetch brands for selected organization
-  const { data: brands } = useResource(
-    async () => {
-      if (!organization) {
-        return [];
-      }
-
-      const cached = brandsCache.get(organization);
-      if (cached && isFresh(cached)) {
-        return cached.data ?? [];
-      }
-      if (cached?.promise) {
-        return cached.promise;
-      }
-
-      const promise = (async () => {
-        const service = await getOrganizationsService();
-        const result = await service.findOrganizationBrands(organization, {
-          pagination: false,
-        });
-        brandsCache.set(organization, {
-          data: result,
-          fetchedAt: Date.now(),
-          promise: null,
-        });
-        return result;
-      })();
-
-      brandsCache.set(organization, {
-        data: cached?.data ?? null,
-        fetchedAt: cached?.fetchedAt ?? 0,
-        promise,
-      });
-
-      return promise.catch((error) => {
-        const entry = brandsCache.get(organization);
-        if (entry) {
-          entry.promise = null;
-        }
-        throw error;
-      });
-    },
-    {
-      defaultValue: brandsCache.get(organization)?.data ?? ([] as IBrand[]),
-      dependencies: [organization],
-      enabled: !!organization,
-    },
-  );
+    enabled: !!organization,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const orgOptions = useMemo(
     () => [

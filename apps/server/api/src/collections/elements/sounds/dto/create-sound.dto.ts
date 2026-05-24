@@ -1,9 +1,9 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ModelCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsEnum,
-  IsMongoId,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -11,7 +11,7 @@ import {
 
 export class CreateElementSoundDto {
   @ApiProperty({ required: false })
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   organization?: string;
 

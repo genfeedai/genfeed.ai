@@ -16,9 +16,9 @@ export function EmptyState({
   return (
     <div className="text-center py-8">
       {icon && <div className="mx-auto mb-4">{icon}</div>}
-      <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
+      <h3 className="text-lg font-medium text-zinc-900 mb-2">{title}</h3>
       {description && (
-        <p className="text-sm text-gray-500 mb-4">{description}</p>
+        <p className="text-sm text-zinc-500 mb-4">{description}</p>
       )}
       {action}
     </div>

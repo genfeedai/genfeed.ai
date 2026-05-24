@@ -147,7 +147,7 @@ export default function WorkflowsContent() {
             >
               <Link href="/pricing">
                 Open Core
-                <LuArrowRight className="h-4 w-4" />
+                <LuArrowRight className="size-4" />
               </Link>
             </ButtonTracked>
             <ButtonTracked
@@ -224,8 +224,8 @@ export default function WorkflowsContent() {
           <div className="p-8 border border-[var(--gen-accent-border)] bg-gradient-to-r from-[var(--gen-accent-bg)] to-transparent">
             <HStack className="flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
-                <div className="w-20 h-20 flex items-center justify-center bg-[hsl(var(--gen-accent))]">
-                  <HiSquaresPlus className="h-10 w-10 text-inv-fg" />
+                <div className="size-20 flex items-center justify-center bg-[hsl(var(--gen-accent))]">
+                  <HiSquaresPlus className="size-10 text-inv-fg" />
                 </div>
               </div>
               <VStack className="gap-3">
@@ -311,8 +311,8 @@ export default function WorkflowsContent() {
                   className="gsap-card gen-card-spotlight p-8 bg-fill/[0.02] text-center"
                 >
                   <div className="flex justify-center mb-4">
-                    <div className="w-12 h-12 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
-                      <Icon className="h-6 w-6 text-[color:hsl(var(--gen-accent))]" />
+                    <div className="size-12 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
+                      <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
                   </div>
                   <Heading
@@ -341,8 +341,8 @@ export default function WorkflowsContent() {
               return (
                 <div key={step.label}>
                   <HStack className="items-center gap-6 py-6">
-                    <div className="flex-shrink-0 w-14 h-14 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
-                      <Icon className="h-6 w-6 text-[color:hsl(var(--gen-accent))]" />
+                    <div className="flex-shrink-0 size-14 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
+                      <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
                     <VStack className="gap-1">
                       <Heading as="h4" className="text-lg font-bold">
@@ -366,7 +366,7 @@ export default function WorkflowsContent() {
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="text-center p-12 gen-card-featured shadow-[var(--shadow-glow-md)]">
             <div className="flex justify-center mb-4">
-              <HiSquaresPlus className="h-8 w-8 text-inv-fg" />
+              <HiSquaresPlus className="size-8 text-inv-fg" />
             </div>
             <Heading as="h3" className="text-2xl font-bold mb-2 text-inv-fg">
               Use Agents for Simplicity. Use Workflows for Control.
@@ -387,7 +387,7 @@ export default function WorkflowsContent() {
               >
                 <Link href="/pricing">
                   View Plans
-                  <LuArrowRight className="h-4 w-4" />
+                  <LuArrowRight className="size-4" />
                 </Link>
               </ButtonTracked>
               <ButtonTracked
@@ -399,7 +399,7 @@ export default function WorkflowsContent() {
                 trackingData={{ action: 'book_demo' }}
               >
                 <Link href="/demo">
-                  <HiBolt className="h-4 w-4" />
+                  <HiBolt className="size-4" />
                   Book a Demo
                 </Link>
               </ButtonTracked>

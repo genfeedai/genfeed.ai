@@ -10,14 +10,11 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { InviteMemberDto } from '@api/collections/members/dto/invite-member.dto';
 import { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto';
-import { type MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
-import { SettingEntity } from '@api/collections/settings/entities/setting.entity';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
-import { UserEntity } from '@api/collections/users/entities/user.entity';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { ConfigService } from '@api/config/config.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
@@ -38,7 +35,6 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
-import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { MemberSerializer } from '@genfeedai/serializers';
@@ -95,56 +91,21 @@ export class OrganizationsMembersController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
+    const data = await this.membersService.findAll(
       {
-        $match: {
+        include: {
+          brands: true,
+          role: true,
+          user: true,
+        },
+        orderBy: handleQuerySort(query.sort),
+        where: {
           isDeleted,
           organization: organizationId,
         },
       },
-      {
-        $lookup: {
-          as: 'user',
-          foreignField: '_id',
-          from: 'users',
-          localField: 'user',
-        },
-      },
-      {
-        $unwind: {
-          path: '$user',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          as: 'role',
-          foreignField: '_id',
-          from: 'roles',
-          localField: 'role',
-        },
-      },
-      {
-        $unwind: {
-          path: '$role',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          as: 'accounts',
-          foreignField: '_id',
-          from: 'brands',
-          localField: 'accounts',
-        },
-      },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
-
-    const data: AggregatePaginateResult<MemberDocument> =
-      await this.membersService.findAll(aggregate, options);
+      options,
+    );
     return serializeCollection(request, MemberSerializer, data);
   }
 
@@ -255,10 +216,10 @@ export class OrganizationsMembersController {
         // Create the member record for existing user
         const member = await this.membersService.create({
           isActive: true, // Always active for existing Clerk users
-          organization: organizationId,
-          role: roleToAssign,
-          user: existingUser._id,
-        });
+          organizationId,
+          roleId: String(roleToAssign),
+          userId: String(existingUser._id),
+        } as unknown as Parameters<typeof this.membersService.create>[0]);
 
         // Update their metadata to include this organization
         await this.clerkService.updateUserPublicMetadata(existingClerkUser.id, {
@@ -309,16 +270,14 @@ export class OrganizationsMembersController {
         const tempClerkId = `pending_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
         // Create the user with isInvited flag
-        newUser = await this.usersService.create(
-          new UserEntity({
-            clerkId: tempClerkId, // Temporary ID until they sign up
-            email: inviteDto.email,
-            firstName: inviteDto.firstName || undefined,
-            handle,
-            isInvited: true, // Mark as invited
-            lastName: inviteDto.lastName || undefined,
-          }),
-        );
+        newUser = await this.usersService.create({
+          clerkId: tempClerkId, // Temporary ID until they sign up
+          email: inviteDto.email,
+          firstName: inviteDto.firstName || undefined,
+          handle,
+          isInvited: true, // Mark as invited
+          lastName: inviteDto.lastName || undefined,
+        } as Parameters<typeof this.usersService.create>[0]);
       }
 
       // Create settings for the invited user (if they don't exist)
@@ -327,15 +286,13 @@ export class OrganizationsMembersController {
       });
 
       if (!existingSettings) {
-        await this.settingsService.create(
-          new SettingEntity({
-            isFirstLogin: true,
-            isMenuCollapsed: false,
-            isVerified: false,
-            theme: 'dark',
-            user: newUser._id,
-          }),
-        );
+        await this.settingsService.create({
+          isFirstLogin: true,
+          isMenuCollapsed: false,
+          isVerified: false,
+          theme: 'dark',
+          userId: String(newUser._id),
+        } as unknown as Parameters<typeof this.settingsService.create>[0]);
       }
 
       // Create the member record (inactive until they sign up)
@@ -356,10 +313,10 @@ export class OrganizationsMembersController {
 
         const member = await this.membersService.create({
           isActive: false, // Inactive until they sign up
-          organization: organizationId,
-          role: roleToAssign,
-          user: newUser._id,
-        });
+          organizationId,
+          roleId: String(roleToAssign),
+          userId: String(newUser._id),
+        } as unknown as Parameters<typeof this.membersService.create>[0]);
 
         // Send Clerk invitation with metadata including the user ID
         await this.clerkService.createInvitation(
@@ -428,15 +385,13 @@ export class OrganizationsMembersController {
     };
 
     const validBrands = await this.brandsService.findAll(
-      [
-        {
-          $match: {
-            _id: { $in: brandIds },
-            isDeleted: false,
-            organization: organizationId,
-          },
+      {
+        where: {
+          _id: { in: brandIds },
+          isDeleted: false,
+          organization: organizationId,
         },
-      ],
+      },
       options,
     );
 

@@ -1,10 +1,10 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { requireAuth } from '@/api/client.js';
-import { getCreditSummary, getCreditUsage } from '@/api/credits.js';
-import { formatHeader, formatLabel, print, printJson } from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
+import { requireAuth } from '@/api/client';
+import { getCreditSummary, getCreditUsage } from '@/api/credits';
+import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
+import { handleError } from '@/utils/errors';
 
 export const creditsCommand = new Command('credits').description('View credit usage and billing');
 

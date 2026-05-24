@@ -23,7 +23,7 @@ export class PresetFilterUtil {
    * 2. Organization items (specific organization)
    * 3. User items (specific user)
    *
-   * This method builds $or conditions that include all accessible presets.
+   * This method builds OR conditions that include all accessible presets.
    *
    * @param publicMetadata - User metadata containing organization and user IDs
    * @returns Array of OR conditions for MongoDB query
@@ -32,7 +32,7 @@ export class PresetFilterUtil {
    * // User with org and user ID
    * PresetFilterUtil.buildScopeOrConditions({ organization: '123', user: '456' })
    * // Returns: [
-   * //   { organization: { $exists: false }, user: { $exists: false } }, // global
+   * //   { organization: { not: false }, user: { not: false } }, // global
    * //   { organization: ObjectId('123') },                                // org-specific
    * //   { user: ObjectId('456') }                                         // user-specific
    * // ]
@@ -41,7 +41,7 @@ export class PresetFilterUtil {
    * // User without organization (just user)
    * PresetFilterUtil.buildScopeOrConditions({ user: '456' })
    * // Returns: [
-   * //   { organization: { $exists: false }, user: { $exists: false } }, // global
+   * //   { organization: { not: false }, user: { not: false } }, // global
    * //   { user: ObjectId('456') }                                         // user-specific
    * // ]
    */
@@ -50,7 +50,7 @@ export class PresetFilterUtil {
     user?: string;
   }): Array<Record<string, unknown>> {
     const orConditions: Array<Record<string, unknown>> = [
-      { organization: { $exists: false }, user: { $exists: false } }, // global items
+      { organization: { not: false }, user: { not: false } }, // global items
     ];
 
     if (publicMetadata.organization) {
@@ -226,7 +226,7 @@ export class PresetFilterUtil {
    * //   isDeleted: false,
    * //   category: 'video',
    * //   isActive: true,
-   * //   $or: [...scope conditions...]
+   * //   OR: [...scope conditions...]
    * // }
    */
   static buildBaseMatch(
@@ -256,7 +256,7 @@ export class PresetFilterUtil {
     }
 
     // Add three-tier scope filtering
-    matchStage.$or = PresetFilterUtil.buildScopeOrConditions(publicMetadata);
+    matchStage.OR = PresetFilterUtil.buildScopeOrConditions(publicMetadata);
 
     return matchStage;
   }

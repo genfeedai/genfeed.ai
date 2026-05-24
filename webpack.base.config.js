@@ -1,7 +1,45 @@
+const fs = require('node:fs');
 const path = require('node:path');
 const nodeExternals = require('webpack-node-externals');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const { ProgressPlugin } = require('webpack');
+
+/**
+ * Discover all workspace packages with a `src/` directory and produce
+ * webpack aliases that resolve `@genfeedai/<name>` directly to source.
+ * Avoids needing each package to ship a built `dist/` for dev bundling.
+ */
+function buildWorkspaceSourceAliases(cloudPackagesRoot) {
+  const aliases = {};
+  for (const entry of fs.readdirSync(cloudPackagesRoot, {
+    withFileTypes: true,
+  })) {
+    if (!entry.isDirectory()) continue;
+    const pkgSrc = path.resolve(cloudPackagesRoot, entry.name, 'src');
+    if (!fs.existsSync(pkgSrc)) continue;
+    aliases[`@genfeedai/${entry.name}`] = pkgSrc;
+  }
+  return aliases;
+}
+
+function buildServerSourceAliases(serverAppsRoot) {
+  const aliases = {};
+  for (const entry of fs.readdirSync(serverAppsRoot, {
+    withFileTypes: true,
+  })) {
+    if (!entry.isDirectory()) continue;
+    const appSrc = path.resolve(serverAppsRoot, entry.name, 'src');
+    if (!fs.existsSync(appSrc)) continue;
+    aliases[`@${entry.name}`] = appSrc;
+  }
+
+  const apiRoot = path.resolve(serverAppsRoot, 'api');
+  aliases['@api-root'] = apiRoot;
+  aliases['@api-scripts'] = path.resolve(apiRoot, 'scripts');
+  aliases['@api-test'] = path.resolve(apiRoot, 'test');
+
+  return aliases;
+}
 
 /**
  * Base webpack configuration for NestJS monorepo apps
@@ -24,32 +62,43 @@ module.exports = function createWebpackConfig({
   const tsConfigPath = path.resolve(appDir, 'tsconfig.app.json');
   const workspaceRoot = path.resolve(nodeModulesDir, '..');
   const cloudPackagesRoot = path.resolve(workspaceRoot, 'packages');
+  const enterprisePackagesRoot = path.resolve(workspaceRoot, 'ee/packages');
+  const serverAppsRoot = path.resolve(workspaceRoot, 'apps/server');
+  const eeBillingSrc = path.resolve(enterprisePackagesRoot, 'billing/src');
   const workspaceSourceAliases = {
-    '@genfeedai/config': path.resolve(cloudPackagesRoot, 'config/src'),
-    '@genfeedai/integrations': path.resolve(
-      cloudPackagesRoot,
-      'integrations/src',
+    ...buildServerSourceAliases(serverAppsRoot),
+    ...buildWorkspaceSourceAliases(cloudPackagesRoot),
+    '@config': path.resolve(cloudPackagesRoot, 'config/src'),
+    '@genfeedai/ee-billing': eeBillingSrc,
+    '@genfeedai/ee-billing/subscription-attributions': path.resolve(
+      eeBillingSrc,
+      'subscription-attributions',
     ),
-    '@genfeedai/interfaces': path.resolve(cloudPackagesRoot, 'interfaces/src'),
-    '@genfeedai/serializers': path.resolve(
-      cloudPackagesRoot,
-      'serializers/src',
+    '@genfeedai/ee-billing/subscriptions': path.resolve(
+      eeBillingSrc,
+      'subscriptions',
     ),
-    '@genfeedai/workflow-engine': path.resolve(
-      cloudPackagesRoot,
-      'workflow-engine/src',
+    '@genfeedai/ee-billing/user-subscriptions': path.resolve(
+      eeBillingSrc,
+      'user-subscriptions',
     ),
-    '@genfeedai/workflow-saas': path.resolve(
-      cloudPackagesRoot,
-      'workflow-saas/src',
-    ),
-    '@genfeedai/tools': path.resolve(cloudPackagesRoot, 'tools/src'),
+    '@genfeedai-types': path.resolve(cloudPackagesRoot, 'types/src'),
     '@helpers': path.resolve(cloudPackagesRoot, 'helpers/src'),
     '@integrations': path.resolve(cloudPackagesRoot, 'integrations/src'),
+    '@libs': path.resolve(cloudPackagesRoot, 'libs'),
     '@serializers': path.resolve(cloudPackagesRoot, 'serializers/src'),
     '@workflow-engine': path.resolve(cloudPackagesRoot, 'workflow-engine/src'),
     '@workflow-saas': path.resolve(cloudPackagesRoot, 'workflow-saas/src'),
   };
+  const nodePtyExternal = (() => {
+    try {
+      return `commonjs ${require.resolve('node-pty', {
+        paths: [appDir, nodeModulesDir],
+      })}`;
+    } catch {
+      return 'commonjs node-pty';
+    }
+  })();
 
   return {
     // Filesystem cache for faster rebuilds (50-80% faster)
@@ -62,8 +111,8 @@ module.exports = function createWebpackConfig({
         '.cache/webpack',
         `${appName}-${isProduction ? 'production' : 'development'}`,
       ),
-      compression: 'gzip', // Compress cache to save disk space
-      maxMemoryGenerations: isProduction ? 1 : 2, // Limit memory usage in dev
+      compression: isProduction ? 'gzip' : false, // Skip gzip in dev — write/read CPU > disk savings
+      maxMemoryGenerations: isProduction ? 1 : 3, // Bound dev heap; keep last few rebuilds hot
       name: `${appName}-${isProduction ? 'production' : 'development'}`,
       type: 'filesystem',
     },
@@ -86,7 +135,6 @@ module.exports = function createWebpackConfig({
           /^@notifications\//,
           /^@mcp\//,
           /^@discord\//,
-          /^@slack\//,
           /^@telegram\//,
           /^@images\//,
           /^@videos\//,
@@ -117,6 +165,7 @@ module.exports = function createWebpackConfig({
         kafkajs: 'commonjs kafkajs',
         mqtt: 'commonjs mqtt',
         nats: 'commonjs nats',
+        'node-pty': nodePtyExternal,
       },
     ],
 
@@ -137,34 +186,49 @@ module.exports = function createWebpackConfig({
         {
           include: /node_modules/,
           test: /\.js\.map$/,
-          type: 'javascript/auto',
-          use: 'null-loader',
+          type: 'asset/source',
         },
         // Handle .d.ts files - ignore them (type definitions only, no runtime code)
         {
           test: /\.d\.ts$/,
-          use: 'null-loader',
+          type: 'asset/source',
         },
         // Handle .ts files (but not .d.ts)
         // Include @genfeedai/* workspace packages for direct TS transpilation (enables HMR)
+        // Pass decorator options explicitly so shared Nest-bearing files outside
+        // each service directory, such as packages/libs, compile the same way.
         {
-          exclude: [
-            // Exclude node_modules EXCEPT @genfeedai/* packages
-            /node_modules\/(?!@genfeedai\/)/,
-            /\.d\.ts$/,
-          ],
+          exclude: [/node_modules\/(?!@genfeedai\/)/, /\.d\.ts$/],
           test: /\.ts$/,
           use: {
-            loader: 'ts-loader',
+            loader: 'swc-loader',
             options: {
-              compilerOptions: {
-                // Ensure decorator metadata is emitted (required for NestJS)
-                emitDecoratorMetadata: true,
-                experimentalDecorators: true,
+              inlineSourcesContent: true,
+              jsc: {
+                externalHelpers: false,
+                keepClassNames: true,
+                loose: false,
+                parser: {
+                  decorators: true,
+                  dynamicImport: true,
+                  syntax: 'typescript',
+                  tsx: false,
+                },
+                target: 'es2022',
+                transform: {
+                  decoratorMetadata: true,
+                  legacyDecorator: true,
+                },
               },
-              configFile: tsConfigPath,
-              experimentalWatchApi: true,
-              transpileOnly: true, // Type checking done by turbo, not webpack
+              minify: false,
+              module: {
+                lazy: false,
+                noInterop: false,
+                strict: false,
+                strictMode: true,
+                type: 'commonjs',
+              },
+              sourceMaps: true,
             },
           },
         },
@@ -177,6 +241,10 @@ module.exports = function createWebpackConfig({
       // and named ids avoid broken numeric id rewrites in Nest's webpack output.
       moduleIds: 'named',
       nodeEnv: false, // Prevent webpack from setting process.env.NODE_ENV
+      // Dev-only: skip expensive graph cleanup that adds no value in dev rebuilds
+      removeAvailableModules: isProduction,
+      removeEmptyChunks: isProduction,
+      splitChunks: isProduction ? undefined : false,
     },
 
     output: {
@@ -235,16 +303,43 @@ module.exports = function createWebpackConfig({
     target: 'node',
 
     watchOptions: {
-      aggregateTimeout: 100, // Reduced from 300ms for faster HMR
+      aggregateTimeout: 300, // Default — debounce save bursts, less rebuild thrash
       ignored: [
         // Ignore most of node_modules but packages are resolved via alias to src/
         '**/node_modules/**',
         '**/dist/**',
         '**/.git/**',
         // Ignore all apps except current one to prevent watching everything
-        ...['api', 'mcp', 'files', 'notifications', 'workers']
+        ...[
+          'api',
+          'clips',
+          'discord',
+          'files',
+          'images',
+          'mcp',
+          'notifications',
+          'slack',
+          'telegram',
+          'videos',
+          'voices',
+          'workers',
+        ]
           .filter((app) => app !== appName)
           .map((app) => `**/apps/server/${app}/**`),
+        // Frontend output directories
+        '**/.next/**',
+        // Local agent / tooling caches & artifacts (large, frequent churn)
+        '**/.agents/**',
+        '**/.codex/**',
+        '**/.cursor/**',
+        '**/.shipcode/**',
+        '**/.code-review-graph/**',
+        // Enterprise-only code paths not relevant to OSS dev
+        '**/ee/**',
+        // TS incremental build info — not a real source dependency
+        '**/tsconfig.tsbuildinfo',
+        // Built artifacts inside packages
+        '**/packages/*/dist/**',
         // Additional exclusions for better performance
         '**/logs/**',
         '**/coverage/**',

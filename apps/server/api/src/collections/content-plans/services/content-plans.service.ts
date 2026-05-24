@@ -1,10 +1,18 @@
 import { CreateContentPlanDto } from '@api/collections/content-plans/dto/create-content-plan.dto';
 import { UpdateContentPlanDto } from '@api/collections/content-plans/dto/update-content-plan.dto';
 import type { ContentPlanDocument } from '@api/collections/content-plans/schemas/content-plan.schema';
+import {
+  asDate,
+  asNumber,
+  asRecord,
+  asString,
+  serializeDate,
+} from '@api/collections/content-plans/utils/content-plan-data.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { ContentPlanStatus } from '@genfeedai/enums';
+import type { ContentPlan as PrismaContentPlan } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -21,6 +29,16 @@ export interface CreateContentPlanInternal {
   isDeleted: boolean;
 }
 
+interface ContentPlanConfigInput {
+  description?: string;
+  executedCount?: number;
+  itemCount?: number;
+  name?: string;
+  periodEnd?: Date | string;
+  periodStart?: Date | string;
+  status?: ContentPlanStatus;
+}
+
 @Injectable()
 export class ContentPlansService extends BaseService<
   ContentPlanDocument,
@@ -34,93 +52,247 @@ export class ContentPlansService extends BaseService<
     super(prisma, 'contentPlan', logger);
   }
 
-  /**
-   * Internal creation method bypassing DTO validation.
-   */
   async createInternal(
     input: CreateContentPlanInternal,
   ): Promise<ContentPlanDocument> {
-    return this.delegate.create({
-      data: input as Record<string, unknown>,
-    }) as Promise<ContentPlanDocument>;
+    const created = (await this.delegate.create({
+      data: {
+        brandId: input.brandId,
+        createdById: input.createdBy,
+        isDeleted: input.isDeleted,
+        label: input.name,
+        organizationId: input.organizationId,
+        config: this.buildConfigPayload(
+          {
+            description: input.description,
+            executedCount: 0,
+            itemCount: input.itemCount,
+            name: input.name,
+            periodEnd: input.periodEnd,
+            periodStart: input.periodStart,
+            status: input.status,
+          },
+          undefined,
+        ) as never,
+      },
+    })) as PrismaContentPlan;
+
+    return this.toDocument(created);
   }
 
-  listByBrand(
+  async listByBrand(
     organizationId: string,
     brandId: string,
   ): Promise<ContentPlanDocument[]> {
-    return this.delegate.findMany({
-      where: { brandId, isDeleted: false, organizationId },
-    }) as Promise<ContentPlanDocument[]>;
+    const docs = (await this.delegate.findMany({
+      orderBy: { createdAt: 'desc' },
+      where: {
+        brandId,
+        isDeleted: false,
+        organizationId,
+      },
+    })) as PrismaContentPlan[];
+
+    return docs.map((doc) => this.toDocument(doc));
   }
 
   async getByIdOrFail(
     organizationId: string,
     planId: string,
+    brandId?: string,
   ): Promise<ContentPlanDocument> {
-    const plan = await this.findOne({
-      id: planId,
-      isDeleted: false,
-      organizationId,
-    });
+    const plan = (await this.delegate.findFirst({
+      where: {
+        id: planId,
+        isDeleted: false,
+        organizationId,
+        ...(brandId ? { brandId } : {}),
+      },
+    })) as PrismaContentPlan | null;
 
     if (!plan) {
       throw new NotFoundException('ContentPlan', planId);
     }
 
-    return plan;
+    return this.toDocument(plan);
+  }
+
+  async patch(
+    id: string,
+    updateDto: UpdateContentPlanDto & {
+      organization?: string;
+      organizationId?: string;
+      brandId?: string;
+    },
+  ): Promise<ContentPlanDocument> {
+    const organizationId = updateDto.organizationId ?? updateDto.organization;
+    const brandId = updateDto.brandId;
+    const existing = (await this.delegate.findFirst({
+      where: {
+        id,
+        isDeleted: false,
+        ...(organizationId ? { organizationId } : {}),
+        ...(updateDto.brandId ? { brandId: updateDto.brandId } : {}),
+      },
+    })) as PrismaContentPlan | null;
+
+    if (!existing) {
+      throw new NotFoundException('ContentPlan', id);
+    }
+
+    const updated = (await this.delegate.update({
+      data: {
+        ...(updateDto.name !== undefined ? { label: updateDto.name } : {}),
+        config: this.buildConfigPayload(updateDto, existing.config) as never,
+      },
+      where: { id },
+    })) as PrismaContentPlan;
+
+    return this.toDocument(updated);
   }
 
   async updateStatus(
     organizationId: string,
     planId: string,
     status: ContentPlanStatus,
+    brandId?: string,
   ): Promise<ContentPlanDocument> {
-    const existing = await this.delegate.findFirst({
-      where: { id: planId, isDeleted: false, organizationId },
-    });
+    const existing = (await this.delegate.findFirst({
+      where: {
+        id: planId,
+        isDeleted: false,
+        organizationId,
+        ...(brandId ? { brandId } : {}),
+      },
+    })) as PrismaContentPlan | null;
 
     if (!existing) {
       throw new NotFoundException('ContentPlan', planId);
     }
 
-    return this.delegate.update({
+    const updated = (await this.delegate.update({
+      data: {
+        config: this.buildConfigPayload({ status }, existing.config) as never,
+      },
       where: { id: planId },
-      data: { status },
-    }) as Promise<ContentPlanDocument>;
+    })) as PrismaContentPlan;
+
+    return this.toDocument(updated);
   }
 
   async incrementExecutedCount(
     organizationId: string,
     planId: string,
+    brandId?: string,
   ): Promise<void> {
-    const existing = await this.delegate.findFirst({
-      where: { id: planId, isDeleted: false, organizationId },
-    });
+    const existing = (await this.delegate.findFirst({
+      where: {
+        id: planId,
+        isDeleted: false,
+        organizationId,
+        ...(brandId ? { brandId } : {}),
+      },
+    })) as PrismaContentPlan | null;
 
-    if (!existing) return;
+    if (!existing) {
+      return;
+    }
+
+    const currentConfig = asRecord(existing.config);
+    const executedCount = asNumber(currentConfig.executedCount, 0) + 1;
 
     await this.delegate.update({
+      data: {
+        config: this.buildConfigPayload(
+          { executedCount },
+          currentConfig,
+        ) as never,
+      },
       where: { id: planId },
-      data: { executedCount: { increment: 1 } },
     });
   }
 
   async softDelete(
     organizationId: string,
     planId: string,
+    brandId?: string,
   ): Promise<ContentPlanDocument> {
-    const existing = await this.delegate.findFirst({
-      where: { id: planId, isDeleted: false, organizationId },
-    });
+    const existing = (await this.delegate.findFirst({
+      where: {
+        id: planId,
+        isDeleted: false,
+        organizationId,
+        ...(brandId ? { brandId } : {}),
+      },
+    })) as PrismaContentPlan | null;
 
     if (!existing) {
       throw new NotFoundException('ContentPlan', planId);
     }
 
-    return this.delegate.update({
-      where: { id: planId },
+    const updated = (await this.delegate.update({
       data: { isDeleted: true },
-    }) as Promise<ContentPlanDocument>;
+      where: { id: planId },
+    })) as PrismaContentPlan;
+
+    return this.toDocument(updated);
+  }
+
+  private toDocument(doc: PrismaContentPlan): ContentPlanDocument {
+    const config = asRecord(doc.config);
+    const name = asString(config.name) ?? doc.label ?? null;
+
+    return this.normalizeDocument({
+      ...doc,
+      _id: doc.mongoId ?? doc.id,
+      brand: doc.brandId,
+      config,
+      createdBy: doc.createdById,
+      description: asString(config.description) ?? null,
+      executedCount: asNumber(config.executedCount, 0),
+      itemCount: asNumber(config.itemCount, 0),
+      name,
+      organization: doc.organizationId,
+      periodEnd: asDate(config.periodEnd),
+      periodStart: asDate(config.periodStart),
+      status: asString(config.status) ?? ContentPlanStatus.DRAFT,
+    });
+  }
+
+  private buildConfigPayload(
+    data: ContentPlanConfigInput,
+    existingConfig?: unknown,
+  ): Record<string, unknown> {
+    const payload = asRecord(existingConfig);
+
+    if (data.name !== undefined) {
+      payload.name = data.name;
+    }
+
+    if (data.description !== undefined) {
+      payload.description = data.description;
+    }
+
+    if (data.status !== undefined) {
+      payload.status = data.status;
+    }
+
+    if (data.periodStart !== undefined) {
+      payload.periodStart = serializeDate(data.periodStart);
+    }
+
+    if (data.periodEnd !== undefined) {
+      payload.periodEnd = serializeDate(data.periodEnd);
+    }
+
+    if (data.itemCount !== undefined) {
+      payload.itemCount = data.itemCount;
+    }
+
+    if (data.executedCount !== undefined) {
+      payload.executedCount = data.executedCount;
+    }
+
+    return payload;
   }
 }

@@ -1,11 +1,5 @@
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
-import { type OrganizationSetting } from '@genfeedai/prisma';
-
-// @ts-expect-error - implements via BaseEntity + explicit fields
-export class OrganizationSettingEntity
-  extends BaseEntity
-  implements OrganizationSetting
-{
+export class OrganizationSettingEntity extends BaseEntity {
   declare readonly organization: string;
 
   declare readonly isWhitelabelEnabled: boolean;

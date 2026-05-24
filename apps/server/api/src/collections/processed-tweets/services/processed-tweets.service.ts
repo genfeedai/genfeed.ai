@@ -67,7 +67,7 @@ export class ProcessedTweetsService extends BaseService<
       return result as unknown as ProcessedTweetDocument;
     } catch (error: unknown) {
       // Handle duplicate key error (tweet already processed)
-      if ((error as { code?: number })?.code === 'P2002') {
+      if ((error as { code?: string })?.code === 'P2002') {
         const existing = await this.prisma.processedTweet.findFirst({
           where: { organizationId, processedBy, tweetId },
         });

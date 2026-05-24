@@ -2,13 +2,14 @@
 
 import dynamic from 'next/dynamic';
 import 'swagger-ui-react/swagger-ui.css';
+import type { SwaggerUIProps } from 'swagger-ui-react';
 
-const SwaggerUIReact = dynamic<{ url: string }>(
-  () => import('swagger-ui-react') as any,
+const SwaggerUIReact = dynamic<SwaggerUIProps>(
+  () => import('swagger-ui-react').then((module) => module.default),
   {
     loading: () => (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
-        Loading API Documentation...
+        Loading API Documentation…
       </div>
     ),
     ssr: false,
@@ -19,7 +20,7 @@ export default function SwaggerUI() {
   return (
     <div className="swagger-wrapper">
       <SwaggerUIReact url="https://api.genfeed.ai/v1/openapi.json" />
-      <style jsx global>{`
+      <style>{`
         .swagger-wrapper {
           padding: 1rem;
         }

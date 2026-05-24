@@ -1,4 +1,8 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import type {
+  AccountPublishingContext,
+  SocialGenerationFormat,
+} from '@genfeedai/interfaces';
 import { Post } from '@genfeedai/models/content/post.model';
 import { PostSerializer } from '@genfeedai/serializers';
 import {
@@ -38,6 +42,7 @@ export class PostsService extends BaseService<Post> {
     topic: string;
     count: number;
     credential: string;
+    format?: SocialGenerationFormat;
     tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous';
     sourceReferenceIds?: string[];
     trendId?: string;
@@ -51,10 +56,7 @@ export class PostsService extends BaseService<Post> {
   }
 
   public static getInstance(token: string): PostsService {
-    return BaseService.getDataServiceInstance(
-      PostsService,
-      token,
-    ) as PostsService;
+    return BaseService.getDataServiceInstance(PostsService, token);
   }
 
   /**
@@ -73,6 +75,26 @@ export class PostsService extends BaseService<Post> {
   }
 
   /**
+   * Generate account-aware social content using the selected connected account.
+   */
+  public async generateAccountContent(data: {
+    topic: string;
+    count: number;
+    credential: string;
+    format: SocialGenerationFormat;
+    tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous';
+    sourceReferenceIds?: string[];
+    trendId?: string;
+    sourceUrl?: string;
+  }): Promise<Post[]> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `${EnvironmentService.apiEndpoint}/posts/account-generations`,
+      this.buildGenerationPayload(data),
+    );
+    return this.mapMany(response.data);
+  }
+
+  /**
    * Generate batch of tweets using AI (saves as DRAFT posts in DB)
    */
   public async generateTweets(data: {
@@ -84,11 +106,7 @@ export class PostsService extends BaseService<Post> {
     trendId?: string;
     sourceUrl?: string;
   }): Promise<Post[]> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `${EnvironmentService.apiEndpoint}/posts/generations`,
-      this.buildGenerationPayload(data),
-    );
-    return this.mapMany(response.data);
+    return this.generateAccountContent({ ...data, format: 'post' });
   }
 
   /**
@@ -104,11 +122,18 @@ export class PostsService extends BaseService<Post> {
     trendId?: string;
     sourceUrl?: string;
   }): Promise<Post[]> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `${EnvironmentService.apiEndpoint}/posts/thread-generations`,
-      this.buildGenerationPayload(data),
+    return this.generateAccountContent({ ...data, format: 'thread' });
+  }
+
+  public async getAccountPublishingContext(
+    credentialId: string,
+    surface: AccountPublishingContext['surface'] = 'post',
+  ): Promise<AccountPublishingContext> {
+    const response = await this.instance.get<AccountPublishingContext>(
+      `${EnvironmentService.apiEndpoint}/credentials/${credentialId}/publishing-context`,
+      { params: { surface } },
     );
-    return this.mapMany(response.data);
+    return response.data;
   }
 
   /**

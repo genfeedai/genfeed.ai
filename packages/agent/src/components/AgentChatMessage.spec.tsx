@@ -5,6 +5,12 @@ import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    orgHref: (path: string) => `/test-org/~${path}`,
+  }),
+}));
+
 vi.mock('@ui/buttons/base/Button', () => ({
   default: function MockButton(props: {
     ariaLabel?: string;
@@ -481,10 +487,7 @@ describe('AgentChatMessage', () => {
     expect(screen.getAllByText('Choose an integration')).toHaveLength(1);
     expect(
       screen.getByRole('link', { name: 'Open integrations' }),
-    ).toHaveAttribute(
-      'href',
-      '/settings/organization/credentials?returnTo=/chat',
-    );
+    ).toHaveAttribute('href', '/test-org/~/settings/api-keys?returnTo=/chat');
     expect(screen.queryByText('Unknown')).toBeNull();
   });
 

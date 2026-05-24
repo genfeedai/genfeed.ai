@@ -35,7 +35,7 @@ function getVoiceName(voice: Voice): string {
 }
 
 export default function OrganizationIdentityDefaultsCard() {
-  const router = useRouter();
+  const { push } = useRouter();
   const { brandSlug, href, orgHref } = useOrgUrl();
   const notifications = NotificationsService.getInstance();
   const { organizationId } = useBrand();
@@ -296,7 +296,7 @@ export default function OrganizationIdentityDefaultsCard() {
           </Button>
           <Button
             data-testid="browse-avatar-library"
-            onClick={() => router.push(avatarLibraryHref)}
+            onClick={() => push(avatarLibraryHref)}
             type="button"
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
@@ -306,7 +306,7 @@ export default function OrganizationIdentityDefaultsCard() {
               : 'Select a Brand to Browse Avatars'}
           </Button>
           <Button
-            onClick={() => router.push(voiceLibraryHref)}
+            onClick={() => push(voiceLibraryHref)}
             type="button"
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}

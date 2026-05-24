@@ -33,7 +33,7 @@ describe('CardIcon', () => {
         icon={HiSparkles}
         label="Sparkles"
         className="text-cyan-300"
-        iconClassName="h-5 w-5"
+        iconClassName="size-5"
       />,
     );
 
@@ -41,6 +41,6 @@ describe('CardIcon', () => {
 
     expect(icon).toBeInTheDocument();
     expect(icon).not.toHaveClass('text-primary');
-    expect(icon).toHaveClass('h-5', 'w-5');
+    expect(icon).toHaveClass('size-5');
   });
 });

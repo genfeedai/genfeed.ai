@@ -1,3 +1,4 @@
+import type { BrandAgentConfig } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { type ContentPlanItemDocument } from '@api/collections/content-plan-items/schemas/content-plan-item.schema';
 import {
@@ -71,7 +72,12 @@ export class ContentPlannerService {
       throw new BadRequestException('Brand not found');
     }
 
-    const agentConfig = brand.agentConfig;
+    const agentConfig =
+      brand.agentConfig &&
+      typeof brand.agentConfig === 'object' &&
+      !Array.isArray(brand.agentConfig)
+        ? (brand.agentConfig as BrandAgentConfig)
+        : undefined;
     const voice = agentConfig?.voice;
     const strategy = agentConfig?.strategy;
 
@@ -95,13 +101,13 @@ export class ContentPlannerService {
     const parsed = this.parseLlmResponse(content, dto);
 
     const plan = await this.contentPlansService.createInternal({
-      brand: brandId,
+      brandId,
       createdBy: userId,
       description: `AI-generated plan: ${parsed.name}`,
       isDeleted: false,
       itemCount: parsed.items.length,
       name: dto.name ?? parsed.name,
-      organization: organizationId,
+      organizationId,
       periodEnd: new Date(dto.periodEnd),
       periodStart: new Date(dto.periodStart),
       status: ContentPlanStatus.DRAFT,

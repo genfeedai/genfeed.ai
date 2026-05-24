@@ -19,9 +19,9 @@ import { forwardRef, Module } from '@nestjs/common';
     ContentReviewService,
   ],
   imports: [
-    ContentPlansModule,
-    ContentPlanItemsModule,
-    ContentDraftsModule,
+    forwardRef(() => ContentPlansModule),
+    forwardRef(() => ContentPlanItemsModule),
+    forwardRef(() => ContentDraftsModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => LlmDispatcherModule),
     forwardRef(() => SkillExecutorModule),

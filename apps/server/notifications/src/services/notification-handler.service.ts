@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { IngredientCategory } from '@genfeedai/enums';
 import type { NotificationEvent } from '@libs/interfaces/events.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -249,7 +250,7 @@ export class NotificationHandlerService implements OnModuleInit {
           const html = this.wrapEmailTemplate({
             body: `<p>Your Genfeed account has ${payload.balance} credits remaining.</p><p>Top up to continue generating content without interruption.</p>`,
             ctaLabel: 'Top Up Now',
-            ctaUrl: `${process.env.GENFEEDAI_APP_URL || 'https://app.genfeed.ai'}/settings/organization/billing`,
+            ctaUrl: `${process.env.GENFEEDAI_APP_URL || 'https://app.genfeed.ai'}/settings/billing`,
             title: subject,
           });
 

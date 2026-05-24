@@ -8,7 +8,11 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   controllers: [NewslettersController],
   exports: [NewslettersService],
-  imports: [forwardRef(() => BrandsModule), LoggerModule, OpenRouterModule],
+  imports: [
+    forwardRef(() => BrandsModule),
+    LoggerModule,
+    forwardRef(() => OpenRouterModule),
+  ],
   providers: [NewslettersService],
 })
 export class NewslettersModule {}

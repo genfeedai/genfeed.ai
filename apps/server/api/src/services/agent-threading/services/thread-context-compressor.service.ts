@@ -112,9 +112,15 @@ export class ThreadContextCompressorService {
     }
 
     // Check if there are uncompacted messages beyond the window
+    const lastIncorporatedMessageId = state.data.lastIncorporatedMessageId;
+    if (!lastIncorporatedMessageId) {
+      await this.compress(threadId, organizationId);
+      return this.getState(threadId);
+    }
+
     const uncompactedCount = await this.agentMessagesService.countMessagesAfter(
       threadId,
-      state.data.lastIncorporatedMessageId,
+      lastIncorporatedMessageId,
     );
     if (uncompactedCount > this.windowSize) {
       await this.compress(threadId, organizationId);
@@ -145,9 +151,15 @@ export class ThreadContextCompressorService {
     }
 
     if (state) {
+      const lastIncorporatedMessageId = state.data.lastIncorporatedMessageId;
+      if (!lastIncorporatedMessageId) {
+        await this.compress(threadId, organizationId);
+        return;
+      }
+
       const uncompacted = await this.agentMessagesService.countMessagesAfter(
         threadId,
-        state.data.lastIncorporatedMessageId,
+        lastIncorporatedMessageId,
       );
       if (uncompacted <= this.windowSize) {
         return;
@@ -295,7 +307,7 @@ export class ThreadContextCompressorService {
       const lastCompressedMessage =
         messagesToCompress[messagesToCompress.length - 1];
 
-      if (!lastCompressedMessage?._id) {
+      if (!lastCompressedMessage?.id) {
         return;
       }
 
@@ -370,7 +382,7 @@ export class ThreadContextCompressorService {
         currentArtifact: parsed.currentArtifact,
         iterationHistory: parsed.iterationHistory,
         keyDecisions: parsed.keyDecisions,
-        lastIncorporatedMessageId: String(lastCompressedMessage._id),
+        lastIncorporatedMessageId: String(lastCompressedMessage.id),
         messageCount: previousCount + compressBoundary,
         version: currentVersion + 1,
       };

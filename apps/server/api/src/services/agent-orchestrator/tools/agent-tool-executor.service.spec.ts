@@ -755,7 +755,7 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         ctas: [
           expect.objectContaining({
-            href: '/settings/organization/credentials?returnTo=%2Fagent',
+            href: '/settings/api-keys?returnTo=%2Fagent',
             label: 'Open integrations',
           }),
         ],
@@ -788,12 +788,74 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         ctas: [
           expect.objectContaining({
-            href: '/settings/organization/credentials?returnTo=%2Fagent',
+            href: '/settings/api-keys?returnTo=%2Fagent',
             label: 'Open integrations',
           }),
         ],
         title: 'Choose an integration',
         type: 'oauth_connect_card',
+      }),
+    ]);
+  });
+
+  it('scopes organization-level tool hrefs with the active organization slug', async () => {
+    const { organizationsService, service } = createService();
+
+    organizationsService.findOne.mockResolvedValueOnce({
+      _id: '67a123456789012345678901',
+      slug: 'genfeed-ai',
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.INITIATE_OAUTH_CONNECT,
+      {},
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.nextActions?.[0].ctas).toEqual([
+      expect.objectContaining({
+        href: '/genfeed-ai/~/settings/api-keys?returnTo=%2Fagent',
+        label: 'Open integrations',
+      }),
+    ]);
+  });
+
+  it('scopes brand-level tool hrefs with organization and brand slugs', async () => {
+    const { analyticsService, brandsService, organizationsService, service } =
+      createService();
+
+    organizationsService.findOne.mockResolvedValueOnce({
+      _id: '67a123456789012345678901',
+      slug: 'genfeed-ai',
+    });
+    brandsService.findOne.mockResolvedValueOnce({
+      _id: '67a123456789012345678903',
+      slug: 'my-brand',
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.GET_ANALYTICS,
+      { period: '30d' },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(analyticsService.getOverview).toHaveBeenCalled();
+    expect(result.nextActions?.[0].ctas).toEqual([
+      expect.objectContaining({
+        href: '/genfeed-ai/my-brand/analytics/overview',
+        label: 'Open analytics dashboard',
+      }),
+      expect.objectContaining({
+        href: '/genfeed-ai/my-brand/automation/analytics',
+        label: 'Open automation analytics',
       }),
     ]);
   });
@@ -1407,7 +1469,7 @@ describe('AgentToolExecutorService', () => {
     expect(imagesService.findAllByOrganization).toHaveBeenCalledWith(
       '67a123456789012345678901',
       expect.objectContaining({
-        category: expect.objectContaining({ $in: ['image'] }),
+        category: expect.objectContaining({ in: ['image'] }),
       }),
       { createdAt: -1 },
       expect.any(Array),
@@ -1998,13 +2060,23 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('should create a workflow directly with graph payload and workflow-created card', async () => {
-    const { brandsService, recurringWorkflowId, service, workflowsService } =
-      createService();
+    const {
+      brandsService,
+      organizationsService,
+      recurringWorkflowId,
+      service,
+      workflowsService,
+    } = createService();
 
     brandsService.findOne.mockResolvedValue({
       _id: '67a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
+      slug: 'genfeed',
+    });
+    organizationsService.findOne.mockResolvedValueOnce({
+      _id: '67a123456789012345678901',
+      slug: 'genfeed-ai',
     });
 
     const result = await service.executeTool(
@@ -2095,15 +2167,24 @@ describe('AgentToolExecutorService', () => {
     );
     expect(result.data).toEqual(
       expect.objectContaining({
-        editorUrl: `/automations/editor/${recurringWorkflowId}`,
+        editorUrl: `/genfeed-ai/genfeed/automations/editor/${recurringWorkflowId}`,
         label: 'Weekly Content Planner',
         nextRunAt: expect.any(Date),
         schedule: '0 9 * * 1',
         timezone: 'Europe/Malta',
       }),
     );
+    expect(result.data?.nextRunAt).toBeInstanceOf(Date);
     expect(result.nextActions?.[0]).toEqual(
       expect.objectContaining({
+        ctas: [
+          expect.objectContaining({
+            href: `/genfeed-ai/genfeed/automations/editor/${recurringWorkflowId}`,
+          }),
+          expect.objectContaining({
+            href: '/genfeed-ai/genfeed/automations/executions',
+          }),
+        ],
         type: 'workflow_created_card',
         workflowId: recurringWorkflowId,
         workflowName: 'Weekly Content Planner',

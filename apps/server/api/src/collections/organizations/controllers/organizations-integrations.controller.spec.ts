@@ -3,11 +3,18 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
+vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+  getPublicMetadata: vi.fn(() => ({
+    organization: '507f1f77bcf86cd799439012',
+  })),
+}));
+
 import { OrganizationsIntegrationsController } from '@api/collections/organizations/controllers/organizations-integrations.controller';
 import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-integration.dto';
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
+import type { User } from '@clerk/backend';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -19,6 +26,7 @@ describe('OrganizationsIntegrationsController', () => {
 
   const organizationId = '507f1f77bcf86cd799439012';
   const integrationId = '507f1f77bcf86cd799439011';
+  const mockUser = { id: 'user_clerk_123' } as unknown as User;
 
   const mockIntegration = {
     _id: integrationId,
@@ -81,6 +89,7 @@ describe('OrganizationsIntegrationsController', () => {
 
       const result = await controller.create(
         mockReq,
+        mockUser,
         organizationId,
         createDto,
       );
@@ -103,7 +112,7 @@ describe('OrganizationsIntegrationsController', () => {
         config: { webhookMode: true },
       });
 
-      await controller.create(mockReq, organizationId, dtoWithConfig);
+      await controller.create(mockReq, mockUser, organizationId, dtoWithConfig);
 
       expect(integrationsService.create).toHaveBeenCalledWith(
         organizationId,
@@ -117,7 +126,7 @@ describe('OrganizationsIntegrationsController', () => {
       );
 
       await expect(
-        controller.create(mockReq, organizationId, createDto),
+        controller.create(mockReq, mockUser, organizationId, createDto),
       ).rejects.toThrow('Platform already exists');
     });
   });
@@ -127,7 +136,11 @@ describe('OrganizationsIntegrationsController', () => {
       const integrations = [mockIntegration];
       mockIntegrationsService.findAll.mockResolvedValue(integrations);
 
-      const result = await controller.findAll(mockReq, organizationId);
+      const result = await controller.findAll(
+        mockReq,
+        mockUser,
+        organizationId,
+      );
 
       expect(integrationsService.findAll).toHaveBeenCalledWith(organizationId);
       expect(result).toBeDefined();
@@ -136,19 +149,22 @@ describe('OrganizationsIntegrationsController', () => {
     it('should return an empty collection when no integrations exist', async () => {
       mockIntegrationsService.findAll.mockResolvedValue([]);
 
-      const result = await controller.findAll(mockReq, organizationId);
+      const result = await controller.findAll(
+        mockReq,
+        mockUser,
+        organizationId,
+      );
 
       expect(integrationsService.findAll).toHaveBeenCalledWith(organizationId);
       expect(result).toBeDefined();
     });
 
     it('should pass correct organizationId to the service', async () => {
-      const otherOrgId = '607f1f77bcf86cd799439099';
       mockIntegrationsService.findAll.mockResolvedValue([]);
 
-      await controller.findAll(mockReq, otherOrgId);
+      await controller.findAll(mockReq, mockUser, organizationId);
 
-      expect(integrationsService.findAll).toHaveBeenCalledWith(otherOrgId);
+      expect(integrationsService.findAll).toHaveBeenCalledWith(organizationId);
     });
   });
 
@@ -158,6 +174,7 @@ describe('OrganizationsIntegrationsController', () => {
 
       const result = await controller.findOne(
         mockReq,
+        mockUser,
         organizationId,
         integrationId,
       );
@@ -175,7 +192,7 @@ describe('OrganizationsIntegrationsController', () => {
       );
 
       await expect(
-        controller.findOne(mockReq, organizationId, integrationId),
+        controller.findOne(mockReq, mockUser, organizationId, integrationId),
       ).rejects.toThrow('Integration not found');
     });
   });
@@ -194,6 +211,7 @@ describe('OrganizationsIntegrationsController', () => {
 
       const result = await controller.update(
         mockReq,
+        mockUser,
         organizationId,
         integrationId,
         updateDto,
@@ -213,7 +231,13 @@ describe('OrganizationsIntegrationsController', () => {
       );
 
       await expect(
-        controller.update(mockReq, organizationId, integrationId, updateDto),
+        controller.update(
+          mockReq,
+          mockUser,
+          organizationId,
+          integrationId,
+          updateDto,
+        ),
       ).rejects.toThrow('Integration not found');
     });
   });
@@ -222,7 +246,11 @@ describe('OrganizationsIntegrationsController', () => {
     it('should remove an integration and return void', async () => {
       mockIntegrationsService.remove.mockResolvedValue(undefined);
 
-      const result = await controller.remove(organizationId, integrationId);
+      const result = await controller.remove(
+        mockUser,
+        organizationId,
+        integrationId,
+      );
 
       expect(integrationsService.remove).toHaveBeenCalledWith(
         organizationId,
@@ -237,7 +265,7 @@ describe('OrganizationsIntegrationsController', () => {
       );
 
       await expect(
-        controller.remove(organizationId, integrationId),
+        controller.remove(mockUser, organizationId, integrationId),
       ).rejects.toThrow('Integration not found');
     });
   });

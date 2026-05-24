@@ -1,6 +1,6 @@
+import process from 'node:process';
 import { InviteMemberDto } from '@api/collections/members/dto/invite-member.dto';
 import { MemberEntity } from '@api/collections/members/entities/member.entity';
-import { type MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
@@ -20,8 +20,8 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
+import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { MemberSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -66,7 +66,7 @@ export class MembersController {
     @Query() query: BaseQueryDto,
     @Req() request: Request,
     @CurrentUser() user: User,
-  ): Promise<MemberEntity[]> {
+  ): Promise<JsonApiCollectionResponse> {
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -74,20 +74,16 @@ export class MembersController {
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: Record<string, unknown>[] = [
+    const data = await this.membersService.findAll(
       {
-        $match: {
+        orderBy: handleQuerySort(query.sort),
+        where: {
           isDeleted,
           user: publicMetadata.user,
         },
       },
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
-
-    const data: AggregatePaginateResult<MemberDocument> =
-      await this.membersService.findAll(aggregate, options);
+      options,
+    );
     return serializeCollection(request, MemberSerializer, data);
   }
 

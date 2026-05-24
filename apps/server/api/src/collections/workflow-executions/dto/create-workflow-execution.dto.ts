@@ -1,19 +1,14 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsMongoId,
-  IsObject,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
 
 export class CreateWorkflowExecutionDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({ description: 'Workflow ID to execute' })
   readonly workflow!: string;
 
@@ -65,7 +60,7 @@ export class UpdateWorkflowExecutionDto {
 }
 
 export class WorkflowExecutionQueryDto extends BaseQueryDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'Filter by workflow ID', required: false })
   readonly workflow?: string;

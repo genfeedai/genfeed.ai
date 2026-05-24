@@ -18,7 +18,6 @@ import { Code } from '@genfeedai/ui';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { Training } from '@models/ai/training.model';
 import type { ContentProps } from '@props/layout/content.props';
@@ -27,6 +26,7 @@ import { useConfirmModal } from '@providers/global-modals/global-modals.provider
 import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
@@ -137,16 +137,25 @@ export default function TrainingsList({
   // Track if component is mounted to avoid calling callbacks during initial render
   const isMountedRef = useRef(false);
 
-  // Load trainings using useResource (handles AbortController cleanup properly)
+  const queryClient = useQueryClient();
+
+  const trainingsQueryKey = [
+    'trainings-list',
+    scope,
+    brandId,
+    adminOrg,
+    adminBrand,
+  ] as const;
+
   const {
-    data: trainings,
+    data: trainings = [] as Training[],
     isLoading,
-    isRefreshing,
+    isFetching,
+    refetch: refetchTrainings,
     error: fetchError,
-    refresh: refreshTrainings,
-    mutate: setTrainings,
-  } = useResource(
-    async () => {
+  } = useQuery<Training[]>({
+    enabled: !!isSignedIn,
+    queryFn: async () => {
       const service = await getTrainingsService();
 
       const query: Record<string, unknown> = {
@@ -170,16 +179,25 @@ export default function TrainingsList({
       logger.info('GET /trainings success', data);
       return data;
     },
-    {
-      defaultValue: [] as Training[],
-      dependencies: [scope, brandId, adminOrg, adminBrand],
-      enabled: !!isSignedIn,
-      onError: (error: Error) => {
-        logger.error('GET /trainings failed', error);
-        notificationsService.error('Failed to load trainings');
-      },
-    },
-  );
+    queryKey: trainingsQueryKey,
+  });
+
+  const isRefreshing = isFetching && !isLoading;
+
+  useEffect(() => {
+    if (fetchError instanceof Error) {
+      logger.error('GET /trainings failed', fetchError);
+      notificationsService.error('Failed to load trainings');
+    }
+  }, [fetchError, notificationsService]);
+
+  const refreshTrainings = async () => {
+    await refetchTrainings();
+  };
+
+  const setTrainings = (updatedTrainings: Training[]) => {
+    queryClient.setQueryData(trainingsQueryKey, updatedTrainings);
+  };
 
   const error = fetchError
     ? getErrorMessage(fetchError, 'Failed to load trainings')
@@ -215,7 +233,7 @@ export default function TrainingsList({
   // Listen for training status updates via websocket
   useEffect(() => {
     const processingTrainings = trainings.filter(
-      (t) => t.status === TrainingStatus.PROCESSING,
+      (t: ITraining) => t.status === TrainingStatus.PROCESSING,
     );
 
     const unsubscribers = processingTrainings.map((training: ITraining) => {
@@ -242,7 +260,7 @@ export default function TrainingsList({
     });
 
     return () => {
-      unsubscribers.forEach((unsub) => unsub());
+      unsubscribers.forEach((unsub: () => void) => unsub());
     };
   }, [trainings, subscribe, notificationsService, setTrainings]);
 

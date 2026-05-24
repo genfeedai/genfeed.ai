@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@aws-sdk/client-ec2": "3.1033.0",
+    "@aws-sdk/client-ec2": "3.1053.0",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
@@ -10,7 +10,8 @@
   },
   "description": "Genfeed Workers Service (Cron Jobs)",
   "devDependencies": {
-    "@nestjs/testing": "11.1.19",
+    "@nestjs/testing": "11.1.23",
+    "@types/multer": "2.1.0",
     "unplugin-swc": "1.5.9"
   },
   "main": "../dist/apps/workers/main.js",

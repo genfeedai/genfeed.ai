@@ -63,6 +63,41 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+function ControlledDropdownStory() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <Button
+          label="Open Dropdown"
+          variant={ButtonVariant.DEFAULT}
+          onClick={() => setIsOpen(true)}
+        />
+        <Button
+          label="Close Dropdown"
+          variant={ButtonVariant.SECONDARY}
+          onClick={() => setIsOpen(false)}
+        />
+      </div>
+      <DropdownBase
+        trigger={<Button label="Controlled" variant={ButtonVariant.OUTLINE} />}
+        isOpen={isOpen}
+        onOpenChange={setIsOpen}
+      >
+        <div className="space-y-1">
+          <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
+            Controlled Option 1
+          </button>
+          <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
+            Controlled Option 2
+          </button>
+        </div>
+      </DropdownBase>
+    </div>
+  );
+}
+
 /**
  * Default dropdown with button trigger
  */
@@ -140,42 +175,7 @@ export const Controlled: Story = {
   parameters: {
     layout: 'padded',
   },
-  render: () => {
-    const [isOpen, setIsOpen] = useState(false);
-
-    return (
-      <div className="space-y-4">
-        <div className="flex gap-2">
-          <Button
-            label="Open Dropdown"
-            variant={ButtonVariant.DEFAULT}
-            onClick={() => setIsOpen(true)}
-          />
-          <Button
-            label="Close Dropdown"
-            variant={ButtonVariant.SECONDARY}
-            onClick={() => setIsOpen(false)}
-          />
-        </div>
-        <DropdownBase
-          trigger={
-            <Button label="Controlled" variant={ButtonVariant.OUTLINE} />
-          }
-          isOpen={isOpen}
-          onOpenChange={setIsOpen}
-        >
-          <div className="space-y-1">
-            <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
-              Controlled Option 1
-            </button>
-            <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
-              Controlled Option 2
-            </button>
-          </div>
-        </DropdownBase>
-      </div>
-    );
-  },
+  render: () => <ControlledDropdownStory />,
 };
 
 /**
@@ -219,7 +219,7 @@ export const WithPortal: Story = {
   },
   render: () => (
     <div className="p-8 border-2 border-dashed border-white/[0.08] overflow-hidden">
-      <p className="text-sm text-gray-600 mb-4">
+      <p className="text-sm text-zinc-600 mb-4">
         This container has overflow hidden, but the dropdown uses a portal:
       </p>
       <DropdownBase

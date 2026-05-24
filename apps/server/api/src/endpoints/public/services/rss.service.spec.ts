@@ -90,16 +90,13 @@ describe('RssService', () => {
       await service.generateGlobalFeed();
 
       expect(articlesService.findAll).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            $match: {
-              isDeleted: false,
-              scope: ArticleScope.PUBLIC,
-              status: ArticleStatus.PUBLIC,
-            },
-          }),
-          expect.objectContaining({ $limit: 100 }),
-        ]),
+        expect.objectContaining({
+          where: {
+            isDeleted: false,
+            scope: ArticleScope.PUBLIC,
+            status: ArticleStatus.PUBLIC,
+          },
+        }),
         { pagination: false },
       );
     });

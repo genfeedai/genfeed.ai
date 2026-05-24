@@ -63,7 +63,7 @@ export class PollingService {
         );
       }
 
-      const status = ingredient.status;
+      const status = String(ingredient.status);
 
       // Check if generation is complete (success or failure)
       if (
@@ -168,7 +168,7 @@ export class PollingService {
           );
         }
 
-        const status = ingredient.status;
+        const status = String(ingredient.status);
 
         if (
           status === IngredientStatus.GENERATED ||

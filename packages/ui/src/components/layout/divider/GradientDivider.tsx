@@ -19,7 +19,7 @@ const VARIANT_CLASSES = {
 
 /**
  * GradientDivider - A subtle divider with gradient fade
- * Uses CSS classes from genfeed.scss for consistent theming
+ * Uses CSS classes from genfeed.css for consistent theming
  */
 const GradientDivider = memo(function GradientDivider({
   className,

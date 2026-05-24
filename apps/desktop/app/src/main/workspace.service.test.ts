@@ -2,43 +2,63 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { DesktopDatabaseService, WorkspaceRow } from './database.service';
 import {
   electronMockState,
   resetElectronMockState,
 } from './test-support/electron.mock';
 
-type RecentItemRow = {
-  id: string;
-  kind: string;
-  label: string;
-  openedAt: string;
-  value: string;
-};
-
 const { DesktopWorkspaceService } = await import('./workspace.service');
 
-const createDatabaseMock = () => {
-  const workspacesById = new Map<string, WorkspaceRow>();
-  const recentItemsById = new Map<string, RecentItemRow>();
+const createPrismaMock = () => {
+  const workspacesById = new Map<string, Record<string, unknown>>();
+  const recentItemsById = new Map<string, Record<string, unknown>>();
 
   return {
-    getWorkspaceById: async (workspaceId: string) =>
-      workspacesById.get(workspaceId) ?? null,
-    listRecentItems: async () =>
-      Array.from(recentItemsById.values()).sort((left, right) =>
-        right.openedAt.localeCompare(left.openedAt),
-      ),
-    listWorkspaces: async () =>
-      Array.from(workspacesById.values()).sort((left, right) =>
-        right.lastOpenedAt.localeCompare(left.lastOpenedAt),
-      ),
-    upsertRecentItem: async (item: RecentItemRow) => {
-      recentItemsById.set(item.id, item);
+    desktopRecentItem: {
+      findMany: async () =>
+        Array.from(recentItemsById.values()).sort((left, right) =>
+          String(right.openedAt).localeCompare(String(left.openedAt)),
+        ),
+      upsert: async ({
+        create,
+        update,
+        where,
+      }: {
+        create: Record<string, unknown>;
+        update: Record<string, unknown>;
+        where: { id: string };
+      }) => {
+        recentItemsById.set(where.id, {
+          ...(recentItemsById.get(where.id) ?? create),
+          ...update,
+          id: where.id,
+        });
+      },
     },
-    upsertWorkspace: async (workspace: WorkspaceRow) => {
-      workspacesById.set(workspace.id, workspace);
+    desktopWorkspace: {
+      findMany: async () =>
+        Array.from(workspacesById.values()).sort((left, right) =>
+          String(right.lastOpenedAt).localeCompare(String(left.lastOpenedAt)),
+        ),
+      findUnique: async ({ where }: { where: { id: string } }) =>
+        workspacesById.get(where.id) ?? null,
+      upsert: async ({
+        create,
+        update,
+        where,
+      }: {
+        create: Record<string, unknown>;
+        update: Record<string, unknown>;
+        where: { id: string };
+      }) => {
+        workspacesById.set(where.id, {
+          ...(workspacesById.get(where.id) ?? create),
+          ...update,
+          id: where.id,
+        });
+      },
     },
+    recentItemsById,
     workspacesById,
   };
 };
@@ -73,23 +93,27 @@ describe('DesktopWorkspaceService', () => {
       filePaths: [workspaceDir],
     };
 
-    const database = createDatabaseMock();
-    const service = new DesktopWorkspaceService(
-      database as unknown as DesktopDatabaseService,
-    );
+    const prisma = createPrismaMock();
+    const service = new DesktopWorkspaceService(prisma as never);
+    await service.init();
 
     const workspace = await service.openWorkspace();
 
     expect(workspace).not.toBeNull();
-    expect(workspace?.name).toBe('content-workspace');
-    expect(workspace?.fileIndex.map((file) => file.relativePath)).toEqual(
+    if (!workspace) {
+      throw new Error('Expected workspace to open');
+    }
+
+    expect(workspace.name).toBe('content-workspace');
+    expect(workspace.fileIndex.map((file) => file.relativePath)).toEqual(
       expect.arrayContaining(['README.md', path.join('notes', 'ideas.txt')]),
     );
     expect(
-      workspace?.fileIndex.some((file) => file.relativePath.includes('.git')),
+      workspace.fileIndex.some((file) => file.relativePath.includes('.git')),
     ).toBe(false);
     expect(fs.existsSync(path.join(workspaceDir, '.genfeed'))).toBe(true);
-    expect((await service.listRecents())[0]?.value).toBe(workspaceDir);
+    expect(service.listRecents()[0]?.value).toBe(workspaceDir);
+    expect(service.getWorkspace(workspace.id).path).toBe(workspaceDir);
   });
 
   it('links a project, resolves workspace paths, and reveals the folder in Finder', async () => {
@@ -97,24 +121,25 @@ describe('DesktopWorkspaceService', () => {
     fs.mkdirSync(workspaceDir, { recursive: true });
 
     const now = '2026-04-01T10:00:00.000Z';
-    const database = createDatabaseMock();
-    await database.upsertWorkspace({
+    const prisma = createPrismaMock();
+    prisma.workspacesById.set('workspace-1', {
       createdAt: now,
       fileIndex: '[]',
       id: 'workspace-1',
       indexingState: 'idle',
       lastOpenedAt: now,
+      linkedBrandId: null,
       linkedProjectId: null,
       localDraftCount: 0,
       name: 'Linked Workspace',
       path: workspaceDir,
       pendingSyncCount: 0,
+      syncPolicy: 'local-only',
       updatedAt: now,
     });
 
-    const service = new DesktopWorkspaceService(
-      database as unknown as DesktopDatabaseService,
-    );
+    const service = new DesktopWorkspaceService(prisma as never);
+    await service.init();
 
     const linkedWorkspace = await service.linkProject(
       'workspace-1',
@@ -123,7 +148,7 @@ describe('DesktopWorkspaceService', () => {
 
     expect(linkedWorkspace.linkedProjectId).toBe('project-9');
     expect(
-      await service.assertInsideWorkspace(
+      service.assertInsideWorkspace(
         'workspace-1',
         path.join('docs', 'plan.md'),
       ),

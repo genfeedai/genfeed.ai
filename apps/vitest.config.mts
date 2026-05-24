@@ -10,12 +10,21 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 const appRoot = process.cwd();
+const packageJsonPath = path.resolve(appRoot, './package.json');
+const packageJson = fs.existsSync(packageJsonPath)
+  ? JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
+  : null;
+const packageName =
+  typeof packageJson?.name === 'string'
+    ? packageJson.name
+    : path.relative(repoRoot, appRoot);
 const localUiRoot = path.resolve(appRoot, './packages/ui');
 const hasLocalUiRoot = fs.existsSync(localUiRoot);
 const isAppShell = appRoot === path.resolve(repoRoot, './apps/app');
 const pagesRoot = isAppShell
   ? path.resolve(repoRoot, './packages/pages')
   : path.resolve(appRoot, './src/page-modules');
+process.env.TZ ??= 'UTC';
 installVitestWarningFilter();
 const customLogger = createVitestWarningLogger();
 
@@ -88,6 +97,14 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/constants/src/$1'),
       },
       {
+        find: /^@genfeedai\/core$/,
+        replacement: path.resolve(repoRoot, './packages/core/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/core\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/core/src/$1'),
+      },
+      {
         find: /^@genfeedai\/contexts$/,
         replacement: path.resolve(repoRoot, './packages/contexts/index.ts'),
       },
@@ -111,11 +128,11 @@ export default defineConfig({
       },
       {
         find: /^@genfeedai\/enums$/,
-        replacement: path.resolve(repoRoot, './packages/enums/dist/index'),
+        replacement: path.resolve(repoRoot, './packages/enums/src/index.ts'),
       },
       {
         find: /^@genfeedai\/enums\/(.*)$/,
-        replacement: path.resolve(repoRoot, './packages/enums/dist/$1'),
+        replacement: path.resolve(repoRoot, './packages/enums/src/$1'),
       },
       {
         find: /^@genfeedai\/fonts$/,
@@ -150,22 +167,19 @@ export default defineConfig({
       },
       {
         find: /^@genfeedai\/client$/,
-        replacement: path.resolve(repoRoot, './packages/client/dist/index'),
+        replacement: path.resolve(repoRoot, './packages/client/src/index.ts'),
       },
       {
         find: /^@genfeedai\/client\/schemas$/,
-        replacement: path.resolve(repoRoot, './packages/client/dist/schemas'),
+        replacement: path.resolve(repoRoot, './packages/client/src/schemas'),
       },
       {
         find: /^@genfeedai\/client\/schemas\/(.*)$/,
-        replacement: path.resolve(
-          repoRoot,
-          './packages/client/dist/schemas/$1',
-        ),
+        replacement: path.resolve(repoRoot, './packages/client/src/schemas/$1'),
       },
       {
         find: /^@genfeedai\/client\/(.*)$/,
-        replacement: path.resolve(repoRoot, './packages/client/dist/$1'),
+        replacement: path.resolve(repoRoot, './packages/client/src/$1'),
       },
       {
         find: /^@genfeedai\/models$/,
@@ -244,6 +258,76 @@ export default defineConfig({
       {
         find: /^@genfeedai\/workflow-saas\/(.*)$/,
         replacement: path.resolve(repoRoot, './packages/workflow-saas/src/$1'),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/canvas$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/canvas/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/hooks$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/hooks/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/lib$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/lib/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/nodes$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/nodes/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/panels$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/panels/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/provider$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/provider/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/stores$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/stores/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/toolbar$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/toolbar/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-ui\/ui$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-ui/src/ui/index.ts',
+        ),
       },
       {
         find: /^@workflow-saas$/,
@@ -512,6 +596,14 @@ export default defineConfig({
         ),
       },
       {
+        find: /^@ui\/charts$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/charts.ts'),
+      },
+      {
+        find: /^@ui\/components\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/components/$1'),
+      },
+      {
         find: /^@ui\/(.*)$/,
         replacement: path.resolve(repoRoot, './packages/ui/src/components/$1'),
       },
@@ -552,6 +644,7 @@ export default defineConfig({
     exclude: ['**/node_modules/**'],
     globals: true,
     include: ['**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
+    name: packageName,
     setupFiles: [path.resolve(appRoot, './vitest.setup.ts')],
     testTimeout: 15_000,
   },

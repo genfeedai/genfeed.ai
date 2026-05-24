@@ -20,11 +20,11 @@ export default function GenContent() {
         <div className="max-w-lg w-full text-center">
           <div className="mb-8 gsap-hero">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 mb-6">
-              <HiSparkles className="h-5 w-5 text-primary" />
+              <HiSparkles className="size-5 text-primary" />
               <span className="text-sm font-medium">$GEN Token</span>
             </div>
 
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            <h1 className="text-4xl md:text-5xl font-semibold mb-4">
               Should We Launch a Token?
             </h1>
 
@@ -36,8 +36,8 @@ export default function GenContent() {
 
           <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 gsap-section">
             <div className="flex flex-col items-center gap-6 py-4">
-              <div className="p-4 rounded-full bg-black">
-                <FaXTwitter className="h-8 w-8 text-surface" />
+              <div className="p-4 rounded-full bg-zinc-950">
+                <FaXTwitter className="size-8 text-surface" />
               </div>
 
               <div>
@@ -55,7 +55,7 @@ export default function GenContent() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <FaXTwitter className="h-5 w-5" />
+                  <FaXTwitter className="size-5" />
                   Tweet @genfeedai
                 </Link>
               </Button>

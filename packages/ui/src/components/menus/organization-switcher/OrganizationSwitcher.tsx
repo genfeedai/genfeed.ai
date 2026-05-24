@@ -25,7 +25,7 @@ export default function OrganizationSwitcher() {
   const getOrgsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );
-  const router = useRouter();
+  const { push } = useRouter();
   const { orgHref } = useOrgUrl();
 
   const [isSwitching, setIsSwitching] = useState(false);
@@ -106,8 +106,8 @@ export default function OrganizationSwitcher() {
   const activeOrg = orgs.find((o) => o.isActive);
   const displayLabel = error ?? activeOrg?.label ?? 'Organization';
   const handleOpenOrganizationSettings = useCallback(() => {
-    router.push(orgHref('/settings/organization'));
-  }, [router, orgHref]);
+    push(orgHref('/settings'));
+  }, [orgHref, push]);
 
   return (
     <>
@@ -127,7 +127,7 @@ export default function OrganizationSwitcher() {
               isOpen && 'bg-white/[0.06]',
             )}
           >
-            <div className="w-6 h-6 rounded bg-white/20 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">
+            <div className="size-6 rounded bg-white/20 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">
               {displayLabel.charAt(0).toUpperCase()}
             </div>
             <span
@@ -140,7 +140,7 @@ export default function OrganizationSwitcher() {
             </span>
             <HiChevronDown
               className={cn(
-                'w-3.5 h-3.5 text-white/40 transition-transform duration-200 flex-shrink-0',
+                'size-3.5 text-white/40 transition-transform duration-200 flex-shrink-0',
                 isOpen && 'rotate-180',
               )}
             />
@@ -175,10 +175,14 @@ export default function OrganizationSwitcher() {
           <Modal.Body>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-white/70">
+                <label
+                  htmlFor="org-switcher-name"
+                  className="text-xs font-medium text-white/70"
+                >
                   Name <span className="text-red-400">*</span>
                 </label>
                 <Input
+                  id="org-switcher-name"
                   type="text"
                   value={newOrgLabel}
                   onChange={(e) => setNewOrgLabel(e.target.value)}
@@ -191,10 +195,14 @@ export default function OrganizationSwitcher() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-white/70">
+                <label
+                  htmlFor="org-switcher-description"
+                  className="text-xs font-medium text-white/70"
+                >
                   Description <span className="text-white/30">(optional)</span>
                 </label>
                 <Textarea
+                  id="org-switcher-description"
                   value={newOrgDescription}
                   onChange={(e) => setNewOrgDescription(e.target.value)}
                   placeholder="What does this organization do?"

@@ -203,8 +203,9 @@ export class MastodonPublisherService extends BasePublisherService {
     let replyToId = parentExternalId;
 
     for (const child of sortedChildren) {
+      const childId = this.getRecordId(child);
+
       try {
-        const childId = child._id.toString();
         const text = this.sanitizeDescription(child.description as string);
 
         // Upload media if child has ingredients
@@ -275,12 +276,12 @@ export class MastodonPublisherService extends BasePublisherService {
         }
       } catch (error: unknown) {
         this.logger.error(`${url} error publishing thread child`, {
-          childPostId: child._id.toString(),
+          childPostId: childId,
           error: (error as Error)?.message,
           order: child.order,
         });
 
-        await this.postsService.patch(child._id.toString(), {
+        await this.postsService.patch(childId, {
           status: PostStatus.FAILED,
         });
       }

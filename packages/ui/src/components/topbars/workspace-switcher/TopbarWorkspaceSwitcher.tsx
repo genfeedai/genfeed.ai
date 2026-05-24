@@ -46,10 +46,14 @@ type OrganizationEntry = {
   brand: { id: string; label: string } | null;
 };
 
-export default function TopbarWorkspaceSwitcher() {
+export default function TopbarWorkspaceSwitcher({
+  compact = false,
+}: {
+  compact?: boolean;
+} = {}) {
   const logoUrl = useThemeLogo();
   const pathname = usePathname();
-  const router = useRouter();
+  const { push, refresh } = useRouter();
   const { user } = useUser();
   const { brandId, brands } = useBrand();
   const { orgHref, orgSlug } = useOrgUrl();
@@ -174,9 +178,9 @@ export default function TopbarWorkspaceSwitcher() {
 
         if (isIngredientsDetailRoute) {
           const [, , type] = pathname?.split('/') ?? [];
-          router.push(`/ingredients/${type}`);
+          push(`/ingredients/${type}`);
         } else {
-          router.refresh();
+          refresh();
         }
 
         setIsUpdatingBrand(false);
@@ -185,7 +189,7 @@ export default function TopbarWorkspaceSwitcher() {
         setIsUpdatingBrand(false);
       }
     },
-    [getUsersService, isBusy, pathname, router, user],
+    [getUsersService, isBusy, pathname, user, refresh, push],
   );
 
   const handleClearBrandSelection = useCallback(async () => {
@@ -200,14 +204,14 @@ export default function TopbarWorkspaceSwitcher() {
       logger.info('DELETE /users/me/brand-selection success');
       await user?.reload();
       setIsOpen(false);
-      router.push(orgHref('/overview'));
-      router.refresh();
+      push(orgHref('/overview'));
+      refresh();
       setIsUpdatingBrand(false);
     } catch (error) {
       logger.error('DELETE /users/me/brand-selection failed', error);
       setIsUpdatingBrand(false);
     }
-  }, [brandId, getUsersService, isBusy, orgHref, router, user]);
+  }, [brandId, getUsersService, isBusy, orgHref, user, refresh, push]);
 
   const handleCreateOrganization = useCallback(async () => {
     const trimmedLabel = newOrganizationLabel.trim();
@@ -291,20 +295,26 @@ export default function TopbarWorkspaceSwitcher() {
             withWrapper={false}
             ariaLabel="Open projects switcher"
             className={cn(
-              'gen-shell-control flex h-11 w-full items-center gap-2.5 rounded-2xl px-3.5 text-left',
+              'gen-shell-control flex w-full items-center rounded-md text-left',
+              compact ? 'h-7 gap-2 px-2.5' : 'h-11 gap-2.5 px-3.5',
               isBusy && 'cursor-not-allowed opacity-60',
             )}
             data-active={isOpen ? 'true' : 'false'}
             isDisabled={isBusy}
           >
-            <div className="gen-shell-surface flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg">
+            <div
+              className={cn(
+                'gen-shell-surface flex items-center justify-center overflow-hidden rounded-md',
+                compact ? 'size-5' : 'size-7',
+              )}
+            >
               {logoUrl ? (
                 <Image
                   src={logoUrl}
                   alt={EnvironmentService.LOGO_ALT}
                   width={16}
                   height={16}
-                  className="h-4 w-4 object-contain dark:invert"
+                  className="size-4 object-contain dark:invert"
                   sizes="16px"
                 />
               ) : (
@@ -318,7 +328,7 @@ export default function TopbarWorkspaceSwitcher() {
 
             <HiChevronDown
               className={cn(
-                'h-3.5 w-3.5 flex-shrink-0 text-foreground/38 transition-transform duration-200',
+                'size-3.5 flex-shrink-0 text-foreground/38 transition-transform duration-200',
                 isOpen && 'rotate-180',
               )}
             />
@@ -327,7 +337,7 @@ export default function TopbarWorkspaceSwitcher() {
 
         <PopoverPanelContent
           align="start"
-          className="w-[420px] rounded-[1.5rem] p-0"
+          className="w-[420px] rounded-md p-0"
           sideOffset={10}
         >
           <div className="border-b border-white/[0.06] p-3">
@@ -337,8 +347,8 @@ export default function TopbarWorkspaceSwitcher() {
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Find Project..."
-                className="gen-shell-control h-11 rounded-2xl border-white/[0.06] bg-background/44 pr-14 text-sm placeholder:text-foreground/28"
+                placeholder="Find Project…"
+                className="gen-shell-control h-11 rounded-md border-white/[0.06] bg-background/44 pr-14 text-sm placeholder:text-foreground/28"
                 onKeyDown={(event) => {
                   if (event.key === 'Escape') {
                     event.preventDefault();
@@ -351,20 +361,20 @@ export default function TopbarWorkspaceSwitcher() {
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
                 onClick={handleEscAction}
-                className="gen-shell-control absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-foreground/52"
+                className="gen-shell-control absolute right-2 top-1/2 -translate-y-1/2 rounded px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-foreground/52"
               >
                 Esc
               </Button>
             </div>
           </div>
 
-          <div className="max-h-[30rem] overflow-y-auto px-2.5 py-2.5">
+          <div className="max-h-[30rem] overflow-y-auto p-2.5">
             <WorkspaceSwitcherSection
               emptyMessage={
                 organizationsError ?? 'No organizations available right now'
               }
               items={filteredOrganizations.map((organization) => ({
-                icon: <HiOutlineSquares2X2 className="h-4 w-4 text-white/35" />,
+                icon: <HiOutlineSquares2X2 className="size-4 text-white/35" />,
                 id: organization.id,
                 isActive:
                   organization.isActive &&
@@ -426,10 +436,14 @@ export default function TopbarWorkspaceSwitcher() {
           <Modal.Body>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-white/70">
+                <label
+                  htmlFor="topbar-ws-org-name"
+                  className="text-xs font-medium text-white/70"
+                >
                   Name <span className="text-red-400">*</span>
                 </label>
                 <Input
+                  id="topbar-ws-org-name"
                   type="text"
                   value={newOrganizationLabel}
                   onChange={(event) =>
@@ -445,10 +459,14 @@ export default function TopbarWorkspaceSwitcher() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-white/70">
+                <label
+                  htmlFor="topbar-ws-org-description"
+                  className="text-xs font-medium text-white/70"
+                >
                   Description <span className="text-white/30">(optional)</span>
                 </label>
                 <Textarea
+                  id="topbar-ws-org-description"
                   value={newOrganizationDescription}
                   onChange={(event) =>
                     setNewOrganizationDescription(event.target.value)
@@ -521,7 +539,7 @@ function WorkspaceSwitcherSection({
       </p>
 
       {items.length === 0 ? (
-        <div className="gen-shell-empty-state rounded-xl px-3 py-3 text-xs text-foreground/42">
+        <div className="gen-shell-empty-state rounded-md p-3 text-xs text-foreground/42">
           {emptyMessage}
         </div>
       ) : (
@@ -539,14 +557,14 @@ function WorkspaceSwitcherSection({
               }}
               isDisabled={item.isActive}
               className={cn(
-                'flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-all duration-200',
+                'flex w-full items-center gap-3 rounded-md p-2.5 text-left transition-all duration-200',
                 item.isActive
                   ? 'gen-shell-surface text-foreground shadow-[0_18px_40px_-32px_rgba(0,0,0,0.88)]'
                   : 'text-foreground/68 hover:bg-white/[0.035] hover:text-foreground',
               )}
             >
               {item.imageUrl ? (
-                <div className="gen-shell-surface flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-full">
+                <div className="gen-shell-surface flex size-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-full">
                   <Image
                     src={item.imageUrl}
                     alt={item.label}
@@ -558,13 +576,13 @@ function WorkspaceSwitcherSection({
                   />
                 </div>
               ) : item.icon ? (
-                <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-foreground/42">
+                <div className="flex size-5 flex-shrink-0 items-center justify-center text-foreground/42">
                   {item.icon}
                 </div>
               ) : (
                 <div
                   className={cn(
-                    'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
+                    'flex size-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
                     item.isActive
                       ? 'bg-white text-background'
                       : 'bg-white/[0.08] text-foreground/58',
@@ -586,7 +604,7 @@ function WorkspaceSwitcherSection({
               </div>
 
               {item.isActive ? (
-                <HiCheck className="h-4 w-4 flex-shrink-0 text-emerald-300" />
+                <HiCheck className="size-4 flex-shrink-0 text-emerald-300" />
               ) : null}
             </Button>
           ))}
@@ -609,9 +627,9 @@ function WorkspaceActionButton({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={onClick}
-      className="gen-shell-control flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left text-sm font-medium text-foreground/72"
+      className="gen-shell-control flex w-full items-center gap-2.5 rounded-md p-2.5 text-left text-sm font-medium text-foreground/72"
     >
-      <HiPlus className="h-4 w-4 flex-shrink-0" />
+      <HiPlus className="size-4 flex-shrink-0" />
       <span>{label}</span>
     </Button>
   );

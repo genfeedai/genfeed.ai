@@ -47,7 +47,7 @@ export function BreadcrumbNav({ items, className = '' }: BreadcrumbNavProps) {
                 </span>
               )}
               {!isLast && (
-                <HiChevronRight className="w-4 h-4 text-foreground/40" />
+                <HiChevronRight className="size-4 text-foreground/40" />
               )}
             </li>
           );

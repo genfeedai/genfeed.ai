@@ -19,11 +19,11 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [OptimizersController],
   exports: [OptimizersService],
   imports: [
-    ByokModule,
-    ConfigModule,
+    forwardRef(() => ByokModule),
+    forwardRef(() => ConfigModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => ModelsModule),
-    ReplicateModule,
+    forwardRef(() => ReplicateModule),
   ],
   providers: [OptimizersService, CreditsGuard, CreditsInterceptor],
 })

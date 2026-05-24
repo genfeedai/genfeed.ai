@@ -1,6 +1,6 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { type ElementType, forwardRef, type HTMLAttributes } from 'react';
+import type { ElementType, HTMLAttributes, Ref } from 'react';
 
 const textVariants = cva('', {
   defaultVariants: {
@@ -41,20 +41,26 @@ export interface TextProps
     VariantProps<typeof textVariants> {
   /** HTML element to render. Defaults to `span`. */
   as?: ElementType;
+  ref?: Ref<HTMLElement>;
 }
 
-const Text = forwardRef<HTMLElement, TextProps>(
-  (
-    { as: Component = 'span', className, color, size, weight, ...props },
-    ref,
-  ) => (
+function Text({
+  ref,
+  as: Component = 'span',
+  className,
+  color,
+  size,
+  weight,
+  ...props
+}: TextProps) {
+  return (
     <Component
       className={cn(textVariants({ color, size, weight }), className)}
       ref={ref}
       {...props}
     />
-  ),
-);
+  );
+}
 Text.displayName = 'Text';
 
 export { Text, textVariants };

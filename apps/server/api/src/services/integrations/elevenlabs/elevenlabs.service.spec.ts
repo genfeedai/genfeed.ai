@@ -59,9 +59,9 @@ describe('ElevenLabsService', () => {
         forcedAlignment: { create: forcedAlignmentMock },
         textToSpeech: { convertWithTimestamps: ttsConvertMock },
         voices: {
-          add: voicesAddMock,
           delete: voicesDeleteMock,
           getAll: voicesGetAllMock,
+          ivc: { create: voicesAddMock },
         },
       };
     });
@@ -95,10 +95,10 @@ describe('ElevenLabsService', () => {
         voices: [
           {
             name: 'Rachel',
-            preview_url: 'https://preview.com/rachel.mp3',
-            voice_id: 'voice1',
+            previewUrl: 'https://preview.com/rachel.mp3',
+            voiceId: 'voice1',
           },
-          { name: 'Adam', preview_url: null, voice_id: 'voice2' },
+          { name: 'Adam', previewUrl: null, voiceId: 'voice2' },
         ],
       });
 
@@ -109,7 +109,7 @@ describe('ElevenLabsService', () => {
           preview: 'https://preview.com/rachel.mp3',
           voiceId: 'voice1',
         },
-        { name: 'Adam', preview: null, voiceId: 'voice2' },
+        { name: 'Adam', preview: undefined, voiceId: 'voice2' },
       ]);
     });
 
@@ -145,11 +145,10 @@ describe('ElevenLabsService', () => {
     it('should generate audio, upload to S3, and return URL with duration', async () => {
       const audioChunks = [Buffer.from('chunk1'), Buffer.from('chunk2')];
       ttsConvertMock.mockResolvedValue({
-        audio: audioChunks,
-        timestamps: [
-          { end: 2, start: 0 },
-          { end: 5, start: 2 },
-        ],
+        audioBase64: Buffer.concat(audioChunks).toString('base64'),
+        normalizedAlignment: {
+          characterEndTimesSeconds: [2, 5],
+        },
       });
 
       const result = await service.generateAndUploadAudio(
@@ -180,8 +179,8 @@ describe('ElevenLabsService', () => {
 
     it('should use upload result duration when available', async () => {
       ttsConvertMock.mockResolvedValue({
-        audio: [Buffer.from('audio')],
-        timestamps: [],
+        audioBase64: Buffer.from('audio').toString('base64'),
+        normalizedAlignment: { characterEndTimesSeconds: [] },
       });
       filesClientMock.uploadToS3.mockResolvedValue({
         duration: 10,
@@ -198,8 +197,8 @@ describe('ElevenLabsService', () => {
 
     it('should throw when upload fails to return public URL', async () => {
       ttsConvertMock.mockResolvedValue({
-        audio: [Buffer.from('audio')],
-        timestamps: [],
+        audioBase64: Buffer.from('audio').toString('base64'),
+        normalizedAlignment: { characterEndTimesSeconds: [] },
       });
       filesClientMock.uploadToS3.mockResolvedValue({
         duration: 0,
@@ -216,7 +215,7 @@ describe('ElevenLabsService', () => {
     it('should clone a voice and return voiceId and name', async () => {
       voicesAddMock.mockResolvedValue({
         name: 'My Voice',
-        voice_id: 'cloned_voice_123',
+        voiceId: 'cloned_voice_123',
       });
 
       const result = await service.cloneVoice(
@@ -232,9 +231,14 @@ describe('ElevenLabsService', () => {
       expect(voicesAddMock).toHaveBeenCalledWith(
         expect.objectContaining({
           description: 'Test voice',
-          files: [expect.any(Buffer)],
+          files: [
+            expect.objectContaining({
+              contentType: 'audio/mpeg',
+              filename: 'voice-sample-1.mp3',
+            }),
+          ],
           name: 'My Voice',
-          remove_background_noise: true,
+          removeBackgroundNoise: true,
         }),
       );
     });

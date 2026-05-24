@@ -99,9 +99,9 @@ function ResizeNodeComponent(props: NodeProps) {
         {/* Model Display */}
         <div className="flex items-center gap-2 px-2 py-1.5 bg-secondary/50 text-xs text-muted-foreground">
           {mediaType === 'image' ? (
-            <ImageIcon className="h-3.5 w-3.5" />
+            <ImageIcon className="size-3.5" />
           ) : (
-            <Video className="h-3.5 w-3.5" />
+            <Video className="size-3.5" />
           )}
           <span className="flex-1">{currentModel.label}</span>
           <span>{currentModel.price}</span>
@@ -171,9 +171,9 @@ function ResizeNodeComponent(props: NodeProps) {
               size="icon-sm"
               onClick={handleProcess}
               disabled={nodeData.status === 'processing'}
-              className="absolute right-2 top-2 h-6 w-6 bg-black/50 hover:bg-black/70"
+              className="absolute right-2 top-2 size-6 bg-black/50 hover:bg-black/70"
             >
-              <RefreshCw className="h-3.5 w-3.5 text-white" />
+              <RefreshCw className="size-3.5 text-white" />
             </Button>
           </div>
         )}
@@ -188,7 +188,7 @@ function ResizeNodeComponent(props: NodeProps) {
             className="mt-1 w-full"
           >
             {nodeData.status === 'processing' && (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="size-4 animate-spin" />
             )}
             {nodeData.status === 'processing'
               ? 'Resizing...'

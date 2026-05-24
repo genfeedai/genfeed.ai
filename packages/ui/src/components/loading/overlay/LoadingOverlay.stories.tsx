@@ -38,7 +38,7 @@ type Story = StoryObj<typeof meta>;
  */
 export const Default: Story = {
   args: {
-    message: 'Loading...',
+    message: 'Loading…',
   },
   parameters: {
     layout: 'padded',
@@ -59,7 +59,7 @@ export const Default: Story = {
  */
 export const CustomMessage: Story = {
   args: {
-    message: 'Saving changes...',
+    message: 'Saving changes…',
   },
   parameters: {
     layout: 'padded',
@@ -80,7 +80,7 @@ export const CustomMessage: Story = {
  */
 export const Processing: Story = {
   args: {
-    message: 'Processing...',
+    message: 'Processing…',
   },
   parameters: {
     layout: 'padded',
@@ -101,7 +101,7 @@ export const Processing: Story = {
  */
 export const OverLargeContent: Story = {
   args: {
-    message: 'Loading content...',
+    message: 'Loading content…',
   },
   parameters: {
     layout: 'padded',

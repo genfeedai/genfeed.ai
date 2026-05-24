@@ -63,6 +63,10 @@ export class TrendsController {
     private readonly modelsService: ModelsService,
   ) {}
 
+  private toSafeNumber(value: unknown): number {
+    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  }
+
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getTrends(
@@ -497,8 +501,10 @@ export class TrendsController {
         avgViralScore:
           videos.length > 0
             ? Math.round(
-                videos.reduce((sum, v) => sum + v.viralScore, 0) /
-                  videos.length,
+                videos.reduce(
+                  (sum, v) => sum + this.toSafeNumber(v.viralScore),
+                  0,
+                ) / videos.length,
               )
             : 0,
         platforms: [...new Set(videos.map((v) => v.platform))],
@@ -545,8 +551,10 @@ export class TrendsController {
         avgViralityScore:
           hashtags.length > 0
             ? Math.round(
-                hashtags.reduce((sum, h) => sum + h.viralityScore, 0) /
-                  hashtags.length,
+                hashtags.reduce(
+                  (sum, h) => sum + this.toSafeNumber(h.viralityScore),
+                  0,
+                ) / hashtags.length,
               )
             : 0,
         platforms: [...new Set(hashtags.map((h) => h.platform))],
@@ -570,12 +578,17 @@ export class TrendsController {
         avgViralityScore:
           sounds.length > 0
             ? Math.round(
-                sounds.reduce((sum, s) => sum + s.viralityScore, 0) /
-                  sounds.length,
+                sounds.reduce(
+                  (sum, s) => sum + this.toSafeNumber(s.viralityScore),
+                  0,
+                ) / sounds.length,
               )
             : 0,
         totalSounds: sounds.length,
-        totalUsage: sounds.reduce((sum, s) => sum + s.usageCount, 0),
+        totalUsage: sounds.reduce(
+          (sum, s) => sum + this.toSafeNumber(s.usageCount),
+          0,
+        ),
       },
     };
   }

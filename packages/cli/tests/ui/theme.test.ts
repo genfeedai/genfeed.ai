@@ -25,7 +25,7 @@ import {
   formatSuccess,
   formatWarning,
   symbols,
-} from '../../src/ui/theme.js';
+} from '../../src/ui/theme';
 
 describe('ui/theme', () => {
   describe('colors', () => {

@@ -91,11 +91,13 @@ export class TasksController extends BaseCRUDController<
       await this.taskCountersService.getNextNumber(organizationId);
     const identifier = `${org.prefix}-${taskNumber}`;
     const extended = createDto as CreateTaskDto & {
+      elevenlabsVoiceId?: string;
       heygenAvatarId?: string;
-      heygenVoiceId?: string;
       outputType?: string;
       platforms?: string[];
       request?: string;
+      voiceId?: string;
+      voiceProvider?: string;
     };
 
     const doc = await this.tasksService.create({
@@ -134,15 +136,17 @@ export class TasksController extends BaseCRUDController<
 
         this.workspaceTaskQueueService
           .enqueue({
-            brandId: (createDto.brand as string | undefined)?.toString(),
+            brandId: publicMetadata.brand,
+            elevenlabsVoiceId: extended.elevenlabsVoiceId,
             heygenAvatarId: extended.heygenAvatarId,
-            heygenVoiceId: extended.heygenVoiceId,
             organizationId,
             outputType: extended.outputType,
             platforms: extended.platforms,
             request: extended.request,
             taskId,
             userId: publicMetadata.user,
+            voiceId: extended.voiceId,
+            voiceProvider: extended.voiceProvider,
           })
           .catch((error: unknown) => {
             this.loggerService.error(
@@ -156,10 +160,7 @@ export class TasksController extends BaseCRUDController<
     return response;
   }
 
-  public override buildFindAllPipeline(
-    user: User,
-    query: TaskQueryDto,
-  ): Record<string, unknown>[] {
+  public override buildFindAllQuery(user: User, query: TaskQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
@@ -199,13 +200,13 @@ export class TasksController extends BaseCRUDController<
     }
 
     if (query.view === 'in_progress') {
-      match.status = { $in: ['backlog', 'in_progress'] };
+      match.status = { in: ['backlog', 'in_progress'] };
     }
 
     if (query.view === 'inbox') {
-      match.$or = [
-        { reviewState: { $in: ['pending_approval', 'changes_requested'] } },
-        { status: { $in: ['done', 'failed'] } },
+      match.OR = [
+        { reviewState: { in: ['pending_approval', 'changes_requested'] } },
+        { status: { in: ['done', 'failed'] } },
       ];
     }
 
@@ -214,7 +215,10 @@ export class TasksController extends BaseCRUDController<
         ? { updatedAt: -1 as const }
         : handleQuerySort(query.sort);
 
-    return [{ $match: match }, { $sort: sort }];
+    return {
+      orderBy: sort,
+      where: match,
+    };
   }
 
   public override canUserModifyEntity(
@@ -246,12 +250,37 @@ export class TasksController extends BaseCRUDController<
   @Get('by-identifier/:identifier')
   async findByIdentifier(
     @Req() request: Request,
+    @CurrentUser() user: User,
     @Param('identifier') identifier: string,
   ) {
-    const doc = await this.tasksService.findByIdentifier(identifier);
+    const { organization } = getPublicMetadata(user);
+    const doc = await this.tasksService.findByIdentifier(
+      identifier,
+      organization,
+    );
     if (!doc) {
       throw new NotFoundException(`Task ${identifier} not found`);
     }
+    return serializeSingle(request, TaskSerializer, doc);
+  }
+
+  @Get(':id')
+  override async findOne(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<JsonApiSingleResponse> {
+    const { organization } = getPublicMetadata(user);
+    const doc = await this.tasksService.findOne({
+      _id: id,
+      isDeleted: false,
+      organizationId: organization,
+    });
+
+    if (!doc) {
+      throw new NotFoundException(`Task not found`);
+    }
+
     return serializeSingle(request, TaskSerializer, doc);
   }
 
@@ -396,6 +425,7 @@ export class TasksController extends BaseCRUDController<
   @HttpCode(HttpStatus.OK)
   async checkout(
     @Req() request: Request,
+    @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() body: { agentId: string; runId: string },
   ) {
@@ -403,7 +433,13 @@ export class TasksController extends BaseCRUDController<
       throw new BadRequestException('agentId and runId are required');
     }
 
-    const doc = await this.tasksService.checkout(id, body.agentId, body.runId);
+    const { organization } = getPublicMetadata(user);
+    const doc = await this.tasksService.checkout(
+      id,
+      body.agentId,
+      body.runId,
+      organization,
+    );
 
     if (!doc) {
       throw new ConflictException(
@@ -418,6 +454,7 @@ export class TasksController extends BaseCRUDController<
   @HttpCode(HttpStatus.OK)
   async release(
     @Req() request: Request,
+    @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() body: { agentId: string },
   ) {
@@ -425,7 +462,8 @@ export class TasksController extends BaseCRUDController<
       throw new BadRequestException('agentId is required');
     }
 
-    const doc = await this.tasksService.release(id, body.agentId);
+    const { organization } = getPublicMetadata(user);
+    const doc = await this.tasksService.release(id, body.agentId, organization);
     return serializeSingle(request, TaskSerializer, doc);
   }
 

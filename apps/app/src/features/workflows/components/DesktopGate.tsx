@@ -31,29 +31,27 @@ export function DesktopGate({ children }: DesktopGateProps) {
     return () => window.removeEventListener('resize', checkDevice);
   }, []);
 
-  if (isMobile) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-6 text-center">
-        <div className="max-w-md space-y-6">
-          <div className="text-6xl">💻</div>
-          <h1 className="text-2xl font-bold">Desktop Required</h1>
-          <p className="text-muted-foreground">
-            The Workflows editor requires a larger screen for the best
-            experience. Please open this page on a desktop or laptop computer.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Minimum screen width: 1024px
-          </p>
-          <a
-            href={href('/overview')}
-            className="inline-block bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
-          >
-            Go to Dashboard
-          </a>
-        </div>
+  return isMobile ? (
+    <div className="flex min-h-screen flex-col items-center justify-center p-6 text-center">
+      <div className="max-w-md space-y-6">
+        <div className="text-6xl">💻</div>
+        <h1 className="text-2xl font-semibold">Desktop Required</h1>
+        <p className="text-muted-foreground">
+          The Workflows editor requires a larger screen for the best experience.
+          Please open this page on a desktop or laptop computer.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Minimum screen width: 1024px
+        </p>
+        <a
+          href={href('/overview')}
+          className="inline-block bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
+        >
+          Go to Dashboard
+        </a>
       </div>
-    );
-  }
-
-  return <>{children}</>;
+    </div>
+  ) : (
+    children
+  );
 }

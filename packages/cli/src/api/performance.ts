@@ -1,5 +1,5 @@
-import { get } from './client.js';
-import { flattenSingle, type JsonApiSingleResponse } from './json-api.js';
+import { get } from './client';
+import { flattenSingle, type JsonApiSingleResponse } from './json-api';
 
 export interface PerformanceItem {
   id: string;

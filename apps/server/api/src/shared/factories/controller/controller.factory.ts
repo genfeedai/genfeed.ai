@@ -1,13 +1,14 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { createUserScopedService } from '@api/shared/factories/service/service.factory';
-import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  BaseService,
+  type PrismaFindAllInput,
+} from '@api/shared/services/base/base.service';
 import type { User } from '@clerk/backend';
 import type { IJsonApiSerializer, PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Module, Type } from '@nestjs/common';
-
-type PipelineStage = Record<string, unknown>;
 
 /**
  * Controller factory configuration
@@ -114,9 +115,9 @@ export interface ExtendedControllerConfig<
   QueryDto extends BaseQueryDto = BaseQueryDto,
 > extends ControllerFactoryConfig<T, CreateDto, UpdateDto, QueryDto> {
   /**
-   * Override the findAll pipeline builder
+   * Override the findAll query builder
    */
-  buildFindAllPipeline?: (user: User, query: QueryDto) => PipelineStage[];
+  buildFindAllQuery?: (user: User, query: QueryDto) => PrismaFindAllInput;
 
   /**
    * Override the entity access check
@@ -165,11 +166,11 @@ export function createExtendedController<
       this.logger = logger;
     }
 
-    public buildFindAllPipeline(user: User, query: QueryDto): PipelineStage[] {
-      if (config.buildFindAllPipeline) {
-        return config.buildFindAllPipeline(user, query);
+    public buildFindAllQuery(user: User, query: QueryDto): PrismaFindAllInput {
+      if (config.buildFindAllQuery) {
+        return config.buildFindAllQuery(user, query);
       }
-      return super.buildFindAllPipeline(user, query);
+      return super.buildFindAllQuery(user, query);
     }
 
     public canUserModifyEntity(user: User, entity: T): boolean {
@@ -223,7 +224,8 @@ export function createExtendedController<
  */
 export interface ModuleFactoryConfig<T, CreateDto, UpdateDto> {
   name: string;
-  schemaName: string;
+  modelName?: string;
+  schemaName?: string;
   entity: Type<T>;
   createDto: Type<CreateDto>;
   updateDto: Type<UpdateDto>;
@@ -243,6 +245,14 @@ export function createCRUDModule<T, CreateDto, UpdateDto>(
   service: Type<BaseService<T, CreateDto, UpdateDto>>;
   controller: Type<BaseCRUDController<T, CreateDto, UpdateDto>>;
 } {
+  const modelName = config.modelName ?? config.schemaName;
+
+  if (!modelName) {
+    throw new Error(
+      `createCRUDModule: modelName is required for module: ${config.name}`,
+    );
+  }
+
   // Create service using factory
   const ServiceClass = createUserScopedService({
     createDto: config.createDto,
@@ -250,7 +260,7 @@ export function createCRUDModule<T, CreateDto, UpdateDto>(
       typeof field === 'string' ? { path: field } : field,
     ),
     entity: config.entity,
-    schemaName: config.schemaName,
+    modelName,
     updateDto: config.updateDto,
   });
 
@@ -286,8 +296,12 @@ export function createCRUDModule<T, CreateDto, UpdateDto>(
   });
 
   return {
-    controller: ControllerClass,
+    controller: ControllerClass as unknown as Type<
+      BaseCRUDController<T, CreateDto, UpdateDto>
+    >,
     module: FactoryModule,
-    service: ServiceClass,
+    service: ServiceClass as unknown as Type<
+      BaseService<T, CreateDto, UpdateDto>
+    >,
   };
 }

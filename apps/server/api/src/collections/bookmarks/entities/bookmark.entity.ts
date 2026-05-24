@@ -1,42 +1,32 @@
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
-import {
-  BookmarkCategory,
-  BookmarkIntent,
-  BookmarkPlatform,
-} from '@genfeedai/enums';
 import { type Bookmark } from '@genfeedai/prisma';
 
 export class BookmarkEntity extends BaseEntity implements Bookmark {
+  id!: string;
+  mongoId!: string | null;
+  userId!: string;
+  organizationId!: string;
+  brandId!: string | null;
+  folderId!: string | null;
   user!: string;
   organization!: string;
   brand?: string;
-  category!: BookmarkCategory;
+  category!: Bookmark['category'];
   url!: string;
-  platform!: BookmarkPlatform;
-  title?: string;
+  platform!: Bookmark['platform'];
+  title!: string | null;
   content!: string;
-  description?: string;
-  author?: string;
-  authorHandle?: string;
-  thumbnailUrl?: string;
+  description!: string | null;
+  author!: string | null;
+  authorHandle!: string | null;
+  thumbnailUrl!: string | null;
   mediaUrls!: string[];
   extractedIngredients!: string[];
-  platformData!: {
-    tweetId?: string;
-    engagement?: {
-      likes?: number;
-      retweets?: number;
-      replies?: number;
-    };
-    videoId?: string;
-    duration?: number;
-    channelId?: string;
-    metadata?: Record<string, unknown>;
-  };
-  intent!: BookmarkIntent;
+  platformData!: Bookmark['platformData'];
+  intent!: Bookmark['intent'];
   generatedIngredients!: string[];
   folder?: string;
   tags!: string[];
   savedAt!: Date;
-  processedAt?: Date;
+  processedAt!: Date | null;
 }

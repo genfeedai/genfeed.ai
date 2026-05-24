@@ -27,6 +27,7 @@ import type { IGenerationItem } from '@genfeedai/interfaces/components/generatio
 import type { UnifiedActivityItem } from '@genfeedai/interfaces/components/topbar-activities.interface';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Badge from '@ui/display/badge/Badge';
 import {
   Button,
@@ -289,10 +290,10 @@ function extractPostDescription(
   const lastSpace = truncated.lastIndexOf(' ');
   if (lastSpace > maxLength * 0.7) {
     // If we can find a space reasonably close to the end, use it
-    return `${truncated.substring(0, lastSpace)}...`;
+    return `${truncated.substring(0, lastSpace)}…`;
   }
 
-  return `${truncated}...`;
+  return `${truncated}…`;
 }
 
 function formatEtaDuration(durationMs: number): string {
@@ -363,7 +364,7 @@ export default function TopbarActivities() {
     autoLoad: true, // Load activities on mount to show badge count
   });
 
-  const router = useRouter();
+  const { push } = useRouter();
   const { href } = useOrgUrl();
   const { openIngredientOverlay } = useIngredientOverlay();
   const notificationsService = NotificationsService.getInstance();
@@ -419,13 +420,15 @@ export default function TopbarActivities() {
   // IDs of completed background tasks (for "Clear completed" button)
   const completedBackgroundTaskIds = useMemo(
     () =>
-      filteredActivities
-        .filter(
-          (a) =>
-            isBackgroundTask(a) &&
-            getBackgroundTaskStatus(a.key) === 'completed',
-        )
-        .map((a) => a.id),
+      filteredActivities.reduce<string[]>((acc, a) => {
+        if (
+          isBackgroundTask(a) &&
+          getBackgroundTaskStatus(a.key) === 'completed'
+        ) {
+          acc.push(a.id);
+        }
+        return acc;
+      }, []),
     [filteredActivities],
   );
 
@@ -441,23 +444,31 @@ export default function TopbarActivities() {
     );
 
     // Separate background tasks from regular activities
-    const backgroundTaskItems: UnifiedActivityItem[] = filteredActivities
-      .filter((act) => isBackgroundTask(act))
-      .map((act) => ({
-        data: act,
-        id: act.id,
-        timestamp: new Date(act.createdAt),
-        type: 'background-task' as const,
-      }));
+    const backgroundTaskItems: UnifiedActivityItem[] =
+      filteredActivities.reduce<UnifiedActivityItem[]>((acc, act) => {
+        if (isBackgroundTask(act)) {
+          acc.push({
+            data: act,
+            id: act.id,
+            timestamp: new Date(act.createdAt),
+            type: 'background-task' as const,
+          });
+        }
+        return acc;
+      }, []);
 
-    const regularActivityItems: UnifiedActivityItem[] = filteredActivities
-      .filter((act) => !isBackgroundTask(act))
-      .map((act) => ({
-        data: act,
-        id: act.id,
-        timestamp: new Date(act.createdAt),
-        type: 'activity' as const,
-      }));
+    const regularActivityItems: UnifiedActivityItem[] =
+      filteredActivities.reduce<UnifiedActivityItem[]>((acc, act) => {
+        if (!isBackgroundTask(act)) {
+          acc.push({
+            data: act,
+            id: act.id,
+            timestamp: new Date(act.createdAt),
+            type: 'activity' as const,
+          });
+        }
+        return acc;
+      }, []);
 
     // Merge and sort by timestamp (newest first)
     return [
@@ -585,12 +596,12 @@ export default function TopbarActivities() {
 
   const navigateToStudio = () => {
     setIsOpen(false);
-    router.push(href('/studio'));
+    push(href('/studio'));
   };
 
   const navigateToActivities = () => {
     setIsOpen(false);
-    router.push(href('/overview/activities'));
+    push(href('/overview/activities'));
   };
 
   const navigateToPublisherArticles = useCallback(
@@ -619,7 +630,7 @@ export default function TopbarActivities() {
       const status = getBackgroundTaskStatus(activity.key);
 
       if (status === 'processing') {
-        notificationsService.info('Task is still processing...');
+        notificationsService.info('Task is still processing…');
         return;
       }
 
@@ -633,7 +644,7 @@ export default function TopbarActivities() {
       const activityHref = parsed?.href as string | undefined;
       if (activityHref) {
         setIsOpen(false);
-        router.push(href(activityHref));
+        push(href(activityHref));
         return;
       }
 
@@ -644,14 +655,14 @@ export default function TopbarActivities() {
       // For posts, navigate to posts page instead of opening modal
       if (taskType === 'post') {
         setIsOpen(false);
-        router.push(href(getPublisherPostsHref()));
+        push(href(getPublisherPostsHref()));
         return;
       }
 
       // For training, navigate to training/models page
       if (taskType === 'training') {
         setIsOpen(false);
-        router.push(href('/studio/models'));
+        push(href('/studio/models'));
         return;
       }
 
@@ -682,14 +693,14 @@ export default function TopbarActivities() {
         return;
       }
 
-      notificationsService.info('Loading ingredient details...');
+      notificationsService.info('Loading ingredient details…');
     },
     [
       notificationsService,
       openIngredientOverlay,
       navigateToPublisherArticles,
-      router,
       href,
+      push,
     ],
   );
 
@@ -747,16 +758,16 @@ export default function TopbarActivities() {
     const statusIcon = (() => {
       if (isLoading) {
         return (
-          <span className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+          <span className="animate-spin size-4 border-2 border-primary border-t-transparent rounded-full" />
         );
       }
       switch (status) {
         case 'processing':
           return activity.isRead ? null : (
-            <HiBell className="h-4 w-4 animate-pulse text-primary" />
+            <HiBell className="size-4 animate-pulse text-primary" />
           );
         case 'failed':
-          return <HiXMark className="h-4 w-4 text-error" />;
+          return <HiXMark className="size-4 text-error" />;
         case 'completed':
           return null;
       }
@@ -795,7 +806,7 @@ export default function TopbarActivities() {
           {preview &&
           status === 'completed' &&
           !failedPreviews.has(activity.id) ? (
-            <div className="relative h-12 w-12 shrink-0 overflow-hidden bg-background">
+            <div className="relative size-12 shrink-0 overflow-hidden bg-background">
               <Image
                 src={preview.url}
                 alt={label}
@@ -810,13 +821,13 @@ export default function TopbarActivities() {
               />
               {preview.category === IngredientCategory.VIDEO && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                  <HiPlay className="h-4 w-4 text-white" />
+                  <HiPlay className="size-4 text-white" />
                 </div>
               )}
             </div>
           ) : (
-            <div className="h-12 w-12 shrink-0 bg-background flex items-center justify-center">
-              <HiFilm className="h-5 w-5 text-foreground/40" />
+            <div className="size-12 shrink-0 bg-background flex items-center justify-center">
+              <HiFilm className="size-5 text-foreground/40" />
             </div>
           )}
 
@@ -851,10 +862,8 @@ export default function TopbarActivities() {
             {/* Indeterminate progress spinner for processing without progress */}
             {status === 'processing' && progress === undefined && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-foreground/60">
-                  Processing...
-                </span>
-                <span className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+                <span className="text-xs text-foreground/60">Processing…</span>
+                <span className="animate-spin size-4 border-2 border-primary border-t-transparent rounded-full" />
               </div>
             )}
 
@@ -862,10 +871,15 @@ export default function TopbarActivities() {
             <div className="flex items-center justify-between gap-2">
               {statusBadge}
               <span className="text-xs text-foreground/50 shrink-0">
-                {new Date(activity.createdAt).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+                <ClientDateTime
+                  value={activity.createdAt}
+                  format={(date) =>
+                    date.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  }
+                />
               </span>
             </div>
           </div>
@@ -924,7 +938,10 @@ export default function TopbarActivities() {
             </span>
 
             <span className="text-xs text-foreground/60">
-              {new Date(activity.createdAt).toLocaleDateString()}
+              <ClientDateTime
+                value={activity.createdAt}
+                format={(date) => date.toLocaleDateString()}
+              />
             </span>
           </Button>
         </div>
@@ -935,7 +952,7 @@ export default function TopbarActivities() {
   const handleRealtimeTaskClick = useCallback(
     (task: IBackgroundTask) => {
       if (task.status === 'pending' || task.status === 'processing') {
-        notificationsService.info('Task is still processing...');
+        notificationsService.info('Task is still processing…');
         return;
       }
 
@@ -948,18 +965,18 @@ export default function TopbarActivities() {
       removeTask(task.id);
 
       if (task.resultType === 'WORKFLOW') {
-        router.push(href(`/workflows/executions/${task.resultId ?? task.id}`));
+        push(href(`/workflows/executions/${task.resultId ?? task.id}`));
         return;
       }
 
       if (task.resultType) {
-        router.push(href('/studio'));
+        push(href('/studio'));
         return;
       }
 
-      router.push(href('/overview/activities'));
+      push(href('/overview/activities'));
     },
-    [notificationsService, removeTask, router, href],
+    [notificationsService, removeTask, href, push],
   );
 
   const renderRealtimeTask = (task: IBackgroundTask) => {
@@ -990,11 +1007,11 @@ export default function TopbarActivities() {
         <div className="flex w-full items-center justify-between gap-2">
           <span className="truncate">{task.title}</span>
           {task.status === 'completed' ? (
-            <HiCheck className="h-4 w-4 text-success" />
+            <HiCheck className="size-4 text-success" />
           ) : task.status === 'failed' ? (
-            <HiXMark className="h-4 w-4 text-error" />
+            <HiXMark className="size-4 text-error" />
           ) : (
-            <HiArrowPath className="h-4 w-4 animate-spin text-primary" />
+            <HiArrowPath className="size-4 animate-spin text-primary" />
           )}
         </div>
 
@@ -1019,7 +1036,7 @@ export default function TopbarActivities() {
             </div>
             {(etaLabel || elapsedLabel) && (
               <div className="mt-2 flex items-center justify-between gap-2 text-xs text-foreground/60">
-                <span>{etaLabel ?? 'Processing...'}</span>
+                <span>{etaLabel ?? 'Processing…'}</span>
                 {elapsedLabel && <span>Elapsed {elapsedLabel}</span>}
               </div>
             )}
@@ -1051,10 +1068,15 @@ export default function TopbarActivities() {
                   : 'Failed'}
           </Badge>
           <span className="text-xs text-foreground/50 shrink-0">
-            {new Date(task.createdAt).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+            <ClientDateTime
+              value={task.createdAt}
+              format={(date) =>
+                date.toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              }
+            />
           </span>
         </div>
       </Button>
@@ -1079,7 +1101,7 @@ export default function TopbarActivities() {
           size: ButtonSize.ICON,
           variant: ButtonVariant.GHOST,
         }),
-        'relative flex h-9 w-9 items-center justify-center p-2 min-h-0 m-0 transition-colors duration-150',
+        'relative flex size-9 items-center justify-center p-2 min-h-0 m-0 transition-colors duration-150',
         hasActiveGenerations ||
           hasProcessingTasks ||
           activeRealtimeTasks.length > 0
@@ -1108,7 +1130,7 @@ export default function TopbarActivities() {
               size={ComponentSize.SM}
               className="absolute -right-1 -top-1 w-5 flex items-center justify-center"
             >
-              <HiCheck className="h-3 w-3" />
+              <HiCheck className="size-3" />
             </Badge>
           );
         }
@@ -1133,7 +1155,7 @@ export default function TopbarActivities() {
 
       <HiBell
         aria-hidden="true"
-        className={cn('h-5 w-5 transition-colors text-current')}
+        className={cn('size-5 transition-colors text-current')}
       />
     </PrimitiveButton>
   );
@@ -1158,10 +1180,10 @@ export default function TopbarActivities() {
                   e.stopPropagation();
                   handleClearCompleted();
                 }}
-                className="flex h-7 w-7 items-center justify-center text-foreground/60 hover:text-foreground/90 hover:bg-background/60 transition-colors duration-150 p-0 min-h-0"
+                className="flex size-7 items-center justify-center text-foreground/60 hover:text-foreground/90 hover:bg-background/60 transition-colors duration-150 p-0 min-h-0"
                 ariaLabel="Clear completed tasks"
               >
-                <HiXMark className="h-4 w-4" />
+                <HiXMark className="size-4" />
               </Button>
             )}
             {unreadCount > 0 && (
@@ -1172,10 +1194,10 @@ export default function TopbarActivities() {
                   e.stopPropagation();
                   handleMarkAllRead();
                 }}
-                className="flex h-7 w-7 items-center justify-center text-foreground/60 hover:text-foreground/90 hover:bg-background/60 transition-colors duration-150 p-0 min-h-0"
+                className="flex size-7 items-center justify-center text-foreground/60 hover:text-foreground/90 hover:bg-background/60 transition-colors duration-150 p-0 min-h-0"
                 ariaLabel="Mark all as read"
               >
-                <HiCheck className="h-4 w-4" />
+                <HiCheck className="size-4" />
               </Button>
             )}
             <Button
@@ -1185,10 +1207,10 @@ export default function TopbarActivities() {
                 e.stopPropagation();
                 refresh();
               }}
-              className="flex h-7 w-7 items-center justify-center text-foreground/60 hover:text-foreground/90 hover:bg-background/60 transition-colors duration-150 p-0 min-h-0"
+              className="flex size-7 items-center justify-center text-foreground/60 hover:text-foreground/90 hover:bg-background/60 transition-colors duration-150 p-0 min-h-0"
               ariaLabel="Refresh activities"
             >
-              <HiArrowPath className="h-4 w-4" />
+              <HiArrowPath className="size-4" />
             </Button>
           </div>
         </div>
@@ -1200,9 +1222,7 @@ export default function TopbarActivities() {
                 {realtimeTasks
                   .slice()
                   .sort(
-                    (a, b) =>
-                      new Date(b.createdAt).getTime() -
-                      new Date(a.createdAt).getTime(),
+                    (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
                   )
                   .map((task) => renderRealtimeTask(task))}
                 <div className="border-t border-white/[0.08] my-1" />
@@ -1210,7 +1230,7 @@ export default function TopbarActivities() {
             )}
 
             {unifiedItems.length === 0 ? (
-              <div className="w-full px-3 py-3 text-sm text-foreground/70">
+              <div className="w-full p-3 text-sm text-foreground/70">
                 No activities yet
               </div>
             ) : (

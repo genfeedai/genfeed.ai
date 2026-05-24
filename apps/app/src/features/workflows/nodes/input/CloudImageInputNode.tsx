@@ -6,6 +6,7 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflow-ui/stores';
 import type { NodeProps } from '@xyflow/react';
+import Image from 'next/image';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { NodeButton } from '@/features/workflows/components/ui/button';
 import {
@@ -199,10 +200,13 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
         {mediaConfig.resolvedUrl ? (
           <div className="space-y-2">
             <div className="overflow-hidden rounded bg-black/20">
-              <img
+              <Image
+                unoptimized
                 src={mediaConfig.resolvedUrl}
                 alt={mediaConfig.label ?? 'Selected image'}
                 className="h-28 w-full object-contain"
+                width={800}
+                height={600}
               />
             </div>
             <div className="space-y-1 text-[11px] text-muted-foreground">

@@ -1,3 +1,9 @@
+import {
+  getNestedValue,
+  getNumberByPaths,
+  getStringByPaths,
+  isRecord,
+} from '@genfeedai/utils/data/extract.util';
 import type { RunActionType, RunRecord } from '~services/runs.service';
 
 export interface PostResultEntry {
@@ -82,69 +88,6 @@ const POST_RESULT_FIELD_PATHS: Record<string, Array<Array<string | number>>> = {
   status: [['status'], ['state'], ['publishStatus']],
   timestamp: [['publishedAt'], ['timestamp'], ['completedAt'], ['createdAt']],
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
-function getNestedValue(
-  source: unknown,
-  path: Array<string | number>,
-): unknown {
-  let cursor: unknown = source;
-
-  for (const key of path) {
-    if (Array.isArray(cursor) && typeof key === 'number') {
-      cursor = cursor[key];
-      continue;
-    }
-
-    if (isRecord(cursor) && typeof key === 'string') {
-      cursor = cursor[key];
-      continue;
-    }
-
-    return undefined;
-  }
-
-  return cursor;
-}
-
-function getStringByPaths(
-  source: unknown,
-  paths: Array<Array<string | number>>,
-): string | null {
-  for (const path of paths) {
-    const value = getNestedValue(source, path);
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value.trim();
-    }
-  }
-
-  return null;
-}
-
-function getNumberByPaths(
-  source: unknown,
-  paths: Array<Array<string | number>>,
-): number | null {
-  for (const path of paths) {
-    const value = getNestedValue(source, path);
-
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value;
-    }
-
-    if (typeof value === 'string' && value.trim().length > 0) {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) {
-        return parsed;
-      }
-    }
-  }
-
-  return null;
-}
 
 function stableSerialize(input: unknown): string {
   if (input === null || input === undefined) {
@@ -248,14 +191,24 @@ export function extractGeneratedPreview(output: unknown): string | null {
 }
 
 export function extractPostResults(output: unknown): PostResultEntry[] {
-  const arrayCandidate = POST_RESULT_ARRAY_PATHS.map((path) =>
-    getNestedValue(output, path),
-  ).find((value) => Array.isArray(value));
+  let arrayCandidate: unknown;
+  for (const path of POST_RESULT_ARRAY_PATHS) {
+    const value = getNestedValue(output, path);
+    if (Array.isArray(value)) {
+      arrayCandidate = value;
+      break;
+    }
+  }
 
   if (Array.isArray(arrayCandidate)) {
-    return arrayCandidate
-      .map((item) => toPostResultEntry(item))
-      .filter((item): item is PostResultEntry => Boolean(item));
+    const results: PostResultEntry[] = [];
+    for (const item of arrayCandidate) {
+      const result = toPostResultEntry(item);
+      if (result) {
+        results.push(result);
+      }
+    }
+    return results;
   }
 
   const single = toPostResultEntry(output);

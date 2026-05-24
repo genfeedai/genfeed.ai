@@ -37,7 +37,7 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     forwardRef(() => ActivitiesModule),
     forwardRef(() => BrandsModule),
-    ByokModule,
+    forwardRef(() => ByokModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => FailedGenerationModule),
     forwardRef(() => FilesClientModule),
@@ -49,7 +49,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => PromptsModule),
     forwardRef(() => ReplicateModule),
     forwardRef(() => RouterModule),
-    PollingModule,
+    forwardRef(() => PollingModule),
   ],
   providers: [MusicsService, CreditsGuard, ModelsGuard, CreditsInterceptor],
 })

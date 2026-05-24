@@ -1,7 +1,7 @@
 import {
   brandLookup,
   credentialLookup,
-  ingredientsLookup,
+  ingredientLookup,
   metadataLookup,
   organizationLookup,
   userLookup,
@@ -9,27 +9,27 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('Aggregation Lookup Builders', () => {
-  describe('ingredientsLookup()', () => {
-    it('returns a pipeline stage with $lookup', () => {
-      const result = ingredientsLookup();
-      expect(result).toBeDefined();
-      // Check it's a pipeline stage (has $lookup or is an array)
-      expect(typeof result).toBe('object');
+  describe('ingredientLookup()', () => {
+    it('returns an include stage for ingredients by default', () => {
+      const result = ingredientLookup();
+      expect(result).toEqual([{ include: { ingredients: true } }]);
     });
 
-    it('uses default fields when no options provided', () => {
-      const result = ingredientsLookup();
-      expect(result).toBeTruthy();
+    it('uses custom alias', () => {
+      const result = ingredientLookup({ as: 'assets' });
+      expect(result).toEqual([{ include: { assets: true } }]);
     });
 
-    it('accepts custom localField option', () => {
-      const result = ingredientsLookup({ localField: 'customField' });
-      expect(result).toBeDefined();
+    it('marks include as required when preserveNull is false', () => {
+      const result = ingredientLookup({ preserveNull: false });
+      expect(result).toEqual([
+        { include: { ingredients: true }, required: true },
+      ]);
     });
 
     it('returns fresh object each call (no shared references)', () => {
-      const r1 = ingredientsLookup();
-      const r2 = ingredientsLookup();
+      const r1 = ingredientLookup();
+      const r2 = ingredientLookup();
       expect(r1).not.toBe(r2);
     });
   });
@@ -41,10 +41,10 @@ describe('Aggregation Lookup Builders', () => {
       expect(Array.isArray(result)).toBe(true);
     });
 
-    it('result contains $lookup stage', () => {
+    it('result contains include stage', () => {
       const result = credentialLookup();
       const hasLookup = (result as unknown[]).some(
-        (s) => typeof s === 'object' && s !== null && '$lookup' in s,
+        (s) => typeof s === 'object' && s !== null && 'include' in s,
       );
       expect(hasLookup).toBe(true);
     });
@@ -63,9 +63,9 @@ describe('Aggregation Lookup Builders', () => {
       expect(Array.isArray(result)).toBe(true);
     });
 
-    it('accepts custom asField', () => {
-      const result = userLookup({ asField: 'createdBy' });
-      expect(Array.isArray(result)).toBe(true);
+    it('accepts custom alias', () => {
+      const result = userLookup({ as: 'createdBy' });
+      expect(result).toEqual([{ include: { createdBy: true } }]);
     });
   });
 

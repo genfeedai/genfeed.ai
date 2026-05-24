@@ -9,9 +9,6 @@ export class NewsService extends BaseService<News> {
   }
 
   public static getInstance(token: string): NewsService {
-    return BaseService.getDataServiceInstance(
-      NewsService,
-      token,
-    ) as NewsService;
+    return BaseService.getDataServiceInstance(NewsService, token);
   }
 }

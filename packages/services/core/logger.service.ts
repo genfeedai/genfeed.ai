@@ -13,13 +13,92 @@ const pinoLogger: PinoLogger = pino({
   name: 'genfeed.ai',
 });
 
+function serializeForConsole(obj: unknown): unknown {
+  if (obj == null || typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (obj instanceof Error) {
+    return { message: obj.message, stack: obj.stack, name: obj.name };
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    result[key] =
+      value instanceof Error
+        ? { message: value.message, stack: value.stack, name: value.name }
+        : value;
+  }
+  return result;
+}
+
+function toErrorSummary(error: Error): string {
+  const headline = `${error.name}: ${error.message}`;
+  const stackFrame = error.stack
+    ?.split('\n')
+    .slice(1)
+    .find((line) => line.trim().startsWith('at '));
+
+  return stackFrame ? `${headline}\n${stackFrame.trim()}` : headline;
+}
+
+function extractError(obj: unknown): Error | null {
+  if (obj instanceof Error) {
+    return obj;
+  }
+
+  if (obj && typeof obj === 'object') {
+    const error = (obj as LogContext).error;
+    return error instanceof Error ? error : null;
+  }
+
+  return null;
+}
+
+function formatBrowserContext(obj: unknown): unknown {
+  const serialized = serializeForConsole(obj);
+
+  if (!serialized || typeof serialized !== 'object') {
+    return serialized;
+  }
+
+  const { componentStack, error, ...context } = serialized as Record<
+    string,
+    unknown
+  >;
+
+  return {
+    ...context,
+    ...(typeof componentStack === 'string'
+      ? {
+          componentStack: componentStack
+            .split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .slice(0, 8),
+        }
+      : {}),
+    ...(error ? { error } : {}),
+  };
+}
+
 function logToConsole(
   level: 'debug' | 'info' | 'warn' | 'error',
   message: string,
   obj?: unknown,
 ): void {
+  const error = extractError(obj);
+  if (error) {
+    console[level](`${message}\n${toErrorSummary(error)}`);
+
+    if (obj && obj !== error) {
+      console.debug(`${message} context`, formatBrowserContext(obj));
+    }
+    return;
+  }
+
   if (obj !== undefined) {
-    console[level](message, obj);
+    console[level](message, formatBrowserContext(obj));
   } else {
     console[level](message);
   }

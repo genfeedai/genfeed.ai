@@ -114,13 +114,24 @@ export class ReplicateWebhookController {
             const trainedModelVersion =
               (payload?.output as Record<string, string>)?.version ||
               payload?.version;
+            const trainingConfig =
+              training.config &&
+              typeof training.config === 'object' &&
+              !Array.isArray(training.config)
+                ? (training.config as Record<string, unknown>)
+                : {};
 
             // Update training with completed status and model URL
             const updatedTraining = await this.trainingsService.patch(
               training._id,
               {
-                model: trainedModelVersion,
-                status: TrainingStatus.COMPLETED,
+                config: {
+                  ...trainingConfig,
+                  model: trainedModelVersion,
+                  status: TrainingStatus.COMPLETED,
+                  trainedModelVersion,
+                },
+                stage: 'READY',
               },
             );
 
@@ -160,8 +171,19 @@ export class ReplicateWebhookController {
             payload.status === (ReplicateStatus.ERROR as string)
           ) {
             // Update training with failed status
+            const trainingConfig =
+              training.config &&
+              typeof training.config === 'object' &&
+              !Array.isArray(training.config)
+                ? (training.config as Record<string, unknown>)
+                : {};
             await this.trainingsService.patch(training._id, {
-              status: TrainingStatus.FAILED,
+              config: {
+                ...trainingConfig,
+                error: payload.error || 'Training failed',
+                status: TrainingStatus.FAILED,
+              },
+              stage: 'FAILED',
             });
 
             // Publish websocket event for training failure

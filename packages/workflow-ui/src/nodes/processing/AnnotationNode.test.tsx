@@ -32,7 +32,7 @@ vi.mock('../BaseNode', () => ({
 
 vi.mock('next/image', () => ({
   default: ({ src, alt }: { src: string; alt: string }) => (
-    <img src={src} alt={alt} />
+    <span aria-label={alt} data-src={src} role="img" />
   ),
 }));
 
@@ -124,8 +124,8 @@ describe('AnnotationNode', () => {
       };
       render(<AnnotationNode {...propsWithImage} />);
 
-      const img = screen.getByAltText('Input image');
-      expect(img).toHaveAttribute('src', '/test.jpg');
+      const img = screen.getByRole('img', { name: 'Input image' });
+      expect(img).toHaveAttribute('data-src', '/test.jpg');
     });
 
     it('should enable button with image', () => {
@@ -280,8 +280,8 @@ describe('AnnotationNode', () => {
 
       render(<AnnotationNode {...defaultProps} />);
 
-      const img = screen.getByAltText('Input image');
-      expect(img).toHaveAttribute('src', '/connected-image.jpg');
+      const img = screen.getByRole('img', { name: 'Input image' });
+      expect(img).toHaveAttribute('data-src', '/connected-image.jpg');
     });
 
     it('should prefer connected image over data inputImage', () => {
@@ -295,8 +295,8 @@ describe('AnnotationNode', () => {
       };
       render(<AnnotationNode {...propsWithImage} />);
 
-      const img = screen.getByAltText('Input image');
-      expect(img).toHaveAttribute('src', '/connected-image.jpg');
+      const img = screen.getByRole('img', { name: 'Input image' });
+      expect(img).toHaveAttribute('data-src', '/connected-image.jpg');
     });
   });
 

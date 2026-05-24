@@ -447,7 +447,7 @@ export function useModalGallery({
   const selectedReferencesKey = useMemo(
     () =>
       initialSelectedReferences.length > 0
-        ? [...initialSelectedReferences].sort().join(',')
+        ? initialSelectedReferences.toSorted().join(',')
         : selectedId || '',
     [initialSelectedReferences, selectedId],
   );

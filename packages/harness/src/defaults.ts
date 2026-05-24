@@ -10,6 +10,12 @@ function pushIfValue(target: string[], value: string | undefined): void {
   }
 }
 
+function pushMany(target: string[], values: string[] | undefined): void {
+  for (const value of values ?? []) {
+    pushIfValue(target, value);
+  }
+}
+
 function buildCoreContribution(
   input: ContentHarnessInput,
 ): ContentHarnessContribution {
@@ -100,6 +106,11 @@ function buildCoreContribution(
   guardrails.push(
     'Prefer specificity, concrete claims, and lived-in language.',
   );
+  pushMany(systemDirectives, input.profileContribution?.systemDirectives);
+  pushMany(styleDirectives, input.profileContribution?.styleDirectives);
+  pushMany(guardrails, input.profileContribution?.guardrails);
+  pushMany(evaluationCriteria, input.profileContribution?.evaluationCriteria);
+  pushMany(providerHints, input.profileContribution?.providerHints);
 
   return {
     evaluationCriteria,
@@ -107,7 +118,10 @@ function buildCoreContribution(
     providerHints,
     styleDirectives,
     systemDirectives,
-    sources: input.sources ?? [],
+    sources: [
+      ...(input.sources ?? []),
+      ...(input.profileContribution?.sources ?? []),
+    ],
   };
 }
 

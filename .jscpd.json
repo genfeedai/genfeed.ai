@@ -27,7 +27,6 @@
     "**/*.d.ts",
     "**/bun.lock",
     "**/*.json",
-    "**/*.scss",
     "**/*.css"
   ],
   "minLines": 30,

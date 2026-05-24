@@ -1,4 +1,5 @@
 import { captureExtensionError } from '@services/error-tracking.service';
+import { getValidatedApiEndpoint } from '@services/trusted-origins';
 import * as vscode from 'vscode';
 import type { AuthState } from '@/types';
 
@@ -283,11 +284,7 @@ export class AuthService {
     token: string,
   ): Promise<{ id: string; email: string; organizationId?: string } | null> {
     try {
-      const config = vscode.workspace.getConfiguration('genfeed');
-      const apiEndpoint = config.get<string>(
-        'apiEndpoint',
-        'https://api.genfeed.ai',
-      );
+      const apiEndpoint = getValidatedApiEndpoint();
 
       const response = await fetch(`${apiEndpoint}/users/me`, {
         headers: {
@@ -321,11 +318,7 @@ export class AuthService {
 
   private async validateApiKey(apiKey: string): Promise<boolean> {
     try {
-      const config = vscode.workspace.getConfiguration('genfeed');
-      const apiEndpoint = config.get<string>(
-        'apiEndpoint',
-        'https://api.genfeed.ai',
-      );
+      const apiEndpoint = getValidatedApiEndpoint();
 
       const response = await fetch(`${apiEndpoint}/users/me`, {
         headers: {

@@ -3,7 +3,16 @@
 import type { OutputGalleryNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { ChevronLeft, ChevronRight, Copy, Download, X } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import NextImage from 'next/image';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { useShallow } from 'zustand/react/shallow';
 import { useWorkflowStore } from '../../stores/workflowStore';
@@ -23,31 +32,33 @@ function OutputGalleryNodeComponent(props: NodeProps) {
     const executionImages = [...(nodeData.images || [])];
 
     const connectedImages: string[] = [];
-    edges
-      .filter((edge) => edge.target === id)
-      .forEach((edge) => {
-        const sourceNode = nodes.find((n) => n.id === edge.source);
-        if (!sourceNode) return;
+    const nodesById = new Map(nodes.map((node) => [node.id, node]));
 
-        const sourceData = sourceNode.data as Record<string, unknown>;
+    for (const edge of edges) {
+      if (edge.target !== id) continue;
 
-        const images = sourceData.outputImages as string[] | undefined;
-        if (images?.length) {
-          connectedImages.push(...images);
-          return;
-        }
+      const sourceNode = nodesById.get(edge.source);
+      if (!sourceNode) continue;
 
-        const outputImage = sourceData.outputImage as string | null;
-        if (outputImage) {
-          connectedImages.push(outputImage);
-          return;
-        }
+      const sourceData = sourceNode.data as Record<string, unknown>;
 
-        const image = sourceData.image as string | null;
-        if (image) {
-          connectedImages.push(image);
-        }
-      });
+      const images = sourceData.outputImages as string[] | undefined;
+      if (images?.length) {
+        connectedImages.push(...images);
+        continue;
+      }
+
+      const outputImage = sourceData.outputImage as string | null;
+      if (outputImage) {
+        connectedImages.push(outputImage);
+        continue;
+      }
+
+      const image = sourceData.image as string | null;
+      if (image) {
+        connectedImages.push(image);
+      }
+    }
 
     return [...new Set([...executionImages, ...connectedImages])].reverse();
   }, [nodeData.images, edges, nodes, id]);
@@ -122,26 +133,29 @@ function OutputGalleryNodeComponent(props: NodeProps) {
     }
   }, [lightboxIndex]);
 
-  useEffect(() => {
+  const handleLightboxKeyDown = useEffectEvent((e: KeyboardEvent) => {
     if (!isLightboxOpen) return;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case 'Escape':
-          closeLightbox();
-          break;
-        case 'ArrowLeft':
-          navigateLightbox('prev');
-          break;
-        case 'ArrowRight':
-          navigateLightbox('next');
-          break;
-      }
-    };
+    switch (e.key) {
+      case 'Escape':
+        closeLightbox();
+        break;
+      case 'ArrowLeft':
+        navigateLightbox('prev');
+        break;
+      case 'ArrowRight':
+        navigateLightbox('next');
+        break;
+    }
+  });
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      handleLightboxKeyDown(e);
+    };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isLightboxOpen, closeLightbox, navigateLightbox]);
+  }, []);
 
   return (
     <>
@@ -162,10 +176,13 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                   onClick={() => openLightbox(idx)}
                   className="aspect-square rounded border border-border hover:border-primary overflow-hidden p-0 h-auto"
                 >
-                  <img
+                  <NextImage
                     src={img}
                     alt={`Generated result ${idx + 1}`}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="size-full object-cover"
+                    sizes="80px"
+                    unoptimized
                   />
                 </Button>
               ))}
@@ -179,17 +196,30 @@ function OutputGalleryNodeComponent(props: NodeProps) {
         createPortal(
           <div
             className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-8"
+            role="button"
+            tabIndex={0}
             onClick={closeLightbox}
             onContextMenu={(e) => e.stopPropagation()}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                closeLightbox();
+              }
+            }}
           >
             <div
               className="relative max-w-full max-h-full"
+              role="presentation"
               onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
             >
-              <img
+              <NextImage
                 src={displayImages[lightboxIndex]}
                 alt={`Generated result ${lightboxIndex + 1}`}
-                className="max-w-full max-h-[90vh] object-contain rounded"
+                width={1200}
+                height={800}
+                className="max-h-[90vh] w-auto max-w-full object-contain rounded"
+                unoptimized
               />
 
               <Button
@@ -198,7 +228,7 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                 onClick={closeLightbox}
                 className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white"
               >
-                <X className="w-4 h-4" />
+                <X className="size-4" />
               </Button>
 
               <div className="absolute top-4 left-4 flex items-center gap-2">
@@ -208,7 +238,7 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                   onClick={downloadImage}
                   className="bg-white/10 hover:bg-white/20 text-white text-xs"
                 >
-                  <Download className="w-3.5 h-3.5" />
+                  <Download className="size-3.5" />
                   Download
                 </Button>
                 <Button
@@ -217,7 +247,7 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                   onClick={copyImage}
                   className="bg-white/10 hover:bg-white/20 text-white text-xs"
                 >
-                  <Copy className="w-3.5 h-3.5" />
+                  <Copy className="size-3.5" />
                   Copy
                 </Button>
               </div>
@@ -227,9 +257,9 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                   variant="ghost"
                   size="icon"
                   onClick={() => navigateLightbox('prev')}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full text-white"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 size-10 bg-white/10 hover:bg-white/20 rounded-full text-white"
                 >
-                  <ChevronLeft className="w-5 h-5" />
+                  <ChevronLeft className="size-5" />
                 </Button>
               )}
 
@@ -238,9 +268,9 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                   variant="ghost"
                   size="icon"
                   onClick={() => navigateLightbox('next')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full text-white"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 size-10 bg-white/10 hover:bg-white/20 rounded-full text-white"
                 >
-                  <ChevronRight className="w-5 h-5" />
+                  <ChevronRight className="size-5" />
                 </Button>
               )}
 

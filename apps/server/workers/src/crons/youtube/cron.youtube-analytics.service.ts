@@ -9,6 +9,11 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
+type AnalyticsYoutubePost = PostEntity & {
+  brand: unknown;
+  organization: unknown;
+};
+
 /**
  * YouTube Analytics Cron Service
  * Fetches analytics for YouTube videos every hour using batch API (up to 50 videos per request)
@@ -33,32 +38,20 @@ export class CronYoutubeAnalyticsService {
 
     try {
       // Find all published YouTube posts with external IDs
-      const posts: unknown = await this.postsService.findAll(
-        [
-          {
-            $match: {
-              externalId: { $exists: true, $ne: null },
-              isDeleted: false,
-              platform: CredentialPlatform.YOUTUBE,
-              status: {
-                $in: [PostStatus.PUBLIC],
-              },
+      const posts = (await this.postsService.findAll(
+        {
+          include: { credential: true },
+          where: {
+            externalId: { not: null },
+            isDeleted: false,
+            platform: CredentialPlatform.YOUTUBE,
+            status: {
+              in: [PostStatus.PUBLIC],
             },
           },
-          {
-            $lookup: {
-              as: 'credential',
-              foreignField: '_id',
-              from: 'credentials',
-              localField: 'credential',
-            },
-          },
-          {
-            $unwind: '$credential',
-          },
-        ],
+        },
         { customLabels, pagination: false },
-      );
+      )) as unknown as { docs: AnalyticsYoutubePost[] };
 
       if (!posts.docs || posts.docs.length === 0) {
         this.logger.log(`${url} no YouTube posts to track`);
@@ -99,7 +92,7 @@ export class CronYoutubeAnalyticsService {
           const jobData: YouTubeAnalyticsJobData = {
             brandId,
             organizationId,
-            posts: batch.map((post: PostEntity) => ({
+            posts: batch.map((post) => ({
               _id: post._id.toString(),
               brand: post.brand.toString(),
               externalId: post.externalId!,

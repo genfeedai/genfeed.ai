@@ -1,5 +1,5 @@
-import { getActiveProfile } from '@/config/store.js';
-import { DarkroomApiError } from '@/utils/errors.js';
+import { getActiveProfile } from '@/config/store';
+import { DarkroomApiError } from '@/utils/errors';
 
 interface DarkroomHealthResponse {
   status: string;

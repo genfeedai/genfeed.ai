@@ -15,10 +15,10 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [SpeechController],
   exports: [],
   imports: [
-    ByokModule,
-    CreditsModule,
+    forwardRef(() => ByokModule),
+    forwardRef(() => CreditsModule),
     forwardRef(() => ModelsModule),
-    ReplicateModule,
+    forwardRef(() => ReplicateModule),
   ],
   providers: [CreditsGuard, CreditsInterceptor],
 })

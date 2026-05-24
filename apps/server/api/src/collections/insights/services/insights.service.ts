@@ -12,7 +12,7 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 type Forecast = ForecastDocument;
 type Insight = InsightDocument;
@@ -45,6 +45,124 @@ export class InsightsService {
     private readonly modelsService: ModelsService,
     private readonly replicateService: ReplicateService,
   ) {}
+
+  private readObjectRecord(value: unknown): Record<string, unknown> {
+    return typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private readNumber(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value)
+      ? value
+      : undefined;
+  }
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private readStringArray(value: unknown): string[] {
+    return Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === 'string')
+      : [];
+  }
+
+  private readEstimatedReach(value: unknown): { min: number; max: number } {
+    const record = this.readObjectRecord(value);
+
+    return {
+      max: this.readNumber(record.max) ?? 0,
+      min: this.readNumber(record.min) ?? 0,
+    };
+  }
+
+  private readFactors(
+    value: unknown,
+  ): Array<{ factor: string; impact: number; description: string }> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.flatMap((item) => {
+      const record = this.readObjectRecord(item);
+      const factor = this.readString(record.factor);
+      const description = this.readString(record.description);
+
+      if (!factor || !description) {
+        return [];
+      }
+
+      return [
+        {
+          description,
+          factor,
+          impact: this.readNumber(record.impact) ?? 0,
+        },
+      ];
+    });
+  }
+
+  private readOpportunityAreas(value: unknown): Array<{
+    area: string;
+    potential: number;
+    competition: string;
+    recommendations: string[];
+  }> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.flatMap((item) => {
+      const record = this.readObjectRecord(item);
+      const area = this.readString(record.area);
+      const competition = this.readString(record.competition);
+
+      if (!area || !competition) {
+        return [];
+      }
+
+      return [
+        {
+          area,
+          competition,
+          potential: this.readNumber(record.potential) ?? 0,
+          recommendations: this.readStringArray(record.recommendations),
+        },
+      ];
+    });
+  }
+
+  private readRecommendedTimes(value: unknown): Array<{
+    day: string;
+    time: string;
+    confidence: number;
+    reason: string;
+  }> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.flatMap((item) => {
+      const record = this.readObjectRecord(item);
+      const day = this.readString(record.day);
+      const time = this.readString(record.time);
+      const reason = this.readString(record.reason);
+
+      if (!day || !time || !reason) {
+        return [];
+      }
+
+      return [
+        {
+          confidence: this.readNumber(record.confidence) ?? 0,
+          day,
+          reason,
+          time,
+        },
+      ];
+    });
+  }
 
   @HandleErrors('get forecast', 'insights')
   async getForecast(
@@ -213,6 +331,8 @@ export class InsightsService {
     }
   }
 
+  private static readonly MAX_VIRAL_CONTENT_LENGTH = 50_000;
+
   async predictViral(
     dto: PredictViralDto,
     organizationId: string,
@@ -224,6 +344,15 @@ export class InsightsService {
     factors: Array<{ factor: string; impact: number; description: string }>;
     recommendations: string[];
   }> {
+    if (
+      dto.content &&
+      dto.content.length > InsightsService.MAX_VIRAL_CONTENT_LENGTH
+    ) {
+      throw new BadRequestException(
+        `Content exceeds maximum allowed length of ${InsightsService.MAX_VIRAL_CONTENT_LENGTH} characters`,
+      );
+    }
+
     try {
       this.logger.debug('Predicting viral potential', {
         contentType: dto.contentType,
@@ -273,11 +402,11 @@ Return ONLY valid JSON. Do not include any text before or after the JSON.`;
       );
 
       return {
-        estimatedReach: result.estimatedReach || { max: 0, min: 0 },
-        factors: result.factors || [],
-        probability: result.probability || 0,
-        recommendations: result.recommendations || [],
-        score: result.score || 0,
+        estimatedReach: this.readEstimatedReach(result.estimatedReach),
+        factors: this.readFactors(result.factors),
+        probability: this.readNumber(result.probability) ?? 0,
+        recommendations: this.readStringArray(result.recommendations),
+        score: this.readNumber(result.score) ?? 0,
       };
     } catch (error: unknown) {
       this.logger.error('Failed to predict viral potential', { error });
@@ -330,9 +459,9 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
       );
 
       return {
-        missingTopics: result.missingTopics || [],
-        opportunityAreas: result.opportunityAreas || [],
-        underservedAudiences: result.underservedAudiences || [],
+        missingTopics: this.readStringArray(result.missingTopics),
+        opportunityAreas: this.readOpportunityAreas(result.opportunityAreas),
+        underservedAudiences: this.readStringArray(result.underservedAudiences),
       };
     } catch (error: unknown) {
       this.logger.error('Failed to analyze content gaps', { error });
@@ -389,7 +518,10 @@ Provide 5-7 optimal time slots.`;
         {},
       );
 
-      return { recommendedTimes: result.recommendedTimes || [], timezone };
+      return {
+        recommendedTimes: this.readRecommendedTimes(result.recommendedTimes),
+        timezone,
+      };
     } catch (error: unknown) {
       this.logger.error('Failed to get best posting times', { error });
       throw error;

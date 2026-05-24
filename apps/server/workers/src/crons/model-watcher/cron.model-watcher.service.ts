@@ -30,10 +30,16 @@ const VERIFIED_OWNERS: ReadonlySet<string> = new Set([
   'kwaivgi',
   'luma',
   'meta',
+  'minimax',
   'openai',
+  'pixverse',
   'prunaai',
   'qwen',
+  'recraft-ai',
   'runwayml',
+  'vidu',
+  'wan-video',
+  'xai',
 ]);
 
 /** Maximum number of API pages to iterate to prevent runaway polling */
@@ -89,7 +95,11 @@ export class CronModelWatcherService {
       // Step 1: Fetch all known model keys from database
       const existingModels = await this.modelsService.findAllActive();
       const allModels = await this.modelsService.find({ isDeleted: false });
-      const existingKeys = new Set(allModels.map((m: ModelDocument) => m.key));
+      const existingKeys = new Set(
+        allModels
+          .map((m: ModelDocument) => m.key)
+          .filter((key): key is string => typeof key === 'string'),
+      );
 
       this.logger.log(`${url} loaded ${existingKeys.size} existing model keys`);
 

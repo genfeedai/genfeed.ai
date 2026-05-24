@@ -28,6 +28,9 @@ export interface TableProps<T> {
 
   // Row click handler
   onRowClick?: (item: T) => void;
+
+  // Visually hide column headers (sr-only for accessibility)
+  hideHeader?: boolean;
 }
 
 export interface TableAction<T> {

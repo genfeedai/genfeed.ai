@@ -29,10 +29,10 @@ export function CostIndicator() {
       title="View cost breakdown"
       className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
     >
-      <DollarSign className="h-3.5 w-3.5" />
+      <DollarSign className="size-3.5" />
       <span className="font-mono text-xs">{formatCost(displayCost)}</span>
       {isRunning && actualCost > 0 && (
-        <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+        <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
       )}
     </Button>
   );

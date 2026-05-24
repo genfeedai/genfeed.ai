@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import MenuLabel from '@ui/menus/label/MenuLabel';
 import { useState } from 'react';
@@ -82,7 +83,7 @@ export const WithChevronDown: Story = {
       outline={FiHome}
       solid={HiHome}
       isActive={false}
-      chevronIcon={<HiChevronDown className="w-4 h-4" />}
+      chevronIcon={<HiChevronDown className="size-4" />}
     />
   ),
 };
@@ -100,7 +101,7 @@ export const WithChevronRight: Story = {
       outline={FiSettings}
       solid={HiCog6Tooth}
       isActive={false}
-      chevronIcon={<HiChevronRight className="w-4 h-4" />}
+      chevronIcon={<HiChevronRight className="size-4" />}
     />
   ),
 };
@@ -132,19 +133,19 @@ export const InMenu: Story = {
         outline={FiHome}
         solid={HiHome}
         isActive={true}
-        chevronIcon={<HiChevronDown className="w-4 h-4" />}
+        chevronIcon={<HiChevronDown className="size-4" />}
       />
       <MenuLabel
         label="Settings"
         outline={FiSettings}
         solid={HiCog6Tooth}
         isActive={false}
-        chevronIcon={<HiChevronRight className="w-4 h-4" />}
+        chevronIcon={<HiChevronRight className="size-4" />}
       />
       <MenuLabel
         label="Other"
         isActive={false}
-        chevronIcon={<HiChevronRight className="w-4 h-4" />}
+        chevronIcon={<HiChevronRight className="size-4" />}
       />
     </ul>
   ),
@@ -172,9 +173,9 @@ export const Interactive: Story = {
           isActive={isExpanded}
           chevronIcon={
             isExpanded ? (
-              <HiChevronDown className="w-4 h-4" />
+              <HiChevronDown className="size-4" />
             ) : (
-              <HiChevronRight className="w-4 h-4" />
+              <HiChevronRight className="size-4" />
             )
           }
           onClick={() => setIsExpanded(!isExpanded)}

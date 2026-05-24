@@ -16,10 +16,10 @@ import {
 } from 'react-icons/hi2';
 
 const SCOPE_ICONS: Record<AssetScope, React.ReactNode> = {
-  [AssetScope.USER]: <HiLockClosed className="w-3 h-3" />,
-  [AssetScope.BRAND]: <HiUsers className="w-3 h-3" />,
-  [AssetScope.ORGANIZATION]: <HiBuildingOffice className="w-3 h-3" />,
-  [AssetScope.PUBLIC]: <HiGlobeAlt className="w-3 h-3" />,
+  [AssetScope.USER]: <HiLockClosed className="size-3" />,
+  [AssetScope.BRAND]: <HiUsers className="size-3" />,
+  [AssetScope.ORGANIZATION]: <HiBuildingOffice className="size-3" />,
+  [AssetScope.PUBLIC]: <HiGlobeAlt className="size-3" />,
 };
 
 /**
@@ -115,7 +115,7 @@ export default function MasonryBadgeOverlay({
         {ingredient.totalChildren > 0 && !isPublicGallery && (
           <Badge
             className="text-xs px-2 py-0.5 flex items-center gap-2 bg-muted/80 text-foreground backdrop-blur-sm shadow-sm"
-            icon={<HiOutlineDocumentDuplicate className="w-3 h-3" />}
+            icon={<HiOutlineDocumentDuplicate className="size-3" />}
             value={`${ingredient.totalChildren} version${ingredient.totalChildren > 1 ? 's' : ''}`}
           />
         )}

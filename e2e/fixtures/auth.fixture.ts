@@ -78,7 +78,7 @@ const MOCK_ADMIN_SESSION = {
 };
 
 const APP_AUTH_BOOTSTRAP_PATH = '/workspace';
-const ADMIN_AUTH_BOOTSTRAP_PATH = '/overview/dashboard';
+const ADMIN_AUTH_BOOTSTRAP_PATH = '/admin/overview/dashboard';
 const AUTOMATION_AUTH_BOOTSTRAP_PATH = '/workflows';
 
 // ----------------------------------------------------------------------------
@@ -620,7 +620,7 @@ async function navigateAfterAuth(page: Page, path: string): Promise<void> {
 // ----------------------------------------------------------------------------
 
 export const test = base.extend<AuthFixtures>({
-  adminPage: async ({ page, context }, use) => {
+  adminPage: async ({ page, context }, runFixture) => {
     const networkGuard = await setupStrictNetworkGuard(page);
     const adminOptions: MockUserOptions = {
       email: 'admin@genfeed.ai',
@@ -636,16 +636,16 @@ export const test = base.extend<AuthFixtures>({
     await setupClerkMocks(page, adminOptions, MOCK_ADMIN_SESSION);
     await navigateAfterAuth(page, ADMIN_AUTH_BOOTSTRAP_PATH);
 
-    await use(page);
+    await runFixture(page);
     networkGuard.assertNoBlockedRequests();
   },
 
-  authenticatedContext: async ({ context }, use) => {
+  authenticatedContext: async ({ context }, runFixture) => {
     await setupAuthCookies(context);
-    await use(context);
+    await runFixture(context);
   },
 
-  authenticatedPage: async ({ page, context }, use) => {
+  authenticatedPage: async ({ page, context }, runFixture) => {
     const networkGuard = await setupStrictNetworkGuard(page);
 
     await setupAuthCookies(context);
@@ -654,11 +654,11 @@ export const test = base.extend<AuthFixtures>({
     await setupClerkMocks(page, {}, MOCK_SESSION);
     await navigateAfterAuth(page, APP_AUTH_BOOTSTRAP_PATH);
 
-    await use(page);
+    await runFixture(page);
     networkGuard.assertNoBlockedRequests();
   },
 
-  automationPage: async ({ page, context }, use) => {
+  automationPage: async ({ page, context }, runFixture) => {
     const networkGuard = await setupStrictNetworkGuard(page);
 
     await setupAuthCookies(context);
@@ -669,11 +669,11 @@ export const test = base.extend<AuthFixtures>({
     await mockWorkflowTemplates(page, []);
     await navigateAfterAuth(page, AUTOMATION_AUTH_BOOTSTRAP_PATH);
 
-    await use(page);
+    await runFixture(page);
     networkGuard.assertNoBlockedRequests();
   },
 
-  unauthenticatedPage: async ({ page }, use) => {
+  unauthenticatedPage: async ({ page }, runFixture) => {
     const networkGuard = await setupStrictNetworkGuard(page);
     await setupApiMocks(page);
 
@@ -698,7 +698,7 @@ export const test = base.extend<AuthFixtures>({
       });
     });
 
-    await use(page);
+    await runFixture(page);
     networkGuard.assertNoBlockedRequests();
   },
 });

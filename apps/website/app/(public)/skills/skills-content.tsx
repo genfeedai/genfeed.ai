@@ -55,12 +55,12 @@ function InstallCommand(): React.ReactElement {
       onClick={handleCopy}
       className="group inline-flex items-center gap-3 px-6 py-3 bg-fill/5 border border-edge/10 hover:border-edge/20 transition-all font-mono text-sm cursor-pointer"
     >
-      <LuTerminal className="h-4 w-4 text-surface/30" />
+      <LuTerminal className="size-4 text-surface/30" />
       <span className="text-surface/70">npx skills add genfeedai/skills</span>
       {copied ? (
-        <LuCheck className="h-4 w-4 text-emerald-400" />
+        <LuCheck className="size-4 text-emerald-400" />
       ) : (
-        <LuCopy className="h-4 w-4 text-surface/30 group-hover:text-surface/60 transition-colors" />
+        <LuCopy className="size-4 text-surface/30 group-hover:text-surface/60 transition-colors" />
       )}
     </BaseButton>
   );
@@ -87,9 +87,9 @@ function TerminalDemo(): React.ReactElement {
     <div className="overflow-hidden border border-edge/10 bg-black/40">
       <div className="flex items-center gap-2 px-4 py-3 bg-fill/5 border-b border-edge/10">
         <div className="flex gap-2">
-          <div className="w-3 h-3 rounded-full bg-fill/20" />
-          <div className="w-3 h-3 rounded-full bg-fill/20" />
-          <div className="w-3 h-3 rounded-full bg-fill/20" />
+          <div className="size-3 rounded-full bg-fill/20" />
+          <div className="size-3 rounded-full bg-fill/20" />
+          <div className="size-3 rounded-full bg-fill/20" />
         </div>
         <div className="flex-1 text-center text-xs text-surface/30 font-mono uppercase tracking-widest">
           terminal
@@ -141,7 +141,7 @@ interface SkillsContentProps {
 }
 
 export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
-  const [registry] = useState<SkillRegistry | null>(initialRegistry);
+  const registry = initialRegistry;
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const containerRef = useMarketingEntrance();
 
@@ -196,9 +196,9 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <FaGithub className="h-4 w-4" />
+                  <FaGithub className="size-4" />
                   View on GitHub
-                  <LuArrowRight className="h-4 w-4" />
+                  <LuArrowRight className="size-4" />
                 </Link>
               </Button>
               <Button
@@ -340,12 +340,12 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
                     onClick={() => handleCheckout()}
                   >
                     {checkoutLoading ? (
-                      <LuLoader className="h-4 w-4 animate-spin" />
+                      <LuLoader className="size-4 animate-spin" />
                     ) : (
                       <>
-                        <LuSparkles className="h-4 w-4" />
+                        <LuSparkles className="size-4" />
                         Buy Bundle
-                        <LuArrowRight className="h-4 w-4" />
+                        <LuArrowRight className="size-4" />
                       </>
                     )}
                   </Button>
@@ -365,7 +365,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
               Install. Learn. Create.
             </h2>
             <p className="text-surface/50 max-w-xl mx-auto">
-              Skills are knowledge packages your agent absorbs — not plugins you
+              Skills are knowledge packages your agent absorbs, not plugins you
               configure.
             </p>
           </div>
@@ -434,11 +434,11 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
               disabled={checkoutLoading}
             >
               {checkoutLoading ? (
-                <LuLoader className="h-4 w-4 animate-spin" />
+                <LuLoader className="size-4 animate-spin" />
               ) : (
                 <>
-                  <LuSparkles className="h-4 w-4" />
-                  Get Pro Skills — ${registry.bundlePrice}
+                  <LuSparkles className="size-4" />
+                  Get Pro Skills: ${registry.bundlePrice}
                 </>
               )}
             </Button>
@@ -453,7 +453,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <FaGithub className="h-4 w-4" />
+              <FaGithub className="size-4" />
               Free Skills on GitHub
             </Link>
           </Button>

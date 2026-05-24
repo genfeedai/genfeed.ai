@@ -17,7 +17,10 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  BaseService,
+  type PrismaFindAllInput,
+} from '@api/shared/services/base/base.service';
 import {
   PopulateBuilder,
   PopulatePatterns,
@@ -43,7 +46,6 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
-type PipelineStage = Record<string, unknown>;
 type AggregatePaginateResult<T> = {
   docs: T[];
   totalDocs: number;
@@ -55,10 +57,51 @@ type AggregatePaginateResult<T> = {
   [key: string]: unknown;
 };
 
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+function toLegacyMatchValue(key: string, value: unknown): unknown {
+  if ((key === 'organization' || key === 'user') && value === null) {
+    return { $exists: false };
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      typeof item === 'object' && item !== null
+        ? toLegacyMatchObject(item as Record<string, unknown>)
+        : item,
+    );
+  }
+
+  return value;
 }
+
+function toLegacyMatchObject(match: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(match).map(([key, value]) => [
+      key,
+      toLegacyMatchValue(key, value),
+    ]),
+  );
+}
+
+function toLegacyMatchStage(match: Record<string, unknown>) {
+  const legacyMatch = toLegacyMatchObject(match);
+
+  if (Array.isArray(legacyMatch.OR)) {
+    legacyMatch.$or = legacyMatch.OR;
+    delete legacyMatch.OR;
+  }
+
+  if (Array.isArray(legacyMatch.AND)) {
+    legacyMatch.$and = legacyMatch.AND;
+    delete legacyMatch.AND;
+  }
+
+  return {
+    $match: legacyMatch,
+    match: legacyMatch,
+  };
+}
+
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 
 @AutoSwagger()
 export abstract class BaseCRUDController<
@@ -81,7 +124,7 @@ export abstract class BaseCRUDController<
 
     // Convert string populate fields to optimized versions.
     // NOTE: 'user' is excluded because User data lives on the AUTH database.
-    // Use $lookup-based aggregation when a CLOUD record needs user details.
+    // Use relationInclude-based aggregation when a CLOUD record needs user details.
     this.optimizedPopulateFields = populateFields
       .filter((field) => field !== 'user')
       .map((field) => {
@@ -123,11 +166,10 @@ export abstract class BaseCRUDController<
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    // Build base aggregation pipeline - child controllers can override this
-    const aggregate = this.buildFindAllPipeline(user, query);
+    const findAllQuery = this.buildFindAllQuery(user, query);
 
     const data: AggregatePaginateResult<T> = await this.service.findAll(
-      aggregate,
+      findAllQuery,
       options,
     );
     return serializeCollection(request, this.serializer, data);
@@ -143,7 +185,7 @@ export abstract class BaseCRUDController<
     @CurrentUser() _user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound(this.entityName, id);
     }
 
@@ -192,7 +234,7 @@ export abstract class BaseCRUDController<
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(url, { params: { id }, updateDto });
 
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound(this.entityName, id);
     }
 
@@ -207,8 +249,6 @@ export abstract class BaseCRUDController<
     if (!existing) {
       ErrorResponse.notFound(this.entityName, id);
     }
-
-    const publicMetadata = getPublicMetadata(user);
 
     // Return 404 instead of 403 for security
     if (
@@ -243,7 +283,7 @@ export abstract class BaseCRUDController<
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound(this.entityName, id);
     }
 
@@ -268,10 +308,10 @@ export abstract class BaseCRUDController<
   }
 
   /**
-   * Build the aggregation pipeline for findAll
+   * Build the findAll query for findAll
    * Child controllers can override this to customize the query
    */
-  public buildFindAllPipeline(user: User, query: QueryDto): PipelineStage[] {
+  public buildFindAllQuery(user: User, query: QueryDto): PrismaFindAllInput {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,
@@ -288,7 +328,38 @@ export abstract class BaseCRUDController<
       matchFilter.user = publicMetadata.user;
     }
 
-    return [{ $match: matchFilter }, { $sort: handleQuerySort(query.sort) }];
+    return {
+      orderBy: handleQuerySort(query.sort),
+      where: matchFilter,
+    };
+  }
+
+  public buildFindAllPipeline(
+    user: User,
+    query: QueryDto,
+  ): Record<string, unknown>[] {
+    const findAllQuery = this.buildFindAllQuery(user, query);
+    const stages: Record<string, unknown>[] = [];
+
+    if (findAllQuery.where) {
+      const { AND: andConditions, ...baseWhere } = findAllQuery.where;
+      stages.push(toLegacyMatchStage(baseWhere));
+
+      if (Array.isArray(andConditions)) {
+        for (const condition of andConditions) {
+          stages.push(toLegacyMatchStage(condition));
+        }
+      }
+    }
+
+    if (findAllQuery.orderBy) {
+      stages.push({
+        $sort: findAllQuery.orderBy,
+        orderBy: findAllQuery.orderBy,
+      });
+    }
+
+    return stages;
   }
 
   /**

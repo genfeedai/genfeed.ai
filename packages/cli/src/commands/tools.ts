@@ -1,6 +1,6 @@
 import { getToolsForSurface } from '@genfeedai/tools';
 import { Command } from 'commander';
-import { print } from '@/ui/theme.js';
+import { print } from '@/ui/theme';
 
 export const toolsCommand = new Command('tools')
   .description('List canonical Genfeed tool names available to CLI')

@@ -1,8 +1,8 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -117,7 +117,7 @@ export class BaseQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   organization?: string;
 
   @ApiProperty({
@@ -125,7 +125,7 @@ export class BaseQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   brand?: string;
 
   @ApiProperty({

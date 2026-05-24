@@ -29,6 +29,50 @@ const DATETIME_PARTS_FORMAT: Intl.DateTimeFormatOptions = {
   year: 'numeric',
 };
 
+const dateFormatterCache = new Map<string, Intl.DateTimeFormat>();
+const timeFormatterCache = new Map<string, Intl.DateTimeFormat>();
+const datetimePartsFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
+function getDateFormatter(timezone: string): Intl.DateTimeFormat {
+  let formatter = dateFormatterCache.get(timezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      day: '2-digit',
+      month: '2-digit',
+      timeZone: timezone,
+      year: 'numeric',
+    });
+    dateFormatterCache.set(timezone, formatter);
+  }
+  return formatter;
+}
+
+function getTimeFormatter(timezone: string): Intl.DateTimeFormat {
+  let formatter = timeFormatterCache.get(timezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      hour: '2-digit',
+      hour12: false,
+      minute: '2-digit',
+      timeZone: timezone,
+    });
+    timeFormatterCache.set(timezone, formatter);
+  }
+  return formatter;
+}
+
+function getDatetimePartsFormatter(timezone: string): Intl.DateTimeFormat {
+  let formatter = datetimePartsFormatterCache.get(timezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      ...DATETIME_PARTS_FORMAT,
+      timeZone: timezone,
+    });
+    datetimePartsFormatterCache.set(timezone, formatter);
+  }
+  return formatter;
+}
+
 function extractDateTimeFromISO(isoString: string): DateTimeResult | null {
   const match = isoString.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
   if (!match || match.length < 6) {
@@ -58,21 +102,8 @@ function extractDateTimeFromTimezone(
   utcDate: Date,
   timezone: string,
 ): DateTimeResult {
-  const dateFormatter = new Intl.DateTimeFormat('en-US', {
-    day: '2-digit',
-    month: '2-digit',
-    timeZone: timezone,
-    year: 'numeric',
-  });
-  const timeFormatter = new Intl.DateTimeFormat('en-US', {
-    hour: '2-digit',
-    hour12: false,
-    minute: '2-digit',
-    timeZone: timezone,
-  });
-
-  const dateParts = dateFormatter.formatToParts(utcDate);
-  const timeParts = timeFormatter.formatToParts(utcDate);
+  const dateParts = getDateFormatter(timezone).formatToParts(utcDate);
+  const timeParts = getTimeFormatter(timezone).formatToParts(utcDate);
 
   const year = dateParts.find((part) => part.type === 'year')?.value || '';
   const month = dateParts.find((part) => part.type === 'month')?.value || '';
@@ -105,12 +136,7 @@ function createDateFromTimezone(
   }
 
   const baseUtcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes));
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    ...DATETIME_PARTS_FORMAT,
-    timeZone: timezone,
-  });
-
-  const parts = formatter.formatToParts(baseUtcDate);
+  const parts = getDatetimePartsFormatter(timezone).formatToParts(baseUtcDate);
   const getPartValue = (type: string) =>
     parseInt(parts.find((part) => part.type === type)?.value || '0', 10);
 

@@ -1,11 +1,11 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { requireAuth } from '@/api/client.js';
-import { getPromptPerformance, getTopPerformers, getWeeklySummary } from '@/api/performance.js';
-import { getActiveBrand } from '@/config/store.js';
-import { formatHeader, formatLabel, print, printJson } from '@/ui/theme.js';
-import { handleError } from '@/utils/errors.js';
+import { requireAuth } from '@/api/client';
+import { getPromptPerformance, getTopPerformers, getWeeklySummary } from '@/api/performance';
+import { getActiveBrand } from '@/config/store';
+import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
+import { handleError } from '@/utils/errors';
 
 export const performanceCommand = new Command('performance').description(
   'Content performance analytics'

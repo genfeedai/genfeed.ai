@@ -25,13 +25,13 @@ import { forwardRef, Module } from '@nestjs/common';
     ThreadContextCompressorService,
   ],
   imports: [
-    AgentThreadsModule,
-    AgentMemoriesModule,
-    AgentMessagesModule,
-    UsersModule,
+    forwardRef(() => AgentThreadsModule),
+    forwardRef(() => AgentMemoriesModule),
+    forwardRef(() => AgentMessagesModule),
+    forwardRef(() => UsersModule),
     forwardRef(() => AgentOrchestratorModule),
     forwardRef(() => LlmDispatcherModule),
-    LoggerModule,
+    forwardRef(() => LoggerModule),
   ],
   providers: [
     AgentExecutionLaneService,

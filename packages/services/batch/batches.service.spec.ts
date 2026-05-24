@@ -9,6 +9,7 @@ import {
 vi.mock('@services/core/interceptor.service', () => {
   return {
     HTTPBaseService: class {
+      private static instances = new Map<string, unknown>();
       protected instance: {
         get: ReturnType<typeof vi.fn>;
         post: ReturnType<typeof vi.fn>;
@@ -21,6 +22,21 @@ vi.mock('@services/core/interceptor.service', () => {
           post: vi.fn(),
         };
       }
+
+      static getBaseServiceInstance<T>(
+        ServiceClass: new (token: string) => T,
+        token: string,
+      ): T {
+        const key = `${ServiceClass.name}:${token}`;
+        const cached = this.instances.get(key);
+        if (cached) {
+          return cached as T;
+        }
+
+        const instance = new ServiceClass(token);
+        this.instances.set(key, instance);
+        return instance;
+      }
     },
   };
 });
@@ -31,7 +47,7 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
-vi.mock('@genfeedai/helpers/data/json-api/json-api.helper', () => ({
+vi.mock('@services/core/json-api', () => ({
   deserializeCollection: vi.fn((doc) => doc.data ?? []),
   deserializeResource: vi.fn((doc) => doc.data ?? doc),
 }));
@@ -55,10 +71,6 @@ describe('BatchesService', () => {
   };
 
   beforeEach(() => {
-    // Clear singleton cache so each test gets a fresh instance
-    (
-      BatchesService as unknown as { instanceMap: Map<string, BatchesService> }
-    ).instanceMap?.clear();
     service = new BatchesService('test-token');
     mockInstance = (service as unknown as { instance: typeof mockInstance })
       .instance;

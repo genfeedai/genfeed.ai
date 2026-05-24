@@ -168,7 +168,7 @@ export default function ModalBrandInstagram({
     >
       <div className="w-full max-w-2xl">
         <div className="flex items-center gap-2 mb-6">
-          <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+          <div className="size-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
             <FaInstagram className="text-white text-lg" />
           </div>
 
@@ -182,11 +182,11 @@ export default function ModalBrandInstagram({
 
         {isLoading && (
           <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto mb-4">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+            <div className="size-16 mx-auto mb-4">
+              <div className="animate-spin rounded-full size-16 border-b-2 border-primary"></div>
             </div>
             <p className="text-muted-foreground text-sm">
-              Loading Instagram pages...
+              Loading Instagram pages…
             </p>
           </div>
         )}
@@ -210,7 +210,7 @@ export default function ModalBrandInstagram({
 
         {!isLoading && availableHandles.length === 0 && (
           <div className="text-center py-8">
-            <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+            <div className="size-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
               <FaInstagram className="text-muted-foreground text-xl" />
             </div>
             <h4 className="font-semibold mb-2">
@@ -234,19 +234,27 @@ export default function ModalBrandInstagram({
             {availableHandles.map((handle: CredentialInstagram) => (
               <div
                 key={handle.id}
+                role="button"
+                tabIndex={0}
                 className={`p-4 cursor-pointer transition-all ${
                   selectedHandle?.id === handle.id
                     ? 'border-2 border-white bg-primary/10'
                     : 'border-2 border-transparent hover:bg-white/5'
                 }`}
                 onClick={() => setSelectedHandle(handle)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedHandle(handle);
+                  }
+                }}
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="size-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
                     <Image
                       src={handle.image}
                       alt={handle.label}
-                      className="w-10 h-10 rounded-full object-cover"
+                      className="size-10 rounded-full object-cover"
                       width={40}
                       height={40}
                       sizes="40px"

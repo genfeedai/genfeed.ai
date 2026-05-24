@@ -31,9 +31,11 @@ vi.mock('@clerk/nextjs/server', () => ({
 describe('proxy', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test';
-    process.env.CLERK_SECRET_KEY = 'sk_test';
-    process.env.NEXT_PUBLIC_API_ENDPOINT = 'http://localhost:3010/v1';
+    vi.stubEnv('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY', 'pk_test');
+    vi.stubEnv('CLERK_SECRET_KEY', 'sk_test');
+    vi.stubEnv('NEXT_PUBLIC_API_ENDPOINT', 'http://localhost:3010/v1');
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', undefined);
+    vi.resetModules();
     authStateMock.mockResolvedValue({
       getToken: vi.fn().mockResolvedValue('token_1'),
       sessionId: 'session_1',
@@ -167,6 +169,23 @@ describe('proxy', () => {
     expect(response.status).toBe(200);
   });
 
+  it('falls through on root when slug resolution fetch rejects', async () => {
+    fetchMock.mockRejectedValue(new TypeError('fetch failed'));
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/' },
+        url: 'http://localhost:3000/',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+  });
+
   it('redirects unauthenticated root to login', async () => {
     authStateMock.mockResolvedValue({
       getToken: vi.fn().mockResolvedValue(null),
@@ -207,6 +226,172 @@ describe('proxy', () => {
     expect(response.headers.get('location')).toBe(
       'http://localhost:3000/acme/moonrise-studio/workspace/overview',
     );
+  });
+
+  it('redirects signed-in flat chat to the canonical org-scoped chat path', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/chat', search: '' },
+        url: 'http://localhost:3000/chat',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/~/chat',
+    );
+  });
+
+  it('keeps signed-in personal settings on the canonical personal route', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/settings', search: '' },
+        url: 'http://localhost:3000/settings',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it('redirects desktop shell bare settings to seeded workspace without a desktop token', async () => {
+    const previousDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    const previousPublishableKey =
+      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    const previousSecretKey = process.env.CLERK_SECRET_KEY;
+
+    try {
+      delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+      delete process.env.CLERK_SECRET_KEY;
+      process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
+
+      vi.resetModules();
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(
+        {
+          cookies: { get: vi.fn() },
+          headers: { get: vi.fn(() => null) },
+          nextUrl: { pathname: '/settings', search: '' },
+          url: 'http://localhost:3000/settings',
+        } as never,
+        {} as never,
+      );
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe(
+        'http://localhost:3000/default/default/workspace/overview',
+      );
+    } finally {
+      if (previousDesktopShell === undefined) {
+        delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+      } else {
+        process.env.NEXT_PUBLIC_DESKTOP_SHELL = previousDesktopShell;
+      }
+
+      if (previousPublishableKey === undefined) {
+        delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+      } else {
+        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = previousPublishableKey;
+      }
+
+      if (previousSecretKey === undefined) {
+        delete process.env.CLERK_SECRET_KEY;
+      } else {
+        process.env.CLERK_SECRET_KEY = previousSecretKey;
+      }
+    }
+  });
+
+  it('redirects signed-in legacy org settings routes to the canonical org settings path', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/settings/organization/members', search: '' },
+        url: 'http://localhost:3000/settings/organization/members',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/~/settings/members',
+    );
+  });
+
+  it('redirects signed-in legacy brand settings routes to the canonical brand settings path', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: {
+          pathname: '/settings/brands/moonrise-studio/voice',
+          search: '',
+        },
+        url: 'http://localhost:3000/settings/brands/moonrise-studio/voice',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/settings/voice',
+    );
+  });
+
+  it('uses the bootstrap organization slug without fetching organizations', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            access: { brandId: 'brand_1' },
+            brands: [
+              {
+                id: 'brand_1',
+                organization: { slug: 'acme' },
+                slug: 'moonrise-studio',
+              },
+            ],
+          }),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/workspace/overview', search: '' },
+        url: 'http://localhost:3000/workspace/overview',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).endsWith('/organizations/mine'),
+      ),
+    ).toBe(false);
   });
 
   it('redirects signed-out protected routes to login instead of invoking Clerk dev handshake', async () => {
@@ -257,9 +442,8 @@ describe('proxy', () => {
     delete process.env.CLERK_SECRET_KEY;
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
 
-    const { default: proxy } = await import(
-      `./proxy?desktop-shell=${Date.now()}`
-    );
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
       {
@@ -293,9 +477,8 @@ describe('proxy', () => {
       async () => new Response('error', { status: 500 }),
     );
 
-    const { default: proxy } = await import(
-      `./proxy?desktop-shell-stale-root=${Date.now()}`
-    );
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
       {
@@ -321,6 +504,102 @@ describe('proxy', () => {
     process.env.CLERK_SECRET_KEY = 'sk_test';
   });
 
+  it('skips API call when valid slug cookie is present', async () => {
+    process.env.COOKIE_SECRET = 'test-secret-at-least-32-chars-long!!';
+
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
+
+    const firstResponse = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/workspace/overview', search: '' },
+        url: 'http://localhost:3000/workspace/overview',
+      } as never,
+      {} as never,
+    );
+
+    expect(firstResponse.status).toBe(307);
+    expect(firstResponse.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
+
+    const setCookieHeader = firstResponse.headers.get('set-cookie') ?? '';
+    const cookieMatch = setCookieHeader.match(/gf_ws=([^;]+)/);
+    expect(cookieMatch).toBeTruthy();
+    const cookieValue = cookieMatch?.[1];
+
+    fetchMock.mockClear();
+
+    const secondResponse = await proxy(
+      {
+        cookies: {
+          get: vi.fn((name: string) =>
+            name === 'gf_ws'
+              ? { name: 'gf_ws', value: cookieValue }
+              : undefined,
+          ),
+        },
+        nextUrl: { pathname: '/posts', search: '' },
+        url: 'http://localhost:3000/posts',
+      } as never,
+      {} as never,
+    );
+
+    expect(secondResponse.status).toBe(307);
+    expect(secondResponse.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/posts',
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    delete process.env.COOKIE_SECRET;
+  });
+
+  it('falls back to API when cookie is expired or tampered', async () => {
+    process.env.COOKIE_SECRET = 'test-secret-at-least-32-chars-long!!';
+
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: {
+          get: vi.fn((name: string) =>
+            name === 'gf_ws'
+              ? { name: 'gf_ws', value: 'tampered.cookie' }
+              : undefined,
+          ),
+        },
+        nextUrl: { pathname: '/workspace/overview', search: '' },
+        url: 'http://localhost:3000/workspace/overview',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(fetchMock).toHaveBeenCalled();
+
+    delete process.env.COOKIE_SECRET;
+  });
+
+  it('deletes slug cookie on logout', async () => {
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/logout', search: '' },
+        url: 'http://localhost:3000/logout',
+      } as never,
+      {} as never,
+    );
+
+    const setCookieHeader = response.headers.get('set-cookie') ?? '';
+    expect(setCookieHeader).toContain('gf_ws');
+    expect(setCookieHeader).toMatch(/Max-Age=0|expires=Thu, 01 Jan 1970/i);
+  });
+
   it('lets desktop shell login render when the injected desktop token is stale', async () => {
     delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
     delete process.env.CLERK_SECRET_KEY;
@@ -329,9 +608,8 @@ describe('proxy', () => {
       async () => new Response('error', { status: 500 }),
     );
 
-    const { default: proxy } = await import(
-      `./proxy?desktop-shell-stale-login=${Date.now()}`
-    );
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
       {

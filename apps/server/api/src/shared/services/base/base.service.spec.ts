@@ -17,6 +17,11 @@ describe('BaseService', () => {
   let prisma: PrismaService;
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
   let logger: LoggerService;
+  let cacheService: {
+    get: ReturnType<typeof vi.fn>;
+    set: ReturnType<typeof vi.fn>;
+    invalidateByTags: ReturnType<typeof vi.fn>;
+  };
   let setModelFields: (...fields: string[]) => void;
 
   beforeEach(() => {
@@ -26,6 +31,11 @@ describe('BaseService', () => {
       log: vi.fn(),
       warn: vi.fn(),
     } as Partial<LoggerService> as LoggerService;
+    cacheService = {
+      get: vi.fn().mockResolvedValue(null),
+      invalidateByTags: vi.fn(),
+      set: vi.fn(),
+    };
 
     delegate = {
       findMany: vi.fn(),
@@ -50,7 +60,13 @@ describe('BaseService', () => {
       testModel: delegate,
     } as unknown as PrismaService;
 
-    service = new TestService(prisma, 'testModel', logger);
+    service = new TestService(
+      prisma,
+      'testModel',
+      logger,
+      undefined,
+      cacheService as never,
+    );
     setModelFields = (...fields: string[]) => {
       (
         prisma as PrismaService & {
@@ -88,7 +104,7 @@ describe('BaseService', () => {
       expect(delegate.create).toHaveBeenCalledWith({
         data: { foo: 'bar' },
       });
-      expect(result).toEqual(created);
+      expect(result).toEqual({ ...created, _id: 'id_1' });
     });
 
     it('creates a document with include when populate is provided', async () => {
@@ -101,7 +117,7 @@ describe('BaseService', () => {
         data: { foo: 'bar' },
         include: { user: true },
       });
-      expect(result).toEqual(created);
+      expect(result).toEqual({ ...created, _id: 'id_1' });
     });
 
     it('throws ValidationException when createDto is null', async () => {
@@ -133,7 +149,10 @@ describe('BaseService', () => {
       delegate.findMany.mockResolvedValue([{ id: '1' }]);
       delegate.count.mockResolvedValue(1);
 
-      const result = await service.findAll([], { page: 1, limit: 10 });
+      const result = await service.findAll(
+        { where: {} },
+        { page: 1, limit: 10 },
+      );
 
       expect(result.docs).toHaveLength(1);
       expect(result.totalDocs).toBe(1);
@@ -145,7 +164,10 @@ describe('BaseService', () => {
     it('returns all docs without pagination when pagination: false', async () => {
       delegate.findMany.mockResolvedValue([{ id: '1' }, { id: '2' }]);
 
-      const result = await service.findAll([], { pagination: false });
+      const result = await service.findAll(
+        { where: {} },
+        { pagination: false },
+      );
 
       expect(result.docs).toHaveLength(2);
       expect(result.totalDocs).toBe(2);
@@ -158,7 +180,7 @@ describe('BaseService', () => {
       delegate.findMany.mockResolvedValue([{ id: '1' }]);
       delegate.count.mockResolvedValue(1);
 
-      await service.findAll([], { page: 1, limit: 10 });
+      await service.findAll({ where: {} }, { page: 1, limit: 10 });
 
       expect(delegate.findMany).toHaveBeenCalledWith({
         where: {},
@@ -175,12 +197,71 @@ describe('BaseService', () => {
       );
       delegate.count.mockResolvedValue(25);
 
-      const result = await service.findAll([], { page: 2, limit: 10 });
+      const result = await service.findAll(
+        { where: {} },
+        { page: 2, limit: 10 },
+      );
 
       expect(result.hasNextPage).toBe(true);
       expect(result.hasPrevPage).toBe(true);
       expect(result.nextPage).toBe(3);
       expect(result.prevPage).toBe(1);
+    });
+
+    it('uses resolved filters in cache keys', async () => {
+      delegate.findMany.mockResolvedValue([{ id: '1' }]);
+      delegate.count.mockResolvedValue(1);
+      cacheService.get.mockResolvedValue(null);
+
+      await service.findAll(
+        { where: { organization: 'org-1' } },
+        { page: 1, limit: 10 },
+      );
+      await service.findAll(
+        { where: { organization: 'org-2' } },
+        { page: 1, limit: 10 },
+      );
+
+      expect(cacheService.get).toHaveBeenCalledTimes(2);
+      const [firstKey] = cacheService.get.mock.calls[0];
+      const [secondKey] = cacheService.get.mock.calls[1];
+      expect(firstKey).not.toBe(secondKey);
+    });
+
+    it('applies explicit Prisma where, orderBy, and include options', async () => {
+      delegate.findMany.mockResolvedValue([{ id: '1' }]);
+      delegate.count.mockResolvedValue(1);
+
+      await service.findAll(
+        {
+          include: { organization: true },
+          orderBy: { label: 'asc' },
+          where: {
+            organization: 'org-1',
+            status: { in: ['active', 'pending'] },
+          },
+        },
+        { page: 1, limit: 10 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        include: { organization: true },
+        orderBy: { label: 'asc' },
+        skip: 0,
+        take: 10,
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+          status: { in: ['active', 'pending'] },
+        },
+      });
+      expect(delegate.count).toHaveBeenCalledWith({
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+          status: { in: ['active', 'pending'] },
+        },
+      });
     });
   });
 
@@ -207,7 +288,7 @@ describe('BaseService', () => {
       expect(delegate.findFirst).toHaveBeenCalledWith({
         where: { id: 'id_1' },
       });
-      expect(result).toEqual(doc);
+      expect(result).toEqual({ ...doc, _id: 'id_1' });
     });
 
     it('returns null when not found', async () => {
@@ -251,15 +332,15 @@ describe('BaseService', () => {
         where: { id: 'id_1' },
         data: { foo: 'updated' },
       });
-      expect(result).toEqual(updated);
+      expect(result).toEqual({ ...updated, _id: 'id_1' });
     });
 
-    it('flattens $set/$unset operators into plain data', async () => {
+    it('passes null field updates through as Prisma data', async () => {
       delegate.update.mockResolvedValue({ id: 'id_1' });
 
       await service.patch('id_1', {
-        $set: { name: 'NewName' },
-        $unset: { oldField: '' },
+        name: 'NewName',
+        oldField: null,
       });
 
       expect(delegate.update).toHaveBeenCalledWith({
@@ -297,13 +378,10 @@ describe('BaseService', () => {
       expect(result).toEqual({ modifiedCount: 3 });
     });
 
-    it('flattens $set operator in update arg', async () => {
+    it('bulk updates with plain Prisma data', async () => {
       delegate.updateMany.mockResolvedValue({ count: 2 });
 
-      await service.patchAll(
-        { isDeleted: false },
-        { $set: { archived: true } },
-      );
+      await service.patchAll({ isDeleted: false }, { archived: true });
 
       expect(delegate.updateMany).toHaveBeenCalledWith({
         where: { isDeleted: false },
@@ -335,7 +413,7 @@ describe('BaseService', () => {
         where: { id: 'id_1' },
         data: { isDeleted: true },
       });
-      expect(result).toEqual(deleted);
+      expect(result).toEqual({ ...deleted, _id: 'id_1' });
     });
 
     it('throws ValidationException when id is falsy', async () => {
@@ -352,6 +430,20 @@ describe('BaseService', () => {
         status: 'ok',
       });
       expect(result).toEqual({ id: 'abc123', status: 'ok' });
+    });
+
+    it('matches legacy _id against both id and mongoId when available', () => {
+      setModelFields('id', 'mongoId', 'organizationId', 'isDeleted');
+
+      const result = service.processSearchParams({
+        _id: 'legacy_123',
+        organization: 'org1',
+      });
+
+      expect(result).toEqual({
+        OR: [{ id: 'legacy_123' }, { mongoId: 'legacy_123' }],
+        organizationId: 'org1',
+      });
     });
 
     it('remaps legacy organization string filters to organizationId', () => {
@@ -467,7 +559,7 @@ describe('BaseService', () => {
         where: { id: 'id_1' },
         data: { isRead: true },
       });
-      expect(result).toEqual({ id: 'id_1', isRead: true });
+      expect(result).toEqual({ _id: 'id_1', id: 'id_1', isRead: true });
     });
 
     it('returns null when document not found or not in org', async () => {

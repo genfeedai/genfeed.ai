@@ -4,7 +4,6 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { IQueryParams } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { Brand } from '@models/organization/brand.model';
 import {
   useBrandOverlay,
@@ -13,30 +12,32 @@ import {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
+import { useQuery } from '@tanstack/react-query';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useMemo } from 'react';
+import { Suspense, useCallback, useEffect, useMemo } from 'react';
 import {
   HiOutlineBuildingOffice2,
   HiPencil,
   HiPlus,
   HiTrash,
 } from 'react-icons/hi2';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 const ITEMS_PER_PAGE = 20;
 
-export default function BrandsList() {
+function BrandsListContent() {
   const { organizationId } = useBrand();
   const { openBrandOverlay } = useBrandOverlay();
   const { openConfirm } = useConfirmModal();
   const notificationsService = NotificationsService.getInstance();
 
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const searchParamsString = searchParams.toString() ?? '';
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -50,9 +51,11 @@ export default function BrandsList() {
   const {
     data: brands,
     isLoading,
-    refresh,
-  } = useResource(
-    async () => {
+    error: brandsError,
+    refetch,
+  } = useQuery({
+    queryKey: ['brands', organizationId, currentPage],
+    queryFn: async () => {
       if (!organizationId) {
         return [];
       }
@@ -68,15 +71,19 @@ export default function BrandsList() {
       logger.info('GET /brands success', data);
       return data;
     },
-    {
-      dependencies: [organizationId, currentPage],
-      enabled: !!organizationId,
-      onError: (error: unknown) => {
-        logger.error('Failed to load brands', error);
-        notificationsService.error('Failed to load brands');
-      },
-    },
-  );
+    enabled: !!organizationId,
+  });
+
+  useEffect(() => {
+    if (brandsError) {
+      logger.error('Failed to load brands', brandsError);
+      notificationsService.error('Failed to load brands');
+    }
+  }, [brandsError, notificationsService]);
+
+  const refresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   const handleDelete = useCallback(
     async (brand: Brand) => {
@@ -104,15 +111,15 @@ export default function BrandsList() {
             {brand.logoUrl ? (
               <Image
                 alt={brand.label}
-                className="h-8 w-8 rounded-lg object-cover"
+                className="size-8 rounded-lg object-cover"
                 src={brand.logoUrl}
                 unoptimized
                 width={32}
                 height={32}
               />
             ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <HiOutlineBuildingOffice2 className="h-4 w-4 text-primary" />
+              <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
+                <HiOutlineBuildingOffice2 className="size-4 text-primary" />
               </div>
             )}
             <span className="font-medium">{brand.label}</span>
@@ -142,9 +149,11 @@ export default function BrandsList() {
         key: 'createdAt',
         render: (brand: Brand) => (
           <span className="text-sm text-foreground/70">
-            {brand.createdAt
-              ? new Date(brand.createdAt).toLocaleDateString()
-              : '-'}
+            <ClientFormattedDate
+              fallback="-"
+              format="date"
+              value={brand.createdAt}
+            />
           </span>
         ),
       },
@@ -206,5 +215,13 @@ export default function BrandsList() {
 
       <AutoPagination showTotal totalLabel="brands" />
     </Container>
+  );
+}
+
+export default function BrandsList() {
+  return (
+    <Suspense fallback={null}>
+      <BrandsListContent />
+    </Suspense>
   );
 }

@@ -26,9 +26,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useDropzone } from 'react-dropzone';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type {
   BatchItemStatus,
   BatchJobStatus,
@@ -179,11 +188,12 @@ function getWorkflowLabel(
   return workflowsById.get(workflowId)?.name ?? workflowId;
 }
 
-export default function BatchWorkflowPage() {
-  const router = useRouter();
+function BatchWorkflowPageContent() {
+  const { push, replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const requestedJobId = searchParams?.get('job') ?? null;
+  const searchParamsString = searchParams.toString();
+  const requestedJobId = searchParams.get('job') ?? null;
 
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
@@ -214,18 +224,16 @@ export default function BatchWorkflowPage() {
 
   const availableOutputs = useMemo(
     () =>
-      activeBatchStatus?.items
-        .map((item) => ({
-          ingredient: buildBatchIngredient(item),
-          item,
-        }))
-        .filter(
-          (
-            entry,
-          ): entry is { ingredient: IIngredient; item: BatchItemStatus } =>
-            entry.ingredient !== null,
-        ) ?? [],
-    [activeBatchStatus],
+      (activeBatchStatus?.items ?? []).reduce<
+        { ingredient: IIngredient; item: BatchItemStatus }[]
+      >((outputs, item) => {
+        const ingredient = buildBatchIngredient(item);
+        if (ingredient) {
+          outputs.push({ ingredient, item });
+        }
+        return outputs;
+      }, []),
+    [activeBatchStatus?.items],
   );
 
   const selectedOutputs = useMemo(
@@ -243,7 +251,7 @@ export default function BatchWorkflowPage() {
 
   const replaceJobQuery = useCallback(
     (batchJobId: string | null) => {
-      const nextSearchParams = new URLSearchParams(searchParams?.toString());
+      const nextSearchParams = new URLSearchParams(searchParamsString);
 
       if (batchJobId) {
         nextSearchParams.set('job', batchJobId);
@@ -252,9 +260,9 @@ export default function BatchWorkflowPage() {
       }
 
       const query = nextSearchParams.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname);
+      replace(query ? `${pathname}?${query}` : pathname);
     },
-    [pathname, router, searchParams],
+    [pathname, replace, searchParamsString],
   );
 
   const loadBatchJob = useCallback(
@@ -488,9 +496,12 @@ export default function BatchWorkflowPage() {
       return;
     }
 
-    const ingredientIds = files
-      .map((file) => file.ingredientId)
-      .filter((ingredientId): ingredientId is string => Boolean(ingredientId));
+    const ingredientIds = files.reduce<string[]>((ids, file) => {
+      if (file.ingredientId) {
+        ids.push(file.ingredientId);
+      }
+      return ids;
+    }, []);
 
     if (ingredientIds.length === 0) {
       setError(
@@ -612,15 +623,15 @@ export default function BatchWorkflowPage() {
         return;
       }
 
-      const libraryPaths = new Set(
-        items
-          .map((item) =>
-            getLibraryPathForCategory(
-              item.outputCategory ?? item.outputSummary?.category,
-            ),
-          )
-          .filter((path): path is string => Boolean(path)),
-      );
+      const libraryPaths = items.reduce<Set<string>>((paths, item) => {
+        const path = getLibraryPathForCategory(
+          item.outputCategory ?? item.outputSummary?.category,
+        );
+        if (path) {
+          paths.add(path);
+        }
+        return paths;
+      }, new Set());
 
       if (libraryPaths.size !== 1) {
         setError(
@@ -629,9 +640,9 @@ export default function BatchWorkflowPage() {
         return;
       }
 
-      router.push([...libraryPaths][0]);
+      push([...libraryPaths][0]);
     },
-    [availableOutputs, router, selectedOutputs],
+    [availableOutputs, push, selectedOutputs],
   );
 
   const renderComposer = () => (
@@ -698,10 +709,10 @@ export default function BatchWorkflowPage() {
               }`}
             >
               <Input type="file" {...getInputProps()} />
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/5">
+              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-white/5">
                 <svg
                   aria-hidden="true"
-                  className="h-8 w-8 text-muted-foreground"
+                  className="size-8 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth={1.5}
@@ -756,12 +767,15 @@ export default function BatchWorkflowPage() {
                           : 'border-amber-500/40'
                       } bg-background/60`}
                     >
-                      <img
+                      <Image
+                        unoptimized
                         src={file.preview}
                         alt={file.file.name}
                         className={`aspect-square w-full object-cover ${
                           file.ingredientId ? '' : 'opacity-60'
                         }`}
+                        width={800}
+                        height={600}
                       />
                       <Button
                         variant={ButtonVariant.UNSTYLED}
@@ -812,7 +826,7 @@ export default function BatchWorkflowPage() {
                 key={job._id}
                 variant={ButtonVariant.UNSTYLED}
                 onClick={() => void handleOpenRecentJob(job._id)}
-                className="w-full rounded-xl border border-white/10 bg-background/40 px-4 py-4 text-left transition hover:border-white/20 hover:bg-background/60"
+                className="w-full rounded-xl border border-white/10 bg-background/40 p-4 text-left transition hover:border-white/20 hover:bg-background/60"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -820,9 +834,10 @@ export default function BatchWorkflowPage() {
                       {getWorkflowLabel(workflowsById, job.workflowId)}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {job.createdAt
-                        ? new Date(job.createdAt).toLocaleString()
-                        : 'Unknown start time'}
+                      <ClientFormattedDate
+                        fallback="Unknown start time"
+                        value={job.createdAt}
+                      />
                     </p>
                   </div>
                   <Badge
@@ -916,7 +931,7 @@ export default function BatchWorkflowPage() {
             {activeBatchStatus.createdAt && (
               <span>
                 Started:{' '}
-                {new Date(activeBatchStatus.createdAt).toLocaleString()}
+                <ClientFormattedDate value={activeBatchStatus.createdAt} />
               </span>
             )}
           </div>
@@ -1036,10 +1051,13 @@ export default function BatchWorkflowPage() {
                 >
                   <div className="relative aspect-video bg-white/5">
                     {ingredient?.thumbnailUrl ? (
-                      <img
+                      <Image
+                        unoptimized
                         src={ingredient.thumbnailUrl}
                         alt={`Output ${ingredient.id}`}
                         className="h-full w-full object-cover"
+                        width={800}
+                        height={600}
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">
@@ -1050,7 +1068,7 @@ export default function BatchWorkflowPage() {
                     )}
 
                     {ingredient && (
-                      <label className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-xs text-white">
+                      <span className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-xs text-white">
                         <Checkbox
                           aria-label={`Select output ${item._id}`}
                           checked={isSelected}
@@ -1059,7 +1077,7 @@ export default function BatchWorkflowPage() {
                           }
                         />
                         Select
-                      </label>
+                      </span>
                     )}
                   </div>
 
@@ -1127,7 +1145,7 @@ export default function BatchWorkflowPage() {
                       <Button
                         variant={ButtonVariant.OUTLINE}
                         size={ButtonSize.XS}
-                        onClick={() => libraryPath && router.push(libraryPath)}
+                        onClick={() => libraryPath && push(libraryPath)}
                         disabled={!libraryPath}
                         className="rounded-xl"
                       >
@@ -1188,5 +1206,13 @@ export default function BatchWorkflowPage() {
         {activeBatchStatus ? renderBatchDetail() : renderComposer()}
       </main>
     </div>
+  );
+}
+
+export default function BatchWorkflowPage() {
+  return (
+    <Suspense fallback={null}>
+      <BatchWorkflowPageContent />
+    </Suspense>
   );
 }

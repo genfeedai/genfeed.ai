@@ -23,9 +23,11 @@ import { AgentThreadEngineService } from '@api/services/agent-threading/services
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { User } from '@clerk/backend';
 import { AgentExecutionStatus } from '@genfeedai/enums';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { AgentRunSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   Controller,
   Get,
   HttpCode,
@@ -61,10 +63,29 @@ export class AgentRunsController extends BaseCRUDController<
     ]);
   }
 
-  public buildFindAllPipeline(
+  /**
+   * Override enrichCreateDto to ensure organizationId is always derived from the
+   * authenticated user's token — never from the request body. This prevents an
+   * attacker from submitting a different org's ID to create records in another tenant.
+   */
+  public override enrichCreateDto(
+    createDto: Partial<CreateAgentRunDto>,
     user: User,
-    query: AgentRunsQueryDto,
-  ): Record<string, unknown>[] {
+  ): CreateAgentRunDto {
+    const publicMetadata = getPublicMetadata(user);
+    const dto = createDto as Record<string, unknown>;
+
+    // Strip any organization/organizationId supplied in the request body.
+    delete dto.organization;
+    delete dto.organizationId;
+
+    return {
+      ...createDto,
+      organizationId: publicMetadata.organization,
+    } as CreateAgentRunDto;
+  }
+
+  public buildFindAllQuery(user: User, query: AgentRunsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: false,
@@ -77,7 +98,7 @@ export class AgentRunsController extends BaseCRUDController<
 
     if (query.historyOnly) {
       match.status = {
-        $nin: [AgentExecutionStatus.PENDING, AgentExecutionStatus.RUNNING],
+        notIn: [AgentExecutionStatus.PENDING, AgentExecutionStatus.RUNNING],
       };
     } else if (query.status) {
       match.status = query.status;
@@ -100,7 +121,7 @@ export class AgentRunsController extends BaseCRUDController<
     }
 
     if (query.model) {
-      match.$or = [
+      match.OR = [
         { 'metadata.actualModel': query.model },
         { 'metadata.requestedModel': query.model },
       ];
@@ -117,34 +138,26 @@ export class AgentRunsController extends BaseCRUDController<
         { 'metadata.routingPolicy': searchRegex },
       ];
 
-      if (Array.isArray(match.$or)) {
-        match.$and = [{ $or: [...match.$or] }, { $or: searchConditions }];
-        delete match.$or;
+      if (Array.isArray(match.OR)) {
+        match.AND = [{ OR: [...match.OR] }, { OR: searchConditions }];
+        delete match.OR;
       } else {
-        match.$or = searchConditions;
+        match.OR = searchConditions;
       }
     }
 
-    const pipeline: Record<string, unknown>[] = [{ $match: match }];
-
+    let orderBy: Record<string, number>;
     if (query.sortMode === 'model') {
-      pipeline.push({
-        $addFields: {
-          _sortModel: {
-            $ifNull: ['$metadata.actualModel', '$metadata.requestedModel'],
-          },
-        },
-      });
-      pipeline.push({ $sort: { _sortModel: 1, createdAt: -1 } });
+      orderBy = { createdAt: -1 };
     } else if (query.sortMode === 'credits') {
-      pipeline.push({ $sort: { createdAt: -1, creditsUsed: -1 } });
+      orderBy = { createdAt: -1, creditsUsed: -1 };
     } else if (query.sortMode === 'duration') {
-      pipeline.push({ $sort: { createdAt: -1, durationMs: -1 } });
+      orderBy = { createdAt: -1, durationMs: -1 };
     } else {
-      pipeline.push({ $sort: handleQuerySort(query.sort) });
+      orderBy = handleQuerySort(query.sort);
     }
 
-    return pipeline;
+    return { orderBy, where: match };
   }
 
   @Get()
@@ -160,7 +173,7 @@ export class AgentRunsController extends BaseCRUDController<
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
-    const aggregate = this.buildFindAllPipeline(user, query);
+    const aggregate = this.buildFindAllQuery(user, query);
     const data = await this.agentRunsService.findAll(aggregate, options);
     return serializeCollection(request, AgentRunSerializer, data);
   }
@@ -208,6 +221,62 @@ export class AgentRunsController extends BaseCRUDController<
       publicMetadata.organization,
       query,
     );
+  }
+
+  @Get('batch')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get summary data for multiple agent runs by ID' })
+  @ApiResponse({ description: 'Batch run summaries returned', status: 200 })
+  async getBatch(
+    @Query('ids') idsParam: string,
+    @CurrentUser() user: User,
+  ): Promise<{
+    runs: Array<{ id: string; threadId: string | null; contentCount: number }>;
+  }> {
+    if (!idsParam || idsParam.trim().length === 0) {
+      throw new BadRequestException('ids query parameter is required');
+    }
+
+    const ids = idsParam
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0)
+      .slice(0, 50);
+
+    if (ids.length === 0) {
+      throw new BadRequestException('At least one valid ID is required');
+    }
+
+    const publicMetadata = getPublicMetadata(user);
+    const runs = await this.agentRunsService.getBatchWithContent(
+      ids,
+      publicMetadata.organization,
+    );
+
+    return { runs };
+  }
+
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get a single agent run by ID' })
+  @ApiResponse({ description: 'Run returned', status: 200 })
+  override async findOne(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<JsonApiSingleResponse> {
+    const publicMetadata = getPublicMetadata(user);
+    const doc = await this.agentRunsService.findOne({
+      _id: id,
+      isDeleted: false,
+      organization: publicMetadata.organization,
+    });
+
+    if (!doc) {
+      throw new NotFoundException('Agent run not found');
+    }
+
+    return serializeSingle(request, AgentRunSerializer, doc);
   }
 
   @Get(':id/content')

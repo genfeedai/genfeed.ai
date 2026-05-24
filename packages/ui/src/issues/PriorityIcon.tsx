@@ -1,8 +1,5 @@
+import { cn } from '../lib/utils';
 import { priorityColor, priorityColorDefault } from '../tokens/status-colors';
-
-function cn(...classes: (string | false | undefined | null)[]): string {
-  return classes.filter(Boolean).join(' ');
-}
 
 type PriorityLevel = 'critical' | 'high' | 'medium' | 'low';
 

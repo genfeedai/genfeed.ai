@@ -1,10 +1,10 @@
-import { get, patch, post } from '@/api/client.js';
+import { get, patch, post } from '@/api/client';
 import {
   flattenCollection,
   flattenSingle,
   type JsonApiCollectionResponse,
   type JsonApiSingleResponse,
-} from '@/api/json-api.js';
+} from '@/api/json-api';
 
 export interface AgentThread {
   id: string;

@@ -1,30 +1,61 @@
 {
   "compilerOptions": {
-    "composite": true,
-    "declaration": true,
-    "declarationMap": true,
+    "emitDecoratorMetadata": true,
     "esModuleInterop": true,
+    "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
-    "inlineSources": true,
-    "lib": ["ES2020"],
-    "module": "node16",
-    "moduleResolution": "node16",
-    "outDir": "./dist",
+    "lib": ["ES2022", "DOM"],
+    "module": "commonjs",
+    "moduleResolution": "bundler",
+    "noEmit": true,
     "paths": {
+      "@api/*": ["../../../apps/server/api/src/*"],
+      "@config/*": ["../../../packages/config/src/*"],
+      "@genfeedai/config": ["../../../packages/config/src/index.ts"],
+      "@genfeedai/constants": ["../../../packages/constants/dist/index"],
+      "@genfeedai/constants/*": ["../../../packages/constants/dist/*"],
+      "@genfeedai/enums": ["../../../packages/enums/dist/index"],
+      "@genfeedai/enums/*": ["../../../packages/enums/dist/*"],
       "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
-      "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"]
+      "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
+      "@genfeedai/prisma": ["../../../packages/prisma/src/index.ts"],
+      "@genfeedai/prisma/*": ["../../../packages/prisma/src/*"],
+      "@genfeedai/serializers": ["../../../packages/serializers/src/index.ts"],
+      "@genfeedai/serializers/*": ["../../../packages/serializers/src/*"],
+      "@genfeedai/types": ["../../../packages/types/src/index.ts"],
+      "@genfeedai/types/*": ["../../../packages/types/src/*"],
+      "@genfeedai/utils": ["../../../packages/utils/index.ts"],
+      "@genfeedai/utils/*": ["../../../packages/utils/*"],
+      "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
+      "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
+      "@genfeedai/harness": ["../../../packages/harness/src/index.ts"],
+      "@genfeedai/harness/*": ["../../../packages/harness/src/*"],
+      "@genfeedai/ee-billing": ["../../../ee/packages/billing/src/index.ts"],
+      "@genfeedai/ee-billing/*": ["../../../ee/packages/billing/src/*"],
+      "@genfeedai/ee-harness": ["../../../ee/packages/harness/src/index.ts"],
+      "@genfeedai/integrations": [
+        "../../../packages/integrations/src/index.ts"
+      ],
+      "@genfeedai/workflow-engine": [
+        "../../../packages/workflow-engine/src/index.ts"
+      ],
+      "@genfeedai/workflow-saas": [
+        "../../../packages/workflow-saas/src/index.ts"
+      ],
+      "@genfeedai/workflows": ["../../../packages/workflows/src/index.ts"],
+      "@genfeedai/workflows/*": ["../../../packages/workflows/src/*"],
+      "@files/*": ["../../../apps/server/files/src/*"],
+      "@helpers/*": ["../../../packages/helpers/src/*"],
+      "@libs/*": ["../../../packages/libs/*"],
+      "@serializers/*": ["../../../packages/serializers/src/*"],
+      "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"],
+      "@workflow-saas/*": ["../../../packages/workflow-saas/src/*"]
     },
-    "rootDir": "./src",
     "skipLibCheck": true,
-    "sourceMap": true,
     "strict": true,
-    "target": "ES2020"
+    "target": "ES2022",
+    "types": ["node", "vitest/globals", "multer"]
   },
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"],
-  "include": ["src/**/*"],
-  "references": [
-    {
-      "path": "../../../packages/interfaces"
-    }
-  ]
+  "include": ["src/**/*"]
 }

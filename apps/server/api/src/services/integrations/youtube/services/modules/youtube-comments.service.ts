@@ -1,12 +1,12 @@
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { google } from 'googleapis';
+import { google, youtube_v3 } from 'googleapis';
 
 @Injectable()
 export class YoutubeCommentsService {
   private readonly constructorName = this.constructor.name;
-  private readonly youtubeAPI: unknown;
+  private readonly youtubeAPI: youtube_v3.Youtube;
 
   constructor(
     private readonly authService: YoutubeAuthService,

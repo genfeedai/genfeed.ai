@@ -9,9 +9,6 @@ export class PresetsService extends BaseService<Preset> {
   }
 
   public static getInstance(token: string): PresetsService {
-    return BaseService.getDataServiceInstance(
-      PresetsService,
-      token,
-    ) as PresetsService;
+    return BaseService.getDataServiceInstance(PresetsService, token);
   }
 }

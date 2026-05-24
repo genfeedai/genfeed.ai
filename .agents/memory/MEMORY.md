@@ -6,6 +6,8 @@
 - [Fallow Health](project_fallow.md) — Fallow codebase health analysis (#83), weekly CI, score 72/100
 - [BullMQ Refactor](project_bullmq.md) — 32 @Processor decorators in API need moving to Workers (#84)
 - [Migration Status](project_migration.md) — cloud + core → genfeed.ai migration complete, all pages/tests present
+- [Settings Routing](project_settings_routing.md) — canonical personal/org/brand settings URL shapes
+- [Desktop BYOK Generation](project_desktop_byok_generation.md) — desktop local/BYOK generation works without Clerk; Clerk is sync-only
 
 ## Feedback (user corrections — permanent)
 - [Never lose code](feedback_never_lose_code.md) — Always branch+push WIP before destructive git ops
@@ -15,6 +17,8 @@
 - [Codex adversarial review](feedback_codex_adversarial_review.md) — MANDATORY before ExitPlanMode
 - [GitHub issue worktree workflow](feedback_gh_issue_worktree_workflow.md) — Assigned issues use worktrees from develop
 - [No external symlinks](feedback_no_external_symlinks.md) — Open source repo. Internal symlinks only.
+- [End-to-end implementation](feedback_end_to_end_implementation.md) — Never ship half-architecture; wire the full user path
+- [P0 status, not label](feedback_p0_status_not_label.md) — P0 is issue status; never create priority labels
 
 ## References
 - [MongoDB Atlas URI](reference_mongodb_atlas.md) — Atlas connection string for `cloud` DB
@@ -42,6 +46,9 @@
 - [Cross-Project Rules](system/CROSS-PROJECT-RULES.md) — rules shared across repos
 - [Open Source Context](system/OPEN-SOURCE-CONTEXT.md) — OSS licensing, contribution
 - [Self-Hosted Guide](system/SELF-HOSTED-GUIDE.md) — Docker deployment guide
+
+## Plans (UI design outputs)
+- **MergedSwitcher** (2026-05-17) — Merged AppSwitcher + ContentTypeSwitcher. Generate section: 4×2 colored icon grid (GenerationType enum). Navigate section: 2-col grid (Overview, Workflows, Library, Calendar, Analytics). Component: `packages/ui/src/components/shell/merged-switcher/MergedSwitcher.tsx`. HTML mockups gitignored under `.agents/plans/`.
 
 ## Architecture Decisions
 - [Dynamic Scheduling](architecture/ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL.md) — scheduling via workflow engine

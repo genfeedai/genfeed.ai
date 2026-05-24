@@ -25,7 +25,7 @@ function ReviewSection({
   return (
     <div className="p-4 border border-white/[0.08]">
       <HStack gap={2} className="mb-3">
-        {Icon && <Icon className="w-5 h-5 text-primary" />}
+        {Icon && <Icon className="size-5 text-primary" />}
         <Text weight="medium">{title}</Text>
       </HStack>
       {children}
@@ -102,7 +102,7 @@ export default function OnboardingStepReview({
               {data.primaryColor && (
                 <HStack gap={2}>
                   <div
-                    className="w-8 h-8 border border-white/[0.08]"
+                    className="size-8 border border-white/[0.08]"
                     style={{ backgroundColor: data.primaryColor }}
                   />
                   <div>
@@ -118,7 +118,7 @@ export default function OnboardingStepReview({
               {data.secondaryColor && (
                 <HStack gap={2}>
                   <div
-                    className="w-8 h-8 border border-white/[0.08]"
+                    className="size-8 border border-white/[0.08]"
                     style={{ backgroundColor: data.secondaryColor }}
                   />
                   <div>
@@ -165,8 +165,8 @@ export default function OnboardingStepReview({
                   Brand Values
                 </Text>
                 <div className="flex flex-wrap gap-2">
-                  {data.brandVoice.values.map((value, index) => (
-                    <Badge key={index} variant="primary">
+                  {data.brandVoice.values.map((value) => (
+                    <Badge key={value} variant="primary">
                       {value}
                     </Badge>
                   ))}
@@ -181,8 +181,8 @@ export default function OnboardingStepReview({
                     Suggested Hashtags
                   </Text>
                   <div className="flex flex-wrap gap-2">
-                    {data.brandVoice.hashtags.map((hashtag, index) => (
-                      <Badge key={index} variant="ghost">
+                    {data.brandVoice.hashtags.map((hashtag) => (
+                      <Badge key={hashtag} variant="ghost">
                         #{hashtag}
                       </Badge>
                     ))}

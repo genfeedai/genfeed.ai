@@ -9,14 +9,16 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type {
   ICreditsEventData,
   IOrganizationEventData,
+  ITopbarBalanceSegment,
 } from '@genfeedai/interfaces';
+import { CreditsService } from '@genfeedai/services/billing/credits.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
-import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { Button } from '@ui/primitives/button';
 import {
   Popover,
@@ -30,19 +32,61 @@ import { HiArrowPath, HiPlus } from 'react-icons/hi2';
 
 export default function TopbarCreditsBar() {
   const { organizationId } = useBrand();
+  const { orgHref } = useOrgUrl();
 
-  const getOrganizationsService = useAuthedService((token: string) =>
-    OrganizationsService.getInstance(token),
+  const getCreditsService = useAuthedService((token: string) =>
+    CreditsService.getInstance(token),
   );
 
   const { creditsBreakdown, refreshCreditsBreakdown } = useSubscription();
 
   const [balance, setBalance] = useState<number>(0);
+  const [segments, setSegments] = useState<ITopbarBalanceSegment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const refreshBreakdownRef = useRef(refreshCreditsBreakdown);
+  const balanceRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   refreshBreakdownRef.current = refreshCreditsBreakdown;
   const { subscribe, unsubscribe } = useSocketManager();
+
+  const findTopbarBalances = useCallback(async () => {
+    if (!organizationId) {
+      return setIsLoading(false);
+    }
+
+    try {
+      setIsLoading(true);
+      const service = await getCreditsService();
+      const data = await service.getTopbarBalances();
+      const nextSegments = data.segments ?? [];
+      const genfeedSegment = nextSegments.find(
+        (segment) => segment.provider === 'genfeed',
+      );
+      setSegments(nextSegments);
+      setBalance(
+        typeof genfeedSegment?.balance === 'number'
+          ? genfeedSegment.balance
+          : 0,
+      );
+      setIsLoading(false);
+    } catch (error: unknown) {
+      logger.error('TopbarCreditsBar: failed to fetch balances', error);
+      setIsLoading(false);
+    }
+  }, [organizationId, getCreditsService]);
+
+  const scheduleTopbarBalanceRefresh = useCallback(() => {
+    if (balanceRefreshTimeoutRef.current) {
+      clearTimeout(balanceRefreshTimeoutRef.current);
+    }
+
+    balanceRefreshTimeoutRef.current = setTimeout(() => {
+      balanceRefreshTimeoutRef.current = null;
+      void findTopbarBalances();
+    }, 1500);
+  }, [findTopbarBalances]);
 
   useEffect(() => {
     if (organizationId) {
@@ -54,6 +98,7 @@ export default function TopbarCreditsBar() {
         if (orgData?.balance !== undefined) {
           setBalance(orgData.balance);
           refreshBreakdownRef.current();
+          scheduleTopbarBalanceRefresh();
         }
       };
 
@@ -62,6 +107,7 @@ export default function TopbarCreditsBar() {
         if (creditsData?.balance !== undefined) {
           setBalance(creditsData.balance);
           refreshBreakdownRef.current();
+          scheduleTopbarBalanceRefresh();
         }
       };
 
@@ -73,39 +119,45 @@ export default function TopbarCreditsBar() {
         unsubscribe(creditsEvent, creditsHandler);
       };
     }
-  }, [organizationId, subscribe, unsubscribe]);
+  }, [organizationId, subscribe, unsubscribe, scheduleTopbarBalanceRefresh]);
 
-  const findOrganizationBalance = useCallback(async () => {
-    if (!organizationId) {
-      return setIsLoading(false);
-    }
-
-    try {
-      setIsLoading(true);
-      const service = await getOrganizationsService();
-      const data = await service.findOne(organizationId);
-      setBalance(data?.balance ?? 0);
-      setIsLoading(false);
-    } catch (error: unknown) {
-      logger.error('TopbarCreditsBar: failed to fetch balance', error);
-      setIsLoading(false);
-    }
-  }, [organizationId, getOrganizationsService]);
+  useEffect(() => {
+    return () => {
+      if (balanceRefreshTimeoutRef.current) {
+        clearTimeout(balanceRefreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (organizationId) {
       (async () => {
-        await findOrganizationBalance();
+        await findTopbarBalances();
       })();
     }
-  }, [organizationId, findOrganizationBalance]);
+  }, [organizationId, findTopbarBalances]);
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      void findTopbarBalances();
+    };
+
+    window.addEventListener('genfeed:topbar-balances:refresh', handleRefresh);
+
+    return () => {
+      window.removeEventListener(
+        'genfeed:topbar-balances:refresh',
+        handleRefresh,
+      );
+    };
+  }, [findTopbarBalances]);
 
   const handleRefreshBalance = async (e?: ReactMouseEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-    await findOrganizationBalance();
+    await findTopbarBalances();
     await refreshCreditsBreakdown();
   };
 
@@ -136,6 +188,10 @@ export default function TopbarCreditsBar() {
 
   const compactBalance = formatCompactNumber(balance);
   const fullBalance = formatNumberWithCommas(balance);
+  const providerSegments = segments.filter(
+    (segment) => segment.provider !== 'genfeed',
+  );
+  const visibleProviderSegments = providerSegments.slice(0, 2);
 
   // Remaining percentage for the fill bar (how much is left)
   const remainingPercent = planLimit > 0 ? (planBalance / planLimit) * 100 : 0;
@@ -147,20 +203,47 @@ export default function TopbarCreditsBar() {
           withWrapper={false}
           variant={ButtonVariant.UNSTYLED}
           className={cn(
-            'gen-shell-control hidden h-10 items-center gap-3 rounded-xl px-3.5 text-left md:flex',
+            'hidden h-8 max-w-[20rem] items-center gap-2 rounded-md bg-transparent px-2.5 text-left transition-colors hover:bg-hover sm:flex',
           )}
           data-active={isOpen ? 'true' : 'false'}
           title={`${fullBalance} ${EnvironmentService.CREDITS_LABEL}`}
           ariaLabel={`${fullBalance} ${EnvironmentService.CREDITS_LABEL}`}
         >
-          <div className="flex min-w-0 flex-col items-start">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground/36">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="text-[11px] font-medium text-foreground/50">
               Credits
             </span>
-            <span className="text-sm font-semibold tracking-[-0.02em] text-foreground">
+            <span className="text-[13px] font-semibold tracking-[-0.02em] text-foreground">
               {compactBalance}
             </span>
           </div>
+          {visibleProviderSegments.length > 0 && (
+            <div className="hidden min-w-0 items-center gap-1 border-l border-white/[0.08] pl-2 lg:flex">
+              {visibleProviderSegments.map((segment) => (
+                <span
+                  key={segment.provider}
+                  className={cn(
+                    'inline-flex h-5 max-w-[5.5rem] items-center gap-1 rounded bg-white/[0.04] px-1.5 text-[11px] font-medium text-foreground/62',
+                    segment.status === 'unavailable' && 'text-amber-200/70',
+                  )}
+                  title={`${segment.label}: ${
+                    segment.status === 'available' &&
+                    typeof segment.balance === 'number'
+                      ? `${formatCompactNumber(segment.balance)} ${segment.currencyOrUnit}`
+                      : 'Unavailable'
+                  }`}
+                >
+                  <span className="truncate">{segment.label}</span>
+                  <span className="shrink-0 text-foreground/42">
+                    {segment.status === 'available' &&
+                    typeof segment.balance === 'number'
+                      ? formatCompactNumber(segment.balance)
+                      : '--'}
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
           {planLimit > 0 && (
             <div className="ml-1 h-1.5 w-14 overflow-hidden rounded-full bg-white/[0.08]">
               <div
@@ -172,9 +255,9 @@ export default function TopbarCreditsBar() {
         </Button>
       </PopoverTrigger>
 
-      <PopoverPanelContent align="end" className="w-80 rounded-[1.5rem] p-4">
+      <PopoverPanelContent align="end" className="w-80 rounded-md p-4">
         <div role="dialog" className="space-y-4">
-          <div className="gen-shell-surface rounded-[1.25rem] p-4 text-center">
+          <div className="rounded-md bg-background-secondary p-4 text-center">
             <div className="flex items-baseline justify-center gap-2">
               <span className="text-4xl font-semibold tracking-[-0.05em] text-foreground">
                 {fullBalance}
@@ -186,7 +269,7 @@ export default function TopbarCreditsBar() {
           </div>
 
           {planLimit > 0 && (
-            <div className="gen-shell-surface rounded-[1.15rem] p-3">
+            <div className="rounded-md bg-background-secondary p-3">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/36">
                   Plan usage
@@ -228,12 +311,12 @@ export default function TopbarCreditsBar() {
               <div className="mt-2 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
-                    <div className="h-1.5 w-1.5 rounded-full bg-white/50" />
+                    <div className="size-1.5 rounded-full bg-white/50" />
                     <span className="text-[11px] text-foreground/40">Plan</span>
                   </div>
                   {extraBalance > 0 && (
                     <div className="flex items-center gap-1.5">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+                      <div className="size-1.5 rounded-full bg-primary/60" />
                       <span className="text-[11px] text-foreground/40">
                         Extra
                       </span>
@@ -247,6 +330,55 @@ export default function TopbarCreditsBar() {
             </div>
           )}
 
+          {providerSegments.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/36">
+                  Providers
+                </span>
+                <span className="text-[11px] text-foreground/32">
+                  BYOK balances
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {providerSegments.map((segment) => (
+                  <div
+                    key={segment.provider}
+                    className="flex items-center justify-between gap-3 rounded-md bg-background-secondary px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium text-foreground/86">
+                        {segment.label}
+                      </div>
+                      <div className="text-[11px] text-foreground/38">
+                        {segment.status === 'available'
+                          ? 'Connected'
+                          : (segment.error ?? 'Balance unavailable')}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div
+                        className={cn(
+                          'text-sm font-semibold text-foreground',
+                          segment.status === 'unavailable' &&
+                            'text-amber-200/80',
+                        )}
+                      >
+                        {segment.status === 'available' &&
+                        typeof segment.balance === 'number'
+                          ? formatCompactNumber(segment.balance)
+                          : '--'}
+                      </div>
+                      <div className="text-[10px] uppercase tracking-[0.14em] text-foreground/32">
+                        {segment.currencyOrUnit}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-2">
             <Button
               withWrapper={false}
@@ -256,7 +388,7 @@ export default function TopbarCreditsBar() {
               }}
               isDisabled={isLoading}
               className={cn(
-                'gen-shell-control flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium',
+                'flex flex-1 items-center justify-center gap-2 rounded-md bg-background-secondary px-3 py-2.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-background-tertiary',
                 isLoading && 'opacity-50 cursor-not-allowed',
               )}
               title="Refresh Balance"
@@ -264,7 +396,7 @@ export default function TopbarCreditsBar() {
             >
               <HiArrowPath
                 className={cn(
-                  'w-4 h-4 flex-shrink-0',
+                  'size-4 flex-shrink-0',
                   isLoading && 'animate-spin',
                 )}
               />
@@ -272,17 +404,15 @@ export default function TopbarCreditsBar() {
             </Button>
 
             <Link
-              href={`${EnvironmentService.apps.app}/settings/organization`}
+              href={orgHref('/settings')}
               target="_blank"
               rel="noopener noreferrer"
-              className={cn(
-                'gen-shell-control flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold',
-              )}
+              className="flex flex-1 items-center justify-center gap-2 rounded-md bg-background-secondary px-3 py-2.5 text-sm font-semibold text-foreground/80 transition-colors hover:bg-background-tertiary"
               data-tone="accent"
               onClick={() => setIsOpen(false)}
               title="Top Up Credits"
             >
-              <HiPlus className="w-4 h-4 flex-shrink-0" />
+              <HiPlus className="size-4 flex-shrink-0" />
               <span className="text-sm font-medium">Top Up</span>
             </Link>
           </div>

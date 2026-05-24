@@ -16,6 +16,7 @@ import {
   fromPromiseEffect,
   runEffectPromise,
 } from '@api/helpers/utils/effect/effect.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentMessageBusService } from '@api/services/agent-campaign/agent-message-bus.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
@@ -33,7 +34,10 @@ import {
   getAgentTypeConfig,
 } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import { ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/onboarding-system-prompt.constant';
-import { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import {
+  type AgentGenerationPriority,
+  ResolvedAgentExecutionPolicy,
+} from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { getToolDefinitions } from '@api/services/agent-orchestrator/tools/agent-tool-registry';
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
@@ -66,6 +70,7 @@ import {
   type AgentUIBlock,
   type AgentUIBlocksEvent,
   type AgentUiAction,
+  type AgentUiActionCta,
 } from '@genfeedai/interfaces';
 import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
@@ -78,10 +83,6 @@ import {
   Optional,
 } from '@nestjs/common';
 import { Effect } from 'effect';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-const isValidObjectId = (id: unknown): id is string =>
-  typeof id === 'string' && OBJECT_ID_REGEX.test(id);
 
 const EXPLICIT_WEB_SEARCH_PATTERN =
   /\b(browse|find online|google|internet|look up online|online research|search (?:the )?(?:internet|online|web)|web search)\b/i;
@@ -282,10 +283,25 @@ export interface AgentChatAttachment {
   name?: string;
 }
 
+export interface AgentPageContext {
+  contentFormat?: string;
+  draftBody?: string;
+  draftInstructions?: string;
+  draftSummary?: string;
+  draftTitle?: string;
+  draftType?: string;
+  postAuthor?: string;
+  postContent?: string;
+  route?: string;
+  selectedText?: string;
+  url?: string;
+}
+
 export interface AgentChatRequest {
   agentType?: AgentType;
   attachments?: AgentChatAttachment[];
   content: string;
+  pageContext?: AgentPageContext;
   planModeEnabled?: boolean;
   threadId?: string;
   model?: string;
@@ -336,7 +352,51 @@ export interface AgentThreadUiActionRequest {
   threadId: string;
 }
 
+const MAX_PAGE_CONTEXT_FIELD_LENGTH = 4_000;
 const RESULT_SUMMARY_MAX_LENGTH = 500;
+
+function clampPageContextField(value?: string): string | null {
+  const normalized = value?.replace(/\s+/g, ' ').trim();
+
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized.length <= MAX_PAGE_CONTEXT_FIELD_LENGTH) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, MAX_PAGE_CONTEXT_FIELD_LENGTH)}...`;
+}
+
+function buildPageContextPrompt(pageContext?: AgentPageContext): string {
+  if (!pageContext) {
+    return '';
+  }
+
+  const fields = [
+    ['Route', pageContext.route || pageContext.url],
+    ['Draft type', pageContext.draftType],
+    ['Format', pageContext.contentFormat],
+    ['Title', pageContext.draftTitle],
+    ['Summary', pageContext.draftSummary],
+    ['Instructions', pageContext.draftInstructions],
+    ['Selected text', pageContext.selectedText],
+    ['Draft body', pageContext.draftBody || pageContext.postContent],
+  ]
+    .map(([label, value]) => {
+      const clamped = clampPageContextField(value);
+      return clamped ? `- ${label}: ${clamped}` : null;
+    })
+    .filter(Boolean)
+    .join('\n');
+
+  if (!fields) {
+    return '';
+  }
+
+  return `\n\n## Current Page Context\nThe user is working in a visible Genfeed surface. Use this context when answering, especially for writing co-pilot requests. Propose edits, structure, or next actions against the current draft instead of starting from scratch unless asked.\n${fields}`;
+}
 
 function summarizeToolResult(result: {
   success: boolean;
@@ -494,10 +554,10 @@ export class AgentOrchestratorService {
         metadata: request.attachments?.length
           ? { attachments: request.attachments }
           : undefined,
-        organization: context.organizationId,
+        organizationId: context.organizationId,
         role: AgentMessageRole.USER,
         room: threadId,
-        user: context.userId,
+        userId: context.userId,
       });
 
       const planModeResponse = await this.tryHandlePlanModeTurn({
@@ -870,7 +930,7 @@ export class AgentOrchestratorService {
                   }
                 : undefined,
             },
-            organization: context.organizationId,
+            organizationId: context.organizationId,
             role: AgentMessageRole.ASSISTANT,
             room: threadId,
             toolCalls: allToolCalls.map((tc) => ({
@@ -882,7 +942,7 @@ export class AgentOrchestratorService {
               status: tc.status,
               toolName: tc.toolName,
             })),
-            user: context.userId,
+            userId: context.userId,
           });
           await this.recordAssistantFinalized({
             content,
@@ -1307,10 +1367,10 @@ export class AgentOrchestratorService {
       metadata: request.attachments?.length
         ? { attachments: request.attachments }
         : undefined,
-      organization: context.organizationId,
+      organizationId: context.organizationId,
       role: AgentMessageRole.USER,
       room: threadId,
-      user: context.userId,
+      userId: context.userId,
     });
 
     const handledPlanMode = await this.tryHandlePlanModeTurnStream({
@@ -1589,7 +1649,7 @@ export class AgentOrchestratorService {
               totalCreditsUsed,
               uiActions: enhancedUiActions.uiActions,
             },
-            organization: context.organizationId,
+            organizationId: context.organizationId,
             role: AgentMessageRole.ASSISTANT,
             room: threadId,
             toolCalls: allToolCalls.map((tc) => ({
@@ -1601,7 +1661,7 @@ export class AgentOrchestratorService {
               status: tc.status,
               toolName: tc.toolName,
             })),
-            user: context.userId,
+            userId: context.userId,
           });
 
           let runDurationMs: number | undefined;
@@ -1611,7 +1671,10 @@ export class AgentOrchestratorService {
               context.organizationId,
               content.slice(0, 200),
             );
-            runDurationMs = completedRun?.durationMs;
+            runDurationMs =
+              typeof completedRun?.durationMs === 'number'
+                ? completedRun.durationMs
+                : undefined;
           }
 
           await runEffectPromise(
@@ -1853,7 +1916,7 @@ export class AgentOrchestratorService {
               reviewModelOverride: resolvedPolicy.reviewModelOverride,
               runId: context.runId,
               strategyId: context.strategyId,
-              thinkingModel: resolvedPolicy.thinkingModelOverride,
+              thinkingModel: resolvedPolicy.thinkingModelOverride ?? undefined,
               threadId,
               userId: context.userId,
             },
@@ -2065,7 +2128,7 @@ export class AgentOrchestratorService {
     } as Record<string, unknown>);
     return {
       seedTitle,
-      threadId: String(thread._id),
+      threadId: String(thread._id ?? thread.id),
     };
   }
 
@@ -2196,7 +2259,7 @@ export class AgentOrchestratorService {
       isDeleted: false,
       organization: params.context.organizationId,
       user: {
-        $in: [params.context.userId],
+        in: [params.context.userId],
       },
     })) as { title?: string } | null;
 
@@ -2218,7 +2281,7 @@ export class AgentOrchestratorService {
     organizationId: string,
     userId: string,
   ): Promise<string | null> {
-    if (!isValidObjectId(threadId)) {
+    if (!isEntityId(threadId)) {
       return null;
     }
 
@@ -2226,10 +2289,10 @@ export class AgentOrchestratorService {
       _id: threadId,
       isDeleted: false,
       organization: organizationId,
-      user: { $in: [userId] },
+      user: { in: [userId] },
     });
 
-    return thread ? String(thread._id) : null;
+    return thread ? String(thread._id ?? thread.id) : null;
   }
 
   private async resolveThreadUiActionModel(
@@ -2354,10 +2417,10 @@ export class AgentOrchestratorService {
         ...assistantResponse.metadata,
         creditsRemaining,
       },
-      organization: params.organizationId,
+      organizationId: params.organizationId,
       role: AgentMessageRole.ASSISTANT,
       room: params.threadId,
-      user: params.userId,
+      userId: params.userId,
     });
 
     if (this.streamPublisher) {
@@ -2410,10 +2473,10 @@ export class AgentOrchestratorService {
     await this.agentMessagesService.addMessage({
       content: assistantResponse.content,
       metadata: assistantMetadata,
-      organization: params.context.organizationId,
+      organizationId: params.context.organizationId,
       role: AgentMessageRole.ASSISTANT,
       room: params.threadId,
-      user: params.context.userId,
+      userId: params.context.userId,
     });
     await this.recordAssistantFinalized({
       content: assistantResponse.content,
@@ -2626,10 +2689,10 @@ export class AgentOrchestratorService {
         creditsRemaining,
         ...assistantMetadata,
       },
-      organization: params.context.organizationId,
+      organizationId: params.context.organizationId,
       role: AgentMessageRole.ASSISTANT,
       room: params.threadId,
-      user: params.context.userId,
+      userId: params.context.userId,
     });
     await this.recordAssistantFinalized({
       content,
@@ -2729,7 +2792,7 @@ export class AgentOrchestratorService {
         runId: params.context.runId,
         strategyId: params.context.strategyId,
         streamBatchToUser: true,
-        thinkingModel: params.policy.thinkingModelOverride,
+        thinkingModel: params.policy.thinkingModelOverride ?? undefined,
         threadId: params.threadId,
         userId: params.context.userId,
       },
@@ -2822,7 +2885,7 @@ export class AgentOrchestratorService {
     await this.agentMessagesService.addMessage({
       content: fullContent,
       metadata: assistantMetadata,
-      organization: params.context.organizationId,
+      organizationId: params.context.organizationId,
       role: AgentMessageRole.ASSISTANT,
       room: params.threadId,
       toolCalls: [
@@ -2838,7 +2901,7 @@ export class AgentOrchestratorService {
           toolName,
         },
       ],
-      user: params.context.userId,
+      userId: params.context.userId,
     });
     await this.recordAssistantFinalized({
       content: fullContent,
@@ -2904,10 +2967,10 @@ export class AgentOrchestratorService {
     await this.agentMessagesService.addMessage({
       content: assistantResponse.content,
       metadata: assistantMetadata,
-      organization: params.context.organizationId,
+      organizationId: params.context.organizationId,
       role: AgentMessageRole.ASSISTANT,
       room: params.threadId,
-      user: params.context.userId,
+      userId: params.context.userId,
     });
 
     await runEffectPromise(
@@ -3511,7 +3574,7 @@ export class AgentOrchestratorService {
       memoryEntryIds?: string[];
     } | null = null;
 
-    if (isValidObjectId(request.threadId)) {
+    if (isEntityId(request.threadId)) {
       thread = (await this.agentThreadsService.findOne({
         _id: request.threadId,
         isDeleted: false,
@@ -3587,9 +3650,13 @@ export class AgentOrchestratorService {
     }
 
     if (thread?.systemPrompt) {
-      const prompt = skillPromptSuffix
-        ? `${thread.systemPrompt}\n\n${skillPromptSuffix}`
-        : thread.systemPrompt;
+      const prompt = [
+        thread.systemPrompt,
+        skillPromptSuffix,
+        buildPageContextPrompt(request.pageContext),
+      ]
+        .filter(Boolean)
+        .join('\n\n');
       return {
         memories,
         model: resolveModel(brandContext?.defaultModel),
@@ -3600,9 +3667,13 @@ export class AgentOrchestratorService {
     }
 
     if (request.systemPromptOverride) {
-      const prompt = skillPromptSuffix
-        ? `${request.systemPromptOverride}\n\n${skillPromptSuffix}`
-        : request.systemPromptOverride;
+      const prompt = [
+        request.systemPromptOverride,
+        skillPromptSuffix,
+        buildPageContextPrompt(request.pageContext),
+      ]
+        .filter(Boolean)
+        .join('\n\n');
       return {
         memories,
         model: resolveModel(brandContext?.defaultModel),
@@ -3619,7 +3690,8 @@ export class AgentOrchestratorService {
     const basePrompt =
       SYSTEM_PROMPT +
       (typeSuffix || platformSuffix) +
-      (skillPromptSuffix ? `\n\n${skillPromptSuffix}` : '');
+      (skillPromptSuffix ? `\n\n${skillPromptSuffix}` : '') +
+      buildPageContextPrompt(request.pageContext);
 
     if (brandContext) {
       const systemPrompt = this.contextAssemblyService.buildSystemPrompt(
@@ -3774,7 +3846,7 @@ export class AgentOrchestratorService {
     const windowMessages =
       await this.threadContextCompressorService.getWindowMessages(
         threadId,
-        state.lastIncorporatedMessageId,
+        state.data.lastIncorporatedMessageId ?? '',
       );
 
     const compressedContext =
@@ -4267,6 +4339,7 @@ export class AgentOrchestratorService {
       this.getThreadSnapshotEffect(
         params.threadId,
         params.context.organizationId,
+        params.context.userId,
       ),
     );
     const latestPlan = snapshot?.latestProposedPlan as
@@ -4352,6 +4425,7 @@ export class AgentOrchestratorService {
       this.getThreadSnapshotEffect(
         params.threadId,
         params.context.organizationId,
+        params.context.userId,
       ),
     );
     const latestPlan = snapshot?.latestProposedPlan as
@@ -4770,16 +4844,21 @@ export class AgentOrchestratorService {
 
     // Merge skill tool overrides into the profile snapshot
     if (context.resolvedSkills?.length && this.skillRuntimeService) {
-      profile.enabledTools = this.skillRuntimeService.mergeSkillToolOverrides(
+      const enabledTools = this.skillRuntimeService.mergeSkillToolOverrides(
         profile.enabledTools,
         context.resolvedSkills,
       );
+
+      if (enabledTools) {
+        profile.enabledTools = enabledTools;
+      }
     }
 
     await runEffectPromise(
       this.recordThreadProfileSnapshotEffect(
         threadId,
         context.organizationId,
+        context.userId,
         profile,
       ),
     );
@@ -5488,6 +5567,7 @@ export class AgentOrchestratorService {
   private getThreadSnapshotEffect(
     threadId: string,
     organizationId: string,
+    userId: string,
   ): Effect.Effect<
     Awaited<ReturnType<AgentThreadEngineService['getSnapshot']>> | null,
     unknown
@@ -5499,6 +5579,7 @@ export class AgentOrchestratorService {
     return this.agentThreadEngineService.getSnapshotEffect(
       threadId,
       organizationId,
+      userId,
     );
   }
 
@@ -5517,6 +5598,7 @@ export class AgentOrchestratorService {
   private recordThreadProfileSnapshotEffect(
     threadId: string,
     organizationId: string,
+    userId: string,
     profile: object,
   ): Effect.Effect<void, unknown> {
     if (!this.agentThreadEngineService) {
@@ -5524,7 +5606,7 @@ export class AgentOrchestratorService {
     }
 
     return this.agentThreadEngineService
-      .recordProfileSnapshotEffect(threadId, organizationId, profile)
+      .recordProfileSnapshotEffect(threadId, organizationId, userId, profile)
       .pipe(Effect.asVoid);
   }
 
@@ -5644,7 +5726,7 @@ export class AgentOrchestratorService {
         creditsRemaining,
         ...assistantMetadata,
       },
-      organization: params.context.organizationId,
+      organizationId: params.context.organizationId,
       role: AgentMessageRole.ASSISTANT,
       room: params.threadId,
       toolCalls: params.toolCalls.map((toolCall) => ({
@@ -5658,7 +5740,7 @@ export class AgentOrchestratorService {
         status: toolCall.status,
         toolName: toolCall.toolName,
       })),
-      user: params.context.userId,
+      userId: params.context.userId,
     });
 
     await this.recordAssistantFinalized({
@@ -5950,7 +6032,7 @@ export class AgentOrchestratorService {
 
   private buildCompletionPrimaryCta(
     label: string,
-    cta?: AgentUiAction['ctas'] extends Array<infer T> ? T : never,
+    cta?: AgentUiActionCta,
   ):
     | {
         action?: string;

@@ -69,18 +69,18 @@ export class ApiKeyAuthGuard implements CanActivate {
       }
     }
 
-    const apiKeyId = apiKey._id.toString();
+    const apiKeyId = apiKey.id;
 
     // Attach user info to request for downstream use
     request.user = {
-      id: apiKey.user.toString(),
+      id: apiKey.userId,
       publicMetadata: {
         apiKeyId,
-        brand: apiKey.organization.toString(), // Default to org
+        brand: apiKey.organizationId, // Default to org
         isApiKey: true,
-        organization: apiKey.organization.toString(),
+        organization: apiKey.organizationId,
         scopes: apiKey.scopes,
-        user: apiKey.user.toString(),
+        user: apiKey.userId,
       },
     };
 

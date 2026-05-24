@@ -48,8 +48,8 @@ export default function IngredientSound({
 
   return (
     <>
-      {ingredients.map((sound: IIngredient, index: number) => (
-        <Card key={index}>
+      {ingredients.map((sound: IIngredient) => (
+        <Card key={sound.id}>
           <div className="flex items-center justify-between">
             <div className="flex flex-col h-full">
               <h3 className="font-medium text-lg">{sound.metadataLabel}</h3>

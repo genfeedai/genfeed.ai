@@ -12,8 +12,7 @@ export default async function WorkflowDetailPage({
   params,
   searchParams,
 }: WorkflowDetailPageProps) {
-  const { id } = await params;
-  const { execution } = await searchParams;
+  const [{ id }, { execution }] = await Promise.all([params, searchParams]);
 
   return (
     <WorkflowDetailPageClient initialExecutionId={execution} workflowId={id} />

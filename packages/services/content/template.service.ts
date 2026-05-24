@@ -6,7 +6,6 @@
  */
 
 import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { JsonApiResponseDocument } from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   ITemplateFilter,
   ITemplateGenerationRequest,
@@ -18,6 +17,7 @@ import type { IContentTemplate } from '@genfeedai/interfaces/content/template-ui
 import { Template } from '@genfeedai/models/content/template.model';
 import { TemplateSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
+import type { JsonApiResponseDocument } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
 
 export class TemplateService extends BaseService<IContentTemplate> {
@@ -26,10 +26,7 @@ export class TemplateService extends BaseService<IContentTemplate> {
   }
 
   public static getInstance(token: string): TemplateService {
-    return BaseService.getDataServiceInstance(
-      TemplateService,
-      token,
-    ) as TemplateService;
+    return BaseService.getDataServiceInstance(TemplateService, token);
   }
 
   /**

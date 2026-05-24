@@ -77,6 +77,284 @@ const DURATIONS: { value: 5 | 10; label: string }[] = [
   { label: '10 seconds', value: 10 },
 ];
 
+function MotionModeSelect({
+  id,
+  mode,
+  onModeChange,
+}: {
+  id: string;
+  mode: MotionControlMode;
+  onModeChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <label
+        className="text-xs text-[var(--muted-foreground)]"
+        htmlFor={`motion-mode-${id}`}
+      >
+        Mode
+      </label>
+      <Select value={mode} onValueChange={onModeChange}>
+        <SelectTrigger id={`motion-mode-${id}`} className="nodrag h-8 w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {MOTION_MODES.map((motionMode) => (
+            <SelectItem key={motionMode.value} value={motionMode.value}>
+              {motionMode.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+interface VideoTransferSettingsProps {
+  id: string;
+  nodeData: MotionControlNodeData;
+  onCharacterOrientationChange: (value: string) => void;
+  onKeepOriginalSoundToggle: (checked: boolean | 'indeterminate') => void;
+  onQualityModeChange: (value: string) => void;
+}
+
+function VideoTransferSettings({
+  id,
+  nodeData,
+  onCharacterOrientationChange,
+  onKeepOriginalSoundToggle,
+  onQualityModeChange,
+}: VideoTransferSettingsProps) {
+  return (
+    <>
+      <div>
+        <label
+          className="text-xs text-[var(--muted-foreground)]"
+          htmlFor={`motion-quality-${id}`}
+        >
+          Quality
+        </label>
+        <Select
+          value={nodeData.qualityMode}
+          onValueChange={onQualityModeChange}
+        >
+          <SelectTrigger
+            id={`motion-quality-${id}`}
+            className="nodrag h-8 w-full"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {QUALITY_MODES.map((qualityMode) => (
+              <SelectItem key={qualityMode.value} value={qualityMode.value}>
+                {qualityMode.label} - {qualityMode.description}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <label
+          className="text-xs text-[var(--muted-foreground)]"
+          htmlFor={`motion-character-orientation-${id}`}
+        >
+          Character Orientation
+        </label>
+        <Select
+          value={nodeData.characterOrientation}
+          onValueChange={onCharacterOrientationChange}
+        >
+          <SelectTrigger
+            id={`motion-character-orientation-${id}`}
+            className="nodrag h-8 w-full"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CHARACTER_ORIENTATIONS.map((orientation) => (
+              <SelectItem key={orientation.value} value={orientation.value}>
+                {orientation.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex items-center gap-2 nodrag">
+        <Checkbox
+          id={`keep-sound-${id}`}
+          checked={nodeData.keepOriginalSound}
+          onCheckedChange={onKeepOriginalSoundToggle}
+        />
+        <label
+          htmlFor={`keep-sound-${id}`}
+          className="text-sm text-[var(--foreground)] cursor-pointer"
+        >
+          Keep Original Sound
+        </label>
+      </div>
+    </>
+  );
+}
+
+interface StandardMotionSettingsProps {
+  id: string;
+  nodeData: MotionControlNodeData;
+  onAspectRatioChange: (value: string) => void;
+  onDurationChange: (value: string) => void;
+  onMotionStrengthChange: (value: number[]) => void;
+}
+
+function StandardMotionSettings({
+  id,
+  nodeData,
+  onAspectRatioChange,
+  onDurationChange,
+  onMotionStrengthChange,
+}: StandardMotionSettingsProps) {
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label
+            className="text-xs text-[var(--muted-foreground)]"
+            htmlFor={`motion-duration-${id}`}
+          >
+            Duration
+          </label>
+          <Select
+            value={String(nodeData.duration)}
+            onValueChange={onDurationChange}
+          >
+            <SelectTrigger
+              id={`motion-duration-${id}`}
+              className="nodrag h-8 w-full"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DURATIONS.map((duration) => (
+                <SelectItem key={duration.value} value={String(duration.value)}>
+                  {duration.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label
+            className="text-xs text-[var(--muted-foreground)]"
+            htmlFor={`motion-aspect-ratio-${id}`}
+          >
+            Aspect Ratio
+          </label>
+          <Select
+            value={nodeData.aspectRatio}
+            onValueChange={onAspectRatioChange}
+          >
+            <SelectTrigger
+              id={`motion-aspect-ratio-${id}`}
+              className="nodrag h-8 w-full"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ASPECT_RATIOS.map((ratio) => (
+                <SelectItem key={ratio.value} value={ratio.value}>
+                  {ratio.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs text-[var(--muted-foreground)]">
+          Motion Strength: {nodeData.motionStrength}%
+        </label>
+        <Slider
+          value={[nodeData.motionStrength]}
+          min={0}
+          max={100}
+          step={5}
+          onValueChange={onMotionStrengthChange}
+          className="nodrag w-full"
+        />
+        <div className="flex justify-between text-[10px] text-[var(--muted-foreground)]">
+          <span>Subtle</span>
+          <span>Strong</span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function MotionOutputPreview({
+  outputVideo,
+  isProcessing,
+  onGenerate,
+}: {
+  isProcessing: boolean;
+  onGenerate: () => void;
+  outputVideo?: string | null;
+}) {
+  if (!outputVideo) return null;
+
+  return (
+    <div className="relative">
+      <video
+        src={outputVideo}
+        className="w-full h-20 object-cover rounded cursor-pointer"
+        controls
+      >
+        <track kind="captions" />
+      </video>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={onGenerate}
+        disabled={isProcessing}
+        className="absolute top-1 right-1 size-6 bg-black/50 hover:bg-black/70"
+      >
+        <RefreshCw className="size-3" />
+      </Button>
+    </div>
+  );
+}
+
+function MotionRequirementHint({
+  canGenerate,
+  isProcessing,
+  isVideoTransferMode,
+}: {
+  canGenerate: boolean;
+  isProcessing: boolean;
+  isVideoTransferMode: boolean;
+}) {
+  return (
+    <>
+      {!canGenerate && !isProcessing && (
+        <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+          <AlertCircle className="size-3" />
+          {isVideoTransferMode
+            ? 'Connect an image and motion video'
+            : 'Connect an image to generate'}
+        </div>
+      )}
+
+      {isVideoTransferMode && (
+        <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+          <Video className="size-3" />
+          Motion video: 3-30 seconds
+        </div>
+      )}
+    </>
+  );
+}
+
 function MotionControlNodeComponent(props: NodeProps) {
   const { id, type, data } = props;
   const nodeData = data as MotionControlNodeData;
@@ -167,12 +445,12 @@ function MotionControlNodeComponent(props: NodeProps) {
             onClick={handleExpand}
             title="Expand preview"
           >
-            <Expand className="h-3 w-3" />
+            <Expand className="size-3" />
           </Button>
         )}
         {nodeData.status === 'processing' ? (
           <Button variant="destructive" size="sm" onClick={handleStop}>
-            <Square className="h-4 w-4 fill-current" />
+            <Square className="size-4 fill-current" />
             Generating
           </Button>
         ) : (
@@ -182,7 +460,7 @@ function MotionControlNodeComponent(props: NodeProps) {
             onClick={handleGenerate}
             disabled={!canGenerate}
           >
-            <Play className="h-4 w-4 fill-current" />
+            <Play className="size-4 fill-current" />
             Generate
           </Button>
         )}
@@ -201,196 +479,41 @@ function MotionControlNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props} headerActions={headerActions} hideStatusIndicator>
       <div className="space-y-3">
-        {/* Mode Selection */}
-        <div>
-          <label className="text-xs text-[var(--muted-foreground)]">Mode</label>
-          <Select value={nodeData.mode} onValueChange={handleModeChange}>
-            <SelectTrigger className="nodrag h-8 w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MOTION_MODES.map((mode) => (
-                <SelectItem key={mode.value} value={mode.value}>
-                  {mode.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Video Transfer specific options */}
+        <MotionModeSelect
+          id={id}
+          mode={nodeData.mode}
+          onModeChange={handleModeChange}
+        />
         {isVideoTransferMode && (
-          <>
-            {/* Quality Mode */}
-            <div>
-              <label className="text-xs text-[var(--muted-foreground)]">
-                Quality
-              </label>
-              <Select
-                value={nodeData.qualityMode}
-                onValueChange={handleQualityModeChange}
-              >
-                <SelectTrigger className="nodrag h-8 w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {QUALITY_MODES.map((mode) => (
-                    <SelectItem key={mode.value} value={mode.value}>
-                      {mode.label} - {mode.description}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Character Orientation */}
-            <div>
-              <label className="text-xs text-[var(--muted-foreground)]">
-                Character Orientation
-              </label>
-              <Select
-                value={nodeData.characterOrientation}
-                onValueChange={handleCharacterOrientationChange}
-              >
-                <SelectTrigger className="nodrag h-8 w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CHARACTER_ORIENTATIONS.map((orientation) => (
-                    <SelectItem
-                      key={orientation.value}
-                      value={orientation.value}
-                    >
-                      {orientation.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Keep Original Sound */}
-            <div className="flex items-center gap-2 nodrag">
-              <Checkbox
-                id={`keep-sound-${id}`}
-                checked={nodeData.keepOriginalSound}
-                onCheckedChange={handleKeepOriginalSoundToggle}
-              />
-              <label
-                htmlFor={`keep-sound-${id}`}
-                className="text-sm text-[var(--foreground)] cursor-pointer"
-              >
-                Keep Original Sound
-              </label>
-            </div>
-          </>
+          <VideoTransferSettings
+            id={id}
+            nodeData={nodeData}
+            onCharacterOrientationChange={handleCharacterOrientationChange}
+            onKeepOriginalSoundToggle={handleKeepOriginalSoundToggle}
+            onQualityModeChange={handleQualityModeChange}
+          />
         )}
 
         {!isVideoTransferMode && (
-          <>
-            <div className="grid grid-cols-2 gap-2">
-              {/* Duration */}
-              <div>
-                <label className="text-xs text-[var(--muted-foreground)]">
-                  Duration
-                </label>
-                <Select
-                  value={String(nodeData.duration)}
-                  onValueChange={handleDurationChange}
-                >
-                  <SelectTrigger className="nodrag h-8 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DURATIONS.map((d) => (
-                      <SelectItem key={d.value} value={String(d.value)}>
-                        {d.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Aspect Ratio */}
-              <div>
-                <label className="text-xs text-[var(--muted-foreground)]">
-                  Aspect Ratio
-                </label>
-                <Select
-                  value={nodeData.aspectRatio}
-                  onValueChange={handleAspectRatioChange}
-                >
-                  <SelectTrigger className="nodrag h-8 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ASPECT_RATIOS.map((ratio) => (
-                      <SelectItem key={ratio.value} value={ratio.value}>
-                        {ratio.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Motion Strength Slider */}
-            <div>
-              <label className="text-xs text-[var(--muted-foreground)]">
-                Motion Strength: {nodeData.motionStrength}%
-              </label>
-              <Slider
-                value={[nodeData.motionStrength]}
-                min={0}
-                max={100}
-                step={5}
-                onValueChange={handleMotionStrengthChange}
-                className="nodrag w-full"
-              />
-              <div className="flex justify-between text-[10px] text-[var(--muted-foreground)]">
-                <span>Subtle</span>
-                <span>Strong</span>
-              </div>
-            </div>
-          </>
+          <StandardMotionSettings
+            id={id}
+            nodeData={nodeData}
+            onAspectRatioChange={handleAspectRatioChange}
+            onDurationChange={handleDurationChange}
+            onMotionStrengthChange={handleMotionStrengthChange}
+          />
         )}
 
-        {/* Output Preview */}
-        {nodeData.outputVideo && (
-          <div className="relative">
-            <video
-              src={nodeData.outputVideo}
-              className="w-full h-20 object-cover rounded cursor-pointer"
-              controls
-            />
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={handleGenerate}
-              disabled={nodeData.status === 'processing'}
-              className="absolute top-1 right-1 h-6 w-6 bg-black/50 hover:bg-black/70"
-            >
-              <RefreshCw className="w-3 h-3" />
-            </Button>
-          </div>
-        )}
-
-        {/* Help text for required inputs */}
-        {!canGenerate && nodeData.status !== 'processing' && (
-          <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
-            {isVideoTransferMode
-              ? 'Connect an image and motion video'
-              : 'Connect an image to generate'}
-          </div>
-        )}
-
-        {/* Info about video requirements */}
-        {isVideoTransferMode && (
-          <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-            <Video className="w-3 h-3" />
-            Motion video: 3-30 seconds
-          </div>
-        )}
+        <MotionOutputPreview
+          outputVideo={nodeData.outputVideo}
+          isProcessing={nodeData.status === 'processing'}
+          onGenerate={handleGenerate}
+        />
+        <MotionRequirementHint
+          canGenerate={canGenerate}
+          isProcessing={nodeData.status === 'processing'}
+          isVideoTransferMode={isVideoTransferMode}
+        />
       </div>
     </BaseNode>
   );

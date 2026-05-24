@@ -1,11 +1,11 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { batchItemAction, cancelBatch, createBatch, getBatch, listBatches } from '@/api/batches.js';
-import { requireAuth } from '@/api/client.js';
-import { getActiveBrand } from '@/config/store.js';
-import { formatHeader, formatLabel, formatSuccess, print, printJson } from '@/ui/theme.js';
-import { handleError, NoBrandError } from '@/utils/errors.js';
+import { batchItemAction, cancelBatch, createBatch, getBatch, listBatches } from '@/api/batches';
+import { requireAuth } from '@/api/client';
+import { getActiveBrand } from '@/config/store';
+import { formatHeader, formatLabel, formatSuccess, print, printJson } from '@/ui/theme';
+import { handleError, NoBrandError } from '@/utils/errors';
 
 export const batchCommand = new Command('batch').description('Batch content generation');
 

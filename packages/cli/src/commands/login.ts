@@ -1,29 +1,58 @@
+import { createHash, randomBytes } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { password, select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { validateApiKey } from '@/api/auth.js';
-import { listBrands } from '@/api/brands.js';
-import { setActiveBrand, setApiKey, setOrganizationId, setRole } from '@/config/store.js';
-import { formatHeader, formatLabel, formatSuccess, formatWarning, print } from '@/ui/theme.js';
-import { GenfeedError, handleError } from '@/utils/errors.js';
+import { validateApiKey } from '@/api/auth';
+import { listBrands } from '@/api/brands';
+import { setActiveBrand, setApiKey, setOrganizationId, setRole } from '@/config/store';
+import { formatHeader, formatLabel, formatSuccess, formatWarning, print } from '@/ui/theme';
+import { GenfeedError, handleError } from '@/utils/errors';
 
 const AUTH_URL = 'https://app.genfeed.ai/oauth/cli';
+const API_BASE_URL = 'https://api.genfeed.ai/v1';
 const CALLBACK_TIMEOUT = 120_000; // 2 minutes
 
+interface PkceParams {
+  challenge: string;
+  verifier: string;
+}
+
+interface ExchangeResponse {
+  issuedAt: string;
+  token: string;
+  userEmail?: string;
+  userId: string;
+  userName?: string;
+}
+
+function generatePkce(): PkceParams {
+  const verifier = randomBytes(32).toString('base64url');
+  const challenge = createHash('sha256').update(verifier).digest('base64url');
+  return { challenge, verifier };
+}
+
+function generateState(): string {
+  return randomBytes(16).toString('base64url');
+}
+
 /**
- * Start a temporary localhost HTTP server to receive the OAuth callback.
- * Returns the API key received from the browser redirect.
+ * Start a temporary localhost HTTP server to receive the PKCE OAuth callback.
+ * Validates state, exchanges the code for a token, and returns the token.
  */
 function waitForOAuthCallback(): Promise<string> {
   return new Promise((resolve, reject) => {
-    const server = createServer((req: IncomingMessage, res: ServerResponse) => {
+    const pkce = generatePkce();
+    const expectedState = generateState();
+
+    const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
       const url = new URL(req.url ?? '/', `http://localhost`);
 
       if (url.pathname === '/callback') {
-        const key = url.searchParams.get('key');
         const error = url.searchParams.get('error');
+        const code = url.searchParams.get('code');
+        const returnedState = url.searchParams.get('state');
 
         if (error) {
           res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -33,7 +62,50 @@ function waitForOAuthCallback(): Promise<string> {
           return;
         }
 
-        if (key) {
+        if (!code) {
+          res.writeHead(400, { 'Content-Type': 'text/html' });
+          res.end(callbackPage('Error', 'No authorization code received.', false));
+          return;
+        }
+
+        if (returnedState !== expectedState) {
+          res.writeHead(400, { 'Content-Type': 'text/html' });
+          res.end(callbackPage('Error', 'State mismatch. Possible CSRF.', false));
+          cleanup();
+          reject(new GenfeedError('State mismatch during OAuth callback'));
+          return;
+        }
+
+        try {
+          const exchangeRes = await fetch(`${API_BASE_URL}/auth/desktop/exchange`, {
+            body: JSON.stringify({
+              code,
+              codeVerifier: pkce.verifier,
+              state: expectedState,
+            }),
+            headers: { 'Content-Type': 'application/json' },
+            method: 'POST',
+          });
+
+          if (!exchangeRes.ok) {
+            const body = await exchangeRes.text().catch(() => 'Unknown error');
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(callbackPage('Authentication failed', body, false));
+            cleanup();
+            reject(new GenfeedError(`Token exchange failed: ${body}`));
+            return;
+          }
+
+          const data = (await exchangeRes.json()) as ExchangeResponse;
+
+          if (!data.token) {
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(callbackPage('Authentication failed', 'No token returned by server.', false));
+            cleanup();
+            reject(new GenfeedError('No token returned by server'));
+            return;
+          }
+
           res.writeHead(200, { 'Content-Type': 'text/html' });
           res.end(
             callbackPage(
@@ -43,12 +115,15 @@ function waitForOAuthCallback(): Promise<string> {
             )
           );
           cleanup();
-          resolve(key);
-          return;
+          resolve(data.token);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Token exchange failed';
+          res.writeHead(200, { 'Content-Type': 'text/html' });
+          res.end(callbackPage('Authentication failed', message, false));
+          cleanup();
+          reject(new GenfeedError(message));
         }
 
-        res.writeHead(400, { 'Content-Type': 'text/html' });
-        res.end(callbackPage('Error', 'No API key received.', false));
         return;
       }
 
@@ -85,14 +160,19 @@ function waitForOAuthCallback(): Promise<string> {
       const addr = server.address();
       if (addr && typeof addr === 'object') {
         const port = addr.port;
-        const authUrl = `${AUTH_URL}?port=${port}`;
+        const params = new URLSearchParams({
+          code_challenge: pkce.challenge,
+          code_challenge_method: 'S256',
+          port: String(port),
+          state: expectedState,
+        });
+        const authUrl = `${AUTH_URL}?${params.toString()}`;
 
         print();
         print(formatHeader('Opening browser to authenticate...'));
         print(chalk.dim(authUrl));
         print();
 
-        // Open browser
         openBrowser(authUrl);
       }
     });
@@ -251,7 +331,7 @@ export const loginCommand = new Command('login')
 
       try {
         const apiKey = await waitForOAuthCallback();
-        spinner.succeed('Received API key from browser');
+        spinner.succeed('Authenticated');
         await completeLogin(apiKey);
       } catch (error) {
         spinner.fail('Authentication failed');

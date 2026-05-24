@@ -53,7 +53,7 @@ describe('LinkedInPublisherService', () => {
     name: 'Test Organization',
   } as unknown as OrganizationDocument;
 
-  // Mock post for text-only (not supported on LinkedIn)
+  // Mock post for text-only
   const mockTextPost = {
     _id: mockPostId,
     brand: mockBrandId,
@@ -140,6 +140,7 @@ describe('LinkedInPublisherService', () => {
         {
           provide: LinkedInService,
           useValue: {
+            createTextPost: vi.fn(),
             postComment: vi.fn(),
             uploadImage: vi.fn(),
             uploadVideo: vi.fn(),
@@ -170,8 +171,8 @@ describe('LinkedInPublisherService', () => {
       expect(service.platform).toBe(CredentialPlatform.LINKEDIN);
     });
 
-    it('should NOT support text-only posts', () => {
-      expect(service.supportsTextOnly).toBe(false);
+    it('should support text-only posts', () => {
+      expect(service.supportsTextOnly).toBe(true);
     });
 
     it('should support images', () => {
@@ -192,15 +193,38 @@ describe('LinkedInPublisherService', () => {
   });
 
   describe('publish', () => {
-    describe('text-only posts (not supported)', () => {
-      it('should return failed result for text-only posts', async () => {
+    describe('text-only posts', () => {
+      it('should publish a text-only post successfully', async () => {
         const context = createPublishContext(mockTextPost);
+        const mockActivityId = 'urn:li:activity:text123';
+
+        linkedInService.createTextPost.mockResolvedValue({
+          id: mockActivityId,
+        });
+
+        const result = await service.publish(context);
+
+        expect(result.success).toBe(true);
+        expect(result.externalId).toBe(mockActivityId);
+        expect(result.platform).toBe(CredentialPlatform.LINKEDIN);
+        expect(result.status).toBe(PostStatus.PUBLIC);
+        expect(result.url).toContain(mockActivityId);
+        expect(linkedInService.createTextPost).toHaveBeenCalledWith(
+          mockOrganizationId.toString(),
+          mockBrandId.toString(),
+          expect.any(String),
+        );
+      });
+
+      it('should return failed result when text post externalId is null', async () => {
+        const context = createPublishContext(mockTextPost);
+
+        linkedInService.createTextPost.mockResolvedValue({ id: null });
 
         const result = await service.publish(context);
 
         expect(result.success).toBe(false);
-        expect(result.error).toContain('does not support text-only posts');
-        expect(result.status).toBe(PostStatus.FAILED);
+        expect(result.error).toBe('Failed to get external ID');
       });
     });
 
@@ -525,7 +549,7 @@ describe('LinkedInPublisherService', () => {
   });
 
   describe('validation', () => {
-    it('should fail validation for text-only posts', () => {
+    it('should pass validation for text-only posts', () => {
       const context = createPublishContext(mockTextPost);
       const mediaInfo: MediaInfo = {
         hasIngredients: false,
@@ -537,8 +561,7 @@ describe('LinkedInPublisherService', () => {
 
       const result = (service as any).validatePost(context, mediaInfo);
 
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain('does not support text-only posts');
+      expect(result.valid).toBe(true);
     });
 
     it('should fail validation for carousel posts', () => {

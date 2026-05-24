@@ -35,9 +35,11 @@ import {
   getIsSuperAdmin,
   getPublicMetadata,
 } from '@api/helpers/utils/clerk/clerk.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { BaseService } from '@api/shared/services/base/base.service';
 import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,
@@ -90,7 +92,16 @@ export class BrandsController extends BaseCRUDController<
     public readonly analyticsAggregationService: AnalyticsAggregationService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, brandsService as unknown, BrandSerializer, 'Brand');
+    super(
+      loggerService,
+      brandsService as unknown as BaseService<
+        BrandDocument,
+        CreateBrandDto,
+        UpdateBrandDto
+      >,
+      BrandSerializer,
+      'Brand',
+    );
   }
 
   /**
@@ -105,7 +116,7 @@ export class BrandsController extends BaseCRUDController<
 
     const brand = await this.brandsService.findOne({
       _id: brandId,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],
@@ -181,26 +192,29 @@ export class BrandsController extends BaseCRUDController<
   }
 
   /**
-   * Override buildFindAllPipeline to add logo and banner lookups
+   * Override buildFindAllQuery to add logo and banner lookups
    */
-  public buildFindAllPipeline(
-    user: User,
-    query: BaseQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const publicMetadata = getPublicMetadata(user);
-    return [
-      {
-        $match: {
-          isDeleted: query.isDeleted ?? false,
-          user: publicMetadata.user,
-        },
-      },
-      // Lookup brand assets (logo, banner, references, credentials)
-      ...BrandFilterUtil.buildBrandAssetLookups(),
-      {
-        $sort: handleQuerySort(query.sort),
-      },
-    ];
+    const adminFilter = CollectionFilterUtil.buildAdminFilter(
+      publicMetadata,
+      query,
+    );
+
+    const where: Record<string, unknown> = {
+      isDeleted: query.isDeleted ?? false,
+    };
+
+    if (adminFilter) {
+      Object.assign(where, adminFilter);
+    } else {
+      where.user = publicMetadata.user;
+    }
+
+    return {
+      orderBy: handleQuerySort(query.sort),
+      where,
+    };
   }
 
   @Get('agent-config/strategy-templates')
@@ -240,7 +254,7 @@ export class BrandsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
     const brand = await this.brandsService.findOneBySlug({
       slug,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],

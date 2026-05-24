@@ -1,6 +1,6 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { forwardRef, type HTMLAttributes } from 'react';
+import type { HTMLAttributes } from 'react';
 
 const pageContainerVariants = cva('container mx-auto', {
   defaultVariants: {
@@ -19,17 +19,24 @@ const pageContainerVariants = cva('container mx-auto', {
 
 export interface PageContainerProps
   extends HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof pageContainerVariants> {}
+    VariantProps<typeof pageContainerVariants> {
+  ref?: React.Ref<HTMLDivElement>;
+}
 
-const PageContainer = forwardRef<HTMLDivElement, PageContainerProps>(
-  ({ className, padding, ...props }, ref) => (
+function PageContainer({
+  ref,
+  className,
+  padding,
+  ...props
+}: PageContainerProps) {
+  return (
     <div
       className={cn(pageContainerVariants({ padding }), className)}
       ref={ref}
       {...props}
     />
-  ),
-);
+  );
+}
 PageContainer.displayName = 'PageContainer';
 
 export { PageContainer, pageContainerVariants };

@@ -41,10 +41,6 @@ describe('ChatBotService', () => {
     genFeedService = module.get(GenFeedService);
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('generates a response using GenFeedService', async () => {
     const res = await service.generateResponse('hello');
     expect(res).toBe('hi');

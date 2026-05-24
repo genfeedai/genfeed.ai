@@ -1,6 +1,6 @@
 import { StreakCalendarQueryDto } from '@api/collections/streaks/dto/streak-calendar-query.dto';
 import { StreaksService } from '@api/collections/streaks/services/streaks.service';
-import { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';

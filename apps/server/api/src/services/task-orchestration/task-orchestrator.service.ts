@@ -13,7 +13,11 @@ import {
   WorkspaceTaskQualityAssessmentResult,
   WorkspaceTaskQualityService,
 } from '@api/services/task-orchestration/workspace-task-quality.service';
-import { AgentExecutionStatus, AgentExecutionTrigger } from '@genfeedai/enums';
+import {
+  AgentExecutionStatus,
+  AgentExecutionTrigger,
+  AgentRunStatus,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 
@@ -50,6 +54,28 @@ export class TaskOrchestratorService {
     private readonly workspaceTaskQualityService: WorkspaceTaskQualityService,
     private readonly logger: LoggerService,
   ) {}
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private normalizeRunStatus(value: unknown): AgentExecutionStatus {
+    switch (value) {
+      case AgentExecutionStatus.PENDING:
+      case AgentExecutionStatus.RUNNING:
+      case AgentExecutionStatus.COMPLETED:
+      case AgentExecutionStatus.FAILED:
+      case AgentExecutionStatus.CANCELLED:
+        return value;
+      case AgentRunStatus.COMPLETED:
+        return AgentExecutionStatus.COMPLETED;
+      case AgentRunStatus.FAILED:
+      case AgentRunStatus.BUDGET_EXHAUSTED:
+        return AgentExecutionStatus.FAILED;
+      default:
+        return AgentExecutionStatus.RUNNING;
+    }
+  }
 
   /**
    * Main orchestration entry point.
@@ -416,7 +442,7 @@ export class TaskOrchestratorService {
 
     for (const runId of runIds) {
       const run = await this.agentRunsService.getById(runId, organizationId);
-      if (!run || !terminalStatuses.has(run.status)) {
+      if (!run || !terminalStatuses.has(this.normalizeRunStatus(run.status))) {
         return false;
       }
     }
@@ -434,13 +460,15 @@ export class TaskOrchestratorService {
     for (const runId of runIds) {
       const run = await this.agentRunsService.getById(runId, organizationId);
       if (!run) continue;
+      const runStatus = this.normalizeRunStatus(run.status);
 
-      if (run.status === AgentExecutionStatus.FAILED) {
+      if (runStatus === AgentExecutionStatus.FAILED) {
         hasFailures = true;
       }
 
-      if (run.summary) {
-        summaries.push(run.summary);
+      const summary = this.readString(run.summary);
+      if (summary) {
+        summaries.push(summary);
       }
     }
 
@@ -478,22 +506,23 @@ export class TaskOrchestratorService {
       if (!run) {
         continue;
       }
+      const runStatus = this.normalizeRunStatus(run.status);
 
       runStates.push({
         id: run._id.toString(),
-        label: run.label,
+        label: this.readString(run.label) ?? 'Agent run',
         progress:
-          run.status === AgentExecutionStatus.COMPLETED ||
-          run.status === AgentExecutionStatus.FAILED ||
-          run.status === AgentExecutionStatus.CANCELLED
+          runStatus === AgentExecutionStatus.COMPLETED ||
+          runStatus === AgentExecutionStatus.FAILED ||
+          runStatus === AgentExecutionStatus.CANCELLED
             ? 100
-            : run.status === AgentExecutionStatus.PENDING
+            : runStatus === AgentExecutionStatus.PENDING
               ? 5
               : typeof run.progress === 'number'
                 ? Math.min(99, Math.max(1, run.progress))
                 : 50,
-        status: run.status,
-        summary: run.summary,
+        status: runStatus,
+        summary: this.readString(run.summary),
       });
     }
 

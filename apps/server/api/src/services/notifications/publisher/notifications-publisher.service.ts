@@ -1,6 +1,6 @@
 import { SettingsService } from '@api/collections/settings/services/settings.service';
-import { UsersService } from '@api/collections/users/services/users.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Status } from '@genfeedai/enums';
 import type {
   IBackgroundTaskUpdatePayload,
@@ -11,20 +11,13 @@ import { RedisService } from '@libs/redis/redis.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 
-/**
- * NotificationsPublisherService
- *
- * This service replaces the WebSocket services in the API.
- * Instead of directly emitting WebSocket events, it publishes
- * events to Redis channels that the notifications service listens to.
- */
 @Injectable()
 export class NotificationsPublisherService {
   constructor(
     private readonly redisService: RedisService,
     private readonly notificationsService: NotificationsService,
     private readonly settingsService: SettingsService,
-    private readonly usersService: UsersService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -355,10 +348,12 @@ export class NotificationsPublisherService {
       return { email: null, settings: null };
     }
 
-    const userObjectId = userId;
     const [user, settings] = await Promise.all([
-      this.usersService.findOne({ _id: userObjectId, isDeleted: false }),
-      this.settingsService.findOne({ isDeleted: false, user: userObjectId }),
+      this.prisma.user.findFirst({
+        select: { email: true },
+        where: { id: userId, isDeleted: false },
+      }),
+      this.settingsService.findOne({ isDeleted: false, user: userId }),
     ]);
 
     return {

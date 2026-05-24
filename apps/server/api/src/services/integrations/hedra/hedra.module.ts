@@ -3,10 +3,10 @@ import { HedraController } from '@api/services/integrations/hedra/controllers/he
 import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(HedraService, {
-  additionalImports: [HttpModule, ApiKeyHelperModule],
+  additionalImports: [HttpModule, forwardRef(() => ApiKeyHelperModule)],
 });
 
 @Module({

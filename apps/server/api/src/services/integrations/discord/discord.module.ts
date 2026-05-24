@@ -1,4 +1,4 @@
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { ConfigModule } from '@api/config/config.module';
 import { DiscordController } from '@api/services/integrations/discord/controllers/discord.controller';
 import { DiscordService } from '@api/services/integrations/discord/services/discord.service';
@@ -11,7 +11,7 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [DiscordService],
   imports: [
     ConfigModule,
-    forwardRef(() => CredentialsModule),
+    forwardRef(() => CredentialsCoreModule),
     HttpModule,
     LoggerModule,
   ],

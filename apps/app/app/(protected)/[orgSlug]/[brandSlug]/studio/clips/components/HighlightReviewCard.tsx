@@ -136,21 +136,21 @@ export default function HighlightReviewCard({
     <div
       className={`rounded-xl border p-4 transition-all ${
         selected
-          ? 'border-indigo-500/50 bg-indigo-500/5'
+          ? 'border-primary/50 bg-primary/5'
           : 'border-zinc-800 bg-zinc-900/50 opacity-60'
       }`}
     >
       {/* Header: checkbox + title + badges */}
       <div className="mb-3 flex items-start gap-3">
-        <label className="mt-1 flex cursor-pointer items-center">
+        <span className="mt-1 flex cursor-pointer items-center">
           <Checkbox checked={selected} onCheckedChange={onToggle} />
-        </label>
+        </span>
 
         <div className="flex-1">
           <Input
             value={highlight.title}
             onChange={(e) => onTitleEdit(e.target.value)}
-            className="w-full bg-transparent text-sm font-medium text-zinc-100 outline-none placeholder-zinc-600 focus:border-b focus:border-indigo-500"
+            className="w-full bg-transparent text-sm font-medium text-zinc-100 outline-none placeholder-zinc-600 focus:border-b focus:border-primary"
           />
 
           <div className="mt-2 flex flex-wrap items-center gap-2">

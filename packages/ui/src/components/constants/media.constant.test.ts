@@ -298,7 +298,7 @@ describe('media.constant', () => {
       it('should apply overrides for /avatars', () => {
         const config = getConfigForRoute('/avatars');
 
-        expect(config.placeholder).toBe('Describe your avatar...');
+        expect(config.placeholder).toBe('Describe your avatar…');
         expect(config.buttons?.format).toBe(false);
         expect(config.buttons?.gallery).toBe(false);
         expect(config.buttons?.reference).toBe(false);
@@ -308,7 +308,7 @@ describe('media.constant', () => {
       it('should apply overrides for /lip-sync', () => {
         const config = getConfigForRoute('/lip-sync');
 
-        expect(config.placeholder).toBe('Enter the dialogue for lip-sync...');
+        expect(config.placeholder).toBe('Enter the dialogue for lip-sync…');
         expect(config.buttons?.camera).toBe(false);
         expect(config.buttons?.gallery).toBe(false);
         expect(config.buttons?.sounds).toBe(false);
@@ -318,7 +318,7 @@ describe('media.constant', () => {
         const config = getConfigForRoute('/multi-image-to-video');
 
         expect(config.placeholder).toBe(
-          'Describe how to combine these images into a video...',
+          'Describe how to combine these images into a video…',
         );
         expect(config.buttons?.gallery).toBe(false);
         expect(config.buttons?.reference).toBe(false);
@@ -327,7 +327,7 @@ describe('media.constant', () => {
       it('should apply overrides for /upscale', () => {
         const config = getConfigForRoute('/upscale');
 
-        expect(config.placeholder).toBe('Describe enhancement preferences...');
+        expect(config.placeholder).toBe('Describe enhancement preferences…');
         expect(config.buttons?.format).toBe(false);
         expect(config.buttons?.gallery).toBe(false);
         expect(config.buttons?.style).toBe(false);
@@ -343,7 +343,7 @@ describe('media.constant', () => {
         expect(config.presetType).toBe(ModelCategory.IMAGE);
 
         // From override
-        expect(config.placeholder).toBe('Describe your avatar...');
+        expect(config.placeholder).toBe('Describe your avatar…');
       });
 
       it('should use VIDEO config as fallback for unknown routes', () => {
@@ -365,10 +365,10 @@ describe('media.constant', () => {
         'What video should we create next?',
       );
       expect(imageConfig?.placeholder).toBe(
-        'Describe the image you want to create...',
+        'Describe the image you want to create…',
       );
       expect(musicConfig?.placeholder).toBe(
-        'Describe the music you want to create...',
+        'Describe the music you want to create…',
       );
       expect(textConfig?.placeholder).toBe(
         'What article topic should we explore?',

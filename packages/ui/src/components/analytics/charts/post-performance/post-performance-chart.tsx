@@ -7,17 +7,30 @@ import {
   formatTooltipDateTime,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { PostPerformanceChartProps } from '@genfeedai/props/analytics/charts.props';
+import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
-import { useState } from 'react';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import dynamic from 'next/dynamic';
+import { useMemo, useState } from 'react';
+
+const AreaChart = dynamic(() => import('recharts').then((m) => m.AreaChart), {
+  ssr: false,
+});
+const Area = dynamic(() => import('recharts').then((m) => m.Area), {
+  ssr: false,
+});
+const CartesianGrid = dynamic(
+  () => import('recharts').then((m) => m.CartesianGrid),
+  { ssr: false },
+);
+const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), {
+  ssr: false,
+});
+const XAxis = dynamic(() => import('recharts').then((m) => m.XAxis), {
+  ssr: false,
+});
+const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), {
+  ssr: false,
+});
 
 type MetricType = AnalyticsMetric.VIEWS | AnalyticsMetric.ENGAGEMENT;
 
@@ -25,6 +38,21 @@ const METRIC_COLORS = {
   engagement: 'var(--accent-rose)',
   views: 'hsl(var(--foreground))',
 };
+
+const METRIC_LABELS = {
+  engagement: 'Engagement',
+  views: 'Views',
+};
+
+const HOURLY_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  hour: 'numeric',
+  hour12: true,
+});
+
+const DAILY_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  month: 'short',
+});
 
 export function PostPerformanceChart({
   data,
@@ -36,17 +64,32 @@ export function PostPerformanceChart({
     AnalyticsMetric.VIEWS,
     AnalyticsMetric.ENGAGEMENT,
   ]);
+  const chartConfig = useMemo(
+    () =>
+      Object.fromEntries(
+        (Object.keys(METRIC_COLORS) as MetricType[]).map((metric) => [
+          metric,
+          {
+            color: METRIC_COLORS[metric],
+            label: METRIC_LABELS[metric],
+          },
+        ]),
+      ),
+    [],
+  );
 
   const isEmpty = !data || data.length === 0;
 
   const toggleMetric = (metric: MetricType) => {
-    if (activeMetrics.includes(metric)) {
-      if (activeMetrics.length > 1) {
-        setActiveMetrics(activeMetrics.filter((m) => m !== metric));
+    setActiveMetrics((previousMetrics) => {
+      if (!previousMetrics.includes(metric)) {
+        return [...previousMetrics, metric];
       }
-    } else {
-      setActiveMetrics([...activeMetrics, metric]);
-    }
+
+      return previousMetrics.length > 1
+        ? previousMetrics.filter((m) => m !== metric)
+        : previousMetrics;
+    });
   };
 
   // Determine if data is hourly or daily based on timestamps
@@ -54,19 +97,10 @@ export function PostPerformanceChart({
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
-    if (isHourlyData) {
-      // Show hour for first 24h
-      return new Intl.DateTimeFormat('en-US', {
-        hour: 'numeric',
-        hour12: true,
-      }).format(date);
-    } else {
-      // Show date for daily data
-      return new Intl.DateTimeFormat('en-US', {
-        day: 'numeric',
-        month: 'short',
-      }).format(date);
-    }
+    // Show hour for first 24h, date for daily data
+    return isHourlyData
+      ? HOURLY_DATE_FORMATTER.format(date)
+      : DAILY_DATE_FORMATTER.format(date);
   };
 
   return (
@@ -87,7 +121,7 @@ export function PostPerformanceChart({
             } ${isLoading || isEmpty ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <span
-              className="inline-block w-3 h-3 rounded-full mr-2"
+              className="inline-block size-3 rounded-full mr-2"
               style={{ backgroundColor: METRIC_COLORS[metric] }}
             />
             {metric}
@@ -102,7 +136,7 @@ export function PostPerformanceChart({
       <div className="relative" style={{ height }}>
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-card/50 z-10">
-            <span className="animate-pulse w-12 h-12 rounded-full bg-primary/30" />
+            <span className="animate-pulse size-12 rounded-full bg-primary/30" />
           </div>
         )}
 
@@ -112,7 +146,12 @@ export function PostPerformanceChart({
           </div>
         )}
 
-        <ResponsiveContainer width="100%" height={height}>
+        <ChartContainer
+          config={chartConfig}
+          className="border-white/[0.08] bg-card p-3 shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]"
+          height="100%"
+          style={{ minWidth: 0 }}
+        >
           <AreaChart
             data={data}
             margin={{ bottom: 5, left: 20, right: 30, top: 5 }}
@@ -160,33 +199,24 @@ export function PostPerformanceChart({
               stroke="var(--overlay-white-20)"
             />
             <Tooltip
-              formatter={(value, name) => {
-                const numericValue =
-                  typeof value === 'number'
-                    ? value
-                    : Number(Array.isArray(value) ? value[0] : value) || 0;
-                const displayName =
-                  typeof name === 'string'
-                    ? name.charAt(0).toUpperCase() + name.slice(1)
-                    : String(name ?? '');
-
-                return [formatFullNumber(numericValue), displayName];
-              }}
-              labelFormatter={(label) =>
-                formatTooltipDateTime(
-                  typeof label === 'string' || typeof label === 'number'
-                    ? label
-                    : undefined,
-                )
+              content={
+                <ChartTooltipContent
+                  labelFormatter={(label) =>
+                    formatTooltipDateTime(
+                      typeof label === 'string' || typeof label === 'number'
+                        ? label
+                        : undefined,
+                    )
+                  }
+                  valueFormatter={(value) =>
+                    formatFullNumber(
+                      typeof value === 'number'
+                        ? value
+                        : Number(Array.isArray(value) ? value[0] : value) || 0,
+                    )
+                  }
+                />
               }
-              contentStyle={{
-                backdropFilter: 'blur(10px)',
-                backgroundColor: 'var(--overlay-black-90)',
-                border: '1px solid var(--overlay-white-10)',
-                borderRadius: '12px',
-              }}
-              labelStyle={{ color: 'hsl(var(--foreground))' }}
-              itemStyle={{ color: 'var(--overlay-white-20)' }}
             />
             {activeMetrics.includes(AnalyticsMetric.VIEWS) && (
               <Area
@@ -209,7 +239,7 @@ export function PostPerformanceChart({
               />
             )}
           </AreaChart>
-        </ResponsiveContainer>
+        </ChartContainer>
       </div>
     </div>
   );

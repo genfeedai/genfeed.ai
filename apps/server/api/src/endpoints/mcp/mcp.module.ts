@@ -13,7 +13,7 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [MCPController],
   imports: [
     forwardRef(() => AnalyticsModule),
-    ByokModule,
+    forwardRef(() => ByokModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => ModelsModule),
     forwardRef(() => VideosModule),

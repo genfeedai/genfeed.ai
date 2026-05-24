@@ -25,7 +25,7 @@ import { getStatusMeta } from '@ui-constants/status.constant';
 import { useMemo, useState } from 'react';
 import { HiArchiveBox, HiCheck, HiClock, HiXMark } from 'react-icons/hi2';
 
-const ICON_CLASS = 'w-4 h-4';
+const ICON_CLASS = 'size-4';
 
 // Status icon mapping by normalized status string
 const STATUS_ICONS: Record<string, React.ReactNode> = {
@@ -347,7 +347,7 @@ export default function DropdownStatus({
             {/* Status Icon */}
             <div
               className={cn(
-                'flex-shrink-0 w-4 h-4 flex items-center justify-center',
+                'flex-shrink-0 size-4 flex items-center justify-center',
                 'transition-colors duration-150',
                 isActive
                   ? getVariantColorClass(meta.variant)

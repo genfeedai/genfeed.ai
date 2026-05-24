@@ -30,7 +30,7 @@ import { forwardRef, Module } from '@nestjs/common';
     TriggerEvaluatorService,
   ],
   imports: [
-    LoggerModule,
+    forwardRef(() => LoggerModule),
     forwardRef(() => AgentCampaignsModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => AgentStrategiesModule),

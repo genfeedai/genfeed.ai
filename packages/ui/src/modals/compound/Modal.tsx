@@ -3,10 +3,8 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import {
-  type ComponentPropsWithoutRef,
-  type ComponentRef,
+  type ComponentPropsWithRef,
   createContext,
-  forwardRef,
   type HTMLAttributes,
   type ReactNode,
   useContext,
@@ -71,38 +69,42 @@ const ModalTrigger = DialogPrimitive.Trigger;
 const ModalPortal = DialogPrimitive.Portal;
 
 // Overlay
-const ModalOverlay = forwardRef<
-  ComponentRef<typeof DialogPrimitive.Overlay>,
-  ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Overlay
-    ref={ref}
-    className={cn(
-      'fixed inset-0 z-50 bg-black/80 backdrop-blur-sm',
-      'data-[state=open]:animate-in data-[state=closed]:animate-out',
-      'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-      className,
-    )}
-    {...props}
-  />
-));
+function ModalOverlay({
+  ref,
+  className,
+  ...props
+}: ComponentPropsWithRef<typeof DialogPrimitive.Overlay>) {
+  return (
+    <DialogPrimitive.Overlay
+      ref={ref}
+      className={cn(
+        'fixed inset-0 z-50 bg-black/80 backdrop-blur-sm',
+        'data-[state=open]:animate-in data-[state=closed]:animate-out',
+        'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
 ModalOverlay.displayName = 'Modal.Overlay';
 
 // Content
 interface ModalContentProps
-  extends ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
+  extends ComponentPropsWithRef<typeof DialogPrimitive.Content> {
   size?: ModalSize;
   showCloseButton?: boolean;
 }
 
-const ModalContent = forwardRef<
-  ComponentRef<typeof DialogPrimitive.Content>,
-  ModalContentProps
->(
-  (
-    { className, children, size = 'md', showCloseButton = true, ...props },
-    ref,
-  ) => (
+function ModalContent({
+  ref,
+  className,
+  children,
+  size = 'md',
+  showCloseButton = true,
+  ...props
+}: ModalContentProps) {
+  return (
     <ModalPortal>
       <ModalOverlay />
       <ModalContext.Provider value={{ size }}>
@@ -134,15 +136,15 @@ const ModalContent = forwardRef<
                 'data-[state=open]:text-muted-foreground',
               )}
             >
-              <X className="h-4 w-4" />
+              <X className="size-4" />
               <span className="sr-only">Close</span>
             </DialogPrimitive.Close>
           )}
         </DialogPrimitive.Content>
       </ModalContext.Provider>
     </ModalPortal>
-  ),
-);
+  );
+}
 ModalContent.displayName = 'Modal.Content';
 
 // Header
@@ -150,8 +152,12 @@ interface ModalHeaderProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
 }
 
-const ModalHeader = forwardRef<HTMLDivElement, ModalHeaderProps>(
-  ({ className, ...props }, ref) => (
+function ModalHeader({
+  ref,
+  className,
+  ...props
+}: ModalHeaderProps & { ref?: React.Ref<HTMLDivElement> }) {
+  return (
     <div
       ref={ref}
       className={cn(
@@ -160,37 +166,43 @@ const ModalHeader = forwardRef<HTMLDivElement, ModalHeaderProps>(
       )}
       {...props}
     />
-  ),
-);
+  );
+}
 ModalHeader.displayName = 'Modal.Header';
 
 // Title
-const ModalTitle = forwardRef<
-  ComponentRef<typeof DialogPrimitive.Title>,
-  ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Title
-    ref={ref}
-    className={cn(
-      'text-lg font-semibold leading-none tracking-tight',
-      className,
-    )}
-    {...props}
-  />
-));
+function ModalTitle({
+  ref,
+  className,
+  ...props
+}: ComponentPropsWithRef<typeof DialogPrimitive.Title>) {
+  return (
+    <DialogPrimitive.Title
+      ref={ref}
+      className={cn(
+        'text-lg font-semibold leading-none tracking-tight',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
 ModalTitle.displayName = 'Modal.Title';
 
 // Description
-const ModalDescription = forwardRef<
-  ComponentRef<typeof DialogPrimitive.Description>,
-  ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Description
-    ref={ref}
-    className={cn('text-sm text-muted-foreground', className)}
-    {...props}
-  />
-));
+function ModalDescription({
+  ref,
+  className,
+  ...props
+}: ComponentPropsWithRef<typeof DialogPrimitive.Description>) {
+  return (
+    <DialogPrimitive.Description
+      ref={ref}
+      className={cn('text-sm text-muted-foreground', className)}
+      {...props}
+    />
+  );
+}
 ModalDescription.displayName = 'Modal.Description';
 
 // Body - scrollable content area
@@ -198,29 +210,36 @@ interface ModalBodyProps extends HTMLAttributes<HTMLDivElement> {
   scrollable?: boolean;
 }
 
-const ModalBody = forwardRef<HTMLDivElement, ModalBodyProps>(
-  ({ className, scrollable = false, ...props }, ref) => {
-    const { size } = useModalContext();
-    const isFullSize = size === 'full';
+function ModalBody({
+  ref,
+  className,
+  scrollable = false,
+  ...props
+}: ModalBodyProps & { ref?: React.Ref<HTMLDivElement> }) {
+  const { size } = useModalContext();
+  const isFullSize = size === 'full';
 
-    return (
-      <div
-        ref={ref}
-        className={cn(
-          'py-4',
-          (scrollable || isFullSize) && 'flex-1 overflow-y-auto',
-          className,
-        )}
-        {...props}
-      />
-    );
-  },
-);
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        'py-4',
+        (scrollable || isFullSize) && 'flex-1 overflow-y-auto',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
 ModalBody.displayName = 'Modal.Body';
 
 // Footer
-const ModalFooter = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
+function ModalFooter({
+  ref,
+  className,
+  ...props
+}: HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) {
+  return (
     <div
       ref={ref}
       className={cn(
@@ -229,8 +248,8 @@ const ModalFooter = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
       )}
       {...props}
     />
-  ),
-);
+  );
+}
 ModalFooter.displayName = 'Modal.Footer';
 
 // Close Button

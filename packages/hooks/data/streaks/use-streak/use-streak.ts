@@ -4,8 +4,10 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { StreaksService } from '@genfeedai/services/engagement/streaks.service';
 import type { IStreakCalendarResponse, IStreakSummary } from '@genfeedai/types';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
+import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
+
+const STREAK_CACHE_TTL_MS = 60_000;
 
 interface UseStreakOptions {
   includeCalendar?: boolean;
@@ -28,8 +30,9 @@ export function useStreak(options: UseStreakOptions = {}): UseStreakReturn {
     StreaksService.getInstance(token, organizationId),
   );
 
-  const { data, isLoading, refresh } = useResource(
-    async (_signal: AbortSignal) => {
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['streak', organizationId, includeCalendar],
+    queryFn: async () => {
       if (!organizationId) {
         return null;
       }
@@ -42,24 +45,23 @@ export function useStreak(options: UseStreakOptions = {}): UseStreakReturn {
 
       return { calendar: calendar.days, streak };
     },
-    {
-      dependencies: [includeCalendar, organizationId],
-      enabled: Boolean(organizationId),
-      initialData: initialStreak
-        ? { calendar: {}, streak: initialStreak }
-        : undefined,
-      revalidateOnMount: initialStreak == null,
-    },
-  );
+    enabled: Boolean(organizationId),
+    staleTime: STREAK_CACHE_TTL_MS,
+    initialData: initialStreak
+      ? { calendar: {}, streak: initialStreak }
+      : undefined,
+  });
 
   return useMemo(
     () => ({
       calendar: data?.calendar ?? {},
       isLoading,
       isVisible: Boolean(organizationId),
-      refetch: refresh,
+      refetch: async () => {
+        await refetch();
+      },
       streak: data?.streak ?? null,
     }),
-    [data?.calendar, data?.streak, isLoading, organizationId, refresh],
+    [data?.calendar, data?.streak, isLoading, organizationId, refetch],
   );
 }

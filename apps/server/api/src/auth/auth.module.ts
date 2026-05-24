@@ -1,13 +1,15 @@
 import { AuthBootstrapController } from '@api/auth/controllers/auth-bootstrap.controller';
 import { AuthCliController } from '@api/auth/controllers/auth-cli.controller';
+import { AuthDesktopController } from '@api/auth/controllers/auth-desktop.controller';
 import { AuthWhoamiController } from '@api/auth/controllers/auth-whoami.controller';
 import { ClerkStrategy } from '@api/auth/passport/clerk.strategy';
 import { AuthBootstrapService } from '@api/auth/services/auth-bootstrap.service';
+import { AuthDesktopService } from '@api/auth/services/auth-desktop.service';
 import { AuthIdentityResolverService } from '@api/auth/services/auth-identity-resolver.service';
 import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
@@ -22,7 +24,7 @@ import { ClerkClientProvider } from '@api/providers/clerk.provider';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { FleetModule } from '@api/services/integrations/fleet/fleet.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 
 @Module({
@@ -30,29 +32,31 @@ import { PassportModule } from '@nestjs/passport';
     AuthBootstrapController,
     AuthWhoamiController,
     AuthCliController,
+    AuthDesktopController,
   ],
   exports: [PassportModule],
   imports: [
-    PassportModule,
-    AgentRunsModule,
-    ApiKeysModule,
-    BatchGenerationModule,
-    BrandsModule,
-    CommonModule,
-    ConfigModule,
-    CredentialsModule,
-    CreditsModule,
-    FleetModule,
-    MembersModule,
-    OrganizationsModule,
-    OrganizationSettingsModule,
-    PostsModule,
-    StreaksModule,
-    SubscriptionsModule,
-    UsersModule,
+    forwardRef(() => PassportModule),
+    forwardRef(() => AgentRunsModule),
+    forwardRef(() => ApiKeysModule),
+    forwardRef(() => BatchGenerationModule),
+    forwardRef(() => BrandsModule),
+    forwardRef(() => CommonModule),
+    forwardRef(() => ConfigModule),
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => CreditsModule),
+    forwardRef(() => FleetModule),
+    forwardRef(() => MembersModule),
+    forwardRef(() => OrganizationsModule),
+    forwardRef(() => OrganizationSettingsModule),
+    forwardRef(() => PostsModule),
+    forwardRef(() => StreaksModule),
+    forwardRef(() => SubscriptionsModule),
+    forwardRef(() => UsersModule),
   ],
   providers: [
     AuthBootstrapService,
+    AuthDesktopService,
     ClerkStrategy,
     ClerkClientProvider,
     ClerkService,

@@ -1,5 +1,5 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { GhostController } from '@api/services/integrations/ghost/controllers/ghost.controller';
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
@@ -10,7 +10,7 @@ const BaseModule = createServiceModule(GhostService, {
   additionalImports: [
     HttpModule,
     forwardRef(() => BrandsModule),
-    forwardRef(() => CredentialsModule),
+    forwardRef(() => CredentialsCoreModule),
   ],
 });
 

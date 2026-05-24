@@ -58,7 +58,7 @@ vi.mock('@services/core/base.service', () => {
   return { BaseService: MockBaseService };
 });
 
-vi.mock('@genfeedai/helpers/data/json-api/json-api.helper', () => ({
+vi.mock('@services/core/json-api', () => ({
   deserializeCollection: vi.fn(<T>(doc: { data: T[] }) => doc.data),
   deserializeResource: vi.fn(<T>(doc: { data: T }) => doc.data),
 }));

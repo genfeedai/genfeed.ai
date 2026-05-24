@@ -15,11 +15,11 @@ export {
   PROMPT_CATEGORIES,
   PROMPT_REGISTRY,
   searchPromptsByTag,
-} from './registry.js';
+} from './registry';
 // Export all types
 export type {
   PromptCatalog,
   PromptCategory,
   PromptTemplate,
   PromptVariable,
-} from './types.js';
+} from './types';

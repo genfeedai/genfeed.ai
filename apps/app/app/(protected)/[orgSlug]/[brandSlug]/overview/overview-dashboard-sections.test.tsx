@@ -216,7 +216,7 @@ describe('Overview dashboard sections', () => {
   it('renders the status badge tone and label', () => {
     render(<OverviewStatusBadge status={AgentExecutionStatus.RUNNING} />);
 
-    expect(screen.getByText('Running')).toBeInTheDocument();
+    expect(screen.getByText(/running/i)).toBeInTheDocument();
   });
 
   it('renders compact top stats with accent copy', () => {

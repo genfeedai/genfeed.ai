@@ -1,7 +1,7 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -42,7 +42,7 @@ export class VideoEditDto {
   })
   readonly targetResolution?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Account ID for the video',
@@ -50,7 +50,7 @@ export class VideoEditDto {
   })
   readonly brand?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Organization ID for the video',

@@ -1,5 +1,6 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import type { ComponentType, ReactNode } from 'react';
+import { cn } from '../lib/utils';
 import { Button } from '../primitives/button';
 
 interface MetricCardProps {
@@ -15,10 +16,6 @@ interface MetricCardProps {
     onClick?: () => void;
     children: ReactNode;
   }>;
-}
-
-function cn(...classes: (string | false | undefined | null)[]): string {
-  return classes.filter(Boolean).join(' ');
 }
 
 export function MetricCard({
@@ -53,7 +50,7 @@ export function MetricCard({
             </div>
           )}
         </div>
-        <Icon className="mt-1.5 h-4 w-4 shrink-0 text-muted-foreground/50" />
+        <Icon className="mt-1.5 size-4 shrink-0 text-muted-foreground/50" />
       </div>
     </div>
   );
@@ -87,7 +84,7 @@ export function MetricCard({
       <Button
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
-        className="h-full w-full text-left"
+        className="size-full text-left"
         onClick={onClick}
       >
         {inner}

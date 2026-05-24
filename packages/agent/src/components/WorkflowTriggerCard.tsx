@@ -71,7 +71,7 @@ export function WorkflowTriggerCard({
     return (
       <div className="mt-2 overflow-hidden border border-border bg-background">
         <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-          <HiOutlineBolt className="h-4 w-4 text-primary" />
+          <HiOutlineBolt className="size-4 text-primary" />
           <span className="text-sm font-medium text-foreground">
             {action.title}
           </span>
@@ -95,7 +95,7 @@ export function WorkflowTriggerCard({
     <div className="mt-2 overflow-hidden border border-border bg-background">
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <HiOutlineBolt className="h-4 w-4 text-primary" />
+        <HiOutlineBolt className="size-4 text-primary" />
         <span className="text-sm font-medium text-foreground">
           {action.title}
         </span>
@@ -146,7 +146,7 @@ export function WorkflowTriggerCard({
             isDisabled={!selectedId}
             className="w-full"
           >
-            <HiOutlineBolt className="h-4 w-4" />
+            <HiOutlineBolt className="size-4" />
             Run Workflow
           </Button>
         )}
@@ -154,7 +154,7 @@ export function WorkflowTriggerCard({
         {/* Triggering state */}
         {status === 'triggering' && (
           <div className="flex items-center justify-center gap-2 border border-border px-4 py-3">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             <span className="text-sm text-muted-foreground">
               Starting workflow…
             </span>
@@ -165,7 +165,7 @@ export function WorkflowTriggerCard({
         {status === 'done' && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 dark:border-green-800 dark:bg-green-950">
-              <HiCheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <HiCheckCircle className="size-4 text-green-600 dark:text-green-400" />
               <span className="text-sm text-green-700 dark:text-green-300">
                 Workflow started successfully
               </span>
@@ -185,7 +185,7 @@ export function WorkflowTriggerCard({
         {status === 'error' && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950">
-              <HiExclamationCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <HiExclamationCircle className="size-4 text-red-600 dark:text-red-400" />
               <span className="text-sm text-red-700 dark:text-red-300">
                 {error}
               </span>

@@ -8,6 +8,6 @@ export class ElementCameraEntity extends BaseEntity implements ElementCamera {
 
   declare readonly key: string;
   declare readonly label: string;
-  declare readonly description?: string;
+  declare readonly description: string | null;
   declare readonly category?: ModelCategory;
 }

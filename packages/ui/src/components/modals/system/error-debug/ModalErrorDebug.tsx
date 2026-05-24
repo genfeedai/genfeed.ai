@@ -50,9 +50,9 @@ function ErrorSection({
           className="flex w-full items-center gap-2 text-left text-red-50"
         >
           {isExpanded ? (
-            <HiChevronDown className="h-4 w-4 shrink-0" />
+            <HiChevronDown className="size-4 shrink-0" />
           ) : (
-            <HiChevronRight className="h-4 w-4 shrink-0" />
+            <HiChevronRight className="size-4 shrink-0" />
           )}
           <h3 className="font-semibold">{title}</h3>
         </Button>
@@ -74,7 +74,7 @@ export default function ModalErrorDebug() {
   const [isResponseExpanded, setIsResponseExpanded] = useState(false);
   const [isStackExpanded, setIsStackExpanded] = useState(false);
   const [isContextExpanded, setIsContextExpanded] = useState(false);
-  const router = useRouter();
+  const { refresh } = useRouter();
 
   useEffect(() => {
     const existing = getErrorDebugInfo();
@@ -226,7 +226,7 @@ export default function ModalErrorDebug() {
               className="border-destructive/30 bg-destructive/10 text-red-50 hover:bg-destructive/20 md:h-9 md:px-4 md:py-2"
               onClick={() => {
                 handleCancel();
-                router.refresh();
+                refresh();
               }}
             />
           </ModalActions>

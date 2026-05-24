@@ -1,18 +1,85 @@
+import { isIP } from 'node:net';
+import process from 'node:process';
 import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-tracked-link.dto';
 import { TrackClickDto } from '@api/collections/tracked-links/dto/track-click.dto';
 import type { LinkClickDocument } from '@api/collections/tracked-links/schemas/link-click.schema';
 import type { TrackedLinkDocument } from '@api/collections/tracked-links/schemas/tracked-link.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { nanoid } from 'nanoid';
 
+/** Fields a caller is allowed to mutate on an existing tracked link. */
+type TrackedLinkUpdatePayload = {
+  isActive?: boolean;
+  originalUrl?: string;
+  title?: string;
+};
+
 type TrackedLink = TrackedLinkDocument;
+type CountryCacheEntry = { country?: string; expiresAt: number };
+type ClickRateEntry = { count: number; resetAt: number };
+
+const CLICK_RATE_LIMIT = 120;
+const CLICK_RATE_WINDOW_MS = 60_000;
 
 @Injectable()
 export class TrackedLinksService {
+  private readonly clickRateLimiter = new Map<string, ClickRateEntry>();
+  private readonly countryCache = new Map<string, CountryCacheEntry>();
   private readonly logger = new Logger(TrackedLinksService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  private async assertBrandAccess(
+    brandId: string | undefined,
+    organizationId: string,
+  ): Promise<string | undefined> {
+    if (!brandId) return undefined;
+
+    const brand = await this.prisma.brand.findFirst({
+      where: {
+        OR: [{ id: brandId }, { mongoId: brandId }],
+        isDeleted: false,
+        organizationId,
+      },
+    });
+
+    if (!brand) {
+      throw new NotFoundException(`Brand not found: ${brandId}`);
+    }
+
+    return brand.id;
+  }
+
+  private async assertContentAccess(
+    contentId: string | undefined,
+    organizationId: string,
+    brandId: string | undefined,
+  ): Promise<string | undefined> {
+    if (!contentId) return undefined;
+
+    const content = await this.prisma.ingredient.findFirst({
+      where: {
+        OR: [{ id: contentId }, { mongoId: contentId }],
+        isDeleted: false,
+        organizationId,
+        ...(brandId ? { brandId } : {}),
+      },
+    });
+
+    if (!content) {
+      throw new NotFoundException(`Content not found: ${contentId}`);
+    }
+
+    return content.id;
+  }
 
   /**
    * Generate tracking link with UTM parameters
@@ -21,6 +88,13 @@ export class TrackedLinksService {
     dto: CreateTrackedLinkDto,
     organizationId: string,
   ): Promise<TrackedLink> {
+    const brandId = await this.assertBrandAccess(dto.brandId, organizationId);
+    const contentId = await this.assertContentAccess(
+      dto.contentId,
+      organizationId,
+      brandId,
+    );
+
     // Generate unique short code
     let shortCode = dto.customSlug || nanoid(8);
 
@@ -68,9 +142,9 @@ export class TrackedLinksService {
     // Create tracked link
     const trackedLink = await this.prisma.trackedLink.create({
       data: {
-        brandId: dto.brandId,
+        brandId,
         campaignName: dto.campaignName,
-        contentId: dto.contentId,
+        contentId,
         contentType: dto.contentType,
         customSlug: dto.customSlug,
         isActive: true,
@@ -109,31 +183,75 @@ export class TrackedLinksService {
     url: string,
     utm: Record<string, string | undefined>,
   ): string {
-    try {
-      const urlObj = new URL(url);
+    const urlObj = this.parseRedirectUrl(url);
 
-      if (utm.source) {
-        urlObj.searchParams.set('utm_source', utm.source);
-      }
-      if (utm.medium) {
-        urlObj.searchParams.set('utm_medium', utm.medium);
-      }
-      if (utm.campaign) {
-        urlObj.searchParams.set('utm_campaign', utm.campaign);
-      }
-      if (utm.content) {
-        urlObj.searchParams.set('utm_content', utm.content);
-      }
-      if (utm.term) {
-        urlObj.searchParams.set('utm_term', utm.term);
-      }
-
-      return urlObj.toString();
-    } catch (error: unknown) {
-      // If URL parsing fails, return original
-      this.logger.warn(`Failed to parse URL: ${url}`, error);
-      return url;
+    if (utm.source) {
+      urlObj.searchParams.set('utm_source', utm.source);
     }
+    if (utm.medium) {
+      urlObj.searchParams.set('utm_medium', utm.medium);
+    }
+    if (utm.campaign) {
+      urlObj.searchParams.set('utm_campaign', utm.campaign);
+    }
+    if (utm.content) {
+      urlObj.searchParams.set('utm_content', utm.content);
+    }
+    if (utm.term) {
+      urlObj.searchParams.set('utm_term', utm.term);
+    }
+
+    return urlObj.toString();
+  }
+
+  private parseRedirectUrl(url: string): URL {
+    let urlObj: URL;
+
+    try {
+      urlObj = new URL(url);
+    } catch {
+      throw new BadRequestException('Tracked link URL must be absolute');
+    }
+
+    if (urlObj.protocol !== 'https:') {
+      throw new BadRequestException('Tracked link URL must use HTTPS');
+    }
+
+    if (this.isBlockedRedirectHost(urlObj.hostname)) {
+      throw new BadRequestException('Tracked link URL host is not allowed');
+    }
+
+    return urlObj;
+  }
+
+  private isBlockedRedirectHost(hostname: string): boolean {
+    const host = hostname.toLowerCase();
+
+    if (
+      host === 'localhost' ||
+      host.endsWith('.localhost') ||
+      host.endsWith('.local')
+    ) {
+      return true;
+    }
+
+    if (isIP(host) === 4) {
+      const [a = 0, b = 0] = host.split('.').map((part) => Number(part));
+      return (
+        a === 0 ||
+        a === 10 ||
+        a === 127 ||
+        a === 169 ||
+        (a === 172 && b >= 16 && b <= 31) ||
+        (a === 192 && b === 168)
+      );
+    }
+
+    if (isIP(host) === 6) {
+      return host === '::1' || host.startsWith('fc') || host.startsWith('fd');
+    }
+
+    return false;
   }
 
   /**
@@ -158,7 +276,10 @@ export class TrackedLinksService {
     const result = await this.prisma.trackedLink.findFirst({
       where: { isActive: true, isDeleted: false, shortCode },
     });
-    return result as unknown as TrackedLink | null;
+    if (!result) {
+      return null;
+    }
+    return { ...result, _id: result.id } as unknown as TrackedLink;
   }
 
   /**
@@ -216,7 +337,7 @@ export class TrackedLinksService {
     req?: { ip?: string; headers?: Record<string, string | undefined> },
   ): Promise<void> {
     const link = await this.prisma.trackedLink.findFirst({
-      where: { id: dto.linkId },
+      where: { id: dto.linkId, isActive: true, isDeleted: false },
     });
 
     if (!link) {
@@ -224,12 +345,7 @@ export class TrackedLinksService {
       return;
     }
 
-    // Check if unique (first click from this session)
-    const isUnique = dto.sessionId
-      ? !(await this.prisma.linkClick.findFirst({
-          where: { linkId: dto.linkId, sessionId: dto.sessionId },
-        }))
-      : false;
+    this.assertClickRateLimit(dto.linkId, req?.ip);
 
     // Get device type
     const device = this.getDeviceType(
@@ -237,48 +353,98 @@ export class TrackedLinksService {
     );
 
     // Get country from IP
-    const country = await this.getCountryFromIP(dto.ip || req?.ip);
+    const country = await this.getCountryFromIP(req?.ip);
 
-    // Save click
-    await this.prisma.linkClick.create({
-      data: {
-        country,
-        device,
-        gaClientId: dto.gaClientId,
-        isUnique,
-        linkId: dto.linkId,
-        referrer: dto.referrer || req?.headers?.referer,
-        sessionId: dto.sessionId || 'unknown',
-        timestamp: new Date(),
-        userAgent: dto.userAgent || req?.headers?.['user-agent'],
-      } as never,
-    });
+    let isUnique = false;
+    const sessionId = dto.sessionId || `anon:${nanoid()}`;
 
-    // Update link stats — read current stats then update
-    const currentLink = await this.prisma.trackedLink.findFirst({
-      where: { id: dto.linkId },
-    });
-    const currentStats =
-      (currentLink?.stats as Record<string, unknown> | null) ?? {};
-    const currentTotal = (currentStats.totalClicks as number) ?? 0;
-    const currentUnique = (currentStats.uniqueClicks as number) ?? 0;
+    await this.prisma.$transaction(
+      async (tx) => {
+        isUnique = dto.sessionId
+          ? !(await tx.linkClick.findFirst({
+              where: { linkId: dto.linkId, sessionId },
+            }))
+          : false;
 
-    await this.prisma.trackedLink.update({
-      data: {
-        stats: {
-          ...currentStats,
-          lastClickAt: new Date(),
-          totalClicks: currentTotal + 1,
-          uniqueClicks: isUnique ? currentUnique + 1 : currentUnique,
-        },
-      } as never,
-      where: { id: dto.linkId },
-    });
+        await tx.linkClick.create({
+          data: {
+            country,
+            device,
+            gaClientId: dto.gaClientId,
+            isUnique,
+            linkId: dto.linkId,
+            referrer: dto.referrer || req?.headers?.referer,
+            sessionId,
+            timestamp: new Date(),
+            userAgent: dto.userAgent || req?.headers?.['user-agent'],
+          } as never,
+        });
+
+        await this.refreshLinkStats(tx, dto.linkId);
+      },
+      { isolationLevel: 'Serializable' },
+    );
 
     this.logger.log(`Click tracked for link ${dto.linkId}`, {
       country,
       device,
       isUnique,
+    });
+  }
+
+  private assertClickRateLimit(linkId: string, ip?: string): void {
+    const key = `${linkId}:${ip?.split(',')[0]?.trim() || 'unknown'}`;
+    const now = Date.now();
+
+    for (const [entryKey, value] of this.clickRateLimiter) {
+      if (now >= value.resetAt) {
+        this.clickRateLimiter.delete(entryKey);
+      }
+    }
+
+    const entry = this.clickRateLimiter.get(key);
+
+    if (!entry || now >= entry.resetAt) {
+      this.clickRateLimiter.set(key, {
+        count: 1,
+        resetAt: now + CLICK_RATE_WINDOW_MS,
+      });
+      return;
+    }
+
+    if (entry.count >= CLICK_RATE_LIMIT) {
+      throw new HttpException(
+        'Too many click tracking requests. Please try again later.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    entry.count++;
+  }
+
+  private async refreshLinkStats(
+    tx: Pick<PrismaService, 'linkClick' | 'trackedLink'>,
+    linkId: string,
+  ): Promise<void> {
+    const clicks = await tx.linkClick.findMany({
+      select: { sessionId: true },
+      where: { linkId },
+    });
+    const uniqueClicks = new Set(
+      clicks
+        .map((click) => click.sessionId)
+        .filter((sessionId) => sessionId && !sessionId.startsWith('anon:')),
+    ).size;
+
+    await tx.trackedLink.update({
+      data: {
+        stats: {
+          lastClickAt: new Date(),
+          totalClicks: clicks.length,
+          uniqueClicks,
+        },
+      } as never,
+      where: { id: linkId },
     });
   }
 
@@ -475,12 +641,12 @@ export class TrackedLinksService {
   }
 
   /**
-   * Update tracked link
+   * Update tracked link — only whitelisted mutable fields are applied.
    */
   async update(
     linkId: string,
     organizationId: string,
-    updates: Partial<TrackedLink>,
+    updates: TrackedLinkUpdatePayload,
   ): Promise<TrackedLink> {
     const existing = await this.prisma.trackedLink.findFirst({
       where: { id: linkId, isDeleted: false, organizationId },
@@ -490,8 +656,18 @@ export class TrackedLinksService {
       throw new NotFoundException(`Tracked link not found: ${linkId}`);
     }
 
+    // Allowlist: only safe, user-editable fields are forwarded to the DB.
+    // shortCode, organizationId, stats, etc. must never be mutated via this path.
+    const safeData: TrackedLinkUpdatePayload = {};
+    if (updates.isActive !== undefined) safeData.isActive = updates.isActive;
+    if (updates.originalUrl !== undefined)
+      safeData.originalUrl = this.parseRedirectUrl(
+        updates.originalUrl,
+      ).toString();
+    if (updates.title !== undefined) safeData.title = updates.title;
+
     const result = await this.prisma.trackedLink.update({
-      data: updates as never,
+      data: safeData as never,
       where: { id: linkId },
     });
 
@@ -541,29 +717,47 @@ export class TrackedLinksService {
    * Get country from IP using free geolocation API
    */
   private async getCountryFromIP(ip?: string): Promise<string | undefined> {
+    const normalizedIp = ip?.split(',')[0]?.trim();
     if (
-      !ip ||
-      ip === '::1' ||
-      ip === '127.0.0.1' ||
-      ip.startsWith('192.168.') ||
-      ip.startsWith('10.')
+      !normalizedIp ||
+      normalizedIp === '::1' ||
+      normalizedIp === '127.0.0.1' ||
+      normalizedIp.startsWith('192.168.') ||
+      normalizedIp.startsWith('10.')
     ) {
       return undefined;
     }
 
+    const cached = this.countryCache.get(normalizedIp);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.country;
+    }
+
     try {
-      const response = await fetch(`https://ipapi.co/${ip}/country/`, {
-        signal: AbortSignal.timeout(1000), // 1 second timeout
-      });
+      const response = await fetch(
+        `https://ipapi.co/${normalizedIp}/country/`,
+        {
+          signal: AbortSignal.timeout(1000), // 1 second timeout
+        },
+      );
 
       if (response.ok) {
         const country = await response.text();
-        return country.trim() || undefined;
+        const trimmedCountry = country.trim() || undefined;
+        this.countryCache.set(normalizedIp, {
+          country: trimmedCountry,
+          expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+        });
+        return trimmedCountry;
       }
     } catch (error: unknown) {
-      this.logger.warn(`IP geolocation failed for ${ip}`, error);
+      this.logger.warn(`IP geolocation failed for ${normalizedIp}`, error);
     }
 
+    this.countryCache.set(normalizedIp, {
+      country: undefined,
+      expiresAt: Date.now() + 5 * 60 * 1000,
+    });
     return undefined;
   }
 

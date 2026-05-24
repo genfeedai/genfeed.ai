@@ -120,7 +120,7 @@ export default function ModalMember({
       };
 
       findAllRoles();
-    } else if (!!member && organizationId) {
+    } else if (member && organizationId) {
       if (member) {
         const brandIds =
           member.brands?.map((brand: IBrand | Brand) => brand.id) || [];

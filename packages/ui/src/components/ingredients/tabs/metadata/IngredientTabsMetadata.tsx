@@ -215,8 +215,8 @@ export default function IngredientTabsMetadata({
 
       {/* Metadata */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {metadataRows.map((row, idx) => (
-          <div key={idx} className="flex flex-col">
+        {metadataRows.map((row) => (
+          <div key={row?.label} className="flex flex-col">
             <span className="font-semibold opacity-50">{row?.label}</span>
             <span className="text-white mt-0.5">{row?.value}</span>
           </div>
@@ -226,7 +226,7 @@ export default function IngredientTabsMetadata({
       <Button
         icon={
           <HiArrowPath
-            className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
+            className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`}
           />
         }
         tooltip="Refresh metadata"

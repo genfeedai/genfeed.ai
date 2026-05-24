@@ -78,6 +78,9 @@ export class IntegrationsService {
 
     return integrations.map((integration) => ({
       ...integration,
+      config: this.maskSecretConfig(
+        integration.config as Record<string, unknown>,
+      ),
       encryptedToken: '***MASKED***', // Never expose tokens
     }));
   }
@@ -100,6 +103,9 @@ export class IntegrationsService {
 
     return {
       ...integration,
+      config: this.maskSecretConfig(
+        integration.config as Record<string, unknown>,
+      ),
       encryptedToken: '***MASKED***',
     };
   }
@@ -197,6 +203,7 @@ export class IntegrationsService {
 
     return {
       ...updated,
+      config: this.maskSecretConfig(updated.config as Record<string, unknown>),
       encryptedToken: '***MASKED***',
     };
   }
@@ -225,6 +232,46 @@ export class IntegrationsService {
       orgId,
       platform: existing.platform as unknown as IntegrationPlatform,
     });
+  }
+
+  /**
+   * Redact sensitive config fields before returning integration data to clients.
+   * Keeps non-secret fields intact for UI display purposes.
+   */
+  private maskSecretConfig(
+    config: Record<string, unknown> | null | undefined,
+  ): Record<string, unknown> {
+    if (!config || typeof config !== 'object') {
+      return {};
+    }
+
+    const secretKeys = new Set([
+      'appToken',
+      'apiKey',
+      'apiSecret',
+      'secret',
+      'secretKey',
+      'accessToken',
+      'refreshToken',
+      'clientSecret',
+      'webhookSecret',
+      'signingSecret',
+      'privateKey',
+      'password',
+      'token',
+    ]);
+
+    const masked: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(config)) {
+      if (secretKeys.has(key)) {
+        masked[key] = '***MASKED***';
+      } else {
+        masked[key] = value;
+      }
+    }
+
+    return masked;
   }
 
   private async emitIntegrationEvent(

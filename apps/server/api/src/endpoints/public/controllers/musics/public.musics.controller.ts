@@ -9,6 +9,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { AssetScope, PostStatus } from '@genfeedai/enums';
 import type {
@@ -17,7 +18,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { MusicSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
-import { MongoMatchQuery } from '@libs/interfaces/query.interface';
+import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req, Res } from '@nestjs/common';
@@ -25,11 +26,6 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
 
 @AutoSwagger()
 @Public()
@@ -63,86 +59,23 @@ export class PublicMusicsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const matchQuery: MongoMatchQuery = {
+    const matchQuery: PrismaWhereQuery = {
       isDeleted: false,
       scope: AssetScope.PUBLIC,
       status: PostStatus.PUBLIC,
     };
 
     // Filter by brand if provided
-    if (brand && isValidObjectId(brand)) {
+    if (brand && isEntityId(brand)) {
       matchQuery.brand = brand;
     }
 
     // Filter by tag if provided (assuming tags are stored in metadata)
     if (tag) {
-      matchQuery['metadata.tags'] = { $options: 'i', $regex: tag };
+      matchQuery['metadata.tags'] = { mode: 'insensitive', contains: tag };
     }
 
-    const aggregate: Record<string, unknown>[] = [
-      { $match: matchQuery },
-      {
-        $lookup: {
-          as: 'metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          as: 'brand',
-          foreignField: '_id',
-          from: 'brands',
-          localField: 'brand',
-        },
-      },
-      {
-        $unwind: {
-          path: '$brand',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          as: 'brandLogo',
-          from: 'assets',
-          let: { brandId: '$brand._id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ['$parent', '$$brandId'] },
-                    { $eq: ['$category', 'logo'] },
-                    { $eq: ['$isDeleted', false] },
-                  ],
-                },
-              },
-            },
-          ],
-        },
-      },
-      {
-        $unwind: {
-          path: '$brandLogo',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $addFields: { 'brand.logo': '$brandLogo._id' },
-      },
-      {
-        $project: { brandLogo: 0 },
-      },
-      { $sort: { createdAt: -1 } },
-    ];
+    const aggregate = { where: matchQuery, orderBy: { createdAt: -1 } };
 
     const data = await this.musicsService.findAll(aggregate, options);
     return serializeCollection(request, MusicSerializer, data);
@@ -160,7 +93,7 @@ export class PublicMusicsController {
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    if (!isValidObjectId(musicId)) {
+    if (!isEntityId(musicId)) {
       return returnNotFound(this.constructorName, musicId);
     }
 

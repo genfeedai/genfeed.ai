@@ -1,4 +1,8 @@
-import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
+import {
+  AgentCliTerminalBody,
+  AgentCliTerminalControls,
+  useAgentCliTerminal,
+} from '@genfeedai/agent/components/AgentCliTerminal';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { AgentTerminalHeader } from '@genfeedai/agent/components/AgentTerminalHeader';
 import type { AgentRuntimeOption } from '@genfeedai/agent/models/agent-runtime.model';
@@ -58,8 +62,6 @@ function readPersistedPanelTab(): AgentRailTab {
 export function AgentPanel({
   apiService,
   isActive = true,
-  onOAuthConnect,
-  onSelectCreditPack,
 }: AgentPanelProps): ReactElement {
   const router = useRouter();
   const { href } = useOrgUrl();
@@ -72,11 +74,10 @@ export function AgentPanel({
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const threads = useAgentChatStore((s) => s.threads);
   const updateThread = useAgentChatStore((s) => s.updateThread);
+  const seedComposer = useAgentChatStore((s) => s.seedComposer);
 
   const setCreditsRemaining = useAgentChatStore((s) => s.setCreditsRemaining);
   const setModelCosts = useAgentChatStore((s) => s.setModelCosts);
-  const messages = useAgentChatStore((s) => s.messages);
-  const pageContext = useAgentChatStore((s) => s.pageContext);
   const [hostname, setHostname] = useState<string | null>(null);
   const [installReadiness, setInstallReadiness] =
     useState<AgentInstallReadiness | null>(null);
@@ -245,46 +246,23 @@ export function AgentPanel({
     [activeThreadId, apiService, updateThread],
   );
 
-  // Resolve suggested actions from page context or use defaults
-  const suggestedActions = useMemo(() => {
-    const latestMessage = messages.at(-1);
+  const terminalController = useAgentCliTerminal(apiService);
 
-    if (
-      latestMessage?.role === 'assistant' &&
-      latestMessage.metadata?.suggestedActions?.length
-    ) {
-      return latestMessage.metadata.suggestedActions;
-    }
+  const handleSendSelection = useCallback(
+    (text: string) => {
+      seedComposer(text, activeThreadId);
+    },
+    [activeThreadId, seedComposer],
+  );
 
-    return pageContext?.suggestedActions;
-  }, [messages, pageContext]);
-
-  const showRuntimeSuggestedActions = useMemo(() => {
-    const latestMessage = messages.at(-1);
-
-    return Boolean(
-      latestMessage?.role === 'assistant' &&
-        latestMessage.metadata?.suggestedActions?.length,
-    );
-  }, [messages]);
-
-  const placeholder =
-    pageContext?.placeholder ??
-    'Ask for help with content, review, or planning...';
-
-  const chatContent = (
-    <AgentChatContainer
-      apiService={apiService}
-      isStreaming
-      model={selectedRuntime.requestedModel}
-      emptyStateTitle="Quick ask"
-      emptyStateDescription="Ask for help with the page you are on, then open the full chat workspace when you need the complete thread."
-      placeholder={placeholder}
-      suggestedActions={suggestedActions}
-      showSuggestedActionsWhenNotEmpty={showRuntimeSuggestedActions}
-      onOAuthConnect={onOAuthConnect}
-      onSelectCreditPack={onSelectCreditPack}
-      promptBarLayoutMode="surface-fixed"
+  const terminalContent = (
+    <AgentCliTerminalBody
+      containerRef={terminalController.containerRef}
+      isSearchOpen={terminalController.isSearchOpen}
+      searchQuery={terminalController.searchQuery}
+      onSearchQueryChange={terminalController.setSearchQuery}
+      onCloseSearch={terminalController.toggleSearch}
+      onSendSelection={handleSendSelection}
     />
   );
 
@@ -304,16 +282,20 @@ export function AgentPanel({
       onExpand={handleExpand}
       onTabChange={handleTabChange}
       defaultTab={defaultTab}
+      title="genfeed"
       headerContent={
-        <AgentTerminalHeader
-          catalog={runtimeCatalog}
-          selectedRuntime={selectedRuntime}
-          threadLabel={threadLabel}
-          onRuntimeChange={handleRuntimeChange}
-        />
+        <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden">
+          <AgentTerminalHeader
+            catalog={runtimeCatalog}
+            selectedRuntime={selectedRuntime}
+            threadLabel={threadLabel}
+            onRuntimeChange={handleRuntimeChange}
+          />
+          <AgentCliTerminalControls controller={terminalController} />
+        </div>
       }
-      subtitle="Sidebar terminal with local CLI and hosted runtime routing"
-      chatContent={chatContent}
+      subtitle="Terminal, runtime routing, and generated outputs"
+      chatContent={terminalContent}
       outputsContent={outputsContent}
     />
   );

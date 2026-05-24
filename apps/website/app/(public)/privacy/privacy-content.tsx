@@ -89,7 +89,9 @@ export default function PrivacyContent() {
                       {String(index + 1).padStart(2, '0')} /{' '}
                       {section.shortLabel}
                     </div>
-                    <h2 className="text-2xl font-bold mb-6">{section.title}</h2>
+                    <h2 className="text-2xl font-semibold mb-6">
+                      {section.title}
+                    </h2>
 
                     {section.content ? (
                       <div className="space-y-4">
@@ -106,7 +108,7 @@ export default function PrivacyContent() {
                       <ul className="space-y-3">
                         {section.listItems.map((item) => (
                           <li key={item} className="flex items-start gap-3">
-                            <LuCheck className="h-4 w-4 text-surface/40 mt-0.5 shrink-0" />
+                            <LuCheck className="size-4 text-surface/40 mt-0.5 shrink-0" />
                             <span className="text-surface/60 text-sm">
                               {item}
                             </span>
@@ -144,8 +146,10 @@ export default function PrivacyContent() {
                         {String(index + 1).padStart(2, '0')} /{' '}
                         {right.shortLabel}
                       </div>
-                      <Icon className="h-8 w-8 text-surface/40 mb-4 group-hover:text-surface transition-colors" />
-                      <h3 className="text-lg font-bold mb-3">{right.title}</h3>
+                      <Icon className="size-8 text-surface/40 mb-4 group-hover:text-surface transition-colors" />
+                      <h3 className="text-lg font-semibold mb-3">
+                        {right.title}
+                      </h3>
                       <p className="text-surface/40 text-sm leading-relaxed">
                         {right.description}
                       </p>
@@ -161,7 +165,7 @@ export default function PrivacyContent() {
         <section className="py-40 gsap-section">
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto">
-              <LuMail className="h-12 w-12 mx-auto text-surface/30 mb-8" />
+              <LuMail className="size-12 mx-auto text-surface/30 mb-8" />
               <h2 className="text-5xl font-serif mb-10">Questions?</h2>
               <p className="text-surface/40 text-xl mb-12 font-medium">
                 If you have any questions about our privacy practices, please

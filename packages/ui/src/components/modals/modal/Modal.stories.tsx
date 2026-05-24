@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import { ButtonVariant } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Button from '@ui/buttons/base/Button';
@@ -240,17 +241,29 @@ export const WithForm: Story = {
           >
             <form className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">Name</label>
+                <label
+                  htmlFor="story-modal-name"
+                  className="text-sm font-medium mb-1 block"
+                >
+                  Name
+                </label>
                 <input
+                  id="story-modal-name"
                   type="text"
                   className="h-10 border border-input px-3 w-full"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">
+                <label
+                  htmlFor="story-modal-description"
+                  className="text-sm font-medium mb-1 block"
+                >
                   Description
                 </label>
-                <textarea className="border border-input px-3 py-2 w-full" />
+                <textarea
+                  id="story-modal-description"
+                  className="border border-input px-3 py-2 w-full"
+                />
               </div>
               <div className="flex gap-2 justify-end">
                 <Button label="Cancel" onClick={() => setIsOpen(false)} />

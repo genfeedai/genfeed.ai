@@ -18,7 +18,7 @@ export function TrendingTopicsCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiFire className="h-5 w-5 text-orange-500" />
+        <HiFire className="size-5 text-orange-500" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Trending Topics'}
         </h3>
@@ -42,7 +42,7 @@ export function TrendingTopicsCard({
               className="flex items-center justify-between rounded bg-muted p-2.5"
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <HiArrowTrendingUp className="h-3.5 w-3.5 shrink-0 text-orange-500" />
+                <HiArrowTrendingUp className="size-3.5 shrink-0 text-orange-500" />
                 <div className="min-w-0">
                   <span className="block truncate text-xs font-medium text-foreground">
                     {trend.label}
@@ -69,7 +69,7 @@ export function TrendingTopicsCard({
                 }
                 className="ml-2 flex shrink-0 items-center gap-1 rounded bg-orange-50 px-2 py-1 text-[10px] font-medium text-orange-600 transition-colors hover:bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-900/50"
               >
-                <HiPencilSquare className="h-3 w-3" />
+                <HiPencilSquare className="size-3" />
                 Create Post
               </Button>
             </div>

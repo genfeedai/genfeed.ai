@@ -20,10 +20,17 @@ import { LazyModalFontFamily } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { HiPencil, HiPlus, HiTrash } from 'react-icons/hi2';
 
-export default function FontFamiliesList({
+function FontFamiliesListContent({
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -32,10 +39,10 @@ export default function FontFamiliesList({
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
 
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const searchParamsString = searchParams.toString();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -74,11 +81,11 @@ export default function FontFamiliesList({
       params.delete('brand');
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   const handleAdminBrandChange = useCallback(
@@ -92,11 +99,11 @@ export default function FontFamiliesList({
       }
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   // Use refs for callback props to prevent unnecessary re-renders
@@ -136,7 +143,7 @@ export default function FontFamiliesList({
                 isError: true,
                 label: 'Delete Font Family',
                 message: `Are you sure you want to delete "${fontFamily.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(fontFamily),
               });
             },
             tooltip: 'Delete',
@@ -145,7 +152,7 @@ export default function FontFamiliesList({
       : [];
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams?.get('page')) || 1;
+  const currentPage = Number(searchParams.get('page')) || 1;
 
   const findAllFontFamilies = useCallback(
     async (isRefreshing = false) => {
@@ -208,7 +215,7 @@ export default function FontFamiliesList({
     ],
   );
 
-  // Fetch data on mount and when searchParams change
+  // Fetch data on mount and when search params change
   useEffect(() => {
     findAllFontFamilies();
   }, [findAllFontFamilies]);
@@ -228,14 +235,10 @@ export default function FontFamiliesList({
     openModal(modalId);
   };
 
-  const handleDelete = async () => {
-    if (!selectedFontFamily) {
-      return;
-    }
-
+  const handleDelete = async (fontFamily: IFontFamily) => {
     try {
       const service = await getFontFamiliesService();
-      await service.delete(selectedFontFamily.id);
+      await service.delete(fontFamily.id);
       notificationsService.success('Font family deleted');
       setSelectedFontFamily(null);
       findAllFontFamilies(true);
@@ -303,5 +306,15 @@ export default function FontFamiliesList({
         <AutoPagination showTotal totalLabel="font families" />
       </div>
     </Container>
+  );
+}
+
+export default function FontFamiliesList(
+  props: Parameters<typeof FontFamiliesListContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <FontFamiliesListContent {...props} />
+    </Suspense>
   );
 }

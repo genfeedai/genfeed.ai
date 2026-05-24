@@ -25,7 +25,7 @@ export default function DemoContent() {
       >
         {/* Hero */}
         <section className="gsap-hero max-w-4xl mx-auto py-20 text-center">
-          <h1 className="text-5xl font-bold mb-4">Demo</h1>
+          <h1 className="text-5xl font-semibold mb-4">Demo</h1>
           <p className="text-xl text-muted-foreground">
             See how Genfeed works.
           </p>
@@ -36,7 +36,9 @@ export default function DemoContent() {
           <Card>
             <div className="aspect-video bg-card flex items-center justify-center border-2 border-edge/[0.08]">
               <div className="text-center">
-                <p className="text-xl font-bold mb-2">Demo Video Coming Soon</p>
+                <p className="text-xl font-semibold mb-2">
+                  Demo Video Coming Soon
+                </p>
                 <p className="text-muted-foreground text-sm">
                   Sign up to get notified when it launches
                 </p>

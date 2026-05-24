@@ -48,7 +48,7 @@ function SocialLinkItem({
       rel="noopener noreferrer"
       className="flex items-center gap-2 py-1 text-xs text-surface transition-colors active:scale-95 hover:text-surface/80 md:text-sm"
     >
-      <Icon className="h-4 w-4 flex-shrink-0" />
+      <Icon className="size-4 flex-shrink-0" />
       <span className="truncate">{label}</span>
     </a>
   );
@@ -61,7 +61,7 @@ export default function ArticleDetail({
   article: Article | null;
   isPreview: boolean;
 }) {
-  const router = useRouter();
+  const { push } = useRouter();
 
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const articleContentProps = useMemo(
@@ -98,7 +98,7 @@ export default function ArticleDetail({
           description="The article you are looking for does not exist."
           action={{
             label: 'Read articles',
-            onClick: () => router.push('/articles'),
+            onClick: () => push('/articles'),
           }}
         />
       </div>
@@ -115,7 +115,7 @@ export default function ArticleDetail({
       <div className="mx-auto w-full max-w-7xl">
         <div className="mb-6 flex items-center justify-between md:mb-8">
           <div>
-            <h1 className="mb-2 text-3xl font-bold text-surface md:text-4xl">
+            <h1 className="mb-2 text-3xl font-semibold text-surface md:text-4xl">
               {article.label}
             </h1>
 
@@ -131,7 +131,7 @@ export default function ArticleDetail({
             className="border border-edge/[0.08] bg-fill/10 text-surface backdrop-blur-sm transition-all hover:border-edge/20 hover:bg-fill/20"
             onClick={handleShare}
           >
-            <HiShare className="h-4 w-4" />
+            <HiShare className="size-4" />
             {copied ? 'Copied!' : 'Share'}
           </Button>
         </div>
@@ -143,6 +143,7 @@ export default function ArticleDetail({
               alt={`${article.label} banner`}
               className="h-full w-full object-cover object-center"
               fill
+              sizes="(max-width: 1024px) 100vw, 896px"
               priority
             />
           </div>
@@ -150,7 +151,7 @@ export default function ArticleDetail({
 
         {isPreview && (
           <div className="mb-6 flex items-start gap-3 border border-yellow-500/30 bg-yellow-500/20 p-4 backdrop-blur-sm md:mb-8">
-            <HiOutlineExclamationTriangle className="h-4 w-4 flex-shrink-0 text-yellow-300" />
+            <HiOutlineExclamationTriangle className="size-4 flex-shrink-0 text-yellow-300" />
             <span className="text-sm text-surface md:text-base">
               You are viewing a preview of this article. This article may not be
               published or publicly visible yet.
@@ -173,14 +174,14 @@ export default function ArticleDetail({
               <div className="flex flex-wrap items-center gap-3 border-b border-edge/20 pb-4 text-xs text-surface/60 md:gap-4 md:pb-6 md:text-sm">
                 {article.author && (
                   <div className="flex items-center gap-2.5">
-                    <HiUser className="h-3.5 w-3.5 flex-shrink-0 md:h-4 md:w-4" />
+                    <HiUser className="size-3.5 flex-shrink-0 md:h-4 md:w-4" />
                     <span className="truncate">{article.author}</span>
                   </div>
                 )}
 
                 {article.publishedAt && (
                   <div className="flex items-center gap-2.5">
-                    <HiCalendar className="h-3.5 w-3.5 flex-shrink-0 md:h-4 md:w-4" />
+                    <HiCalendar className="size-3.5 flex-shrink-0 md:h-4 md:w-4" />
                     <span className="whitespace-nowrap">
                       {formatDate(article.publishedAt)}
                     </span>
@@ -189,7 +190,7 @@ export default function ArticleDetail({
 
                 {article.readingTime && (
                   <div className="flex items-center gap-2.5">
-                    <HiClock className="h-3.5 w-3.5 flex-shrink-0 md:h-4 md:w-4" />
+                    <HiClock className="size-3.5 flex-shrink-0 md:h-4 md:w-4" />
                     <span className="whitespace-nowrap">
                       {article.readingTime} min read
                     </span>
@@ -206,7 +207,7 @@ export default function ArticleDetail({
           <aside className="order-first lg:order-last lg:col-span-1">
             <div className="lg:sticky lg:top-4 lg:self-start">
               <div className="border border-edge/[0.08] bg-fill/10 p-4 backdrop-blur-sm md:p-6">
-                <h3 className="mb-3 text-base font-bold text-surface md:mb-4 md:text-lg">
+                <h3 className="mb-3 text-base font-semibold text-surface md:mb-4 md:text-lg">
                   About Us
                 </h3>
 
@@ -217,7 +218,7 @@ export default function ArticleDetail({
                         <Image
                           src={brand.logoUrl}
                           alt={brand.label || 'Brand logo'}
-                          className="h-20 w-20 rounded-full object-cover ring-4 ring-edge/20 md:h-24 md:w-24"
+                          className="size-20 rounded-full object-cover ring-4 ring-edge/20 md:h-24 md:w-24"
                           width={96}
                           height={96}
                           priority
@@ -227,7 +228,7 @@ export default function ArticleDetail({
 
                     {brand.label && (
                       <div>
-                        <h4 className="text-center text-base font-bold text-surface lg:text-left md:text-lg">
+                        <h4 className="text-center text-base font-semibold text-surface lg:text-left md:text-lg">
                           {brand.label}
                         </h4>
                       </div>
@@ -246,7 +247,7 @@ export default function ArticleDetail({
                           className="flex items-center justify-center gap-2 border border-edge/[0.08] bg-fill/10 px-3 py-2 text-xs text-surface transition-colors hover:border-edge/20 hover:bg-fill/20 hover:text-surface/80 lg:justify-start md:text-sm"
                         >
                           <span>View more content</span>
-                          <HiArrowRight className="h-4 w-4 flex-shrink-0" />
+                          <HiArrowRight className="size-4 flex-shrink-0" />
                         </Link>
                       </div>
                     )}

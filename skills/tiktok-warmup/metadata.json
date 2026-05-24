@@ -1,0 +1,36 @@
+{
+  "name": "tiktok-warmup",
+  "version": "1.0.0",
+  "description": "Guide TikTok account warmup with engagement plans, warmup slideshow content, trending sound guidance, and post-warmup assessment frameworks",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "tiktok warmup",
+    "warm up tiktok account",
+    "new tiktok account",
+    "tiktok account warmup plan",
+    "tiktok engagement plan",
+    "warmup content tiktok",
+    "start a tiktok account",
+    "tiktok from scratch",
+    "tiktok warmup strategy",
+    "how to warm up tiktok",
+    "tiktok trust score",
+    "first post on tiktok",
+    "tiktok slideshow warmup",
+    "tiktok warmup carousel"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "tiktok",
+    "social-media",
+    "warmup",
+    "engagement",
+    "account-growth",
+    "content-strategy",
+    "carousel",
+    "slideshow",
+    "new-account"
+  ]
+}

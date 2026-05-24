@@ -1,5 +1,10 @@
 import type { IDesktopEnvironment } from '@genfeedai/desktop-contracts';
 
+const DEFAULT_GENFEED_CLOUD_API_URL = 'https://api.genfeed.ai/v1';
+const DEFAULT_GENFEED_CLOUD_AUTH_URL = 'https://app.genfeed.ai/oauth/cli';
+const DEFAULT_GENFEED_CLOUD_CDN_URL = 'https://cdn.genfeed.ai';
+const DEFAULT_GENFEED_CLOUD_WS_URL = 'https://notifications.genfeed.ai';
+
 export class DesktopConfigService {
   private readonly environment: IDesktopEnvironment;
 
@@ -8,15 +13,15 @@ export class DesktopConfigService {
 
     this.environment = {
       apiEndpoint:
-        process.env.GENFEED_DESKTOP_API_URL || 'http://localhost:3010/v1',
+        process.env.GENFEED_DESKTOP_API_URL || DEFAULT_GENFEED_CLOUD_API_URL,
       appEndpoint:
         process.env.GENFEED_DESKTOP_APP_URL || `http://127.0.0.1:${appPort}`,
       appName: 'desktop',
       appPort,
       authEndpoint:
-        process.env.GENFEED_DESKTOP_AUTH_URL ||
-        'https://app.genfeed.ai/oauth/cli',
-      cdnUrl: process.env.GENFEED_DESKTOP_CDN_URL || 'https://cdn.genfeed.ai',
+        process.env.GENFEED_DESKTOP_AUTH_URL || DEFAULT_GENFEED_CLOUD_AUTH_URL,
+      cdnUrl:
+        process.env.GENFEED_DESKTOP_CDN_URL || DEFAULT_GENFEED_CLOUD_CDN_URL,
       sessionDbPath: process.env.GENFEED_DESKTOP_SESSION_DB_PATH || undefined,
       sentryDsn: process.env.GENFEED_DESKTOP_SENTRY_DSN || undefined,
       sentryEnvironment:
@@ -25,8 +30,7 @@ export class DesktopConfigService {
         'development',
       sentryRelease: process.env.GENFEED_DESKTOP_RELEASE || undefined,
       wsEndpoint:
-        process.env.GENFEED_DESKTOP_WS_URL ||
-        'https://notifications.genfeed.ai',
+        process.env.GENFEED_DESKTOP_WS_URL || DEFAULT_GENFEED_CLOUD_WS_URL,
     };
   }
 

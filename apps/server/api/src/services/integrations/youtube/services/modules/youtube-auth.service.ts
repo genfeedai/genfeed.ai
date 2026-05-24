@@ -1,3 +1,4 @@
+import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
@@ -107,7 +108,7 @@ export class YoutubeAuthService {
       this.loggerService.log('Token refresh response', {
         hasRes: !!tokenResponse.res,
         hasToken: !!tokenResponse.token,
-        tokenKeys: tokenResponse.token ? Object.keys(tokenResponse.token) : [],
+        tokenKeys: typeof tokenResponse.token === 'string' ? ['token'] : [],
       });
 
       const newCredentials = oauthClient.credentials;
@@ -119,7 +120,7 @@ export class YoutubeAuthService {
         throw new Error('Failed to obtain access token from refresh');
       }
 
-      const updateData: unknown = {
+      const updateData: Record<string, unknown> = {
         accessToken: newCredentials.access_token,
         isConnected: true,
         isDeleted: false,
@@ -134,7 +135,10 @@ export class YoutubeAuthService {
         updateData.accessTokenExpiry = new Date(newCredentials.expiry_date);
       }
 
-      await this.credentialsService.patch(credentials._id, updateData);
+      await this.credentialsService.patch(
+        credentials._id,
+        updateData as Partial<UpdateCredentialDto>,
+      );
 
       // Return the authenticated OAuth2 client to be used for API calls
       return oauthClient;

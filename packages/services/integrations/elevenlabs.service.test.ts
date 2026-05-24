@@ -10,6 +10,7 @@ vi.mock('@services/core/environment.service', () => ({
 
 vi.mock('@services/core/interceptor.service', () => ({
   HTTPBaseService: class MockHTTPBaseService {
+    private static instances = new Map<string, MockHTTPBaseService>();
     public baseURL: string;
     public token: string;
     public instance = { get: mockGet };
@@ -17,6 +18,21 @@ vi.mock('@services/core/interceptor.service', () => ({
     constructor(baseURL: string, token: string) {
       this.baseURL = baseURL;
       this.token = token;
+    }
+
+    static getBaseServiceInstance<T extends MockHTTPBaseService>(
+      ServiceClass: new (token: string) => T,
+      token: string,
+    ): T {
+      const key = `${ServiceClass.name}:${token}`;
+      const cached = MockHTTPBaseService.instances.get(key);
+      if (cached) {
+        return cached as T;
+      }
+
+      const instance = new ServiceClass(token);
+      MockHTTPBaseService.instances.set(key, instance);
+      return instance;
     }
   },
 }));
@@ -26,16 +42,11 @@ import {
   type ElevenLabsVoice,
 } from '@services/integrations/elevenlabs.service';
 
-type ElevenLabsServiceClass = typeof ElevenLabsService & {
-  instances: Map<string, ElevenLabsService>;
-};
-
 describe('ElevenLabsService', () => {
   const token = 'token-123';
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (ElevenLabsService as unknown as ElevenLabsServiceClass).instances.clear();
   });
 
   afterEach(() => {

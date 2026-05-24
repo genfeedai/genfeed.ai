@@ -33,14 +33,18 @@ export default function ModalPostRemix({
   const onSubmitRef = useRef(onSubmit);
   onSubmitRef.current = onSubmit;
 
-  const [description, setDescription] = useState(post.description || '');
-  const [label, setLabel] = useState(`Remix: ${post.label || 'Untitled'}`);
+  const [form, setForm] = useState({
+    description: post.description || '',
+    label: `Remix: ${post.label || 'Untitled'}`,
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   // Reset form when post changes
   useEffect(() => {
-    setDescription(post.description || '');
-    setLabel(`Remix: ${post.label || 'Untitled'}`);
+    setForm({
+      description: post.description || '',
+      label: `Remix: ${post.label || 'Untitled'}`,
+    });
   }, [post]);
 
   // Called when Cancel button is clicked - initiates the close
@@ -56,18 +60,18 @@ export default function ModalPostRemix({
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (!description.trim()) {
+    if (!form.description.trim()) {
       return;
     }
 
     try {
       setIsLoading(true);
-      await onSubmitRef.current(description, label);
+      await onSubmitRef.current(form.description, form.label);
       handleCancel();
     } finally {
       setIsLoading(false);
     }
-  }, [description, label, handleCancel]);
+  }, [form, handleCancel]);
 
   return (
     <Modal
@@ -77,7 +81,7 @@ export default function ModalPostRemix({
     >
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm text-foreground/70 bg-background/50 p-3">
-          <HiDocumentDuplicate className="w-5 h-5 text-primary" />
+          <HiDocumentDuplicate className="size-5 text-primary" />
           <span>
             Create a variant of this post with different wording. The original
             post&apos;s media, platform, and settings will be copied.
@@ -94,18 +98,22 @@ export default function ModalPostRemix({
         <FormControl label="Label">
           <Input
             name="remixLabel"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
+            value={form.label}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, label: e.target.value }))
+            }
             placeholder="Enter label for the remix"
           />
         </FormControl>
 
         <FormControl label="Description" isRequired>
           <LazyRichTextEditor
-            value={description}
-            onChange={setDescription}
+            value={form.description}
+            onChange={(val) =>
+              setForm((prev) => ({ ...prev, description: val }))
+            }
             minHeight={{ desktop: 200, mobile: 150 }}
-            placeholder="Enter new description/caption..."
+            placeholder="Enter new description/caption…"
           />
         </FormControl>
 
@@ -126,7 +134,7 @@ export default function ModalPostRemix({
             className="md:h-9 md:px-4 md:py-2"
             onClick={handleSubmit}
             isLoading={isLoading}
-            isDisabled={!description.trim()}
+            isDisabled={!form.description.trim()}
           />
         </ModalActions>
       </div>

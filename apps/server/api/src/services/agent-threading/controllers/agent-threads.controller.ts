@@ -5,7 +5,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
@@ -45,8 +44,9 @@ export class AgentThreadsController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
+      const userId = await this.resolveMongoUserId(user);
       const snapshot = await runEffectPromise(
-        this.getThreadSnapshotEffect(threadId, organizationId),
+        this.getThreadSnapshotEffect(threadId, organizationId, userId),
       );
       return {
         activeRun: snapshot.activeRun ?? null,
@@ -83,11 +83,13 @@ export class AgentThreadsController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
+      const userId = await this.resolveMongoUserId(user);
       const events = await runEffectPromise(
         this.listThreadEventsEffect(
           threadId,
           organizationId,
           afterSequence ? Number.parseInt(afterSequence, 10) : undefined,
+          userId,
         ),
       );
 
@@ -135,9 +137,15 @@ export class AgentThreadsController {
 
       await this.agentOrchestratorService.resumeRecurringTaskDraftFromInput({
         answer: body.answer,
-        fieldId: inputRequest.fieldId,
+        fieldId:
+          typeof inputRequest.fieldId === 'string'
+            ? inputRequest.fieldId
+            : undefined,
         organizationId,
-        runId: inputRequest.runId,
+        runId:
+          typeof inputRequest.runId === 'string'
+            ? inputRequest.runId
+            : undefined,
         threadId,
         userId,
       });
@@ -247,10 +255,15 @@ export class AgentThreadsController {
     );
   }
 
-  private getThreadSnapshotEffect(threadId: string, organizationId: string) {
+  private getThreadSnapshotEffect(
+    threadId: string,
+    organizationId: string,
+    userId: string,
+  ) {
     return this.agentThreadEngineService.getSnapshotEffect(
       threadId,
       organizationId,
+      userId,
     );
   }
 
@@ -258,11 +271,13 @@ export class AgentThreadsController {
     threadId: string,
     organizationId: string,
     afterSequence?: number,
+    userId?: string,
   ) {
     return this.agentThreadEngineService.listEventsEffect(
       threadId,
       organizationId,
       afterSequence,
+      userId,
     );
   }
 
@@ -296,7 +311,7 @@ export class AgentThreadsController {
 
   private resolveOrganizationId(user: User): string {
     const { organization } = getPublicMetadata(user);
-    if (!ObjectIdUtil.isValid(organization)) {
+    if (!organization) {
       throw new UnauthorizedException(
         'Invalid organization context. Please sign in again.',
       );
@@ -313,7 +328,7 @@ export class AgentThreadsController {
     }
 
     const { user: metadataUserId } = getPublicMetadata(user);
-    if (ObjectIdUtil.isValid(metadataUserId)) {
+    if (metadataUserId) {
       const metadataUserDoc = await this.usersService.findOne(
         { _id: metadataUserId, clerkId },
         [],

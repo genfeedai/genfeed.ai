@@ -1,5 +1,6 @@
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 
 export interface WeeklySummaryOptions {
@@ -76,11 +77,10 @@ export class PerformanceSummaryService {
     brandId: string,
     startDate: Date,
     endDate: Date,
-  ): Record<string, unknown> {
+  ): Prisma.PostAnalyticsWhereInput {
     return {
       brandId,
       date: { gte: startDate, lte: endDate },
-      isDeleted: false,
       organizationId,
     };
   }
@@ -185,9 +185,7 @@ export class PerformanceSummaryService {
 
     // Fetch post analytics grouped by post, then join with posts
     const analytics = await this.prisma.postAnalytics.findMany({
-      where: matchFilter as Parameters<
-        typeof this.prisma.postAnalytics.findMany
-      >[0]['where'],
+      where: matchFilter,
       orderBy: { engagementRate: 'desc' },
       take: 50,
     });
@@ -301,14 +299,12 @@ export class PerformanceSummaryService {
   // ─── Private helpers ───────────────────────────────────────────────
 
   private async getContentByEngagement(
-    matchFilter: Record<string, unknown>,
+    matchFilter: Prisma.PostAnalyticsWhereInput,
     limit: number,
     sortDirection: 'asc' | 'desc',
   ): Promise<PerformanceContentItem[]> {
     const analytics = await this.prisma.postAnalytics.findMany({
-      where: matchFilter as Parameters<
-        typeof this.prisma.postAnalytics.findMany
-      >[0]['where'],
+      where: matchFilter,
       orderBy: { engagementRate: sortDirection },
       take: limit,
     });
@@ -339,12 +335,10 @@ export class PerformanceSummaryService {
   }
 
   private async getAvgEngagementByPlatform(
-    matchFilter: Record<string, unknown>,
+    matchFilter: Prisma.PostAnalyticsWhereInput,
   ): Promise<PlatformEngagement[]> {
     const analytics = await this.prisma.postAnalytics.findMany({
-      where: matchFilter as Parameters<
-        typeof this.prisma.postAnalytics.findMany
-      >[0]['where'],
+      where: matchFilter,
     });
 
     const platformMap = new Map<
@@ -374,12 +368,10 @@ export class PerformanceSummaryService {
   }
 
   private async getAvgEngagementByContentType(
-    matchFilter: Record<string, unknown>,
+    matchFilter: Prisma.PostAnalyticsWhereInput,
   ): Promise<ContentTypeEngagement[]> {
     const analytics = await this.prisma.postAnalytics.findMany({
-      where: matchFilter as Parameters<
-        typeof this.prisma.postAnalytics.findMany
-      >[0]['where'],
+      where: matchFilter,
     });
 
     const postIds = [...new Set(analytics.map((a) => String(a.postId)))];
@@ -417,12 +409,10 @@ export class PerformanceSummaryService {
   }
 
   private async getBestPostingTimes(
-    matchFilter: Record<string, unknown>,
+    matchFilter: Prisma.PostAnalyticsWhereInput,
   ): Promise<PostingTimeAnalysis[]> {
     const analytics = await this.prisma.postAnalytics.findMany({
-      where: matchFilter as Parameters<
-        typeof this.prisma.postAnalytics.findMany
-      >[0]['where'],
+      where: matchFilter,
     });
 
     const postIds = [...new Set(analytics.map((a) => String(a.postId)))];
@@ -460,7 +450,7 @@ export class PerformanceSummaryService {
   }
 
   private async getTopHooks(
-    matchFilter: Record<string, unknown>,
+    matchFilter: Prisma.PostAnalyticsWhereInput,
   ): Promise<string[]> {
     const topContent = await this.getContentByEngagement(
       matchFilter,
@@ -478,8 +468,8 @@ export class PerformanceSummaryService {
   }
 
   private async getWeekOverWeekTrend(
-    currentFilter: Record<string, unknown>,
-    previousFilter: Record<string, unknown>,
+    currentFilter: Prisma.PostAnalyticsWhereInput,
+    previousFilter: Prisma.PostAnalyticsWhereInput,
   ): Promise<{
     direction: 'up' | 'down' | 'stable';
     percentageChange: number;
@@ -487,12 +477,10 @@ export class PerformanceSummaryService {
     previousEngagement: number;
   }> {
     const aggregateEngagement = async (
-      filter: Record<string, unknown>,
+      filter: Prisma.PostAnalyticsWhereInput,
     ): Promise<number> => {
       const rows = await this.prisma.postAnalytics.findMany({
-        where: filter as Parameters<
-          typeof this.prisma.postAnalytics.findMany
-        >[0]['where'],
+        where: filter,
       });
       return rows.reduce(
         (sum, r) =>

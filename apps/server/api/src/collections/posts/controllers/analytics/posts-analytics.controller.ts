@@ -84,7 +84,7 @@ export class PostsAnalyticsController {
     // Verify publication ownership
     const post = await this.postsService.findOne({
       _id: postId,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],
@@ -140,7 +140,7 @@ export class PostsAnalyticsController {
     // Verify publication ownership
     const post = await this.postsService.findOne({
       _id: postId,
-      $or: [
+      OR: [
         { user: publicMetadata.user },
         { organization: publicMetadata.organization },
       ],
@@ -193,7 +193,7 @@ export class PostsAnalyticsController {
     const trackUrl = `${url} trackPostAnalytics`;
     await this.postAnalyticsService.trackPostAnalytics(
       post,
-      credential as unknown,
+      credential as unknown as CredentialEntity,
       trackUrl,
     );
 
@@ -253,34 +253,21 @@ export class PostsAnalyticsController {
 
       // Find all published posts for the organization
       const posts = await this.postsService.findAll(
-        [
-          {
-            $match: {
-              externalId: { $exists: true, $ne: null },
-              isDeleted: false,
-              organization: publicMetadata.organization,
-              status: {
-                $in: [
-                  PublishStatus.PUBLISHED,
-                  PostStatus.PUBLIC,
-                  PostStatus.UNLISTED,
-                  PostStatus.PRIVATE,
-                ],
-              },
+        {
+          where: {
+            externalId: { not: null },
+            isDeleted: false,
+            organization: publicMetadata.organization,
+            status: {
+              in: [
+                PublishStatus.PUBLISHED,
+                PostStatus.PUBLIC,
+                PostStatus.UNLISTED,
+                PostStatus.PRIVATE,
+              ],
             },
           },
-          {
-            $lookup: {
-              as: 'credential',
-              foreignField: '_id',
-              from: 'credentials',
-              localField: 'credential',
-            },
-          },
-          {
-            $unwind: '$credential',
-          },
-        ],
+        },
         { customLabels, pagination: false },
       );
 

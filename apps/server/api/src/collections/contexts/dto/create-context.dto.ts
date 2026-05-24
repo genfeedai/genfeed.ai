@@ -1,5 +1,6 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class CreateContextDto {
   @ApiProperty({
@@ -43,7 +44,7 @@ export class CreateContextDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   sourceBrand?: string;
 
   @ApiProperty({

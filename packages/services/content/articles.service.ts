@@ -12,6 +12,7 @@ export interface GenerateArticlesRequest {
   prompt: string;
   count?: number;
   category?: ArticleCategory;
+  credential?: string;
   keywords?: string[];
   type?: 'standard' | 'x-article';
   tone?: string;
@@ -64,10 +65,7 @@ export class ArticlesService extends BaseService<Article> {
   }
 
   public static getInstance(token: string): ArticlesService {
-    return BaseService.getDataServiceInstance(
-      ArticlesService,
-      token,
-    ) as ArticlesService;
+    return BaseService.getDataServiceInstance(ArticlesService, token);
   }
 
   /**

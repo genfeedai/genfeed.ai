@@ -3,19 +3,24 @@ import type { Music } from '@genfeedai/models/ingredients/music.model';
 import { MusicSerializer } from '@genfeedai/serializers';
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
+import { ServiceInstanceManager } from '@services/core/service-instance-manager';
+
+const musicInstances = new ServiceInstanceManager<MusicsService>();
 
 export class MusicsService extends IngredientsService<Music> {
-  private static musicInstances = new Map<string, MusicsService>();
-
   constructor(token: string) {
     super('musics', token);
   }
 
   static getInstance(token: string): MusicsService {
-    if (!MusicsService.musicInstances.has(token)) {
-      MusicsService.musicInstances.set(token, new MusicsService(token));
+    const cached = musicInstances.get(MusicsService, token);
+    if (cached) {
+      return cached;
     }
-    return MusicsService.musicInstances.get(token)!;
+
+    const instance = new MusicsService(token);
+    musicInstances.set(MusicsService, token, instance);
+    return instance;
   }
 
   public async post(body: Partial<IMusic>) {

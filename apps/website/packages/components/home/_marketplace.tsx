@@ -90,7 +90,7 @@ function TemplateCard({
           {title}
         </Heading>
         <HStack className="items-center gap-2 text-xs text-foreground/50">
-          <HiSparkles className="h-3 w-3" />
+          <HiSparkles className="size-3" />
           <Text>AI-powered template</Text>
         </HStack>
       </VStack>
@@ -125,7 +125,7 @@ const TEMPLATES = [
     category: 'Video',
     delay: 100,
     gradient: 'from-red-500/40 via-orange-500/40 to-yellow-500/40',
-    icon: <FaYoutube className="h-10 w-10 text-surface" />,
+    icon: <FaYoutube className="size-10 text-surface" />,
     price: '$29',
     title: 'YouTube Shorts Pack',
   },
@@ -133,7 +133,7 @@ const TEMPLATES = [
     category: 'Video',
     delay: 200,
     gradient: 'from-purple-500/40 via-pink-500/40 to-rose-500/40',
-    icon: <FaTiktok className="h-10 w-10 text-surface" />,
+    icon: <FaTiktok className="size-10 text-surface" />,
     price: null,
     title: 'TikTok Viral Kit',
   },
@@ -141,7 +141,7 @@ const TEMPLATES = [
     category: 'Image',
     delay: 300,
     gradient: 'from-blue-500/40 via-cyan-500/40 to-teal-500/40',
-    icon: <HiPhoto className="h-10 w-10 text-surface" />,
+    icon: <HiPhoto className="size-10 text-surface" />,
     price: '$19',
     title: 'Product Photography',
   },
@@ -149,7 +149,7 @@ const TEMPLATES = [
     category: 'Video',
     delay: 400,
     gradient: 'from-indigo-500/40 via-violet-500/40 to-purple-500/40',
-    icon: <FaInstagram className="h-10 w-10 text-surface" />,
+    icon: <FaInstagram className="size-10 text-surface" />,
     price: null,
     title: 'Instagram Reels',
   },
@@ -157,7 +157,7 @@ const TEMPLATES = [
     category: 'Workflow',
     delay: 500,
     gradient: 'from-emerald-500/40 via-green-500/40 to-lime-500/40',
-    icon: <HiArrowPath className="h-10 w-10 text-surface" />,
+    icon: <HiArrowPath className="size-10 text-surface" />,
     price: '$49',
     title: 'Content Calendar',
   },
@@ -165,7 +165,7 @@ const TEMPLATES = [
     category: 'Image',
     delay: 600,
     gradient: 'from-amber-500/40 via-yellow-500/40 to-orange-500/40',
-    icon: <HiVideoCamera className="h-10 w-10 text-surface" />,
+    icon: <HiVideoCamera className="size-10 text-surface" />,
     price: null,
     title: 'Thumbnail Generator',
   },
@@ -174,13 +174,13 @@ const TEMPLATES = [
 const INTEGRATIONS = [
   {
     delay: 700,
-    icon: <FaYoutube className="h-6 w-6 text-red-500" />,
+    icon: <FaYoutube className="size-6 text-red-500" />,
     name: 'YouTube',
   },
-  { delay: 800, icon: <FaTiktok className="h-6 w-6" />, name: 'TikTok' },
+  { delay: 800, icon: <FaTiktok className="size-6" />, name: 'TikTok' },
   {
     delay: 900,
-    icon: <FaInstagram className="h-6 w-6 text-pink-500" />,
+    icon: <FaInstagram className="size-6 text-pink-500" />,
     name: 'Instagram',
   },
 ] as const;
@@ -198,7 +198,7 @@ export default function Marketplace() {
           {/* Header */}
           <VStack className="text-center mb-12">
             <HStack className="inline-flex items-center gap-2 mb-4">
-              <HiShoppingBag className="h-6 w-6 text-primary" />
+              <HiShoppingBag className="size-6 text-primary" />
               <Text className="text-sm font-semibold uppercase tracking-wide text-primary">
                 Marketplace
               </Text>
@@ -230,7 +230,7 @@ export default function Marketplace() {
           {/* Integrations */}
           <div className="flex flex-col items-center gap-6">
             <HStack className="items-center gap-2 text-foreground/60">
-              <HiPuzzlePiece className="h-5 w-5" />
+              <HiPuzzlePiece className="size-5" />
               <Text className="text-sm font-medium">
                 Connects with your favorite platforms
               </Text>
@@ -248,7 +248,7 @@ export default function Marketplace() {
             <Button asChild size={ButtonSize.LG}>
               <a href={EnvironmentService.apps.marketplace}>
                 Browse Marketplace
-                <HiArrowRight className="h-5 w-5" />
+                <HiArrowRight className="size-5" />
               </a>
             </Button>
           </div>

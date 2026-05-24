@@ -1,4 +1,4 @@
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { ConfigModule } from '@api/config/config.module';
 import { BeehiivModule } from '@api/services/integrations/beehiiv/beehiiv.module';
@@ -38,7 +38,7 @@ import { WordpressModule } from '@api/services/integrations/wordpress/wordpress.
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   exports: [
@@ -64,32 +64,32 @@ import { Module } from '@nestjs/common';
     YouTubePublisherService,
   ],
   imports: [
-    ConfigModule,
-    HttpModule,
-    LoggerModule,
+    forwardRef(() => ConfigModule),
+    forwardRef(() => HttpModule),
+    forwardRef(() => LoggerModule),
 
     // Platform integration modules
-    BeehiivModule,
-    FacebookModule,
-    FanvueModule,
-    GhostModule,
-    InstagramModule,
-    LinkedInModule,
-    MastodonModule,
-    PinterestModule,
-    RedditModule,
-    ShopifyModule,
-    SnapchatModule,
-    ThreadsModule,
-    TiktokModule,
-    TwitterModule,
-    WhatsappModule,
-    WordpressModule,
-    YoutubeModule,
+    forwardRef(() => BeehiivModule),
+    forwardRef(() => FacebookModule),
+    forwardRef(() => FanvueModule),
+    forwardRef(() => GhostModule),
+    forwardRef(() => InstagramModule),
+    forwardRef(() => LinkedInModule),
+    forwardRef(() => MastodonModule),
+    forwardRef(() => PinterestModule),
+    forwardRef(() => RedditModule),
+    forwardRef(() => ShopifyModule),
+    forwardRef(() => SnapchatModule),
+    forwardRef(() => ThreadsModule),
+    forwardRef(() => TiktokModule),
+    forwardRef(() => TwitterModule),
+    forwardRef(() => WhatsappModule),
+    forwardRef(() => WordpressModule),
+    forwardRef(() => YoutubeModule),
 
     // Data modules
-    CredentialsModule,
-    PostsModule,
+    forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => PostsModule),
   ],
   providers: [
     BeehiivPublisherService,

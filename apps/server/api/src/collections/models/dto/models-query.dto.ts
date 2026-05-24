@@ -1,14 +1,9 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ModelCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import {
-  IsBoolean,
-  IsEnum,
-  IsMongoId,
-  IsOptional,
-  ValidateIf,
-} from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, ValidateIf } from 'class-validator';
 
 /**
  * Query DTO for filtering and paginating models
@@ -31,7 +26,7 @@ export class ModelsQueryDto extends BaseQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   organizationId?: string;
 
   @ApiProperty({

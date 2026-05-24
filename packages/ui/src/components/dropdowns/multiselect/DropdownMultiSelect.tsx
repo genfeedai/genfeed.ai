@@ -33,12 +33,14 @@ import {
 } from 'react';
 import { HiChevronDown } from 'react-icons/hi2';
 
+const EMPTY_ARRAY: never[] = [];
+
 export default function MultiSelectDropdown({
   name,
-  values = [],
+  values = EMPTY_ARRAY,
   options,
   onChange,
-  placeholder = 'Select...',
+  placeholder = 'Select…',
   className = '',
   icon,
   direction = DropdownDirection.DOWN,
@@ -49,7 +51,7 @@ export default function MultiSelectDropdown({
   groupLabels,
   showGroupLabels = false,
   isSearchEnabled = false,
-  searchPlaceholder = 'Search...',
+  searchPlaceholder = 'Search…',
   buttonRef: externalButtonRef,
   repositionTrigger: _repositionTrigger,
   shouldFlash = false,
@@ -149,7 +151,7 @@ export default function MultiSelectDropdown({
     }
     const firstLabel = selectedOptions[0].label;
     const truncated =
-      firstLabel.length > 10 ? `${firstLabel.substring(0, 10)}...` : firstLabel;
+      firstLabel.length > 10 ? `${firstLabel.substring(0, 10)}…` : firstLabel;
     if (selectedOptions.length === 1) {
       return truncated;
     }
@@ -197,7 +199,7 @@ export default function MultiSelectDropdown({
     name,
   ]);
 
-  const renderOptions = () => {
+  const optionsElements: ReactNode = (() => {
     if (optionsForDisplay.length === 0) {
       return (
         <div className="px-3 py-2 text-sm text-foreground/60">
@@ -264,7 +266,7 @@ export default function MultiSelectDropdown({
                   onChange={() => {
                     // Row click/keyboard handles selection state.
                   }}
-                  className="h-3.5 w-3.5 !border-white/20 data-[state=checked]:!bg-blue-500 data-[state=checked]:!border-blue-500 data-[state=checked]:!text-white"
+                  className="size-3.5 !border-white/20 data-[state=checked]:!bg-blue-500 data-[state=checked]:!border-blue-500 data-[state=checked]:!text-white"
                 />
               </div>
             )}
@@ -285,7 +287,7 @@ export default function MultiSelectDropdown({
     });
 
     return elements;
-  };
+  })();
 
   return (
     <DropdownMenu
@@ -313,7 +315,7 @@ export default function MultiSelectDropdown({
         >
           {icon && <span className="flex items-center">{icon}</span>}
           <span className="text-xs font-medium">{displayLabel}</span>
-          <HiChevronDown className="h-3 w-3 text-foreground/50 transition-transform" />
+          <HiChevronDown className="size-3 text-foreground/50 transition-transform" />
         </PrimitiveButton>
       </DropdownMenuTrigger>
 
@@ -391,7 +393,7 @@ export default function MultiSelectDropdown({
                     onChange={() => {
                       // Row click/keyboard handles selection state.
                     }}
-                    className="h-3.5 w-3.5 !border-white/20 data-[state=checked]:!bg-blue-500 data-[state=checked]:!border-blue-500 data-[state=checked]:!text-white"
+                    className="size-3.5 !border-white/20 data-[state=checked]:!bg-blue-500 data-[state=checked]:!border-blue-500 data-[state=checked]:!text-white"
                   />
                 </div>
                 All
@@ -401,7 +403,7 @@ export default function MultiSelectDropdown({
           </>
         )}
 
-        {renderOptions()}
+        {optionsElements}
       </DropdownMenuContent>
     </DropdownMenu>
   );

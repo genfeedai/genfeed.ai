@@ -171,6 +171,7 @@ class DeserializerUtils {
     }
 
     const dest: Record<string, unknown> = {};
+    const { keyForAttribute } = this.opts;
 
     for (const key of Object.keys(from.relationships)) {
       const relationship = from.relationships[key] as {
@@ -178,14 +179,15 @@ class DeserializerUtils {
       };
 
       if (relationship.data === null) {
-        dest[convertKey(key, this.opts.keyForAttribute)] = null;
+        dest[convertKey(key, keyForAttribute)] = null;
       } else if (Array.isArray(relationship.data)) {
-        dest[convertKey(key, this.opts.keyForAttribute)] =
-          relationship.data.map((rd) => this.extractIncludes(rd, key, from));
+        dest[convertKey(key, keyForAttribute)] = relationship.data.map((rd) =>
+          this.extractIncludes(rd, key, from),
+        );
       } else {
         const includes = this.extractIncludes(relationship.data, key, from);
         if (includes) {
-          dest[convertKey(key, this.opts.keyForAttribute)] = includes;
+          dest[convertKey(key, keyForAttribute)] = includes;
         }
       }
     }

@@ -6,7 +6,6 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
@@ -45,6 +44,7 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import type { User } from '@clerk/backend';
+import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
 import {
   CredentialPlatform,
   IngredientCategory,
@@ -127,6 +127,22 @@ export class AnalyticsController {
     private readonly instagramService: InstagramService,
   ) {}
 
+  private readObjectRecord(value: unknown): Record<string, unknown> {
+    return typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private appendPlatform(
+    value: unknown,
+    platform: string,
+  ): Record<string, unknown> {
+    return {
+      ...this.readObjectRecord(value),
+      platform,
+    };
+  }
+
   @Get()
   @RolesDecorator('superadmin')
   @Cache({
@@ -138,7 +154,7 @@ export class AnalyticsController {
   async findAll(
     @Req() req: ExpressRequest,
     @Query() query: BaseQueryDto,
-  ): Promise<AnalyticEntity[]> {
+  ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
@@ -161,48 +177,33 @@ export class AnalyticsController {
       totalModels,
       pendingPosts,
     ] = await Promise.all([
-      this.subscriptionsService.findAll([{ $count: 'total' }], options),
-      this.usersService.findAll([{ $count: 'total' }], options),
-      this.postsService.findAll([{ $count: 'total' }], options),
-      this.brandsService.findAll([{ $count: 'total' }], options),
+      this.subscriptionsService.findAll({ where: {} }, options),
+      this.usersService.findAll({ where: {} }, options),
+      this.postsService.findAll({ where: {} }, options),
+      this.brandsService.findAll({ where: {} }, options),
       this.ingredientsService.findAll(
-        [
-          { $match: { category: IngredientCategory.VIDEO } },
-          { $count: 'total' },
-        ],
+        { where: { category: IngredientCategory.VIDEO } },
         options,
       ),
       this.ingredientsService.findAll(
-        [
-          { $match: { category: IngredientCategory.IMAGE } },
-          { $count: 'total' },
-        ],
+        { where: { category: IngredientCategory.IMAGE } },
         options,
       ),
       this.organizationsService.findAll(
-        [{ $match: { isDeleted: false } }, { $count: 'total' }],
+        { where: { isDeleted: false } },
         options,
       ),
       this.workflowsService.findAll(
-        [
-          { $match: { isDeleted: false, status: WorkflowStatus.ACTIVE } },
-          { $count: 'total' },
-        ],
+        { where: { isDeleted: false, status: WorkflowStatus.ACTIVE } },
         options,
       ),
       this.botsService.findAll(
-        [{ $match: { enabled: true, isDeleted: false } }, { $count: 'total' }],
+        { where: { enabled: true, isDeleted: false } },
         options,
       ),
-      this.modelsService.findAll(
-        [{ $match: { isDeleted: false } }, { $count: 'total' }],
-        options,
-      ),
+      this.modelsService.findAll({ where: { isDeleted: false } }, options),
       this.postsService.findAll(
-        [
-          { $match: { isDeleted: false, status: PostStatus.PENDING } },
-          { $count: 'total' },
-        ],
+        { where: { isDeleted: false, status: PostStatus.PENDING } },
         options,
       ),
     ]);
@@ -356,13 +357,12 @@ export class AnalyticsController {
         ]);
 
       const trends = [
-        ...tiktokTrends.map((trend) => ({ ...trend, platform: 'tiktok' })),
-        ...twitterTrends.map((trend) => ({ ...trend, platform: 'twitter' })),
-        ...youtubeTrends.map((trend) => ({ ...trend, platform: 'youtube' })),
-        ...instagramTrends.map((trend) => ({
-          ...trend,
-          platform: 'instagram',
-        })),
+        ...tiktokTrends.map((trend) => this.appendPlatform(trend, 'tiktok')),
+        ...twitterTrends.map((trend) => this.appendPlatform(trend, 'twitter')),
+        ...youtubeTrends.map((trend) => this.appendPlatform(trend, 'youtube')),
+        ...instagramTrends.map((trend) =>
+          this.appendPlatform(trend, 'instagram'),
+        ),
       ];
       return serializeSingle(req, AnalyticsTrendSerializer, trends);
     } catch (error: unknown) {
@@ -382,7 +382,7 @@ export class AnalyticsController {
   async getOrganizationsLeaderboard(
     @Req() req: ExpressRequest,
     @Query() query: LeaderboardQueryDto,
-  ): Promise<OrgLeaderboardItemEntity[]> {
+  ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
@@ -406,7 +406,7 @@ export class AnalyticsController {
   async getOrganizationsWithStats(
     @Req() req: ExpressRequest,
     @Query() query: AdminOrgsQueryDto,
-  ): Promise<PaginatedOrgsResponse> {
+  ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
@@ -431,7 +431,7 @@ export class AnalyticsController {
     @CurrentUser() user: User,
     @Req() req: ExpressRequest,
     @Query() query: LeaderboardQueryDto,
-  ): Promise<unknown[]> {
+  ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const organizationId = this.getScopedOrganizationId(user);
     this.loggerService.log(url, { query });
@@ -457,7 +457,7 @@ export class AnalyticsController {
     @CurrentUser() user: User,
     @Req() req: ExpressRequest,
     @Query() query: AdminBrandsQueryDto,
-  ): Promise<PaginatedBrandsResponse> {
+  ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const organizationId = this.getScopedOrganizationId(user);
     this.loggerService.log(url, { query });
@@ -563,7 +563,7 @@ export class AnalyticsController {
     @CurrentUser() user: User,
     @Req() req: ExpressRequest,
     @Query() query: TopContentQueryDto,
-  ): Promise<unknown[]> {
+  ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const organizationId = this.getScopedOrganizationId(user);
     this.loggerService.log(url, { query });

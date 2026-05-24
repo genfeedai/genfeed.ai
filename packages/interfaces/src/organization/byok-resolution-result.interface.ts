@@ -1,5 +1,6 @@
 export interface ByokResolutionResult {
   apiKey?: string;
   apiSecret?: string;
-  source: 'byok' | 'hosted';
+  managedInferenceUrl?: string;
+  source: 'byok' | 'hosted' | 'managed';
 }

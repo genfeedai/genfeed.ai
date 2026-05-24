@@ -1,13 +1,13 @@
 import { BotLivestreamSettingsDto } from '@api/collections/bots/dto/bot-livestream-settings.dto';
 import { BotSettingsDto } from '@api/collections/bots/dto/bot-settings.dto';
 import { BotTargetDto } from '@api/collections/bots/dto/bot-target.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BotCategory, BotPlatform, BotStatus } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
-  IsMongoId,
   IsOptional,
   IsString,
   MaxLength,
@@ -15,7 +15,7 @@ import {
 } from 'class-validator';
 
 export class CreateBotDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Organization that owns the bot',
@@ -23,7 +23,7 @@ export class CreateBotDto {
   })
   organization?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Brand the bot is scoped to',
@@ -31,7 +31,7 @@ export class CreateBotDto {
   })
   brand?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'User that configured the bot',

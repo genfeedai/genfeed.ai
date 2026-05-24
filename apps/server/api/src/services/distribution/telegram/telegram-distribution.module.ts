@@ -1,4 +1,4 @@
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { DistributionsModule } from '@api/collections/distributions/distributions.module';
 import { ConfigModule } from '@api/config/config.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
@@ -10,10 +10,10 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   exports: [TelegramDistributionService],
   imports: [
-    ConfigModule,
-    HttpModule,
-    LoggerModule,
-    forwardRef(() => CredentialsModule),
+    forwardRef(() => ConfigModule),
+    forwardRef(() => HttpModule),
+    forwardRef(() => LoggerModule),
+    forwardRef(() => CredentialsCoreModule),
     forwardRef(() => DistributionsModule),
     forwardRef(() => QueuesModule),
   ],

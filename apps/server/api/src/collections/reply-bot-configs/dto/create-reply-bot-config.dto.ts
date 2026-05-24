@@ -1,6 +1,7 @@
 import { ReplyBotDmConfigDto } from '@api/collections/reply-bot-configs/dto/reply-bot-dm-config.dto';
 import { ReplyBotRateLimitsDto } from '@api/collections/reply-bot-configs/dto/reply-bot-rate-limits.dto';
 import { ReplyBotScheduleDto } from '@api/collections/reply-bot-configs/dto/reply-bot-schedule.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   ReplyBotActionType,
   ReplyBotType,
@@ -13,7 +14,6 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -59,7 +59,7 @@ export class ReplyBotFiltersDto {
 }
 
 export class CreateReplyBotConfigDto {
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Organization that owns this bot config',
@@ -67,7 +67,7 @@ export class CreateReplyBotConfigDto {
   })
   organization?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'Brand this bot config is scoped to',
@@ -75,7 +75,7 @@ export class CreateReplyBotConfigDto {
   })
   brand?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @IsOptional()
   @ApiProperty({
     description: 'User that created this bot config',
@@ -83,7 +83,7 @@ export class CreateReplyBotConfigDto {
   })
   user?: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Twitter credential to use for posting replies and DMs',
     required: true,
@@ -211,7 +211,7 @@ export class CreateReplyBotConfigDto {
   filters?: ReplyBotFiltersDto;
 
   @IsArray()
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   @IsOptional()
   @ApiProperty({
     description: 'IDs of monitored accounts (for ACCOUNT_MONITOR type)',

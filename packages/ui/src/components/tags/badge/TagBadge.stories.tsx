@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import { PLATFORM_COLORS } from '@genfeedai/constants';
 import { ComponentSize } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
@@ -299,7 +300,7 @@ export const Interactive: Story = {
           ))}
         </div>
         {tags.length === 0 && (
-          <p className="text-sm text-gray-500">All tags removed!</p>
+          <p className="text-sm text-zinc-500">All tags removed!</p>
         )}
       </div>
     );

@@ -46,8 +46,7 @@ describe('OverviewLayout', () => {
     );
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
-    expect(
-      container.querySelector('[class*="border-white"]'),
-    ).toBeInTheDocument();
+    expect(container.querySelector('.gen-shell-panel')).toBeInTheDocument();
+    expect(container.querySelector('.ship-ui')).toBeInTheDocument();
   });
 });

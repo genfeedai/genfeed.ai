@@ -5,9 +5,10 @@
  * Backend: /optimizers API
  */
 
-import { deserializeCollection } from '@genfeedai/helpers/data/json-api/json-api.helper';
 import { EnvironmentService } from '@services/core/environment.service';
+import { deserializeCollection } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
+import { ServiceInstanceManager } from '@services/core/service-instance-manager';
 
 export interface IContentScore {
   overall: number;
@@ -73,6 +74,8 @@ export interface IContentOptimizationRequest {
 }
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+const optimizerInstances =
+  new ServiceInstanceManager<ContentOptimizerServiceClass>();
 type DeserializeMode = 'collection' | 'none';
 
 class ContentOptimizerServiceClass {
@@ -302,20 +305,21 @@ class ContentOptimizerServiceClass {
 }
 
 export class OptimizersService {
-  private static instances: Map<string, ContentOptimizerServiceClass> =
-    new Map();
-
   static getInstance(token: string): ContentOptimizerServiceClass {
-    if (!OptimizersService.instances.has(token)) {
-      OptimizersService.instances.set(
-        token,
-        new ContentOptimizerServiceClass(EnvironmentService.apiEndpoint, token),
-      );
+    const cached = optimizerInstances.get(OptimizersService, token);
+    if (cached) {
+      return cached;
     }
-    return OptimizersService.instances.get(token)!;
+
+    const instance = new ContentOptimizerServiceClass(
+      EnvironmentService.apiEndpoint,
+      token,
+    );
+    optimizerInstances.set(OptimizersService, token, instance);
+    return instance;
   }
 
   static clearInstance(token: string): void {
-    OptimizersService.instances.delete(token);
+    optimizerInstances.clear(OptimizersService, token);
   }
 }

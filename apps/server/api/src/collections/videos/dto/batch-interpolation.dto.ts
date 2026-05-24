@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { IngredientFormat } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -7,7 +8,6 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -15,14 +15,14 @@ import {
 } from 'class-validator';
 
 export class InterpolationPairDto {
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The ID of the start frame image',
     example: '507f1f77bcf86cd799439011',
   })
   startImageId!: string;
 
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'The ID of the end frame image',
     example: '507f1f77bcf86cd799439012',

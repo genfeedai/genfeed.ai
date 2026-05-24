@@ -45,6 +45,11 @@ import type {
   UseFormReturn,
 } from 'react-hook-form';
 
+export interface PromptBarFeatures {
+  collapsible?: boolean;
+  dragDrop?: boolean;
+}
+
 export interface PromptBarProps {
   models?: IModel[];
   trainings?: ITraining[];
@@ -94,7 +99,7 @@ export interface PromptBarProps {
   onConfigChange?: (
     config: Partial<Omit<PromptTextareaSchema, 'text'>> & { isValid: boolean },
   ) => void;
-  shellMode?: 'legacy-collapsible' | 'studio-unified';
+  features?: PromptBarFeatures;
   suggestions?: PromptBarSuggestionItem[];
   onSuggestionSelect?: (item: PromptBarSuggestionItem) => void;
   showSuggestionsWhenEmpty?: boolean;
@@ -545,10 +550,11 @@ export interface PromptBarExpandedViewProps {
   pathname: string;
   categoryType?: IngredientCategory;
   currentModelCategory?: ModelCategory | null;
+  features?: PromptBarFeatures;
 
   form: UseFormReturn<PromptTextareaSchema>;
-  isCollapsed: boolean;
-  setIsCollapsed: Dispatch<SetStateAction<boolean>>;
+  isCollapsed?: boolean;
+  setIsCollapsed?: Dispatch<SetStateAction<boolean>>;
   isAutoMode: boolean;
   setIsAutoMode: Dispatch<SetStateAction<boolean>>;
 
@@ -633,14 +639,14 @@ export interface PromptBarExpandedViewProps {
 
   openGallery: (options: GalleryModalOptions) => void;
   openUpload: (options: UploadModalOptions) => void;
-  isDragActive: boolean;
+  isDragActive?: boolean;
   dragError?: string | null;
-  attachedPromptAssets: PromptBarAttachedAsset[];
-  onDragEnter: (event: DragEvent<HTMLDivElement>) => void;
-  onDragLeave: (event: DragEvent<HTMLDivElement>) => void;
-  onDropFiles: (event: DragEvent<HTMLDivElement>) => Promise<void>;
-  onRemoveAttachedAsset: (assetId: string) => void;
-  onBrowseAssets: () => void;
+  attachedPromptAssets?: PromptBarAttachedAsset[];
+  onDragEnter?: (event: DragEvent<HTMLDivElement>) => void;
+  onDragLeave?: (event: DragEvent<HTMLDivElement>) => void;
+  onDropFiles?: (event: DragEvent<HTMLDivElement>) => Promise<void>;
+  onRemoveAttachedAsset?: (assetId: string) => void;
+  onBrowseAssets?: () => void;
 
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   textareaRegister: UseFormRegisterReturn<Path<PromptTextareaSchema>>;
@@ -671,8 +677,3 @@ export interface PromptBarExpandedViewProps {
   avatars?: DropdownFieldOption[];
   voices?: DropdownFieldOption[];
 }
-
-export type PromptBarUnifiedViewProps = Omit<
-  PromptBarExpandedViewProps,
-  'isCollapsed' | 'setIsCollapsed'
->;

@@ -77,7 +77,7 @@ describe('PublicBrandsController', () => {
 
       expect(result).toEqual(mockBrand);
       expect(brandsService.findOneBySlug).toHaveBeenCalledWith({
-        slug: { $options: 'i', $regex: '^test-brand$' },
+        slug: { mode: 'insensitive', contains: '^test-brand$' },
       });
     });
 

@@ -6,8 +6,7 @@ import {
   type AgentStrategy,
 } from '@genfeedai/services/automation/agent-strategies.service';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import { useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 export interface UseAgentStrategiesOptions {
   agentType?: string;
@@ -25,29 +24,29 @@ export function useAgentStrategies(
 ): UseAgentStrategiesReturn {
   const { getToken } = useAuth();
 
-  const fetchStrategies = useCallback(async () => {
-    const token = await resolveClerkToken(getToken);
-    if (!token) return [];
-
-    const service = AgentStrategiesService.getInstance(token);
-    return service.list({
-      agentType: options.agentType,
-      isActive: options.isActive,
-    });
-  }, [getToken, options.agentType, options.isActive]);
-
   const {
-    data: strategies,
+    data: strategies = [] as AgentStrategy[],
     isLoading,
-    refresh,
-  } = useResource(fetchStrategies, {
-    defaultValue: [] as AgentStrategy[],
-    dependencies: [options.agentType, options.isActive],
+    refetch,
+  } = useQuery({
+    queryKey: ['agent-strategies', options.agentType, options.isActive],
+    queryFn: async () => {
+      const token = await resolveClerkToken(getToken);
+      if (!token) return [];
+
+      const service = AgentStrategiesService.getInstance(token);
+      return service.list({
+        agentType: options.agentType,
+        isActive: options.isActive,
+      });
+    },
   });
 
   return {
     isLoading,
-    refresh,
+    refresh: async () => {
+      await refetch();
+    },
     strategies,
   };
 }

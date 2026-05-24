@@ -6,7 +6,6 @@
 
 import { TranscribeAudioDto } from '@api/collections/speech/dto/transcribe-audio.dto';
 import { TranscribeUrlDto } from '@api/collections/speech/dto/transcribe-url.dto';
-import { ValidationConfigService } from '@api/config/services/validation.config';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -14,8 +13,8 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
-import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import type { User } from '@clerk/backend';
@@ -49,7 +48,6 @@ export class SpeechController {
   constructor(
     private readonly loggerService: LoggerService,
     private readonly replicateService: ReplicateService,
-    private readonly validationConfigService: ValidationConfigService,
   ) {}
 
   @Post('transcribe/audio')
@@ -67,7 +65,22 @@ export class SpeechController {
   async transcribeAudio(
     @Req() req: Request,
     @CurrentUser() user: User,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new UploadValidationPipe({
+        allowedExtensions: ['mp3', 'wav', 'aac', 'flac', 'ogg', 'webm'],
+        allowedMimeTypes: [
+          'audio/mpeg',
+          'audio/mp3',
+          'audio/wav',
+          'audio/aac',
+          'audio/flac',
+          'audio/ogg',
+          'audio/webm',
+        ],
+        maxSizeBytes: 25 * 1024 * 1024,
+      }),
+    )
+    file: Express.Multer.File,
     @Body() transcribeDto: TranscribeAudioDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -76,39 +89,12 @@ export class SpeechController {
     const language = transcribeDto.language;
     const prompt = transcribeDto.prompt;
 
-    // Validate the uploaded audio file
-    const allowedMimeTypes =
-      this.validationConfigService.getAllowedAudioMimeTypes();
-    const allowedExtensions =
-      this.validationConfigService.getAllowedAudioExtensions();
-
-    const validatedFile = InputValidationUtil.validateFileUpload(
-      file,
-      'audio',
-      {
-        allowedExtensions,
-        allowedMimeTypes,
-        required: true,
-        validationConfig: this.validationConfigService,
-      },
-    );
-
-    if (!validatedFile) {
-      throw new HttpException(
-        {
-          detail: 'Valid audio file is required',
-          title: 'Audio file validation failed',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
     try {
       // Call Replicate Whisper API for file transcription
       const transcription = await this.replicateService.transcribeAudio({
         audio: {
-          data: validatedFile.buffer,
-          filename: validatedFile.originalname,
+          data: file.buffer,
+          filename: file.originalname,
           type: FileInputType.BUFFER,
         },
         language: language || 'auto',

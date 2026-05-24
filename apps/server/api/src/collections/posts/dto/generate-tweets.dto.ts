@@ -1,8 +1,8 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsEnum,
-  IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
@@ -39,7 +39,7 @@ export class GenerateTweetsDto {
   })
   readonly count!: number;
 
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Credential ID (Twitter account) to use',
     required: true,
@@ -69,7 +69,7 @@ export class GenerateTweetsDto {
 
   @IsOptional()
   @IsArray()
-  @IsMongoId({ each: true })
+  @IsEntityId({ each: true })
   @ApiProperty({
     description:
       'Optional trend source reference IDs to preserve remix lineage',
@@ -79,7 +79,7 @@ export class GenerateTweetsDto {
   readonly sourceReferenceIds?: string[];
 
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   @ApiProperty({
     description: 'Optional originating trend ID for remix lineage',
     required: false,

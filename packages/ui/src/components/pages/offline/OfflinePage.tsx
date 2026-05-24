@@ -18,7 +18,7 @@ export function OfflinePage({ appName }: OfflinePageProps) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-card p-4 text-center">
       <div className="max-w-md">
-        <h1 className="mb-4 text-2xl font-bold text-foreground">
+        <h1 className="mb-4 text-2xl font-semibold text-foreground">
           You are offline
         </h1>
 

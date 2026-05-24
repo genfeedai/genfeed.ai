@@ -1,6 +1,7 @@
 export * from './contracts';
 export * from './extensions/registry';
 export * from './extensions/types';
+export * from './generation';
 
 /**
  * Workflow Registry for @genfeedai/workflows

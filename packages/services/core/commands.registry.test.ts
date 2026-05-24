@@ -193,7 +193,7 @@ describe('commands.registry', () => {
       );
     });
 
-    it('settings action should navigate to org-scoped settings URL', () => {
+    it('settings action should navigate to personal settings URL', () => {
       const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
       const settingsCmd = navigationCommands.find(
         (c) => c.id === 'nav-settings',
@@ -201,9 +201,7 @@ describe('commands.registry', () => {
 
       settingsCmd?.action();
 
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/~/settings/personal`,
-      );
+      expect(window.location.href).toBe('https://app.genfeed.ai/settings');
     });
 
     it('condition should return false when already on that app', () => {
@@ -460,7 +458,7 @@ describe('commands.registry', () => {
       delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
     });
 
-    it('personal action should navigate to org-scoped personal settings URL', () => {
+    it('personal action should navigate to personal settings URL', () => {
       const settingsCommands = createSettingsCommands(TEST_ORG);
       const personalCmd = settingsCommands.find(
         (c) => c.id === 'settings-personal',
@@ -468,9 +466,7 @@ describe('commands.registry', () => {
 
       personalCmd?.action();
 
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/~/settings/personal`,
-      );
+      expect(window.location.href).toBe('https://app.genfeed.ai/settings');
     });
 
     it('brands action should navigate to org-scoped brands URL', () => {
@@ -496,7 +492,7 @@ describe('commands.registry', () => {
       billingCmd?.action();
 
       expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/~/settings/organization/billing`,
+        `https://app.genfeed.ai/${TEST_ORG}/~/settings/billing`,
       );
     });
 
@@ -510,7 +506,7 @@ describe('commands.registry', () => {
       billingCmd?.action();
 
       expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/~/settings/organization/api-keys`,
+        `https://app.genfeed.ai/${TEST_ORG}/~/settings/api-keys`,
       );
     });
 
@@ -708,17 +704,22 @@ describe('commands.registry', () => {
   });
 
   describe('registerDefaultCommands', () => {
-    // Note: These tests are skipped because registerDefaultCommands uses dynamic require()
-    // which bypasses vi.mock(). The function is a simple wrapper that calls CommandPaletteService.
-    it.skip('should register all default commands', () => {
+    it('should register all default commands', () => {
       registerDefaultCommands(TEST_ORG, TEST_BRAND);
 
-      expect(mockRegisterCommands).toHaveBeenCalledWith(
-        createDefaultCommands(TEST_ORG, TEST_BRAND),
+      const registeredCommands = mockRegisterCommands.mock.calls[0]?.[0];
+      const defaultCommands = createDefaultCommands(TEST_ORG, TEST_BRAND);
+
+      expect(registeredCommands).toHaveLength(defaultCommands.length);
+      expect(registeredCommands.map((command) => command.id)).toEqual(
+        defaultCommands.map((command) => command.id),
+      );
+      expect(registeredCommands.map((command) => command.category)).toEqual(
+        defaultCommands.map((command) => command.category),
       );
     });
 
-    it.skip('should call CommandPaletteService.registerCommands', () => {
+    it('should call CommandPaletteService.registerCommands', () => {
       registerDefaultCommands(TEST_ORG, TEST_BRAND);
 
       expect(mockRegisterCommands).toHaveBeenCalledTimes(1);

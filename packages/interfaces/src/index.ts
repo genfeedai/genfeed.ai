@@ -10,6 +10,7 @@ export * from './ai/agent-ui-block.interface';
 export * from './ai/agent-wizard.interface';
 export * from './ai/ai-actions.interface';
 export * from './ai/harness-pack-registry.interface';
+export * from './ai/harness-profile.interface';
 export * from './ai/tone-profile.interface';
 export * from './analytics/activity.interface';
 export * from './analytics/aggregation.interface';
@@ -46,6 +47,12 @@ export * from './batch/batch.interface';
 export * from './batch/manual-review-batch-item.interface';
 export * from './billing/credits.interface';
 export * from './billing/subscription.interface';
+export type {
+  ITopbarBalanceSegment,
+  ITopbarBalances,
+  TopbarBalanceProvider,
+  TopbarBalanceStatus,
+} from './billing/topbar-balance.interface';
 export * from './common/content-scope.interface';
 export * from './components/asset-selection.interface';
 export * from './components/background-task.interface';
@@ -62,6 +69,7 @@ export * from './components/storyboard.interface';
 export * from './components/topbar-activities.interface';
 export * from './components/video-operations.interface';
 export * from './components/virtual-list.interface';
+export * from './content/account-publishing-context.interface';
 export * from './content/article.interface';
 export * from './content/article-extended.interface';
 export * from './content/composer-content.interface';

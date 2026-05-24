@@ -6,17 +6,30 @@ import {
   formatCompactNumberIntl,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { PlatformTimeSeriesChartProps } from '@genfeedai/props/analytics/charts.props';
+import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
-import { useState } from 'react';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import dynamic from 'next/dynamic';
+import { useMemo, useState } from 'react';
+
+const AreaChart = dynamic(() => import('recharts').then((m) => m.AreaChart), {
+  ssr: false,
+});
+const Area = dynamic(() => import('recharts').then((m) => m.Area), {
+  ssr: false,
+});
+const CartesianGrid = dynamic(
+  () => import('recharts').then((m) => m.CartesianGrid),
+  { ssr: false },
+);
+const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), {
+  ssr: false,
+});
+const XAxis = dynamic(() => import('recharts').then((m) => m.XAxis), {
+  ssr: false,
+});
+const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), {
+  ssr: false,
+});
 
 const PLATFORM_COLORS = {
   facebook: 'var(--platform-facebook)',
@@ -51,17 +64,32 @@ export function PlatformTimeSeriesChart({
 }: PlatformTimeSeriesChartProps) {
   const [activePlatforms, setActivePlatforms] =
     useState<(keyof typeof PLATFORM_COLORS)[]>(platforms);
+  const chartConfig = useMemo(
+    () =>
+      Object.fromEntries(
+        platforms.map((platform) => [
+          platform,
+          {
+            color: PLATFORM_COLORS[platform],
+            label: PLATFORM_LABELS[platform],
+          },
+        ]),
+      ),
+    [platforms],
+  );
 
   const isEmpty = !data || data.length === 0;
 
   const togglePlatform = (platform: keyof typeof PLATFORM_COLORS) => {
-    if (activePlatforms.includes(platform)) {
-      if (activePlatforms.length > 1) {
-        setActivePlatforms(activePlatforms.filter((p) => p !== platform));
+    setActivePlatforms((previousPlatforms) => {
+      if (!previousPlatforms.includes(platform)) {
+        return [...previousPlatforms, platform];
       }
-    } else {
-      setActivePlatforms([...activePlatforms, platform]);
-    }
+
+      return previousPlatforms.length > 1
+        ? previousPlatforms.filter((p) => p !== platform)
+        : previousPlatforms;
+    });
   };
 
   return (
@@ -82,7 +110,7 @@ export function PlatformTimeSeriesChart({
             } ${isLoading || isEmpty ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <span
-              className="inline-block w-3 h-3 rounded-full mr-2"
+              className="inline-block size-3 rounded-full mr-2"
               style={{ backgroundColor: PLATFORM_COLORS[platform] }}
             />
             {PLATFORM_LABELS[platform]}
@@ -94,7 +122,7 @@ export function PlatformTimeSeriesChart({
       <div className="relative" style={{ height }}>
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-card/50 z-10">
-            <span className="animate-pulse w-12 h-12 rounded-full bg-primary/30" />
+            <span className="animate-pulse size-12 rounded-full bg-primary/30" />
           </div>
         )}
 
@@ -105,7 +133,12 @@ export function PlatformTimeSeriesChart({
         )}
 
         {!isEmpty && (
-          <ResponsiveContainer width="100%" height={height}>
+          <ChartContainer
+            config={chartConfig}
+            className="border-white/[0.08] bg-card p-3 shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)]"
+            height="100%"
+            style={{ minWidth: 0 }}
+          >
             <AreaChart
               data={data}
               margin={{ bottom: 0, left: 0, right: 30, top: 10 }}
@@ -155,33 +188,28 @@ export function PlatformTimeSeriesChart({
               />
 
               <Tooltip
-                contentStyle={{
-                  backdropFilter: 'blur(10px)',
-                  backgroundColor: 'var(--overlay-black-90)',
-                  border: '1px solid var(--overlay-white-10)',
-                  borderRadius: '12px',
-                }}
-                labelStyle={{
-                  color: 'hsl(var(--foreground))',
-                  fontWeight: '600',
-                  marginBottom: '8px',
-                }}
-                itemStyle={{ color: 'var(--overlay-white-20)' }}
-                formatter={(value, name) => [
-                  formatCompactNumberIntl(
-                    typeof value === 'number'
-                      ? value
-                      : typeof value === 'string'
-                        ? Number(value)
-                        : undefined,
-                  ),
-                  name
-                    ? PLATFORM_LABELS[
-                        String(name) as keyof typeof PLATFORM_LABELS
-                      ] || String(name)
-                    : '',
-                ]}
-                labelFormatter={(label) => `Date: ${formatChartDate(label)}`}
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={(label) =>
+                      `Date: ${formatChartDate(
+                        typeof label === 'string' ||
+                          typeof label === 'number' ||
+                          label instanceof Date
+                          ? label
+                          : null,
+                      )}`
+                    }
+                    valueFormatter={(value) =>
+                      formatCompactNumberIntl(
+                        typeof value === 'number'
+                          ? value
+                          : typeof value === 'string'
+                            ? Number(value)
+                            : undefined,
+                      )
+                    }
+                  />
+                }
               />
 
               {activePlatforms.map((platform) => (
@@ -196,7 +224,7 @@ export function PlatformTimeSeriesChart({
                 />
               ))}
             </AreaChart>
-          </ResponsiveContainer>
+          </ChartContainer>
         )}
       </div>
     </div>

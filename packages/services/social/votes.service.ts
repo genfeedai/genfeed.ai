@@ -9,9 +9,6 @@ export class VotesService extends BaseService<Vote> {
   }
 
   public static getInstance(token: string): VotesService {
-    return BaseService.getDataServiceInstance(
-      VotesService,
-      token,
-    ) as VotesService;
+    return BaseService.getDataServiceInstance(VotesService, token);
   }
 }

@@ -46,8 +46,9 @@ export class UsersService extends BaseService<
    * Check if a user document has the isOnboardingCompleted field.
    */
   async hasOnboardingField(userId: string): Promise<boolean> {
-    const doc = await this.prisma.user.findFirst({
-      where: { id: String(userId), isOnboardingCompleted: { not: null } },
+    const doc = await this.prisma.user.findUnique({
+      select: { id: true },
+      where: { id: String(userId) },
     });
     return doc !== null;
   }

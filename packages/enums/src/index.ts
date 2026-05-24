@@ -47,6 +47,7 @@ export * from './file.enum';
 export * from './file-input-type.enum';
 export * from './font.enum';
 export * from './form.enum';
+export * from './generation-type.enum';
 export * from './health.enum';
 export * from './image-format.enum';
 export * from './ingredient.enum';
@@ -80,6 +81,7 @@ export * from './reply.enum';
 export * from './reply-bot.enum';
 export * from './review-gate.enum';
 export * from './router.enum';
+// Public automation interfaces import these from the package root.
 export * from './run.enum';
 export * from './scope.enum';
 export * from './severity.enum';

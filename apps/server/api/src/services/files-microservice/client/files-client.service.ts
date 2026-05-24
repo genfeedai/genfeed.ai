@@ -1,4 +1,5 @@
 import path from 'node:path';
+import process from 'node:process';
 import { ConfigService } from '@api/config/config.service';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/enums';
@@ -472,14 +473,20 @@ export class FilesClientService {
     type: string,
     contentType: string = 'application/octet-stream',
     _expiresIn: number = 3600,
-  ): Promise<{ uploadUrl: string; publicUrl: string; s3Key: string }> {
+  ): Promise<{
+    uploadMethod?: 'POST_JSON' | 'PUT';
+    uploadUrl: string;
+    publicUrl: string;
+    s3Key: string;
+  }> {
     // In self-hosted mode (LOCAL + HYBRID), skip S3 presigned URL.
     // Return direct upload URL to the Files service, which uses LocalStorageProvider.
     if (IS_SELF_HOSTED) {
-      const localKey = `${type}/${key}`;
+      const localKey = `ingredients/${type}/${key}`;
       return {
         publicUrl: `/local/${localKey}`,
         s3Key: localKey,
+        uploadMethod: 'POST_JSON',
         uploadUrl: `${this.filesServiceUrl}/v1/files/upload`,
       };
     }
@@ -499,6 +506,7 @@ export class FilesClientService {
       return {
         publicUrl: response.data.publicUrl,
         s3Key: response.data.key,
+        uploadMethod: 'PUT',
         uploadUrl: response.data.uploadUrl,
       };
     } catch (error: unknown) {

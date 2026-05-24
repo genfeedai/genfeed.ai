@@ -24,12 +24,16 @@ export class BatchContentProcessor extends WorkerHost {
     await this.batchContentQueueService.markItemProcessing(job.data.batchId);
 
     try {
-      const execution = await this.skillExecutorService.execute({
-        brandId: job.data.request.brandId,
-        organizationId: job.data.request.organizationId,
-        params: job.data.request.params,
-        skillSlug: job.data.request.skillSlug,
-      });
+      const execution = await this.skillExecutorService.execute(
+        job.data.request.skillSlug,
+        {
+          brandId: job.data.request.brandId,
+          brandVoice: '',
+          organizationId: job.data.request.organizationId,
+          platforms: [],
+        },
+        job.data.request.params ?? {},
+      );
 
       await this.batchContentQueueService.markItemCompleted(
         job.data.batchId,

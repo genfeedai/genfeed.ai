@@ -71,6 +71,32 @@ export class TrendsService {
     private readonly apifyService: ApifyService,
   ) {}
 
+  private toSyncTrendInput(trend: TrendEntity): {
+    id: string;
+    mentions: number;
+    platform: string;
+    sourcePreview: TrendSourceItem[];
+    sourcePreviewState: 'live' | 'fallback' | 'empty';
+    topic: string;
+    viralityScore: number;
+  } {
+    return {
+      id: String(trend.id),
+      mentions: trend.mentions,
+      platform: trend.platform,
+      sourcePreview: this.getStoredTrendSourcePreview(
+        trend,
+        this.SOURCE_PREVIEW_LIMIT,
+      ),
+      sourcePreviewState: this.getStoredTrendSourcePreviewState(
+        trend,
+        this.getStoredTrendSourcePreview(trend, this.SOURCE_PREVIEW_LIMIT),
+      ),
+      topic: trend.topic,
+      viralityScore: trend.viralityScore,
+    };
+  }
+
   async getGlobalCorpusStats(): Promise<{
     activeTrends: number;
     referenceRecords: number;
@@ -145,21 +171,7 @@ export class TrendsService {
       limit: this.SOURCE_PREVIEW_LIMIT,
     });
     await this.trendReferenceCorpusService.syncTrendReferences(
-      hydratedTrends.map((trend) => ({
-        id: trend.id,
-        mentions: trend.mentions,
-        platform: trend.platform,
-        sourcePreview: this.getStoredTrendSourcePreview(
-          trend,
-          this.SOURCE_PREVIEW_LIMIT,
-        ),
-        sourcePreviewState: this.getStoredTrendSourcePreviewState(
-          trend,
-          this.getStoredTrendSourcePreview(trend, this.SOURCE_PREVIEW_LIMIT),
-        ),
-        topic: trend.topic,
-        viralityScore: trend.viralityScore,
-      })),
+      hydratedTrends.map((trend) => this.toSyncTrendInput(trend)),
     );
     await this.cacheService.invalidateByTags(['trends:content']);
     return hydratedTrends;
@@ -258,15 +270,13 @@ export class TrendsService {
   async getConnectedPlatforms(organizationId: string): Promise<string[]> {
     try {
       const credentials = await this.credentialsService.findAll(
-        [
-          {
-            $match: {
-              isConnected: true,
-              isDeleted: false,
-              organizationId: organizationId,
-            },
+        {
+          where: {
+            isConnected: true,
+            isDeleted: false,
+            organizationId: organizationId,
           },
-        ],
+        },
         { limit: 100 },
       );
 
@@ -456,21 +466,7 @@ export class TrendsService {
       limit: this.SOURCE_PREVIEW_LIMIT,
     });
     await this.trendReferenceCorpusService.syncTrendReferences(
-      hydratedTrends.map((trend) => ({
-        id: trend.id,
-        mentions: trend.mentions,
-        platform: trend.platform,
-        sourcePreview: this.getStoredTrendSourcePreview(
-          trend,
-          this.SOURCE_PREVIEW_LIMIT,
-        ),
-        sourcePreviewState: this.getStoredTrendSourcePreviewState(
-          trend,
-          this.getStoredTrendSourcePreview(trend, this.SOURCE_PREVIEW_LIMIT),
-        ),
-        topic: trend.topic,
-        viralityScore: trend.viralityScore,
-      })),
+      hydratedTrends.map((trend) => this.toSyncTrendInput(trend)),
     );
     const processed = hydratedTrends.length;
 
@@ -545,7 +541,13 @@ export class TrendsService {
     organizationId?: string,
   ): Promise<TrendEntity | null> {
     const doc = await this.prisma.trend.findFirst({
-      where: { id: trendId, isDeleted: false } as never,
+      where: {
+        id: trendId,
+        isDeleted: false,
+        ...(organizationId
+          ? { OR: [{ organizationId }, { organizationId: null }] }
+          : {}),
+      } as never,
     });
 
     if (!doc) {
@@ -1151,14 +1153,14 @@ export class TrendsService {
     };
 
     const existingDoc = await this.prisma.trend.findFirst({
-      where: { id: trend.id, isDeleted: false } as never,
+      where: { id: String(trend.id), isDeleted: false } as never,
     });
     if (existingDoc) {
       const existingData =
         (existingDoc.data as unknown as Record<string, unknown>) ?? {};
       await this.prisma.trend.update({
         data: { data: { ...existingData, metadata } as never },
-        where: { id: trend.id },
+        where: { id: String(trend.id) },
       });
     }
 
@@ -1272,7 +1274,7 @@ export class TrendsService {
           matchedTrends: [trend.topic],
           requiresAuth: trend.requiresAuth,
           sourcePreviewState: this.getSourcePreviewState([sourceItem]),
-          trendId: trend.id,
+          trendId: String(trend.id),
           trendMentions: trend.mentions,
           trendTopic: trend.topic,
           trendViralityScore: trend.viralityScore,
@@ -1359,6 +1361,7 @@ export class TrendsService {
 
     return {
       ...trend,
+      id: String(trend.id),
       createdAt:
         trend.createdAt instanceof Date
           ? trend.createdAt

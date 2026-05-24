@@ -2,7 +2,7 @@
  * Shared types for execution, job processing, and node I/O.
  */
 
-/** Fields set during updateExecutionStatus — used as MongoDB $set payload. */
+/** Fields set during updateExecutionStatus. */
 export interface ExecutionStatusUpdate {
   status: string;
   error?: string;
@@ -62,7 +62,7 @@ export interface SchemaProperty extends Record<string, unknown> {
   maximum?: number;
 }
 
-/** Fields set during updateJobStatus — used as MongoDB $set payload. */
+/** Fields set during updateJobStatus. */
 export interface JobStatusUpdatePayload {
   status: string;
   processedAt?: Date;

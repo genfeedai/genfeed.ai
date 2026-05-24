@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/enums';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import {
   Select,
   SelectContent,
@@ -243,7 +244,7 @@ export function VoiceCloneCard({
     return (
       <div className="my-2 border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
         <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-          <HiCheck className="h-5 w-5" />
+          <HiCheck className="size-5" />
           <span className="text-sm font-medium">
             Voice is ready and set for this brand
           </span>
@@ -255,7 +256,7 @@ export function VoiceCloneCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiMicrophone className="h-5 w-5 text-rose-500" />
+        <HiMicrophone className="size-5 text-rose-500" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Clone Voice'}
         </h3>
@@ -324,10 +325,10 @@ export function VoiceCloneCard({
             }}
             className="mb-3 flex cursor-pointer flex-col items-center justify-center border-2 border-dashed border-border p-6 transition-colors hover:border-primary/50 hover:bg-muted/50"
           >
-            <HiCloudArrowUp className="mb-2 h-8 w-8 text-muted-foreground" />
+            <HiCloudArrowUp className="mb-2 size-8 text-muted-foreground" />
             {file ? (
               <div className="flex items-center gap-2">
-                <HiMusicalNote className="h-4 w-4 text-rose-500" />
+                <HiMusicalNote className="size-4 text-rose-500" />
                 <span className="text-xs font-medium text-foreground">
                   {file.name}
                 </span>
@@ -342,8 +343,8 @@ export function VoiceCloneCard({
                 </p>
               </div>
             )}
-            <input
-              ref={fileInputRef}
+            <Input
+              inputRef={fileInputRef}
               type="file"
               accept="audio/*"
               onChange={handleFileChange}
@@ -359,7 +360,7 @@ export function VoiceCloneCard({
             isLoading={status === 'uploading'}
             className="w-full"
           >
-            <HiMicrophone className="h-4 w-4" />
+            <HiMicrophone className="size-4" />
             {status === 'uploading' ? 'Uploading…' : 'Clone New Voice'}
           </Button>
         </>
@@ -369,7 +370,7 @@ export function VoiceCloneCard({
       {status === 'cloning' && progress > 0 && progress < 100 && (
         <div className="mt-3">
           <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-            <span>Cloning in progress...</span>
+            <span>Cloning in progress…</span>
             <span>{progress}%</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-muted">
@@ -384,7 +385,7 @@ export function VoiceCloneCard({
       {/* Error */}
       {error && (
         <p className="mt-3 flex items-center gap-1 text-xs text-red-500">
-          <HiExclamationCircle className="h-4 w-4" />
+          <HiExclamationCircle className="size-4" />
           {error}
         </p>
       )}

@@ -16,10 +16,7 @@ export class ActivitiesService extends BaseService<Activity> {
   }
 
   public static getInstance(token: string): ActivitiesService {
-    return BaseService.getDataServiceInstance(
-      ActivitiesService,
-      token,
-    ) as ActivitiesService;
+    return BaseService.getDataServiceInstance(ActivitiesService, token);
   }
 
   async bulkPatch(data: IBulkPatchData): Promise<IBulkOperationResult> {

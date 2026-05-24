@@ -190,19 +190,29 @@ export class TelegramDistributionService {
     }
 
     try {
+      const organizationId =
+        distribution.organization ?? distribution.organizationId;
+      const brandId =
+        distribution.brand?.toString() ?? distribution.brandId ?? undefined;
+      const chatId = distribution.chatId;
+      const contentType = distribution.contentType;
+
+      if (!organizationId || !chatId || !contentType) {
+        throw new Error(
+          'Scheduled Telegram distribution is missing required delivery config',
+        );
+      }
+
       await this.distributionsService.patch(distribution._id, {
         status: PublishStatus.PUBLISHING,
       });
 
-      const botToken = await this.resolveBotToken(
-        distribution.organization.toString(),
-        distribution.brand?.toString(),
-      );
+      const botToken = await this.resolveBotToken(organizationId, brandId);
 
       const result = await this.sendToTelegram(
         botToken,
-        distribution.chatId,
-        distribution.contentType,
+        chatId,
+        contentType as DistributionContentType,
         distribution.text,
         distribution.mediaUrl,
         distribution.caption,

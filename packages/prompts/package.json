@@ -1,15 +1,14 @@
 {
   "devDependencies": {
     "@genfeedai/types": "workspace:*",
-    "@types/node": "25.6.0",
+    "@types/node": "25.9.1",
     "tsup": "8.5.1",
     "typescript": "6.0.2"
   },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./prompts/*": "./prompts/*"
   },
@@ -31,12 +30,13 @@
     "url": "git+https://github.com/genfeedai/packages.git"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --clean --sourcemap",
-    "dev": "tsup src/index.ts --format esm,cjs --dts --watch --sourcemap",
+    "build": "tsup src/index.ts --format esm --dts --clean --sourcemap",
+    "dev": "tsup src/index.ts --format esm --dts --watch --sourcemap",
     "prepublishOnly": "bun run build",
     "test": "bun test __tests__/*.spec.ts"
   },
   "sideEffects": false,
+  "type": "module",
   "types": "./dist/index.d.ts",
   "version": "0.2.2"
 }

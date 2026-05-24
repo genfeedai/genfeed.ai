@@ -32,20 +32,23 @@ export default function ContentCalendar<T extends CalendarItem>({
 
   const events: EventInput[] = useMemo(
     () =>
-      items
-        .filter((item) => item.scheduledDate)
-        .map((item) => ({
-          backgroundColor: getEventColor(item),
-          borderColor: getEventColor(item),
-          classNames: item.isDisabled ? ['event-disabled'] : [],
-          extendedProps: {
-            isDisabled: item.isDisabled,
-            item,
-          },
-          id: item.id,
-          start: item.scheduledDate,
-          title: item.title,
-        })),
+      items.reduce<EventInput[]>((acc, item) => {
+        if (item.scheduledDate) {
+          acc.push({
+            backgroundColor: getEventColor(item),
+            borderColor: getEventColor(item),
+            classNames: item.isDisabled ? ['event-disabled'] : [],
+            extendedProps: {
+              isDisabled: item.isDisabled,
+              item,
+            },
+            id: item.id,
+            start: item.scheduledDate,
+            title: item.title,
+          });
+        }
+        return acc;
+      }, []),
     [items, getEventColor],
   );
 

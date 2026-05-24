@@ -51,9 +51,7 @@ describe('useModalAutoOpen', () => {
     expect(closeModal).toHaveBeenCalledWith(ModalEnum.UPLOAD);
   });
 
-  it.skip('reopens the modal when openKey changes while open', () => {
-    // Note: openKey is not currently used in the effect dependencies
-    // This test is skipped until the feature is implemented
+  it('reopens the modal when openKey changes while open', () => {
     const { rerender } = render(<TestComponent isOpen openKey={0} />);
     expect(openModal).toHaveBeenCalledTimes(1);
 

@@ -18,6 +18,12 @@ The generation story in the current repo spans a small set of stable entrypoints
 - [`apps/server/api/src/services/batch-generation/batch-generation.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/batch-generation/batch-generation.service.ts)
   - builds batch plans
   - delegates actual generation to `ContentGeneratorService`
+- [`packages/tools/src/registry/source.agent.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/packages/tools/src/registry/source.agent.ts)
+  - defines the canonical agent-visible generation tools
+- [`packages/tools/src/registry/tool-registry.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/packages/tools/src/registry/tool-registry.ts)
+  - assigns generation tool categories and UI action cards
+- [`apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts)
+  - dispatches generation tools to the internal media APIs
 - [`packages/services/ai/enhanced-models.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/packages/services/ai/enhanced-models.service.ts)
   - merges base catalog models with provider-discovered models
 - Provider packages:
@@ -33,32 +39,78 @@ For v1, the important point is not every experimental flow. It is the stable pat
 3. Model/provider selection is resolved from the catalog plus provider-specific discovery.
 4. Provider packages normalize discovered models into one Genfeed-facing shape.
 
+## Stable `generate_*` Tool Surface
+
+The v1 stable generation tools are the agent-facing tools that create generation work or route users into a generation review flow. Their metadata is defined in `packages/tools/src/registry/source.agent.ts` and rendered through the canonical registry in `packages/tools/src/registry/tool-registry.ts`.
+
+| Tool                     | Stable input contract                                                                                   | Execution path                                                                                            | Output contract                                               |
+| ------------------------ | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `generate_image`         | `prompt`, optional `aspectRatio`; attachments may become reference images                               | `AgentToolExecutorService.generateImage` -> `POST /v1/images` -> image provider selection                 | Content preview card with image ingredient id and gallery URL |
+| `generate_video`         | `prompt`, optional `aspectRatio`, `duration`, `imageUrl`, `audioUrl`; image + audio selects avatar mode | `AgentToolExecutorService.generateVideo` -> `POST /v1/videos` -> video provider selection                 | Content preview card with video ingredient id and gallery URL |
+| `generate_music`         | `text`, optional `duration`                                                                             | `AgentToolExecutorService.generateMusic` -> `POST /v1/musics` -> music provider selection                 | Content preview card with music ingredient id and gallery URL |
+| `generate_voice`         | `text`, `voiceId`                                                                                       | `AgentToolExecutorService.generateVoice` -> `POST /v1/voices/generate` -> voice provider selection        | Content preview card with voice id or audio URL               |
+| `generate_content_batch` | `count`, `platforms`, optional `brandId`, `handle`, `dateRange`, `contentMix`, `style`, `topics`        | `AgentToolExecutorService.generateContentBatch` -> `BatchGenerationService.createBatch`                   | Batch id plus review queue/status actions                     |
+| `generate_as_identity`   | `text` for the identity avatar to speak                                                                 | `AgentToolExecutorService.generateAsIdentity` -> `POST /v1/videos/avatar` with `useIdentity: true`        | Processing preview card for the avatar video generation       |
+
+These are the stable tool names callers should depend on for v1. Lower-level workflow categories such as `generate-image`, `generate-video`, and `generate-music` remain workflow-engine step categories, not public agent tool names.
+
+## Step 3 Module -> Provider -> Tool Map
+
+| Layer              | Files                                                                                         | Responsibility                                                                           |
+| ------------------ | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Tool metadata      | `packages/tools/src/registry/source.agent.ts`, `packages/tools/src/registry/tool-registry.ts` | Defines tool names, parameters, categories, and UI action card types                     |
+| Agent dispatch     | `apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`        | Converts tool calls into internal API requests and normalizes preview-card responses     |
+| Media APIs         | `/v1/images`, `/v1/videos`, `/v1/musics`, `/v1/voices/generate`                               | Own request validation, model selection, credits, persistence, and completion polling    |
+| Skill execution    | `apps/server/api/src/services/skill-executor/*`                                               | Runs content skills such as `image-generation` and records Content Runs                  |
+| Provider access    | `apps/server/api/src/services/byok/*`                                                         | Resolves organization BYOK keys before hosted fallback                                   |
+| Provider adapters  | `apps/server/api/src/services/integrations/*`, `packages/services/ai/providers/*`             | Call Replicate, fal.ai, Leonardo, ElevenLabs, HuggingFace, and related provider surfaces |
+| Registry/discovery | `packages/services/ai/enhanced-models.service.ts`                                             | Merges base model catalog entries with provider-discovered models                        |
+
 ## Dataflow
 
 ```mermaid
 flowchart LR
-  A["Generation request\ncontroller / batch flow"] --> B["BatchGenerationService"]
-  B --> C["ContentGeneratorService"]
-  C --> D["Model catalog + EnhancedModelsService"]
-  D --> E["Provider discovery\nFal / HuggingFace"]
-  E --> F["Normalized model records"]
-  F --> G["Generation-ready output contract"]
+  A["Agent tool call\ngenerate_*"] --> B["Canonical tool registry"]
+  B --> C["AgentToolExecutorService"]
+  C --> D["Media API\n/v1/images, /v1/videos, /v1/musics, /v1/voices"]
+  D --> E["Provider access\nBYOK or hosted"]
+  E --> F["Model catalog + EnhancedModelsService"]
+  F --> G["Provider adapter\nReplicate / fal.ai / Leonardo / ElevenLabs"]
+  G --> H["Generated ingredient\npreview card / content run"]
 ```
 
-## Representative V1 Smoke Path
+## Representative V1 End-to-End Path
 
-The narrow verification path for v1 is in:
+The representative media verification path for v1 is in:
 
-- [`packages/services/ai/enhanced-models.service.test.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/packages/services/ai/enhanced-models.service.test.ts)
+- [`apps/server/api/src/services/skill-executor/stable-provider-path.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/skill-executor/stable-provider-path.spec.ts)
 
-The smoke test proves:
+The test uses mocked provider services so it can run in CI without live credentials, but it keeps the production service wiring:
 
-- the enhanced model service initializes cleanly
-- predefined provider models are merged into the generation-facing catalog
-- the resulting model records retain stable `key`, `provider`, and category data expected by callers
+- `SkillExecutorService` loads and validates the `image-generation` skill
+- a Content Run is created, marked running, and completed
+- the representative image path routes through `ImageGenerationHandler`
+- organization BYOK resolution selects fal.ai for the active organization
+- the fal.ai provider call receives the resolved server-side key and normalized image parameters
+- the completed run records `source: byok`, output metadata, and a generated variant
 
-This keeps the v1 proof at the provider-registry boundary instead of requiring a full external generation run.
+Run it with:
+
+```bash
+cd apps/server/api
+TZ=UTC bunx vitest run --config vitest.config.ts src/services/skill-executor/stable-provider-path.spec.ts
+```
+
+This keeps the v1 proof end-to-end at the application boundary without making CI depend on external provider availability.
+
+## Explicit V1 Gaps
+
+- The CI smoke path does not make a live fal.ai or Replicate request.
+- It verifies one representative image path, not every media type or provider.
+- Full provider billing, rate-limit, and callback behavior should stay covered by provider-specific tests and manual release checks.
 
 ## V1 Boundary
 
 This page documents the current registry and generation surface. It does **not** expand v1 to include every deferred model-registry or training-pipeline item by default.
+
+For the OSS provider registry contract, see [Provider Registry](/core/provider-registry).

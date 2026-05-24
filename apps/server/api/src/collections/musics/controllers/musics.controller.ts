@@ -16,6 +16,7 @@ import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/colle
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
@@ -46,12 +47,9 @@ export class MusicsController extends BaseCRUDController<
   }
 
   /**
-   * Override buildFindAllPipeline to add music-specific filtering
+   * Override buildFindAllQuery to add music-specific filtering
    */
-  public buildFindAllPipeline(
-    user: User,
-    query: MusicQueryDto,
-  ): Record<string, unknown>[] {
+  public buildFindAllQuery(user: User, query: MusicQueryDto) {
     const publicMetadata = getPublicMetadata(user);
 
     // Use CollectionFilterUtil for common filtering patterns
@@ -62,121 +60,36 @@ export class MusicsController extends BaseCRUDController<
     );
 
     const isDefault = CollectionFilterUtil.buildBooleanFilter(query.isDefault, {
-      $ne: null,
+      not: null,
     });
 
     const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
 
     const status = QueryDefaultsUtil.parseMusicStatusFilter(query.status);
 
-    // Format and provider filters will be applied after metadata lookup
-    const hasMetadataFilters = query.format || query.provider;
-
-    return [
-      {
-        $match: {
-          $or: [
-            {
-              brand,
-              category: IngredientCategory.MUSIC,
-              isDeleted: query.isDeleted ?? false,
-              status,
-              user: publicMetadata.user,
-            },
-            {
-              category: IngredientCategory.MUSIC,
-              isDefault,
-              isDeleted: query.isDeleted ?? false,
-              scope,
-              status,
-              // Filter default musics by brand when brand is specified
-              ...(query.brand && this.isValidObjectId(query.brand)
-                ? { brand }
-                : {}),
-            },
-          ],
-        },
+    return {
+      where: {
+        OR: [
+          {
+            brand,
+            category: IngredientCategory.MUSIC,
+            isDeleted: query.isDeleted ?? false,
+            status,
+            user: publicMetadata.user,
+          },
+          {
+            category: IngredientCategory.MUSIC,
+            isDefault,
+            isDeleted: query.isDeleted ?? false,
+            scope,
+            status,
+            // Filter default musics by brand when brand is specified
+            ...(query.brand && isEntityId(query.brand) ? { brand } : {}),
+          },
+        ],
       },
-      // Always include metadata lookup to get prompt information
-      {
-        $lookup: {
-          as: 'metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // Add prompt lookup to get prompt information
-      {
-        $lookup: {
-          as: 'prompt',
-          foreignField: '_id',
-          from: 'prompts',
-          localField: 'metadata.prompt',
-        },
-      },
-      {
-        $unwind: {
-          path: '$prompt',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // Apply metadata filters if specified
-      ...(hasMetadataFilters
-        ? [
-            {
-              $match: {
-                ...(query.format ? { 'metadata.format': query.format } : {}),
-                ...(query.provider
-                  ? { 'metadata.provider': query.provider }
-                  : {}),
-              },
-            },
-          ]
-        : []),
-      // Apply search filter if specified
-      ...(query.search
-        ? [
-            {
-              $match: {
-                $or: [
-                  {
-                    'metadata.label': {
-                      $options: 'i',
-                      $regex: query.search,
-                    },
-                  },
-                  {
-                    'metadata.description': {
-                      $options: 'i',
-                      $regex: query.search,
-                    },
-                  },
-                  {
-                    'prompt.original': {
-                      $options: 'i',
-                      $regex: query.search,
-                    },
-                  },
-                ],
-              },
-            },
-          ]
-        : []),
-      {
-        $sort: query.sort ? handleQuerySort(query.sort) : { createdAt: -1 },
-      },
-    ];
-  }
-
-  private isValidObjectId(id: string): boolean {
-    return /^[0-9a-f]{24}$/i.test(id);
+      orderBy: query.sort ? handleQuerySort(query.sort) : { createdAt: -1 },
+    };
   }
 
   @Get('latest')
@@ -194,70 +107,36 @@ export class MusicsController extends BaseCRUDController<
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-    const scope = { $ne: null };
+    const scope = { not: null };
     const brand = publicMetadata.brand;
 
-    const aggregate: Record<string, unknown>[] = [
-      {
-        $match: {
-          $or: [
-            {
-              brand,
-              category: IngredientCategory.MUSIC,
-              isDeleted,
-              // Exclude training source musics by default
-              training: { $exists: false },
-              user: publicMetadata.user,
-            },
-            {
-              // Filter default musics by brand when brand is specified
-              brand,
-              category: IngredientCategory.MUSIC,
-              isDefault: true,
-              isDeleted,
-              scope,
-            },
-          ],
-        },
+    const aggregate = {
+      where: {
+        OR: [
+          {
+            brand,
+            category: IngredientCategory.MUSIC,
+            isDeleted,
+            // Exclude training source musics by default
+            training: { not: false },
+            user: publicMetadata.user,
+          },
+          {
+            // Filter default musics by brand when brand is specified
+            brand,
+            category: IngredientCategory.MUSIC,
+            isDefault: true,
+            isDeleted,
+            scope,
+          },
+        ],
       },
-      {
-        $lookup: {
-          as: 'metadata',
-          foreignField: '_id',
-          from: 'metadata',
-          localField: 'metadata',
-        },
-      },
-      {
-        $unwind: {
-          path: '$metadata',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          as: 'prompt',
-          foreignField: '_id',
-          from: 'prompts',
-          localField: 'prompt',
-        },
-      },
-      {
-        $unwind: {
-          path: '$prompt',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $sort: { createdAt: -1 },
-      },
-      {
-        $limit: Math.min(limit, 50), // Cap at 50 for performance
-      },
-    ];
+      orderBy: { createdAt: -1 },
+    };
 
     const data: AggregatePaginateResult<MusicDocument> =
       await this.musicsService.findAll(aggregate, {
+        limit: Math.min(Number(limit) || 10, 50),
         pagination: false,
       });
 

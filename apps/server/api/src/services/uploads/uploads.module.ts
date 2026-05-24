@@ -10,7 +10,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => IngredientsModule),
     forwardRef(() => MetadataModule),
 
-    FilesClientModule,
+    forwardRef(() => FilesClientModule),
   ],
   providers: [PresignedUploadService],
 })

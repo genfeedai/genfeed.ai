@@ -8,6 +8,7 @@ Dev and build skills for the Genfeed.ai monorepo. These guide AI agents when bui
 - Build tooling skills (Docker, Turborepo, Biome)
 - Quality skills (code review, refactoring, security audit)
 - Architecture skills (scaffolding, package design, serializer patterns)
+- Product planning skills (issue PRD writing and PRD quality gates)
 - Repo-specific guards (multitenancy-guard, prepush-guard, serializer-boundary)
 
 ## What does NOT belong here
@@ -24,6 +25,9 @@ To add a new skill to Claude Code discovery:
 ```bash
 ln -sf ../../.agents/skills/my-skill .claude/skills/my-skill
 ```
+
+Codex discovery uses `.codex/skills -> ../.agents/skills`, so adding a skill
+under `.agents/skills` is enough for Codex once the repo symlink exists.
 
 ## Adding a skill
 

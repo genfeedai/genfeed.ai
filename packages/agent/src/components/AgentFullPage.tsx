@@ -42,24 +42,24 @@ import {
 
 const DEFAULT_AGENT_ACTIONS: SuggestedAction[] = [
   {
-    icon: HiOutlineCalendarDays({ className: 'h-5 w-5 text-foreground/50' }),
+    icon: HiOutlineCalendarDays({ className: 'size-5 text-foreground/50' }),
     label: 'Plan this week',
     prompt: 'Help me plan this week of content',
   },
   {
     icon: HiOutlineClipboardDocumentCheck({
-      className: 'h-5 w-5 text-foreground/50',
+      className: 'size-5 text-foreground/50',
     }),
     label: 'Review queue',
     prompt: 'Show me what needs review',
   },
   {
-    icon: HiOutlineChartBar({ className: 'h-5 w-5 text-foreground/50' }),
+    icon: HiOutlineChartBar({ className: 'size-5 text-foreground/50' }),
     label: 'Check performance',
     prompt: 'Summarize my recent content performance',
   },
   {
-    icon: HiOutlineMagnifyingGlass({ className: 'h-5 w-5 text-foreground/50' }),
+    icon: HiOutlineMagnifyingGlass({ className: 'size-5 text-foreground/50' }),
     label: 'Brainstorm ideas',
     prompt: 'Give me 10 content ideas I can create next',
   },
@@ -67,22 +67,22 @@ const DEFAULT_AGENT_ACTIONS: SuggestedAction[] = [
 
 const ONBOARDING_SUGGESTED_ACTIONS: SuggestedAction[] = [
   {
-    icon: <HiOutlineRocketLaunch className="h-5 w-5 text-foreground/50" />,
+    icon: <HiOutlineRocketLaunch className="size-5 text-foreground/50" />,
     label: "Let's go",
     prompt: "I'm ready to set up my account",
   },
   {
-    icon: <HiOutlineHeart className="h-5 w-5 text-foreground/50" />,
+    icon: <HiOutlineHeart className="size-5 text-foreground/50" />,
     label: 'Fitness creator',
     prompt: "I'm a fitness content creator",
   },
   {
-    icon: <HiOutlinePaintBrush className="h-5 w-5 text-foreground/50" />,
+    icon: <HiOutlinePaintBrush className="size-5 text-foreground/50" />,
     label: 'Art and design',
     prompt: 'I create art and design content',
   },
   {
-    icon: <HiOutlineBriefcase className="h-5 w-5 text-foreground/50" />,
+    icon: <HiOutlineBriefcase className="size-5 text-foreground/50" />,
     label: 'Business content',
     prompt: 'I create business and entrepreneurship content',
   },
@@ -469,7 +469,7 @@ export function AgentFullPage({
               onClick={() => setMobileThreadsOpen(true)}
               className="inline-flex items-center gap-2 border-white/[0.12] bg-white/[0.03] px-3 py-2 text-sm font-medium text-foreground/75 hover:bg-white/[0.06] hover:text-foreground"
             >
-              <HiOutlineChatBubbleLeftRight className="h-4 w-4" />
+              <HiOutlineChatBubbleLeftRight className="size-4" />
               Threads
             </Button>
           ) : null}
@@ -480,7 +480,7 @@ export function AgentFullPage({
               onClick={() => setMobileOutputsOpen(true)}
               className="inline-flex items-center gap-2 border-white/[0.12] bg-white/[0.03] px-3 py-2 text-sm font-medium text-foreground/75 hover:bg-white/[0.06] hover:text-foreground"
             >
-              <HiOutlinePhoto className="h-4 w-4" />
+              <HiOutlinePhoto className="size-4" />
               Outputs
             </Button>
           ) : null}
@@ -555,7 +555,7 @@ export function AgentFullPage({
             onClick={() => setMobileChecklistOpen(true)}
           >
             <div className="flex items-center gap-2">
-              <HiOutlineCheckCircle className="h-5 w-5 text-primary" />
+              <HiOutlineCheckCircle className="size-5 text-primary" />
               <span className="text-sm font-medium text-foreground">
                 Activation Journey
               </span>

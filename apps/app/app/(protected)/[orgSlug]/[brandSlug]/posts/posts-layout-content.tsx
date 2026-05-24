@@ -12,18 +12,14 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { useCallback, useMemo, useState } from 'react';
+import { Suspense, useCallback, useMemo, useState } from 'react';
 import { HiOutlineNewspaper } from 'react-icons/hi2';
 
-export default function PostsLayoutContent({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  const router = useRouter();
+function PostsLayoutContentContent({ children }: { children: ReactNode }) {
+  const { refresh } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const searchParamsString = searchParams.toString() ?? '';
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -81,9 +77,9 @@ export default function PostsLayoutContent({
     if (typeof refreshFn === 'function') {
       refreshFn();
     } else {
-      router.refresh();
+      refresh();
     }
-  }, [refreshFn, router]);
+  }, [refreshFn, refresh]);
 
   // Detail routes (e.g. /posts/abc123) skip the Container layout
   if (isDetailRoute) {
@@ -148,5 +144,15 @@ export default function PostsLayoutContent({
         {children}
       </Container>
     </PostsLayoutContext.Provider>
+  );
+}
+
+export default function PostsLayoutContent(
+  props: Parameters<typeof PostsLayoutContentContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <PostsLayoutContentContent {...props} />
+    </Suspense>
   );
 }

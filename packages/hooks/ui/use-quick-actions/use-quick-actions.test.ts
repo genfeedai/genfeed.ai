@@ -90,7 +90,7 @@ vi.mock('@ui/quick-actions/config/quick-actions.config', () => ({
   ),
   createUseAsVideoReferenceAction: vi.fn((_ingredient, handler) =>
     handler
-      ? createAction('use-as-video-reference', 'Set as Video Reference')
+      ? createAction('use-as-video-reference', 'Add to Storyboard')
       : null,
   ),
   createUsePromptAction: vi.fn((_ingredient, handler) =>
@@ -199,6 +199,25 @@ describe('useQuickActions', () => {
     const { result } = renderHook(() =>
       useQuickActions({
         handlers: mockHandlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient() as any,
+      }),
+    );
+
+    expect(result.current.primaryActions.map((action) => action.id)).toEqual([
+      'see-details',
+      'create-variation',
+      'use-as-video-reference',
+    ]);
+  });
+
+  it('keeps convert-to-video as the image fallback when storyboard is unavailable', () => {
+    const { onUseAsVideoReference: _unused, ...handlers } = mockHandlers;
+
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers,
         isVideo: false,
         loadingStates: mockLoadingStates,
         selectedIngredient: createMockIngredient() as any,

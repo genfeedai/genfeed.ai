@@ -17,6 +17,17 @@ vi.mock('@genfeedai/workflows', () => ({
 import type { ConfigService } from '@api/config/config.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  buildFlux2DevPrompt,
+  buildFlux2DevPulidLoraPrompt,
+  buildFlux2DevPulidPrompt,
+  buildFlux2DevPulidUpscalePrompt,
+  buildFlux2KleinPrompt,
+  buildFluxDevPrompt,
+  buildPulidFluxPrompt,
+  buildZImageTurboLoraPrompt,
+  buildZImageTurboPrompt,
+} from '@genfeedai/workflows';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
@@ -124,6 +135,9 @@ describe('ComfyUIService', () => {
       );
 
       expect(result.filename).toBe('output_001.png');
+      expect(buildFluxDevPrompt).toHaveBeenCalledWith(
+        expect.objectContaining({ prompt: 'a cat' }),
+      );
       expect(result.imageBuffer).toBeInstanceOf(Buffer);
     });
 
@@ -229,6 +243,9 @@ describe('ComfyUIService', () => {
         },
       );
       expect(result.filename).toBe('output_001.png');
+      expect(buildFlux2DevPrompt).toHaveBeenCalledWith(
+        expect.objectContaining({ prompt: 'a portrait' }),
+      );
     });
 
     it('should route GENFEED_AI_Z_IMAGE_TURBO_LORA correctly', async () => {
@@ -242,6 +259,128 @@ describe('ComfyUIService', () => {
         },
       );
       expect(result.filename).toBe('output_001.png');
+      expect(buildZImageTurboLoraPrompt).toHaveBeenCalledWith(
+        expect.objectContaining({ loraPath: 'my_lora.safetensors' }),
+      );
+    });
+
+    // ----- Flux 2 PuLID + Upscale pipeline routing (#61) -----
+
+    it('should route GENFEED_AI_FLUX2_DEV_PULID to correct builder', async () => {
+      setupSuccessfulRun();
+
+      const result = await service.generateImage(
+        MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID,
+        {
+          faceImage: 'face.png',
+          guidance: 4.0,
+          prompt: 'portrait photo',
+          pulidStrength: 0.9,
+        },
+      );
+      expect(result.filename).toBe('output_001.png');
+      expect(buildFlux2DevPulidPrompt).toHaveBeenCalledWith(
+        expect.objectContaining({
+          faceImage: 'face.png',
+          prompt: 'portrait photo',
+        }),
+      );
+    });
+
+    it('should route GENFEED_AI_FLUX2_DEV_PULID_UPSCALE to correct builder', async () => {
+      setupSuccessfulRun();
+
+      const result = await service.generateImage(
+        MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_UPSCALE,
+        {
+          faceImage: 'face.png',
+          guidance: 3.5,
+          height: 1216,
+          prompt: 'studio headshot',
+          pulidStrength: 0.8,
+          seed: 42,
+          upscaleModel: '4x-UltraSharp.pth',
+          width: 832,
+        },
+      );
+      expect(result.filename).toBe('output_001.png');
+      expect(result.imageBuffer).toBeInstanceOf(Buffer);
+      expect(buildFlux2DevPulidUpscalePrompt).toHaveBeenCalledWith(
+        expect.objectContaining({
+          faceImage: 'face.png',
+          upscaleModel: '4x-UltraSharp.pth',
+        }),
+      );
+    });
+
+    it('should route GENFEED_AI_FLUX2_DEV_PULID_LORA to correct builder', async () => {
+      setupSuccessfulRun();
+
+      const result = await service.generateImage(
+        MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA,
+        {
+          faceImage: 'face.png',
+          loraPath: 'my_style.safetensors',
+          loraStrength: 0.7,
+          prompt: 'lora portrait',
+          pulidStrength: 0.8,
+        },
+      );
+      expect(result.filename).toBe('output_001.png');
+      expect(buildFlux2DevPulidLoraPrompt).toHaveBeenCalledWith(
+        expect.objectContaining({
+          faceImage: 'face.png',
+          loraPath: 'my_style.safetensors',
+        }),
+      );
+    });
+
+    it('should route GENFEED_AI_FLUX2_KLEIN to correct builder', async () => {
+      setupSuccessfulRun();
+
+      const result = await service.generateImage(
+        MODEL_KEYS.GENFEED_AI_FLUX2_KLEIN,
+        {
+          prompt: 'quick test',
+          steps: 6,
+        },
+      );
+      expect(result.filename).toBe('output_001.png');
+      expect(buildFlux2KleinPrompt).toHaveBeenCalledWith(
+        expect.objectContaining({ prompt: 'quick test' }),
+      );
+    });
+
+    it('should route GENFEED_AI_FLUX_DEV_PULID to correct builder', async () => {
+      setupSuccessfulRun();
+
+      const result = await service.generateImage(
+        MODEL_KEYS.GENFEED_AI_FLUX_DEV_PULID,
+        {
+          faceImage: 'face.png',
+          prompt: 'legacy pulid test',
+        },
+      );
+      expect(result.filename).toBe('output_001.png');
+      expect(buildPulidFluxPrompt).toHaveBeenCalledWith(
+        expect.objectContaining({ faceImage: 'face.png' }),
+      );
+    });
+
+    it('should route GENFEED_AI_Z_IMAGE_TURBO to correct builder', async () => {
+      setupSuccessfulRun();
+
+      const result = await service.generateImage(
+        MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
+        {
+          prompt: 'fast test',
+          steps: 4,
+        },
+      );
+      expect(result.filename).toBe('output_001.png');
+      expect(buildZImageTurboPrompt).toHaveBeenCalledWith(
+        expect.objectContaining({ prompt: 'fast test' }),
+      );
     });
 
     it('should log error and rethrow on failure', async () => {

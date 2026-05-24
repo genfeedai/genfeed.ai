@@ -9,10 +9,10 @@ import { ApifyTwitterService } from '@api/services/integrations/apify/services/m
 import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(ApifyService, {
-  additionalImports: [HttpModule, ByokModule],
+  additionalImports: [HttpModule, forwardRef(() => ByokModule)],
   additionalProviders: [
     ApifyBaseService,
     ApifyTikTokService,

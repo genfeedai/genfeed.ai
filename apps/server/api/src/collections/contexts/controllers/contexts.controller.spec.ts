@@ -129,7 +129,7 @@ describe('ContextsController', () => {
       expect(service.create).toHaveBeenCalledWith(
         createDto,
         mockUser.publicMetadata.organization,
-        mockUser.id,
+        mockUser.publicMetadata.user,
       );
     });
   });
@@ -273,7 +273,7 @@ describe('ContextsController', () => {
       expect(service.autoCreateFromAccount).toHaveBeenCalledWith(
         dto,
         mockUser.publicMetadata.organization,
-        mockUser.id,
+        mockUser.publicMetadata.user,
       );
     });
   });

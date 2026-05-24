@@ -11,11 +11,15 @@ import {
 } from '@genfeedai/enums';
 import type {
   IFolder,
+  IImage,
   IIngredient,
   IModel,
   IQueryParams,
 } from '@genfeedai/interfaces';
-import type { AvatarVoiceData } from '@genfeedai/interfaces/studio/studio-generate.interface';
+import type {
+  AvatarVoiceData,
+  AvatarVoiceOption,
+} from '@genfeedai/interfaces/studio/studio-generate.interface';
 import { formatVideos } from '@helpers/data/data/data.helper';
 import { resolveIngredientAspectRatio } from '@helpers/formatting/aspect-ratio/aspect-ratio.util';
 import {
@@ -25,12 +29,12 @@ import {
 } from '@helpers/generation-eta.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useMusicPlayback } from '@hooks/media/use-music-playback/use-music-playback';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   AssetControlsHeader,
   AssetDisplayGrid,
+  StoryboardPanel,
   StudioComposer,
 } from '@pages/studio/generate/components';
 import {
@@ -39,6 +43,7 @@ import {
   useFilters,
   usePromptState,
   useSocketGeneration,
+  useStoryboardGeneration,
   useTableActions,
   useTableColumns,
   useTableSelection,
@@ -48,6 +53,7 @@ import {
   buildAvatarVoiceOption,
   isImageOrVideoCategory,
   resolveAvatarPreviewUrl,
+  resolveStoryboardFormat,
 } from '@pages/studio/generate/utils';
 import StudioSelectionActionsBar from '@pages/studio/selection/StudioSelectionActionsBar';
 import type { StudioGeneratePageProps } from '@props/studio/studio.props';
@@ -58,6 +64,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { AvatarsService } from '@services/ingredients/avatars.service';
 import { ImagesService } from '@services/ingredients/images.service';
 import { VoicesService } from '@services/ingredients/voices.service';
+import { useQuery } from '@tanstack/react-query';
 import InfiniteScroll from '@ui/feedback/infinite-scroll/InfiniteScroll';
 import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -290,6 +297,27 @@ export default function StudioGenerateLayout({
     setGeneratedAssetId,
   });
 
+  const {
+    appendStoryboardFrames,
+    cameraMovementPreset,
+    clearStoryboard,
+    customCameraPrompt,
+    frames: storyboardFrames,
+    handleGenerateStoryboard,
+    hasInterpolationModel,
+    isStoryboardGenerating,
+    setCameraMovementPreset,
+    setCustomCameraPrompt,
+    setFrames: setStoryboardFrames,
+  } = useStoryboardGeneration({
+    brandId,
+    currentModels,
+    findAllAssets,
+    promptConfig,
+    promptText,
+    setGeneratedAssetId,
+  });
+
   // Asset actions
   const {
     handleIngredientClick,
@@ -358,41 +386,43 @@ export default function StudioGenerateLayout({
   const shouldLoadAvatarData =
     categoryType === IngredientCategory.AVATAR && !!brandId;
 
-  const { data: avatarData } = useResource<AvatarVoiceData>(
-    async () => {
-      const avatarsService = await getAvatarsService();
-      const voicesService = await getVoicesService();
-      const query: IQueryParams = { pagination: false };
-
-      const [allAvatars, allVoices] = await Promise.all([
-        avatarsService.findAll(query),
-        voicesService.findAll(query),
-      ]);
-
-      const avatars = allAvatars.filter(
-        (avatar: IIngredient) => avatar.provider === 'heygen',
-      );
-      const voices = allVoices.filter(
-        (voice: IIngredient) => voice.provider === 'elevenlabs',
-      );
-
-      logger.info('Loaded avatars and voices', {
-        avatars: avatars.length,
-        totalAvatars: allAvatars.length,
-        totalVoices: allVoices.length,
-        voices: voices.length,
-      });
-
-      return { avatars, voices };
-    },
-    {
-      dependencies: [categoryType, brandId],
+  const { data: avatarData, error: avatarDataError } =
+    useQuery<AvatarVoiceData>({
       enabled: shouldLoadAvatarData,
-      onError: (error: Error) => {
-        logger.error('Failed to load avatars and voices', error);
+      queryFn: async () => {
+        const avatarsService = await getAvatarsService();
+        const voicesService = await getVoicesService();
+        const query: IQueryParams = { pagination: false };
+
+        const [allAvatars, allVoices] = await Promise.all([
+          avatarsService.findAll(query),
+          voicesService.findAll(query),
+        ]);
+
+        const avatars = allAvatars.filter(
+          (avatar: IIngredient) => avatar.provider === 'heygen',
+        );
+        const voices = allVoices.filter(
+          (voice: IIngredient) => voice.provider === 'elevenlabs',
+        );
+
+        logger.info('Loaded avatars and voices', {
+          avatars: avatars.length,
+          totalAvatars: allAvatars.length,
+          totalVoices: allVoices.length,
+          voices: voices.length,
+        });
+
+        return { avatars, voices };
       },
-    },
-  );
+      queryKey: ['studio-avatar-data', categoryType, brandId],
+    });
+
+  useEffect(() => {
+    if (avatarDataError instanceof Error) {
+      logger.error('Failed to load avatars and voices', avatarDataError);
+    }
+  }, [avatarDataError]);
 
   const avatarTemplates = useMemo(
     () => avatarData?.avatars ?? [],
@@ -403,14 +433,18 @@ export default function StudioGenerateLayout({
     [avatarData?.voices],
   );
 
+  type AvatarVoiceOptionNonNull = NonNullable<
+    ReturnType<typeof buildAvatarVoiceOption>
+  >;
+
   const avatarOptions = useMemo(
     () =>
       avatarTemplates
         .map(buildAvatarVoiceOption)
-        .filter(
-          (option): option is NonNullable<typeof option> => option !== null,
-        )
-        .sort((a, b) => a.label.localeCompare(b.label)),
+        .filter((option): option is AvatarVoiceOptionNonNull => option !== null)
+        .sort((a: AvatarVoiceOptionNonNull, b: AvatarVoiceOptionNonNull) =>
+          a.label.localeCompare(b.label),
+        ),
     [avatarTemplates],
   );
 
@@ -418,8 +452,10 @@ export default function StudioGenerateLayout({
     () =>
       voiceModels
         .map(buildAvatarVoiceOption)
-        .filter((option) => option !== null)
-        .sort((a, b) => a.label.localeCompare(b.label)),
+        .filter((option): option is AvatarVoiceOptionNonNull => option !== null)
+        .sort((a: AvatarVoiceOptionNonNull, b: AvatarVoiceOptionNonNull) =>
+          a.label.localeCompare(b.label),
+        ),
     [voiceModels],
   );
 
@@ -437,8 +473,9 @@ export default function StudioGenerateLayout({
   );
 
   // Folders
-  const { data: folders = [] } = useResource<IFolder[]>(
-    async () => {
+  const { data: folders = [], error: foldersError } = useQuery<IFolder[]>({
+    enabled: !!brandId,
+    queryFn: async () => {
       const foldersService = await getFoldersService();
       const query = {
         isActive: true,
@@ -450,14 +487,14 @@ export default function StudioGenerateLayout({
       logger.info('Loaded folders', { total: allFolders.length });
       return allFolders;
     },
-    {
-      dependencies: [brandId],
-      enabled: !!brandId,
-      onError: (error: Error) => {
-        logger.error('Failed to load folders', error);
-      },
-    },
-  );
+    queryKey: ['studio-folders', brandId],
+  });
+
+  useEffect(() => {
+    if (foldersError instanceof Error) {
+      logger.error('Failed to load folders', foldersError);
+    }
+  }, [foldersError]);
 
   // Filtered presets
   const filteredPresets = useMemo(() => {
@@ -801,9 +838,13 @@ export default function StudioGenerateLayout({
             setPromptText(image.promptText);
           }
 
+          if (categoryType === IngredientCategory.VIDEO) {
+            appendStoryboardFrames([image as unknown as IImage]);
+          }
+
           const message =
             categoryType === IngredientCategory.VIDEO
-              ? 'Image set as video reference.'
+              ? 'Image added to storyboard.'
               : 'Image set as reference.';
           notificationsService.success(message);
         } else {
@@ -842,6 +883,7 @@ export default function StudioGenerateLayout({
     setFilters,
     promptDataRef,
     setPromptText,
+    appendStoryboardFrames,
   ]);
 
   // Prompt handlers
@@ -904,6 +946,11 @@ export default function StudioGenerateLayout({
     return promptConfig.format as IngredientFormat;
   }, [isImageOrVideo, promptConfig.format]);
 
+  const storyboardFormat = useMemo(
+    () => resolveStoryboardFormat(promptConfig.format),
+    [promptConfig.format],
+  );
+
   const emptyLabel = `No ${categoryType.toLowerCase()} generated yet`;
 
   return (
@@ -923,6 +970,22 @@ export default function StudioGenerateLayout({
       <div className="flex flex-1 overflow-hidden relative w-full">
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto px-6 pt-6 pb-40 md:pb-40">
+            {isVideoCategory && (
+              <StoryboardPanel
+                cameraMovementPreset={cameraMovementPreset}
+                customCameraPrompt={customCameraPrompt}
+                format={storyboardFormat}
+                frames={storyboardFrames}
+                hasInterpolationModel={hasInterpolationModel}
+                isGenerating={isStoryboardGenerating}
+                onCameraMovementPresetChange={setCameraMovementPreset}
+                onClear={clearStoryboard}
+                onCustomCameraPromptChange={setCustomCameraPrompt}
+                onFramesChange={setStoryboardFrames}
+                onGenerate={handleGenerateStoryboard}
+              />
+            )}
+
             {viewMode === ViewType.TABLE && tableSelectedIds.length > 0 && (
               <StudioSelectionActionsBar
                 count={tableSelectedIds.length}

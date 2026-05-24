@@ -20,10 +20,17 @@ import AppTable from '@ui/display/table/Table';
 import { LazyModalCameraMovement } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
 
-export default function CameraMovementsList({
+function CameraMovementsListContent({
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -31,10 +38,10 @@ export default function CameraMovementsList({
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
 
-  const router = useRouter();
+  const { replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
+  const searchParamsString = searchParams.toString();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
@@ -78,11 +85,11 @@ export default function CameraMovementsList({
       params.delete('brand');
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   const handleAdminBrandChange = useCallback(
@@ -96,11 +103,11 @@ export default function CameraMovementsList({
       }
       params.delete('page');
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
         scroll: false,
       });
     },
-    [pathname, router, searchParamsString],
+    [pathname, replace, searchParamsString],
   );
 
   // Use refs for callback props to prevent unnecessary re-renders
@@ -140,7 +147,7 @@ export default function CameraMovementsList({
                 isError: true,
                 label: 'Delete Camera Movement',
                 message: `Are you sure you want to delete "${movement.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(),
+                onConfirm: () => handleDelete(movement),
               });
             },
             tooltip: 'Delete',
@@ -149,7 +156,7 @@ export default function CameraMovementsList({
       : [];
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
-  const currentPage = Number(searchParams?.get('page')) || 1;
+  const currentPage = Number(searchParams.get('page')) || 1;
 
   const findAllCameraMovements = useCallback(
     async (isRefresh = false) => {
@@ -221,14 +228,10 @@ export default function CameraMovementsList({
     openModal(modalId);
   };
 
-  const handleDelete = async () => {
-    if (!selectedCameraMovement) {
-      return;
-    }
-
+  const handleDelete = async (movement: IElementCameraMovement) => {
     try {
       const service = await getCameraMovementsService();
-      await service.delete(selectedCameraMovement.id);
+      await service.delete(movement.id);
       notificationsService.success('Camera movement deleted');
       setSelectedCameraMovement(null);
       findAllCameraMovements(true);
@@ -276,5 +279,15 @@ export default function CameraMovementsList({
         <AutoPagination showTotal totalLabel="camera movements" />
       </div>
     </>
+  );
+}
+
+export default function CameraMovementsList(
+  props: Parameters<typeof CameraMovementsListContent>[0],
+) {
+  return (
+    <Suspense fallback={null}>
+      <CameraMovementsListContent {...props} />
+    </Suspense>
   );
 }

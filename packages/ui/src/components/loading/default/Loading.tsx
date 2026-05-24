@@ -13,7 +13,7 @@ export default function Loading({ isFullSize = true }: LoadingProps) {
       aria-live="polite"
       aria-label="Loading"
     >
-      <span className="animate-pulse w-12 h-12 rounded-full bg-primary/30" />
+      <span className="animate-pulse size-12 rounded-full bg-primary/30" />
     </div>
   );
 }

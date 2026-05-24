@@ -1,334 +1,198 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
-import {
-  contentServiceOffering,
-  getEnterprisePlan,
-  websitePlans,
-} from '@helpers/business/pricing/pricing.helper';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { websitePlans } from '@helpers/business/pricing/pricing.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import Card from '@ui/card/Card';
 import { HStack, VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import Link from 'next/link';
-import { HiCurrencyDollar } from 'react-icons/hi2';
+import { HiCloud, HiCurrencyDollar, HiServerStack } from 'react-icons/hi2';
 import { LuArrowRight, LuCheck } from 'react-icons/lu';
 
 const CALENDLY_URL =
   process.env.NEXT_PUBLIC_CALENDLY_URL ||
   'https://calendly.com/vincent-genfeed/30min';
 
-const FEATURED_TIER = 'Scale';
+const PAYG_EXPLAINERS = [
+  'No bundled output quota to decode',
+  'Videos, images, and voice are usage-based',
+  'Premium models are managed by Genfeed',
+] as const;
 
-// Show only cloud plans on homepage (Pro, Scale, Enterprise — skip Self-Hosted)
-const homePlans = websitePlans.filter((p) => p.type !== 'byok');
+const PLAN_ORDER = ['Hosted', 'Cloud Teams', 'Enterprise'] as const;
 
-function formatPrice(price: number | null): string {
-  if (price === null) return 'Custom';
-  if (price === 0) return 'Free';
+function formatPlanPrice(price: number | null): string {
+  if (price === null) {
+    return 'Custom';
+  }
+
   return `$${price.toLocaleString()}`;
 }
 
+function getPlan(label: (typeof PLAN_ORDER)[number]) {
+  const plan = websitePlans.find((item) => item.label === label);
+
+  if (!plan) {
+    throw new Error(`Missing homepage pricing plan: ${label}`);
+  }
+
+  return plan;
+}
+
 export default function HomePricing(): React.ReactElement {
-  const isPreLaunch = EnvironmentService.isPreLaunch;
+  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
 
   return (
-    <section id="pricing" className="gen-section-spacing-lg">
+    <section
+      id="pricing"
+      className="gen-section-spacing-lg border-b border-edge/5"
+    >
       <div className="container mx-auto px-6">
-        {/* Section header */}
-        <HStack className="items-center gap-3 mb-3">
-          <HiCurrencyDollar className="h-4 w-4 gen-icon" />
-          <Text className="gen-label gen-text-accent">Pricing</Text>
-        </HStack>
-        <Heading
-          as="h2"
-          className="text-4xl sm:text-5xl font-serif tracking-tighter mb-4"
-        >
-          Simple pricing that{' '}
-          <span className="font-light italic gen-text-heading">scales.</span>
-        </Heading>
-        {isPreLaunch && (
-          <Text className="gen-text-muted text-sm mb-12">
-            Private beta — limited availability
-          </Text>
-        )}
-        {!isPreLaunch && <div className="mb-8" />}
+        <div className="mb-12 grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(320px,0.55fr)] lg:items-end">
+          <VStack className="gap-4">
+            <HStack className="items-center gap-3">
+              <HiCurrencyDollar className="size-4 gen-icon" />
+              <Text className="gen-label gen-text-accent">Pricing</Text>
+            </HStack>
+            <Heading
+              as="h2"
+              className="max-w-3xl text-4xl font-serif tracking-normal sm:text-5xl"
+            >
+              Pay for access. Then pay for what you create.
+            </Heading>
+            <Text className="max-w-2xl text-base leading-7 gen-text-muted">
+              The website now sells the cloud app first. Self-hosting stays
+              available, but the default path is managed: sign up, create, and
+              let usage scale with output.
+            </Text>
+          </VStack>
 
-        {isPreLaunch ? <PreLaunchPricingStrip /> : <SaaSPricingStrip />}
+          <div className="border border-edge/5 p-5">
+            <VStack className="gap-4">
+              {PAYG_EXPLAINERS.map((item) => (
+                <HStack key={item} className="items-start gap-3">
+                  <LuCheck className="mt-0.5 size-4 shrink-0 text-success" />
+                  <Text className="text-sm leading-6 text-surface/60">
+                    {item}
+                  </Text>
+                </HStack>
+              ))}
+            </VStack>
+          </div>
+        </div>
 
-        {/* Full pricing CTA */}
-        <div className="mt-10 text-center">
+        <div className="grid grid-cols-1 gap-px bg-edge/5 lg:grid-cols-3">
+          {PLAN_ORDER.map((label) => {
+            const plan = getPlan(label);
+            const isCloudApp = plan.label === 'Hosted';
+            const isTeamCloud = plan.label === 'Cloud Teams';
+            const priceQualifier =
+              plan.type === 'payg'
+                ? '/month platform access + PAYG output'
+                : plan.price === null
+                  ? 'Custom pricing'
+                  : '/month + PAYG output';
+            const ctaHref = isCloudApp
+              ? signUpHref
+              : plan.ctaHref || CALENDLY_URL;
+            const ctaLabel = isCloudApp ? 'Start Cloud App' : plan.cta;
+
+            return (
+              <div
+                key={plan.label}
+                className={cn(
+                  'flex flex-col gap-5 bg-background p-6',
+                  isCloudApp && 'bg-white/[0.04]',
+                )}
+              >
+                <VStack className="gap-2">
+                  <HStack
+                    className={cn(
+                      'items-center gap-2 text-xs font-bold uppercase tracking-widest',
+                      isCloudApp ? 'text-surface/60' : 'text-surface/35',
+                    )}
+                  >
+                    {isTeamCloud ? (
+                      <HiServerStack className="size-4" />
+                    ) : (
+                      <HiCloud className="size-4" />
+                    )}
+                    <Text>{isCloudApp ? 'Cloud App' : plan.label}</Text>
+                  </HStack>
+
+                  <Heading as="h3" className="text-3xl font-black text-surface">
+                    {formatPlanPrice(plan.price)}
+                  </Heading>
+                  <Text className="text-xs leading-5 text-surface/45">
+                    {priceQualifier}
+                  </Text>
+                </VStack>
+
+                <Text className="text-sm leading-6 text-surface/55">
+                  {isCloudApp
+                    ? 'Managed Genfeed for founders and creators who want the app without operating infrastructure.'
+                    : plan.valueProposition || plan.description}
+                </Text>
+
+                <div className="h-px bg-edge/5" />
+
+                <ul className="flex-1 space-y-2">
+                  {plan.features.slice(0, 4).map((feature) => (
+                    <li key={feature} className="flex items-start gap-2">
+                      <LuCheck className="mt-0.5 size-3.5 shrink-0 text-surface/30" />
+                      <Text className="text-xs leading-5 text-surface/50">
+                        {feature}
+                      </Text>
+                    </li>
+                  ))}
+                </ul>
+
+                <ButtonTracked
+                  asChild
+                  className="w-full justify-center"
+                  size={ButtonSize.PUBLIC}
+                  trackingData={{ plan: plan.label.toLowerCase() }}
+                  trackingName="pricing_plan_click"
+                  variant={ButtonVariant.OUTLINE}
+                >
+                  <a href={ctaHref} rel="noopener noreferrer" target="_blank">
+                    {ctaLabel}
+                    <LuArrowRight className="size-3" />
+                  </a>
+                </ButtonTracked>
+              </div>
+            );
+          })}
+        </div>
+
+        <HStack className="mt-10 flex-wrap items-center justify-center gap-4">
           <ButtonTracked
             asChild
-            variant={ButtonVariant.OUTLINE}
             size={ButtonSize.PUBLIC}
             trackingName="pricing_view_full_click"
+            variant={ButtonVariant.OUTLINE}
           >
             <Link href="/pricing">
-              View Full Pricing
-              <LuArrowRight className="h-3 w-3" />
+              Compare Plans
+              <LuArrowRight className="size-3" />
             </Link>
           </ButtonTracked>
-        </div>
+          <ButtonTracked
+            asChild
+            size={ButtonSize.PUBLIC}
+            trackingData={{ action: 'book_demo_pricing' }}
+            trackingName="pricing_demo_click"
+            variant={ButtonVariant.OUTLINE}
+          >
+            <a href={CALENDLY_URL} rel="noopener noreferrer" target="_blank">
+              Book a Demo
+            </a>
+          </ButtonTracked>
+        </HStack>
       </div>
     </section>
-  );
-}
-
-function PreLaunchPricingStrip() {
-  const enterprise = getEnterprisePlan();
-  const dfy = contentServiceOffering;
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
-      {/* Studio tier */}
-      <Card
-        variant={CardVariant.DEFAULT}
-        className="!rounded-none bg-fill/[0.02] gen-border hover:border-[var(--gen-accent-hover)] transition-all"
-        bodyClassName="gap-0 p-6"
-      >
-        <VStack className="gap-5 h-full">
-          <VStack className="gap-2">
-            <Text className="text-xs font-bold uppercase tracking-widest gen-text-muted">
-              Studio
-            </Text>
-            <Heading as="h3" className="text-3xl font-black text-surface">
-              $9,999
-            </Heading>
-            <Text className="text-xs text-surface/50">/month</Text>
-          </VStack>
-
-          <Text className="text-sm font-semibold text-surface/70">
-            Unlimited everything
-          </Text>
-
-          <div className="gen-divider-accent" />
-
-          <ul className="space-y-2 flex-1">
-            {enterprise.features.slice(0, 4).map((feature) => (
-              <li key={feature} className="flex items-start gap-2">
-                <LuCheck className="h-3 w-3 mt-0.5 shrink-0 text-surface/40" />
-                <Text className="text-xs text-surface/50">{feature}</Text>
-              </li>
-            ))}
-          </ul>
-
-          <ButtonTracked
-            asChild
-            variant={ButtonVariant.OUTLINE}
-            size={ButtonSize.PUBLIC}
-            className="w-full justify-center"
-            trackingName="pricing_plan_click"
-            trackingData={{ plan: 'studio' }}
-          >
-            <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
-              Book a Demo
-              <LuArrowRight className="h-3 w-3" />
-            </a>
-          </ButtonTracked>
-        </VStack>
-      </Card>
-
-      {/* DFY card */}
-      <Card
-        variant={CardVariant.WHITE}
-        className="!rounded-none gen-card-featured shadow-[var(--shadow-glow-md)] transition-all"
-        bodyClassName="gap-0 p-6"
-      >
-        <VStack className="gap-5 h-full">
-          <VStack className="gap-2">
-            <Text className="text-xs font-bold uppercase tracking-widest text-inv-fg/60">
-              Done-For-You
-            </Text>
-            <Heading as="h3" className="text-3xl font-black text-inv-fg">
-              From $2,500
-            </Heading>
-            <Text className="text-xs text-inv-fg/70">/month</Text>
-          </VStack>
-
-          <Text className="text-sm font-semibold text-inv-fg/80">
-            Full-service content
-          </Text>
-
-          <div
-            className="gen-divider-accent"
-            style={{
-              background:
-                'linear-gradient(to right, transparent, rgba(0,0,0,0.2), transparent)',
-            }}
-          />
-
-          <ul className="space-y-2 flex-1">
-            {dfy.includes.slice(0, 4).map((item) => (
-              <li key={item} className="flex items-start gap-2">
-                <LuCheck className="h-3 w-3 mt-0.5 shrink-0 text-inv-fg/30" />
-                <Text className="text-xs text-inv-fg/60">{item}</Text>
-              </li>
-            ))}
-          </ul>
-
-          <ButtonTracked
-            asChild
-            variant={ButtonVariant.BLACK}
-            size={ButtonSize.PUBLIC}
-            className="w-full justify-center"
-            trackingName="pricing_plan_click"
-            trackingData={{ plan: 'dfy' }}
-          >
-            <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
-              Book a Call
-              <LuArrowRight className="h-3 w-3" />
-            </a>
-          </ButtonTracked>
-        </VStack>
-      </Card>
-    </div>
-  );
-}
-
-function SaaSPricingStrip() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
-      {homePlans.map((plan) => {
-        const featured = plan.label === FEATURED_TIER;
-        const isEnterprise = plan.type === 'enterprise';
-
-        return (
-          <Card
-            key={plan.label}
-            variant={featured ? CardVariant.WHITE : CardVariant.DEFAULT}
-            className={cn(
-              '!rounded-none transition-all',
-              featured
-                ? 'gen-card-featured shadow-[var(--shadow-glow-md)]'
-                : 'bg-fill/[0.02] gen-border hover:border-[var(--gen-accent-hover)]',
-            )}
-            bodyClassName="gap-0 p-6"
-          >
-            <VStack className="gap-5 h-full">
-              <VStack className="gap-2">
-                <Text
-                  className={cn(
-                    'text-xs font-bold uppercase tracking-widest',
-                    featured ? 'text-inv-fg/60' : 'gen-text-muted',
-                  )}
-                >
-                  {plan.label}
-                </Text>
-                <Heading
-                  as="h3"
-                  className={cn(
-                    'text-3xl font-black',
-                    featured ? 'text-inv-fg' : 'text-surface',
-                  )}
-                >
-                  {formatPrice(isEnterprise ? null : plan.price)}
-                </Heading>
-                <Text
-                  className={cn(
-                    'text-xs',
-                    featured ? 'text-inv-fg/70' : 'text-surface/50',
-                  )}
-                >
-                  {isEnterprise ? 'Custom pricing' : '/month'}
-                </Text>
-              </VStack>
-
-              {plan.outputs ? (
-                <div className="space-y-1">
-                  <Text
-                    className={cn(
-                      'text-sm font-semibold',
-                      featured ? 'text-inv-fg/80' : 'text-surface/70',
-                    )}
-                  >
-                    {plan.outputs.images?.toLocaleString()} images
-                  </Text>
-                  <Text
-                    className={cn(
-                      'text-xs',
-                      featured ? 'text-inv-fg/50' : 'text-surface/40',
-                    )}
-                  >
-                    {plan.outputs.videoMinutes} min video ·{' '}
-                    {plan.outputs.voiceMinutes} min voice
-                  </Text>
-                </div>
-              ) : (
-                <Text
-                  className={cn(
-                    'text-sm font-semibold',
-                    featured ? 'text-inv-fg/80' : 'text-surface/70',
-                  )}
-                >
-                  Unlimited everything
-                </Text>
-              )}
-
-              <div
-                className="gen-divider-accent"
-                style={
-                  featured
-                    ? {
-                        background:
-                          'linear-gradient(to right, transparent, rgba(0,0,0,0.2), transparent)',
-                      }
-                    : undefined
-                }
-              />
-
-              <ul className="space-y-2 flex-1">
-                {plan.features.slice(0, 4).map((feature) => (
-                  <li key={feature} className="flex items-start gap-2">
-                    <LuCheck
-                      className={cn(
-                        'h-3 w-3 mt-0.5 shrink-0',
-                        featured ? 'text-inv-fg/30' : 'text-surface/40',
-                      )}
-                    />
-                    <Text
-                      className={cn(
-                        'text-xs',
-                        featured ? 'text-inv-fg/60' : 'text-surface/50',
-                      )}
-                    >
-                      {feature}
-                    </Text>
-                  </li>
-                ))}
-              </ul>
-
-              <ButtonTracked
-                asChild
-                variant={featured ? ButtonVariant.BLACK : ButtonVariant.OUTLINE}
-                size={ButtonSize.PUBLIC}
-                className="w-full justify-center"
-                trackingName="pricing_plan_click"
-                trackingData={{ plan: plan.label.toLowerCase() }}
-              >
-                {isEnterprise ? (
-                  <a
-                    href={CALENDLY_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Book a Demo
-                    <LuArrowRight className="h-3 w-3" />
-                  </a>
-                ) : (
-                  <Link href="/pricing">
-                    Get Started
-                    <LuArrowRight className="h-3 w-3" />
-                  </Link>
-                )}
-              </ButtonTracked>
-            </VStack>
-          </Card>
-        );
-      })}
-    </div>
   );
 }

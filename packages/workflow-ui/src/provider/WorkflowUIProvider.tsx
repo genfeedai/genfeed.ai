@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, type ReactNode, useContext, useEffect } from 'react';
+import { createContext, type ReactNode, use, useEffect } from 'react';
 import { configurePromptLibrary } from '../stores/promptLibraryStore';
 import type { WorkflowUIConfig } from './types';
 
@@ -44,5 +44,5 @@ export function WorkflowUIProvider({
  * Returns an empty config object if used outside a WorkflowUIProvider.
  */
 export function useWorkflowUIConfig(): WorkflowUIConfig {
-  return useContext(WorkflowUIContext);
+  return use(WorkflowUIContext);
 }

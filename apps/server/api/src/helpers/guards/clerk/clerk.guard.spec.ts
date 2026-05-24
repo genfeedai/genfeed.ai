@@ -102,4 +102,43 @@ describe('ClerkGuard', () => {
       superCanActivateSpy.mockRestore();
     });
   });
+
+  describe('handleRequest', () => {
+    it('ignores Clerk strategy errors for public routes', () => {
+      reflector.getAllAndOverride.mockReturnValue(true);
+      const error = new Error('Token expired');
+
+      const result = guard.handleRequest(
+        error,
+        null,
+        null,
+        mockExecutionContext,
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it('throws Clerk strategy errors for protected routes', () => {
+      reflector.getAllAndOverride.mockReturnValue(false);
+      const error = new Error('Token expired');
+
+      expect(() =>
+        guard.handleRequest(error, null, null, mockExecutionContext),
+      ).toThrow(error);
+    });
+
+    it('returns the resolved user for protected routes', () => {
+      reflector.getAllAndOverride.mockReturnValue(false);
+      const user = { id: 'user_123' };
+
+      const result = guard.handleRequest(
+        null,
+        user,
+        null,
+        mockExecutionContext,
+      );
+
+      expect(result).toBe(user);
+    });
+  });
 });

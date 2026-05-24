@@ -2,6 +2,10 @@ import { Head } from 'nextra/components';
 import { getPageMap } from 'nextra/page-map';
 import { Footer, Layout, Navbar } from 'nextra-theme-docs';
 import 'nextra-theme-docs/style.css';
+import {
+  docsContentMetaRegistry,
+  docsMdxComponentRegistry,
+} from '../content/meta-registry';
 import '../styles/globals.css';
 
 export const metadata = {
@@ -19,11 +23,19 @@ const navbar = (
   <Navbar
     logo={
       <span style={{ alignItems: 'center', display: 'flex' }}>
-        <img
-          src="https://cdn.genfeed.ai/assets/branding/logo.svg"
-          alt="Genfeed.ai"
-          height={24}
+        <span
+          aria-hidden="true"
           className="dark:invert"
+          style={{
+            backgroundImage:
+              'url(https://cdn.genfeed.ai/assets/branding/logo.svg)',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: 'contain',
+            display: 'inline-block',
+            height: 24,
+            width: 24,
+          }}
         />
         <span style={{ fontWeight: 600, marginLeft: '.5em' }}>Genfeed.ai</span>
       </span>
@@ -61,6 +73,9 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  void docsContentMetaRegistry;
+  void docsMdxComponentRegistry;
+
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <Head />

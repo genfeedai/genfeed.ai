@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  type AgentDraftSuggestionPayload,
+  useAgentDraftContext,
+} from '@genfeedai/agent';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { NewslettersService } from '@services/content/newsletters.service';
@@ -12,7 +16,7 @@ import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   HiArrowPathRoundedSquare,
   HiClipboardDocument,
@@ -31,8 +35,39 @@ function stripHtml(value?: string): string {
     .trim();
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function applyDraftSuggestionToHtml(
+  currentContent: string,
+  payload: AgentDraftSuggestionPayload,
+): string {
+  const suggestion = payload.text.trim();
+  const selectedText = payload.selectedText?.trim();
+
+  if (selectedText && currentContent.includes(selectedText)) {
+    return currentContent.replace(selectedText, escapeHtml(suggestion));
+  }
+
+  const paragraph = `<p>${escapeHtml(suggestion)
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/\n/g, '<br>')}</p>`;
+
+  if (!currentContent.trim()) {
+    return paragraph;
+  }
+
+  return `${currentContent}${paragraph}`;
+}
+
 export default function NewsletterComposerPanel() {
-  const router = useRouter();
+  const { push } = useRouter();
   const notificationsService = NotificationsService.getInstance();
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const [topic, setTopic] = useState('');
@@ -48,6 +83,24 @@ export default function NewsletterComposerPanel() {
   const getService = useAuthedService((token: string) =>
     NewslettersService.getInstance(token),
   );
+  const handleApplyDraftSuggestion = useCallback(
+    (payload: AgentDraftSuggestionPayload) => {
+      setContent((currentContent) =>
+        applyDraftSuggestionToHtml(currentContent, payload),
+      );
+    },
+    [],
+  );
+
+  useAgentDraftContext({
+    body: content,
+    draftType: 'newsletter',
+    instructions: [angle, instructions].filter(Boolean).join('\n\n'),
+    onApplySuggestion: handleApplyDraftSuggestion,
+    selectionRootId: 'newsletter-compose-workspace',
+    summary,
+    title: label || topic,
+  });
 
   async function handleGenerateDraft() {
     if (!topic.trim()) {
@@ -129,11 +182,14 @@ export default function NewsletterComposerPanel() {
       return;
     }
 
-    router.push(`/posts/newsletters?id=${newsletterId}`);
+    push(`/posts/newsletters?id=${newsletterId}`);
   }
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+    <section
+      id="newsletter-compose-workspace"
+      className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"
+    >
       <Card className="space-y-5 p-6">
         <div className="space-y-2">
           <h2 className="text-xl font-semibold text-foreground">
@@ -146,9 +202,13 @@ export default function NewsletterComposerPanel() {
         </div>
 
         <div className="grid gap-4">
-          <label className="grid gap-2 text-sm text-foreground/75">
+          <label
+            className="grid gap-2 text-sm text-foreground/75"
+            htmlFor="newsletter-topic"
+          >
             <span>Topic</span>
             <Input
+              id="newsletter-topic"
               value={topic}
               onChange={(event) => setTopic(event.target.value)}
               placeholder="What should this issue cover?"
@@ -156,9 +216,13 @@ export default function NewsletterComposerPanel() {
             />
           </label>
 
-          <label className="grid gap-2 text-sm text-foreground/75">
+          <label
+            className="grid gap-2 text-sm text-foreground/75"
+            htmlFor="newsletter-angle"
+          >
             <span>Angle</span>
             <Input
+              id="newsletter-angle"
               value={angle}
               onChange={(event) => setAngle(event.target.value)}
               placeholder="Optional framing or thesis"
@@ -175,9 +239,13 @@ export default function NewsletterComposerPanel() {
             className="min-h-28 rounded-xl border-white/10 bg-black/20"
           />
 
-          <label className="grid gap-2 text-sm text-foreground/75">
+          <label
+            className="grid gap-2 text-sm text-foreground/75"
+            htmlFor="newsletter-draft-label"
+          >
             <span>Draft label</span>
             <Input
+              id="newsletter-draft-label"
               value={label}
               onChange={(event) => setLabel(event.target.value)}
               placeholder="Newsletter title"
@@ -210,7 +278,7 @@ export default function NewsletterComposerPanel() {
         <div className="flex flex-wrap gap-3">
           <Button
             label="Generate draft"
-            icon={<HiSparkles className="h-4 w-4" />}
+            icon={<HiSparkles className="size-4" />}
             isLoading={isGenerating}
             isDisabled={!topic.trim()}
             onClick={() => void handleGenerateDraft()}
@@ -218,7 +286,7 @@ export default function NewsletterComposerPanel() {
           />
           <Button
             label="Save draft"
-            icon={<HiEnvelope className="h-4 w-4" />}
+            icon={<HiEnvelope className="size-4" />}
             isLoading={isSaving}
             isDisabled={!newsletterId}
             variant={ButtonVariant.SECONDARY}
@@ -227,14 +295,14 @@ export default function NewsletterComposerPanel() {
           />
           <Button
             label="Copy content"
-            icon={<HiClipboardDocument className="h-4 w-4" />}
+            icon={<HiClipboardDocument className="size-4" />}
             variant={ButtonVariant.SECONDARY}
             onClick={() => void handleCopy()}
             className="rounded-xl"
           />
           <Button
             label="Open newsletters"
-            icon={<HiArrowPathRoundedSquare className="h-4 w-4" />}
+            icon={<HiArrowPathRoundedSquare className="size-4" />}
             variant={ButtonVariant.SECONDARY}
             isDisabled={!newsletterId}
             onClick={handleOpenWorkspace}

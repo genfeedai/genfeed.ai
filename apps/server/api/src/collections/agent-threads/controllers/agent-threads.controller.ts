@@ -4,7 +4,6 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -127,10 +126,10 @@ export class AgentThreadsController {
       const organizationId = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveMongoUserId(user);
       const thread = await this.agentThreadsService.create({
-        organization: ObjectIdUtil.toObjectId(organizationId) as string,
+        organizationId,
         source: body.source || 'web',
         title: body.title,
-        user: ObjectIdUtil.toObjectId(dbUserId) as string,
+        userId: dbUserId,
       } as Record<string, unknown>);
       return serializeSingle(req, AgentThreadSerializer, thread);
     } catch (error: unknown) {
@@ -173,10 +172,10 @@ export class AgentThreadsController {
       const dbUserId = await this.resolveMongoUserId(user);
       const message = await this.agentMessagesService.addMessage({
         content: body.content,
-        organization: organizationId,
+        organizationId,
         role: (body.role as AgentMessageRole) || AgentMessageRole.USER,
         room: threadId,
-        user: dbUserId,
+        userId: dbUserId,
       });
 
       return serializeSingle(req, ThreadMessageSerializer, message);
@@ -228,7 +227,7 @@ export class AgentThreadsController {
 
   private resolveOrganizationId(user: User): string {
     const { organization } = getPublicMetadata(user);
-    if (!ObjectIdUtil.isValid(organization)) {
+    if (!organization) {
       throw new UnauthorizedException(
         'Invalid organization context. Please sign in again.',
       );
@@ -245,7 +244,7 @@ export class AgentThreadsController {
     }
 
     const { user: metadataUserId } = getPublicMetadata(user);
-    if (ObjectIdUtil.isValid(metadataUserId)) {
+    if (metadataUserId) {
       const metadataUserDoc = await this.usersService.findOne(
         { _id: metadataUserId, clerkId },
         [],
@@ -261,7 +260,7 @@ export class AgentThreadsController {
     }
 
     const mongoUserId = String(dbUser._id);
-    if (!ObjectIdUtil.isValid(mongoUserId)) {
+    if (!mongoUserId) {
       throw new UnauthorizedException('Invalid user account reference');
     }
 

@@ -7,6 +7,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
+import { assertSafeWebhookEndpoint } from './webhook-endpoint.validator';
 
 @Injectable()
 export class WebhookClientService {
@@ -51,6 +52,8 @@ export class WebhookClientService {
         );
         return;
       }
+
+      await assertSafeWebhookEndpoint(settings.webhookEndpoint);
 
       // Serialize ingredient
       const serializedIngredient = IngredientSerializer.serialize(ingredient);
@@ -124,10 +127,12 @@ export class WebhookClientService {
         return;
       }
 
+      await assertSafeWebhookEndpoint(settings.webhookEndpoint);
+
       const payload = {
+        ...data,
         event,
         timestamp: new Date().toISOString(),
-        ...data,
       };
 
       const jobData: WebhookJobData = {

@@ -9,7 +9,7 @@ export default defineConfig({
     validation: 'src/validation.ts',
   },
   external: ['@genfeedai/types'],
-  format: ['esm', 'cjs'],
+  format: ['esm'],
   sourcemap: true,
   splitting: true,
   treeshake: true,

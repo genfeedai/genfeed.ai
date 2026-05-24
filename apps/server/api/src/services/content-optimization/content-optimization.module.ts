@@ -13,9 +13,9 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [ContentOptimizationController],
   exports: [ContentOptimizationService, ContentOptimizationQueueService],
   imports: [
-    ConfigModule,
-    LoggerModule,
-    BrandMemoryModule,
+    forwardRef(() => ConfigModule),
+    forwardRef(() => LoggerModule),
+    forwardRef(() => BrandMemoryModule),
     forwardRef(() => ContentPerformanceModule),
     forwardRef(() => OpenAiLlmModule),
     BullModule.registerQueue({

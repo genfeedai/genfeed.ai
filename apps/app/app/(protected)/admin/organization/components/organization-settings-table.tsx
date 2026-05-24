@@ -183,8 +183,14 @@ export function OrganizationSettingsTable({
 
   useEffect(() => {
     if (selectedSetting) {
-      setTimeout(() => openModal(ModalEnum.EDIT_SETTING), 0);
+      const timer = window.setTimeout(
+        () => openModal(ModalEnum.EDIT_SETTING),
+        0,
+      );
+      return () => window.clearTimeout(timer);
     }
+
+    return undefined;
   }, [selectedSetting]);
 
   if (isLoading) {

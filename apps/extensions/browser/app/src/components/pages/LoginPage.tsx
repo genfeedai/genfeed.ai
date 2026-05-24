@@ -13,7 +13,7 @@ export default function LoginPage() {
         <Image src={logoUrl} width={80} alt="Genfeed" className="mb-6" />
       )}
 
-      <h2 className="text-2xl font-bold mb-2 text-foreground">
+      <h2 className="text-2xl font-semibold mb-2 text-foreground">
         Welcome to Genfeed
       </h2>
       <p className="text-muted-foreground text-center mb-6 px-4">

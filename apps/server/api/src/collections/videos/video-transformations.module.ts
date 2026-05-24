@@ -47,7 +47,7 @@ import { forwardRef, Module } from '@nestjs/common';
     // Utility modules
     forwardRef(() => ByokModule),
     forwardRef(() => CreditsModule),
-    FailedGenerationModule,
+    forwardRef(() => FailedGenerationModule),
     forwardRef(() => FileQueueModule),
     // Service modules
     forwardRef(() => FilesClientModule),

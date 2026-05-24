@@ -32,7 +32,7 @@ function OnboardingLayoutInner({ children }: LayoutProps) {
             <Image
               src={logoUrl}
               alt={EnvironmentService.LOGO_ALT}
-              className="h-8 w-8 object-contain invert"
+              className="size-8 object-contain invert"
               width={32}
               height={32}
               sizes="32px"

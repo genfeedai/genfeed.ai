@@ -130,7 +130,7 @@ export class TrendInspirationProcessor {
 
     // Filter by minimum viral score
     const filteredVideos = videos.filter(
-      (v: TrendingVideoDocument) => v.viralScore >= input.minViralScore,
+      (v: TrendingVideoDocument) => (v.viralScore ?? 0) >= input.minViralScore,
     );
 
     if (filteredVideos.length === 0) {
@@ -257,7 +257,7 @@ export class TrendInspirationProcessor {
 
     // Filter by minimum usage count
     let filteredSounds = sounds.filter(
-      (s: TrendingSoundDocument) => s.usageCount >= input.minUsageCount,
+      (s: TrendingSoundDocument) => (s.usageCount ?? 0) >= input.minUsageCount,
     );
 
     // Filter by max duration if specified
@@ -281,10 +281,10 @@ export class TrendInspirationProcessor {
       coverUrl: selectedSound.coverUrl || null,
       duration: selectedSound.duration || 0,
       growthRate: selectedSound.growthRate || 0,
-      soundId: selectedSound.soundId,
-      soundName: selectedSound.soundName,
+      soundId: selectedSound.soundId ?? selectedSound._id?.toString() ?? '',
+      soundName: selectedSound.soundName ?? 'Unknown sound',
       soundUrl: selectedSound.playUrl || '',
-      usageCount: selectedSound.usageCount,
+      usageCount: selectedSound.usageCount ?? 0,
     };
   }
 
@@ -369,16 +369,18 @@ export class TrendInspirationProcessor {
         postCount: h.postCount || 0,
       })),
       topSounds: sounds.slice(0, 5).map((s: TrendingSoundDocument) => ({
-        soundName: s.soundName,
-        usageCount: s.usageCount,
+        soundName: s.soundName ?? 'Unknown sound',
+        usageCount: s.usageCount ?? 0,
       })),
       topVideos: videos
-        .filter((v: TrendingVideoDocument) => v.viralScore >= minViralScore)
+        .filter(
+          (v: TrendingVideoDocument) => (v.viralScore ?? 0) >= minViralScore,
+        )
         .slice(0, 5)
         .map((v: TrendingVideoDocument) => ({
           title: v.title || 'Untitled',
           url: v.videoUrl,
-          viralScore: v.viralScore,
+          viralScore: v.viralScore ?? 0,
         })),
     };
   }

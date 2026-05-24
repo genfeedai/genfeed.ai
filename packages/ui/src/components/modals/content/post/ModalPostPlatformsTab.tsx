@@ -23,6 +23,7 @@ import { Input } from '@ui/primitives/input';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { IconType } from 'react-icons';
 import { FaInstagram, FaTiktok, FaXTwitter, FaYoutube } from 'react-icons/fa6';
@@ -217,9 +218,7 @@ export default function ModalPostPlatformsTab({
     <>
       {/* Platform selection */}
       <div className="mb-6">
-        <label className="text-sm font-medium block mb-2">
-          Available Platforms
-        </label>
+        <p className="text-sm font-medium mb-2">Available Platforms</p>
 
         <div className="grid grid-cols-4 gap-2">
           {platformConfigs.map((config) => {
@@ -258,7 +257,7 @@ export default function ModalPostPlatformsTab({
                   <div className="flex items-center gap-2 flex-1">
                     {Icon && (
                       <Icon
-                        className={`w-4 h-4 ${hasCredential ? color : 'text-foreground/30'}`}
+                        className={`size-4 ${hasCredential ? color : 'text-foreground/30'}`}
                       />
                     )}
                     {hasCredential && (
@@ -293,190 +292,158 @@ export default function ModalPostPlatformsTab({
           </div>
         ) : (
           <div className="space-y-4">
-            {platformConfigs
-              .filter((config) => config.enabled)
-              .map((config) => {
-                const hasCredential = !!config.credentialId;
-                const isCredentialValid = config.isCredentialValid !== false;
-                const isEnabled =
-                  hasCredential && isCredentialValid && config.enabled;
-                const Icon = platformIcons[config.platform];
-                const color = platformColors[config.platform];
-                const isTwitter =
-                  config.platform === CredentialPlatform.TWITTER;
-                const isYoutube =
-                  config.platform === CredentialPlatform.YOUTUBE;
-                const isInstagram =
-                  config.platform === CredentialPlatform.INSTAGRAM;
-                const currentLength = config.description?.length ?? 0;
+            {platformConfigs.reduce<ReactNode[]>((acc, config) => {
+              if (!config.enabled) return acc;
+              const hasCredential = !!config.credentialId;
+              const isCredentialValid = config.isCredentialValid !== false;
+              const isEnabled =
+                hasCredential && isCredentialValid && config.enabled;
+              const Icon = platformIcons[config.platform];
+              const color = platformColors[config.platform];
+              const isTwitter = config.platform === CredentialPlatform.TWITTER;
+              const isYoutube = config.platform === CredentialPlatform.YOUTUBE;
+              const isInstagram =
+                config.platform === CredentialPlatform.INSTAGRAM;
+              const currentLength = config.description?.length ?? 0;
 
-                return (
-                  <div
-                    key={config.platform}
-                    className={`bg-card border border-white/[0.08] p-4 space-y-3 ${
-                      isEnabled ? '' : 'bg-muted/20'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        {Icon && (
-                          <Icon
-                            className={`w-4 h-4 ${
-                              hasCredential ? color : 'text-foreground/40'
-                            }`}
-                          />
-                        )}
-                        {hasCredential && (
-                          <span className="text-xs text-foreground/60">
-                            @{config.handle}
-                          </span>
-                        )}
-                      </div>
-                      {!hasCredential && (
-                        <span className="text-xs text-warning">
-                          Connect account to enable
-                        </span>
+              const node = (
+                <div
+                  key={config.platform}
+                  className={`bg-card border border-white/[0.08] p-4 space-y-3 ${
+                    isEnabled ? '' : 'bg-muted/20'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      {Icon && (
+                        <Icon
+                          className={`size-4 ${
+                            hasCredential ? color : 'text-foreground/40'
+                          }`}
+                        />
                       )}
-                      {hasCredential && !isCredentialValid && (
-                        <span className="text-xs text-warning">
-                          Reconnect account to publish
+                      {hasCredential && (
+                        <span className="text-xs text-foreground/60">
+                          @{config.handle}
                         </span>
                       )}
                     </div>
-
-                    {isYoutube && (
-                      <FormControl label="YouTube Visibility">
-                        <SelectField
-                          name={`youtubeStatus-${config.credentialId || config.platform}`}
-                          value={config.status || 'unlisted'}
-                          onChange={(event) => {
-                            if (!isEnabled) {
-                              return;
-                            }
-
-                            updatePlatformConfig(config.credentialId, {
-                              status: event.target.value,
-                            });
-                          }}
-                          isDisabled={!isEnabled || isLoading}
-                        >
-                          <option value="public">Public</option>
-                          <option value="private">Private</option>
-                          <option value="unlisted">Unlisted</option>
-                          <option value="scheduled">Scheduled</option>
-                        </SelectField>
-                      </FormControl>
+                    {!hasCredential && (
+                      <span className="text-xs text-warning">
+                        Connect account to enable
+                      </span>
                     )}
+                    {hasCredential && !isCredentialValid && (
+                      <span className="text-xs text-warning">
+                        Reconnect account to publish
+                      </span>
+                    )}
+                  </div>
 
-                    {isInstagram && (
-                      <div className="space-y-3">
-                        <label className="text-sm font-medium">
-                          Instagram Post Type
+                  {isYoutube && (
+                    <FormControl label="YouTube Visibility">
+                      <SelectField
+                        name={`youtubeStatus-${config.credentialId || config.platform}`}
+                        value={config.status || 'unlisted'}
+                        onChange={(event) => {
+                          if (!isEnabled) {
+                            return;
+                          }
+
+                          updatePlatformConfig(config.credentialId, {
+                            status: event.target.value,
+                          });
+                        }}
+                        isDisabled={!isEnabled || isLoading}
+                      >
+                        <option value="public">Public</option>
+                        <option value="private">Private</option>
+                        <option value="unlisted">Unlisted</option>
+                        <option value="scheduled">Scheduled</option>
+                      </SelectField>
+                    </FormControl>
+                  )}
+
+                  {isInstagram && (
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium">Instagram Post Type</p>
+
+                      <RadioGroup
+                        className="space-y-2"
+                        disabled={!isEnabled || isLoading}
+                        value={
+                          config.category === PostCategory.IMAGE
+                            ? 'image'
+                            : config.isShareToFeedSelected
+                              ? 'video-feed'
+                              : 'video-only'
+                        }
+                        onValueChange={(value) => {
+                          if (!isEnabled) {
+                            return;
+                          }
+
+                          if (value === 'image') {
+                            updatePlatformConfig(config.credentialId, {
+                              category: PostCategory.IMAGE,
+                              isShareToFeedSelected: false,
+                            });
+                            return;
+                          }
+
+                          updatePlatformConfig(config.credentialId, {
+                            category: PostCategory.VIDEO,
+                            isShareToFeedSelected: value === 'video-feed',
+                          });
+                        }}
+                      >
+                        {/* Image Post */}
+                        <label
+                          className="flex items-center gap-2 cursor-pointer"
+                          htmlFor={`${config.credentialId}-instagram-image`}
+                        >
+                          <RadioGroupItem
+                            id={`${config.credentialId}-instagram-image`}
+                            value="image"
+                          />
+                          <span className="text-sm">Image Post</span>
                         </label>
 
-                        <RadioGroup
-                          className="space-y-2"
-                          disabled={!isEnabled || isLoading}
-                          value={
-                            config.category === PostCategory.IMAGE
-                              ? 'image'
-                              : config.isShareToFeedSelected
-                                ? 'video-feed'
-                                : 'video-only'
-                          }
-                          onValueChange={(value) => {
-                            if (!isEnabled) {
-                              return;
-                            }
-
-                            if (value === 'image') {
-                              updatePlatformConfig(config.credentialId, {
-                                category: PostCategory.IMAGE,
-                                isShareToFeedSelected: false,
-                              });
-                              return;
-                            }
-
-                            updatePlatformConfig(config.credentialId, {
-                              category: PostCategory.VIDEO,
-                              isShareToFeedSelected: value === 'video-feed',
-                            });
-                          }}
+                        {/* Reel Only */}
+                        <label
+                          className="flex items-center gap-2 cursor-pointer"
+                          htmlFor={`${config.credentialId}-instagram-video-only`}
                         >
-                          {/* Image Post */}
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <RadioGroupItem value="image" />
-                            <span className="text-sm">Image Post</span>
-                          </label>
-
-                          {/* Reel Only */}
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <RadioGroupItem value="video-only" />
-                            <span className="text-sm">Reel only</span>
-                          </label>
-
-                          {/* Reel + Feed */}
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <RadioGroupItem value="video-feed" />
-                            <span className="text-sm">Reel + Feed</span>
-                          </label>
-                        </RadioGroup>
-                      </div>
-                    )}
-
-                    {!isTwitter && (
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="text-sm font-medium">Title</label>
-                          <Button
-                            variant={ButtonVariant.GHOST}
-                            size={ButtonSize.XS}
-                            className="gap-2"
-                            onClick={() =>
-                              handleGenerateContent(
-                                config.credentialId,
-                                config.platform,
-                                'title',
-                              )
-                            }
-                            isDisabled={
-                              !isEnabled ||
-                              isLoading ||
-                              generatingTitleFor === config.credentialId
-                            }
-                            isLoading={
-                              generatingTitleFor === config.credentialId
-                            }
-                            icon={<HiSparkles className="w-3 h-3" />}
-                            label={
-                              generatingTitleFor === config.credentialId
-                                ? 'Generating...'
-                                : 'Generate'
-                            }
+                          <RadioGroupItem
+                            id={`${config.credentialId}-instagram-video-only`}
+                            value="video-only"
                           />
-                        </div>
-                        <Input
-                          type="text"
-                          value={config.label}
-                          onChange={(event) => {
-                            if (!isEnabled) {
-                              return;
-                            }
+                          <span className="text-sm">Reel only</span>
+                        </label>
 
-                            updatePlatformConfig(config.credentialId, {
-                              label: event.target.value,
-                            });
-                          }}
-                          placeholder={globalLabel || 'Enter title'}
-                          disabled={!isEnabled || isLoading}
-                        />
-                      </div>
-                    )}
+                        {/* Reel + Feed */}
+                        <label
+                          className="flex items-center gap-2 cursor-pointer"
+                          htmlFor={`${config.credentialId}-instagram-video-feed`}
+                        >
+                          <RadioGroupItem
+                            id={`${config.credentialId}-instagram-video-feed`}
+                            value="video-feed"
+                          />
+                          <span className="text-sm">Reel + Feed</span>
+                        </label>
+                      </RadioGroup>
+                    </div>
+                  )}
 
+                  {!isTwitter && (
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="text-sm font-medium">
-                          {isTwitter ? 'Tweet' : 'Description'}
+                        <label
+                          htmlFor={`platform-title-${config.credentialId || config.platform}`}
+                          className="text-sm font-medium"
+                        >
+                          Title
                         </label>
                         <Button
                           variant={ButtonVariant.GHOST}
@@ -486,91 +453,146 @@ export default function ModalPostPlatformsTab({
                             handleGenerateContent(
                               config.credentialId,
                               config.platform,
-                              'description',
+                              'title',
                             )
                           }
                           isDisabled={
                             !isEnabled ||
                             isLoading ||
-                            generatingDescFor === config.credentialId
+                            generatingTitleFor === config.credentialId
                           }
-                          isLoading={generatingDescFor === config.credentialId}
-                          icon={<HiSparkles className="w-3 h-3" />}
+                          isLoading={generatingTitleFor === config.credentialId}
+                          icon={<HiSparkles className="size-3" />}
                           label={
-                            generatingDescFor === config.credentialId
-                              ? 'Generating...'
+                            generatingTitleFor === config.credentialId
+                              ? 'Generating…'
                               : 'Generate'
                           }
                         />
                       </div>
-
-                      <Textarea
-                        className={isTwitter ? 'h-20' : 'h-24'}
-                        value={config.description}
+                      <Input
+                        id={`platform-title-${config.credentialId || config.platform}`}
+                        type="text"
+                        value={config.label}
                         onChange={(event) => {
                           if (!isEnabled) {
                             return;
                           }
 
                           updatePlatformConfig(config.credentialId, {
-                            description: event.target.value,
+                            label: event.target.value,
                           });
                         }}
-                        placeholder={
-                          isTwitter
-                            ? "What's happening?"
-                            : globalDescription || 'Enter description'
-                        }
+                        placeholder={globalLabel || 'Enter title'}
                         disabled={!isEnabled || isLoading}
                       />
+                    </div>
+                  )}
 
-                      {isTwitter && (
-                        <p className="text-xs text-foreground/70 mt-1">
-                          {280 - currentLength} characters remaining
-                        </p>
-                      )}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label
+                        htmlFor={`platform-description-${config.credentialId || config.platform}`}
+                        className="text-sm font-medium"
+                      >
+                        {isTwitter ? 'Tweet' : 'Description'}
+                      </label>
+                      <Button
+                        variant={ButtonVariant.GHOST}
+                        size={ButtonSize.XS}
+                        className="gap-2"
+                        onClick={() =>
+                          handleGenerateContent(
+                            config.credentialId,
+                            config.platform,
+                            'description',
+                          )
+                        }
+                        isDisabled={
+                          !isEnabled ||
+                          isLoading ||
+                          generatingDescFor === config.credentialId
+                        }
+                        isLoading={generatingDescFor === config.credentialId}
+                        icon={<HiSparkles className="size-3" />}
+                        label={
+                          generatingDescFor === config.credentialId
+                            ? 'Generating…'
+                            : 'Generate'
+                        }
+                      />
                     </div>
 
-                    <Checkbox
-                      name={`override-${config.platform}`}
-                      label="Override schedule time"
-                      className="checkbox-xs"
-                      isChecked={config.overrideSchedule}
+                    <Textarea
+                      id={`platform-description-${config.credentialId || config.platform}`}
+                      className={isTwitter ? 'h-20' : 'h-24'}
+                      value={config.description}
                       onChange={(event) => {
                         if (!isEnabled) {
                           return;
                         }
 
                         updatePlatformConfig(config.credentialId, {
-                          customScheduledDate: event.target.checked
-                            ? config.customScheduledDate
-                            : '',
-                          overrideSchedule: event.target.checked,
+                          description: event.target.value,
                         });
                       }}
-                      isDisabled={!isEnabled || isLoading}
+                      placeholder={
+                        isTwitter
+                          ? "What's happening?"
+                          : globalDescription || 'Enter description'
+                      }
+                      disabled={!isEnabled || isLoading}
                     />
 
-                    {config.overrideSchedule && (
-                      <Input
-                        type="datetime-local"
-                        value={config.customScheduledDate}
-                        onChange={(event) => {
-                          if (!isEnabled) {
-                            return;
-                          }
-
-                          updatePlatformConfig(config.credentialId, {
-                            customScheduledDate: event.target.value,
-                          });
-                        }}
-                        min={getMinDateTime().toISOString().slice(0, 16)}
-                        disabled={!isEnabled || isLoading}
-                      />
+                    {isTwitter && (
+                      <p className="text-xs text-foreground/70 mt-1">
+                        {280 - currentLength} characters remaining
+                      </p>
                     )}
                   </div>
-                );
-              })}
+
+                  <Checkbox
+                    name={`override-${config.platform}`}
+                    label="Override schedule time"
+                    className="checkbox-xs"
+                    isChecked={config.overrideSchedule}
+                    onChange={(event) => {
+                      if (!isEnabled) {
+                        return;
+                      }
+
+                      updatePlatformConfig(config.credentialId, {
+                        customScheduledDate: event.target.checked
+                          ? config.customScheduledDate
+                          : '',
+                        overrideSchedule: event.target.checked,
+                      });
+                    }}
+                    isDisabled={!isEnabled || isLoading}
+                  />
+
+                  {config.overrideSchedule && (
+                    <Input
+                      type="datetime-local"
+                      value={config.customScheduledDate}
+                      onChange={(event) => {
+                        if (!isEnabled) {
+                          return;
+                        }
+
+                        updatePlatformConfig(config.credentialId, {
+                          customScheduledDate: event.target.value,
+                        });
+                      }}
+                      min={getMinDateTime().toISOString().slice(0, 16)}
+                      disabled={!isEnabled || isLoading}
+                    />
+                  )}
+                </div>
+              );
+              acc.push(node);
+              return acc;
+            }, [])}
           </div>
         )}
       </div>

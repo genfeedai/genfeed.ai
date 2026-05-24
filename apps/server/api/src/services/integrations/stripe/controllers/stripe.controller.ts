@@ -1,6 +1,5 @@
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { CreateCheckoutSessionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
-import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -15,6 +14,7 @@ import {
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import type { User } from '@clerk/backend';
 import { isEEEnabled } from '@genfeedai/config';
+import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
 import { StripeUrlSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -112,6 +112,12 @@ export class StripeController {
               success: createCheckoutSessionDto.successUrl,
             }
           : undefined;
+      if (!subscription.stripeCustomerId) {
+        return returnBadRequest({
+          message: 'Subscription is missing stripeCustomerId',
+          success: false,
+        });
+      }
 
       const result = await this.stripeService.createPaymentSession(
         subscription.stripeCustomerId,
@@ -199,6 +205,12 @@ export class StripeController {
           dbUser._id.toString(),
         );
       }
+      if (!subscription.stripeCustomerId) {
+        return returnBadRequest({
+          message: 'Subscription is missing stripeCustomerId',
+          success: false,
+        });
+      }
 
       const result = await this.stripeService.createSetupCheckoutSession(
         subscription.stripeCustomerId,
@@ -251,6 +263,12 @@ export class StripeController {
 
       if (!subscription) {
         return returnNotFound('Subscription', publicMetadata.organization);
+      }
+      if (!subscription.stripeCustomerId) {
+        return returnBadRequest({
+          message: 'Subscription is missing stripeCustomerId',
+          success: false,
+        });
       }
 
       const billingUrl = await this.stripeService.getBillingPortalUrl(

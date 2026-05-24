@@ -210,6 +210,82 @@ Share wins in a way that teaches, credits others, and invites community.
 - Avoid humble-bragging ("I can't believe little old me...")
 - Make it useful — what can others learn from your path?
 
+### Format 6: Sales Objection → Thought Leadership Post
+
+Turn a real objection from a sales call, demo, or prospect conversation into a thought leadership post that attracts ideal buyers and pre-empts future objections.
+
+**Why it works:** The objection represents a real belief held by your target buyer. Addressing it publicly demonstrates expertise, builds trust with lurkers who have the same concern, and positions you as someone who understands the buyer's world — not just someone selling into it.
+
+#### Structure
+
+```
+[HOOK — state the objection as a bold, relatable opening line. Not "A prospect once told me..." — instead, voice the belief directly: "Most companies waste money on X."]
+
+[ACKNOWLEDGE — 1-2 lines: "I've heard this dozens of times. And honestly, they're not wrong to ask."]
+
+[THE HIDDEN ASSUMPTION — reveal the belief underneath the objection: "But this objection usually means [underlying assumption]. Here's what actually changes the math."]
+
+[REFRAME — 3-5 lines providing the alternative perspective or evidence that shifts the frame without dismissing the objection]
+
+[THE ACTUAL ANSWER — be direct about your POV. Not a product pitch — a professional belief statement that happens to be consistent with what your product does]
+
+[CTA — invite others who've heard this objection or hold this view to share their experience]
+```
+
+#### Common Sales Objections → Post Angles
+
+| Objection | Post Angle |
+|-----------|-----------|
+| "We don't have budget for that" | "Budget isn't the real objection. Uncertainty is." |
+| "We're happy with what we have" | "The thing about tools you're happy with..." |
+| "We need to get buy-in from [team]" | "When a decision needs 5 approvals, it's not a decision — it's a negotiation." |
+| "We'll revisit this next quarter" | "Next quarter is code for something specific." |
+| "We tried something like this before and it didn't work" | "Every 'it didn't work' has a backstory. Here's the most common one." |
+| "It's too complicated to implement" | "The implementation complexity objection almost always points to the same thing." |
+| "We're not ready yet" | "There's no such thing as 'ready.' There's only low-risk and high-risk decisions." |
+| "Can you just send me a proposal?" | "When a prospect asks for a proposal, they're not asking for a proposal." |
+
+#### Rules for Objection Posts
+
+- **Never identify the prospect** — voice the objection as a universal belief, not an individual's words
+- **Validate before reframing** — "they're not wrong to ask" lands better than dismissing the concern
+- **No product mention in the post body** — the connection between your expertise and your product should be implicit, not explicit
+- **End with a question that works for both buyers and sellers** — the best objection posts get comments from both sides of the table
+- **Keep it under 1,100 characters** — these posts compress best at medium length; they're not story posts
+
+#### Example
+
+```
+"We already have a social media manager."
+
+I hear this on almost every first call.
+
+And honestly — good. You should.
+
+But here's what I've noticed about this objection:
+It usually means "we're already paying for this."
+
+It doesn't mean "we're already getting results from this."
+
+Those are two completely different problems.
+
+A social media manager handles execution.
+An AI content OS handles scale, consistency, and iteration speed
+that one person — or even a team — physically can't match.
+
+The question isn't "do we have someone doing this?"
+The question is "are we producing enough content
+to actually move the needle on any metric that matters?"
+
+If yes: great, you don't need us.
+If no: the problem isn't headcount.
+
+How do you think about the difference between
+having coverage and having leverage?
+
+#contentmarketing #socialmedia #saas
+```
+
 ---
 
 ## Hook Patterns

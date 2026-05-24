@@ -1,9 +1,16 @@
 import { spawnSync } from 'node:child_process';
+import process from 'node:process';
+import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
+import type {
+  BrandAgentConfig,
+  BrandReferenceImage,
+} from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { LinksService } from '@api/collections/links/services/links.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -31,7 +38,11 @@ import {
 } from '@genfeedai/enums';
 import type {
   IExtractedBrandData,
+  IOnboardingAccessPreference,
+  IOrganizationSetting,
   IScrapedBrandData,
+  OnboardingAccessMode,
+  OnboardingRuntimeAccessMode,
 } from '@genfeedai/interfaces';
 import {
   type IOnboardingJourneyMissionState,
@@ -55,6 +66,13 @@ export interface BrandSetupResponse {
 }
 
 export interface InstallReadinessResponse {
+  access: {
+    byokConfiguredProviders: string[];
+    byokEnabled: boolean;
+    runtimeMode: OnboardingRuntimeAccessMode;
+    selectedMode: OnboardingAccessMode | null;
+    serverDefaultsReady: boolean;
+  };
   authMode: 'clerk' | 'none';
   billingMode: 'cloud_billing' | 'oss_local';
   localTools: {
@@ -84,6 +102,12 @@ export interface InstallReadinessResponse {
     hasOrganization: boolean;
     organizationId: string | null;
   };
+}
+
+interface OnboardingWorkspaceContext {
+  brandId: string | null;
+  organizationId: string;
+  userId: string;
 }
 
 /**
@@ -116,10 +140,81 @@ export class OnboardingService {
     private readonly proactiveOnboardingService: ProactiveOnboardingService,
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+    private readonly userSetupService: UserSetupService,
   ) {}
+
+  private getEntityId(record: unknown): string {
+    if (!record || typeof record !== 'object') {
+      return '';
+    }
+
+    const entity = record as Record<string, unknown>;
+    const id = entity._id ?? entity.id;
+
+    return typeof id === 'string' ? id : '';
+  }
 
   private isConfigured(value: unknown): boolean {
     return typeof value === 'string' && value.trim().length > 0;
+  }
+
+  private async ensureOnboardingWorkspace(
+    user: User,
+    category?: OrganizationCategory,
+  ): Promise<OnboardingWorkspaceContext> {
+    const publicMetadata = getPublicMetadata(user);
+    let userId = publicMetadata.user?.toString() ?? '';
+
+    let dbUser = userId
+      ? await this.usersService.findOne({ _id: userId, isDeleted: false }, [])
+      : null;
+
+    if (!dbUser && user.id) {
+      dbUser = await this.usersService.findOne(
+        { clerkId: user.id, isDeleted: false },
+        [],
+      );
+    }
+
+    userId = this.getEntityId(dbUser) || userId;
+    if (!userId) {
+      throw new HttpException(
+        {
+          detail: 'Missing local user account for Clerk authorization',
+          title: 'Bad Request',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    let organizationId = publicMetadata.organization?.toString() ?? '';
+    let brandId = publicMetadata.brand?.toString() ?? null;
+
+    if (!organizationId) {
+      const setupResult = await this.userSetupService.initializeUserResources(
+        userId,
+        category,
+      );
+
+      organizationId = this.getEntityId(setupResult.organization);
+      brandId = this.getEntityId(setupResult.brand) || null;
+    }
+
+    try {
+      await this.clerkService.updateUserPublicMetadata(user.id, {
+        brand: brandId || undefined,
+        organization: organizationId,
+        user: userId,
+      });
+    } catch (error: unknown) {
+      this.loggerService.warn('Failed to repair Clerk onboarding metadata', {
+        error: error instanceof Error ? error.message : error,
+        organizationId,
+        userId,
+      });
+    }
+
+    return { brandId, organizationId, userId };
   }
 
   private getProviderReadiness() {
@@ -170,6 +265,88 @@ export class OnboardingService {
       codex,
       detected,
     };
+  }
+
+  private normalizeAccessMode(value: unknown): OnboardingAccessMode | null {
+    if (value === 'server' || value === 'byok' || value === 'cloud') {
+      return value;
+    }
+
+    return null;
+  }
+
+  private getSelectedAccessMode(
+    dashboardPreferences?: unknown,
+  ): OnboardingAccessMode | null {
+    if (!dashboardPreferences || typeof dashboardPreferences !== 'object') {
+      return null;
+    }
+
+    const onboarding = (
+      dashboardPreferences as { onboarding?: IOnboardingAccessPreference }
+    ).onboarding;
+
+    return this.normalizeAccessMode(onboarding?.accessMode);
+  }
+
+  private getConfiguredByokProviders(
+    organizationSettings?: Pick<IOrganizationSetting, 'byokKeys'> | null,
+  ): string[] {
+    const byokKeys = organizationSettings?.byokKeys;
+
+    if (!byokKeys || typeof byokKeys !== 'object') {
+      return [];
+    }
+
+    return Object.entries(byokKeys).flatMap(([providerKey, entry]) => {
+      if (!entry?.isEnabled || !entry.apiKey?.trim()) {
+        return [];
+      }
+
+      const provider =
+        typeof entry.provider === 'string' && entry.provider.trim()
+          ? entry.provider
+          : providerKey;
+
+      return [provider];
+    });
+  }
+
+  private readBrandAgentConfig(value: unknown): BrandAgentConfig {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+
+    return value as BrandAgentConfig;
+  }
+
+  private readBrandReferenceImages(value: unknown): BrandReferenceImage[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.flatMap((entry) => {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        return [];
+      }
+
+      const record = entry as Record<string, unknown>;
+      const category =
+        typeof record.category === 'string' ? record.category : 'reference';
+      const label = typeof record.label === 'string' ? record.label : undefined;
+      const url = typeof record.url === 'string' ? record.url : undefined;
+      const isDefault =
+        typeof record.isDefault === 'boolean' ? record.isDefault : undefined;
+
+      return [
+        {
+          category,
+          ...(isDefault !== undefined ? { isDefault } : {}),
+          ...(label ? { label } : {}),
+          ...(url ? { url } : {}),
+        } as BrandReferenceImage,
+      ];
+    });
   }
 
   private buildFallbackScrapedData(
@@ -291,11 +468,6 @@ export class OnboardingService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`, { brandUrl: dto.brandUrl });
 
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
-    const userId = publicMetadata.user;
-    const metadataBrandId = publicMetadata.brand?.toString() ?? null;
-
     try {
       // 1. Validate URL
       const validation = this.brandScraperService.validateUrl(dto.brandUrl);
@@ -305,6 +477,11 @@ export class OnboardingService {
           HttpStatus.BAD_REQUEST,
         );
       }
+
+      const workspace = await this.ensureOnboardingWorkspace(user);
+      const organizationId = workspace.organizationId;
+      const userId = workspace.userId;
+      const metadataBrandId = workspace.brandId;
 
       // 2. Find existing brand for user (created during signup)
       const existingBrand = await this.resolveOnboardingBrand(
@@ -439,7 +616,7 @@ export class OnboardingService {
         scrapedData.aboutText ||
         scrapedData.heroText ||
         scrapedData.tagline ||
-        scrapedData.valuePropositions.length > 0
+        (scrapedData.valuePropositions?.length ?? 0) > 0
           ? await this.masterPromptGeneratorService.analyzeBrandVoice(
               scrapedData,
               {
@@ -532,7 +709,7 @@ export class OnboardingService {
 
     const normalizedMissions =
       this.organizationSettingsService.normalizeJourneyState(
-        settings.onboardingJourneyMissions as
+        settings.onboardingJourneyMissions as unknown as
           | IOnboardingJourneyMissionState[]
           | undefined,
       );
@@ -671,10 +848,8 @@ export class OnboardingService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`);
 
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
-
     try {
+      const { organizationId } = await this.ensureOnboardingWorkspace(user);
       // Mark onboarding as skipped
       await this.completeOnboarding(organizationId);
 
@@ -700,8 +875,7 @@ export class OnboardingService {
   async getOnboardingStatus(
     user: User,
   ): Promise<{ isFirstLogin: boolean; hasCompletedOnboarding: boolean }> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
+    const { organizationId } = await this.ensureOnboardingWorkspace(user);
 
     const settings = await this.organizationSettingsService.findOne({
       isDeleted: false,
@@ -715,14 +889,32 @@ export class OnboardingService {
   }
 
   async getInstallReadiness(user: User): Promise<InstallReadinessResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString() ?? null;
-    const brandId = publicMetadata.brand?.toString() ?? null;
+    const workspace = await this.ensureOnboardingWorkspace(user);
+    const organizationId = workspace.organizationId;
+    const brandId = workspace.brandId;
+    const userId = workspace.userId;
     const providers = this.getProviderReadiness();
     const showBillingUi = isEEEnabled();
 
     let hasOrganization = false;
     let hasBrand = false;
+    let selectedMode: OnboardingAccessMode | null = null;
+    let organizationSettings: Pick<
+      IOrganizationSetting,
+      'byokKeys' | 'isByokEnabled'
+    > | null = null;
+
+    if (userId && /^[0-9a-f]{24}$/i.test(userId)) {
+      const dbUser = await this.usersService.findOne({
+        _id: userId,
+        isDeleted: false,
+      });
+
+      selectedMode = this.getSelectedAccessMode(
+        (dbUser?.settings as { dashboardPreferences?: unknown } | undefined)
+          ?.dashboardPreferences,
+      );
+    }
 
     if (organizationId && /^[0-9a-f]{24}$/i.test(organizationId)) {
       const organization = await this.organizationsService.findOne({
@@ -733,16 +925,41 @@ export class OnboardingService {
       hasOrganization = !!organization;
 
       if (organization) {
-        const brand = await this.brandsService.findOne({
-          isDeleted: false,
-          organization: organization._id,
-        });
+        const [brand, settings] = await Promise.all([
+          this.brandsService.findOne({
+            isDeleted: false,
+            organization: organization._id,
+          }),
+          this.organizationSettingsService.findOne({
+            isDeleted: false,
+            organization: organization._id,
+          }),
+        ]);
 
         hasBrand = !!brand;
+        organizationSettings = settings as unknown as Pick<
+          IOrganizationSetting,
+          'byokKeys' | 'isByokEnabled'
+        >;
       }
     }
 
+    const byokConfiguredProviders =
+      this.getConfiguredByokProviders(organizationSettings);
+    const runtimeMode: OnboardingRuntimeAccessMode =
+      byokConfiguredProviders.length > 0 ? 'byok' : 'server';
+    const byokEnabled =
+      Boolean(organizationSettings?.isByokEnabled) ||
+      byokConfiguredProviders.length > 0;
+
     return {
+      access: {
+        byokConfiguredProviders,
+        byokEnabled,
+        runtimeMode,
+        selectedMode,
+        serverDefaultsReady: providers.anyConfigured,
+      },
       authMode: user.id ? 'clerk' : 'none',
       billingMode: showBillingUi ? 'cloud_billing' : 'oss_local',
       localTools: this.getLocalToolReadiness(),
@@ -772,10 +989,11 @@ export class OnboardingService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`, { category });
 
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
-
     try {
+      const { organizationId } = await this.ensureOnboardingWorkspace(
+        user,
+        category,
+      );
       await this.organizationsService.patch(organizationId.toString(), {
         accountType: category,
         category,
@@ -817,9 +1035,10 @@ export class OnboardingService {
     this.loggerService.log(`${caller} starting`);
 
     try {
+      const workspace = await this.ensureOnboardingWorkspace(user);
       const publicMetadata = getPublicMetadata(user);
       const proactiveLeadId = publicMetadata.proactiveLeadId?.toString();
-      const organizationId = publicMetadata.organization?.toString();
+      const organizationId = workspace.organizationId;
 
       if (proactiveLeadId && organizationId) {
         await this.proactiveOnboardingService.markPaymentMade(
@@ -842,10 +1061,13 @@ export class OnboardingService {
         });
       }
 
-      await Promise.all([
-        this.requestContextCacheService.invalidateForUser(user.id),
-        this.accessBootstrapCacheService.invalidateForUser(user.id),
-      ]);
+      const dbUserId = dbUser?._id?.toString();
+      if (dbUserId) {
+        await Promise.all([
+          this.requestContextCacheService.invalidateForUser(dbUserId),
+          this.accessBootstrapCacheService.invalidateForUser(dbUserId),
+        ]);
+      }
 
       this.loggerService.log(`${caller} completed`);
 
@@ -1114,11 +1336,17 @@ export class OnboardingService {
     const brandId_str = String(
       (brand as Record<string, unknown>).id ?? brand._id,
     );
-    const existingImages = Array.isArray(brand.referenceImages)
-      ? (brand.referenceImages as unknown[])
-      : [];
+    const existingImages = this.readBrandReferenceImages(brand.referenceImages);
     await this.brandsService.patch(brandId_str, {
-      referenceImages: [...existingImages, ...images],
+      referenceImages: [
+        ...existingImages,
+        ...images.map((image) => ({
+          category: image.category,
+          isDefault: image.isDefault,
+          label: image.label,
+          url: image.url,
+        })),
+      ],
     });
 
     this.loggerService.log(`${caller} completed`, {
@@ -1141,11 +1369,11 @@ export class OnboardingService {
       brandName: dto.brandName,
     });
 
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization;
-    const userId = publicMetadata.user;
-
     try {
+      const workspace = await this.ensureOnboardingWorkspace(user);
+      const organizationId = workspace.organizationId;
+      const userId = workspace.userId;
+
       const brand = await this.brandsService.findOne(
         {
           isDeleted: false,
@@ -1256,8 +1484,10 @@ export class OnboardingService {
     }
 
     if (Object.keys(updateData).length > 0) {
-      // @ts-expect-error TS2345
-      await this.brandsService.patch(brandId, updateData);
+      await this.brandsService.patch(
+        brandId,
+        updateData as Partial<UpdateBrandDto>,
+      );
     }
   }
 
@@ -1278,7 +1508,7 @@ export class OnboardingService {
     });
 
     if (existingWebsiteLink) {
-      await this.linksService.patch(String(existingWebsiteLink._id), {
+      await this.linksService.patch(String(existingWebsiteLink.id), {
         label: 'Website',
         url: normalizedUrl,
       });
@@ -1306,6 +1536,8 @@ export class OnboardingService {
       return;
     }
 
+    const brandAgentConfig = this.readBrandAgentConfig(brand.agentConfig);
+
     const extractedVoice = extractedData.brandVoice as
       | {
           audience?: string;
@@ -1322,13 +1554,13 @@ export class OnboardingService {
 
     const nextVoice = extractedData.brandVoice
       ? {
-          ...(brand.agentConfig?.voice ?? {}),
+          ...(brandAgentConfig.voice ?? {}),
           audience: extractedVoice?.audience
             ? extractedVoice.audience
                 .split(',')
                 .map((value) => value.trim())
                 .filter(Boolean)
-            : (brand.agentConfig?.voice?.audience ?? []),
+            : (brandAgentConfig.voice?.audience ?? []),
           doNotSoundLike: extractedVoice?.doNotSoundLike ?? [],
           hashtags: extractedVoice?.hashtags ?? [],
           messagingPillars: extractedVoice?.messagingPillars ?? [],
@@ -1338,11 +1570,11 @@ export class OnboardingService {
           tone: extractedVoice?.tone,
           values: extractedVoice?.values ?? [],
         }
-      : brand.agentConfig?.voice;
+      : brandAgentConfig.voice;
 
     await this.brandsService.patch(brandId, {
       agentConfig: {
-        ...(brand.agentConfig ?? {}),
+        ...brandAgentConfig,
         ...(nextVoice ? { voice: nextVoice } : {}),
       },
     });
@@ -1361,11 +1593,12 @@ export class OnboardingService {
       return;
     }
 
-    const existingVoice = brand.agentConfig?.voice ?? {};
+    const brandAgentConfig = this.readBrandAgentConfig(brand.agentConfig);
+    const existingVoice = brandAgentConfig.voice ?? {};
 
     await this.brandsService.patch(brandId, {
       agentConfig: {
-        ...(brand.agentConfig ?? {}),
+        ...brandAgentConfig,
         voice: {
           ...existingVoice,
           ...(dto.audience

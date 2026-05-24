@@ -23,12 +23,12 @@ import type {
 } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   AdsResearchService,
   type UnifiedAdAccountOption,
 } from '@services/ads/ads-research.service';
+import { useQuery } from '@tanstack/react-query';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
@@ -271,8 +271,8 @@ function AdGridCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-card text-white/70">
-            <HiOutlineMegaphone className="h-4 w-4" />
+          <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-card text-white/70">
+            <HiOutlineMegaphone className="size-4" />
           </div>
 
           <div className="min-w-0">
@@ -314,6 +314,7 @@ function AdGridCard({
             alt={item.title}
             fill
             unoptimized
+            sizes="(min-width: 768px) 20rem, 100vw"
             className="object-cover"
           />
         </div>
@@ -550,7 +551,7 @@ function LaunchPrepPanel({ prep }: { prep: CampaignLaunchPrep }) {
           className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
         >
           Open linked workflow
-          <HiOutlineArrowTopRightOnSquare className="h-4 w-4" />
+          <HiOutlineArrowTopRightOnSquare className="size-4" />
         </Link>
       )}
     </div>
@@ -599,13 +600,13 @@ function DetailSidebar({
       <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-[480px] overflow-y-auto border-l border-white/[0.06] bg-background shadow-2xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.06] bg-background px-5 py-4">
           <div className="flex items-center gap-2">
-            <HiOutlineChartBar className="h-5 w-5 text-primary" />
+            <HiOutlineChartBar className="size-5 text-primary" />
             <h2 className="text-lg font-semibold text-foreground">Ad Detail</h2>
           </div>
           <Button
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
-            icon={<HiOutlineXMark className="h-4 w-4" />}
+            icon={<HiOutlineXMark className="size-4" />}
             onClick={onClose}
             ariaLabel="Close detail"
           />
@@ -613,9 +614,7 @@ function DetailSidebar({
 
         <div className="space-y-5 p-5">
           {detailLoading || !detail ? (
-            <p className="text-sm text-muted-foreground">
-              Loading ad detail...
-            </p>
+            <p className="text-sm text-muted-foreground">Loading ad detail…</p>
           ) : (
             <>
               <div className="space-y-3">
@@ -717,7 +716,7 @@ function DetailSidebar({
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
                   >
                     Open landing page
-                    <HiOutlineArrowTopRightOnSquare className="h-4 w-4" />
+                    <HiOutlineArrowTopRightOnSquare className="size-4" />
                   </a>
                 )}
               </div>
@@ -734,7 +733,7 @@ function DetailSidebar({
                   size={ButtonSize.SM}
                   isLoading={busyAction === 'ad_pack'}
                   onClick={() => onRunAction('ad_pack')}
-                  icon={<HiOutlineSparkles className="h-4 w-4" />}
+                  icon={<HiOutlineSparkles className="size-4" />}
                 >
                   Remix for my brand
                 </Button>
@@ -743,7 +742,7 @@ function DetailSidebar({
                   size={ButtonSize.SM}
                   isLoading={busyAction === 'workflow'}
                   onClick={() => onRunAction('workflow')}
-                  icon={<HiOutlineWrenchScrewdriver className="h-4 w-4" />}
+                  icon={<HiOutlineWrenchScrewdriver className="size-4" />}
                 >
                   Create workflow
                 </Button>
@@ -752,7 +751,7 @@ function DetailSidebar({
                   size={ButtonSize.SM}
                   isLoading={busyAction === 'launch_prep'}
                   onClick={() => onRunAction('launch_prep')}
-                  icon={<HiOutlineRocketLaunch className="h-4 w-4" />}
+                  icon={<HiOutlineRocketLaunch className="size-4" />}
                 >
                   Prepare campaign
                 </Button>
@@ -776,7 +775,7 @@ function DetailSidebar({
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
                   >
                     Open workflow editor
-                    <HiOutlineArrowTopRightOnSquare className="h-4 w-4" />
+                    <HiOutlineArrowTopRightOnSquare className="size-4" />
                   </Link>
                 </div>
               )}
@@ -855,26 +854,33 @@ export default function AdsResearchPageClient({
 
   const credentialOptions = useMemo(
     () =>
-      credentials
-        .filter((credential) => {
-          const value = String(credential.platform || '').toLowerCase();
+      credentials.reduce<CredentialOption[]>((options, credential) => {
+        const value = String(credential.platform || '').toLowerCase();
 
-          if (effectivePlatform === 'meta') {
-            return value === 'facebook' || value === 'meta';
+        if (effectivePlatform === 'meta') {
+          if (value === 'facebook' || value === 'meta') {
+            options.push(credential as CredentialOption);
           }
+          return options;
+        }
 
-          if (effectivePlatform === 'google') {
-            return value === 'google_ads' || value === 'google';
+        if (effectivePlatform === 'google') {
+          if (value === 'google_ads' || value === 'google') {
+            options.push(credential as CredentialOption);
           }
+          return options;
+        }
 
-          return (
-            value === 'facebook' ||
-            value === 'meta' ||
-            value === 'google_ads' ||
-            value === 'google'
-          );
-        })
-        .map((credential) => credential as CredentialOption),
+        if (
+          value === 'facebook' ||
+          value === 'meta' ||
+          value === 'google_ads' ||
+          value === 'google'
+        ) {
+          options.push(credential as CredentialOption);
+        }
+        return options;
+      }, []),
     [credentials, effectivePlatform],
   );
 
@@ -910,24 +916,30 @@ export default function AdsResearchPageClient({
   );
 
   const {
-    data: results,
+    data: results = EMPTY_RESPONSE,
     error: resultsError,
     isLoading,
-    refresh,
-  } = useResource(
-    async () => {
+    refetch,
+  } = useQuery({
+    queryKey: ['ads-research', filters, isReady],
+    queryFn: async () => {
       const service = await getAdsResearchService();
       return await service.list(filters);
     },
-    {
-      defaultValue: EMPTY_RESPONSE,
-      dependencies: [filters, isReady],
-      enabled: isReady,
-    },
-  );
+    enabled: isReady,
+  });
 
-  const { data: adAccounts, error: accountsError } = useResource(
-    async () => {
+  const {
+    data: adAccounts = [] as UnifiedAdAccountOption[],
+    error: accountsError,
+  } = useQuery({
+    queryKey: [
+      'ads-ad-accounts',
+      credentialId,
+      effectivePlatform,
+      loginCustomerId,
+    ],
+    queryFn: async () => {
       const service = await getAdsResearchService();
       return await service.listAdAccounts({
         credentialId,
@@ -935,19 +947,16 @@ export default function AdsResearchPageClient({
         platform: effectivePlatform as AdsResearchPlatform,
       });
     },
-    {
-      defaultValue: [] as UnifiedAdAccountOption[],
-      dependencies: [credentialId, effectivePlatform, loginCustomerId],
-      enabled: !!credentialId && effectivePlatform !== 'all',
-    },
-  );
+    enabled: !!credentialId && effectivePlatform !== 'all',
+  });
 
   const {
     data: detail,
     error: detailError,
     isLoading: detailLoading,
-  } = useResource(
-    async () => {
+  } = useQuery({
+    queryKey: ['ads-research-detail', selectedAd],
+    queryFn: async () => {
       if (!selectedAd) {
         return null;
       }
@@ -955,11 +964,8 @@ export default function AdsResearchPageClient({
       const service = await getAdsResearchService();
       return await service.getDetail(selectedAd);
     },
-    {
-      dependencies: [selectedAd],
-      enabled: !!selectedAd,
-    },
-  );
+    enabled: !!selectedAd,
+  });
 
   // Combine all ads into a single flat list
   const allAds = useMemo(() => {
@@ -1130,12 +1136,12 @@ export default function AdsResearchPageClient({
           <ViewToggle
             options={[
               {
-                icon: <HiViewColumns className="h-4 w-4" />,
+                icon: <HiViewColumns className="size-4" />,
                 label: 'Grid view',
                 type: ViewType.GRID,
               },
               {
-                icon: <HiTableCells className="h-4 w-4" />,
+                icon: <HiTableCells className="size-4" />,
                 label: 'Table view',
                 type: ViewType.TABLE,
               },
@@ -1208,7 +1214,7 @@ export default function AdsResearchPageClient({
               showFilters ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
             }
             size={ButtonSize.SM}
-            icon={<HiOutlineFunnel className="h-4 w-4" />}
+            icon={<HiOutlineFunnel className="size-4" />}
             onClick={() => setShowFilters(!showFilters)}
             className="rounded-lg border border-white/[0.06]"
           >
@@ -1227,7 +1233,7 @@ export default function AdsResearchPageClient({
           <Button
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
-            onClick={() => refresh()}
+            onClick={() => refetch()}
           >
             Refresh
           </Button>
@@ -1276,7 +1282,7 @@ export default function AdsResearchPageClient({
           <Input
             value={industry}
             onChange={(event) => setIndustry(event.target.value)}
-            placeholder="Niche / industry..."
+            placeholder="Niche / industry…"
             className="h-8 w-[160px] text-xs"
           />
           <Select

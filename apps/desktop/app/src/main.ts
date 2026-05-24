@@ -1,10 +1,18 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type {
+  DesktopSyncCursorScope,
+  IDesktopAssetGenerationRequest,
+  IDesktopAssetSyncUpdate,
   IDesktopBootstrap,
+  IDesktopBrandManifest,
   IDesktopContentRunDraft,
   IDesktopDataService,
   IDesktopGenerationOptions,
+  IDesktopGenerationProviderConfig,
+  IDesktopSyncOpAck,
+  IDesktopTerminalCreateOptions,
+  IDesktopWorkflowGenerationOptions,
 } from '@genfeedai/desktop-contracts';
 import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
 import {
@@ -16,19 +24,27 @@ import {
   shell,
 } from 'electron';
 import { DesktopAppShellService } from './main/app-shell.service';
+import {
+  buildDesktopFailureScreenUrl,
+  buildDesktopLoadingScreenUrl,
+  getDesktopBootBackground,
+} from './main/boot-screen';
 import { DesktopCloudService } from './main/cloud.service';
 import { DesktopConfigService } from './main/config.service';
-import { DesktopDatabaseService } from './main/database.service';
 import { DesktopDraftsService } from './main/drafts.service';
+import { buildExternalAppUrl } from './main/external-url.util';
 import { DesktopFilesService } from './main/files.service';
+import { DesktopGenerationService } from './main/generation.service';
+import { DesktopKvService } from './main/kv.service';
 import { DesktopLocalService } from './main/local.service';
-import { LocalIdentityService } from './main/local-identity.service';
 import { buildDesktopMenu } from './main/menu.service';
+import { DesktopPgliteService } from './main/pglite.service';
 import { DesktopPrismaService } from './main/prisma.service';
 import { DesktopSessionService } from './main/session.service';
 import { DesktopShortcutsService } from './main/shortcuts.service';
 import { DesktopSyncService } from './main/sync.service';
 import { DesktopTelemetryService } from './main/telemetry.service';
+import { DesktopTerminalService } from './main/terminal.service';
 import { DesktopTrayService } from './main/tray.service';
 import { DesktopWorkspaceService } from './main/workspace.service';
 
@@ -36,29 +52,21 @@ const configService = new DesktopConfigService();
 const environment = configService.getEnvironment();
 
 let mainWindow: BrowserWindow | null = null;
-
-const prismaService = new DesktopPrismaService();
-const database = new DesktopDatabaseService(prismaService);
-const localIdentityService = new LocalIdentityService(database);
-const sessionService = new DesktopSessionService(database, environment);
-const workspaceService = new DesktopWorkspaceService(database);
-const filesService = new DesktopFilesService(workspaceService);
-const syncService = new DesktopSyncService(database);
-const cloudService = new DesktopCloudService(environment, () =>
-  sessionService.getSession(),
-);
-const localService = new DesktopLocalService(prismaService, () => ({
-  clerkId: localIdentityService.getClerkId(),
-  localUserId: localIdentityService.getLocalUserId(),
-  userEmail: sessionService.getSession()?.userEmail,
-  userName: sessionService.getSession()?.userName,
-}));
-const draftsService = new DesktopDraftsService(workspaceService);
-const appShellService = new DesktopAppShellService(
-  environment,
-  () => sessionService.getSession(),
-  database.getDatabasePath(),
-);
+let bootstrapCache: IDesktopBootstrap | null = null;
+let pgliteService: DesktopPgliteService;
+let prismaService: DesktopPrismaService;
+let kvService: DesktopKvService;
+let sessionService: DesktopSessionService;
+let workspaceService: DesktopWorkspaceService;
+let filesService: DesktopFilesService;
+let syncService: DesktopSyncService;
+let terminalService: DesktopTerminalService;
+let generationService: DesktopGenerationService;
+let cloudService: DesktopCloudService;
+let localService: DesktopLocalService;
+let draftsService: DesktopDraftsService;
+let appShellService: DesktopAppShellService;
+let isOfflineMode = false;
 
 const telemetryService = new DesktopTelemetryService(environment);
 
@@ -70,46 +78,103 @@ const isSmokeTest =
   process.argv.includes('--smoke-test') ||
   process.env.GENFEED_DESKTOP_SMOKE_TEST === '1';
 
+const LOCAL_PROVIDER_REQUIRED_ERROR =
+  'Configure a local generation provider before generating content.';
+
+const CLOUD_CREDITS_OR_LOCAL_PROVIDER_ERROR =
+  'Connect your Genfeed account to use Genfeed server credits, or configure a local provider/API key for offline generation.';
+
+const isLocalProviderRequiredError = (error: unknown): boolean =>
+  error instanceof Error &&
+  error.message.includes(LOCAL_PROVIDER_REQUIRED_ERROR);
+
+const LOCAL_ORGANIZATION = {
+  id: 'local-org',
+  name: 'Local Workspace',
+  slug: 'local-workspace',
+} as const;
+const LOCAL_USER = {
+  id: 'local-user',
+  name: 'Local Desktop User',
+  organizationId: LOCAL_ORGANIZATION.id,
+} as const;
+const OFFLINE_MODE_KEY = 'desktop.offline.mode';
+const ONBOARDING_COMPLETED_KEY = 'onboarding.completed';
+const SYNC_THREADS_CURSOR_KEY = 'sync.threads.cursor';
+const LOCAL_CLERK_ID_KEY = 'local.user.clerkId';
+
+function getSyncCursorKey(scope: DesktopSyncCursorScope = 'threads'): string {
+  return scope === 'threads' ? SYNC_THREADS_CURSOR_KEY : `sync.${scope}.cursor`;
+}
+
+function getClerkId(): string | null {
+  return kvService.getValueSync(LOCAL_CLERK_ID_KEY);
+}
+
+function getDataService(): IDesktopDataService {
+  return sessionService.getSession() ? cloudService : localService;
+}
+
 const emitQuickGenerate = (): void => {
   mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.quickGenerate);
 };
 
-const emitSession = (): void => {
+const emitSession = async (): Promise<void> => {
   const session = sessionService.getSession();
   telemetryService.setUser(session);
   mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.authChanged, session);
 };
 
 const emitBootstrap = async (): Promise<void> => {
+  bootstrapCache = null;
   mainWindow?.webContents.send(
     DESKTOP_IPC_CHANNELS.bootstrapChanged,
-    await getBootstrap(),
+    getBootstrap(),
   );
 };
 
-const getBootstrap = async (): Promise<IDesktopBootstrap> => {
-  const [recents, syncState, workspaces] = await Promise.all([
-    workspaceService.listRecents(),
-    syncService.getState(),
-    workspaceService.listRecentWorkspaces(),
-  ]);
+const getBootstrap = (): IDesktopBootstrap => {
+  if (bootstrapCache) {
+    return bootstrapCache;
+  }
 
-  return {
-    clerkId: localIdentityService.getClerkId(),
+  const bootstrap: IDesktopBootstrap = {
+    clerkId: getClerkId(),
     environment: sessionService.getEnvironment(),
-    localUserId: localIdentityService.getLocalUserId(),
+    isOfflineMode,
+    localOrganization: { ...LOCAL_ORGANIZATION },
+    localUser: {
+      ...LOCAL_USER,
+      userEmail: sessionService.getSession()?.userEmail,
+    },
+    localUserId: LOCAL_USER.id,
     preferences: {
       nativeNotificationsEnabled: Notification.isSupported(),
     },
-    recents,
+    brands: syncService.listBrands(),
+    recents: workspaceService.listRecents(),
     session: sessionService.getSession(),
-    syncState,
-    workspaces,
+    syncState: syncService.getState(),
+    workspaces: workspaceService.listRecentWorkspaces(),
   };
+
+  bootstrapCache = bootstrap;
+  return bootstrap;
 };
 
-const getDataService = (): IDesktopDataService =>
-  sessionService.getSession() ? cloudService : localService;
+const runDataService = async <T>(
+  callback: (service: IDesktopDataService) => Promise<T>,
+): Promise<T> => {
+  try {
+    return await callback(getDataService());
+  } catch (error) {
+    if (isLocalProviderRequiredError(error)) {
+      throw new Error(CLOUD_CREDITS_OR_LOCAL_PROVIDER_ERROR);
+    }
+
+    throw error;
+  }
+};
 
 const acquiredSingleInstanceLock = app.requestSingleInstanceLock();
 
@@ -119,12 +184,12 @@ if (!acquiredSingleInstanceLock) {
 
 const createWindow = async (): Promise<void> => {
   mainWindow = new BrowserWindow({
-    backgroundColor: '#05070b',
+    backgroundColor: getDesktopBootBackground(),
     height: 980,
     minHeight: 780,
     minWidth: 1280,
     show: false,
-    title: 'Genfeed Desktop',
+    title: 'GenFeed',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
       contextIsolation: true,
@@ -140,12 +205,6 @@ const createWindow = async (): Promise<void> => {
   });
 
   const isDev = !app.isPackaged;
-
-  if (isDev && !isSmokeTest) {
-    mainWindow.webContents.once('did-finish-load', () => {
-      mainWindow?.webContents.openDevTools({ mode: 'detach' });
-    });
-  }
 
   mainWindow.webContents.on('before-input-event', (_event, input) => {
     if (input.type !== 'keyDown') {
@@ -163,12 +222,6 @@ const createWindow = async (): Promise<void> => {
 
     if (isMacToggle || isWinToggle) {
       mainWindow?.webContents.toggleDevTools();
-    }
-  });
-
-  mainWindow.webContents.on('did-finish-load', () => {
-    if (isSmokeTest) {
-      setTimeout(() => app.exit(0), 250);
     }
   });
 
@@ -205,11 +258,24 @@ const createWindow = async (): Promise<void> => {
   appShellService.registerAuthHeaders(mainWindow);
 
   try {
+    await mainWindow.loadURL(buildDesktopLoadingScreenUrl());
     await appShellService.start();
     await mainWindow.loadURL(
       appShellService.buildInitialUrl(sessionService.getSession()),
     );
+
+    if (isDev && !isSmokeTest) {
+      mainWindow.webContents.openDevTools({ mode: 'detach' });
+    }
+
+    if (isSmokeTest) {
+      setTimeout(() => app.exit(0), 250);
+    }
   } catch (error) {
+    process.stderr.write(
+      `[desktop] app shell boot failed: ${error instanceof Error ? error.stack || error.message : String(error)}\n`,
+    );
+
     telemetryService.captureException(error, {
       surface: 'app-shell',
     });
@@ -219,11 +285,7 @@ const createWindow = async (): Promise<void> => {
       return;
     }
 
-    await mainWindow.loadURL(
-      `data:text/html,${encodeURIComponent(
-        '<html><body style="background:#05070b;color:#f5f7fa;font-family:Inter,system-ui,sans-serif;padding:32px"><h1>Genfeed Desktop</h1><p>Failed to start the embedded app shell.</p></body></html>',
-      )}`,
-    );
+    await mainWindow.loadURL(buildDesktopFailureScreenUrl());
   }
 
   buildDesktopMenu(mainWindow, () => {
@@ -248,7 +310,7 @@ const handleAuthCallback = async (rawUrl: string): Promise<void> => {
         surface: 'auth-callback',
       },
     );
-    emitSession();
+    await emitSession();
     await emitBootstrap();
     if (Notification.isSupported()) {
       void new Notification({
@@ -259,13 +321,14 @@ const handleAuthCallback = async (rawUrl: string): Promise<void> => {
     return;
   }
 
-  await localIdentityService.setClerkId(session.userId);
-  await localService.ensureBootstrapData();
-  emitSession();
+  await kvService.setValue(LOCAL_CLERK_ID_KEY, session.userId);
+  isOfflineMode = false;
+  await kvService.setValue(OFFLINE_MODE_KEY, '0');
+  await emitSession();
   await emitBootstrap();
   void new Notification({
     body: session.userEmail || 'Authenticated successfully.',
-    title: 'Genfeed Desktop',
+    title: 'GenFeed',
   }).show();
 };
 
@@ -280,12 +343,25 @@ const registerProtocolHandling = (): void => {
 
 const registerIpcHandlers = (): void => {
   ipcMain.handle(DESKTOP_IPC_CHANNELS.appBootstrap, async () => getBootstrap());
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.appEnableOfflineMode, async () => {
+    isOfflineMode = true;
+    kvService.setValueSync(OFFLINE_MODE_KEY, '1');
+    await emitBootstrap();
+  });
   ipcMain.handle(DESKTOP_IPC_CHANNELS.appGetDiagnostics, async () => ({
     isPackaged: app.isPackaged,
     platform: process.platform,
     releaseChannel: app.isPackaged ? 'production' : 'development',
     version: app.getVersion(),
   }));
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.appOpenExternalPath,
+    async (_event: unknown, pathname: string) => {
+      await shell.openExternal(
+        buildExternalAppUrl(pathname, environment.authEndpoint),
+      );
+    },
+  );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.authGetSession, async () =>
     sessionService.getSession(),
   );
@@ -294,60 +370,66 @@ const registerIpcHandlers = (): void => {
   });
   ipcMain.handle(DESKTOP_IPC_CHANNELS.authLogout, async () => {
     await sessionService.clearSession();
-    await localService.ensureBootstrapData();
-    emitSession();
+    await emitSession();
     await emitBootstrap();
   });
   ipcMain.handle(DESKTOP_IPC_CHANNELS.cloudListProjects, async () =>
-    getDataService().listProjects(),
+    runDataService((service) => service.listProjects()),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGenerateHooks,
     async (_event: unknown, topic: string) =>
-      getDataService().generateHooks(topic),
+      runDataService((service) => service.generateHooks(topic)),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGenerateContent,
-    async (_event: unknown, params: IDesktopGenerationOptions) =>
-      getDataService().generateContent(params),
+    async (_event: unknown, params: IDesktopGenerationOptions) => {
+      try {
+        return await runDataService((service) =>
+          service.generateContent(params),
+        );
+      } finally {
+        await emitBootstrap();
+      }
+    },
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGetTrends,
     async (_event: unknown, platform: string) =>
-      getDataService().getTrends(platform),
+      runDataService((service) => service.getTrends(platform)),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGetIngredients,
     async (_event: unknown, filter?: { limit?: number; platform?: string }) =>
-      getDataService().getIngredients(filter),
+      runDataService((service) => service.getIngredients(filter)),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudPublishPost,
     async (
       _event: unknown,
       params: { content: string; draftId?: string; platform: string },
-    ) => getDataService().publishPost(params),
+    ) => runDataService((service) => service.publishPost(params)),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudGetAnalytics,
     async (_event: unknown, params: { days: number }) =>
-      getDataService().getAnalytics(params),
+      runDataService((service) => service.getAnalytics(params)),
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.cloudListAgents, async () =>
-    getDataService().listAgents(),
+    runDataService((service) => service.listAgents()),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudRunAgent,
     async (_event: unknown, agentId: string) =>
-      getDataService().runAgent(agentId),
+      runDataService((service) => service.runAgent(agentId)),
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.cloudListWorkflows, async () =>
-    getDataService().listWorkflows(),
+    runDataService((service) => service.listWorkflows()),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.cloudRunWorkflow,
     async (_event: unknown, params: { batch?: boolean; workflowId: string }) =>
-      getDataService().runWorkflow(params),
+      runDataService((service) => service.runWorkflow(params)),
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.workspaceOpen, async () => {
     const workspace = await workspaceService.openWorkspace();
@@ -433,32 +515,71 @@ const registerIpcHandlers = (): void => {
     },
   );
   ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.filesListAssets,
+    async (_event: unknown, workspaceId?: string) =>
+      filesService.listAssets(workspaceId),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.filesGetAssetUrl,
+    async (_event: unknown, assetId: string) =>
+      filesService.getAssetUrl(assetId),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.generationEnqueueAssetGeneration,
+    async (_event: unknown, request: IDesktopAssetGenerationRequest) => {
+      const job = await generationService.enqueueAssetGeneration(request);
+      await emitBootstrap();
+      return job;
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.generationGetGenerationJob,
+    async (_event: unknown, jobId: string) =>
+      generationService.getGenerationJob(jobId),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.generationListGenerationJobs,
+    async (_event: unknown, workspaceId?: string) =>
+      generationService.listGenerationJobs(workspaceId),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.generationCancelAssetGeneration,
+    async (_event: unknown, jobId: string) => {
+      const job = await generationService.cancelGenerationJob(jobId);
+      await emitBootstrap();
+      return job;
+    },
+  );
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.generationGetProviderConfig, async () =>
+    generationService.getPublicProviderConfig(),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.generationGenerateWorkflow,
+    async (_event: unknown, params: IDesktopWorkflowGenerationOptions) =>
+      generationService.generateWorkflow(params),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.generationSaveProviderConfig,
+    async (_event: unknown, config: IDesktopGenerationProviderConfig) =>
+      generationService.saveProviderConfig(config),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.generationClearProviderConfig,
+    async () => {
+      await generationService.clearProviderConfig();
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.generationTestProviderConfig,
+    async (_event: unknown, config?: IDesktopGenerationProviderConfig) =>
+      generationService.testProviderConfig(config),
+  );
+  ipcMain.handle(
     DESKTOP_IPC_CHANNELS.notify,
     async (_event: unknown, title: string, body: string) => {
       if (Notification.isSupported()) {
         void new Notification({ body, title }).show();
       }
-    },
-  );
-  ipcMain.handle(
-    DESKTOP_IPC_CHANNELS.syncGetJobs,
-    async (_event: unknown, workspaceId?: string) =>
-      syncService.listJobs(workspaceId),
-  );
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.syncGetState, async () =>
-    syncService.getState(),
-  );
-  ipcMain.handle(
-    DESKTOP_IPC_CHANNELS.syncQueueJob,
-    async (
-      _event: unknown,
-      type: string,
-      payload: string,
-      workspaceId?: string,
-    ) => {
-      const job = await syncService.queueJob(type, payload, workspaceId);
-      await emitBootstrap();
-      return job;
     },
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.cacheGetPath, async () => {
@@ -489,22 +610,95 @@ const registerIpcHandlers = (): void => {
     async () => process.platform,
   );
 
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncAckOps,
+    async (_event: unknown, ops: IDesktopSyncOpAck[]) => {
+      await syncService.ackOps(ops);
+      await emitBootstrap();
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncApplyBrandManifest,
+    async (_event: unknown, manifest: IDesktopBrandManifest) => {
+      await syncService.applyBrandManifest(manifest);
+      await emitBootstrap();
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncGetJobs,
+    async (_event: unknown, workspaceId?: string) =>
+      syncService.listJobs(workspaceId),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncGetOps,
+    async (_event: unknown, workspaceId?: string) =>
+      syncService.listOps(workspaceId),
+  );
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.syncGetState, async () =>
+    syncService.getState(),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncQueueJob,
+    async (
+      _event: unknown,
+      type: string,
+      payload: string,
+      workspaceId?: string,
+    ) => {
+      const job = await syncService.queueJob(type, payload, workspaceId);
+      await emitBootstrap();
+      return job;
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncQueueOp,
+    async (
+      _event: unknown,
+      entityType: string,
+      entityId: string,
+      operation: 'create' | 'delete' | 'update',
+      payload: string,
+      workspaceId?: string,
+      baseVersion?: string,
+    ) => {
+      const op = await syncService.queueOp(
+        entityType,
+        entityId,
+        operation,
+        payload,
+        workspaceId,
+        baseVersion,
+      );
+      await emitBootstrap();
+      return op;
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncRecordAssetSync,
+    async (_event: unknown, update: IDesktopAssetSyncUpdate) => {
+      await syncService.recordAssetSync(update);
+      await emitBootstrap();
+    },
+  );
+
   // Onboarding
   ipcMain.handle(DESKTOP_IPC_CHANNELS.appGetOnboardingState, async () => ({
-    completed: localIdentityService.getOnboardingCompleted(),
+    completed: kvService.getValueSync(ONBOARDING_COMPLETED_KEY) === '1',
   }));
   ipcMain.handle(DESKTOP_IPC_CHANNELS.appSetOnboardingCompleted, async () => {
-    await localIdentityService.setOnboardingCompleted();
+    kvService.setValueSync(ONBOARDING_COMPLETED_KEY, '1');
   });
 
   // Sync cursor (durable storage in main-process KV)
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.syncGetCursor, async () =>
-    localIdentityService.getSyncCursor(),
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncGetCursor,
+    async (_event: unknown, scope?: DesktopSyncCursorScope) =>
+      kvService.getValueSync(getSyncCursorKey(scope)),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.syncSetCursor,
-    async (_event: unknown, cursor: string) => {
-      await localIdentityService.setSyncCursor(cursor);
+    async (_event: unknown, cursor: string, scope?: DesktopSyncCursorScope) => {
+      kvService.setValueSync(getSyncCursorKey(scope), cursor);
     },
   );
 
@@ -513,6 +707,38 @@ const registerIpcHandlers = (): void => {
     mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.syncThreadsRequested);
     return { ok: true };
   });
+
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.terminalCreate,
+    async (event, options?: IDesktopTerminalCreateOptions) =>
+      terminalService.createSession(
+        options,
+        (payload) => {
+          event.sender.send(DESKTOP_IPC_CHANNELS.terminalData, payload);
+        },
+        (payload) => {
+          event.sender.send(DESKTOP_IPC_CHANNELS.terminalExit, payload);
+        },
+      ),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.terminalWrite,
+    async (_event: unknown, sessionId: string, data: string) => {
+      terminalService.writeSession(sessionId, data);
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.terminalResize,
+    async (_event: unknown, sessionId: string, cols: number, rows: number) => {
+      terminalService.resizeSession(sessionId, cols, rows);
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.terminalKill,
+    async (_event: unknown, sessionId: string) => {
+      terminalService.killSession(sessionId);
+    },
+  );
 };
 
 app.on('before-quit', (event) => {
@@ -525,11 +751,13 @@ app.on('before-quit', (event) => {
 
   void (async () => {
     try {
+      terminalService.killAll();
       await appShellService.stop();
     } finally {
       shortcutsService.unregister();
       trayService.destroy();
-      await database.close();
+      await prismaService.getClient().$disconnect();
+      await pgliteService.close();
       app.quit();
     }
   })();
@@ -537,13 +765,71 @@ app.on('before-quit', (event) => {
 
 app.whenReady().then(async () => {
   telemetryService.init();
-  await localIdentityService.initialize();
-  await sessionService.initialize();
+  pgliteService = new DesktopPgliteService(
+    path.join(app.getPath('userData'), 'pglite-db'),
+  );
+  const pglite = await pgliteService.init();
+  prismaService = new DesktopPrismaService(pglite);
+  const prismaClient = prismaService.getClient();
+  await prismaService.bootstrapLocalIdentity();
+  kvService = new DesktopKvService(prismaClient);
+  await kvService.init();
+  sessionService = new DesktopSessionService(kvService, environment);
   const session = await sessionService.validateStoredSession();
   if (session) {
-    await localIdentityService.setClerkId(session.userId);
+    await kvService.setValue(LOCAL_CLERK_ID_KEY, session.userId);
   }
-  await localService.ensureBootstrapData();
+  workspaceService = new DesktopWorkspaceService(prismaClient);
+  await workspaceService.init();
+  syncService = new DesktopSyncService(prismaClient);
+  await syncService.init();
+  filesService = new DesktopFilesService(workspaceService, prismaClient);
+  terminalService = new DesktopTerminalService(workspaceService);
+  generationService = new DesktopGenerationService(
+    {
+      deleteValue: (key) => kvService.deleteValue(key),
+      getSyncJob: async (jobId) => {
+        const row = await prismaClient.desktopSyncJob.findUnique({
+          where: { id: jobId },
+        });
+        return row;
+      },
+      getValue: (key) => kvService.getValue(key),
+      listSyncJobs: async (type, workspaceId) => {
+        const rows = await prismaClient.desktopSyncJob.findMany({
+          orderBy: {
+            updatedAt: 'desc',
+          },
+          where: {
+            type,
+            ...(workspaceId ? { workspaceId } : {}),
+          },
+        });
+        return rows;
+      },
+      setValue: (key, value) => kvService.setValue(key, value),
+      upsertSyncJob: async (row) => {
+        await prismaClient.desktopSyncJob.upsert({
+          create: row,
+          update: row,
+          where: { id: row.id },
+        });
+      },
+    },
+    filesService,
+  );
+  await generationService.resumeAssetGenerationJobs();
+  cloudService = new DesktopCloudService(environment, () =>
+    sessionService.getSession(),
+  );
+  localService = new DesktopLocalService(prismaClient);
+  draftsService = new DesktopDraftsService(workspaceService);
+  appShellService = new DesktopAppShellService(
+    environment,
+    () => sessionService.getSession(),
+    () => pgliteService.getDataDir(),
+  );
+  isOfflineMode = kvService.getValueSync(OFFLINE_MODE_KEY) === '1';
   telemetryService.setUser(sessionService.getSession());
   process.on('uncaughtException', (error) => {
     telemetryService.captureException(error, { source: 'uncaughtException' });
@@ -592,6 +878,7 @@ app.on('second-instance', (_event: unknown, argv: string[]) => {
       mainWindow.restore();
     }
 
+    mainWindow.show();
     mainWindow.focus();
   }
 });

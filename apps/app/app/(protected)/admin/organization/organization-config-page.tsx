@@ -7,11 +7,12 @@ import { useOrganizationSettings } from '@protected/organization/hooks/use-organ
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { HiOutlineCog6Tooth } from 'react-icons/hi2';
 
-export default function OrganizationConfigPage() {
+function OrganizationConfigPageContent() {
   const searchParams = useSearchParams();
-  const organizationId = searchParams?.get('id');
+  const organizationId = searchParams.get('id');
 
   const { settings, isLoading, isRefreshing, error, refresh } =
     useOrganizationSettings(organizationId);
@@ -61,5 +62,13 @@ export default function OrganizationConfigPage() {
         onUpdate={refresh}
       />
     </Container>
+  );
+}
+
+export default function OrganizationConfigPage() {
+  return (
+    <Suspense fallback={null}>
+      <OrganizationConfigPageContent />
+    </Suspense>
   );
 }

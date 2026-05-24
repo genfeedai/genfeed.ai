@@ -59,7 +59,7 @@ const PLATFORM_ICONS: Record<string, PlatformIconConfig> = {
 
 function getPlatformIcon(
   platform: string,
-  className: string = 'w-4 h-4',
+  className: string = 'size-4',
 ): ReactElement | null {
   const config = PLATFORM_ICONS[platform?.toLowerCase()];
   if (!config) {
@@ -105,7 +105,7 @@ export default function PlatformSelector({
     >
       {credentials.map((credential) => {
         const isSelected = credential.id === selectedCredentialId;
-        const platformIcon = getPlatformIcon(credential.platform, 'w-4 h-4');
+        const platformIcon = getPlatformIcon(credential.platform, 'size-4');
         const displayLabel = credential.label || credential.externalHandle;
 
         return (

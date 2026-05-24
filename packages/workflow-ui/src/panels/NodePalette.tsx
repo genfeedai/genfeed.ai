@@ -92,6 +92,10 @@ const CATEGORY_LABELS: Record<NodeCategory, string> = {
   processing: 'Processing',
 };
 
+function escapeSearchPattern(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 const CATEGORY_COLORS: Record<
   NodeCategory,
   { icon: string; hover: string; cssVar: string }
@@ -153,7 +157,7 @@ function NodeCard({ type, label, description, icon, category }: NodeCardProps) {
     >
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded ${colors.icon}`}>
-          <Icon className="w-4 h-4" />
+          <Icon className="size-4" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-medium text-sm text-[var(--foreground)] truncate">
@@ -189,9 +193,9 @@ function CategorySection({
         className="w-full flex items-center gap-2 px-4 py-3 text-left h-auto justify-start"
       >
         {isExpanded ? (
-          <ChevronDown className="w-4 h-4 text-[var(--muted-foreground)]" />
+          <ChevronDown className="size-4 text-[var(--muted-foreground)]" />
         ) : (
-          <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)]" />
+          <ChevronRight className="size-4 text-[var(--muted-foreground)]" />
         )}
         <span className="font-medium text-sm text-[var(--foreground)]">
           {CATEGORY_LABELS[category]}
@@ -232,7 +236,7 @@ export function NodePalette() {
   const filteredNodes = useMemo(() => {
     if (!searchQuery.trim()) return null;
 
-    const query = searchQuery.toLowerCase();
+    const query = new RegExp(escapeSearchPattern(searchQuery), 'i');
     const results: Array<{
       type: NodeType;
       label: string;
@@ -243,10 +247,7 @@ export function NodePalette() {
 
     for (const category of Object.keys(nodesByCategory) as NodeCategory[]) {
       for (const node of nodesByCategory[category]) {
-        if (
-          node.label.toLowerCase().includes(query) ||
-          node.description.toLowerCase().includes(query)
-        ) {
+        if (query.test(node.label) || query.test(node.description)) {
           results.push(node);
         }
       }
@@ -293,14 +294,14 @@ export function NodePalette() {
           onClick={togglePalette}
           title="Close sidebar (M)"
         >
-          <PanelLeftClose className="w-4 h-4 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]" />
+          <PanelLeftClose className="size-4 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]" />
         </Button>
       </div>
 
       {/* Search bar */}
       <div className="px-4 py-3 border-b border-[var(--border)]">
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-[var(--muted-foreground)]" />
           <input
             type="text"
             placeholder="Search nodes..."

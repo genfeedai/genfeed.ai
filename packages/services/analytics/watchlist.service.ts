@@ -8,10 +8,7 @@ export class WatchlistService extends BaseService<Watchlist> {
   }
 
   public static getInstance(token: string): WatchlistService {
-    return BaseService.getDataServiceInstance(
-      WatchlistService,
-      token,
-    ) as WatchlistService;
+    return BaseService.getDataServiceInstance(WatchlistService, token);
   }
 
   public async quickAdd(platform: string, handle: string): Promise<Watchlist> {

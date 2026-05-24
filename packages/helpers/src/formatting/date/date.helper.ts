@@ -21,6 +21,10 @@ export const DATE_FORMATS = {
   TIME_ONLY: 'HH:mm:ss',
 };
 
+function parseDate(date: Date | string | number): Date {
+  return typeof date === 'string' ? parseISO(date) : new Date(date);
+}
+
 export function formatDate(
   date: Date | string | number | null | undefined,
   dateFormat: string = DATE_FORMATS.SHORT_DATE,
@@ -30,17 +34,7 @@ export function formatDate(
   }
 
   try {
-    let dateObj: Date;
-
-    if (date instanceof Date) {
-      dateObj = date;
-    } else if (typeof date === 'string') {
-      dateObj = parseISO(date);
-    } else if (typeof date === 'number') {
-      dateObj = new Date(date);
-    } else {
-      return '';
-    }
+    const dateObj = parseDate(date);
 
     if (Number.isNaN(dateObj.getTime())) {
       return '';
@@ -57,26 +51,31 @@ export function toApiFormat(date: Date | string | number): string {
 }
 
 export function getRelativeTime(date: Date | string | number): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : new Date(date);
-  return formatDistance(dateObj, new Date(), { addSuffix: true });
+  const parsedDate = parseDate(date);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return '';
+  }
+
+  return formatDistance(parsedDate, new Date(), { addSuffix: true });
 }
 
 export function getRelativeDate(date: Date | string | number): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : new Date(date);
-  return formatRelative(dateObj, new Date());
+  const parsedDate = parseDate(date);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return '';
+  }
+
+  return formatRelative(parsedDate, new Date());
 }
 
 export function isValidDate(date: string | number | Date): boolean {
-  const dateObj = typeof date === 'string' ? parseISO(date) : new Date(date);
-  return dateObj instanceof Date && !Number.isNaN(dateObj.getTime());
+  return !Number.isNaN(parseDate(date).getTime());
 }
 
 export function getStartOfDay(date: Date | string | number): Date {
-  const dateObj = typeof date === 'string' ? parseISO(date) : new Date(date);
-  return startOfDay(dateObj);
+  return startOfDay(parseDate(date));
 }
 
 export function getEndOfDay(date: Date | string | number): Date {
-  const dateObj = typeof date === 'string' ? parseISO(date) : new Date(date);
-  return endOfDay(dateObj);
+  return endOfDay(parseDate(date));
 }

@@ -91,7 +91,7 @@ export default function IdeasPage() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-gray-700">
+        <h3 className="text-sm font-medium text-zinc-700">
           Saved Ideas ({ideas.length})
         </h3>
         <Button
@@ -106,18 +106,18 @@ export default function IdeasPage() {
         {ideas.map((idea) => (
           <div
             key={idea.id}
-            className="border border-gray-200 p-3 hover:border-gray-300 transition-colors"
+            className="border border-zinc-200 p-3 hover:border-zinc-300 transition-colors"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 {idea.title && (
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-zinc-900 truncate">
                     {idea.title}
                   </p>
                 )}
                 <p className="text-sm text-blue-600 truncate">{idea.url}</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {new Date(idea.savedAt).toLocaleDateString()}
+                <p className="text-xs text-zinc-400 mt-1">
+                  {idea.savedAt.split('T')[0]}
                 </p>
               </div>
               <div className="flex items-center gap-1">
@@ -125,7 +125,7 @@ export default function IdeasPage() {
                   type="button"
                   variant={ButtonVariant.GHOST}
                   onClick={() => chrome.tabs.create({ url: idea.url })}
-                  className="p-1.5 text-gray-500 hover:bg-gray-50"
+                  className="p-1.5 text-zinc-500 hover:bg-zinc-50"
                   title="Open"
                 >
                   <ExternalLinkIcon />

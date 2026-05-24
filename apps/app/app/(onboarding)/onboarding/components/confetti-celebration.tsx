@@ -131,14 +131,10 @@ export default function ConfettiCelebration() {
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  if (!show) {
-    return null;
-  }
-
-  return (
+  return show ? (
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-50"
     />
-  );
+  ) : null;
 }

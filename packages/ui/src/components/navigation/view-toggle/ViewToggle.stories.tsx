@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import { ViewType } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
@@ -212,7 +213,7 @@ export const WithContent: Story = {
     return (
       <div className="space-y-6 w-full max-w-2xl">
         <div className="flex justify-between items-center">
-          <h3 className="font-bold text-lg">Posts</h3>
+          <h3 className="font-semibold text-lg">Posts</h3>
           <ViewToggle
             options={[
               {
@@ -239,11 +240,11 @@ export const WithContent: Story = {
         <div className=" border border-white/[0.08] bg-background p-6 min-h-96">
           {activeView === ViewType.LIST && (
             <div>
-              <h4 className="font-bold mb-4">List View</h4>
+              <h4 className="font-semibold mb-4">List View</h4>
               <div className="space-y-2">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="p-3 bg-card">
-                    Post #{i}
+                {[1, 2, 3, 4, 5].map((placeholderId) => (
+                  <div key={placeholderId} className="p-3 bg-card">
+                    Post #{placeholderId}
                   </div>
                 ))}
               </div>
@@ -251,7 +252,7 @@ export const WithContent: Story = {
           )}
           {activeView === ViewType.CALENDAR && (
             <div>
-              <h4 className="font-bold mb-4">Calendar View</h4>
+              <h4 className="font-semibold mb-4">Calendar View</h4>
               <p className="text-foreground/70">
                 Calendar view would be displayed here
               </p>
@@ -259,11 +260,11 @@ export const WithContent: Story = {
           )}
           {activeView === ViewType.GRID && (
             <div>
-              <h4 className="font-bold mb-4">Grid View</h4>
+              <h4 className="font-semibold mb-4">Grid View</h4>
               <div className="grid grid-cols-3 gap-4">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="p-6 bg-card text-center">
-                    Post #{i}
+                {[1, 2, 3, 4, 5, 6].map((placeholderId) => (
+                  <div key={placeholderId} className="p-6 bg-card text-center">
+                    Post #{placeholderId}
                   </div>
                 ))}
               </div>

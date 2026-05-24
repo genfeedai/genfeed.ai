@@ -8,14 +8,14 @@ import { LuArrowRight } from 'react-icons/lu';
 const PILLAR_COLUMNS = [
   {
     href: '/pricing',
-    label: 'Pro',
-    price: '$499/mo',
-    subtitle: 'Creators',
+    label: 'Cloud App',
+    price: '$49/mo + PAYG',
+    subtitle: 'Default',
   },
   {
     href: '/pricing',
-    label: 'Scale',
-    price: '$1,499/mo',
+    label: 'Cloud Teams',
+    price: 'From $499/mo',
     subtitle: 'Agencies',
   },
   {
@@ -40,7 +40,7 @@ export default function PricingStrip({
     >
       <div className="grid grid-cols-1 gap-px md:grid-cols-3">
         {PILLAR_COLUMNS.map((column) => {
-          const isFeatured = column.label === 'Scale';
+          const isFeatured = column.label === 'Cloud App';
 
           return (
             <div
@@ -106,7 +106,7 @@ export default function PricingStrip({
               : 'text-surface/40 hover:text-surface/60',
           )}
         >
-          View all plans <LuArrowRight className="h-3 w-3" />
+          View all plans <LuArrowRight className="size-3" />
         </Link>
       </div>
     </div>

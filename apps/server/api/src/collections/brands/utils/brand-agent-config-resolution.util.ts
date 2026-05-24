@@ -74,6 +74,12 @@ export interface EffectiveAgentRuntimeConfig {
   execution: EffectiveAgentExecutionConfig;
 }
 
+const AGENT_QUALITY_TIERS: AgentQualityTier[] = [
+  'budget',
+  'balanced',
+  'high_quality',
+];
+
 const mapQualityTierToGenerationPriority = (
   qualityTier: AgentQualityTier,
 ): AgentGenerationPriority => {
@@ -119,11 +125,39 @@ const resolveIdentityDefaults = (
       >
     | OrganizationSettingsSource,
 ): AgentIdentityDefaults => ({
-  defaultAvatarIngredientId: source?.defaultAvatarIngredientId,
-  defaultAvatarPhotoUrl: source?.defaultAvatarPhotoUrl,
-  defaultVoiceId: source?.defaultVoiceId,
-  defaultVoiceRef: source?.defaultVoiceRef,
+  defaultAvatarIngredientId: asOptionalString(
+    source?.defaultAvatarIngredientId,
+  ),
+  defaultAvatarPhotoUrl: asOptionalString(source?.defaultAvatarPhotoUrl),
+  defaultVoiceId: asOptionalString(source?.defaultVoiceId),
+  defaultVoiceRef:
+    source?.defaultVoiceRef &&
+    typeof source.defaultVoiceRef === 'object' &&
+    !Array.isArray(source.defaultVoiceRef)
+      ? (source.defaultVoiceRef as DefaultVoiceRef)
+      : undefined,
 });
+
+const normalizeAutonomyMode = (value: unknown): AgentAutonomyMode =>
+  Object.values(AgentAutonomyMode).find((mode) => mode === value) ??
+  AgentAutonomyMode.SUPERVISED;
+
+const normalizeQualityTier = (value: unknown): AgentQualityTier =>
+  AGENT_QUALITY_TIERS.find((tier) => tier === value) ?? 'balanced';
+
+const firstPlatform = (value: unknown): string | undefined =>
+  Array.isArray(value) && typeof value[0] === 'string' ? value[0] : undefined;
+
+const asOptionalString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
+
+const asBrandAgentConfig = (value: unknown): BrandAgentConfig | undefined => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value as BrandAgentConfig;
+};
 
 export const resolveEffectiveBrandAgentConfig = ({
   brand,
@@ -134,37 +168,40 @@ export const resolveEffectiveBrandAgentConfig = ({
   organizationSettings?: OrganizationSettingsSource;
   platform?: string;
 }): EffectiveBrandAgentConfig => {
+  const brandAgentConfig = asBrandAgentConfig(brand?.agentConfig);
   const platformOverride = resolvePlatformOverride(
-    brand?.agentConfig?.platformOverrides,
+    brandAgentConfig?.platformOverrides,
     platform,
   );
   const hasVoiceConfig =
-    brand?.agentConfig?.voice != null || platformOverride?.voice != null;
+    brandAgentConfig?.voice != null || platformOverride?.voice != null;
   const hasStrategyConfig =
-    brand?.agentConfig?.strategy != null || platformOverride?.strategy != null;
+    brandAgentConfig?.strategy != null || platformOverride?.strategy != null;
 
   return {
-    autoPublish: brand?.agentConfig?.autoPublish,
+    autoPublish: brandAgentConfig?.autoPublish,
     defaultModel:
-      platformOverride?.defaultModel ??
-      brand?.agentConfig?.defaultModel ??
-      organizationSettings?.defaultModel,
+      asOptionalString(platformOverride?.defaultModel) ??
+      asOptionalString(brandAgentConfig?.defaultModel) ??
+      asOptionalString(organizationSettings?.defaultModel),
     identityDefaults: {
-      brand: resolveIdentityDefaults(brand?.agentConfig),
+      brand: resolveIdentityDefaults(brandAgentConfig),
       organization: resolveIdentityDefaults(organizationSettings),
     },
-    persona: platformOverride?.persona ?? brand?.agentConfig?.persona,
+    persona:
+      asOptionalString(platformOverride?.persona) ??
+      asOptionalString(brandAgentConfig?.persona),
     platformOverrideApplied: platformOverride != null,
-    schedule: brand?.agentConfig?.schedule,
+    schedule: brandAgentConfig?.schedule,
     strategy: hasStrategyConfig
       ? {
-          ...(brand?.agentConfig?.strategy ?? {}),
+          ...(brandAgentConfig?.strategy ?? {}),
           ...(platformOverride?.strategy ?? {}),
         }
       : undefined,
     voice: hasVoiceConfig
       ? {
-          ...(brand?.agentConfig?.voice ?? {}),
+          ...(brandAgentConfig?.voice ?? {}),
           ...(platformOverride?.voice ?? {}),
         }
       : undefined,
@@ -178,20 +215,20 @@ export const resolveEffectiveAgentExecutionConfig = ({
   organizationSettings?: OrganizationSettingsSource;
   strategy?: AgentStrategySource;
 }): EffectiveAgentExecutionConfig => {
-  const qualityTier =
+  const qualityTier = normalizeQualityTier(
     strategy?.qualityTier ??
-    organizationSettings?.agentPolicy?.qualityTierDefault ??
-    'balanced';
+      organizationSettings?.agentPolicy?.qualityTierDefault,
+  );
 
   return {
     policy: {
       allowAdvancedOverrides:
         organizationSettings?.agentPolicy?.allowAdvancedOverrides ?? false,
-      autonomyMode:
+      autonomyMode: normalizeAutonomyMode(
         strategy?.autonomyMode ??
-        organizationSettings?.agentPolicy?.autonomyDefault ??
-        AgentAutonomyMode.SUPERVISED,
-      brandId: strategy?.brand?.toString?.(),
+          organizationSettings?.agentPolicy?.autonomyDefault,
+      ),
+      brandId: asOptionalString(strategy?.brand),
       creditGovernance: {
         agentDailyCreditCap:
           organizationSettings?.agentPolicy?.creditGovernance
@@ -206,14 +243,14 @@ export const resolveEffectiveAgentExecutionConfig = ({
       generationModelOverride:
         organizationSettings?.agentPolicy?.generationModelOverride ?? null,
       generationPriority: mapQualityTierToGenerationPriority(qualityTier),
-      platform: strategy?.platforms?.[0],
+      platform: firstPlatform(strategy?.platforms),
       qualityTier,
       reviewModelOverride:
         organizationSettings?.agentPolicy?.reviewModelOverride ?? null,
       thinkingModelOverride:
         organizationSettings?.agentPolicy?.thinkingModelOverride ?? null,
     },
-    strategyModel: strategy?.model,
+    strategyModel: asOptionalString(strategy?.model),
   };
 };
 

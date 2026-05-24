@@ -176,8 +176,8 @@ export class ModelDiscoveryService {
 
     try {
       await this.modelsService.updateMany(
-        { isDeleted: false, isDiscovered: true, key: { $in: keys } },
-        { $set: { lastSyncedAt: new Date() } },
+        { isDeleted: false, isDiscovered: true, key: { in: keys } },
+        { lastSyncedAt: new Date() },
       );
 
       this.logger.log(

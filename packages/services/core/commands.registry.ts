@@ -2,12 +2,14 @@
  * Commands Registry
  * Default commands for the command palette
  *
- * Navigation commands use org-scoped URLs:
+ * Navigation commands use canonical scoped URLs:
  * - Brand-scoped routes: /{orgSlug}/{brandSlug}/path
- * - Org-level routes (settings): /{orgSlug}/~/path
+ * - Org-level routes: /{orgSlug}/~/path
+ * - Personal settings: /settings
  */
 
 import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
+import { CommandPaletteService } from '@services/core/command-palette.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
   HiOutlineArrowPath,
@@ -52,7 +54,9 @@ function navigate(url: string): void {
 /**
  * Navigation Commands (consolidated app structure)
  *
- * Settings routes are org-level (/{orgSlug}/~/settings/...).
+ * Settings routes are scoped by owner: /settings for personal,
+ * /{orgSlug}/~/settings for organization, and
+ * /{orgSlug}/{brandSlug}/settings for brand.
  * All other routes are brand-scoped (/{orgSlug}/{brandSlug}/...).
  */
 export function createNavigationCommands(
@@ -61,7 +65,6 @@ export function createNavigationCommands(
 ): ICommand[] {
   const appBase = EnvironmentService.apps.app;
   const brandPath = `${appBase}/${orgSlug}/${brandSlug}`;
-  const orgPath = `${appBase}/${orgSlug}/~`;
 
   return [
     {
@@ -150,7 +153,7 @@ export function createNavigationCommands(
     },
     {
       action: () => {
-        navigate(`${orgPath}/settings/personal`);
+        navigate(`${appBase}/settings`);
       },
       category: 'navigation',
       condition: () => EnvironmentService.currentApp !== 'app',
@@ -296,8 +299,6 @@ export function createContentCommands(
 
 /**
  * Settings Commands (consolidated in app.genfeed.ai)
- *
- * All settings routes are org-level (/{orgSlug}/~/settings/...).
  */
 export function createSettingsCommands(orgSlug: string): ICommand[] {
   const appBase = EnvironmentService.apps.app;
@@ -307,7 +308,7 @@ export function createSettingsCommands(orgSlug: string): ICommand[] {
   return [
     {
       action: () => {
-        navigate(`${orgPath}/settings/personal`);
+        navigate(`${appBase}/settings`);
       },
       category: 'settings',
       description: 'Manage your account preferences',
@@ -319,7 +320,7 @@ export function createSettingsCommands(orgSlug: string): ICommand[] {
     },
     {
       action: () => {
-        navigate(`${orgPath}/settings/organization`);
+        navigate(`${orgPath}/settings`);
       },
       category: 'settings',
       description: 'Manage organization settings, billing, and integrations',
@@ -345,9 +346,7 @@ export function createSettingsCommands(orgSlug: string): ICommand[] {
       action: () => {
         navigate(
           `${orgPath}${
-            isBillingEnabled
-              ? '/settings/organization/billing'
-              : '/settings/organization/api-keys'
+            isBillingEnabled ? '/settings/billing' : '/settings/api-keys'
           }`,
         );
       },
@@ -488,10 +487,6 @@ export function registerDefaultCommands(
   orgSlug: string,
   brandSlug: string,
 ): void {
-  // Import and register commands dynamically
-  const {
-    CommandPaletteService,
-  } = require('@services/core/command-palette.service');
   CommandPaletteService.registerCommands(
     createDefaultCommands(orgSlug, brandSlug),
   );

@@ -3,12 +3,12 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Newsletter } from '@models/content/newsletter.model';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
@@ -17,7 +17,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   HiArchiveBox,
   HiCheckCircle,
@@ -93,10 +93,11 @@ function isEditorDirty(
   );
 }
 
-export default function NewslettersPage() {
-  const router = useRouter();
+function NewslettersPageContent() {
+  const { push } = useRouter();
   const { href } = useOrgUrl();
   const searchParams = useSearchParams();
+  const requestedNewsletterId = searchParams.get('id');
   const notificationsService = NotificationsService.getInstance();
   const { brandId, isReady, organizationId, selectedBrand } = useBrand();
   const [instructions, setInstructions] = useState('');
@@ -110,7 +111,7 @@ export default function NewslettersPage() {
   const [selectedProposal, setSelectedProposal] =
     useState<TopicProposal | null>(null);
   const [proposals, setProposals] = useState<TopicProposal[]>([]);
-  const [editorState, setEditorState] = useState<NewsletterEditorState>(
+  const [editorState, setEditorState] = useState<NewsletterEditorState>(() =>
     createEditorState(null),
   );
   const [isGeneratingTopics, setIsGeneratingTopics] = useState(false);
@@ -128,11 +129,13 @@ export default function NewslettersPage() {
   );
 
   const {
-    data: newslettersData,
+    data: newsletters = [],
     isLoading,
-    refresh,
-  } = useResource<Newsletter[]>(
-    async () => {
+    error: newslettersError,
+    refetch,
+  } = useQuery<Newsletter[]>({
+    queryKey: ['newsletters', brandId, organizationId],
+    queryFn: async () => {
       if (!isReady || !brandId || !organizationId) {
         return [];
       }
@@ -145,16 +148,19 @@ export default function NewslettersPage() {
         sort: 'publishedAt: -1, createdAt: -1',
       });
     },
-    {
-      dependencies: [brandId, getService, isReady, organizationId],
-      enabled: isReady,
-      onError: (error: unknown) => {
-        logger.error('Failed to load newsletters', error);
-        notificationsService.error('Failed to load newsletters');
-      },
-    },
-  );
-  const newsletters = newslettersData ?? [];
+    enabled: isReady,
+  });
+
+  useEffect(() => {
+    if (newslettersError) {
+      logger.error('Failed to load newsletters', newslettersError);
+      notificationsService.error('Failed to load newsletters');
+    }
+  }, [newslettersError, notificationsService]);
+
+  const refresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   const publishedNewsletters = useMemo(
     () => newsletters.filter((item) => item.status === 'published').slice(0, 5),
@@ -190,15 +196,14 @@ export default function NewslettersPage() {
   );
 
   useEffect(() => {
-    const newsletterId = searchParams?.get('id');
-    if (!newsletterId || selectedNewsletterId) {
+    if (!requestedNewsletterId || selectedNewsletterId) {
       return;
     }
 
-    if (newsletters.some((item) => item.id === newsletterId)) {
-      setSelectedNewsletterId(newsletterId);
+    if (newsletters.some((item) => item.id === requestedNewsletterId)) {
+      setSelectedNewsletterId(requestedNewsletterId);
     }
-  }, [newsletters, searchParams, selectedNewsletterId]);
+  }, [newsletters, requestedNewsletterId, selectedNewsletterId]);
 
   const selectedContextSet = useMemo(
     () => new Set(selectedContextIds),
@@ -500,9 +505,9 @@ export default function NewslettersPage() {
 
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <span className="text-sm font-medium text-foreground">
                 Manual topic
-              </label>
+              </span>
               <Input
                 placeholder="Enter a topic to bypass proposals"
                 value={manualTopic}
@@ -510,9 +515,9 @@ export default function NewslettersPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <span className="text-sm font-medium text-foreground">
                 Manual angle
-              </label>
+              </span>
               <Input
                 placeholder="Optional framing"
                 value={manualAngle}
@@ -533,7 +538,7 @@ export default function NewslettersPage() {
             ) : (
               <div className="grid gap-2">
                 {publishedNewsletters.map((newsletter) => (
-                  <label
+                  <span
                     key={newsletter.id}
                     className="flex items-start gap-3 rounded-lg border border-border p-3 text-sm"
                   >
@@ -555,7 +560,7 @@ export default function NewslettersPage() {
                         {newsletter.topic}
                       </span>
                     </span>
-                  </label>
+                  </span>
                 ))}
               </div>
             )}
@@ -663,7 +668,7 @@ export default function NewslettersPage() {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative">
-              <HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9"
                 placeholder="Search newsletters"
@@ -701,7 +706,7 @@ export default function NewslettersPage() {
             description="Create or schedule newsletter workflows from Workflows, then review generated issues here."
             action={{
               label: 'Open Workflows',
-              onClick: () => router.push(href('/workflows')),
+              onClick: () => push(href('/workflows')),
               variant: ButtonVariant.SOFT,
             }}
           />
@@ -881,5 +886,13 @@ export default function NewslettersPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+export default function NewslettersPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewslettersPageContent />
+    </Suspense>
   );
 }

@@ -517,12 +517,18 @@ const MODEL_KEYWORDS: Record<string, string[]> = {
   leonardoai: ['art', 'painting', 'style'],
   sdxl: ['logo', 'design'],
 };
+const MODEL_KEYWORD_PATTERNS = Object.entries(MODEL_KEYWORDS).map(
+  ([model, keywords]) => ({
+    keywords: keywords.map((keyword) => new RegExp(`\\b${keyword}\\b`)),
+    model,
+  }),
+);
 
 function selectImageModel(prompt: string): string {
   const lowerPrompt = prompt.toLowerCase();
 
-  for (const [model, keywords] of Object.entries(MODEL_KEYWORDS)) {
-    if (keywords.some((kw) => lowerPrompt.includes(kw))) {
+  for (const { model, keywords } of MODEL_KEYWORD_PATTERNS) {
+    if (keywords.some((keyword) => keyword.test(lowerPrompt))) {
       return model;
     }
   }

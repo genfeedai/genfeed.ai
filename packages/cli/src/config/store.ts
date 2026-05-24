@@ -1,13 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {
-  type Config,
-  configSchema,
-  defaultConfig,
-  defaultProfile,
-  type Profile,
-} from './schema.js';
+import { type Config, configSchema, defaultConfig, defaultProfile, type Profile } from './schema';
 
 const CONFIG_DIR = path.join(os.homedir(), '.gf');
 const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');

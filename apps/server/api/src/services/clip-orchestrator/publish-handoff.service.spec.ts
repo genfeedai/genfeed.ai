@@ -28,8 +28,8 @@ describe('PublishHandoffService', () => {
 
   it('should prepare a handoff payload with defaults', async () => {
     const payload = await service.preparePublishHandoff('proj-1', [
-      'asset-a',
-      'asset-b',
+      'https://cdn.genfeed.ai/asset-a.mp4',
+      'https://cdn.genfeed.ai/asset-b.mp4',
     ]);
 
     expect(payload.clipProjectId).toBe('proj-1');
@@ -42,6 +42,12 @@ describe('PublishHandoffService', () => {
 
   it('should accept custom platforms and schedule', async () => {
     const payload = await service.preparePublishHandoff('proj-2', ['asset-x'], {
+      assets: {
+        'asset-x': {
+          mediaUrl: 'https://cdn.genfeed.ai/asset-x.mp4',
+          mimeType: 'video/mp4',
+        },
+      },
       platforms: ['tiktok', 'youtube'],
       schedule: 'scheduled',
     });
@@ -52,15 +58,21 @@ describe('PublishHandoffService', () => {
 
   it('should forward metadata to the payload', async () => {
     const meta = { campaignId: 'camp-1', tags: ['viral'] };
-    const payload = await service.preparePublishHandoff('proj-3', ['asset-a'], {
-      metadata: meta,
-    });
+    const payload = await service.preparePublishHandoff(
+      'proj-3',
+      ['https://cdn.genfeed.ai/asset-a.mp4'],
+      {
+        metadata: meta,
+      },
+    );
 
     expect(payload.metadata).toEqual(meta);
   });
 
   it('should always set confirmBeforePublish to true', async () => {
-    const payload = await service.preparePublishHandoff('proj-4', ['a']);
+    const payload = await service.preparePublishHandoff('proj-4', [
+      'https://cdn.genfeed.ai/a.mp4',
+    ]);
 
     // Even without explicit options, the flag must be true
     expect(payload.confirmBeforePublish).toBe(true);
@@ -87,7 +99,9 @@ describe('PublishHandoffService', () => {
   // -----------------------------------------------------------------------
 
   it('should validate a correct payload', async () => {
-    const payload = await service.preparePublishHandoff('proj-1', ['a']);
+    const payload = await service.preparePublishHandoff('proj-1', [
+      'https://cdn.genfeed.ai/a.mp4',
+    ]);
     const result = service.validatePayload(payload);
 
     expect(result.valid).toBe(true);
@@ -108,5 +122,20 @@ describe('PublishHandoffService', () => {
 
     expect(result.valid).toBe(false);
     expect(result.errors.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('rejects assets without media URL or MIME type', () => {
+    const result = service.validatePayload({
+      assets: [{ assetId: 'asset-a', mediaUrl: '', mimeType: '' }],
+      clipProjectId: 'proj-1',
+      confirmBeforePublish: true,
+      platforms: ['instagram'],
+      preparedAt: new Date().toISOString(),
+      schedule: 'immediate',
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('assets[0].mediaUrl is required');
+    expect(result.errors).toContain('assets[0].mimeType is required');
   });
 });

@@ -7,7 +7,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { BotActivityStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 export interface BotActivityStats {
   total: number;
@@ -32,6 +32,60 @@ export class BotActivitiesService extends BaseService<
     super(prisma, 'botActivity', logger);
   }
 
+  private isActivityObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  private normalizeActivity(
+    activity: BotActivityDocument,
+  ): BotActivityDocument {
+    const data = this.isActivityObject(activity.data) ? activity.data : {};
+
+    return {
+      ...activity,
+      _id:
+        typeof activity.mongoId === 'string' && activity.mongoId.length > 0
+          ? activity.mongoId
+          : activity.id,
+      brand:
+        activity.brand ??
+        (typeof activity.brandId === 'string' || activity.brandId === null
+          ? activity.brandId
+          : undefined),
+      organization: activity.organization ?? activity.organizationId,
+      user: activity.user ?? activity.userId,
+      ...(data as Partial<BotActivityDocument>),
+      data,
+    };
+  }
+
+  private async patchActivity(
+    id: string,
+    where: Record<string, unknown>,
+    patch: Record<string, unknown>,
+  ): Promise<BotActivityDocument | null> {
+    const existing = await this.prisma.botActivity.findFirst({ where });
+
+    if (!existing) {
+      return null;
+    }
+
+    const currentData = this.isActivityObject(existing.data)
+      ? existing.data
+      : {};
+    const updated = await this.prisma.botActivity.update({
+      data: {
+        data: {
+          ...currentData,
+          ...patch,
+        } as never,
+      },
+      where: { id: existing.id },
+    });
+
+    return this.normalizeActivity(updated as unknown as BotActivityDocument);
+  }
+
   /**
    * Find activities with filters and pagination
    */
@@ -54,14 +108,6 @@ export class BotActivitiesService extends BaseService<
       where.monitoredAccountId = query.monitoredAccount;
     }
 
-    if (query.botType) {
-      where.botType = query.botType;
-    }
-
-    if (query.status) {
-      where.status = query.status;
-    }
-
     if (query.fromDate || query.toDate) {
       where.createdAt = {};
       if (query.fromDate) {
@@ -79,17 +125,23 @@ export class BotActivitiesService extends BaseService<
     const limit = query.limit || 20;
     const offset = query.offset || 0;
 
-    const [activities, total] = await Promise.all([
-      this.delegate.findMany({
+    const activities = (
+      (await this.delegate.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        skip: offset,
-        take: limit,
-      }) as Promise<BotActivityDocument[]>,
-      this.delegate.count({ where }) as Promise<number>,
-    ]);
+      })) as BotActivityDocument[]
+    )
+      .map((activity) => this.normalizeActivity(activity))
+      .filter(
+        (activity) =>
+          (!query.botType || activity.botType === query.botType) &&
+          (!query.status || activity.status === query.status),
+      );
 
-    return { activities, total };
+    return {
+      activities: activities.slice(offset, offset + limit),
+      total: activities.length,
+    };
   }
 
   /**
@@ -122,28 +174,32 @@ export class BotActivitiesService extends BaseService<
       }
     }
 
-    const [total, completed, failed, pending, skipped, totalReplies, totalDms] =
-      await Promise.all([
-        this.delegate.count({ where }) as Promise<number>,
-        this.delegate.count({
-          where: { ...where, status: BotActivityStatus.COMPLETED },
-        }) as Promise<number>,
-        this.delegate.count({
-          where: { ...where, status: BotActivityStatus.FAILED },
-        }) as Promise<number>,
-        this.delegate.count({
-          where: { ...where, status: BotActivityStatus.PENDING },
-        }) as Promise<number>,
-        this.delegate.count({
-          where: { ...where, status: BotActivityStatus.SKIPPED },
-        }) as Promise<number>,
-        this.delegate.count({
-          where: { ...where, replyTweetId: { not: null } },
-        }) as Promise<number>,
-        this.delegate.count({
-          where: { ...where, dmSent: true },
-        }) as Promise<number>,
-      ]);
+    const activities = (
+      (await this.delegate.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+      })) as BotActivityDocument[]
+    ).map((activity) => this.normalizeActivity(activity));
+
+    const total = activities.length;
+    const completed = activities.filter(
+      (activity) => activity.status === BotActivityStatus.COMPLETED,
+    ).length;
+    const failed = activities.filter(
+      (activity) => activity.status === BotActivityStatus.FAILED,
+    ).length;
+    const pending = activities.filter(
+      (activity) => activity.status === BotActivityStatus.PENDING,
+    ).length;
+    const skipped = activities.filter(
+      (activity) => activity.status === BotActivityStatus.SKIPPED,
+    ).length;
+    const totalReplies = activities.filter(
+      (activity) => typeof activity.replyTweetId === 'string',
+    ).length;
+    const totalDms = activities.filter(
+      (activity) => activity.dmSent === true,
+    ).length;
 
     return {
       completed,
@@ -160,9 +216,17 @@ export class BotActivitiesService extends BaseService<
    * Mark activity as processing
    */
   markProcessing(id: string): Promise<BotActivityDocument> {
-    return this.patch(id, {
-      status: BotActivityStatus.PROCESSING,
-    } as Partial<BotActivity>);
+    return this.patchActivity(
+      id,
+      { id, isDeleted: false },
+      { status: BotActivityStatus.PROCESSING },
+    ).then((activity) => {
+      if (!activity) {
+        throw new NotFoundException('Bot activity not found');
+      }
+
+      return activity;
+    });
   }
 
   /**
@@ -176,7 +240,7 @@ export class BotActivitiesService extends BaseService<
     dmSent?: boolean,
     dmText?: string,
   ): Promise<BotActivityDocument> {
-    const updateData: Partial<BotActivity> = {
+    const updateData: Record<string, unknown> = {
       processedAt: new Date(),
       replyTweetId,
       replyTweetText,
@@ -192,7 +256,15 @@ export class BotActivitiesService extends BaseService<
       updateData.dmText = dmText;
     }
 
-    return this.patch(id, updateData);
+    return this.patchActivity(id, { id, isDeleted: false }, updateData).then(
+      (activity) => {
+        if (!activity) {
+          throw new NotFoundException('Bot activity not found');
+        }
+
+        return activity;
+      },
+    );
   }
 
   /**
@@ -203,23 +275,43 @@ export class BotActivitiesService extends BaseService<
     errorMessage: string,
     errorDetails?: Record<string, unknown>,
   ): Promise<BotActivityDocument> {
-    return this.patch(id, {
-      errorDetails,
-      errorMessage,
-      processedAt: new Date(),
-      status: BotActivityStatus.FAILED,
-    } as Partial<BotActivity>);
+    return this.patchActivity(
+      id,
+      { id, isDeleted: false },
+      {
+        errorDetails,
+        errorMessage,
+        processedAt: new Date(),
+        status: BotActivityStatus.FAILED,
+      },
+    ).then((activity) => {
+      if (!activity) {
+        throw new NotFoundException('Bot activity not found');
+      }
+
+      return activity;
+    });
   }
 
   /**
    * Mark activity as skipped
    */
   markSkipped(id: string, skipReason: string): Promise<BotActivityDocument> {
-    return this.patch(id, {
-      processedAt: new Date(),
-      skipReason,
-      status: BotActivityStatus.SKIPPED,
-    } as Partial<BotActivity>);
+    return this.patchActivity(
+      id,
+      { id, isDeleted: false },
+      {
+        processedAt: new Date(),
+        skipReason,
+        status: BotActivityStatus.SKIPPED,
+      },
+    ).then((activity) => {
+      if (!activity) {
+        throw new NotFoundException('Bot activity not found');
+      }
+
+      return activity;
+    });
   }
 
   /**
@@ -230,15 +322,21 @@ export class BotActivitiesService extends BaseService<
     brandId: string | undefined,
     limit: number = 10,
   ): Promise<BotActivityDocument[]> {
-    return this.delegate.findMany({
-      where: {
-        ...(brandId ? { brandId } : {}),
-        isDeleted: false,
-        replyBotConfigId: configId,
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    }) as Promise<BotActivityDocument[]>;
+    return this.delegate
+      .findMany({
+        where: {
+          ...(brandId ? { brandId } : {}),
+          isDeleted: false,
+          replyBotConfigId: configId,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      })
+      .then((activities) =>
+        (activities as BotActivityDocument[]).map((activity) =>
+          this.normalizeActivity(activity),
+        ),
+      );
   }
 
   /**
@@ -285,17 +383,10 @@ export class BotActivitiesService extends BaseService<
       update.processedAt = updateData.completedAt;
     }
 
-    const existing = await this.delegate.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-
-    if (!existing) {
-      return null;
-    }
-
-    return this.delegate.update({
-      where: { id },
-      data: update,
-    }) as Promise<BotActivityDocument>;
+    return this.patchActivity(
+      id,
+      { id, isDeleted: false, organizationId },
+      update,
+    );
   }
 }

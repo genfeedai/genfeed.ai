@@ -1,5 +1,6 @@
 import { IngredientCategory } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import IngredientTabsTags from '@ui/ingredients/tabs/tags/IngredientTabsTags';
 import { describe, expect, it, vi } from 'vitest';
@@ -9,6 +10,15 @@ vi.mock('@ui/tags/manager/TagsManager', () => ({
 }));
 
 describe('IngredientTabsTags', () => {
+  const renderWithQueryClient = (ui: React.ReactElement) => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    return render(
+      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+    );
+  };
+
   const ingredient = {
     category: IngredientCategory.IMAGE,
     id: 'ingredient-1',
@@ -16,14 +26,14 @@ describe('IngredientTabsTags', () => {
   } as IIngredient;
 
   it('should render without crashing', () => {
-    const { container } = render(
+    const { container } = renderWithQueryClient(
       <IngredientTabsTags ingredient={ingredient} onTagsUpdate={vi.fn()} />,
     );
     expect(container.firstChild).toBeInTheDocument();
   });
 
   it('should handle user interactions correctly', () => {
-    render(
+    renderWithQueryClient(
       <IngredientTabsTags ingredient={ingredient} onTagsUpdate={vi.fn()} />,
     );
     expect(
@@ -32,7 +42,7 @@ describe('IngredientTabsTags', () => {
   });
 
   it('should apply correct styles and classes', () => {
-    const { container } = render(
+    const { container } = renderWithQueryClient(
       <IngredientTabsTags ingredient={ingredient} onTagsUpdate={vi.fn()} />,
     );
     const rootElement = container.firstChild as HTMLElement;

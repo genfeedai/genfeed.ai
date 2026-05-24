@@ -23,8 +23,8 @@ export function ErrorFallback({
       role="alert"
       className="flex flex-col items-center justify-center min-h-[200px] p-8 text-center"
     >
-      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-destructive/10 mb-4">
-        <HiOutlineExclamationTriangle className="w-6 h-6 text-destructive" />
+      <div className="flex items-center justify-center size-12 rounded-full bg-destructive/10 mb-4">
+        <HiOutlineExclamationTriangle className="size-6 text-destructive" />
       </div>
       <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
       <p className="text-sm text-muted-foreground mb-4 max-w-md">

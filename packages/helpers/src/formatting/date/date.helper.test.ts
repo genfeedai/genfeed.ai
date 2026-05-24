@@ -2,6 +2,8 @@ import {
   DATE_FORMATS,
   formatDate,
   getEndOfDay,
+  getRelativeDate,
+  getRelativeTime,
   getStartOfDay,
   isValidDate,
   toApiFormat,
@@ -59,6 +61,18 @@ describe('date.helper', () => {
       const date = new Date(2025, 0, 15, 10, 30, 45, 123);
       const result = toApiFormat(date);
       expect(result).toBe('2025-01-15T10:30:45.123Z');
+    });
+  });
+
+  describe('getRelativeTime', () => {
+    it('returns empty string for invalid dates', () => {
+      expect(getRelativeTime('not-a-date')).toBe('');
+    });
+  });
+
+  describe('getRelativeDate', () => {
+    it('returns empty string for invalid dates', () => {
+      expect(getRelativeDate('not-a-date')).toBe('');
     });
   });
 

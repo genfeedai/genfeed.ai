@@ -19,6 +19,8 @@ import { Button } from './button';
 import { Input } from './input';
 import { SimpleTooltip } from './tooltip';
 
+const EMPTY_ARRAY: never[] = [];
+
 export interface DropdownFieldOption {
   key: string | number;
   label: string;
@@ -96,7 +98,7 @@ export default function DropdownField({
   name,
   value,
   className = '',
-  placeholder = 'Search...',
+  placeholder = 'Search…',
   isDisabled = false,
   isRequired = false,
   isFullWidth = true,
@@ -108,7 +110,7 @@ export default function DropdownField({
   variant = ButtonVariant.GHOST,
   size,
   dropdownDirection = 'down',
-  options = [],
+  options = EMPTY_ARRAY,
   tabs,
   defaultTab = 'all',
   onChange = () => {},
@@ -379,7 +381,7 @@ export default function DropdownField({
                         setSearchTerm('');
                       }}
                     >
-                      <X className="h-4 w-4" />
+                      <X className="size-4" />
                     </button>
                   )}
                 </div>
@@ -456,11 +458,11 @@ export default function DropdownField({
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex min-w-0 flex-1 items-center gap-2">
                     {option.thumbnailUrl && (
-                      <div className="h-10 w-10 flex-shrink-0 overflow-hidden bg-muted">
+                      <div className="size-10 flex-shrink-0 overflow-hidden bg-muted">
                         <Image
                           src={option.thumbnailUrl}
                           alt={option.label}
-                          className="h-full w-full object-cover"
+                          className="size-full object-cover"
                           width={40}
                           height={40}
                           sizes="40px"

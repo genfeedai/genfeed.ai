@@ -71,7 +71,7 @@ function ImageInputNodeComponent(props: NodeProps) {
             onClick={handleExpand}
             title="Expand preview"
           >
-            <Expand className="h-3.5 w-3.5" />
+            <Expand className="size-3.5" />
           </Button>
         )}
         <Button
@@ -80,7 +80,7 @@ function ImageInputNodeComponent(props: NodeProps) {
           onClick={() => fileInputRef.current?.click()}
           title="Upload image"
         >
-          <Upload className="h-3.5 w-3.5" />
+          <Upload className="size-3.5" />
         </Button>
         <Button
           variant="ghost"
@@ -88,7 +88,7 @@ function ImageInputNodeComponent(props: NodeProps) {
           onClick={() => setShowUrlInput(!showUrlInput)}
           title="Paste URL"
         >
-          <Link className="h-3.5 w-3.5" />
+          <Link className="size-3.5" />
         </Button>
       </div>
     ),
@@ -144,9 +144,9 @@ function ImageInputNodeComponent(props: NodeProps) {
             variant="secondary"
             size="icon-sm"
             onClick={handleRemove}
-            className="absolute right-1.5 top-1.5 h-5 w-5"
+            className="absolute right-1.5 top-1.5 size-5"
           >
-            <X className="h-3 w-3" />
+            <X className="size-3" />
           </Button>
           {nodeData.dimensions && (
             <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px]">
@@ -163,14 +163,14 @@ function ImageInputNodeComponent(props: NodeProps) {
         >
           {isUploading ? (
             <>
-              <Loader2 className="h-5 w-5 text-muted-foreground/50 animate-spin" />
+              <Loader2 className="size-5 text-muted-foreground/50 animate-spin" />
               <span className="text-[10px] text-muted-foreground/70">
-                Uploading...
+                Uploading…
               </span>
             </>
           ) : (
             <>
-              <ImageIcon className="h-5 w-5 text-muted-foreground/50" />
+              <ImageIcon className="size-5 text-muted-foreground/50" />
               <span className="text-[10px] text-muted-foreground/70">
                 Drop or click
               </span>

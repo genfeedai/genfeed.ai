@@ -12,6 +12,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,
@@ -30,18 +31,21 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-function isValidObjectId(id: unknown): id is string {
-  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
-}
-
 // Simple serializer for pattern playbook
 const PatternPlaybookSerializer = {
   serialize: (data: unknown) => {
     if (!data) {
       return null;
     }
-    const doc = data.toObject ? data.toObject() : data;
+    const doc =
+      typeof (data as { toObject?: unknown }).toObject === 'function'
+        ? ((data as { toObject: () => Record<string, unknown> }).toObject() ??
+          {})
+        : ((data as Record<string, unknown>) ?? {});
+    const sourceCreators = Array.isArray(doc.sourceCreators)
+      ? doc.sourceCreators
+      : [];
+
     return {
       attributes: {
         description: doc.description,
@@ -52,9 +56,9 @@ const PatternPlaybookSerializer = {
         niche: doc.niche,
         patternsCount: doc.patternsCount,
         platform: doc.platform,
-        sourceCreators: doc.sourceCreators?.map((id: unknown) => id.toString()),
+        sourceCreators: sourceCreators.map((id: unknown) => String(id)),
       },
-      id: doc._id?.toString(),
+      id: String(doc.id ?? doc._id ?? ''),
       type: 'pattern-playbook',
     };
   },
@@ -76,15 +80,13 @@ export class PlaybooksController {
     const publicMetadata = getPublicMetadata(user);
     const organizationId = publicMetadata.organization;
 
-    const pipeline: Record<string, unknown>[] = [
-      {
-        $match: {
-          isDeleted: false,
-          organization: organizationId,
-        },
+    const pipeline = {
+      where: {
+        isDeleted: false,
+        organization: organizationId,
       },
-      { $sort: { createdAt: -1 } },
-    ];
+      orderBy: { createdAt: -1 },
+    };
 
     const data = await this.playbookBuilderService.findAll(pipeline, {
       customLabels,
@@ -101,7 +103,7 @@ export class PlaybooksController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound('PatternPlaybook', id);
     }
 
@@ -145,7 +147,7 @@ export class PlaybooksController {
     @Param('id') id: string,
     @Body() dto: UpdatePlaybookDto,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound('PatternPlaybook', id);
     }
 
@@ -171,7 +173,7 @@ export class PlaybooksController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound('PatternPlaybook', id);
     }
 
@@ -198,7 +200,7 @@ export class PlaybooksController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!isValidObjectId(id)) {
+    if (!isEntityId(id)) {
       ErrorResponse.notFound('PatternPlaybook', id);
     }
 

@@ -9,7 +9,7 @@ import type {
   SoundOverlayNodeData,
 } from '@ui/workflow-builder/types/workflow-saas.types';
 import { Loader2, Music, Video, Volume2 } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useId } from 'react';
 
 export type { MixMode, SoundOverlayNodeData };
 
@@ -36,6 +36,9 @@ function SoundOverlayNodeComponent({
   onUpdate,
   onExecute,
 }: SoundOverlayNodeProps) {
+  const mixModeId = useId();
+  const fadeInId = useId();
+  const fadeOutId = useId();
   const handleMixModeChange = useCallback(
     (mixMode: MixMode) => {
       onUpdate(id, { mixMode });
@@ -75,7 +78,7 @@ function SoundOverlayNodeComponent({
               : 'bg-background border-white/[0.08]'
           }`}
         >
-          <Video className="w-4 h-4" />
+          <Video className="size-4" />
           <span className="text-sm">
             {data.videoUrl ? 'Video connected' : 'Awaiting video input'}
           </span>
@@ -87,7 +90,7 @@ function SoundOverlayNodeComponent({
               : 'bg-background border-white/[0.08]'
           }`}
         >
-          <Music className="w-4 h-4" />
+          <Music className="size-4" />
           <span className="text-sm">
             {data.soundUrl ? 'Audio connected' : 'Awaiting audio input'}
           </span>
@@ -96,8 +99,14 @@ function SoundOverlayNodeComponent({
 
       {/* Mix Mode */}
       <div>
-        <label className="text-xs text-muted-foreground">Mix Mode</label>
-        <div className="space-y-1 mt-1">
+        <span id={mixModeId} className="text-xs text-muted-foreground">
+          Mix Mode
+        </span>
+        <div
+          role="group"
+          aria-labelledby={mixModeId}
+          className="space-y-1 mt-1"
+        >
           {MIX_MODES.map((m) => (
             <Button
               key={m.value}
@@ -121,7 +130,7 @@ function SoundOverlayNodeComponent({
       <div className="space-y-2">
         <div>
           <label className="text-xs text-muted-foreground flex items-center gap-1">
-            <Volume2 className="w-3 h-3" />
+            <Volume2 className="size-3" />
             Audio Volume: {data.audioVolume}%
           </label>
           <Slider
@@ -137,7 +146,7 @@ function SoundOverlayNodeComponent({
         {data.mixMode !== 'replace' && (
           <div>
             <label className="text-xs text-muted-foreground flex items-center gap-1">
-              <Video className="w-3 h-3" />
+              <Video className="size-3" />
               Video Volume: {data.videoVolume}%
             </label>
             <Slider
@@ -155,8 +164,11 @@ function SoundOverlayNodeComponent({
       {/* Fade Controls */}
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-xs text-muted-foreground">Fade In (s)</label>
+          <label htmlFor={fadeInId} className="text-xs text-muted-foreground">
+            Fade In (s)
+          </label>
           <Input
+            id={fadeInId}
             type="number"
             min="0"
             step="0.5"
@@ -166,8 +178,11 @@ function SoundOverlayNodeComponent({
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground">Fade Out (s)</label>
+          <label htmlFor={fadeOutId} className="text-xs text-muted-foreground">
+            Fade Out (s)
+          </label>
           <Input
+            id={fadeOutId}
             type="number"
             min="0"
             step="0.5"
@@ -188,15 +203,15 @@ function SoundOverlayNodeComponent({
       >
         {isProcessing ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Processing...
+            <Loader2 className="size-4 animate-spin" />
+            Processing…
             {data.processingProgress !== null && (
               <span>({data.processingProgress}%)</span>
             )}
           </>
         ) : (
           <>
-            <Volume2 className="w-4 h-4" />
+            <Volume2 className="size-4" />
             Apply Sound Overlay
           </>
         )}

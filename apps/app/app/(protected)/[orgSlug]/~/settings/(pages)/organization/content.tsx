@@ -28,7 +28,7 @@ export default function SettingsOrganizationPage() {
   if (!isReady) {
     return (
       <div className="flex items-center justify-center min-h-form">
-        <span className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+        <span className="animate-spin size-8 border-2 border-primary border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -39,17 +39,15 @@ export default function SettingsOrganizationPage() {
         <h2 className="text-lg font-semibold mb-4">Organization Information</h2>
         <div className="space-y-4">
           <div>
-            <label className="text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               Organization ID
-            </label>
+            </span>
             <p className="font-medium font-mono text-sm">
               {organizationId || 'Not set'}
             </p>
           </div>
           <div>
-            <label className="text-sm text-muted-foreground">
-              Current Brand
-            </label>
+            <span className="text-sm text-muted-foreground">Current Brand</span>
             <p className="font-medium">{selectedBrand?.label || 'Not set'}</p>
           </div>
         </div>

@@ -1,0 +1,4 @@
+[install]
+# Require npm package versions to be at least 3 hours old before Bun will resolve them.
+minimumReleaseAge = 10800
+minimumReleaseAgeExcludes = ["@types/bun", "bun-types", "typescript", "@shipshitdev/ui"]

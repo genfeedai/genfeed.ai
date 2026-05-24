@@ -124,21 +124,21 @@ describe('SwitcherDropdown', () => {
   });
 
   it('shows search when hasSearch is true', () => {
-    renderDropdown({ hasSearch: true, searchPlaceholder: 'Find...' });
+    renderDropdown({ hasSearch: true, searchPlaceholder: 'Find…' });
     fireEvent.click(screen.getByText('Open'));
-    expect(screen.getByPlaceholderText('Find...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Find…')).toBeInTheDocument();
   });
 
   it('hides search when hasSearch is false', () => {
     renderDropdown({ hasSearch: false });
     fireEvent.click(screen.getByText('Open'));
-    expect(screen.queryByPlaceholderText('Search...')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Search…')).not.toBeInTheDocument();
   });
 
   it('filters items by search term', () => {
     renderDropdown({ hasSearch: true });
     fireEvent.click(screen.getByText('Open'));
-    const input = screen.getByPlaceholderText('Search...');
+    const input = screen.getByPlaceholderText('Search…');
     fireEvent.change(input, { target: { value: 'bet' } });
     expect(screen.getByText('Beta')).toBeInTheDocument();
     expect(screen.queryByText('Alpha')).not.toBeInTheDocument();

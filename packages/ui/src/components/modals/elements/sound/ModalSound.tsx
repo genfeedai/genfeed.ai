@@ -22,25 +22,31 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
   const { user } = useUser();
   const isSuperAdmin = user ? getClerkPublicData(user).isSuperAdmin : false;
 
-  const { form, formRef, isSubmitting, onSubmit, closeModal, handleDelete } =
-    useCrudModal<
-      ISound,
-      any // SoundElementSchema - fix later
-    >({
-      defaultValues: {
-        description: '',
-        isActive: true,
-        key: '',
-        label: '',
-      },
-      entity: sound || null,
-      modalId: ModalEnum.SOUND,
-      onConfirm,
-      schema: soundElementSchema,
-      serviceFactory: (token) => SoundsService.getInstance(token),
-    });
+  const {
+    form,
+    formRef,
+    isSubmitting,
+    onSubmit,
+    closeModal,
+    handleDelete: deleteModalSound,
+  } = useCrudModal<
+    ISound,
+    any // SoundElementSchema - fix later
+  >({
+    defaultValues: {
+      description: '',
+      isActive: true,
+      key: '',
+      label: '',
+    },
+    entity: sound || null,
+    modalId: ModalEnum.SOUND,
+    onConfirm,
+    schema: soundElementSchema,
+    serviceFactory: (token) => SoundsService.getInstance(token),
+  });
 
-  const handleChange = (
+  const updateModalSound = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
@@ -65,7 +71,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
             type="text"
             name="label"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalSound}
             placeholder="Enter display label"
             isRequired={true}
             isDisabled={isSubmitting}
@@ -77,7 +83,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
             type="text"
             name="key"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalSound}
             placeholder="lowercase-with-hyphens"
             isRequired={true}
             isDisabled={isSubmitting || (!!sound && !isSuperAdmin)}
@@ -98,7 +104,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
           <SelectField
             name="type"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalSound}
             isDisabled={isSubmitting}
             isRequired={true}
             placeholder="Select a type"
@@ -117,7 +123,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
           <Input
             name="description"
             control={form.control}
-            onChange={handleChange}
+            onChange={updateModalSound}
             placeholder="Enter description (optional)"
             isDisabled={isSubmitting}
           />
@@ -147,11 +153,11 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
             isLoading={isSubmitting}
           />
 
-          {sound && handleDelete && (
+          {sound && deleteModalSound && (
             <Button
               label={<HiTrash />}
               variant={ButtonVariant.DESTRUCTIVE}
-              onClick={handleDelete}
+              onClick={deleteModalSound}
               isLoading={isSubmitting}
             />
           )}

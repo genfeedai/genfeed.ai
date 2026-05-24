@@ -21,7 +21,7 @@ export class InternalIntegrationsController {
   })
   getByPlatform(
     @Param('platform') platform: IntegrationPlatform,
-  ): Promise<OrgIntegration[]> {
+  ): ReturnType<IntegrationsService['findByPlatform']> {
     return this.integrationsService.findByPlatform(platform);
   }
 
@@ -34,7 +34,7 @@ export class InternalIntegrationsController {
   getOneByPlatform(
     @Param('platform') platform: IntegrationPlatform,
     @Param('id') id: string,
-  ): Promise<OrgIntegration> {
+  ): ReturnType<IntegrationsService['findOneByPlatform']> {
     return this.integrationsService.findOneByPlatform(platform, id);
   }
 }

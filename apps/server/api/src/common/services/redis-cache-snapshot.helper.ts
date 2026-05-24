@@ -40,7 +40,11 @@ export async function collectRedisKeysByPattern(
     COUNT: 100,
     MATCH: pattern,
   })) {
-    keys.push(key);
+    if (Array.isArray(key)) {
+      keys.push(...key);
+    } else {
+      keys.push(key);
+    }
   }
 
   return keys;

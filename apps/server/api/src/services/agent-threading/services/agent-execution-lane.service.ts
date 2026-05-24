@@ -26,7 +26,7 @@ export class AgentExecutionLaneService {
 
       const runner = previous
         .catch(() => undefined)
-        .then(() => Effect.runPromiseExit(task()))
+        .then(() => Effect.runPromiseExit(task() as Effect.Effect<A, E, never>))
         .then((exit) => {
           resume(exit);
         })

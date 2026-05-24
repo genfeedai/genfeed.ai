@@ -1,4 +1,8 @@
 import type { WorkflowNodeData } from '@genfeedai/types';
+import {
+  createIdLookup,
+  filterItemsByIdLookup,
+} from '@genfeedai/workflow-ui/lib';
 import { useReactFlow } from '@xyflow/react';
 import { useCallback, useMemo, useRef } from 'react';
 import type { ContextMenuItemConfig } from '@/components/context-menu';
@@ -58,6 +62,10 @@ export function useContextMenu() {
   const { addNodeAtPosition, selectAll, fitView, autoLayout } =
     usePaneActions();
   const reactFlow = useReactFlow();
+  const nodeMap = useMemo(
+    () => new Map(nodes.map((node) => [node.id, node])),
+    [nodes],
+  );
 
   // Stable reference for handlers that don't need to change
   const stableHandlersRef = useRef({
@@ -91,22 +99,22 @@ export function useContextMenu() {
 
   const lockNode = useCallback(
     (nodeId: string) => {
-      const node = nodes.find((n) => n.id === nodeId);
+      const node = nodeMap.get(nodeId);
       if (node && !node.data.locked) {
         toggleNodeLock(nodeId);
       }
     },
-    [nodes, toggleNodeLock],
+    [nodeMap, toggleNodeLock],
   );
 
   const unlockNode = useCallback(
     (nodeId: string) => {
-      const node = nodes.find((n) => n.id === nodeId);
+      const node = nodeMap.get(nodeId);
       if (node?.data.locked) {
         toggleNodeLock(nodeId);
       }
     },
-    [nodes, toggleNodeLock],
+    [nodeMap, toggleNodeLock],
   );
 
   const groupNodes = useCallback(
@@ -121,32 +129,33 @@ export function useContextMenu() {
   const lockAllNodes = useCallback(
     (nodeIds: string[]) => {
       for (const nodeId of nodeIds) {
-        const node = nodes.find((n) => n.id === nodeId);
+        const node = nodeMap.get(nodeId);
         if (node && !node.data.locked) {
           toggleNodeLock(nodeId);
         }
       }
     },
-    [nodes, toggleNodeLock],
+    [nodeMap, toggleNodeLock],
   );
 
   const unlockAllNodes = useCallback(
     (nodeIds: string[]) => {
       for (const nodeId of nodeIds) {
-        const node = nodes.find((n) => n.id === nodeId);
+        const node = nodeMap.get(nodeId);
         if (node?.data.locked) {
           toggleNodeLock(nodeId);
         }
       }
     },
-    [nodes, toggleNodeLock],
+    [nodeMap, toggleNodeLock],
   );
 
   const alignNodesHorizontally = useCallback(
     (nodeIds: string[]) => {
       if (nodeIds.length < 2) return;
 
-      const selectedNodes = nodes.filter((n) => nodeIds.includes(n.id));
+      const nodeIdLookup = createIdLookup(nodeIds);
+      const selectedNodes = filterItemsByIdLookup(nodes, nodeIdLookup);
       if (selectedNodes.length < 2) return;
 
       // Calculate average Y position
@@ -157,7 +166,7 @@ export function useContextMenu() {
       // Update all selected nodes to the same Y position
       reactFlow.setNodes((nds) =>
         nds.map((node) =>
-          nodeIds.includes(node.id)
+          nodeIdLookup.has(node.id)
             ? { ...node, position: { ...node.position, y: avgY } }
             : node,
         ),
@@ -170,7 +179,8 @@ export function useContextMenu() {
     (nodeIds: string[]) => {
       if (nodeIds.length < 2) return;
 
-      const selectedNodes = nodes.filter((n) => nodeIds.includes(n.id));
+      const nodeIdLookup = createIdLookup(nodeIds);
+      const selectedNodes = filterItemsByIdLookup(nodes, nodeIdLookup);
       if (selectedNodes.length < 2) return;
 
       // Calculate average X position
@@ -181,7 +191,7 @@ export function useContextMenu() {
       // Update all selected nodes to the same X position
       reactFlow.setNodes((nds) =>
         nds.map((node) =>
-          nodeIds.includes(node.id)
+          nodeIdLookup.has(node.id)
             ? { ...node, position: { ...node.position, x: avgX } }
             : node,
         ),
@@ -227,7 +237,7 @@ export function useContextMenu() {
     async (nodeId: string) => {
       if (!workflowId) return;
 
-      const node = nodes.find((n) => n.id === nodeId);
+      const node = nodeMap.get(nodeId);
       if (!node) return;
 
       const data = node.data as WorkflowNodeData & {
@@ -245,12 +255,12 @@ export function useContextMenu() {
         logger.error('Failed to set thumbnail', error, { nodeId, workflowId });
       }
     },
-    [workflowId, nodes],
+    [nodeMap, workflowId],
   );
 
   const hasMediaOutput = useCallback(
     (nodeId: string): boolean => {
-      const node = nodes.find((n) => n.id === nodeId);
+      const node = nodeMap.get(nodeId);
       if (!node) return false;
 
       const data = node.data as WorkflowNodeData & {
@@ -260,7 +270,7 @@ export function useContextMenu() {
 
       return Boolean(data.outputVideo || data.outputImage);
     },
-    [nodes],
+    [nodeMap],
   );
 
   const getMenuItems = useCallback((): ContextMenuItemConfig[] => {
@@ -271,7 +281,7 @@ export function useContextMenu() {
     switch (menuType) {
       case 'node': {
         if (!targetId) return [];
-        const node = nodes.find((n) => n.id === targetId);
+        const node = nodeMap.get(targetId);
         const isLocked = Boolean(node?.data.locked);
         const nodeHasMediaOutput = hasMediaOutput(targetId);
         const currentColor = (node?.data as { color?: string })?.color;
@@ -330,7 +340,7 @@ export function useContextMenu() {
     menuType,
     targetId,
     targetIds,
-    nodes,
+    nodeMap,
     position,
     clipboard,
     lockNode,

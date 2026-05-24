@@ -80,15 +80,17 @@ describe('ModalGallery', () => {
     expect(screen.getByTestId('modal-gallery-footer')).toBeInTheDocument();
   });
 
-  it.skip('renders with correct title for video category', () => {
-    // Skipped: Mock doesn't properly pass category to ModalGalleryHeader
-    render(<ModalGallery {...defaultProps} category="video" />);
+  it('renders with correct title for video category', () => {
+    render(
+      <ModalGallery {...defaultProps} category="video" title={undefined} />,
+    );
     expect(screen.getByText('Select Video')).toBeInTheDocument();
   });
 
-  it.skip('renders with correct title for music category', () => {
-    // Skipped: Mock doesn't properly pass category to ModalGalleryHeader
-    render(<ModalGallery {...defaultProps} category="music" />);
+  it('renders with correct title for music category', () => {
+    render(
+      <ModalGallery {...defaultProps} category="music" title={undefined} />,
+    );
     expect(screen.getByText('Select Music')).toBeInTheDocument();
   });
 });

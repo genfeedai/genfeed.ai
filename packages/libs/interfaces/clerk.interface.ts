@@ -23,8 +23,12 @@ export interface IClerkPublicMetadata {
    */
   clerkId?: string;
 
+  /** Clerk native organization ID (org_xxx) for cross-reference with Clerk Organizations. */
+  clerkOrganizationId?: string;
+
   category?: string;
   isOnboardingCompleted?: boolean;
+  proactiveLeadId?: string;
 
   hasEverHadCredits?: boolean;
 }

@@ -19,5 +19,6 @@ describe('Badge', () => {
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
     expect(rootElement).toHaveClass('rounded-full');
+    expect(rootElement).toHaveClass('ship-ui');
   });
 });

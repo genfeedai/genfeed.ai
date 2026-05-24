@@ -18,14 +18,14 @@ import { LazyModalMember } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { HiOutlineUsers, HiUserPlus } from 'react-icons/hi2';
 
-export default function MembersList() {
+function MembersListContent() {
   const notificationsService = NotificationsService.getInstance();
   const { organizationId } = useBrand();
   const searchParams = useSearchParams();
-  const currentPage = Number(searchParams?.get('page')) || 1;
+  const currentPage = Number(searchParams.get('page')) || 1;
 
   const getMembersService = useAuthedService(
     useCallback((token: string) => MembersService.getInstance(token), []),
@@ -95,7 +95,7 @@ export default function MembersList() {
       right={
         <Button
           onClick={() => openModal(ModalEnum.MEMBER)}
-          icon={<HiUserPlus className="w-4 h-4" />}
+          icon={<HiUserPlus className="size-4" />}
           label="Invite Member"
         />
       }
@@ -118,5 +118,13 @@ export default function MembersList() {
         onConfirm={findAllMembers}
       />
     </Container>
+  );
+}
+
+export default function MembersList() {
+  return (
+    <Suspense fallback={null}>
+      <MembersListContent />
+    </Suspense>
   );
 }

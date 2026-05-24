@@ -10,6 +10,7 @@ import { PrismaService } from '../../../shared/modules/prisma/prisma.service';
 import { OrganizationSettingsService } from '../../organization-settings/services/organization-settings.service';
 import type { TrainingDocument } from '../../trainings/schemas/training.schema';
 import type { ModelDocument } from '../schemas/model.schema';
+import { ModelsService } from './models.service';
 
 @Injectable()
 export class ModelRegistrationService {
@@ -17,21 +18,21 @@ export class ModelRegistrationService {
     private readonly prisma: PrismaService,
     private readonly orgSettingsService: OrganizationSettingsService,
     private readonly logger: LoggerService,
+    private readonly modelsService: ModelsService,
   ) {}
 
   async validateModelForOrg(
     modelKey: string,
     organizationId: string,
   ): Promise<ModelDocument> {
-    // key is stored in config JSON — fetch all and filter
-    const models = await this.prisma.model.findMany({
-      where: { isDeleted: false },
-    });
-
-    const model = models.find((m) => {
-      const config = m.config as Record<string, unknown>;
-      return config?.key === modelKey;
-    });
+    const model = await this.prisma.model
+      .findMany({ where: { isDeleted: false } })
+      .then((models) =>
+        models.find((candidate) => {
+          const config = candidate.config as Record<string, unknown>;
+          return config?.key === modelKey;
+        }),
+      );
 
     if (!model) {
       throw new BadRequestException(`Unknown model: ${modelKey}`);
@@ -46,9 +47,12 @@ export class ModelRegistrationService {
     const orgSettings = await this.orgSettingsService.findOne({
       organization: organizationId,
     });
-    const isEnabled = (orgSettings?.enabledModels ?? []).some(
-      (id: string) => id === model.id,
-    );
+    const enabledModels = Array.isArray(
+      (orgSettings as Record<string, unknown> | null)?.enabledModels,
+    )
+      ? ((orgSettings as Record<string, unknown>).enabledModels as string[])
+      : [];
+    const isEnabled = enabledModels.some((id: string) => id === model.id);
 
     if (!isEnabled) {
       throw new ForbiddenException('Model not enabled for this organization');
@@ -58,79 +62,29 @@ export class ModelRegistrationService {
   }
 
   async createFromTraining(training: TrainingDocument): Promise<ModelDocument> {
-    const trainingId = String(training._id ?? training.id ?? '');
-
-    // Idempotent check
-    const existing = await this.prisma.model.findFirst({
-      where: { trainingId },
-    });
-    if (existing) return existing as unknown as ModelDocument;
-
-    // Resolve parent model by key stored in config
-    const parentModelKey = (training.baseModel || training.model) as
-      | string
-      | undefined;
-    let parentModel:
-      | Awaited<ReturnType<typeof this.prisma.model.findFirst>>
-      | undefined;
-
-    if (parentModelKey) {
-      const candidates = await this.prisma.model.findMany({
-        where: { isDeleted: false },
-      });
-      parentModel =
-        candidates.find((m) => {
-          const config = m.config as Record<string, unknown>;
-          return config?.key === parentModelKey;
-        }) ?? undefined;
-    }
-
-    if (!parentModel) {
-      this.logger.warn(
-        `Base model not found for training ${trainingId}: ${parentModelKey}`,
-      );
-    }
-
-    const parentConfig = parentModel?.config as Record<string, unknown> | null;
-    const key = `genfeed-ai/${training.organization}/${trainingId}`;
-    const organizationId = String(training.organization);
-
     try {
-      const newModel = await this.prisma.model.create({
-        data: {
+      const newModel = await this.modelsService.createFromTraining(training);
+      const organizationId =
+        typeof newModel.organization === 'string'
+          ? newModel.organization
+          : newModel.organizationId;
+
+      if (organizationId && newModel.id) {
+        await this.orgSettingsService.addEnabledModel(
           organizationId,
-          trainingId,
-          parentModelId: parentModel?.id ?? null,
-          label: training.label as string,
-          isActive: true,
-          config: {
-            key,
-            category: parentConfig?.category ?? 'IMAGE',
-            provider: 'genfeed-ai',
-            cost: parentConfig?.cost ?? 1,
-            isDefault: false,
-            triggerWord: training.trigger as string | undefined,
-            capabilities: parentConfig?.capabilities ?? [],
-            supportsFeatures: [
-              ...((parentConfig?.supportsFeatures as string[]) ?? []),
-              'lora-weights',
-            ],
-          },
-        },
-      });
+          newModel.id,
+        );
+      }
 
-      await this.orgSettingsService.addEnabledModel(
-        training.organization as string,
-        newModel.id,
+      this.logger.log(
+        `Created model ${newModel.key} from training ${training._id ?? training.id}`,
       );
-
-      this.logger.log(`Created model ${key} from training ${trainingId}`);
-      return newModel as unknown as ModelDocument;
+      return newModel;
     } catch (err: unknown) {
       const error = err as { code?: number };
       if (error.code === 11000) {
         const raceWinner = await this.prisma.model.findFirst({
-          where: { trainingId },
+          where: { trainingId: training._id ?? training.id },
         });
         return raceWinner as unknown as ModelDocument;
       }
@@ -140,7 +94,7 @@ export class ModelRegistrationService {
 
   async reconcileTrainingModels(): Promise<void> {
     const allTrainings = await this.prisma.training.findMany({
-      where: { status: 'COMPLETED', isDeleted: false },
+      where: { isDeleted: false, stage: 'READY' },
     });
 
     const orphanedTrainings: typeof allTrainings = [];
@@ -193,7 +147,12 @@ export class ModelRegistrationService {
       const orgSettings = await this.orgSettingsService.findOne({
         organization: orgId,
       });
-      const enabledSet = new Set<string>(orgSettings?.enabledModels ?? []);
+      const enabledModels = Array.isArray(
+        (orgSettings as Record<string, unknown> | null)?.enabledModels,
+      )
+        ? ((orgSettings as Record<string, unknown>).enabledModels as string[])
+        : [];
+      const enabledSet = new Set<string>(enabledModels);
 
       for (const modelId of modelIds) {
         if (!enabledSet.has(modelId)) {

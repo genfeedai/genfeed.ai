@@ -8,29 +8,24 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./comfyui": {
       "types": "./dist/comfyui.d.ts",
-      "import": "./dist/comfyui.mjs",
-      "require": "./dist/comfyui.js"
+      "default": "./dist/comfyui.js"
     },
     "./nodes": {
       "types": "./dist/nodes.d.ts",
-      "import": "./dist/nodes.mjs",
-      "require": "./dist/nodes.js"
+      "default": "./dist/nodes.js"
     },
     "./replicate": {
       "types": "./dist/replicate.d.ts",
-      "import": "./dist/replicate.mjs",
-      "require": "./dist/replicate.js"
+      "default": "./dist/replicate.js"
     },
     "./replicate/schemas.json": "./src/replicate/schemas.json",
     "./workflow": {
       "types": "./dist/workflow.d.ts",
-      "import": "./dist/workflow.mjs",
-      "require": "./dist/workflow.js"
+      "default": "./dist/workflow.js"
     }
   },
   "files": [
@@ -39,7 +34,6 @@
   ],
   "license": "AGPL-3.0",
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "name": "@genfeedai/types",
   "publishConfig": {
     "access": "public",
@@ -56,6 +50,7 @@
     "prepublishOnly": "bun run build"
   },
   "sideEffects": false,
+  "type": "module",
   "types": "./dist/index.d.ts",
   "version": "0.3.1"
 }

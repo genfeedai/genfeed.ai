@@ -17,6 +17,10 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject } from '@nestjs/common';
 import { Job } from 'bullmq';
 
+type WorkflowExecutionResult = Awaited<
+  ReturnType<WorkflowEngineAdapterService['executeWorkflow']>
+>;
+
 @Processor('workflow-execution', {
   concurrency: 3,
   limiter: { duration: 60000, max: 10 },
@@ -69,11 +73,8 @@ export class WorkflowExecutionProcessor extends WorkerHost {
         ? { resumeFromNodeId: data.resumeFromNodeId }
         : {};
 
-      // @ts-expect-error TS2683
       const resultRef: {
-        current?: Awaited<
-          ReturnType<typeof this.engineAdapter.executeWorkflow>
-        >;
+        current?: WorkflowExecutionResult;
       } = {};
       const result = await this.engineAdapter.executeWorkflow(executable, {
         ...options,
@@ -195,13 +196,15 @@ export class WorkflowDelayProcessor extends WorkerHost {
       return;
     }
 
+    const executionStatus = String(execution.status);
+
     if (
-      execution.status === WorkflowExecutionStatus.CANCELLED ||
-      execution.status === WorkflowExecutionStatus.FAILED ||
-      execution.status === WorkflowExecutionStatus.COMPLETED
+      executionStatus === WorkflowExecutionStatus.CANCELLED ||
+      executionStatus === WorkflowExecutionStatus.FAILED ||
+      executionStatus === WorkflowExecutionStatus.COMPLETED
     ) {
       this.logger.warn(
-        `${url} execution already ${execution.status}, skipping delayed resume`,
+        `${url} execution already ${executionStatus}, skipping delayed resume`,
         {
           executionId: data.executionId,
         },

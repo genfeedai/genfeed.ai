@@ -14,6 +14,81 @@ import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+interface SubmenuPortalProps {
+  menuRef: React.RefObject<HTMLDivElement | null>;
+  menuPosition: {
+    left: number;
+    top: number;
+    shouldShowBelow: boolean;
+    buttonHeight: number;
+  };
+  actions: IQuickAction[];
+  onActionClick: (action: IQuickAction) => void;
+}
+
+function SubmenuPortal({
+  menuRef,
+  menuPosition,
+  actions,
+  onActionClick,
+}: SubmenuPortalProps): React.ReactNode {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      ref={menuRef}
+      role="presentation"
+      data-dropdown="true"
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        left: `${menuPosition.left}px`,
+        position: 'absolute',
+        top: menuPosition.shouldShowBelow
+          ? `${menuPosition.top + menuPosition.buttonHeight + 8}px`
+          : `${menuPosition.top - 8}px`,
+        transform: menuPosition.shouldShowBelow ? 'none' : 'translateY(-100%)',
+        zIndex: 50,
+      }}
+      className={cn(BG_BLUR, BORDER_WHITE_30, ' shadow-2xl', 'min-w-40')}
+    >
+      <div className="p-1">
+        {actions.map((action, index) => (
+          <div key={action.id}>
+            {action.dividerBefore && index > 0 && (
+              <div className="my-1 border-t border-white/20" />
+            )}
+
+            <Button
+              withWrapper={false}
+              variant={ButtonVariant.UNSTYLED}
+              onClick={() => onActionClick(action)}
+              isDisabled={action.isDisabled || action.isLoading}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 transition-all duration-300 text-left text-sm font-medium cursor-pointer ${
+                action.isDisabled || action.isLoading
+                  ? 'opacity-50 cursor-not-allowed text-white/50'
+                  : action.variant === 'error'
+                    ? 'text-error hover:bg-error hover:text-white focus:bg-error focus:text-white'
+                    : 'text-white/90 hover:bg-white/20 hover:text-white focus:bg-white/20 focus:text-white'
+              }`}
+            >
+              {action.icon && (
+                <span className="flex-shrink-0">{action.icon}</span>
+              )}
+              <span className="flex-1">{action.label}</span>
+              {action.isLoading && (
+                <Spinner size={ComponentSize.XS} className="flex-shrink-0" />
+              )}
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export default function QuickActionsSubmenu({
   label,
   icon,
@@ -91,65 +166,6 @@ export default function QuickActionsSubmenu({
     setIsOpen(false);
   };
 
-  const renderSubmenu = () => {
-    if (!isOpen || typeof window === 'undefined') {
-      return null;
-    }
-
-    return createPortal(
-      <div
-        ref={menuRef}
-        data-dropdown="true"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          left: `${menuPosition.left}px`,
-          position: 'absolute',
-          top: menuPosition.shouldShowBelow
-            ? `${menuPosition.top + menuPosition.buttonHeight + 8}px`
-            : `${menuPosition.top - 8}px`,
-          transform: menuPosition.shouldShowBelow
-            ? 'none'
-            : 'translateY(-100%)',
-          zIndex: 9999,
-        }}
-        className={cn(BG_BLUR, BORDER_WHITE_30, ' shadow-2xl', 'min-w-40')}
-      >
-        <div className="p-1">
-          {actions.map((action, index) => (
-            <div key={action.id}>
-              {action.dividerBefore && index > 0 && (
-                <div className="my-1 border-t border-white/20" />
-              )}
-
-              <Button
-                withWrapper={false}
-                variant={ButtonVariant.UNSTYLED}
-                onClick={() => handleClick(action)}
-                isDisabled={action.isDisabled || action.isLoading}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 transition-all duration-300 text-left text-sm font-medium cursor-pointer ${
-                  action.isDisabled || action.isLoading
-                    ? 'opacity-50 cursor-not-allowed text-white/50'
-                    : action.variant === 'error'
-                      ? 'text-error hover:bg-error hover:text-white focus:bg-error focus:text-white'
-                      : 'text-white/90 hover:bg-white/20 hover:text-white focus:bg-white/20 focus:text-white'
-                }`}
-              >
-                {action.icon && (
-                  <span className="flex-shrink-0">{action.icon}</span>
-                )}
-                <span className="flex-1">{action.label}</span>
-                {action.isLoading && (
-                  <Spinner size={ComponentSize.XS} className="flex-shrink-0" />
-                )}
-              </Button>
-            </div>
-          ))}
-        </div>
-      </div>,
-      document.body,
-    );
-  };
-
   return (
     <div className="relative">
       <SimpleTooltip label={label} position="top">
@@ -175,7 +191,14 @@ export default function QuickActionsSubmenu({
       </SimpleTooltip>
 
       {/* Dropdown submenu rendered via portal */}
-      {renderSubmenu()}
+      {isOpen && (
+        <SubmenuPortal
+          menuRef={menuRef}
+          menuPosition={menuPosition}
+          actions={actions}
+          onActionClick={handleClick}
+        />
+      )}
     </div>
   );
 }

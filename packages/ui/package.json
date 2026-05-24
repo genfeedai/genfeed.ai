@@ -2,6 +2,7 @@
   "dependencies": {
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/contexts": "workspace:*",
+    "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/hooks": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
@@ -9,39 +10,44 @@
     "@genfeedai/props": "workspace:*",
     "@genfeedai/services": "workspace:*",
     "@genfeedai/utils": "workspace:*",
-    "@tiptap/extension-blockquote": "3.22.4",
-    "@tiptap/extension-bold": "3.22.4",
-    "@tiptap/extension-code": "3.22.4",
-    "@tiptap/extension-code-block": "3.22.4",
-    "@tiptap/extension-heading": "3.22.4",
-    "@tiptap/extension-image": "3.22.4",
-    "@tiptap/extension-italic": "3.22.4",
-    "@tiptap/extension-link": "3.22.4",
-    "@tiptap/extension-list": "3.22.4",
-    "@tiptap/extension-paragraph": "3.22.4",
-    "@tiptap/extension-placeholder": "3.22.4",
-    "@tiptap/extension-strike": "3.22.4",
-    "@tiptap/react": "3.22.4",
-    "@tiptap/starter-kit": "3.22.4"
+    "@shipshitdev/ui": "0.8.0",
+    "@tanstack/react-query": "5.100.13",
+    "@tiptap/extension-blockquote": "3.23.6",
+    "@tiptap/extension-bold": "3.23.6",
+    "@tiptap/extension-code": "3.23.6",
+    "@tiptap/extension-code-block": "3.23.6",
+    "@tiptap/extension-heading": "3.23.6",
+    "@tiptap/extension-image": "3.23.6",
+    "@tiptap/extension-italic": "3.23.6",
+    "@tiptap/extension-link": "3.23.6",
+    "@tiptap/extension-list": "3.23.6",
+    "@tiptap/extension-paragraph": "3.23.6",
+    "@tiptap/extension-placeholder": "3.23.6",
+    "@tiptap/extension-strike": "3.23.6",
+    "@tiptap/react": "3.23.6",
+    "@tiptap/starter-kit": "3.23.6",
+    "html-react-parser": "6.1.2",
+    "react-icons": "5.6.0"
   },
   "description": "Shared design tokens and UI primitives for Genfeed web, mobile, and extension surfaces",
   "devDependencies": {
     "@genfeedai/client": "workspace:*",
-    "@genfeedai/enums": "workspace:*",
+    "@tanstack/react-query-devtools": "5.100.13",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "16.3.2",
     "@testing-library/user-event": "14.6.1",
-    "@types/react": "19.2.14",
+    "@types/react": "19.2.15",
+    "@types/react-color": "3.0.13",
     "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "6.0.1",
-    "jsdom": "29.0.2",
-    "react": "19.2.5",
-    "react-day-picker": "9.14.0",
-    "react-dom": "19.2.5",
-    "tsc-alias": "1.8.16",
+    "@vitejs/plugin-react": "6.0.2",
+    "jsdom": "29.1.1",
+    "react": "19.2.6",
+    "react-day-picker": "10.0.1",
+    "react-dom": "19.2.6",
+    "tsc-alias": "1.8.17",
     "typescript": "6.0.2",
     "vaul": "1.1.2",
-    "vitest": "4.1.5"
+    "vitest": "4.1.7"
   },
   "exports": {
     ".": {
@@ -53,12 +59,12 @@
       "require": "./dist/*.js",
       "types": "./dist/*.d.ts"
     },
-    "./web-tokens.scss": "./web-tokens.scss"
+    "./web-tokens.css": "./web-tokens.css"
   },
   "files": [
     "dist",
     "presets",
-    "web-tokens.scss"
+    "web-tokens.css"
   ],
   "license": "MIT",
   "main": "./dist/index.js",
@@ -93,6 +99,7 @@
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "1.7.0",
+    "next": ">=14.0.0",
     "react": ">=18",
     "react-dom": ">=18",
     "tailwind-merge": "3.5.0"
@@ -107,14 +114,13 @@
     "url": "git+https://github.com/genfeedai/packages.git"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && bunx tsc-alias -p tsconfig.json",
+    "build": "tsc --build && bunx tsc-alias -p tsconfig.json",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "test": "vitest run --config vitest.config.ts",
+    "test": "../../scripts/sh/sanitize-node-color-env.sh vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts"
   },
   "sideEffects": [
-    "**/*.css",
-    "**/*.scss"
+    "**/*.css"
   ],
   "types": "./dist/index.d.ts",
   "version": "2.0.1"

@@ -108,33 +108,39 @@ export default function ModalReplyBot({
   onConfirm,
   onClose,
 }: ModalReplyBotProps) {
-  const { form, formRef, isSubmitting, onSubmit, closeModal, handleDelete } =
-    useCrudModal<IReplyBotConfig, ReplyBotConfigSchema>({
-      defaultValues: {
-        actionType: ReplyBotActionType.REPLY_ONLY,
-        description: '',
-        isActive: false,
-        monitoredAccounts: [],
-        name: '',
-        platform: ReplyBotPlatform.TWITTER,
-        rateLimits: {
-          cooldownMinutes: 5,
-          maxDmsPerDay: 20,
-          maxDmsPerHour: 5,
-          maxRepliesPerDay: 50,
-          maxRepliesPerHour: 10,
-        },
-        replyInstructions: '',
-        replyTone: '',
-        type: ReplyBotType.REPLY_GUY,
+  const {
+    form,
+    formRef,
+    isSubmitting,
+    onSubmit,
+    closeModal,
+    handleDelete: deleteModalReplyBot,
+  } = useCrudModal<IReplyBotConfig, ReplyBotConfigSchema>({
+    defaultValues: {
+      actionType: ReplyBotActionType.REPLY_ONLY,
+      description: '',
+      isActive: false,
+      monitoredAccounts: [],
+      name: '',
+      platform: ReplyBotPlatform.TWITTER,
+      rateLimits: {
+        cooldownMinutes: 5,
+        maxDmsPerDay: 20,
+        maxDmsPerHour: 5,
+        maxRepliesPerDay: 50,
+        maxRepliesPerHour: 10,
       },
-      entity: replyBot || null,
-      modalId: ModalEnum.REPLY_BOT,
-      onClose,
-      onConfirm,
-      schema: replyBotConfigSchema,
-      serviceFactory: (token) => ReplyBotConfigsService.getInstance(token),
-    });
+      replyInstructions: '',
+      replyTone: '',
+      type: ReplyBotType.REPLY_GUY,
+    },
+    entity: replyBot || null,
+    modalId: ModalEnum.REPLY_BOT,
+    onClose,
+    onConfirm,
+    schema: replyBotConfigSchema,
+    serviceFactory: (token) => ReplyBotConfigsService.getInstance(token),
+  });
 
   useEffect(() => {
     if (replyBot) {
@@ -204,7 +210,9 @@ export default function ModalReplyBot({
     }
   }, [replyBot, form]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const processKeyDownModalReplyBot = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       if (!isSubmitting && form.formState.isValid) {
@@ -213,7 +221,7 @@ export default function ModalReplyBot({
     }
   };
 
-  const handleChange = (
+  const updateModalReplyBot = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
@@ -251,8 +259,8 @@ export default function ModalReplyBot({
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
@@ -264,7 +272,7 @@ export default function ModalReplyBot({
               type="text"
               name="name"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalReplyBot}
               placeholder="Enter bot name"
               isRequired={true}
               isDisabled={isSubmitting}
@@ -275,10 +283,10 @@ export default function ModalReplyBot({
             <Textarea
               name="description"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalReplyBot}
               placeholder="Enter description (optional)"
               isDisabled={isSubmitting}
-              onKeyDown={handleKeyDown}
+              onKeyDown={processKeyDownModalReplyBot}
             />
           </FormControl>
 
@@ -286,7 +294,7 @@ export default function ModalReplyBot({
             <Select
               value={form.watch('type')}
               onValueChange={(value) => {
-                handleChange({
+                updateModalReplyBot({
                   target: { name: 'type', value },
                 } as ChangeEvent<HTMLSelectElement>);
               }}
@@ -336,7 +344,7 @@ export default function ModalReplyBot({
             <Select
               value={form.watch('actionType')}
               onValueChange={(value) => {
-                handleChange({
+                updateModalReplyBot({
                   target: { name: 'actionType', value },
                 } as ChangeEvent<HTMLSelectElement>);
               }}
@@ -368,7 +376,7 @@ export default function ModalReplyBot({
               type="text"
               name="replyTone"
               control={form.control}
-              onChange={handleChange}
+              onChange={updateModalReplyBot}
               placeholder="e.g., friendly, professional, casual"
               isDisabled={isSubmitting}
             />
@@ -378,10 +386,10 @@ export default function ModalReplyBot({
             <Textarea
               name="replyInstructions"
               control={form.control}
-              onChange={handleChange}
-              placeholder="Instructions for AI to follow when generating replies..."
+              onChange={updateModalReplyBot}
+              placeholder="Instructions for AI to follow when generating replies…"
               isDisabled={isSubmitting}
-              onKeyDown={handleKeyDown}
+              onKeyDown={processKeyDownModalReplyBot}
               className="h-24"
             />
           </FormControl>
@@ -496,8 +504,10 @@ export default function ModalReplyBot({
                   onChange={(e) => {
                     const keywords = e.target.value
                       .split(',')
-                      .map((k: string) => k.trim())
-                      .filter(Boolean);
+                      .flatMap((k: string) => {
+                        const t = k.trim();
+                        return t ? [t] : [];
+                      });
                     form.setValue('filters.includeKeywords', keywords, {
                       shouldValidate: true,
                     });
@@ -519,8 +529,10 @@ export default function ModalReplyBot({
                   onChange={(e) => {
                     const keywords = e.target.value
                       .split(',')
-                      .map((k: string) => k.trim())
-                      .filter(Boolean);
+                      .flatMap((k: string) => {
+                        const t = k.trim();
+                        return t ? [t] : [];
+                      });
                     form.setValue('filters.excludeKeywords', keywords, {
                       shouldValidate: true,
                     });
@@ -551,9 +563,9 @@ export default function ModalReplyBot({
                       shouldValidate: true,
                     });
                   }}
-                  placeholder="What product are you selling? Describe your offer..."
+                  placeholder="What product are you selling? Describe your offer…"
                   isDisabled={isSubmitting}
-                  onKeyDown={handleKeyDown}
+                  onKeyDown={processKeyDownModalReplyBot}
                   className="h-20"
                 />
               </FormControl>
@@ -571,7 +583,7 @@ export default function ModalReplyBot({
                   }}
                   placeholder="Any specific instructions for the DM?"
                   isDisabled={isSubmitting}
-                  onKeyDown={handleKeyDown}
+                  onKeyDown={processKeyDownModalReplyBot}
                   className="h-20"
                 />
               </FormControl>
@@ -617,11 +629,11 @@ export default function ModalReplyBot({
             isLoading={isSubmitting}
           />
 
-          {replyBot && handleDelete && (
+          {replyBot && deleteModalReplyBot && (
             <Button
               label={<HiTrash />}
               variant={ButtonVariant.DESTRUCTIVE}
-              onClick={handleDelete}
+              onClick={deleteModalReplyBot}
               isLoading={isSubmitting}
             />
           )}

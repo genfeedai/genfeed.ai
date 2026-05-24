@@ -160,6 +160,7 @@ describe('ClerkStrategy', () => {
       expect(result).toMatchObject(mockUser);
       expect(mockAuthIdentityResolverService.resolve).toHaveBeenCalledWith(
         mockUser,
+        { clerkOrgId: undefined },
       );
       expect(
         (
@@ -245,6 +246,7 @@ describe('ClerkStrategy', () => {
       expect(mockClerkService.getUser).toHaveBeenCalledWith('user_123');
       expect(mockAuthIdentityResolverService.resolve).toHaveBeenCalledWith(
         mockUser,
+        { clerkOrgId: undefined },
       );
       expect(
         (

@@ -1,12 +1,7 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { EvaluationType, IngredientCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsDateString,
-  IsEnum,
-  IsMongoId,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class EvaluationFiltersDto {
   @ApiProperty({
@@ -33,7 +28,7 @@ export class EvaluationFiltersDto {
     required: false,
   })
   @IsOptional()
-  @IsMongoId()
+  @IsEntityId()
   brand?: string;
 
   @ApiProperty({
