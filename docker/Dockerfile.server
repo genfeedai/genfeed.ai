@@ -34,7 +34,7 @@ COPY package.json ./
 
 # Narrow the workspace graph to the packages needed for the unified server
 # image so Bun does not try to resolve unrelated web/mobile/extension apps.
-RUN node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.workspaces=['apps/server/*','configs','packages/*']; if (p.dependencies?.resend==='^6.9.3') p.dependencies.resend='6.9.3'; fs.writeFileSync('package.json', JSON.stringify(p, null, 2)+'\n');"
+RUN node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.workspaces=['apps/server/*','packages/*']; if (p.dependencies?.resend==='^6.9.3') p.dependencies.resend='6.9.3'; fs.writeFileSync('package.json', JSON.stringify(p, null, 2)+'\n');"
 
 # Copy all 12 service package.json files for bun workspace resolution
 COPY apps/server/api/package.json ./apps/server/api/
@@ -54,7 +54,6 @@ COPY apps/server/videos/package.json ./apps/server/videos/
 # Match the reduced server-only workspace globs exactly.
 RUN --mount=type=bind,source=.,target=/ctx \
     for f in \
-      /ctx/configs/package.json \
       /ctx/packages/*/package.json \
       /ctx/apps/server/*/package.json; do \
       [ -f "$f" ] || continue; \
