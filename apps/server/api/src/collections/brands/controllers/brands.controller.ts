@@ -39,7 +39,7 @@ import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/colle
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { BaseService } from '@api/shared/services/base/base.service';
+import { BaseService } from '@api/shared/services/base/base.service';
 import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,

@@ -10,7 +10,7 @@ import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import type { TrackSubscriptionDto } from '../dto/track-subscription.dto';
-import type { SubscriptionAttributionsService } from '../services/subscription-attributions.service';
+import { SubscriptionAttributionsService } from '../services/subscription-attributions.service';
 
 @AutoSwagger()
 @ApiTags('Analytics')

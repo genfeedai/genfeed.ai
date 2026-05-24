@@ -1,18 +1,18 @@
-import type { CustomersService } from '@api/collections/customers/services/customers.service';
+import { CustomersService } from '@api/collections/customers/services/customers.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
-import type { UsersService } from '@api/collections/users/services/users.service';
-import type { ConfigService } from '@api/config/config.service';
+import { UsersService } from '@api/collections/users/services/users.service';
+import { ConfigService } from '@api/config/config.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import type { ClerkService } from '@api/services/integrations/clerk/clerk.service';
-import type {
-  StripeCustomer,
+import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
+import {
+  type StripeCustomer,
   StripeService,
 } from '@api/services/integrations/stripe/services/stripe.service';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
 import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,

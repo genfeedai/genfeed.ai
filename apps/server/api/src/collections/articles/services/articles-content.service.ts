@@ -18,7 +18,7 @@ import {
 } from '@api/collections/articles/dto/generate-articles.dto';
 import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
 import { type ArticleDocument } from '@api/collections/articles/schemas/article.schema';
-import type { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';

@@ -112,6 +112,23 @@
     },
     {
       "includes": [
+        "ee/packages/**/*.{controller,service,module,resolver,guard,interceptor,pipe,middleware,filter}.ts"
+      ],
+      "javascript": {
+        "parser": {
+          "unsafeParameterDecoratorsEnabled": true
+        }
+      },
+      "linter": {
+        "rules": {
+          "style": {
+            "useImportType": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
         "apps/app/src/components/**",
         "apps/app/src/hooks/**",
         "apps/desktop/app/src/renderer/views/**",

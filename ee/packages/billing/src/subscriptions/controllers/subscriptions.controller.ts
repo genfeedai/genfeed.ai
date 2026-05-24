@@ -1,6 +1,6 @@
-import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
-import type { ConfigService } from '@api/config/config.service';
+import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -17,7 +17,7 @@ import type {
   JsonApiCollectionResponse,
 } from '@genfeedai/interfaces';
 import { SubscriptionSerializer } from '@genfeedai/serializers';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
   Controller,
@@ -31,7 +31,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import type { CreateSubscriptionPreviewDto } from '../dto/create-subscription.dto';
-import type { SubscriptionsService } from '../services/subscriptions.service';
+import { SubscriptionsService } from '../services/subscriptions.service';
 
 interface SubscriptionMutationResponse<T = unknown> {
   success: boolean;

@@ -1,4 +1,4 @@
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
 import { Injectable, Logger } from '@nestjs/common';
 import type { TrackSubscriptionDto } from '../dto/track-subscription.dto';

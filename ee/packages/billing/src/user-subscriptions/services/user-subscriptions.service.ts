@@ -1,7 +1,7 @@
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SubscriptionStatus } from '@genfeedai/enums';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import type StripeConstructor from 'stripe';
 import { UserSubscriptionEntity } from '../entities/user-subscription.entity';
