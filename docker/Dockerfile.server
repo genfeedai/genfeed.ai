@@ -15,6 +15,7 @@ FROM node:24-slim AS base
 # compiles during bun install and expects node-gyp on PATH.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    ca-certificates \
     unzip \
     ffmpeg \
     python3 \
