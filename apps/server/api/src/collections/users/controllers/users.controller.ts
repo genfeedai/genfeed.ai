@@ -220,10 +220,11 @@ export class UsersController {
           onboardingStepsCompleted: ['brand', 'plan'],
         });
 
-        if (user.id) {
+        const userIdString = data._id?.toString();
+        if (userIdString) {
           await Promise.all([
-            this.requestContextCacheService.invalidateForUser(user.id),
-            this.accessBootstrapCacheService.invalidateForUser(user.id),
+            this.requestContextCacheService.invalidateForUser(userIdString),
+            this.accessBootstrapCacheService.invalidateForUser(userIdString),
           ]);
         }
       }
@@ -405,10 +406,12 @@ export class UsersController {
       organization: data._id,
     });
 
-    await Promise.all([
-      this.requestContextCacheService.invalidateForUser(user.id),
-      this.accessBootstrapCacheService.invalidateForUser(user.id),
-    ]);
+    if (publicMetadata.user) {
+      await Promise.all([
+        this.requestContextCacheService.invalidateForUser(publicMetadata.user),
+        this.accessBootstrapCacheService.invalidateForUser(publicMetadata.user),
+      ]);
+    }
 
     return serializeSingle(request, OrganizationSerializer, data);
   }
@@ -435,10 +438,12 @@ export class UsersController {
       brand: data._id,
     });
 
-    await Promise.all([
-      this.requestContextCacheService.invalidateForUser(user.id),
-      this.accessBootstrapCacheService.invalidateForUser(user.id),
-    ]);
+    if (publicMetadata.user) {
+      await Promise.all([
+        this.requestContextCacheService.invalidateForUser(publicMetadata.user),
+        this.accessBootstrapCacheService.invalidateForUser(publicMetadata.user),
+      ]);
+    }
 
     // Persist last-used brand on the member for org-switch recall
     await this.membersService.setLastUsedBrand(
@@ -469,10 +474,12 @@ export class UsersController {
       brand: undefined,
     });
 
-    await Promise.all([
-      this.requestContextCacheService.invalidateForUser(user.id),
-      this.accessBootstrapCacheService.invalidateForUser(user.id),
-    ]);
+    if (publicMetadata.user) {
+      await Promise.all([
+        this.requestContextCacheService.invalidateForUser(publicMetadata.user),
+        this.accessBootstrapCacheService.invalidateForUser(publicMetadata.user),
+      ]);
+    }
   }
 
   @Post('me/avatar')
@@ -600,12 +607,11 @@ export class UsersController {
       patchPayload as Partial<UpdateUserDto>,
     );
 
-    if (existingUser.clerkId) {
+    const existingUserId = existingUser._id?.toString();
+    if (existingUserId) {
       await Promise.all([
-        this.requestContextCacheService.invalidateForUser(existingUser.clerkId),
-        this.accessBootstrapCacheService.invalidateForUser(
-          existingUser.clerkId,
-        ),
+        this.requestContextCacheService.invalidateForUser(existingUserId),
+        this.accessBootstrapCacheService.invalidateForUser(existingUserId),
       ]);
     }
 

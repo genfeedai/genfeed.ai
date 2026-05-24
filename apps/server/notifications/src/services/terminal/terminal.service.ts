@@ -211,9 +211,13 @@ export class TerminalService {
       return;
     }
 
-    const packagePath = nodeRequire.resolve('node-pty/package.json');
+    const packageDir = this.resolveNodePtyDir();
+    if (!packageDir) {
+      return;
+    }
+
     const helperPath = path.join(
-      path.dirname(packagePath),
+      packageDir,
       'prebuilds',
       `${process.platform}-${process.arch}`,
       'spawn-helper',
@@ -229,6 +233,31 @@ export class TerminalService {
     }
 
     fs.chmodSync(helperPath, stat.mode | 0o755);
+  }
+
+  private resolveNodePtyDir(): string | null {
+    try {
+      return path.dirname(nodeRequire.resolve('node-pty/package.json'));
+    } catch {
+      // Webpack-bundled dist may sit outside any node_modules tree that
+      // contains node-pty. Fall back to known install locations.
+    }
+
+    const fallbackBases = [
+      path.resolve(__dirname, '../../../notifications/node_modules'),
+      path.resolve(process.cwd(), 'notifications/node_modules'),
+      path.resolve(process.cwd(), 'apps/server/notifications/node_modules'),
+      path.resolve(process.cwd(), 'node_modules'),
+    ];
+
+    for (const base of fallbackBases) {
+      const candidate = path.join(base, 'node-pty');
+      if (fs.existsSync(path.join(candidate, 'package.json'))) {
+        return candidate;
+      }
+    }
+
+    return null;
   }
 
   private formatSpawnError(

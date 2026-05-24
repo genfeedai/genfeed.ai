@@ -1,4 +1,8 @@
-import { AgentCliTerminal } from '@genfeedai/agent/components/AgentCliTerminal';
+import {
+  AgentCliTerminalBody,
+  AgentCliTerminalControls,
+  useAgentCliTerminal,
+} from '@genfeedai/agent/components/AgentCliTerminal';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { AgentTerminalHeader } from '@genfeedai/agent/components/AgentTerminalHeader';
 import type { AgentRuntimeOption } from '@genfeedai/agent/models/agent-runtime.model';
@@ -241,7 +245,10 @@ export function AgentPanel({
     [activeThreadId, apiService, updateThread],
   );
 
-  const terminalContent = <AgentCliTerminal apiService={apiService} />;
+  const terminalController = useAgentCliTerminal(apiService);
+  const terminalContent = (
+    <AgentCliTerminalBody containerRef={terminalController.containerRef} />
+  );
 
   const outputsContent = (
     <AgentOutputsPanel
@@ -261,12 +268,15 @@ export function AgentPanel({
       defaultTab={defaultTab}
       title="genfeed"
       headerContent={
-        <AgentTerminalHeader
-          catalog={runtimeCatalog}
-          selectedRuntime={selectedRuntime}
-          threadLabel={threadLabel}
-          onRuntimeChange={handleRuntimeChange}
-        />
+        <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden">
+          <AgentTerminalHeader
+            catalog={runtimeCatalog}
+            selectedRuntime={selectedRuntime}
+            threadLabel={threadLabel}
+            onRuntimeChange={handleRuntimeChange}
+          />
+          <AgentCliTerminalControls controller={terminalController} />
+        </div>
       }
       subtitle="Terminal, runtime routing, and generated outputs"
       chatContent={terminalContent}

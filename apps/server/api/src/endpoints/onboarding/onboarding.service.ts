@@ -1061,10 +1061,13 @@ export class OnboardingService {
         });
       }
 
-      await Promise.all([
-        this.requestContextCacheService.invalidateForUser(user.id),
-        this.accessBootstrapCacheService.invalidateForUser(user.id),
-      ]);
+      const dbUserId = dbUser?._id?.toString();
+      if (dbUserId) {
+        await Promise.all([
+          this.requestContextCacheService.invalidateForUser(dbUserId),
+          this.accessBootstrapCacheService.invalidateForUser(dbUserId),
+        ]);
+      }
 
       this.loggerService.log(`${caller} completed`);
 

@@ -726,8 +726,8 @@ export class OrganizationsController extends BaseCRUDController<
     });
 
     await Promise.all([
-      this.requestContextCacheService.invalidateForUser(user.id),
-      this.accessBootstrapCacheService.invalidateForUser(user.id),
+      this.requestContextCacheService.invalidateForUser(userId),
+      this.accessBootstrapCacheService.invalidateForUser(userId),
     ]);
 
     return {

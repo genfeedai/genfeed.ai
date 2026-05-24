@@ -1,3 +1,4 @@
+import type { AgentToolResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import type {
@@ -136,6 +137,27 @@ export class ClientService {
     const response = await this.client.post(endpoint, payload);
     return (response.data?.data?.attributes ??
       response.data?.data) as TResponse;
+  }
+
+  async executeAgentTool(
+    name: string,
+    parameters: Record<string, unknown>,
+    context?: Record<string, unknown>,
+  ): Promise<AgentToolResult> {
+    this.logger.debug(`Proxying agent tool ${name}`);
+
+    try {
+      const response = await this.client.post(
+        `/agent-tools/${encodeURIComponent(name)}/execute`,
+        { context, parameters },
+      );
+      return response.data as AgentToolResult;
+    } catch (error: unknown) {
+      this.logError(`executing agent tool ${name}`, error as ApiError);
+      throw new Error(
+        this.getErrorMessage(error as ApiError, `Failed to execute ${name}`),
+      );
+    }
   }
 
   private getErrorMessage(error: ApiError, defaultMessage: string): string {

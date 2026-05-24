@@ -32,6 +32,13 @@ export default defineConfig({
         ),
       },
       {
+        find: '@genfeedai/interfaces',
+        replacement: path.resolve(
+          __dirname,
+          '../../../packages/interfaces/src/index.ts',
+        ),
+      },
+      {
         find: '@genfeedai/config',
         replacement: path.resolve(__dirname, '../../../packages/config/src'),
       },

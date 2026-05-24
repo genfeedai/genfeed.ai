@@ -245,7 +245,6 @@ export class AuthBootstrapService {
     const publicMetadata: Partial<ReturnType<typeof getPublicMetadata>> = user
       ? getPublicMetadata(user)
       : {};
-    const clerkUserId = user?.id ?? '';
     const requestContext = request.context;
     const userId = requestContext?.userId ?? publicMetadata.user ?? '';
     const organizationId =
@@ -258,9 +257,9 @@ export class AuthBootstrapService {
       requestContext?.subscriptionTier ??
       (user ? getSubscriptionTier(user, request) : '');
 
-    if (clerkUserId && organizationId) {
+    if (userId && organizationId) {
       const cached = await this.accessBootstrapCacheService.get(
-        clerkUserId,
+        userId,
         organizationId,
       );
       if (cached) {
@@ -281,10 +280,13 @@ export class AuthBootstrapService {
     const [dbUser, organizationSettings, creditsBalance, brands] =
       await Promise.all([
         hasValidUserId
-          ? this.usersService.findOne({
-              _id: userId,
-              isDeleted: false,
-            })
+          ? this.usersService.findOne(
+              {
+                _id: userId,
+                isDeleted: false,
+              },
+              [],
+            )
           : null,
         hasValidOrganizationId
           ? this.organizationSettingsService.findOne({
@@ -336,7 +338,7 @@ export class AuthBootstrapService {
     request: AuthBootstrapRequest,
   ): Promise<AccessBootstrapCachePayload> {
     const base = await this.resolveBootstrapBase(request);
-    const clerkUserId = request.user?.id ?? '';
+    const userId = base.access.userId;
     const organizationId = base.access.organizationId;
 
     if (base.cachedPayload) {
@@ -373,9 +375,9 @@ export class AuthBootstrapService {
       streak,
     };
 
-    if (clerkUserId && organizationId) {
+    if (userId && organizationId) {
       await this.accessBootstrapCacheService.set(
-        clerkUserId,
+        userId,
         organizationId,
         payload,
       );
