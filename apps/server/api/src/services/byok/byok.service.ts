@@ -4,6 +4,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { ByokBillingStatus, ByokProvider } from '@genfeedai/enums';
 import type { IByokKeyEntry, IByokProviderStatus } from '@genfeedai/interfaces';
+import type { Prisma, PrismaClient } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { ConflictException, Injectable } from '@nestjs/common';
@@ -443,15 +444,9 @@ export class ByokService {
   }
 
   private async writeByokSettings(
-    tx: {
-      organizationSetting: {
-        updateMany: (
-          args: Record<string, unknown>,
-        ) => Promise<{ count: number }>;
-      };
-    },
+    tx: Pick<PrismaClient, 'organizationSetting'>,
     existing: { id: string; updatedAt: Date },
-    data: Record<string, unknown>,
+    data: Prisma.OrganizationSettingUpdateManyMutationInput,
   ): Promise<void> {
     const result = await tx.organizationSetting.updateMany({
       data,

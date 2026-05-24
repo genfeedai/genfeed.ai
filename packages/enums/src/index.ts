@@ -81,6 +81,7 @@ export * from './reply.enum';
 export * from './reply-bot.enum';
 export * from './review-gate.enum';
 export * from './router.enum';
+// Public automation interfaces import these from the package root.
 export * from './run.enum';
 export * from './scope.enum';
 export * from './severity.enum';

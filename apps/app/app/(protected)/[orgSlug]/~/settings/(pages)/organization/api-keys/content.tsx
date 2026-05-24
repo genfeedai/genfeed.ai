@@ -13,7 +13,9 @@ import { Input } from '@ui/primitives/input';
 import { useCallback, useEffect, useState } from 'react';
 import { HiTrash } from 'react-icons/hi2';
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
+import { isSelfHosted } from '@/lib/config/edition';
 import { isDesktopShell } from '@/lib/desktop/runtime';
+import ManagedCreditsCheckoutCard from './managed-credits-checkout-card';
 
 export default function SettingsApiKeysPage() {
   const { organizationId, isReady } = useBrand();
@@ -162,6 +164,7 @@ export default function SettingsApiKeysPage() {
   return (
     <div className="space-y-6">
       {desktop ? <DesktopLocalProviderSettings variant="card" /> : null}
+      {isSelfHosted() ? <ManagedCreditsCheckoutCard /> : null}
 
       <div className="mb-6">
         <h2 className="text-lg font-semibold">API Keys</h2>
