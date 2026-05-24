@@ -1,17 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import type { DesktopWorkspaceService } from './workspace.service';
-
-mock.module('electron', () => ({
-  dialog: {
-    showOpenDialog: async () => ({ filePaths: [] }),
-  },
-  shell: {
-    showItemInFolder: async () => undefined,
-  },
-}));
+import './test-support/electron.mock';
 
 const createPrismaMock = () => {
   const assets = new Map<string, Record<string, unknown>>();
