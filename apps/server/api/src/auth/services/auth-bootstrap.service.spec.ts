@@ -375,10 +375,13 @@ describe('AuthBootstrapService', () => {
       },
     });
     expect(fleetService.isAvailable).toHaveBeenCalledTimes(3);
-    expect(usersService.findOne).toHaveBeenCalledWith({
-      _id: expect.any(String),
-      isDeleted: false,
-    });
+    expect(usersService.findOne).toHaveBeenCalledWith(
+      {
+        _id: expect.any(String),
+        isDeleted: false,
+      },
+      [],
+    );
     expect(accessBootstrapCacheService.set).toHaveBeenCalledWith(
       'clerk_2',
       organizationId,

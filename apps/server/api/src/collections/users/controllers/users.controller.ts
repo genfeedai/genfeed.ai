@@ -4,7 +4,6 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { UpdateSettingDto } from '@api/collections/settings/dto/update-setting.dto';
 import { SettingEntity } from '@api/collections/settings/entities/setting.entity';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
-import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-onboarding.dto';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
@@ -34,6 +33,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import type { User } from '@clerk/backend';
+import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import {
   BrandSerializer,
@@ -474,12 +474,10 @@ export class UsersController {
       brand: undefined,
     });
 
-    if (publicMetadata.user) {
-      await Promise.all([
-        this.requestContextCacheService.invalidateForUser(publicMetadata.user),
-        this.accessBootstrapCacheService.invalidateForUser(publicMetadata.user),
-      ]);
-    }
+    await Promise.all([
+      this.requestContextCacheService.invalidateForUser(user.id),
+      this.accessBootstrapCacheService.invalidateForUser(user.id),
+    ]);
   }
 
   @Post('me/avatar')

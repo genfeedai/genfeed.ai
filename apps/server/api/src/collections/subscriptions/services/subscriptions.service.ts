@@ -1,1 +1,1 @@
-export { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions/services/subscriptions.service';
+export { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';

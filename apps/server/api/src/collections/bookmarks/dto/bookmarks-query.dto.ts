@@ -54,12 +54,4 @@ export class BookmarksQueryDto extends BaseQueryDto {
   @IsOptional()
   @IsEntityId()
   folder?: string;
-
-  @ApiProperty({
-    description: 'Filter bookmarks by brand ID',
-    required: false,
-  })
-  @IsOptional()
-  @IsEntityId()
-  brand?: string;
 }

@@ -132,6 +132,7 @@ describe('BrandCreditsGuard', () => {
         },
       },
       { pagination: false },
+      false,
     );
   });
 

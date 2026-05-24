@@ -31,10 +31,10 @@ export class WorkflowStepEntity {
 }
 
 export class WorkflowEntity extends BaseEntity implements WorkflowDocument {
-  id!: string;
-  mongoId!: string | null;
-  organizationId!: string;
-  userId!: string;
+  declare id: string;
+  declare mongoId: string | null;
+  declare organizationId: string;
+  declare userId: string;
   user?: string;
   organization?: string;
   label!: string;

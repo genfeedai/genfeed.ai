@@ -6,14 +6,6 @@ import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class IngredientsQueryDto extends BaseQueryDto {
   @ApiProperty({
-    description: 'Filter ingredients by brand ID',
-    required: false,
-  })
-  @IsOptional()
-  @IsEntityId()
-  brand?: string;
-
-  @ApiProperty({
     description: 'Filter ingredients by folder ID',
     required: false,
   })

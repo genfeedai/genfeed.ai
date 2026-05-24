@@ -5,7 +5,6 @@
  */
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { UserSubscriptionsService } from '@api/collections/user-subscriptions/services/user-subscriptions.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -17,6 +16,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import type { User } from '@clerk/backend';
+import { UserSubscriptionsService } from '@genfeedai/ee-billing/user-subscriptions';
 import { OrganizationCategory } from '@genfeedai/enums';
 import { StripeUrlSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

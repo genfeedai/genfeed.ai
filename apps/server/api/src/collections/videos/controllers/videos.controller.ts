@@ -20,6 +20,7 @@ import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
+import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { ConfigService } from '@api/config/config.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import {
@@ -106,7 +107,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { Request as ExpressRequest } from 'express';
 
 type PromptInput = Record<string, unknown> & {
   prompt?: string;

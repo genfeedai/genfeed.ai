@@ -23,8 +23,8 @@ vi.mock('@ui/overlays/entity/EntityOverlayShell', () => ({
     title?: string;
     onOpenDetail?: () => void;
   }) => (
-    <div data-testid="entity-overlay">
-      <div>{title}</div>
+    <div data-testid="entity-overlay" role="dialog">
+      {title ? <h2>{title}</h2> : null}
       {onOpenDetail ? (
         <button type="button" onClick={onOpenDetail}>
           Open page
@@ -248,8 +248,9 @@ describe('ModalBrand', () => {
     render(<ModalBrand {...defaultProps} />);
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Brand' })).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Create brand' }),
+      screen.getByRole('button', { name: 'Create brand' }),
     ).toBeInTheDocument();
   });
 

@@ -47,14 +47,6 @@ export class VideosQueryDto extends BaseQueryDto {
   scope?: AssetScope;
 
   @ApiProperty({
-    description: 'Filter by brand ID',
-    required: false,
-  })
-  @IsOptional()
-  @IsEntityId()
-  brand?: string;
-
-  @ApiProperty({
     description: 'Filter by reference video ID',
     required: false,
   })

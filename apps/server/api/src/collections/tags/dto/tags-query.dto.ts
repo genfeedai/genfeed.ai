@@ -23,14 +23,6 @@ export class TagsQueryDto extends BaseQueryDto {
   })
   readonly label?: string;
 
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Filter by brand ID',
-    required: false,
-  })
-  readonly brand?: string;
-
   @IsString()
   @IsOptional()
   @ApiProperty({

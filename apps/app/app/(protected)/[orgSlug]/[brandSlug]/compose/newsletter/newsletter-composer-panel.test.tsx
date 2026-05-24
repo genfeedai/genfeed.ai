@@ -3,12 +3,21 @@ import NewsletterComposerPanel from './newsletter-composer-panel';
 import '@testing-library/jest-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const pushMock = vi.fn();
-const copyToClipboardMock = vi.fn();
-const generateDraftMock = vi.fn();
-const patchMock = vi.fn();
-const successMock = vi.fn();
-const errorMock = vi.fn();
+const {
+  pushMock,
+  copyToClipboardMock,
+  generateDraftMock,
+  patchMock,
+  successMock,
+  errorMock,
+} = vi.hoisted(() => ({
+  copyToClipboardMock: vi.fn(),
+  errorMock: vi.fn(),
+  generateDraftMock: vi.fn(),
+  patchMock: vi.fn(),
+  pushMock: vi.fn(),
+  successMock: vi.fn(),
+}));
 
 vi.mock('@services/content/newsletters.service', () => ({
   NewslettersService: {
@@ -71,9 +80,12 @@ vi.mock('@ui/editors/RichTextEditor', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({}),
+  usePathname: () => '/',
   useRouter: () => ({
     push: pushMock,
   }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 describe('NewsletterComposerPanel', () => {

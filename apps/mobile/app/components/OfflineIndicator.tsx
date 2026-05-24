@@ -7,7 +7,7 @@ import { useOfflineQueue } from '@/hooks/use-offline-queue';
 export function OfflineIndicator(): React.ReactElement | null {
   const { isOnline } = useNetworkStatus();
   const { queueLength } = useOfflineQueue();
-  const opacity = React.useRef(new Animated.Value(0)).current;
+  const opacity = React.useMemo(() => new Animated.Value(0), []);
 
   React.useEffect(() => {
     Animated.timing(opacity, {

@@ -1,5 +1,4 @@
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import {
   buildRcKey,
   buildRcKeysSetKey,
@@ -12,6 +11,7 @@ import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interfa
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { User } from '@clerk/backend';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, type NestMiddleware } from '@nestjs/common';

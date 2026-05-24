@@ -21,14 +21,6 @@ export class MusicQueryDto extends BaseQueryDto {
   search?: string;
 
   @ApiProperty({
-    description: 'Brand ID for filtering',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  brand?: string;
-
-  @ApiProperty({
     description: 'Filter by default status',
     required: false,
   })

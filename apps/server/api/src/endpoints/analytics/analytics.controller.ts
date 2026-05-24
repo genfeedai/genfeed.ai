@@ -6,7 +6,6 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
@@ -45,6 +44,7 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import type { User } from '@clerk/backend';
+import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
 import {
   CredentialPlatform,
   IngredientCategory,

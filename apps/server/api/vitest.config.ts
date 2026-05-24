@@ -3,7 +3,6 @@ import path from 'node:path';
 import process from 'node:process';
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
-import legacyMongooseSpecs from './test/legacy-mongoose-specs.json';
 
 const SOURCEMAP_WARNING_FRAGMENT = 'points to missing source files';
 const SOURCEMAP_WARNING_PREFIX = 'Sourcemap for';
@@ -254,6 +253,20 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../../../packages/libs'),
       },
       {
+        find: /^@genfeedai\/ee-billing\/(.*)$/,
+        replacement: path.resolve(
+          __dirname,
+          '../../../ee/packages/billing/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/ee-billing',
+        replacement: path.resolve(
+          __dirname,
+          '../../../ee/packages/billing/src',
+        ),
+      },
+      {
         find: '@test',
         replacement: path.resolve(__dirname, './test'),
       },
@@ -282,9 +295,7 @@ export default defineConfig({
       thresholds: { branches: 50, functions: 50, lines: 50, statements: 50 },
     },
     environment: 'node',
-    // Tracked in #251 — rewrite to PrismaService mock pattern.
-    // Remove entries from the manifest when specs are migrated.
-    exclude: ['**/node_modules/**', '**/dist/**', ...legacyMongooseSpecs],
+    exclude: ['**/node_modules/**', '**/dist/**'],
     globals: true,
     include: ['src/**/*.spec.ts'],
     name: '@genfeedai/api-unit',

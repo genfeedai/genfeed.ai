@@ -67,15 +67,15 @@ export class WorkflowExecutionsService extends BaseService<
       data: {
         organizationId,
         result: {
-          inputValues: (dto as Record<string, unknown>).inputValues ?? {},
-          metadata: (dto as Record<string, unknown>).metadata ?? {},
+          inputValues: dto.inputValues ?? {},
+          metadata: dto.metadata ?? {},
           nodeResults: [],
           progress: 0,
-          trigger: (dto as Record<string, unknown>).trigger ?? null,
+          trigger: dto.trigger ?? null,
         } as never,
         status: WorkflowExecutionStatus.PENDING,
         userId,
-        workflowId: dto.workflowId,
+        workflowId: dto.workflow,
       } as never,
     });
 

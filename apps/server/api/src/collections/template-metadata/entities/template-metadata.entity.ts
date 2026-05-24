@@ -6,8 +6,8 @@ export class TemplateMetadataEntity
   extends BaseEntity
   implements TemplateMetadata
 {
-  id!: string;
-  mongoId!: string | null;
+  declare id: string;
+  declare mongoId: string | null;
   templateId!: string;
   data!: TemplateMetadata['data'];
   template!: string;

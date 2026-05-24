@@ -14,12 +14,4 @@ export class PromptQueryDto extends BaseQueryDto {
   @IsOptional()
   @IsEnum(AssetScope)
   scope?: AssetScope;
-
-  @ApiProperty({
-    description: 'Filter prompts by brand ID',
-    required: false,
-  })
-  @IsOptional()
-  @IsEntityId()
-  brand?: string;
 }

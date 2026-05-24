@@ -1,1 +1,1 @@
-export { SubscriptionEntity } from '@genfeedai/ee-billing/subscriptions/entities/subscription.entity';
+export { SubscriptionEntity } from '@genfeedai/ee-billing/subscriptions';

@@ -4,7 +4,7 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM"],
     "module": "commonjs",
     "moduleResolution": "bundler",
     "noEmit": true,
@@ -26,13 +26,35 @@
       "@genfeedai/types/*": ["../../../packages/types/src/*"],
       "@genfeedai/utils": ["../../../packages/utils/index.ts"],
       "@genfeedai/utils/*": ["../../../packages/utils/*"],
+      "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
+      "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
+      "@genfeedai/harness": ["../../../packages/harness/src/index.ts"],
+      "@genfeedai/harness/*": ["../../../packages/harness/src/*"],
+      "@genfeedai/ee-billing": ["../../../ee/packages/billing/src/index.ts"],
+      "@genfeedai/ee-billing/*": ["../../../ee/packages/billing/src/*"],
+      "@genfeedai/ee-harness": ["../../../ee/packages/harness/src/index.ts"],
+      "@genfeedai/integrations": [
+        "../../../packages/integrations/src/index.ts"
+      ],
+      "@genfeedai/workflow-engine": [
+        "../../../packages/workflow-engine/src/index.ts"
+      ],
+      "@genfeedai/workflow-saas": [
+        "../../../packages/workflow-saas/src/index.ts"
+      ],
+      "@genfeedai/workflows": ["../../../packages/workflows/src/index.ts"],
+      "@genfeedai/workflows/*": ["../../../packages/workflows/src/*"],
+      "@files/*": ["../../../apps/server/files/src/*"],
       "@helpers/*": ["../../../packages/helpers/src/*"],
       "@libs/*": ["../../../packages/libs/*"],
-      "@serializers/*": ["../../../packages/serializers/src/*"]
+      "@serializers/*": ["../../../packages/serializers/src/*"],
+      "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"],
+      "@workflow-saas/*": ["../../../packages/workflow-saas/src/*"]
     },
     "skipLibCheck": true,
     "strict": true,
-    "target": "ES2022"
+    "target": "ES2022",
+    "types": ["node", "vitest/globals", "multer"]
   },
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"],
   "include": ["src/**/*"]

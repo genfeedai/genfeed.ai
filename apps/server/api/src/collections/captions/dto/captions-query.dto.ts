@@ -5,14 +5,6 @@ import { IsOptional, IsString } from 'class-validator';
 
 export class CaptionsQueryDto extends BaseQueryDto {
   @ApiProperty({
-    description: 'Filter captions by brand ID',
-    required: false,
-  })
-  @IsOptional()
-  @IsEntityId()
-  brand?: string;
-
-  @ApiProperty({
     description: 'Filter captions by language (e.g., en, es, fr)',
     required: false,
   })

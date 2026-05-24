@@ -55,14 +55,6 @@ export class ArticlesQueryDto extends BaseQueryDto {
   tag?: string;
 
   @ApiProperty({
-    description: 'Filter articles by brand ID',
-    required: false,
-  })
-  @IsOptional()
-  @IsEntityId()
-  brand?: string;
-
-  @ApiProperty({
     description: 'Filter articles by access scope',
     enum: AssetScope,
     enumName: 'AssetScope',

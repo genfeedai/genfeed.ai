@@ -87,7 +87,8 @@ function formatOptionalRelativeTime(date?: string | null): string {
 }
 
 function formatStatusLabel(status: AgentExecutionStatus): string {
-  return status.charAt(0).toUpperCase() + status.slice(1);
+  const normalized = status.toLowerCase();
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
 const STATUS_DOT_CLASSES: Record<AgentExecutionStatus, string> = {
