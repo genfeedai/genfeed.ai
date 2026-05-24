@@ -1,9 +1,9 @@
 # ==================================================
 # Unified Server Dockerfile
-# Builds all 14 NestJS services in a single image
+# Builds all 12 NestJS services in a single image
 # Services: api, files, workers, mcp, notifications,
-#           telegram, discord, slack, fanvue, clips,
-#           images, voices, videos, llm
+#           telegram, discord, slack, clips, images,
+#           voices, videos
 # ==================================================
 
 # ==================================================
@@ -36,7 +36,7 @@ COPY package.json ./
 # image so Bun does not try to resolve unrelated web/mobile/extension apps.
 RUN node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.workspaces=['apps/server/*','configs','packages/*']; if (p.dependencies?.resend==='^6.9.3') p.dependencies.resend='6.9.3'; fs.writeFileSync('package.json', JSON.stringify(p, null, 2)+'\n');"
 
-# Copy all 14 service package.json files for bun workspace resolution
+# Copy all 12 service package.json files for bun workspace resolution
 COPY apps/server/api/package.json ./apps/server/api/
 COPY apps/server/files/package.json ./apps/server/files/
 COPY apps/server/workers/package.json ./apps/server/workers/
@@ -45,12 +45,10 @@ COPY apps/server/notifications/package.json ./apps/server/notifications/
 COPY apps/server/telegram/package.json ./apps/server/telegram/
 COPY apps/server/discord/package.json ./apps/server/discord/
 COPY apps/server/slack/package.json ./apps/server/slack/
-COPY apps/server/fanvue/package.json ./apps/server/fanvue/
 COPY apps/server/clips/package.json ./apps/server/clips/
 COPY apps/server/images/package.json ./apps/server/images/
 COPY apps/server/voices/package.json ./apps/server/voices/
 COPY apps/server/videos/package.json ./apps/server/videos/
-COPY apps/server/llm/package.json ./apps/server/llm/
 
 # Copy remaining workspace package.json files for Bun workspace resolution.
 # Match the reduced server-only workspace globs exactly.
@@ -74,7 +72,7 @@ RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
 FROM base AS builder
 
 # --- Layer 1: Root configs + shared packages (cached when only services change) ---
-COPY tsconfig.json tsconfig.build.json tsconfig.server.decorators.json webpack.base.config.js ./
+COPY tsconfig.json tsconfig.server.decorators.json webpack.base.config.js ./
 COPY configs/ configs/
 COPY packages/ packages/
 
@@ -121,22 +119,20 @@ RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
     (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null || echo "") bun --filter @genfeedai/notifications build:prod) & pid3=$! && \
     wait $pid1 $pid2 $pid3
 
-# Batch 2: Non-Sentry services (5 builds)
+# Batch 2: Non-Sentry services (4 builds)
 RUN set -e && \
     bun --filter @genfeedai/telegram build:prod & pid1=$! && \
     bun --filter @genfeedai/discord build & pid2=$! && \
     bun --filter @genfeedai/slack build:prod & pid3=$! && \
-    bun --filter @genfeedai/fanvue build:prod & pid4=$! && \
-    bun --filter @genfeedai/clips build:prod & pid5=$! && \
-    wait $pid1 $pid2 $pid3 $pid4 $pid5
+    bun --filter @genfeedai/clips build:prod & pid4=$! && \
+    wait $pid1 $pid2 $pid3 $pid4
 
-# Batch 3: GPU fleet services (4 builds)
+# Batch 3: GPU fleet services (3 builds)
 RUN set -e && \
     bun --filter @genfeedai/images build:prod & pid1=$! && \
     bun --filter @genfeedai/voices build:prod & pid2=$! && \
     bun --filter @genfeedai/videos build:prod & pid3=$! && \
-    bun --filter @genfeedai/llm build:prod & pid4=$! && \
-    wait $pid1 $pid2 $pid3 $pid4
+    wait $pid1 $pid2 $pid3
 
 # ==================================================
 # Stage 2.5: Validate build outputs exist
@@ -145,7 +141,7 @@ RUN set -e && \
 # Verify the critical bundles exist before proceeding.
 RUN echo "Checking build outputs..." && \
     ls -la apps/server/dist/apps/ 2>/dev/null || echo "dist/apps/ directory missing!" && \
-    for svc in api workers files mcp notifications telegram discord slack fanvue clips images voices videos llm; do \
+    for svc in api workers files mcp notifications telegram discord slack clips images voices videos; do \
       if test -f "apps/server/dist/apps/$svc/main.js"; then \
         SIZE=$(stat -c%s "apps/server/dist/apps/$svc/main.js"); \
         echo "✅ $svc bundle ($(( SIZE / 1024 ))KB)"; \
@@ -184,19 +180,17 @@ RUN mkdir -p apps/server/api \
              apps/server/telegram \
              apps/server/discord \
              apps/server/slack \
-             apps/server/fanvue \
              apps/server/clips \
              apps/server/images \
              apps/server/voices \
-             apps/server/videos \
-             apps/server/llm
+             apps/server/videos
 
 # Copy built artifacts and production dependencies from builder
 COPY --from=builder /usr/src/app/apps/server/dist ./apps/server/dist
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/package.json ./package.json
 
-# Copy all 14 service package.json files for bun workspace resolution
+# Copy all 12 service package.json files for bun workspace resolution
 COPY --from=builder /usr/src/app/apps/server/api/package.json ./apps/server/api/package.json
 COPY --from=builder /usr/src/app/apps/server/files/package.json ./apps/server/files/package.json
 COPY --from=builder /usr/src/app/apps/server/workers/package.json ./apps/server/workers/package.json
@@ -205,12 +199,10 @@ COPY --from=builder /usr/src/app/apps/server/notifications/package.json ./apps/s
 COPY --from=builder /usr/src/app/apps/server/telegram/package.json ./apps/server/telegram/package.json
 COPY --from=builder /usr/src/app/apps/server/discord/package.json ./apps/server/discord/package.json
 COPY --from=builder /usr/src/app/apps/server/slack/package.json ./apps/server/slack/package.json
-COPY --from=builder /usr/src/app/apps/server/fanvue/package.json ./apps/server/fanvue/package.json
 COPY --from=builder /usr/src/app/apps/server/clips/package.json ./apps/server/clips/package.json
 COPY --from=builder /usr/src/app/apps/server/images/package.json ./apps/server/images/package.json
 COPY --from=builder /usr/src/app/apps/server/voices/package.json ./apps/server/voices/package.json
 COPY --from=builder /usr/src/app/apps/server/videos/package.json ./apps/server/videos/package.json
-COPY --from=builder /usr/src/app/apps/server/llm/package.json ./apps/server/llm/package.json
 
 # Create non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser -u 1001 appuser
@@ -224,10 +216,8 @@ RUN mkdir -p /usr/src/app/public/tmp && \
         /usr/src/app/apps/server/api \
         /usr/src/app/apps/server/clips \
         /usr/src/app/apps/server/discord \
-        /usr/src/app/apps/server/fanvue \
         /usr/src/app/apps/server/files \
         /usr/src/app/apps/server/images \
-        /usr/src/app/apps/server/llm \
         /usr/src/app/apps/server/mcp \
         /usr/src/app/apps/server/notifications \
         /usr/src/app/apps/server/slack \
