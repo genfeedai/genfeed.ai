@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
 
 const CLIENT_MODELS_MOCK = path.resolve(
@@ -220,24 +221,18 @@ export default defineConfig({
   },
   root: __dirname,
   test: {
+    browser: {
+      enabled: true,
+      headless: true,
+      instances: [{ browser: 'chromium' }],
+      provider: playwright(),
+    },
     env: {
       NODE_ENV: 'test',
     },
-    environment: 'jsdom',
-    environmentOptions: {
-      jsdom: {
-        resources: 'usable',
-      },
-    },
-    exclude: [
-      '**/node_modules/**',
-      '**/.git/**',
-      '**/.agents/**',
-      '**/*.browser.test.{ts,tsx}',
-    ],
+    exclude: ['**/node_modules/**', '**/.git/**', '**/.agents/**'],
     globals: true,
-    include: ['src/**/*.spec.{ts,tsx}'],
-    setupFiles: ['./tests/setup.ts'],
-    testTimeout: 15000,
+    include: ['src/**/*.browser.test.{ts,tsx}'],
+    testTimeout: 30000,
   },
 });
