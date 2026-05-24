@@ -11,14 +11,19 @@
 # ==================================================
 FROM node:24-slim AS base
 
-# Install bun and build dependencies
-RUN apt-get update && apt-get install -y \
+# Install bun and build dependencies. node-pty in @genfeedai/notifications
+# compiles during bun install and expects node-gyp on PATH.
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     unzip \
     ffmpeg \
+    python3 \
+    make \
+    g++ \
     && curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.10" \
     && cp /root/.bun/bin/bun /usr/local/bin/bun \
     && chmod +x /usr/local/bin/bun \
+    && npm install -g node-gyp \
     && apt-get purge -y unzip \
     && rm -rf /var/lib/apt/lists/*
 ENV PATH="/usr/local/bin:${PATH}"
