@@ -61,7 +61,6 @@ export default function AppSidebar({
 }: AppSidebarProps) {
   const config = useMemo<MenuShellConfig>(
     () => ({
-      brandRailMode: 'hidden',
       items,
       logoHref,
       primaryAction,

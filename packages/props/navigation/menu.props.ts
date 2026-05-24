@@ -30,7 +30,6 @@ export type MenuPrimaryActionConfig =
     });
 
 export interface MenuShellConfig extends MenuConfig {
-  brandRailMode?: 'hidden' | 'workspace';
   primaryAction?: MenuPrimaryActionConfig;
   secondaryItems?: MenuItemConfig[];
 }

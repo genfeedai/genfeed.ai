@@ -13,9 +13,9 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { Kbd } from '@genfeedai/ui';
 
 import MenuItem from '@ui/menus/item/MenuItem';
-import SidebarBrandRail from '@ui/menus/sidebar-brand-rail/SidebarBrandRail';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
 import UserDropdown from '@ui/menus/user-dropdown/UserDropdown';
+import WorkspaceSwitcher from '@ui/menus/workspace-switcher/WorkspaceSwitcher';
 import { Button } from '@ui/primitives/button';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 
@@ -39,7 +39,6 @@ import {
 
 /** Single-column sidebar width */
 const SIDEBAR_WIDTH = 240;
-const WORKSPACE_BRAND_RAIL_WIDTH = 64;
 
 const DRILL_DOWN_GROUP_ICON_OVERRIDES = {
   Posts: HiOutlineDocumentText,
@@ -110,7 +109,6 @@ export default function MenuShared({
     useState(false);
   const { nestedGroupId, enterNestedGroup, exitNestedGroup } =
     useSidebarNavigation();
-  const isWorkspaceShell = config.brandRailMode === 'workspace';
   const routeScope = useMemo(() => {
     const parts = rawPathname.split('/').filter(Boolean);
 
@@ -325,8 +323,7 @@ export default function MenuShared({
                     const itemHref = prefixHref(item);
                     const itemKey = itemHref ?? `${item.label}-${index}`;
 
-                    return isWorkspaceShell &&
-                      item.href?.startsWith('/workspace/inbox') ? (
+                    return item.href?.startsWith('/workspace/inbox') ? (
                       <WorkspaceInboxMenuItem
                         key={itemKey}
                         href={itemHref}
@@ -360,13 +357,7 @@ export default function MenuShared({
         ))}
       </>
     ),
-    [
-      enterNestedGroup,
-      handleLinkClick,
-      isActiveItem,
-      prefixHref,
-      isWorkspaceShell,
-    ],
+    [enterNestedGroup, handleLinkClick, isActiveItem, prefixHref],
   );
 
   // Get the nested group (for SidebarNested)
@@ -509,72 +500,34 @@ export default function MenuShared({
           : 'bg-background',
       )}
       style={{
-        minWidth:
-          (isWorkspaceShell ? WORKSPACE_BRAND_RAIL_WIDTH : 0) + SIDEBAR_WIDTH,
-        width:
-          (isWorkspaceShell ? WORKSPACE_BRAND_RAIL_WIDTH : 0) + SIDEBAR_WIDTH,
+        minWidth: SIDEBAR_WIDTH,
+        width: SIDEBAR_WIDTH,
       }}
     >
-      {isWorkspaceShell ? (
+      <div className="flex min-w-0 flex-1 flex-col">
         <div
-          data-testid="sidebar-brand-rail"
-          className="flex h-full w-16 flex-col border-r border-border bg-transparent"
+          data-testid="sidebar-header-shell"
+          className={cn(
+            'flex h-12 flex-shrink-0 items-center gap-1.5 px-2',
+            shellChromeVariant === 'default' && 'border-b border-border',
+          )}
         >
-          <div className="flex h-12 items-center justify-center border-b border-border">
-            {sharedCollapseControl}
-          </div>
-          <SidebarBrandRail />
-        </div>
-      ) : null}
-
-      <div
-        className={cn(
-          'flex min-w-0 flex-1 flex-col',
-          isWorkspaceShell && isCollapsed && 'pointer-events-none opacity-0',
-          isWorkspaceShell && 'transition-opacity duration-200',
-        )}
-        style={
-          isWorkspaceShell
-            ? { minWidth: SIDEBAR_WIDTH, width: SIDEBAR_WIDTH }
-            : undefined
-        }
-      >
-        {!isWorkspaceShell && (
-          <div
-            data-testid="sidebar-header-shell"
-            className={cn(
-              'flex h-12 flex-shrink-0 items-center gap-2 px-3',
-              shellChromeVariant === 'default' && 'border-b border-border',
-            )}
-          >
-            {sharedCollapseControl}
-            <div className="flex-1" />
-            {currentApp && orgSlug && (
-              <AppSwitcher
-                currentApp={currentApp}
-                orgSlug={orgSlug}
-                brandSlug={brandSlug}
-              />
-            )}
-          </div>
-        )}
-        {isWorkspaceShell && currentApp && orgSlug && (
-          <div className="flex h-12 flex-shrink-0 items-center justify-end px-3 border-b border-border">
+          {sharedCollapseControl}
+          <WorkspaceSwitcher />
+          {currentApp && orgSlug && (
             <AppSwitcher
               currentApp={currentApp}
               orgSlug={orgSlug}
               brandSlug={brandSlug}
             />
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Body — fades out when collapsed, pointer-events disabled */}
         <div
           className={cn(
             'flex-1 flex flex-col min-h-0 transition-opacity duration-200',
-            !isWorkspaceShell && isCollapsed
-              ? 'opacity-0 pointer-events-none'
-              : 'opacity-100',
+            isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100',
           )}
         >
           {topSlotContent ? (

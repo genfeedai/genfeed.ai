@@ -5,7 +5,6 @@ import { dark } from '@clerk/themes';
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import ThemeCookieSync from '@ui/providers/ThemeCookieSync';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -19,8 +18,12 @@ function makeQueryClient() {
     defaultOptions: {
       queries: {
         gcTime: 5 * 60_000,
+        refetchOnWindowFocus: false,
         retry: 1,
-        staleTime: 0,
+        // 30s: avoid refetch-on-every-mount storm. Mutations still invalidate
+        // explicitly via queryClient.invalidateQueries — staleness is the floor,
+        // not the ceiling.
+        staleTime: 30_000,
       },
     },
   });
@@ -30,6 +33,18 @@ const LazyModalErrorDebug = dynamic(
   () => import('@ui/modals/system/error-debug/ModalErrorDebug'),
   { ssr: false },
 );
+
+// Devtools loaded only in development. Avoids ~50KB in prod bundle.
+const LazyReactQueryDevtools =
+  process.env.NODE_ENV === 'development'
+    ? dynamic(
+        () =>
+          import('@tanstack/react-query-devtools').then((mod) => ({
+            default: mod.ReactQueryDevtools,
+          })),
+        { ssr: false },
+      )
+    : () => null;
 
 type ClerkProviderProps = Omit<
   ComponentProps<typeof ClerkProvider>,
@@ -141,7 +156,7 @@ export default function AppProviders({
           {includeSpeedInsights ? <SpeedInsights /> : null}
         </MaybeClerkProvider>
       </ThemeProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
+      <LazyReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }

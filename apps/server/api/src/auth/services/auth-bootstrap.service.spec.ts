@@ -383,7 +383,7 @@ describe('AuthBootstrapService', () => {
       [],
     );
     expect(accessBootstrapCacheService.set).toHaveBeenCalledWith(
-      'clerk_2',
+      userId,
       organizationId,
       result,
     );

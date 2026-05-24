@@ -108,7 +108,6 @@ describe('RequestContextMiddleware', () => {
       buildOrgSettingsService() as never,
       buildSubscriptionsService() as never,
       {} as never,
-      {} as never,
     );
   });
 
@@ -147,7 +146,6 @@ describe('RequestContextMiddleware', () => {
       buildLogger(),
       buildOrgSettingsService('pro') as never,
       buildSubscriptionsService('active') as never,
-      {} as never,
       {} as never,
     );
 
@@ -191,7 +189,6 @@ describe('RequestContextMiddleware', () => {
       buildLogger(),
       buildOrgSettingsService(null) as never,
       buildSubscriptionsService(null) as never,
-      {} as never,
       {} as never,
     );
 
