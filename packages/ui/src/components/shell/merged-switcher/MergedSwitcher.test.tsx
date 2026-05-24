@@ -138,7 +138,7 @@ describe('MergedSwitcher', () => {
       'href',
       '/acme/brand/workspace?taskId=task-1',
     );
-    expect(screen.getByRole('link', { name: /Write/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /^WriteDrafts/ })).toHaveAttribute(
       'href',
       '/acme/brand/compose/post?taskId=task-1',
     );
@@ -155,7 +155,7 @@ describe('MergedSwitcher', () => {
       'href',
       '/acme/~/overview',
     );
-    expect(screen.getByRole('link', { name: /Write/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /^WriteDrafts/ })).toHaveAttribute(
       'href',
       '/acme/~/overview',
     );
