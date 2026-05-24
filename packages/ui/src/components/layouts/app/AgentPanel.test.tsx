@@ -89,12 +89,20 @@ vi.mock('@genfeedai/agent/components/AgentCliTerminal', () => ({
   ),
   useAgentCliTerminal: () => ({
     activeKind: 'shell',
+    activeSessionId: null,
     containerRef: { current: null },
     cwdInput: '',
+    isSearchOpen: false,
+    killSession: () => undefined,
+    searchQuery: '',
+    sessions: [],
     setCwdInput: () => undefined,
+    setSearchQuery: () => undefined,
     startSession: () => undefined,
     status: '',
     submitCwd: () => undefined,
+    switchSession: () => undefined,
+    toggleSearch: () => undefined,
   }),
 }));
 

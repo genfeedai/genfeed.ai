@@ -63,17 +63,23 @@ vi.mock('@xterm/xterm', () => ({
 vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
   useAgentChatStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({
+      activeTerminalSessionByThread: {},
       activeThreadId: 'thread-123',
+      addTerminalSession: vi.fn(),
       clearComposerSeed: vi.fn(),
       composerSeed: null,
       creditsRemaining: 42,
       isOpen: true,
       messages: [],
       pageContext: null,
+      removeTerminalSession: vi.fn(),
       seedComposer: vi.fn(),
+      setActiveTerminalSession: vi.fn(),
       setCreditsRemaining: vi.fn(),
       setModelCosts: vi.fn(),
+      setTerminalSessionsByThread: vi.fn(),
       socketConnectionState: 'connected',
+      terminalSessionsByThread: new Map(),
       threads: [],
       toggleOpen: mockToggleOpen,
     }),

@@ -9,17 +9,73 @@ import type {
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
-
-// Inlined from @genfeedai/types to avoid turbopack resolution issues
-const ONBOARDING_SIGNUP_GIFT_CREDITS = 100;
-const ONBOARDING_TOTAL_VISIBLE_CREDITS = 600;
-
 import type {
   OnboardingChecklistStatus,
   OnboardingChecklistStep,
 } from '@genfeedai/props/ui/agent/agent-onboarding.props';
 import { AGENT_PANEL_OPEN_KEY } from '@genfeedai/services/core/agent-overlay-coordination.service';
 import { create } from 'zustand';
+
+// ---------------------------------------------------------------------------
+// Terminal session types (T1-T2 / T6)
+// ---------------------------------------------------------------------------
+
+export type TerminalSessionKind = 'claude' | 'codex' | 'genfeed' | 'shell';
+
+export interface TerminalSessionDto {
+  /** Working directory the process was started in. */
+  cwd: string;
+  /** ISO 8601 creation timestamp. */
+  createdAt: string;
+  /** Unique session identifier. */
+  id: string;
+  /** Session kind. */
+  kind: TerminalSessionKind;
+  /** Bound thread, if any. */
+  threadId?: string;
+}
+
+/** Key is `threadId` or the literal `"global"` for unthreaded sessions. */
+export type TerminalSessionsByThread = Map<string, TerminalSessionDto[]>;
+
+const TERMINAL_SESSIONS_STORAGE_KEY = 'genfeed:terminal:sessions';
+
+function loadPersistedSessionsByThread(): TerminalSessionsByThread {
+  if (typeof window === 'undefined') {
+    return new Map();
+  }
+
+  try {
+    const raw = window.localStorage.getItem(TERMINAL_SESSIONS_STORAGE_KEY);
+    if (!raw) {
+      return new Map();
+    }
+
+    const parsed = JSON.parse(raw) as Array<[string, TerminalSessionDto[]]>;
+    return new Map(parsed);
+  } catch {
+    return new Map();
+  }
+}
+
+function persistSessionsByThread(map: TerminalSessionsByThread): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      TERMINAL_SESSIONS_STORAGE_KEY,
+      JSON.stringify([...map.entries()]),
+    );
+  } catch {
+    // Ignore write errors (private-browsing quota, etc.)
+  }
+}
+
+// Inlined from @genfeedai/types to avoid turbopack resolution issues
+const ONBOARDING_SIGNUP_GIFT_CREDITS = 100;
+const ONBOARDING_TOTAL_VISIBLE_CREDITS = 600;
 
 export { AGENT_PANEL_OPEN_KEY };
 
@@ -164,6 +220,10 @@ interface AgentChatState {
   stream: AgentStreamState;
   composerSeed: AgentComposerSeed | null;
   threadUiBusyById: Record<string, boolean>;
+  /** Per-thread terminal sessions. Key = threadId | "global". */
+  terminalSessionsByThread: TerminalSessionsByThread;
+  /** Per-thread active session id. Key = threadId | "global". */
+  activeTerminalSessionByThread: Record<string, string>;
 }
 
 interface AgentChatActions {
@@ -230,6 +290,17 @@ interface AgentChatActions {
   setDraftPlanModeEnabled: (enabled: boolean) => void;
   setLatestProposedPlan: (plan: AgentProposedPlan | null) => void;
   setThreadUiBusy: (threadId: string, busy: boolean) => void;
+  // ---------------------------------------------------------------------------
+  // Terminal session management (T1-T2 / T6)
+  // ---------------------------------------------------------------------------
+  /** Bulk-replace sessions map (called on terminal:list response + prune). */
+  setTerminalSessionsByThread: (map: TerminalSessionsByThread) => void;
+  /** Register a newly created session for a thread key. */
+  addTerminalSession: (threadKey: string, session: TerminalSessionDto) => void;
+  /** Remove a session (after terminal:kill). */
+  removeTerminalSession: (threadKey: string, sessionId: string) => void;
+  /** Set the active session for a thread key. */
+  setActiveTerminalSession: (threadKey: string, sessionId: string) => void;
 }
 
 export type AgentChatStore = AgentChatState & AgentChatActions;
@@ -561,6 +632,60 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
   threadPrompts: {},
   threads: [],
   threadUiBusyById: {},
+  terminalSessionsByThread: loadPersistedSessionsByThread(),
+  activeTerminalSessionByThread: {},
+  setTerminalSessionsByThread: (map) => {
+    persistSessionsByThread(map);
+    set({ terminalSessionsByThread: new Map(map) });
+  },
+  addTerminalSession: (threadKey, session) =>
+    set((state) => {
+      const next = new Map(state.terminalSessionsByThread);
+      const existing = next.get(threadKey) ?? [];
+      if (!existing.some((s) => s.id === session.id)) {
+        next.set(threadKey, [...existing, session]);
+      }
+      persistSessionsByThread(next);
+      return { terminalSessionsByThread: next };
+    }),
+  removeTerminalSession: (threadKey, sessionId) =>
+    set((state) => {
+      const next = new Map(state.terminalSessionsByThread);
+      const filtered = (next.get(threadKey) ?? []).filter(
+        (s) => s.id !== sessionId,
+      );
+      if (filtered.length === 0) {
+        next.delete(threadKey);
+      } else {
+        next.set(threadKey, filtered);
+      }
+      persistSessionsByThread(next);
+
+      // If the active session was killed, fall back to the first remaining one
+      const currentActive = state.activeTerminalSessionByThread[threadKey];
+      if (currentActive === sessionId) {
+        const nextActive = filtered[0];
+        const nextActiveMap = { ...state.activeTerminalSessionByThread };
+        if (nextActive) {
+          nextActiveMap[threadKey] = nextActive.id;
+        } else {
+          delete nextActiveMap[threadKey];
+        }
+        return {
+          terminalSessionsByThread: next,
+          activeTerminalSessionByThread: nextActiveMap,
+        };
+      }
+
+      return { terminalSessionsByThread: next };
+    }),
+  setActiveTerminalSession: (threadKey, sessionId) =>
+    set((state) => ({
+      activeTerminalSessionByThread: {
+        ...state.activeTerminalSessionByThread,
+        [threadKey]: sessionId,
+      },
+    })),
   toggleOpen: () =>
     set(() => {
       const state = get();

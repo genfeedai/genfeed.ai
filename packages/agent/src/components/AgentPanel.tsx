@@ -74,6 +74,7 @@ export function AgentPanel({
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const threads = useAgentChatStore((s) => s.threads);
   const updateThread = useAgentChatStore((s) => s.updateThread);
+  const seedComposer = useAgentChatStore((s) => s.seedComposer);
 
   const setCreditsRemaining = useAgentChatStore((s) => s.setCreditsRemaining);
   const setModelCosts = useAgentChatStore((s) => s.setModelCosts);
@@ -246,8 +247,23 @@ export function AgentPanel({
   );
 
   const terminalController = useAgentCliTerminal(apiService);
+
+  const handleSendSelection = useCallback(
+    (text: string) => {
+      seedComposer(text, activeThreadId);
+    },
+    [activeThreadId, seedComposer],
+  );
+
   const terminalContent = (
-    <AgentCliTerminalBody containerRef={terminalController.containerRef} />
+    <AgentCliTerminalBody
+      containerRef={terminalController.containerRef}
+      isSearchOpen={terminalController.isSearchOpen}
+      searchQuery={terminalController.searchQuery}
+      onSearchQueryChange={terminalController.setSearchQuery}
+      onCloseSearch={terminalController.toggleSearch}
+      onSendSelection={handleSendSelection}
+    />
   );
 
   const outputsContent = (
