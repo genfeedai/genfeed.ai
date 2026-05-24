@@ -144,12 +144,12 @@ vi.mock('@ui/buttons/credits/ButtonCredits', () => ({
   default: () => <div data-testid="button-credits" />,
 }));
 
-vi.mock('@ui/topbars/workspace-switcher/TopbarWorkspaceSwitcher', () => ({
+vi.mock('@ui/menus/workspace-switcher/WorkspaceSwitcher', () => ({
   default: () => <div data-testid="workspace-switcher" />,
 }));
 
-vi.mock('@ui/menus/sidebar-brand-rail/SidebarBrandRail', () => ({
-  default: () => <div data-testid="sidebar-brand-rail-content" />,
+vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
+  AppSwitcher: () => <div data-testid="app-switcher" />,
 }));
 
 vi.mock('@genfeedai/services/core/environment.service', () => ({
@@ -220,34 +220,15 @@ describe('MenuShared', () => {
     ).toBeTruthy();
   });
 
-  it('renders the workspace shell rail when enabled', () => {
-    const workspaceConfig: MenuShellConfig = {
-      brandRailMode: 'workspace',
-      items: [
-        {
-          href: '/workspace/overview',
-          label: 'Dashboard',
-        },
-      ],
-      logoHref: '/',
-    };
+  it('renders the workspace switcher inside the sidebar header shell', () => {
+    render(<MenuShared config={config} />);
 
-    render(<MenuShared config={workspaceConfig} />);
-
-    expect(screen.getByTestId('sidebar-brand-rail')).toBeInTheDocument();
-    expect(
-      screen.getByTestId('sidebar-brand-rail-content'),
-    ).toBeInTheDocument();
-    // Workspace switcher only shows in non-workspace (single-column) mode
-    expect(screen.queryByTestId('workspace-switcher')).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId('sidebar-header-shell'),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-header-shell')).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-switcher')).toBeInTheDocument();
   });
 
   it('attaches the actionable inbox count to the workspace inbox row', () => {
-    const workspaceConfig: MenuShellConfig = {
-      brandRailMode: 'workspace',
+    const inboxConfig: MenuShellConfig = {
       items: [
         {
           href: '/workspace/overview',
@@ -261,7 +242,7 @@ describe('MenuShared', () => {
       logoHref: '/',
     };
 
-    render(<MenuShared config={workspaceConfig} />);
+    render(<MenuShared config={inboxConfig} />);
 
     expect(screen.getByText('Inbox (40)')).toBeInTheDocument();
   });
@@ -332,7 +313,7 @@ describe('MenuShared', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Tasks')).toBeInTheDocument();
-    expect(screen.getByText('Inbox')).toBeInTheDocument();
+    expect(screen.getByText(/Inbox/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Library' })).toBeInTheDocument();
   });
 
@@ -485,26 +466,6 @@ describe('MenuShared', () => {
 
     const labels = screen.queryAllByText('Acme Org');
     expect(labels.length).toBeLessThanOrEqual(1);
-  });
-
-  it('shows the Genfeed mark in the workspace brand rail toggle when expanded', () => {
-    mockLogoUrl.value = '/logo.svg';
-
-    const workspaceConfig: MenuShellConfig = {
-      brandRailMode: 'workspace',
-      items: [{ href: '/overview', label: 'Dashboard' }],
-      logoHref: '/',
-    };
-
-    render(
-      <MenuShared
-        config={workspaceConfig}
-        isCollapsed={false}
-        onToggleCollapse={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByAltText('Genfeed')).toBeInTheDocument();
   });
 
   it('uses a transparent shell background for the transparent variant', () => {

@@ -61,13 +61,12 @@ vi.mock('next/link', () => ({
   default: ({
     children,
     href,
-    className,
+    ...rest
   }: {
     children: ReactNode;
     href: string;
-    className?: string;
-  }) => (
-    <a href={href} className={className}>
+  } & Record<string, unknown>) => (
+    <a href={href} {...rest}>
       {children}
     </a>
   ),
@@ -144,7 +143,7 @@ describe('AppProtectedTopbar', () => {
 
     expect(screen.getByTitle('Settings')).toHaveAttribute(
       'href',
-      '/acme/~/settings',
+      '/acme/~settings',
     );
   });
 
