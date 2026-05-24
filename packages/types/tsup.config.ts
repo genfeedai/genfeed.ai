@@ -11,7 +11,7 @@ export default defineConfig({
     workflow: 'src/workflow.ts',
   },
   external: ['@xyflow/react'],
-  format: ['esm', 'cjs'],
+  format: ['esm'],
   sourcemap: true,
   splitting: true,
   treeshake: true,

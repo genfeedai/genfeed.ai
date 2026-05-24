@@ -11,8 +11,7 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     }
   },
   "files": [
@@ -20,7 +19,6 @@
   ],
   "license": "MIT",
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "name": "@genfeedai/errors",
   "publishConfig": {
     "access": "public",
