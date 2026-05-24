@@ -93,4 +93,20 @@ export class ContentRunsController {
 
     return serializeSingle(req, ContentRunSerializer, result.updatedRun);
   }
+
+  @Post('content-runs/:id/remix-pack')
+  async createRemixPack(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ) {
+    const { organization } = getPublicMetadata(user);
+
+    const data = await this.contentRunsService.createRemixPack(
+      organization,
+      id,
+    );
+
+    return serializeSingle(req, ContentRunSerializer, data);
+  }
 }

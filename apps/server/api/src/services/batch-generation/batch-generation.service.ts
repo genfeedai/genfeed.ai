@@ -2,10 +2,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import {
-  assertIdempotent,
-  releaseIdempotencyKey,
-} from '@api/helpers/utils/idempotency/idempotency.util';
+import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
 import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
@@ -164,17 +161,12 @@ export class BatchGenerationService {
     idempotencyKey?: string,
   ): Promise<IBatchSummary> {
     if (idempotencyKey) {
-      await assertIdempotent(this.cacheService, idempotencyKey);
+      return runIdempotent(this.cacheService, idempotencyKey, () =>
+        this.doCreateBatch(dto, userId, orgId),
+      );
     }
 
-    try {
-      return await this.doCreateBatch(dto, userId, orgId);
-    } catch (error: unknown) {
-      if (idempotencyKey) {
-        await releaseIdempotencyKey(this.cacheService, idempotencyKey);
-      }
-      throw error;
-    }
+    return this.doCreateBatch(dto, userId, orgId);
   }
 
   private async doCreateBatch(
@@ -254,17 +246,12 @@ export class BatchGenerationService {
     idempotencyKey?: string,
   ): Promise<IBatchSummary> {
     if (idempotencyKey) {
-      await assertIdempotent(this.cacheService, idempotencyKey);
+      return runIdempotent(this.cacheService, idempotencyKey, () =>
+        this.doCreateManualReviewBatch(dto, userId, orgId),
+      );
     }
 
-    try {
-      return await this.doCreateManualReviewBatch(dto, userId, orgId);
-    } catch (error: unknown) {
-      if (idempotencyKey) {
-        await releaseIdempotencyKey(this.cacheService, idempotencyKey);
-      }
-      throw error;
-    }
+    return this.doCreateManualReviewBatch(dto, userId, orgId);
   }
 
   private async doCreateManualReviewBatch(

@@ -5,6 +5,7 @@ import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
 import type {
   ContentRunBrief,
   ContentRunPublishContext,
+  ContentRunVariant,
   CreateContentRunInput,
   UpdateContentRunInput,
 } from '@genfeedai/interfaces';
@@ -131,6 +132,85 @@ export class ContentRunsService {
     };
   }
 
+  private buildRemixPackVariants(
+    run: Record<string, unknown>,
+  ): ContentRunVariant[] {
+    const brief = this.isRecord(run.brief)
+      ? (run.brief as unknown as ContentRunBrief)
+      : {};
+    const publish = this.isRecord(run.publish)
+      ? (run.publish as unknown as ContentRunPublishContext)
+      : undefined;
+    const platform =
+      this.getString(publish?.platform) ??
+      this.getString(
+        (run.input as Record<string, unknown> | undefined)?.platform,
+      ) ??
+      'multi-platform';
+    const hypothesis =
+      brief.hypothesis ??
+      brief.angle ??
+      'Turn this brief into format-specific content variants.';
+
+    return [
+      {
+        angle: brief.angle,
+        content: hypothesis,
+        format: 'post-thread',
+        hypothesis,
+        id: 'post-thread',
+        metadata: { source: 'remix-pack' },
+        platform,
+        status: 'draft',
+        type: 'text',
+      },
+      {
+        angle: brief.angle,
+        content: `Visual creative brief: ${hypothesis}`,
+        format: 'social-image',
+        hypothesis,
+        id: 'social-image',
+        metadata: { source: 'remix-pack' },
+        platform,
+        status: 'draft',
+        type: 'image',
+      },
+      {
+        angle: brief.angle,
+        content: `Short-form video script: ${hypothesis}`,
+        format: 'short-form-video-script',
+        hypothesis,
+        id: 'short-form-video-script',
+        metadata: { source: 'remix-pack' },
+        platform,
+        status: 'draft',
+        type: 'video-script',
+      },
+      {
+        angle: brief.angle,
+        content: `Article/newsletter angle: ${hypothesis}`,
+        format: 'article-newsletter',
+        hypothesis,
+        id: 'article-newsletter',
+        metadata: { source: 'remix-pack' },
+        platform,
+        status: 'draft',
+        type: 'long-form',
+      },
+      {
+        angle: brief.angle,
+        content: `Follow-up/reply derivative: ${hypothesis}`,
+        format: 'follow-up-reply',
+        hypothesis,
+        id: 'follow-up-reply',
+        metadata: { source: 'remix-pack' },
+        platform,
+        status: 'draft',
+        type: 'reply',
+      },
+    ];
+  }
+
   async createRun(
     payload: CreateContentRunInput,
   ): Promise<Record<string, unknown>> {
@@ -193,6 +273,46 @@ export class ContentRunsService {
             ? existing.config
             : {}),
           ...patch,
+        }),
+      },
+      where: { id: runId },
+    });
+
+    return (
+      this.hydrateRun(updated as unknown as Record<string, unknown>) ?? updated
+    );
+  }
+
+  async createRemixPack(
+    organizationId: string,
+    runId: string,
+  ): Promise<Record<string, unknown>> {
+    const existing = await this.prisma.contentRun.findFirst({
+      where: { id: runId, isDeleted: false, organizationId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('ContentRun', runId);
+    }
+
+    const hydrated =
+      this.hydrateRun(existing as unknown as Record<string, unknown>) ??
+      existing;
+    const currentConfig = this.isRecord(existing.config) ? existing.config : {};
+    const existingVariants = Array.isArray(hydrated.variants)
+      ? (hydrated.variants as ContentRunVariant[])
+      : [];
+    const existingIds = new Set(existingVariants.map((variant) => variant.id));
+    const generatedVariants = this.buildRemixPackVariants(hydrated).filter(
+      (variant) => !existingIds.has(variant.id),
+    );
+    const variants = [...existingVariants, ...generatedVariants];
+
+    const updated = await this.prisma.contentRun.update({
+      data: {
+        config: this.toJsonValue({
+          ...currentConfig,
+          variants,
         }),
       },
       where: { id: runId },

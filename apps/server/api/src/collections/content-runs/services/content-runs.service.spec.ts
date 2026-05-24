@@ -327,6 +327,85 @@ describe('ContentRunsService', () => {
     expect(contentRun.update).not.toHaveBeenCalled();
   });
 
+  it('creates a remix pack under the existing content run config', async () => {
+    contentRun.findFirst.mockResolvedValue(
+      makeRun({
+        config: {
+          brief: {
+            angle: 'AI workflow proof',
+            hypothesis: 'Show the operator workflow behind the result.',
+          },
+          input: { platform: 'twitter' },
+          publish: { metadata: {}, platform: 'twitter' },
+          variants: [
+            {
+              id: 'post-thread',
+              metadata: {},
+              platform: 'twitter',
+              type: 'text',
+            },
+          ],
+        },
+      }),
+    );
+    contentRun.update.mockResolvedValue(
+      makeRun({
+        config: {
+          brief: {
+            angle: 'AI workflow proof',
+            hypothesis: 'Show the operator workflow behind the result.',
+          },
+          input: { platform: 'twitter' },
+          publish: { metadata: {}, platform: 'twitter' },
+          variants: [
+            {
+              id: 'post-thread',
+              metadata: {},
+              platform: 'twitter',
+              type: 'text',
+            },
+            {
+              format: 'social-image',
+              id: 'social-image',
+              metadata: { source: 'remix-pack' },
+              platform: 'twitter',
+              type: 'image',
+            },
+          ],
+        },
+      }),
+    );
+
+    const result = await service.createRemixPack('org-1', 'run-1');
+
+    expect(contentRun.update).toHaveBeenCalledWith({
+      data: {
+        config: expect.objectContaining({
+          variants: expect.arrayContaining([
+            expect.objectContaining({ id: 'post-thread' }),
+            expect.objectContaining({
+              format: 'social-image',
+              id: 'social-image',
+              metadata: { source: 'remix-pack' },
+              platform: 'twitter',
+              type: 'image',
+            }),
+            expect.objectContaining({ id: 'short-form-video-script' }),
+            expect.objectContaining({ id: 'article-newsletter' }),
+            expect.objectContaining({ id: 'follow-up-reply' }),
+          ]),
+        }),
+      },
+      where: { id: 'run-1' },
+    });
+    expect(result).toMatchObject({
+      _id: 'run-1',
+      variants: expect.arrayContaining([
+        expect.objectContaining({ id: 'social-image' }),
+      ]),
+    });
+  });
+
   it('lists runs by brand without querying a non-existent skillSlug column', async () => {
     contentRun.findMany.mockResolvedValue([
       makeRun(),

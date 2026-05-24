@@ -23,6 +23,7 @@ describe('ContentRunsController', () => {
 
   const mockService = {
     createBriefRun: vi.fn(),
+    createRemixPack: vi.fn(),
     getRunById: vi.fn(),
     listByBrand: vi.fn(),
   };
@@ -230,6 +231,22 @@ describe('ContentRunsController', () => {
       await controller.analyzeRunRecommendations(mockReq, 'run-1', mockUser);
 
       expect(mockRecommendationsService.analyzeRun).toHaveBeenCalledWith(
+        'org-1',
+        'run-1',
+      );
+    });
+  });
+
+  describe('createRemixPack', () => {
+    it('creates remix variants scoped to the authenticated organization', async () => {
+      mockService.createRemixPack.mockResolvedValue({
+        _id: 'run-1',
+        variants: [{ id: 'post-thread', metadata: {}, type: 'text' }],
+      });
+
+      await controller.createRemixPack(mockReq, 'run-1', mockUser);
+
+      expect(mockService.createRemixPack).toHaveBeenCalledWith(
         'org-1',
         'run-1',
       );

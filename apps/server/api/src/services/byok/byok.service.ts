@@ -6,7 +6,7 @@ import { ByokBillingStatus, ByokProvider } from '@genfeedai/enums';
 import type { IByokKeyEntry, IByokProviderStatus } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 const BYOK_PROVIDER_LABELS: Record<
@@ -246,9 +246,8 @@ export class ByokService {
             lastValidatedAt: new Date(),
           };
 
-          await tx.organizationSetting.update({
-            data: { byokKeys: byokKeys as never },
-            where: { id: existing.id },
+          await this.writeByokSettings(tx, existing, {
+            byokKeys: byokKeys as never,
           });
         },
         { isolationLevel: 'Serializable' },
@@ -284,12 +283,9 @@ export class ByokService {
 
           const hasRemainingKeys = Object.keys(byokKeys).length > 0;
 
-          await tx.organizationSetting.update({
-            data: {
-              byokKeys: byokKeys as never,
-              isByokEnabled: hasRemainingKeys,
-            },
-            where: { id: existing.id },
+          await this.writeByokSettings(tx, existing, {
+            byokKeys: byokKeys as never,
+            isByokEnabled: hasRemainingKeys,
           });
         },
         { isolationLevel: 'Serializable' },
@@ -331,9 +327,8 @@ export class ByokService {
               totalRequests: (entry.totalRequests ?? 0) + 1,
             };
 
-            await tx.organizationSetting.update({
-              data: { byokKeys: byokKeys as never },
-              where: { id: existing.id },
+            await this.writeByokSettings(tx, existing, {
+              byokKeys: byokKeys as never,
             });
           }
         },
@@ -447,6 +442,32 @@ export class ByokService {
     return (settings.byokKeys as Record<string, IByokKeyEntry>) ?? {};
   }
 
+  private async writeByokSettings(
+    tx: {
+      organizationSetting: {
+        updateMany: (
+          args: Record<string, unknown>,
+        ) => Promise<{ count: number }>;
+      };
+    },
+    existing: { id: string; updatedAt: Date },
+    data: Record<string, unknown>,
+  ): Promise<void> {
+    const result = await tx.organizationSetting.updateMany({
+      data,
+      where: {
+        id: existing.id,
+        updatedAt: existing.updatedAt,
+      },
+    });
+
+    if (result.count !== 1) {
+      throw new ConflictException(
+        'BYOK credentials changed during update. Please retry.',
+      );
+    }
+  }
+
   private async updateByokKey(
     orgId: string,
     provider: ByokProvider,
@@ -466,12 +487,9 @@ export class ByokService {
         const byokKeys = this.getByokKeys(existing);
         byokKeys[provider] = entry;
 
-        await tx.organizationSetting.update({
-          data: {
-            byokKeys: byokKeys as never,
-            ...(enableByok && { isByokEnabled: true }),
-          },
-          where: { id: existing.id },
+        await this.writeByokSettings(tx, existing, {
+          byokKeys: byokKeys as never,
+          ...(enableByok && { isByokEnabled: true }),
         });
       },
       { isolationLevel: 'Serializable' },

@@ -150,4 +150,31 @@ describe('ContentRunsService', () => {
       analyticsSummary: { winningVariantId: 'variant-a' },
     });
   });
+
+  it('requests remix pack generation for a content run', async () => {
+    mockPost.mockResolvedValue({
+      data: {
+        data: {
+          attributes: {
+            variants: [{ id: 'post-thread', metadata: {}, type: 'text' }],
+          },
+          id: 'run-1',
+          type: 'content-runs',
+        },
+      },
+    });
+    mockDeserializeResource.mockReturnValue({
+      _id: 'run-1',
+      variants: [{ id: 'post-thread', metadata: {}, type: 'text' }],
+    });
+
+    const service = new ContentRunsService('token');
+    const result = await service.createRemixPack('run-1');
+
+    expect(mockPost).toHaveBeenCalledWith('/content-runs/run-1/remix-pack');
+    expect(result).toMatchObject({
+      _id: 'run-1',
+      variants: [{ id: 'post-thread', metadata: {}, type: 'text' }],
+    });
+  });
 });

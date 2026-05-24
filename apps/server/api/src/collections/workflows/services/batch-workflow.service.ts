@@ -4,10 +4,7 @@ import {
   BatchWorkflowItemStatus,
   BatchWorkflowJobStatus,
 } from '@api/collections/workflows/schemas/batch-workflow-job.schema';
-import {
-  assertIdempotent,
-  releaseIdempotencyKey,
-} from '@api/helpers/utils/idempotency/idempotency.util';
+import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -110,22 +107,22 @@ export class BatchWorkflowService {
     } = input;
 
     if (idempotencyKey) {
-      await assertIdempotent(this.cacheService, idempotencyKey);
+      return runIdempotent(this.cacheService, idempotencyKey, () =>
+        this.doCreateBatchJob({
+          workflowId,
+          ingredientIds,
+          userId,
+          organizationId,
+        }),
+      );
     }
 
-    try {
-      return await this.doCreateBatchJob({
-        workflowId,
-        ingredientIds,
-        userId,
-        organizationId,
-      });
-    } catch (error: unknown) {
-      if (idempotencyKey) {
-        await releaseIdempotencyKey(this.cacheService, idempotencyKey);
-      }
-      throw error;
-    }
+    return this.doCreateBatchJob({
+      workflowId,
+      ingredientIds,
+      userId,
+      organizationId,
+    });
   }
 
   private async doCreateBatchJob(

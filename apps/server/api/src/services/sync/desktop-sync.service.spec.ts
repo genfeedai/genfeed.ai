@@ -52,6 +52,7 @@ const makeUser = (): User => ({ id: 'user_clerk' }) as unknown as User;
 function buildService() {
   const prisma = {
     asset: {
+      aggregate: vi.fn().mockResolvedValue({ _sum: { sizeBytes: 0 } }),
       create: vi.fn(),
       findFirst: vi.fn(),
       update: vi.fn(),
@@ -202,5 +203,54 @@ describe('DesktopSyncService', () => {
         }),
       }),
     );
+  });
+
+  it('rejects full desktop asset sync when organization storage quota would be exceeded', async () => {
+    const { prisma, service } = buildService();
+    prisma.asset.aggregate.mockResolvedValue({
+      _sum: { sizeBytes: 10 * 1024 * 1024 * 1024 - 64 },
+    });
+    prisma.asset.findFirst.mockResolvedValue(null);
+
+    const result = await service.pushAssets(makeUser(), {
+      assets: [
+        {
+          displayName: 'large.png',
+          id: 'asset-local',
+          kind: 'image',
+          mimeType: 'image/png',
+          origin: 'local-import',
+          originalFileName: 'large.png',
+          residency: 'local-only',
+          sha256: 'hash',
+          sizeBytes: 128,
+          uploadPolicy: 'full',
+        },
+      ],
+    });
+
+    expect(result.data.assets[0]).toMatchObject({
+      localAssetId: 'asset-local',
+      reason: 'storage-quota-exceeded',
+      status: 'rejected',
+    });
+    expect(prisma.asset.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects disallowed desktop upload MIME types with 415', async () => {
+    const { prisma, service } = buildService();
+    prisma.asset.findFirst.mockResolvedValue({
+      id: 'asset-cloud',
+      localAssetId: 'asset-local',
+      mimeType: 'application/x-msdownload',
+      sizeBytes: 128,
+    });
+
+    await expect(
+      service.requestAssetUpload(makeUser(), {
+        assetId: 'asset-local',
+        mimeType: 'application/x-msdownload',
+      }),
+    ).rejects.toMatchObject({ status: 415 });
   });
 });

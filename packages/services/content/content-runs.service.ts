@@ -96,4 +96,12 @@ export class ContentRunsService extends HTTPBaseService {
 
     return deserializeResource<ContentRunRecord>(response.data);
   }
+
+  async createRemixPack(runId: string): Promise<ContentRunRecord> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/content-runs/${runId}/remix-pack`,
+    );
+
+    return deserializeResource<ContentRunRecord>(response.data);
+  }
 }

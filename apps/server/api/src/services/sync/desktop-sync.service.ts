@@ -11,6 +11,7 @@ import {
   Injectable,
   NotFoundException,
   PayloadTooLargeException,
+  UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import type { DesktopBrandManifestQueryDto } from './dto/desktop-brand-manifest-query.dto';
 import type {
@@ -43,6 +44,7 @@ type DesktopSyncOpPushResult = {
 
 const MAX_DESKTOP_ASSET_BYTES = 500 * 1024 * 1024; // 500 MB
 const MAX_PROXY_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB (body-based upload)
+const MAX_ORGANIZATION_DESKTOP_STORAGE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
 
 const ALLOWED_DESKTOP_MIME_TYPES = new Set([
   'image/jpeg',
@@ -88,6 +90,49 @@ export class DesktopSyncService {
       organizationId: publicMetadata.organization,
       userId: publicMetadata.user,
     };
+  }
+
+  private async getOrganizationDesktopStorageBytes(
+    organizationId: string,
+    excludeAssetId?: string,
+  ): Promise<number> {
+    const result = await this.prisma.asset.aggregate({
+      _sum: { sizeBytes: true },
+      where: {
+        isDeleted: false,
+        parentOrgId: organizationId,
+        uploadPolicy: 'full',
+        ...(excludeAssetId ? { id: { not: excludeAssetId } } : {}),
+      },
+    });
+
+    return Number(result._sum.sizeBytes ?? 0);
+  }
+
+  private assertAllowedDesktopMimeType(mimeType: string): void {
+    if (!ALLOWED_DESKTOP_MIME_TYPES.has(mimeType)) {
+      throw new UnsupportedMediaTypeException(
+        `MIME type "${mimeType}" is not allowed for desktop uploads`,
+      );
+    }
+  }
+
+  private async assertOrganizationDesktopStorageQuota(
+    organizationId: string,
+    incomingBytes: number,
+    excludeAssetId?: string,
+  ): Promise<void> {
+    const usedBytes = await this.getOrganizationDesktopStorageBytes(
+      organizationId,
+      excludeAssetId,
+    );
+    const projectedBytes = usedBytes + incomingBytes;
+
+    if (projectedBytes > MAX_ORGANIZATION_DESKTOP_STORAGE_BYTES) {
+      throw new PayloadTooLargeException(
+        `Desktop asset upload would exceed organization storage quota of ${(MAX_ORGANIZATION_DESKTOP_STORAGE_BYTES / 1024 / 1024 / 1024).toFixed(0)}GB`,
+      );
+    }
   }
 
   private getCloudObjectKey(
@@ -346,6 +391,7 @@ export class DesktopSyncService {
     const { brandId, organizationId, userId } = this.getCloudContext(user);
     let accepted = 0;
     let rejected = 0;
+    let projectedStorageBytes: number | null = null;
     const assets: DesktopAssetPushResult[] = [];
 
     for (const asset of dto.assets) {
@@ -405,6 +451,31 @@ export class DesktopSyncService {
         }
 
         const uploadPolicy = asset.uploadPolicy;
+        if (uploadPolicy === 'full') {
+          projectedStorageBytes ??=
+            await this.getOrganizationDesktopStorageBytes(organizationId);
+          const existingSize =
+            existing?.uploadPolicy === 'full'
+              ? Number(existing.sizeBytes ?? 0)
+              : 0;
+          const nextProjectedStorageBytes =
+            projectedStorageBytes - existingSize + asset.sizeBytes;
+
+          if (
+            nextProjectedStorageBytes > MAX_ORGANIZATION_DESKTOP_STORAGE_BYTES
+          ) {
+            rejected++;
+            assets.push({
+              localAssetId: asset.id,
+              reason: 'storage-quota-exceeded',
+              status: 'rejected',
+            });
+            continue;
+          }
+
+          projectedStorageBytes = nextProjectedStorageBytes;
+        }
+
         const cloudObjectKey =
           uploadPolicy === 'full'
             ? this.getCloudObjectKey(organizationId, asset)
@@ -503,11 +574,15 @@ export class DesktopSyncService {
     }
 
     const effectiveMime = dto.mimeType ?? asset.mimeType ?? '';
-    if (effectiveMime && !ALLOWED_DESKTOP_MIME_TYPES.has(effectiveMime)) {
-      throw new BadRequestException(
-        `MIME type "${effectiveMime}" is not allowed for desktop uploads`,
-      );
+    if (effectiveMime) {
+      this.assertAllowedDesktopMimeType(effectiveMime);
     }
+
+    await this.assertOrganizationDesktopStorageQuota(
+      organizationId,
+      Number(asset.sizeBytes ?? 0),
+      asset.id,
+    );
 
     const logicalObjectKey = (
       asset.cloudObjectKey ??
@@ -607,11 +682,15 @@ export class DesktopSyncService {
 
     const uploadMime =
       dto.mimeType ?? asset.mimeType ?? 'application/octet-stream';
-    if (uploadMime && !ALLOWED_DESKTOP_MIME_TYPES.has(uploadMime)) {
-      throw new BadRequestException(
-        `MIME type "${uploadMime}" is not allowed for desktop uploads`,
-      );
+    if (uploadMime) {
+      this.assertAllowedDesktopMimeType(uploadMime);
     }
+
+    await this.assertOrganizationDesktopStorageQuota(
+      organizationId,
+      buffer.length,
+      asset.id,
+    );
 
     const logicalObjectKey = (
       asset.cloudObjectKey ??
