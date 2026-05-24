@@ -124,7 +124,7 @@ jobs:
       - name: Run secretlint on changed files
         if: steps.changed.outputs.files != ''
         run: echo "${{ steps.changed.outputs.files }}" | xargs bunx secretlint
-        timeout-minutes: 1
+        timeout-minutes: 5
 
   react-doctor:
     name: React Health Check
