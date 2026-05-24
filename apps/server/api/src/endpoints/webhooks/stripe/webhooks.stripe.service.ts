@@ -4,11 +4,8 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { SubscriptionAttributionsService } from '@api/collections/subscription-attributions/services/subscription-attributions.service';
 import { SubscriptionEntity } from '@api/collections/subscriptions/entities/subscription.entity';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
-import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
-import { UserSubscriptionsService } from '@api/collections/user-subscriptions/services/user-subscriptions.service';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
@@ -33,6 +30,9 @@ import {
 } from '@api/services/integrations/stripe/stripe.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
+import { SubscriptionAttributionsService } from '@genfeedai/ee-billing/subscription-attributions';
+import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
+import { UserSubscriptionsService } from '@genfeedai/ee-billing/user-subscriptions';
 import {
   ActivityKey,
   ActivitySource,

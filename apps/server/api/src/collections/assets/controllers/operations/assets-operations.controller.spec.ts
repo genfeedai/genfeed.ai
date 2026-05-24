@@ -14,6 +14,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation/upload-validation.pipe';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
@@ -373,21 +374,21 @@ describe('AssetsOperationsController', () => {
       expect(result).toBeDefined();
     });
 
-    it('should throw when file is missing', async () => {
-      const uploadDto: CreateAssetDto = {
-        category: AssetCategory.BANNER,
-        parent: mockBrandId.toString(),
-        parentModel: AssetParent.BRAND,
-      };
-
-      await expect(
-        controller.createUpload(
-          mockRequest,
-          mockUser,
-          undefined as unknown as Express.Multer.File,
-          uploadDto,
-        ),
-      ).rejects.toThrow(ValidationException);
+    it('should throw when file is missing', () => {
+      const pipe = new UploadValidationPipe({
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+        allowedMimeTypes: [
+          'image/jpeg',
+          'image/jpg',
+          'image/png',
+          'image/webp',
+          'image/gif',
+        ],
+        maxSizeBytes: 50 * 1024 * 1024,
+      });
+      expect(() =>
+        pipe.transform(undefined as unknown as Express.Multer.File),
+      ).toThrow(HttpException);
     });
   });
 

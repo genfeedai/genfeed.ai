@@ -11,6 +11,7 @@ import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { ValidationConfigService } from '@api/config/services/validation.config';
 import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation/upload-validation.pipe';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
@@ -124,25 +125,44 @@ describe('MusicsUploadController', () => {
       expect(result).toBeDefined();
     });
 
-    it('should throw error when file is missing', async () => {
-      await expect(
-        controller.createUpload(
-          mockReq,
-          mockUser,
-          null as unknown as Express.Multer.File,
-        ),
-      ).rejects.toThrow(HttpException);
+    it('should throw error when file is missing', () => {
+      const pipe = new UploadValidationPipe({
+        allowedExtensions: ['mp3', 'wav', 'aac', 'flac', 'ogg', 'webm'],
+        allowedMimeTypes: [
+          'audio/mpeg',
+          'audio/mp3',
+          'audio/wav',
+          'audio/aac',
+          'audio/flac',
+          'audio/ogg',
+          'audio/webm',
+        ],
+        maxSizeBytes: 50 * 1024 * 1024,
+      });
+      expect(() =>
+        pipe.transform(null as unknown as Express.Multer.File),
+      ).toThrow(HttpException);
     });
 
-    it('should throw error when file validation fails', async () => {
+    it('should throw error when file validation fails', () => {
+      const pipe = new UploadValidationPipe({
+        allowedExtensions: ['mp3', 'wav', 'aac', 'flac', 'ogg', 'webm'],
+        allowedMimeTypes: [
+          'audio/mpeg',
+          'audio/mp3',
+          'audio/wav',
+          'audio/aac',
+          'audio/flac',
+          'audio/ogg',
+          'audio/webm',
+        ],
+        maxSizeBytes: 50 * 1024 * 1024,
+      });
       const invalidFile = {
         ...mockFile,
         mimetype: 'invalid/type',
       } as unknown as Express.Multer.File;
-
-      await expect(
-        controller.createUpload(mockReq, mockUser, invalidFile),
-      ).rejects.toThrow(HttpException);
+      expect(() => pipe.transform(invalidFile)).toThrow(HttpException);
     });
   });
 });

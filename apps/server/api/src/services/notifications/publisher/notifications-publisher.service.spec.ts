@@ -10,7 +10,7 @@ describe('NotificationsPublisherService', () => {
     sendWorkflowStatusEmail: ReturnType<typeof vi.fn>;
   };
   let settingsService: { findOne: ReturnType<typeof vi.fn> };
-  let usersService: { findOne: ReturnType<typeof vi.fn> };
+  let prisma: { user: { findFirst: ReturnType<typeof vi.fn> } };
 
   beforeEach(() => {
     redisService = { publish: vi.fn().mockResolvedValue(1) };
@@ -19,12 +19,12 @@ describe('NotificationsPublisherService', () => {
       sendWorkflowStatusEmail: vi.fn().mockResolvedValue(undefined),
     };
     settingsService = { findOne: vi.fn().mockResolvedValue(null) };
-    usersService = { findOne: vi.fn().mockResolvedValue(null) };
+    prisma = { user: { findFirst: vi.fn().mockResolvedValue(null) } };
     service = new NotificationsPublisherService(
       redisService as unknown as RedisService,
       notificationsService as never,
       settingsService as never,
-      usersService as never,
+      prisma as never,
     );
   });
 
@@ -185,7 +185,7 @@ describe('NotificationsPublisherService', () => {
   });
 
   it('sends video email when the user opted in', async () => {
-    usersService.findOne.mockResolvedValue({ email: 'user@example.com' });
+    prisma.user.findFirst.mockResolvedValue({ email: 'user@example.com' });
     settingsService.findOne.mockResolvedValue({
       isVideoNotificationsEmail: true,
     });
@@ -206,7 +206,7 @@ describe('NotificationsPublisherService', () => {
   });
 
   it('sends workflow email when the user opted in', async () => {
-    usersService.findOne.mockResolvedValue({ email: 'user@example.com' });
+    prisma.user.findFirst.mockResolvedValue({ email: 'user@example.com' });
     settingsService.findOne.mockResolvedValue({
       isWorkflowNotificationsEmail: true,
     });
