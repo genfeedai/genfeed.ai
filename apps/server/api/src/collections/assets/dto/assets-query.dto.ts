@@ -35,14 +35,6 @@ export class AssetQueryDto extends BaseQueryDto {
   parent?: string;
 
   @ApiProperty({
-    description: 'Filter by brand ID',
-    required: false,
-  })
-  @IsOptional()
-  @IsEntityId()
-  brand?: string;
-
-  @ApiProperty({
     default: false,
     description:
       'Use lightweight mode (skip expensive lookups for gallery views)',

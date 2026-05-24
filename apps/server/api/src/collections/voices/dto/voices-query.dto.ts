@@ -1,6 +1,6 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { AssetScope, VoiceProvider } from '@genfeedai/enums';
-import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsArray,
@@ -159,10 +159,4 @@ export class VoicesQueryDto extends BaseQueryDto {
   @IsArray()
   @IsIn(['catalog', 'cloned', 'generated'], { each: true })
   voiceSource?: Array<'catalog' | 'cloned' | 'generated'>;
-
-  @ApiHideProperty()
-  override organization?: never;
-
-  @ApiHideProperty()
-  override brand?: never;
 }

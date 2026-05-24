@@ -1811,10 +1811,12 @@ export class WorkflowExecutorService {
       metadata: this.readObjectRecord(workflowRecord.metadata) ?? undefined,
       nodes: this.readArray<WorkflowVisualNode>(workflowRecord.nodes),
       // Alias Prisma scalar fields to the relation names expected by the engine adapter
-      organization:
-        workflowRecord.organizationId ?? workflowRecord.organization,
+      organization: (workflowRecord.organizationId ??
+        workflowRecord.organization) as string | undefined,
       steps: this.readArray<WorkflowStep>(workflowRecord.steps),
-      user: workflowRecord.userId ?? workflowRecord.user,
+      user: (workflowRecord.userId ?? workflowRecord.user) as
+        | string
+        | undefined,
     };
   }
 

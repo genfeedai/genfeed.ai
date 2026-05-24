@@ -24,6 +24,7 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { TagsService } from '@api/collections/tags/services/tags.service';
+import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { ConfigService } from '@api/config/config.service';
 import {
   Credits,
@@ -97,7 +98,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { Request } from 'express';
 
 import sharp from 'sharp';
 

@@ -245,22 +245,6 @@ export class WorkflowRecurrenceDto {
 }
 
 export class CreateWorkflowDto extends LabeledCreateDto {
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'The user ID who created this workflow',
-    required: false,
-  })
-  readonly user!: string;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'The organization ID that owns this workflow',
-    required: false,
-  })
-  readonly organization!: string;
-
   @IsArray()
   @IsOptional()
   @ApiProperty({
@@ -268,15 +252,6 @@ export class CreateWorkflowDto extends LabeledCreateDto {
     required: false,
   })
   readonly tags?: string[];
-
-  @IsString()
-  @ApiProperty({ description: 'Name of the workflow' })
-  readonly label!: string;
-
-  @IsString()
-  @IsOptional()
-  @ApiProperty({ description: 'Description of the workflow', required: false })
-  readonly description?: string;
 
   @IsString()
   @IsOptional()
