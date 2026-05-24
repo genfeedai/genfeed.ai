@@ -24,8 +24,14 @@
       "!**/.agents",
       "!.agents",
       "!.worktrees",
-      "!.shipcode"
+      "!.shipcode",
+      "!.clawpatch"
     ]
+  },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
   },
   "assist": {
     "actions": {
