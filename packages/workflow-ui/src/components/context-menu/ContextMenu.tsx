@@ -9,23 +9,12 @@ import {
 } from 'react';
 import { ContextMenuItem } from './ContextMenuItem';
 import { ContextMenuSeparator } from './ContextMenuSeparator';
+import {
+  type ContextMenuItemConfig,
+  createSeparator,
+} from './context-menu-config';
 
-export interface ContextMenuItemConfig {
-  id: string;
-  label?: string;
-  icon?: React.ReactNode;
-  shortcut?: string;
-  disabled?: boolean;
-  danger?: boolean;
-  separator?: boolean;
-  submenu?: ContextMenuItemConfig[];
-  onClick?: () => void;
-}
-
-/** Helper to create a separator item */
-export function createSeparator(id: string): ContextMenuItemConfig {
-  return { id, separator: true };
-}
+export { type ContextMenuItemConfig, createSeparator };
 
 interface ContextMenuProps {
   x: number;

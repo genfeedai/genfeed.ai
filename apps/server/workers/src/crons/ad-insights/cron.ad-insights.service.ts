@@ -1,4 +1,4 @@
-import type { AdInsightsAggregationJobData } from '@api/queues/ad-insights-aggregation/ad-insights-aggregation.processor';
+import type { AdInsightsAggregationJobData } from '@api/queues/ad-insights-aggregation/ad-insights-aggregation-job.interface';
 import { QueueService } from '@api/queues/core/queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

@@ -1,4 +1,4 @@
-import type { GoogleAdSyncJobData } from '@api/queues/ad-sync-google/ad-sync-google.processor';
+import type { GoogleAdSyncJobData } from '@api/queues/ad-sync-google/ad-sync-google-job.interface';
 import { QueueService } from '@api/queues/core/queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
