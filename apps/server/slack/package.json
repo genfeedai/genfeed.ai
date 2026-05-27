@@ -29,5 +29,6 @@
     "test:e2e": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts"
   },
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "type": "module"
 }
