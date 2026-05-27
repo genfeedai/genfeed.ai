@@ -10,13 +10,13 @@
   "exports": {
     "./ads": {
       "types": "./dist/ads/index.d.ts",
-      "default": "./dist/ads/index.js",
-      "import": "./dist/ads/index.js"
+      "import": "./dist/ads/index.js",
+      "default": "./dist/ads/index.js"
     },
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "main": "dist/index.js",

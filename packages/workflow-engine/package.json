@@ -9,43 +9,43 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./execution": {
       "types": "./dist/execution/index.d.ts",
-      "default": "./dist/execution/index.js",
-      "import": "./dist/execution/index.js"
+      "import": "./dist/execution/index.js",
+      "default": "./dist/execution/index.js"
     },
     "./executors": {
       "types": "./dist/executors/index.d.ts",
-      "default": "./dist/executors/index.js",
-      "import": "./dist/executors/index.js"
+      "import": "./dist/executors/index.js",
+      "default": "./dist/executors/index.js"
     },
     "./presets": {
       "types": "./dist/presets/index.d.ts",
-      "default": "./dist/presets/index.js",
-      "import": "./dist/presets/index.js"
+      "import": "./dist/presets/index.js",
+      "default": "./dist/presets/index.js"
     },
     "./services": {
       "types": "./dist/services/index.d.ts",
-      "default": "./dist/services/index.js",
-      "import": "./dist/services/index.js"
+      "import": "./dist/services/index.js",
+      "default": "./dist/services/index.js"
     },
     "./templates": {
       "types": "./dist/templates/index.d.ts",
-      "default": "./dist/templates/index.js",
-      "import": "./dist/templates/index.js"
+      "import": "./dist/templates/index.js",
+      "default": "./dist/templates/index.js"
     },
     "./utils": {
       "types": "./dist/utils/index.d.ts",
-      "default": "./dist/utils/index.js",
-      "import": "./dist/utils/index.js"
+      "import": "./dist/utils/index.js",
+      "default": "./dist/utils/index.js"
     },
     "./validation": {
       "types": "./dist/validation/index.d.ts",
-      "default": "./dist/validation/index.js",
-      "import": "./dist/validation/index.js"
+      "import": "./dist/validation/index.js",
+      "default": "./dist/validation/index.js"
     }
   },
   "files": [

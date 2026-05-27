@@ -12,14 +12,14 @@
   },
   "exports": {
     ".": {
-      "bun": "./dist/index.js",
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "bun": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./deserializer": {
-      "default": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
   "files": [

@@ -9,13 +9,13 @@
   "exports": {
     ".": {
       "types": "./next.config.base.ts",
-      "default": "./next.config.base.ts",
-      "import": "./next.config.base.ts"
+      "import": "./next.config.base.ts",
+      "default": "./next.config.base.ts"
     },
     "./tailwind": {
       "types": "./tailwind.config.base.ts",
-      "default": "./tailwind.config.base.ts",
-      "import": "./tailwind.config.base.ts"
+      "import": "./tailwind.config.base.ts",
+      "default": "./tailwind.config.base.ts"
     }
   },
   "files": [

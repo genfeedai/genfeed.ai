@@ -10,23 +10,23 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./*": {
       "types": "./dist/*.d.ts",
-      "default": "./dist/*.js",
-      "import": "./dist/*.js"
+      "import": "./dist/*.js",
+      "default": "./dist/*.js"
     },
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
-      "default": "./dist/interfaces/index.js",
-      "import": "./dist/interfaces/index.js"
+      "import": "./dist/interfaces/index.js",
+      "default": "./dist/interfaces/index.js"
     },
     "./schemas": {
       "types": "./dist/schemas/index.d.ts",
-      "default": "./dist/schemas/index.js",
-      "import": "./dist/schemas/index.js"
+      "import": "./dist/schemas/index.js",
+      "default": "./dist/schemas/index.js"
     }
   },
   "files": [

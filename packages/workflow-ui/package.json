@@ -35,54 +35,54 @@
   },
   "exports": {
     ".": {
-      "import": "./dist/index.mjs",
       "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
       "default": "./dist/index.mjs"
     },
     "./canvas": {
-      "import": "./dist/canvas.mjs",
       "types": "./dist/canvas.d.ts",
+      "import": "./dist/canvas.mjs",
       "default": "./dist/canvas.mjs"
     },
     "./hooks": {
-      "import": "./dist/hooks.mjs",
       "types": "./dist/hooks.d.ts",
+      "import": "./dist/hooks.mjs",
       "default": "./dist/hooks.mjs"
     },
     "./lib": {
-      "import": "./dist/lib.mjs",
       "types": "./dist/lib.d.ts",
+      "import": "./dist/lib.mjs",
       "default": "./dist/lib.mjs"
     },
     "./nodes": {
-      "import": "./dist/nodes.mjs",
       "types": "./dist/nodes.d.ts",
+      "import": "./dist/nodes.mjs",
       "default": "./dist/nodes.mjs"
     },
     "./panels": {
-      "import": "./dist/panels.mjs",
       "types": "./dist/panels.d.ts",
+      "import": "./dist/panels.mjs",
       "default": "./dist/panels.mjs"
     },
     "./provider": {
-      "import": "./dist/provider.mjs",
       "types": "./dist/provider.d.ts",
+      "import": "./dist/provider.mjs",
       "default": "./dist/provider.mjs"
     },
     "./stores": {
-      "import": "./dist/stores.mjs",
       "types": "./dist/stores.d.ts",
+      "import": "./dist/stores.mjs",
       "default": "./dist/stores.mjs"
     },
     "./styles": "./src/styles/workflow-ui.css",
     "./toolbar": {
-      "import": "./dist/toolbar.mjs",
       "types": "./dist/toolbar.d.ts",
+      "import": "./dist/toolbar.mjs",
       "default": "./dist/toolbar.mjs"
     },
     "./ui": {
-      "import": "./dist/ui.mjs",
       "types": "./dist/ui.d.ts",
+      "import": "./dist/ui.mjs",
       "default": "./dist/ui.mjs"
     }
   },
