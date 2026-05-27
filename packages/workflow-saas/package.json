@@ -11,18 +11,22 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "default": "./dist/index.js",
       "import": "./dist/index.js"
     },
     "./nodes": {
       "types": "./dist/nodes/index.d.ts",
+      "default": "./dist/nodes/index.js",
       "import": "./dist/nodes/index.js"
     },
     "./registry": {
       "types": "./dist/registry/index.d.ts",
+      "default": "./dist/registry/index.js",
       "import": "./dist/registry/index.js"
     },
     "./types": {
       "types": "./dist/types.d.ts",
+      "default": "./dist/types.js",
       "import": "./dist/types.js"
     }
   },

@@ -22,6 +22,7 @@
     },
     "./*": {
       "types": "./dist/*.d.ts",
+      "default": "./dist/*.js",
       "import": "./dist/*.js"
     }
   },

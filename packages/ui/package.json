@@ -56,7 +56,8 @@
     },
     "./*": {
       "import": "./dist/*.js",
-      "types": "./dist/*.d.ts"
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
     },
     "./web-tokens.css": "./web-tokens.css"
   },

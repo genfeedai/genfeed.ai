@@ -76,6 +76,7 @@
   },
   "name": "@genfeedai/extension-browser",
   "packageManager": "bun@1.3.14",
+  "type": "module",
   "scripts": {
     "build": "npm exec plasmo build",
     "cache:clear": "./scripts/bash/cache-clear.sh",

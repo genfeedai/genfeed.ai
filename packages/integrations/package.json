@@ -10,10 +10,12 @@
   "exports": {
     "./ads": {
       "types": "./dist/ads/index.d.ts",
+      "default": "./dist/ads/index.js",
       "import": "./dist/ads/index.js"
     },
     ".": {
       "types": "./dist/index.d.ts",
+      "default": "./dist/index.js",
       "import": "./dist/index.js"
     }
   },

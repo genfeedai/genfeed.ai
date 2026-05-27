@@ -56,6 +56,7 @@
   },
   "packageManager": "bun@1.3.14",
   "private": true,
+  "type": "module",
   "scripts": {
     "android": "expo start --android",
     "cache:clear": "rm -rf node_modules .expo .expo-shared .next dist build",
