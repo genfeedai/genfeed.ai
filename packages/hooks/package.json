@@ -21,6 +21,7 @@
   },
   "name": "@genfeedai/hooks",
   "private": true,
+  "type": "module",
   "scripts": {
     "test": "bun vitest run --config vitest.config.mts",
     "test:cov": "bun vitest run --coverage --config vitest.config.mts",

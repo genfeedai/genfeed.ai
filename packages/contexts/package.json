@@ -24,6 +24,7 @@
   },
   "name": "@genfeedai/contexts",
   "private": true,
+  "type": "module",
   "scripts": {
     "test": "bun vitest run --config vitest.config.ts",
     "test:watch": "bun vitest --config vitest.config.ts"

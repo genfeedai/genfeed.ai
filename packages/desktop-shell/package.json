@@ -6,5 +6,6 @@
     "@genfeedai/desktop-prisma": "workspace:*"
   },
   "main": "./src/index.ts",
+  "type": "module",
   "types": "./src/index.ts"
 }

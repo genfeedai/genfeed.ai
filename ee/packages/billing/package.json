@@ -37,6 +37,7 @@
   "main": "./src/index.ts",
   "name": "@genfeedai/ee-billing",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "echo 'Source-level package — consumed via path aliases, no build needed'",
     "clean": "echo 'Nothing to clean'",

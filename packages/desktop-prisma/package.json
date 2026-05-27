@@ -2,6 +2,7 @@
   "name": "@genfeedai/desktop-prisma",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Prisma schema, client, and migrations for the Genfeed desktop app",
   "dependencies": {
     "@electric-sql/pglite": "0.4.5",
