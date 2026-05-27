@@ -18,9 +18,18 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Logger } from '@nestjs/common';
 
-const logger = new Logger('GenerateApiTypes');
+const logger = {
+  error: (message: string, error?: unknown) => {
+    console.error(`[GenerateApiTypes] ${message}`, error ?? '');
+  },
+  log: (message: string) => {
+    console.log(`[GenerateApiTypes] ${message}`);
+  },
+  warn: (message: string) => {
+    console.warn(`[GenerateApiTypes] ${message}`);
+  },
+};
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_PATH = join(__dirname, '../src/generated/api.d.ts');

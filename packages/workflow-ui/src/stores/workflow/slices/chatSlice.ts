@@ -1,26 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type { WorkflowStore } from '../types';
-import type { EditOperation, SnapshotSlice } from './snapshotSlice';
-
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: number;
-}
-
-export interface ChatSlice {
-  chatMessages: ChatMessage[];
-  isChatOpen: boolean;
-  addChatMessage: (role: 'user' | 'assistant', content: string) => void;
-  clearChatMessages: () => void;
-  toggleChat: () => void;
-  setChatOpen: (open: boolean) => void;
-  applyChatEditOperations: (operations: EditOperation[]) => {
-    applied: number;
-    skipped: string[];
-  };
-}
+import type { ChatSlice, SnapshotSlice } from './types';
 
 export const createChatSlice: StateCreator<
   WorkflowStore & SnapshotSlice & ChatSlice,

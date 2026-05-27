@@ -9,16 +9,23 @@ vi.mock(
 );
 
 describe('WebhookClientModule', () => {
-  it('registers the webhook processor provider', async () => {
+  it('does not register the webhook processor provider in the API module', async () => {
     const { WebhookClientModule } = await import(
       '@api/services/webhook-client/webhook-client.module'
     );
-    const { WebhookClientProcessor } = await import(
-      '@api/services/webhook-client/webhook-client.processor'
+    const { WebhookClientService } = await import(
+      '@api/services/webhook-client/webhook-client.service'
     );
     const providers =
       Reflect.getMetadata(MODULE_METADATA.PROVIDERS, WebhookClientModule) ?? [];
 
-    expect(providers).toContain(WebhookClientProcessor);
+    expect(providers).toContain(WebhookClientService);
+    expect(
+      providers.some(
+        (provider: unknown) =>
+          typeof provider === 'function' &&
+          provider.name === 'WebhookClientProcessor',
+      ),
+    ).toBe(false);
   });
 });

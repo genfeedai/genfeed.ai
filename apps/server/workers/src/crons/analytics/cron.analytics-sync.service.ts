@@ -1,5 +1,5 @@
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import type { AnalyticsSyncJobData } from '@api/queues/analytics-sync/analytics-sync.processor';
+import type { AnalyticsSyncJobData } from '@api/queues/analytics-sync/analytics-sync-job.interface';
 import { QueueService } from '@api/queues/core/queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

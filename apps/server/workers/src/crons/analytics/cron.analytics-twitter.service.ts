@@ -1,6 +1,6 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
-import type { TwitterAnalyticsJobData } from '@api/queues/analytics-twitter/analytics-twitter.processor';
+import type { TwitterAnalyticsJobData } from '@api/queues/analytics-twitter/analytics-twitter-job.interface';
 import { QueueService } from '@api/queues/core/queue.service';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';

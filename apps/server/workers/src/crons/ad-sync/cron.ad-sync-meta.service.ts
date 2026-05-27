@@ -1,7 +1,7 @@
 import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import type { MetaAdSyncJobData } from '@api/queues/ad-sync-meta/ad-sync-meta.processor';
+import type { MetaAdSyncJobData } from '@api/queues/ad-sync-meta/ad-sync-meta-job.interface';
 import { QueueService } from '@api/queues/core/queue.service';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
