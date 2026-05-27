@@ -10,18 +10,17 @@
   "exports": {
     "./ads": {
       "types": "./dist/ads/index.d.ts",
-      "import": "./dist/ads/index.js",
-      "require": "./dist/ads/index.js"
+      "import": "./dist/ads/index.js"
     },
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js"
     }
   },
   "main": "dist/index.js",
   "name": "@genfeedai/integrations",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

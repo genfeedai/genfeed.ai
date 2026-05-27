@@ -11,23 +11,19 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js"
     },
     "./nodes": {
       "types": "./dist/nodes/index.d.ts",
-      "import": "./dist/nodes/index.js",
-      "require": "./dist/nodes/index.js"
+      "import": "./dist/nodes/index.js"
     },
     "./registry": {
       "types": "./dist/registry/index.d.ts",
-      "import": "./dist/registry/index.js",
-      "require": "./dist/registry/index.js"
+      "import": "./dist/registry/index.js"
     },
     "./types": {
       "types": "./dist/types.d.ts",
-      "import": "./dist/types.js",
-      "require": "./dist/types.js"
+      "import": "./dist/types.js"
     }
   },
   "files": [
@@ -37,6 +33,7 @@
   "main": "./dist/index.js",
   "license": "AGPL-3.0",
   "name": "@genfeedai/workflow-saas",
+  "type": "module",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"

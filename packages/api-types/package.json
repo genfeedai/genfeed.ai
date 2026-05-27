@@ -26,6 +26,7 @@
   "main": "./dist/index.js",
   "name": "@genfeedai/api-types",
   "private": false,
+  "type": "module",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"

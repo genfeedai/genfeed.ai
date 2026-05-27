@@ -14,8 +14,7 @@
     ".": {
       "bun": "./dist/index.js",
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js"
     },
     "./deserializer": {
       "default": "./dist/index.js",
@@ -29,6 +28,7 @@
   "main": "./dist/index.js",
   "license": "AGPL-3.0",
   "name": "@genfeedai/serializers",
+  "type": "module",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
