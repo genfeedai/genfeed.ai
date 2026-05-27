@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import TrendsPlatformDetail from './trends-platform-detail';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

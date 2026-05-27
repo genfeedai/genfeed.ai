@@ -2,7 +2,7 @@ import { IngredientFormat } from '@genfeedai/enums';
 import { render } from '@testing-library/react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import EditorToolbar from './EditorToolbar';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 class ResizeObserverMock {
   observe() {}

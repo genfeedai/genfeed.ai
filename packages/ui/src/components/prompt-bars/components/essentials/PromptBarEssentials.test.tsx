@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
 import { fireEvent, render, screen } from '@testing-library/react';
 import PromptBarEssentials from '@ui/prompt-bars/components/essentials/PromptBarEssentials';

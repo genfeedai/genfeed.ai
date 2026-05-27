@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import type { WorkflowNodeData } from '@genfeedai/interfaces/automation/workflow-builder.interface';
 import { fireEvent, render, screen } from '@testing-library/react';
 import NodeConfigPanel from '@ui/workflow-builder/panels/NodeConfigPanel';

@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import type { IIngredient, IMetadata, IVideo } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';

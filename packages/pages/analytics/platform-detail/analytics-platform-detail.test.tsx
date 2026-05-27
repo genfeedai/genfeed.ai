@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import type { Post } from '@models/content/post.model';
 import AnalyticsPlatformDetail from '@pages/analytics/platform-detail/analytics-platform-detail';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';

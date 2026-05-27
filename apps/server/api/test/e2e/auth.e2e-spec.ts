@@ -349,7 +349,7 @@ describe('Authentication E2E Tests', () => {
       const mockClerkService = createMockClerkService();
 
       // Configure mock to throw an error
-      mockClerkService.getUser = jest
+      mockClerkService.getUser = vi
         .fn()
         .mockRejectedValue(new Error('Clerk API error'));
 

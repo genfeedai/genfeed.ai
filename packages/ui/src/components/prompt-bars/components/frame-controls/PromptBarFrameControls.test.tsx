@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientFormat } from '@genfeedai/enums';
 import type { PromptBarFrameControlsProps } from '@genfeedai/props/studio/prompt-bar.props';

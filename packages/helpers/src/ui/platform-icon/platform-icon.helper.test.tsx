@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import * as PlatformIconHelper from '@helpers/ui/platform-icon/platform-icon.helper';
 
 describe('PlatformIconHelper', () => {
