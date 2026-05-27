@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type {
   DesktopSyncCursorScope,
   IDesktopAssetGenerationRequest,
@@ -50,6 +51,7 @@ import { DesktopWorkspaceService } from './main/workspace.service';
 
 const configService = new DesktopConfigService();
 const environment = configService.getEnvironment();
+const mainDir = path.dirname(fileURLToPath(import.meta.url));
 
 let mainWindow: BrowserWindow | null = null;
 let bootstrapCache: IDesktopBootstrap | null = null;
@@ -194,7 +196,7 @@ const createWindow = async (): Promise<void> => {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(mainDir, 'preload.js'),
       sandbox: false,
     },
     width: 1560,
