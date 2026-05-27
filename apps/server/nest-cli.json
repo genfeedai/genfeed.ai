@@ -108,7 +108,7 @@
         ],
         "builder": {
           "options": {
-            "configPath": "mcp/webpack.config.js"
+            "configPath": "mcp/webpack.config.cjs"
           },
           "type": "webpack"
         },

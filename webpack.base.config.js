@@ -275,6 +275,10 @@ module.exports = function createWebpackConfig({
       // Resolve workspace packages and their internal source aliases directly
       // so production bundling can follow package-internal re-exports.
       alias: workspaceSourceAliases,
+      extensionAlias: {
+        '.js': ['.ts', '.tsx', '.js'],
+        '.jsx': ['.tsx', '.jsx'],
+      },
       extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.d.ts'],
       modules: [nodeModulesDir, 'node_modules'],
       plugins: [
