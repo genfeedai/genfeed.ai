@@ -1,6 +1,6 @@
 import { type ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 
-vi.mock('jsonapi-serializer', () => ({
+const jsonApiSerializerMock = {
   Error: class JsonApiError {
     errors: unknown[];
 
@@ -8,6 +8,11 @@ vi.mock('jsonapi-serializer', () => ({
       this.errors = [payload];
     }
   },
+};
+
+vi.mock('jsonapi-serializer', () => ({
+  ...jsonApiSerializerMock,
+  default: jsonApiSerializerMock,
 }));
 
 vi.mock('@sentry/nestjs', () => ({
