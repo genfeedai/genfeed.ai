@@ -29,6 +29,7 @@
   ],
   "license": "AGPL-3.0",
   "name": "@genfeedai/create",
+  "type": "module",
   "publishConfig": {
     "access": "public"
   },
