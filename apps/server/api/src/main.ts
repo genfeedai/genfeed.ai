@@ -1,12 +1,13 @@
-require('./instrument');
+import './instrument';
 
 import { bootstrap, setupGracefulShutdown } from '@libs/bootstrap';
 
 bootstrap({ app: 'api' });
 
 import { timingSafeEqual } from 'node:crypto';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import { AppModule } from '@api/app.module';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { ConfigService } from '@api/config/config.service';
@@ -46,6 +47,9 @@ import type { NextFunction, Request, Response } from 'express';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
+import gptActionsSpec from './config/gpt-actions-openapi.json';
+
+const apiDir = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -85,7 +89,6 @@ async function main() {
       docsService.setOpenApiDocument(document);
     }
 
-    const gptActionsSpec = require('./config/gpt-actions-openapi.json');
     docsService.setGptActionsSpec(gptActionsSpec);
 
     app.enableCors({
@@ -124,8 +127,8 @@ async function main() {
       windowMs: 1 * 60 * 1000,
     });
 
-    app.useStaticAssets(join(__dirname, '..', 'assets'));
-    app.setBaseViewsDir(join(__dirname, '..', 'views'));
+    app.useStaticAssets(join(apiDir, '..', 'assets'));
+    app.setBaseViewsDir(join(apiDir, '..', 'views'));
 
     app.use(limiter);
     app.use(
