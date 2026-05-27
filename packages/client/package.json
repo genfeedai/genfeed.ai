@@ -41,6 +41,7 @@
   "license": "MIT",
   "main": "dist/index.js",
   "name": "@genfeedai/client",
+  "type": "module",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
