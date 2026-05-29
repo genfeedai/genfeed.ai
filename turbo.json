@@ -20,7 +20,7 @@
         ".env.staging",
         ".env.production"
       ],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "*.tsbuildinfo"]
     },
     "dev": {
       "cache": false,
