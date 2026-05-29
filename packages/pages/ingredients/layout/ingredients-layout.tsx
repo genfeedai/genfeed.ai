@@ -3,12 +3,7 @@
 import { IngredientsProvider } from '@contexts/content/ingredients-context/ingredients-context';
 import { IngredientsHeaderProvider } from '@contexts/content/ingredients-header-context/ingredients-header-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  ButtonVariant,
-  IngredientFormat,
-  IngredientStatus,
-  PageScope,
-} from '@genfeedai/enums';
+import { IngredientStatus, PageScope } from '@genfeedai/enums';
 import type { IBrand, IFieldOption } from '@genfeedai/interfaces';
 import type { IIngredientsContextValue } from '@genfeedai/interfaces/providers/providers.interface';
 import type {
@@ -17,223 +12,16 @@ import type {
 } from '@genfeedai/interfaces/utils/filters.interface';
 import type { IngredientsLayoutProps } from '@props/content/ingredients-layout.props';
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';
-import { EnvironmentService } from '@services/core/environment.service';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import Container from '@ui/layout/container/Container';
-import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { HiOutlinePhoto } from 'react-icons/hi2';
 import {
-  HiArrowTopRightOnSquare,
-  HiArrowUpTray,
-  HiOutlinePhoto,
-} from 'react-icons/hi2';
-
-// Filter configurations for different ingredient types
-const INGREDIENT_CONFIGS = {
-  avatars: {
-    filterOptions: {
-      provider: [
-        { label: 'All Providers', value: '' },
-        { label: 'HeyGen', value: 'heygen' },
-      ],
-      sort: [
-        { label: 'Default', value: '' },
-        { label: 'Newest First', value: 'createdAt: -1' },
-        { label: 'Oldest First', value: 'createdAt: 1' },
-      ],
-      status: [
-        { label: 'All Status', value: '' },
-        { label: 'Completed', value: IngredientStatus.GENERATED },
-        { label: 'Processing', value: IngredientStatus.PROCESSING },
-      ],
-    },
-    showStudioLink: false,
-    showUpload: false,
-    showViewToggle: false,
-    visibleFilters: {
-      format: false,
-      provider: true,
-      search: true,
-      sort: true,
-      status: true,
-      type: false,
-    },
-  },
-  gifs: {
-    filterOptions: {
-      sort: [
-        { label: 'Default', value: '' },
-        { label: 'Newest First', value: 'createdAt: -1' },
-        { label: 'Oldest First', value: 'createdAt: 1' },
-      ],
-      status: [
-        { label: 'All Status', value: '' },
-        { label: 'Archived', value: IngredientStatus.ARCHIVED },
-        { label: 'Uploaded', value: IngredientStatus.UPLOADED },
-        { label: 'Completed', value: IngredientStatus.GENERATED },
-        { label: 'Processing', value: IngredientStatus.PROCESSING },
-        { label: 'Validated', value: IngredientStatus.VALIDATED },
-        { label: 'Failed', value: IngredientStatus.FAILED },
-      ],
-    },
-    showStudioLink: false,
-    showUpload: false,
-    showViewToggle: false,
-    visibleFilters: {
-      format: false,
-      provider: false,
-      search: true,
-      sort: true,
-      status: true,
-      type: false,
-    },
-  },
-  images: {
-    filterOptions: {
-      format: [
-        { label: 'All Formats', value: '' },
-        { label: '16:9', value: IngredientFormat.LANDSCAPE },
-        { label: '9:16', value: IngredientFormat.PORTRAIT },
-        { label: '1:1', value: IngredientFormat.SQUARE },
-      ],
-      sort: [
-        { label: 'Default', value: '' },
-        { label: 'Newest First', value: 'createdAt: -1' },
-        { label: 'Oldest First', value: 'createdAt: 1' },
-      ],
-      status: [
-        { label: 'All Status', value: '' },
-        { label: 'Archived', value: IngredientStatus.ARCHIVED },
-        { label: 'Uploaded', value: IngredientStatus.UPLOADED },
-        { label: 'Completed', value: IngredientStatus.GENERATED },
-        { label: 'Processing', value: IngredientStatus.PROCESSING },
-        { label: 'Validated', value: IngredientStatus.VALIDATED },
-        { label: 'Failed', value: IngredientStatus.FAILED },
-      ],
-    },
-    showStudioLink: true,
-    showUpload: true,
-    showViewToggle: false,
-    visibleFilters: {
-      format: true,
-      provider: false,
-      search: true,
-      sort: true,
-      status: true,
-      type: false,
-    },
-  },
-  musics: {
-    filterOptions: {
-      sort: [
-        { label: 'Default', value: '' },
-        { label: 'Newest First', value: 'createdAt: -1' },
-        { label: 'Oldest First', value: 'createdAt: 1' },
-        { label: 'Longest First', value: 'duration: -1' },
-        { label: 'Shortest First', value: 'duration: 1' },
-      ],
-      status: [
-        { label: 'All Status', value: '' },
-        { label: 'Archived', value: IngredientStatus.ARCHIVED },
-        { label: 'Uploaded', value: IngredientStatus.UPLOADED },
-        { label: 'Completed', value: IngredientStatus.GENERATED },
-        { label: 'Processing', value: IngredientStatus.PROCESSING },
-        { label: 'Validated', value: IngredientStatus.VALIDATED },
-        { label: 'Failed', value: IngredientStatus.FAILED },
-      ],
-    },
-    showStudioLink: true,
-    showUpload: false,
-    showViewToggle: false,
-    visibleFilters: {
-      format: false,
-      provider: false,
-      search: true,
-      sort: true,
-      status: true,
-      type: false,
-    },
-  },
-  videos: {
-    filterOptions: {
-      format: [
-        { label: 'All Formats', value: '' },
-        { label: '16:9', value: IngredientFormat.LANDSCAPE },
-        { label: '9:16', value: IngredientFormat.PORTRAIT },
-        { label: '1:1', value: IngredientFormat.SQUARE },
-      ],
-      sort: [
-        { label: 'Default', value: '' },
-        { label: 'Newest First', value: 'createdAt: -1' },
-        { label: 'Oldest First', value: 'createdAt: 1' },
-        { label: 'Longest First', value: 'duration: -1' },
-        { label: 'Shortest First', value: 'duration: 1' },
-      ],
-      status: [
-        { label: 'All Status', value: '' },
-        { label: 'Archived', value: IngredientStatus.ARCHIVED },
-        { label: 'Uploaded', value: IngredientStatus.UPLOADED },
-        { label: 'Completed', value: IngredientStatus.GENERATED },
-        { label: 'Processing', value: IngredientStatus.PROCESSING },
-        { label: 'Validated', value: IngredientStatus.VALIDATED },
-        { label: 'Failed', value: IngredientStatus.FAILED },
-      ],
-    },
-    showStudioLink: true,
-    showUpload: true,
-    showViewToggle: false,
-    visibleFilters: {
-      format: true,
-      provider: false,
-      search: true,
-      sort: true,
-      status: true,
-      type: false,
-    },
-  },
-  voices: {
-    filterOptions: {
-      provider: [
-        { label: 'All Providers', value: '' },
-        { label: 'HeyGen', value: 'heygen' },
-        { label: 'ElevenLabs', value: 'elevenlabs' },
-        { label: 'Genfeed', value: 'genfeed-ai' },
-      ],
-      sort: [
-        { label: 'Default', value: '' },
-        { label: 'Newest First', value: 'createdAt: -1' },
-        { label: 'Oldest First', value: 'createdAt: 1' },
-      ],
-      status: [
-        { label: 'All Status', value: '' },
-        { label: 'Completed', value: IngredientStatus.GENERATED },
-        { label: 'Processing', value: IngredientStatus.PROCESSING },
-
-        { label: 'Archived', value: IngredientStatus.ARCHIVED },
-        { label: 'Uploaded', value: IngredientStatus.UPLOADED },
-        { label: 'Completed', value: IngredientStatus.GENERATED },
-        { label: 'Processing', value: IngredientStatus.PROCESSING },
-        { label: 'Validated', value: IngredientStatus.VALIDATED },
-        { label: 'Failed', value: IngredientStatus.FAILED },
-      ],
-    },
-    showStudioLink: false,
-    showUpload: true,
-    showViewToggle: false,
-    visibleFilters: {
-      format: false,
-      provider: true,
-      search: true,
-      sort: true,
-      status: true,
-      type: false,
-    },
-  },
-};
+  INGREDIENT_CONFIGS,
+  INGREDIENT_LABELS,
+} from './ingredients-layout.config';
+import IngredientsLayoutToolbar from './ingredients-layout-toolbar';
 
 export default function IngredientsLayout({
   children,
@@ -427,39 +215,6 @@ export default function IngredientsLayout({
     return null;
   }, [ingredientType, pathname]);
 
-  // Ingredient type labels and descriptions
-  const INGREDIENT_LABELS: Record<
-    string,
-    { label: string; description: string }
-  > = {
-    avatars: {
-      description: 'Create and manage AI avatars for video presentations',
-      label: 'Avatars',
-    },
-    gifs: {
-      description: 'Browse and manage your animated GIF assets',
-      label: 'GIFs',
-    },
-    images: {
-      description:
-        'Organize and enhance your image assets for content creation',
-      label: 'Images',
-    },
-    musics: {
-      description: 'Browse and manage your audio tracks and background music',
-      label: 'Music',
-    },
-    videos: {
-      description:
-        'Manage your video library and create stunning visual content',
-      label: 'Videos',
-    },
-    voices: {
-      description: 'Access AI-generated voices and manage voice clones',
-      label: 'Voices',
-    },
-  };
-
   const currentIngredient =
     ingredientCategory && INGREDIENT_LABELS[ingredientCategory]
       ? INGREDIENT_LABELS[ingredientCategory]
@@ -554,56 +309,31 @@ export default function IngredientsLayout({
                 ],
               })}
           right={
-            <div className="flex items-center gap-2">
-              <ButtonRefresh
-                onClick={handleRefresh}
-                isRefreshing={isRefreshing}
-              />
-
-              <FiltersButton
-                filters={filters}
-                visibleFilters={config.visibleFilters}
-                filterOptions={config.filterOptions}
-                onFiltersChange={(f: IFiltersState, q: IFilters) => {
-                  setFilters(f);
-                  setQuery((prevQuery) => ({ ...prevQuery, ...q }));
-                  updateURLFromFilters(f);
-                }}
-              />
-
-              {scope !== PageScope.SUPERADMIN && config.showUpload && (
-                <Button
-                  tooltip="Upload"
-                  icon={<HiArrowUpTray />}
-                  variant={ButtonVariant.SECONDARY}
-                  onClick={() => {
-                    if (!ingredientCategory) {
-                      return;
-                    }
-                    const singularType = ingredientCategory.slice(0, -1);
-                    openUpload({
-                      category: singularType,
-                      onConfirm: () => handleRefresh(),
-                      parentId: brandId,
-                      parentModel: 'Brand',
-                    });
-                  }}
-                />
-              )}
-
-              {scope !== PageScope.SUPERADMIN && config.showStudioLink && (
-                <PrimitiveButton asChild variant={ButtonVariant.DEFAULT}>
-                  <Link
-                    href={`${EnvironmentService.apps.app}/studio/${ingredientCategory?.replace('s', '')?.toLowerCase()}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <HiArrowTopRightOnSquare />
-                    Studio
-                  </Link>
-                </PrimitiveButton>
-              )}
-            </div>
+            <IngredientsLayoutToolbar
+              config={config}
+              filters={filters}
+              ingredientCategory={ingredientCategory}
+              isRefreshing={isRefreshing}
+              scope={scope}
+              onRefresh={handleRefresh}
+              onFiltersChange={(f: IFiltersState, q: IFilters) => {
+                setFilters(f);
+                setQuery((prevQuery) => ({ ...prevQuery, ...q }));
+                updateURLFromFilters(f);
+              }}
+              onUpload={() => {
+                if (!ingredientCategory) {
+                  return;
+                }
+                const singularType = ingredientCategory.slice(0, -1);
+                openUpload({
+                  category: singularType,
+                  onConfirm: () => handleRefresh(),
+                  parentId: brandId,
+                  parentModel: 'Brand',
+                });
+              }}
+            />
           }
         >
           {children}

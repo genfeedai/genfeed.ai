@@ -1,5 +1,6 @@
 import type {
   MultiPostSchema,
+  PostModalSchema,
   PromptTextareaSchema,
 } from '@genfeedai/client/schemas';
 import type {
@@ -322,6 +323,49 @@ export interface ModalPostFooterProps {
   onSubmit: () => void;
   onClose: () => void;
   isFormValid?: boolean;
+}
+
+/**
+ * Props for ModalPostSimpleHeader component (single-post modal title/description)
+ */
+export interface ModalPostSimpleHeaderProps {
+  title: string;
+  description: string;
+}
+
+/**
+ * Props for ModalPostSimpleFields component (single-post modal form fields)
+ */
+export interface ModalPostSimpleFieldsProps {
+  form: UseFormReturn<PostModalSchema>;
+  credentials: ICredential[];
+  isEditMode: boolean;
+  isSubmitting: boolean;
+  selectedPlatform: string | undefined;
+  charLimit: number;
+  currentLength: number;
+  isOverLimit: boolean;
+  isTitleRequired: boolean;
+  isTitleError: boolean;
+  hasIngredients: boolean;
+  browserTimezone: string;
+  onCredentialSelect: (credentialId: string) => void;
+}
+
+/**
+ * Props for ModalPostSimpleActions component (single-post modal footer buttons)
+ */
+export interface ModalPostSimpleActionsProps {
+  isSubmitting: boolean;
+  isOverLimit: boolean;
+  isTitleError: boolean;
+  isFormValid: boolean;
+  isEditMode: boolean;
+  isThreadReply: boolean;
+  showViewDetailsButton: boolean;
+  onViewDetails?: () => void;
+  onViewDetailsClick: () => void;
+  onCancel: () => void;
 }
 
 export interface ModalConfirmProps extends ModalVisibilityProps {
