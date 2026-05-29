@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createAppNextConfig } from '@genfeedai/next-config';
 import bundleAnalyzer from '@next/bundle-analyzer';
 import type { NextConfig } from 'next';
@@ -9,10 +10,11 @@ const withBundleAnalyzer = bundleAnalyzer({
   openAnalyzer: false,
 });
 
-const workflowUiRoot = path.resolve(__dirname, '../../packages/workflow-ui');
-const helpersRoot = path.resolve(__dirname, '../../packages/helpers');
-const serializersRoot = path.resolve(__dirname, '../../packages/serializers');
-const desktopAuthRoot = path.resolve(__dirname, './src/lib/desktop-auth');
+const appDir = path.dirname(fileURLToPath(import.meta.url));
+const workflowUiRoot = path.resolve(appDir, '../../packages/workflow-ui');
+const helpersRoot = path.resolve(appDir, '../../packages/helpers');
+const serializersRoot = path.resolve(appDir, '../../packages/serializers');
+const desktopAuthRoot = path.resolve(appDir, './src/lib/desktop-auth');
 const isDesktopShellBuild = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
 const hasClerkKeys =
   Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
@@ -170,8 +172,8 @@ config.experimental = {
 
 config.sassOptions = {
   loadPaths: [
-    path.resolve(__dirname, '../../node_modules'),
-    path.resolve(__dirname, '../../packages/agent/node_modules'),
+    path.resolve(appDir, '../../node_modules'),
+    path.resolve(appDir, '../../packages/agent/node_modules'),
   ],
 };
 
@@ -247,7 +249,7 @@ config.turbopack = {
     '@ui/forms/base/form-control/FormControl':
       '../../packages/ui/src/primitives/field.tsx',
   },
-  root: path.resolve(__dirname, '../..'),
+  root: path.resolve(appDir, '../..'),
 };
 
 config.transpilePackages = [
@@ -282,7 +284,7 @@ config.webpack = ((webpackConfig, options) => {
       ? existingWebpack(webpackConfig, options)
       : webpackConfig;
 
-  const packagesRoot = path.resolve(__dirname, '../../packages');
+  const packagesRoot = path.resolve(appDir, '../../packages');
 
   nextConfig.resolve.alias = {
     ...nextConfig.resolve.alias,
@@ -307,11 +309,11 @@ config.webpack = ((webpackConfig, options) => {
       'ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx',
     ),
     '@components/cards/KpiCard': path.join(
-      __dirname,
+      appDir,
       'packages/components/admin/cards/KpiCard.tsx',
     ),
     '@components/lazy/LazyModal': path.join(
-      __dirname,
+      appDir,
       'packages/components/admin/lazy/LazyModal.tsx',
     ),
     '@components/lazy/modal/LazyModal': path.join(
@@ -335,15 +337,15 @@ config.webpack = ((webpackConfig, options) => {
       'ui/src/components/modals/modal/Modal.tsx',
     ),
     '@components/modals/ModalRole': path.join(
-      __dirname,
+      appDir,
       'packages/components/admin/modals/ModalRole.tsx',
     ),
     '@components/modals/ModalSubscription': path.join(
-      __dirname,
+      appDir,
       'packages/components/admin/modals/ModalSubscription.tsx',
     ),
     '@components/social/SocialLinks': path.join(
-      __dirname,
+      appDir,
       'packages/components/admin/social/SocialLinks.tsx',
     ),
     '@contexts': path.join(packagesRoot, 'contexts'),
@@ -352,7 +354,7 @@ config.webpack = ((webpackConfig, options) => {
     '@models': path.join(packagesRoot, 'models'),
     '@pages': path.join(packagesRoot, 'pages'),
     '@props': path.join(packagesRoot, 'props'),
-    '@protected': path.join(__dirname, 'app/(protected)/admin'),
+    '@protected': path.join(appDir, 'app/(protected)/admin'),
     '@providers': path.join(packagesRoot, 'providers'),
     '@schemas': path.join(packagesRoot, 'schemas'),
     '@serializers': path.join(serializersRoot, 'src'),
@@ -376,7 +378,7 @@ config.webpack = ((webpackConfig, options) => {
   nextConfig.resolve.modules = [
     ...(nextConfig.resolve.modules ?? []),
     packagesRoot,
-    path.resolve(__dirname, '../../node_modules'),
+    path.resolve(appDir, '../../node_modules'),
     'node_modules',
   ];
 

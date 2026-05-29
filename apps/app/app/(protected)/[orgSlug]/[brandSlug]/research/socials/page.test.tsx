@@ -2,7 +2,7 @@
 
 import { render, screen } from '@testing-library/react';
 import ResearchSocialsPage from './page';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@pages/trends/list/trends-list', () => ({

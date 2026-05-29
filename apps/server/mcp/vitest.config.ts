@@ -1,6 +1,9 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
+
+const mcpDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   oxc: false, // Disable OXC transformer — SWC required for NestJS decorator metadata
@@ -15,58 +18,55 @@ export default defineConfig({
   ],
   resolve: {
     alias: [
-      { find: '@', replacement: path.resolve(__dirname, './src') },
-      { find: '@config', replacement: path.resolve(__dirname, './src/config') },
+      { find: '@', replacement: path.resolve(mcpDir, './src') },
+      { find: '@config', replacement: path.resolve(mcpDir, './src/config') },
       {
         find: '@genfeedai/constants',
         replacement: path.resolve(
-          __dirname,
+          mcpDir,
           '../../../packages/constants/src/index.ts',
         ),
       },
       {
         find: '@genfeedai/enums',
         replacement: path.resolve(
-          __dirname,
+          mcpDir,
           '../../../packages/enums/src/index.ts',
         ),
       },
       {
         find: '@genfeedai/interfaces',
         replacement: path.resolve(
-          __dirname,
+          mcpDir,
           '../../../packages/interfaces/src/index.ts',
         ),
       },
       {
         find: '@genfeedai/config',
-        replacement: path.resolve(__dirname, '../../../packages/config/src'),
+        replacement: path.resolve(mcpDir, '../../../packages/config/src'),
       },
       {
         find: /^@genfeedai\/config\/(.*)$/,
-        replacement: path.resolve(__dirname, '../../../packages/config/src/$1'),
+        replacement: path.resolve(mcpDir, '../../../packages/config/src/$1'),
       },
       {
         find: '@helpers',
-        replacement: path.resolve(__dirname, '../../../packages/helpers/src'),
+        replacement: path.resolve(mcpDir, '../../../packages/helpers/src'),
       },
       {
         find: /^@helpers\/(.*)$/,
-        replacement: path.resolve(
-          __dirname,
-          '../../../packages/helpers/src/$1',
-        ),
+        replacement: path.resolve(mcpDir, '../../../packages/helpers/src/$1'),
       },
       {
         find: '@libs',
-        replacement: path.resolve(__dirname, '../../../packages/libs'),
+        replacement: path.resolve(mcpDir, '../../../packages/libs'),
       },
-      { find: '@mcp', replacement: path.resolve(__dirname, './src') },
+      { find: '@mcp', replacement: path.resolve(mcpDir, './src') },
       {
         find: '@services',
-        replacement: path.resolve(__dirname, './src/services'),
+        replacement: path.resolve(mcpDir, './src/services'),
       },
-      { find: '@shared', replacement: path.resolve(__dirname, './src/shared') },
+      { find: '@shared', replacement: path.resolve(mcpDir, './src/shared') },
     ],
   },
   test: {

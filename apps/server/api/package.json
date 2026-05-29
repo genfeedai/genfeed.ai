@@ -78,5 +78,6 @@
     "test:file:cov": "vitest run --coverage --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts"
   },
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "type": "module"
 }

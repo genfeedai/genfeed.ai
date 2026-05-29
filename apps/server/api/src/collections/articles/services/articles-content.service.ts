@@ -112,7 +112,7 @@ export class ArticlesContentService {
     @Optional() private readonly modelsService?: ModelsService,
     @Optional() private readonly promptsService?: PromptsService,
     @Optional()
-    @Inject(forwardRef(() => require('./articles.service').ArticlesService))
+    @Inject(forwardRef(() => ArticlesService))
     private readonly articlesService?: ArticlesService,
     @Optional() private readonly replicateService?: ReplicateService,
     @Optional() private readonly promptBuilderService?: PromptBuilderService,

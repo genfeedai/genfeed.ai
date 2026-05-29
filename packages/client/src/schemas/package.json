@@ -9,6 +9,7 @@
   "main": "dist/index.js",
   "name": "@genfeedai/client/schemas",
   "private": false,
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist"

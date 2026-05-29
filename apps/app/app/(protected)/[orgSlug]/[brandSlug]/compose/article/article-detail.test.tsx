@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ArticleDetail from './article-detail';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 const {
   generateAccountContentMock,

@@ -5,7 +5,7 @@
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "lib": ["ES2022", "DOM"],
-    "module": "commonjs",
+    "module": "ESNext",
     "moduleResolution": "bundler",
     "noEmit": true,
     "paths": {

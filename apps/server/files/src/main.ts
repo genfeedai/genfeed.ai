@@ -1,4 +1,4 @@
-require('./instrument');
+import './instrument';
 
 import {
   bootstrap,
@@ -11,6 +11,7 @@ bootstrap({ app: 'files' });
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import process from 'node:process';
 import { AppModule } from '@files/app.module';
 import { ConfigService } from '@files/config/config.service';
 import { IS_SELF_HOSTED } from '@genfeedai/config';

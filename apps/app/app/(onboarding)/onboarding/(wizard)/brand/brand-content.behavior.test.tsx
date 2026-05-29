@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { render, waitFor } from '@testing-library/react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

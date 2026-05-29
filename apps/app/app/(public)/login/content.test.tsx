@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginPage from './content';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 const pushMock = vi.fn();
 const useAuthMock = vi.fn(() => ({ isLoaded: true, isSignedIn: false }));

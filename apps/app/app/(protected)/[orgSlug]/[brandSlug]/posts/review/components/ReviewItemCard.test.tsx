@@ -1,7 +1,7 @@
 import { BatchItemStatus, ContentFormat } from '@genfeedai/enums';
 import { render, screen } from '@testing-library/react';
 import ReviewItemCard from './ReviewItemCard';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@helpers/formatting/timezone/timezone.helper', () => ({

@@ -51,13 +51,13 @@
   },
   "exports": {
     ".": {
-      "default": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./*": {
+      "types": "./dist/*.d.ts",
       "import": "./dist/*.js",
-      "require": "./dist/*.js",
-      "types": "./dist/*.d.ts"
+      "default": "./dist/*.js"
     },
     "./web-tokens.css": "./web-tokens.css"
   },
@@ -69,6 +69,7 @@
   "license": "MIT",
   "main": "./dist/index.js",
   "name": "@genfeedai/ui",
+  "type": "module",
   "peerDependencies": {
     "@radix-ui/react-accordion": "1.2.12",
     "@radix-ui/react-alert-dialog": "1.1.15",

@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { render } from '@testing-library/react';
 import BaseNode from '@ui/workflow-builder/nodes/BaseNode';
 import type { ComponentProps, ComponentPropsWithoutRef } from 'react';

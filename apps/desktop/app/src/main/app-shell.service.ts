@@ -1,11 +1,14 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type {
   IDesktopEnvironment,
   IDesktopSession,
 } from '@genfeedai/desktop-contracts';
 import { app, type BrowserWindow } from 'electron';
+
+const mainDir = path.dirname(fileURLToPath(import.meta.url));
 
 function stripApiVersionSuffix(value: string): string {
   return value.replace(/\/v1\/?$/, '');
@@ -73,7 +76,7 @@ export class DesktopAppShellService {
           'dist',
           'app-shell',
         )
-      : path.join(__dirname, 'app-shell');
+      : path.join(mainDir, 'app-shell');
   }
 
   private getBundledServerPath(): string {

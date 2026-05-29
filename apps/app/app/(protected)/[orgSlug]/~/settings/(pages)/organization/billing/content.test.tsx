@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsBillingPage from './content';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import type { UseSubscriptionReturn } from '@genfeedai/interfaces/hooks/hooks.interface';
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({

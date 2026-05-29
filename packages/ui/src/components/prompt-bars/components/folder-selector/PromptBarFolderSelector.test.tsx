@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import type { IFolder, IOrganization, IUser } from '@genfeedai/interfaces';
 import { render } from '@testing-library/react';

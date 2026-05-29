@@ -13,6 +13,7 @@
   },
   "name": "@genfeedai/prisma",
   "private": true,
+  "type": "module",
   "scripts": {
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

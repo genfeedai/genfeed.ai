@@ -1,12 +1,15 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { BrowserWindow } from 'electron';
 import { app, Menu, Tray } from 'electron';
+
+const mainDir = path.dirname(fileURLToPath(import.meta.url));
 
 export class DesktopTrayService {
   private tray: Tray | null = null;
 
   initialize(mainWindow: BrowserWindow, onQuickGenerate: () => void): void {
-    const iconPath = path.join(__dirname, 'assets', 'tray-icon.png');
+    const iconPath = path.join(mainDir, 'assets', 'tray-icon.png');
     this.tray = new Tray(iconPath);
     this.tray.setToolTip('Genfeed Desktop');
 

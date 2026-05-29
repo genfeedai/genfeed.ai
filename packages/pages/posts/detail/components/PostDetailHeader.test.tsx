@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import PostDetailHeader from '@pages/posts/detail/components/PostDetailHeader';
 
 describe('PostDetailHeader', () => {

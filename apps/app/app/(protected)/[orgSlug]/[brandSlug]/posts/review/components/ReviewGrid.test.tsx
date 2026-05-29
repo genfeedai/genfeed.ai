@@ -4,7 +4,7 @@ import ReviewGrid, {
   getReviewFilterCounts,
   getVisibleReviewItems,
 } from './ReviewGrid';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockBatch = {

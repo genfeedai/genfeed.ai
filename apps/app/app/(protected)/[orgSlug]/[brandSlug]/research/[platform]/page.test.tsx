@@ -2,7 +2,7 @@
 
 import { render, screen } from '@testing-library/react';
 import ResearchPlatformPage from './page';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
 
 const mockNotFound = vi.fn(() => {

@@ -10,12 +10,12 @@
   },
   "exports": {
     ".": {
-      "default": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./contracts": {
-      "default": "./dist/contracts/index.js",
-      "types": "./dist/contracts/index.d.ts"
+      "types": "./dist/contracts/index.d.ts",
+      "default": "./dist/contracts/index.js"
     }
   },
   "files": [
@@ -26,6 +26,7 @@
   "main": "./dist/index.js",
   "name": "@genfeedai/api-types",
   "private": false,
+  "type": "module",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"

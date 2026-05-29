@@ -38,5 +38,6 @@
     "test:e2e": "echo 'No e2e tests yet'",
     "test:watch": "vitest --config vitest.config.ts"
   },
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "type": "module"
 }

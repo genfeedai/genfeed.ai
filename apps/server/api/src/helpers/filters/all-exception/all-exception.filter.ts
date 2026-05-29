@@ -11,10 +11,7 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-
-const jsonAPI = require('jsonapi-serializer') as {
-  Error: new (payload: unknown) => unknown;
-};
+import jsonAPI from 'jsonapi-serializer';
 
 @Catch()
 export class AllExceptionFilter implements ExceptionFilter {

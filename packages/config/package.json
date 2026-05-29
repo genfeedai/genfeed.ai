@@ -11,22 +11,22 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./*": {
       "types": "./dist/*.d.ts",
       "import": "./dist/*.js",
-      "require": "./dist/*.js"
+      "default": "./dist/*.js"
     },
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js",
-      "require": "./dist/interfaces/index.js"
+      "default": "./dist/interfaces/index.js"
     },
     "./schemas": {
       "types": "./dist/schemas/index.d.ts",
       "import": "./dist/schemas/index.js",
-      "require": "./dist/schemas/index.js"
+      "default": "./dist/schemas/index.js"
     }
   },
   "files": [
@@ -36,6 +36,7 @@
   "main": "./dist/index.js",
   "name": "@genfeedai/config",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "tsc --build && if [ -d dist/src ]; then mv dist/src/* dist/ 2>/dev/null && rm -rf dist/src; fi",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",

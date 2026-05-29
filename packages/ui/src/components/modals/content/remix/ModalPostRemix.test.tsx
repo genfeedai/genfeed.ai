@@ -4,7 +4,7 @@ import type { ModalProps } from '@genfeedai/props/modals/modal.props';
 import { render, screen } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import ModalPostRemix from '@ui/modals/content/remix/ModalPostRemix';
 
 vi.mock('@ui/modals/modal/Modal', () => ({

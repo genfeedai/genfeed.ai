@@ -76,6 +76,7 @@
   },
   "name": "@genfeedai/app",
   "private": true,
+  "type": "module",
   "scripts": {
     "analyze": "ANALYZE=true next build",
     "analyze:browser": "ANALYZE=true BUNDLE_ANALYZE=browser next build",

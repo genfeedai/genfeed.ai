@@ -12,14 +12,14 @@
   },
   "exports": {
     ".": {
-      "bun": "./dist/index.js",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.js"
+      "bun": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./deserializer": {
-      "default": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
   "files": [
@@ -29,6 +29,7 @@
   "main": "./dist/index.js",
   "license": "AGPL-3.0",
   "name": "@genfeedai/serializers",
+  "type": "module",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"

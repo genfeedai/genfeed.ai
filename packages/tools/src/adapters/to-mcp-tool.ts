@@ -1,4 +1,4 @@
-import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
+import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface.js';
 
 export interface McpToolOutput {
   name: string;

@@ -16,15 +16,14 @@
   },
   "exports": {
     ".": {
-      "default": "./dist/index.js",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./*": {
       "types": "./dist/*.d.ts",
       "import": "./dist/*.js",
-      "require": "./dist/*.js"
+      "default": "./dist/*.js"
     }
   },
   "files": [
@@ -33,6 +32,7 @@
   "license": "MIT",
   "main": "./dist/index.js",
   "name": "@genfeedai/interfaces",
+  "type": "module",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"

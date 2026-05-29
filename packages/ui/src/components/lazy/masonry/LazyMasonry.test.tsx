@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { render, waitFor } from '@testing-library/react';
 import * as LazyMasonry from '@ui/lazy/masonry/LazyMasonry';
 import { describe, expect, it, vi } from 'vitest';

@@ -9,5 +9,6 @@
   "name": "@genfeedai/pages",
   "private": true,
   "sideEffects": false,
+  "type": "module",
   "version": "0.1.0"
 }

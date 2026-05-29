@@ -1,8 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
+
+const serviceDir = path.dirname(fileURLToPath(import.meta.url));
 
 const SOURCEMAP_WARNING_FRAGMENT = 'points to missing source files';
 const SOURCEMAP_WARNING_PREFIX = 'Sourcemap for';
@@ -78,7 +81,7 @@ function createVitestWarningLogger() {
 installVitestWarningFilter();
 const customLogger = createVitestWarningLogger();
 const isCoverageRun = process.argv.includes('--coverage');
-const coverageDirectory = path.resolve(__dirname, './coverage');
+const coverageDirectory = path.resolve(serviceDir, './coverage');
 
 if (isCoverageRun) {
   fs.mkdirSync(path.join(coverageDirectory, '.tmp'), { recursive: true });
@@ -107,168 +110,174 @@ export default defineConfig({
     alias: [
       {
         find: '@api',
-        replacement: path.resolve(__dirname, './src'),
+        replacement: path.resolve(serviceDir, './src'),
       },
       {
         find: '@credits',
-        replacement: path.resolve(__dirname, './src/collections/credits'),
+        replacement: path.resolve(serviceDir, './src/collections/credits'),
       },
       {
         find: '@files',
-        replacement: path.resolve(__dirname, '../files/src'),
+        replacement: path.resolve(serviceDir, '../files/src'),
       },
       {
         find: '@genfeedai/constants',
-        replacement: path.resolve(__dirname, '../../../packages/constants/src'),
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/constants/src',
+        ),
       },
       {
         find: '@genfeedai/enums',
-        replacement: path.resolve(__dirname, '../../../packages/enums/src'),
+        replacement: path.resolve(serviceDir, '../../../packages/enums/src'),
       },
       {
         find: '@genfeedai/types',
-        replacement: path.resolve(__dirname, '../../../packages/types/src'),
+        replacement: path.resolve(serviceDir, '../../../packages/types/src'),
       },
       {
         find: '@genfeedai/config',
-        replacement: path.resolve(__dirname, '../../../packages/config/src'),
+        replacement: path.resolve(serviceDir, '../../../packages/config/src'),
       },
       {
         find: '@genfeedai/harness',
-        replacement: path.resolve(__dirname, '../../../packages/harness/src'),
+        replacement: path.resolve(serviceDir, '../../../packages/harness/src'),
       },
       {
         find: '@genfeedai/helpers',
-        replacement: path.resolve(__dirname, '../../../packages/helpers/src'),
+        replacement: path.resolve(serviceDir, '../../../packages/helpers/src'),
       },
       {
         find: '@genfeedai/utils',
-        replacement: path.resolve(__dirname, '../../../packages/utils'),
+        replacement: path.resolve(serviceDir, '../../../packages/utils'),
       },
       {
         find: /^@genfeedai\/utils\/(.*)$/,
-        replacement: path.resolve(__dirname, '../../../packages/utils/$1'),
+        replacement: path.resolve(serviceDir, '../../../packages/utils/$1'),
       },
       {
         find: /^@genfeedai\/harness\/(.*)$/,
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/harness/src/$1',
         ),
       },
       {
         find: /^@genfeedai\/config\/(.*)$/,
-        replacement: path.resolve(__dirname, '../../../packages/config/src/$1'),
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/config/src/$1',
+        ),
       },
       {
         find: '@genfeedai/integrations',
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/integrations/src',
         ),
       },
       {
         find: '@genfeedai/serializers',
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/serializers/src',
         ),
       },
       {
         find: /^@genfeedai\/cloud-serializers\/(.*)$/,
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/serializers/src/$1',
         ),
       },
       {
         find: '@genfeedai/workflow-engine',
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/workflow-engine/src',
         ),
       },
       {
         find: /^@genfeedai\/workflow-engine\/(.*)$/,
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/workflow-engine/src/$1',
         ),
       },
       {
         find: /^@workflow-engine\/(.*)$/,
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/workflow-engine/src/$1',
         ),
       },
       {
         find: '@genfeedai/workflow-saas',
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/workflow-saas/src',
         ),
       },
       {
         find: /^@genfeedai\/workflow-saas\/(.*)$/,
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/workflow-saas/src/$1',
         ),
       },
       {
         find: /^@serializers\/(.*)$/,
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/serializers/src/$1',
         ),
       },
       {
         find: '@helpers',
-        replacement: path.resolve(__dirname, '../../../packages/helpers/src'),
+        replacement: path.resolve(serviceDir, '../../../packages/helpers/src'),
       },
       {
         find: /^@helpers\/(.*)$/,
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/helpers/src/$1',
         ),
       },
       {
         find: /^@integrations\/(.*)$/,
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/integrations/src/$1',
         ),
       },
       {
         find: /^@workflow-saas\/(.*)$/,
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/workflow-saas/src/$1',
         ),
       },
       {
         find: '@libs',
-        replacement: path.resolve(__dirname, '../../../packages/libs'),
+        replacement: path.resolve(serviceDir, '../../../packages/libs'),
       },
       {
         find: /^@genfeedai\/ee-billing\/(.*)$/,
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../ee/packages/billing/src/$1',
         ),
       },
       {
         find: '@genfeedai/ee-billing',
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../ee/packages/billing/src',
         ),
       },
       {
         find: '@test',
-        replacement: path.resolve(__dirname, './test'),
+        replacement: path.resolve(serviceDir, './test'),
       },
     ],
   },

@@ -4,10 +4,9 @@
   },
   "exports": {
     ".": {
-      "default": "./dist/index.js",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     }
   },
   "files": [
@@ -16,6 +15,7 @@
   "license": "MIT",
   "main": "./dist/index.js",
   "name": "@genfeedai/tools",
+  "type": "module",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"

@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createAppNextConfig } from '@genfeedai/next-config';
 import bundleAnalyzer from '@next/bundle-analyzer';
 import type { NextConfig } from 'next';
@@ -8,7 +9,8 @@ const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
   openAnalyzer: false,
 });
-const helpersRoot = path.resolve(__dirname, '../../packages/helpers');
+const websiteDir = path.dirname(fileURLToPath(import.meta.url));
+const helpersRoot = path.resolve(websiteDir, '../../packages/helpers');
 
 const config = createAppNextConfig({
   appName: 'website',
@@ -81,7 +83,7 @@ config.turbopack = {
     '@genfeedai/serializers': '../../packages/serializers/src/index.ts',
     '@genfeedai/types': '../../packages/types/src/index.ts',
   },
-  root: path.resolve(__dirname, '../..'),
+  root: path.resolve(websiteDir, '../..'),
 };
 
 config.transpilePackages = [
@@ -93,7 +95,7 @@ config.transpilePackages = [
   '@genfeedai/interfaces',
 ];
 
-const serializersRoot = path.resolve(__dirname, '../../packages/serializers');
+const serializersRoot = path.resolve(websiteDir, '../../packages/serializers');
 const existingWebpack = config.webpack;
 
 config.webpack = ((webpackConfig, options) => {
@@ -106,7 +108,7 @@ config.webpack = ((webpackConfig, options) => {
     ...nextConfig.resolve.alias,
     '@genfeedai/serializers': path.join(serializersRoot, 'src/index.ts'),
     '@genfeedai/types': path.join(
-      __dirname,
+      websiteDir,
       '../../packages/types/src/index.ts',
     ),
     '@genfeedai/helpers': path.join(helpersRoot, 'src/index.ts'),

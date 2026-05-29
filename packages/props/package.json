@@ -18,6 +18,7 @@
   },
   "name": "@genfeedai/props",
   "private": true,
+  "type": "module",
   "scripts": {
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",

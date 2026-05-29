@@ -41,64 +41,65 @@
   },
   "exports": {
     ".": {
-      "default": "./src/index.ts",
-      "types": "./src/index.ts"
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
     },
     "./components": {
-      "default": "./src/components/index.ts",
-      "types": "./src/components/index.ts"
+      "types": "./src/components/index.ts",
+      "default": "./src/components/index.ts"
     },
     "./components/*": {
-      "default": "./src/components/*",
-      "types": "./src/components/*"
+      "types": "./src/components/*",
+      "default": "./src/components/*"
     },
     "./constants/*": {
-      "default": "./src/constants/*",
-      "types": "./src/constants/*"
+      "types": "./src/constants/*",
+      "default": "./src/constants/*"
     },
     "./dashboard": {
-      "default": "./src/dashboard/index.ts",
-      "types": "./src/dashboard/index.ts"
+      "types": "./src/dashboard/index.ts",
+      "default": "./src/dashboard/index.ts"
     },
     "./hooks": {
-      "default": "./src/hooks/index.ts",
-      "types": "./src/hooks/index.ts"
+      "types": "./src/hooks/index.ts",
+      "default": "./src/hooks/index.ts"
     },
     "./hooks/*": {
-      "default": "./src/hooks/*",
-      "types": "./src/hooks/*"
+      "types": "./src/hooks/*",
+      "default": "./src/hooks/*"
     },
     "./models": {
-      "default": "./src/models/index.ts",
-      "types": "./src/models/index.ts"
+      "types": "./src/models/index.ts",
+      "default": "./src/models/index.ts"
     },
     "./models/*": {
-      "default": "./src/models/*",
-      "types": "./src/models/*"
+      "types": "./src/models/*",
+      "default": "./src/models/*"
     },
     "./services/*": {
-      "default": "./src/services/*",
-      "types": "./src/services/*"
+      "types": "./src/services/*",
+      "default": "./src/services/*"
     },
     "./stores": {
-      "default": "./src/stores/index.ts",
-      "types": "./src/stores/index.ts"
+      "types": "./src/stores/index.ts",
+      "default": "./src/stores/index.ts"
     },
     "./stores/*": {
-      "default": "./src/stores/*",
-      "types": "./src/stores/*"
+      "types": "./src/stores/*",
+      "default": "./src/stores/*"
     },
     "./workflow": {
-      "default": "./src/workflow/index.ts",
-      "types": "./src/workflow/index.ts"
+      "types": "./src/workflow/index.ts",
+      "default": "./src/workflow/index.ts"
     },
     "./workflow/*": {
-      "default": "./src/workflow/*",
-      "types": "./src/workflow/*"
+      "types": "./src/workflow/*",
+      "default": "./src/workflow/*"
     }
   },
   "main": "src/index.ts",
   "name": "@genfeedai/agent",
+  "type": "module",
   "peerDependencies": {
     "react": ">=18"
   },

@@ -10,12 +10,12 @@
     ".": {
       "types": "./next.config.base.ts",
       "import": "./next.config.base.ts",
-      "require": "./next.config.base.ts"
+      "default": "./next.config.base.ts"
     },
     "./tailwind": {
       "types": "./tailwind.config.base.ts",
       "import": "./tailwind.config.base.ts",
-      "require": "./tailwind.config.base.ts"
+      "default": "./tailwind.config.base.ts"
     }
   },
   "files": [
@@ -23,6 +23,7 @@
   ],
   "main": "./next.config.base.ts",
   "name": "@genfeedai/next-config",
+  "type": "module",
   "peerDependencies": {
     "@sentry/nextjs": "*",
     "next": "*"

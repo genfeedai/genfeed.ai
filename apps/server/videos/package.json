@@ -23,5 +23,6 @@
     "test": "echo 'No tests yet'",
     "test:cov": "echo 'No tests yet'"
   },
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "type": "module"
 }

@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { fireEvent, render } from '@testing-library/react';
 import WorkflowCanvas from '@ui/workflow-builder/WorkflowCanvas';
 import type { Edge, Node } from '@xyflow/react';

@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ArticleCompose from './article-compose';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 const { articleDetailMock, searchParamValues, xArticleGenerateFormMock } =
   vi.hoisted(() => ({

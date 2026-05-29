@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TrainingImagesTab from './training-images-tab';
 

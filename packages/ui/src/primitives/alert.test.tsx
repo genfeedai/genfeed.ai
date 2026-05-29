@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import { Alert } from '@ui/primitives/alert';
 import { describe, expect, it } from 'vitest';

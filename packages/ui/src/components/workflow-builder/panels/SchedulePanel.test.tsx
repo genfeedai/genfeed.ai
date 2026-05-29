@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import SchedulePanel from '@ui/workflow-builder/panels/SchedulePanel';
 import { describe, expect, it, vi } from 'vitest';

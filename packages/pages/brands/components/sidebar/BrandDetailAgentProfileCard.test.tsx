@@ -1,7 +1,7 @@
 import BrandDetailAgentProfileCard from '@pages/brands/components/sidebar/BrandDetailAgentProfileCard';
 import type { BrandDetailAgentProfileCardProps } from '@props/pages/brand-detail.props';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const refreshBrandsMock = vi.fn().mockResolvedValue(undefined);

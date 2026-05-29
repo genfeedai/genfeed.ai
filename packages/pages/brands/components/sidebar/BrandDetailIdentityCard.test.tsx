@@ -5,7 +5,7 @@ import BrandDetailIdentityCard from '@pages/brands/components/sidebar/BrandDetai
 import type { BrandDetailIdentityCardProps } from '@props/pages/brand-detail.props';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
 
 const mockUseBrand = vi.fn();
