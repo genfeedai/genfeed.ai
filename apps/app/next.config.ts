@@ -198,7 +198,7 @@ config.turbopack = {
     '@components/cards/KpiCard':
       './packages/components/admin/cards/KpiCard.tsx',
     '@components/lazy/LazyModal':
-      './packages/components/admin/lazy/LazyModal.tsx',
+      './packages/components/admin/lazy/LazyModal.ts',
     '@components/lazy/modal/LazyModal':
       '../../packages/ui/src/components/lazy/modal/LazyModal.tsx',
     '@components/loading/fallback/LazyLoadingFallback':
@@ -314,7 +314,7 @@ config.webpack = ((webpackConfig, options) => {
     ),
     '@components/lazy/LazyModal': path.join(
       appDir,
-      'packages/components/admin/lazy/LazyModal.tsx',
+      'packages/components/admin/lazy/LazyModal.ts',
     ),
     '@components/lazy/modal/LazyModal': path.join(
       packagesRoot,

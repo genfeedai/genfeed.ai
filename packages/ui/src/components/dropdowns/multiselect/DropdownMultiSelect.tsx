@@ -9,11 +9,8 @@ import {
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import * as formatHelper from '@genfeedai/helpers/formatting/format/format.helper';
 import type { MultiSelectDropdownProps } from '@genfeedai/props/ui/forms/button.props';
-import {
-  Button,
-  buttonVariants,
-  Button as PrimitiveButton,
-} from '@ui/primitives/button';
+import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
+import { buttonVariants } from '@ui/primitives/button.variants';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
   DropdownMenu,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useAssetSelection } from '@contexts/ui/asset-selection-context';
+import { useAssetSelection } from '@contexts/ui/asset-selection.context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { editFormSchema } from '@genfeedai/client/schemas';
 import { ITEMS_PER_PAGE, MODEL_KEYS } from '@genfeedai/constants';

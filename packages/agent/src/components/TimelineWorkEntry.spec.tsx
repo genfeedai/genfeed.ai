@@ -20,7 +20,7 @@ vi.mock('@ui/buttons/base/Button', () => ({
   },
 }));
 
-vi.mock('./AgentToolCallDisplay', () => ({
+vi.mock('./agent-tool-call-display.helpers', () => ({
   TOOL_LABELS: { generate_image: 'Generate Image' } as Record<string, string>,
 }));
 

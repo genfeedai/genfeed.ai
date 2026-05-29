@@ -22,12 +22,13 @@ import {
   HiOutlineClipboardDocumentCheck,
   HiOutlineExclamationTriangle,
 } from 'react-icons/hi2';
-import ReviewGrid, {
+import ReviewGrid from './components/ReviewGrid';
+import ReviewStatsHeader from './components/ReviewStatsHeader';
+import {
   getReviewFilterCounts,
   getVisibleReviewItems,
   type ReviewFilter,
-} from './components/ReviewGrid';
-import ReviewStatsHeader from './components/ReviewStatsHeader';
+} from './components/review-grid.helpers';
 import { isReadyToReview } from './components/review-state';
 
 function getBatchOptionLabel(batch: IBatchSummary): string {

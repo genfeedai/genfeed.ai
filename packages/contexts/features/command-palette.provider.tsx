@@ -8,16 +8,8 @@ import type {
 } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { CommandPaletteService } from '@genfeedai/services/core/command-palette.service';
 import { logger } from '@genfeedai/services/core/logger.service';
-import {
-  createContext,
-  type ReactElement,
-  useCallback,
-  useEffect,
-  useState,
-} from 'react';
-
-export const CommandPaletteContext =
-  createContext<ICommandPaletteContext | null>(null);
+import { type ReactElement, useCallback, useEffect, useState } from 'react';
+import { CommandPaletteContext } from './command-palette.context';
 
 export function CommandPaletteProvider({
   children,

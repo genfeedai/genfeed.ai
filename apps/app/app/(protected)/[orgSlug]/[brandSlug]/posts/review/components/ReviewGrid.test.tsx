@@ -1,9 +1,10 @@
 import { BatchItemStatus, BatchStatus, ContentFormat } from '@genfeedai/enums';
 import { fireEvent, render, screen } from '@testing-library/react';
-import ReviewGrid, {
+import ReviewGrid from './ReviewGrid';
+import {
   getReviewFilterCounts,
   getVisibleReviewItems,
-} from './ReviewGrid';
+} from './review-grid.helpers';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -35,7 +35,7 @@ import {
   WORKFLOWS_LOGO_HREF,
   WORKFLOWS_MENU_ITEMS,
 } from '@app-config/workflows-menu-items.config';
-import { CommandPaletteProvider } from '@contexts/features/command-palette.context';
+import { CommandPaletteProvider } from '@contexts/features/command-palette.provider';
 import {
   AGENT_PANEL_OPEN_KEY,
   AgentApiService,

@@ -16,8 +16,8 @@ import type {
   ITraining,
 } from '@genfeedai/interfaces';
 import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-data';
-import { useElementsContext } from '@providers/elements/elements.provider';
-import { usePromptBarContext } from '@providers/promptbar/promptbar.provider';
+import { useElementsContext } from '@providers/elements/elements.context';
+import { usePromptBarContext } from '@providers/promptbar/promptbar.context';
 import { useCallback, useMemo, useState } from 'react';
 
 export interface ElementsOptions {

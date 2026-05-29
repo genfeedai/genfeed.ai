@@ -3,10 +3,8 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ButtonDropdownProps } from '@genfeedai/props/ui/forms/button.props';
-import {
-  buttonVariants,
-  Button as PrimitiveButton,
-} from '@ui/primitives/button';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { buttonVariants } from '@ui/primitives/button.variants';
 import {
   DropdownMenu,
   DropdownMenuContent,

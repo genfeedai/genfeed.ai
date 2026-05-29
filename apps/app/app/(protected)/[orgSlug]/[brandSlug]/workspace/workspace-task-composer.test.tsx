@@ -9,11 +9,13 @@ import {
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  extractBrandMentionMatch,
-  getBrandDisplayLabel,
   WorkspaceBrandMentionList,
   WorkspaceTaskComposer,
 } from './workspace-task-composer';
+import {
+  extractBrandMentionMatch,
+  getBrandDisplayLabel,
+} from './workspace-task-composer.helpers';
 
 const mocks = vi.hoisted(() => ({
   brandUpdateAgentConfig: vi.fn(),
@@ -163,7 +165,7 @@ vi.mock('@tiptap/react', () => ({
   },
 }));
 
-vi.mock('@ui/modals/compound/Modal', () => ({
+vi.mock('@ui/modals/compound/modal.compound', () => ({
   Modal: {
     Body: ({ children }: { children: ReactNode }) => <div>{children}</div>,
     CloseButton: ({ children }: { children: ReactNode }) => <>{children}</>,

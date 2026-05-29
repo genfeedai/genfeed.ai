@@ -455,6 +455,7 @@ export function useAgentCliTerminal(
 
     let disposed = false;
     let detachSocketHandlers: (() => void) | null = null;
+    let detachConnectHandler: (() => void) | null = null;
 
     async function bootTerminal(): Promise<void> {
       const [{ Terminal }, { FitAddon }, { SearchAddon }, { WebLinksAddon }] =
@@ -556,12 +557,14 @@ export function useAgentCliTerminal(
       });
       socketRef.current = socket;
 
-      socket.on('connect', () => {
+      const handleConnect = () => {
         setStatus('connected');
 
         // T2: request existing sessions for rehydration
         socket.emit('terminal:list');
-      });
+      };
+      socket.on('connect', handleConnect);
+      detachConnectHandler = () => socket.off('connect', handleConnect);
 
       detachSocketHandlers = attachTerminalSocketHandlers({
         fitAndSyncSize,
@@ -626,6 +629,7 @@ export function useAgentCliTerminal(
       }
 
       resizeObserverRef.current?.disconnect();
+      detachConnectHandler?.();
       detachSocketHandlers?.();
       dataDisposableRef.current?.dispose();
       terminalRef.current?.dispose();

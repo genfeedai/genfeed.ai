@@ -1,4 +1,8 @@
 export { WorkflowInputNode } from './WorkflowInputNode';
 export { WorkflowOutputNode } from './WorkflowOutputNode';
-export type { ReferencableWorkflow, WorkflowRefApi } from './WorkflowRefNode';
-export { setWorkflowRefApi, WorkflowRefNode } from './WorkflowRefNode';
+export { WorkflowRefNode } from './WorkflowRefNode';
+export type {
+  ReferencableWorkflow,
+  WorkflowRefApi,
+} from './workflow-ref-node.helpers';
+export { setWorkflowRefApi } from './workflow-ref-node.helpers';

@@ -18,13 +18,13 @@ import { logger } from '@services/core/logger.service';
 import { VoiceCloneService } from '@services/ingredients/voice-clone.service';
 import { type Task, TasksService } from '@services/management/tasks.service';
 import { BrandsService } from '@services/social/brands.service';
-import type { Editor, JSONContent } from '@tiptap/core';
+import type { Editor } from '@tiptap/core';
 import Mention, { type MentionNodeAttrs } from '@tiptap/extension-mention';
 import Placeholder from '@tiptap/extension-placeholder';
 import { EditorContent, ReactRenderer, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import type { SuggestionOptions } from '@tiptap/suggestion';
-import { Modal } from '@ui/modals/compound/Modal';
+import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button as BaseButton, Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
@@ -45,6 +45,10 @@ import {
 } from 'react';
 import { HiOutlineSparkles } from 'react-icons/hi2';
 import tippy, { type Instance } from 'tippy.js';
+import {
+  extractBrandMentionMatch,
+  getBrandDisplayLabel,
+} from './workspace-task-composer.helpers';
 
 type WorkspaceTaskMode = 'standard' | 'research' | 'trends';
 
@@ -57,11 +61,6 @@ interface WorkspaceBrandMentionListProps {
   command: (item: WorkspaceBrandMentionItem) => void;
   items: WorkspaceBrandMentionItem[];
   ref?: Ref<{ onKeyDown: (props: { event: KeyboardEvent }) => boolean }>;
-}
-
-interface WorkspaceBrandMentionMatch {
-  id: string;
-  label: string;
 }
 
 interface FacecamOption {
@@ -131,37 +130,6 @@ const TASK_MODE_OPTIONS: Array<{
     label: 'Trends',
   },
 ];
-
-export function getBrandDisplayLabel(brand?: {
-  label?: string;
-  name?: string | null;
-}) {
-  return brand?.label || brand?.name || 'Selected brand';
-}
-
-export function extractBrandMentionMatch(
-  node: JSONContent | null | undefined,
-): WorkspaceBrandMentionMatch | null {
-  if (!node) {
-    return null;
-  }
-
-  if (node.type === 'mention' && node.attrs?.id) {
-    return {
-      id: String(node.attrs.id),
-      label: String(node.attrs.label ?? node.attrs.id ?? '').trim() || 'Brand',
-    };
-  }
-
-  for (const child of node.content ?? []) {
-    const match = extractBrandMentionMatch(child);
-    if (match) {
-      return match;
-    }
-  }
-
-  return null;
-}
 
 export function WorkspaceBrandMentionList({
   command,

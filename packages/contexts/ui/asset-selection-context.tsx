@@ -1,38 +1,9 @@
 import { IngredientStatus } from '@genfeedai/enums';
 import type { IFormat, IIngredient } from '@genfeedai/interfaces';
-import type { IAssetSelectionContextType } from '@genfeedai/interfaces/components/asset-selection.interface';
 import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
-import { createContext, useCallback, useContext, useState } from 'react';
-
-export const AssetSelectionContext = createContext<IAssetSelectionContextType>({
-  activeGenerations: [],
-  addToGenerationQueue: () => {},
-  clearAll: () => {},
-  currentFormat: null,
-  generatedAssetId: null,
-  generatedAssetIds: [],
-  generationQueue: [],
-  isGenerating: false,
-  removeFromQueue: () => {},
-  selectedIngredient: null,
-  setCurrentFormat: () => {},
-  setGeneratedAssetId: () => {},
-  setGeneratedAssetIds: () => {},
-  setIsGenerating: () => {},
-  setSelectedAsset: () => {},
-  updateGenerationStatus: () => {},
-});
-
-export function useAssetSelection() {
-  const context = useContext(AssetSelectionContext);
-  if (!context) {
-    throw new Error(
-      'useAssetSelection must be used within AssetSelectionProvider',
-    );
-  }
-  return context;
-}
+import { useCallback, useState } from 'react';
+import { AssetSelectionContext } from './asset-selection.context';
 
 export function AssetSelectionProvider({ children }: LayoutProps) {
   const [selectedIngredient, setSelectedAsset] = useState<IIngredient | null>(

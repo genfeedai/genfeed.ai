@@ -3,6 +3,6 @@ export {
   HStack,
   Stack,
   type StackProps,
-  stackVariants,
   VStack,
 } from '@ui/layout/stack';
+export { stackVariants } from '@ui/layout/stack.variants';

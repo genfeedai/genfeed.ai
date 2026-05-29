@@ -45,7 +45,8 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { Button, buttonVariants } from '@ui/primitives/button';
+import { Button } from '@ui/primitives/button';
+import { buttonVariants } from '@ui/primitives/button.variants';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
 import {

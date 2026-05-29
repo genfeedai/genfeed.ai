@@ -1,28 +1,17 @@
 'use client';
 
 import type { IFilterContextValue } from '@genfeedai/interfaces/providers/providers.interface';
-import type {
-  IFilters,
-  IFiltersState,
-} from '@genfeedai/interfaces/utils/filters.interface';
+import type { IFilters } from '@genfeedai/interfaces/utils/filters.interface';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import type { ReactNode } from 'react';
-import { createContext, useContext, useMemo, useState } from 'react';
-
-const DEFAULT_FILTERS: IFiltersState = {
-  format: '',
-  provider: '',
-  search: '',
-  status: '',
-  type: '',
-};
-
-export const ElementsFiltersContext = createContext<
-  IFilterContextValue | undefined
->(undefined);
+import { useMemo, useState } from 'react';
+import {
+  DEFAULT_FILTERS,
+  ElementsFiltersContext,
+} from './elements-filters.context';
 
 export function ElementsFiltersProvider({ children }: LayoutProps): ReactNode {
-  const [filters, setFilters] = useState<IFiltersState>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [query, setQuery] = useState<IFilters>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -43,14 +32,4 @@ export function ElementsFiltersProvider({ children }: LayoutProps): ReactNode {
       {children}
     </ElementsFiltersContext.Provider>
   );
-}
-
-export function useElementsFilters(): IFilterContextValue {
-  const context = useContext(ElementsFiltersContext);
-  if (!context) {
-    throw new Error(
-      'useElementsFilters must be used within an ElementsFiltersProvider',
-    );
-  }
-  return context;
 }

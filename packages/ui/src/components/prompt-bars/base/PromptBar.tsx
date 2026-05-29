@@ -9,7 +9,7 @@ import {
   useGalleryModal,
   useUploadModal,
 } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
-import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection-context';
+import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
 import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';

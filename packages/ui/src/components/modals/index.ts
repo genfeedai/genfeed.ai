@@ -7,7 +7,7 @@ export { default as ModalBot } from '@ui/modals/automation/ModalBot';
 export { default as ModalMonitoredAccount } from '@ui/modals/automation/ModalMonitoredAccount';
 export { default as ModalReplyBot } from '@ui/modals/automation/ModalReplyBot';
 // Compound modal (slot-based API)
-export { Modal as CompoundModal } from '@ui/modals/compound/Modal';
+export { Modal as CompoundModal } from '@ui/modals/compound/modal.compound';
 // Gallery
 export { default as ModalGallery } from '@ui/modals/gallery/ModalGallery';
 export { default as ModalGalleryContent } from '@ui/modals/gallery/ModalGalleryContent';

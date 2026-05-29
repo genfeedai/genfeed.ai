@@ -1,6 +1,6 @@
 'use client';
 
-import { useAssetSelection } from '@contexts/ui/asset-selection-context';
+import { useAssetSelection } from '@contexts/ui/asset-selection.context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {

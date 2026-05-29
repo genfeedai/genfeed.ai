@@ -1,6 +1,6 @@
 'use client';
 
-import { useAssetSelection } from '@contexts/ui/asset-selection-context';
+import { useAssetSelection } from '@contexts/ui/asset-selection.context';
 import { IngredientStatus } from '@genfeedai/enums';
 import type { IImage } from '@genfeedai/interfaces';
 import type { SocketResult } from '@genfeedai/interfaces/content/generation-payload.interface';

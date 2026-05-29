@@ -115,6 +115,9 @@ vi.mock('./components/ReviewGrid', () => ({
       </button>
     </div>
   ),
+}));
+
+vi.mock('./components/review-grid.helpers', () => ({
   getReviewFilterCounts: (items: Array<{ id: string; status?: string }>) => ({
     all: items.length,
     approved: items.filter((item) => item.status === 'approved').length,

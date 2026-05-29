@@ -14,8 +14,6 @@ import {
   createSeparator,
 } from './context-menu-config';
 
-export { type ContextMenuItemConfig, createSeparator };
-
 interface ContextMenuProps {
   x: number;
   y: number;

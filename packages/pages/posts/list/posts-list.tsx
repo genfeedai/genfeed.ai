@@ -41,9 +41,9 @@ import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-man
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import PostsGrid, {
   type PostCardAction,
-  postCardIcons,
 } from '@pages/posts/list/components/PostsGrid';
 import PostsListToolbar from '@pages/posts/list/components/PostsListToolbar';
+import { postCardIcons } from '@pages/posts/list/components/posts-grid.helpers';
 import type { ContentProps } from '@props/layout/content.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import {

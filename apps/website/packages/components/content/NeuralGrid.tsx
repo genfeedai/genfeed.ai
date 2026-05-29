@@ -5,33 +5,14 @@ import type {
   CtaSectionProps,
   WebSectionProps,
 } from '@props/website/neural-grid.props';
-import { cva, type VariantProps } from 'class-variance-authority';
+import type { VariantProps } from 'class-variance-authority';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+import {
+  neuralGridItemVariants,
+  neuralGridVariants,
+} from './neural-grid.variants';
 
 /* ─── NeuralGrid ─── */
-
-const neuralGridVariants = cva(
-  'grid gap-px bg-fill/5 border border-edge/5 overflow-hidden',
-  {
-    defaultVariants: {
-      columns: 3,
-      radius: 'lg',
-    },
-    variants: {
-      columns: {
-        1: 'grid-cols-1',
-        2: 'grid-cols-1 md:grid-cols-2',
-        3: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
-        4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
-        5: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5',
-      },
-      radius: {
-        lg: '',
-        xl: '',
-      },
-    },
-  },
-);
 
 export interface NeuralGridProps
   extends HTMLAttributes<HTMLDivElement>,
@@ -49,31 +30,6 @@ const NeuralGrid = forwardRef<HTMLDivElement, NeuralGridProps>(
 NeuralGrid.displayName = 'NeuralGrid';
 
 /* ─── NeuralGridItem ─── */
-
-const neuralGridItemVariants = cva(
-  'bg-background group hover:bg-fill/[0.02] transition-colors',
-  {
-    defaultVariants: {
-      align: 'left',
-      padding: 'md',
-    },
-    variants: {
-      align: {
-        center: 'text-center',
-        left: 'text-left',
-      },
-      inverted: {
-        false: '',
-        true: 'bg-inv hover:bg-inv/95',
-      },
-      padding: {
-        lg: 'p-12',
-        md: 'p-10',
-        sm: 'p-6',
-      },
-    },
-  },
-);
 
 export interface NeuralGridItemProps
   extends Omit<HTMLAttributes<HTMLDivElement>, 'title'>,
@@ -249,11 +205,4 @@ export type {
   WebSectionProps,
 } from '@props/website/neural-grid.props';
 
-export {
-  CtaSection,
-  NeuralGrid,
-  NeuralGridItem,
-  neuralGridItemVariants,
-  neuralGridVariants,
-  WebSection,
-};
+export { CtaSection, NeuralGrid, NeuralGridItem, WebSection };

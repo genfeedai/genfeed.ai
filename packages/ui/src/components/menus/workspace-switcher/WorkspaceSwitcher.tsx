@@ -10,7 +10,7 @@ import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
-import { Modal } from '@ui/modals/compound/Modal';
+import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {

@@ -61,3 +61,32 @@ jobs:
 
       - name: Validate skills
         run: scripts/setup-skills.sh --check
+
+  # Full-repo React health gate. The PR job in ci.yml only scans the diff, so
+  # pre-existing errors in untouched files never gate it. This scans every
+  # React workspace project (scoped by react-doctor.config.json) and fails on
+  # any error-severity diagnostic, catching latent regressions repo-wide.
+  react-doctor-full:
+    name: React Doctor (full repo)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.13'
+
+      - name: Cache bun modules
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - run: bun install --frozen-lockfile
+
+      - name: Run React Doctor across all workspace projects
+        run: bunx react-doctor@latest -y --fail-on error --verbose

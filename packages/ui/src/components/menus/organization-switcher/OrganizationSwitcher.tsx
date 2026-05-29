@@ -6,7 +6,7 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
-import { Modal } from '@ui/modals/compound/Modal';
+import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';

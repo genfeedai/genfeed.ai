@@ -1,7 +1,7 @@
 'use client';
 
 import { useIngredientOverlay } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
-import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection-context';
+import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
 import { useBackgroundTaskContext } from '@genfeedai/contexts/ui/background-task-context';
 import {
   ActivityKey,

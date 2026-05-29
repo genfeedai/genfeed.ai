@@ -140,7 +140,7 @@ jobs:
       - name: Detect React changes
         id: react_changes
         run: |
-          if git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD | grep -E '^(apps/(app|website|docs|desktop|mobile)|packages/(ui|hooks|contexts|providers|pages|workflow-ui))/' >/dev/null; then
+          if git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD | grep -E '^(apps/(app|website|docs|desktop|mobile|extensions)|packages/(ui|hooks|contexts|providers|pages|workflow-ui|agent))/' >/dev/null; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"

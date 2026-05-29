@@ -6,7 +6,7 @@ vi.mock('@clerk/nextjs', () => ({
   useAuth: vi.fn(() => ({ getToken: vi.fn() })),
 }));
 
-vi.mock('@providers/elements/elements.provider', () => ({
+vi.mock('@providers/elements/elements.context', () => ({
   useElementsContext: vi.fn(() => ({
     blacklists: [],
     cameraMovements: [],
@@ -27,7 +27,7 @@ vi.mock('@providers/elements/elements.provider', () => ({
   })),
 }));
 
-vi.mock('@providers/promptbar/promptbar.provider', () => ({
+vi.mock('@providers/promptbar/promptbar.context', () => ({
   usePromptBarContext: vi.fn(() => ({
     isLoading: false,
     models: [],

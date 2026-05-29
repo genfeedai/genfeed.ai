@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
 'use client';
 
-import PromptBarProvider, {
-  usePromptBarContext,
-} from '@providers/promptbar/promptbar.provider';
+import { usePromptBarContext } from '@providers/promptbar/promptbar.context';
+import PromptBarProvider from '@providers/promptbar/promptbar.provider';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
