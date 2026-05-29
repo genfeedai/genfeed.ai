@@ -24,7 +24,7 @@ import {
   useState,
 } from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
-import { buildSoundsColumns } from './sounds-list-columns';
+import { buildSoundsColumns } from './sounds-list-columns.helpers';
 import SoundsListModals from './sounds-list-modals';
 
 function SoundsListContent({

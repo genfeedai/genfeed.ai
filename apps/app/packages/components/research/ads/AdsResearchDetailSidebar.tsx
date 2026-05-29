@@ -21,7 +21,7 @@ import {
   HiOutlineWrenchScrewdriver,
   HiOutlineXMark,
 } from 'react-icons/hi2';
-import { formatMetric } from './AdsResearchAdCards';
+import { formatMetric } from './ads-metric.helpers';
 
 type SelectedAdRef = {
   adAccountId?: string;

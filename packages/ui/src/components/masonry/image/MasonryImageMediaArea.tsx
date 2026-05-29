@@ -3,7 +3,6 @@
 import { ComponentSize } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IImage, IMetadata } from '@genfeedai/interfaces';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import Image from 'next/image';
@@ -12,27 +11,6 @@ import type { MouseEvent } from 'react';
 const BLUR_PLACEHOLDER =
   'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWEREiMxUf/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q==';
 const MASONRY_TILE_RADIUS_CLASS = 'rounded-lg';
-
-export function getAspectRatioStyle(
-  isSquare: boolean,
-  metadata: IMetadata | undefined,
-): React.CSSProperties | undefined {
-  if (isSquare || !metadata?.width || !metadata?.height) {
-    return undefined;
-  }
-  return { aspectRatio: `${metadata.width} / ${metadata.height}` };
-}
-
-export function getImageSrc(
-  ingredientUrl: string | undefined,
-  hasError: boolean,
-): string {
-  const isInvalidUrl = hasError || !ingredientUrl || ingredientUrl === '';
-  if (isInvalidUrl) {
-    return `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`;
-  }
-  return ingredientUrl;
-}
 
 type MasonryImageMediaAreaProps = {
   image: IImage;

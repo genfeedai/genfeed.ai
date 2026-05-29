@@ -11,6 +11,7 @@ import {
   useState,
 } from 'react';
 import { cn } from '../lib/utils';
+import { getBadgeVariant } from './dropdown-field.helpers';
 import DropdownOptionItem from './dropdown-field-option-item';
 import DropdownSearchBar from './dropdown-field-search-bar';
 import DropdownTabBar from './dropdown-field-tab-bar';
@@ -63,32 +64,6 @@ export interface DropdownFieldProps {
   onChange?: (e: ChangeEvent<HTMLSelectElement>) => void;
   onSearch?: (searchTerm: string) => void;
   preserveFocus?: boolean;
-}
-
-export function getBadgeVariant(
-  variant: DropdownFieldOption['badgeVariant'],
-):
-  | 'default'
-  | 'destructive'
-  | 'info'
-  | 'outline'
-  | 'secondary'
-  | 'success'
-  | 'warning' {
-  switch (variant) {
-    case 'error':
-      return 'destructive';
-    case 'accent':
-    case 'primary':
-      return 'default';
-    case 'info':
-    case 'secondary':
-    case 'success':
-    case 'warning':
-      return variant;
-    default:
-      return 'default';
-  }
 }
 
 export default function DropdownField({

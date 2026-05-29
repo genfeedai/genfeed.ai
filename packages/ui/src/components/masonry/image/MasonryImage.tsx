@@ -18,10 +18,8 @@ import {
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
 import { useCallback, useMemo, useState } from 'react';
 import MasonryImageActionsBar from './MasonryImageActionsBar';
-import MasonryImageMediaArea, {
-  getAspectRatioStyle,
-  getImageSrc,
-} from './MasonryImageMediaArea';
+import MasonryImageMediaArea from './MasonryImageMediaArea';
+import { getAspectRatioStyle, getImageSrc } from './masonry-image.helpers';
 
 export default function MasonryImage({
   image,

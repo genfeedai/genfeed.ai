@@ -14,8 +14,8 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { logger } from '@/lib/logger';
 import { useSettingsStore } from '@/store/settingsStore';
-import { USE_CASE_CONFIG } from './ModelBrowserBadges';
 import { ModelCard } from './ModelCard';
+import { USE_CASE_CONFIG } from './model-browser-badges.constants';
 
 // =============================================================================
 // TYPES
