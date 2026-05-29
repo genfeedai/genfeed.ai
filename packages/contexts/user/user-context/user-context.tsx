@@ -9,7 +9,7 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
 import { getPlaywrightAuthState } from '@helpers/auth/clerk.helper';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createContext, useCallback, useContext, useMemo } from 'react';
+import { createContext, use, useCallback, useMemo } from 'react';
 import { loadClientProtectedBootstrap } from '../../providers/protected-bootstrap/client-protected-bootstrap';
 import { useContextAuthedService } from '../internal/context-authed-service';
 
@@ -169,7 +169,7 @@ export function UserProvider({
 }
 
 export function useCurrentUser(): UserContextValue {
-  const context = useContext(UserContext);
+  const context = use(UserContext);
 
   if (context === undefined) {
     throw new Error(
@@ -181,5 +181,5 @@ export function useCurrentUser(): UserContextValue {
 }
 
 export function useOptionalUser(): UserContextValue | undefined {
-  return useContext(UserContext);
+  return use(UserContext);
 }

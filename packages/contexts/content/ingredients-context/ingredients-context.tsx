@@ -4,7 +4,7 @@ import type {
   IIngredientsContextValue,
   IProviderWithValue,
 } from '@genfeedai/interfaces/providers/providers.interface';
-import { createContext, useContext } from 'react';
+import { createContext, use } from 'react';
 
 const IngredientsContext = createContext<IIngredientsContextValue | undefined>(
   undefined,
@@ -22,7 +22,7 @@ export function IngredientsProvider({
 }
 
 export function useIngredientsContext() {
-  const context = useContext(IngredientsContext);
+  const context = use(IngredientsContext);
   if (context === undefined) {
     throw new Error(
       'useIngredientsContext must be used within an IngredientsProvider',

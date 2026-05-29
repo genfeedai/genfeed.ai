@@ -13,8 +13,8 @@ import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   createContext,
+  use,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -23,7 +23,7 @@ import {
 const OnboardingContext = createContext<IOnboardingContextValue | null>(null);
 
 export function useOnboarding(): IOnboardingContextValue {
-  const ctx = useContext(OnboardingContext);
+  const ctx = use(OnboardingContext);
   if (!ctx) {
     throw new Error('useOnboarding must be used within OnboardingProvider');
   }

@@ -52,8 +52,8 @@ import { useRouter } from 'next/navigation';
 import {
   createContext,
   type ReactNode,
+  use,
   useCallback,
-  useContext,
   useState,
 } from 'react';
 
@@ -151,7 +151,7 @@ export function usePostModal(options: UsePostModalOptions = {}): {
   openPostBatchModal: (ingredient: IIngredient | IIngredient[]) => void;
   publishIngredient: IIngredient | null;
 } {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error('usePostModal must be used within GlobalModalsProvider');
   }
@@ -177,7 +177,7 @@ export function useConfirmModal(): Pick<
   GlobalModalsContextValue,
   'closeConfirm' | 'openConfirm'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error('useConfirmModal must be used within GlobalModalsProvider');
   }
@@ -190,7 +190,7 @@ export function useConfirmModal(): Pick<
 export function useUploadModal(
   options: { onConfirm?: (ingredient?: IIngredient | IAsset) => void } = {},
 ) {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error('useUploadModal must be used within GlobalModalsProvider');
   }
@@ -228,7 +228,7 @@ export function useGalleryModal(): Pick<
   GlobalModalsContextValue,
   'closeGallery' | 'openGallery'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error('useGalleryModal must be used within GlobalModalsProvider');
   }
@@ -242,7 +242,7 @@ export function useIngredientOverlay(): Pick<
   GlobalModalsContextValue,
   'closeIngredientOverlay' | 'openIngredientOverlay'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error(
       'useIngredientOverlay must be used within GlobalModalsProvider',
@@ -258,7 +258,7 @@ export function useExportModal(): Pick<
   GlobalModalsContextValue,
   'closeExport' | 'openExport'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error('useExportModal must be used within GlobalModalsProvider');
   }
@@ -272,7 +272,7 @@ export function useCredentialModal(): Pick<
   GlobalModalsContextValue,
   'closeCredentialModal' | 'openCredentialModal'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error(
       'useCredentialModal must be used within GlobalModalsProvider',
@@ -288,7 +288,7 @@ export function usePromptModal(): Pick<
   GlobalModalsContextValue,
   'closePromptModal' | 'openPromptModal'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error('usePromptModal must be used within GlobalModalsProvider');
   }
@@ -299,7 +299,7 @@ export function usePromptModal(): Pick<
 }
 
 export function useConfirmDeleteModal() {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error(
       'useConfirmDeleteModal must be used within GlobalModalsProvider',
@@ -343,7 +343,7 @@ export function useMetadataModal(): Pick<
   GlobalModalsContextValue,
   'closeMetadataModal' | 'openMetadataModal'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error(
       'useMetadataModal must be used within GlobalModalsProvider',
@@ -359,7 +359,7 @@ export function useBrandOverlay(): Pick<
   GlobalModalsContextValue,
   'closeBrandOverlay' | 'openBrandOverlay'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error('useBrandOverlay must be used within GlobalModalsProvider');
   }
@@ -373,7 +373,7 @@ export function usePostMetadataOverlay(): Pick<
   GlobalModalsContextValue,
   'closePostMetadataOverlay' | 'openPostMetadataOverlay'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error(
       'usePostMetadataOverlay must be used within GlobalModalsProvider',
@@ -389,7 +389,7 @@ export function useGenerateIllustrationModal(): Pick<
   GlobalModalsContextValue,
   'closeGenerateIllustration' | 'openGenerateIllustration'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error(
       'useGenerateIllustrationModal must be used within GlobalModalsProvider',
@@ -405,7 +405,7 @@ export function usePostRemixModal(): Pick<
   GlobalModalsContextValue,
   'closePostRemixModal' | 'openPostRemixModal'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error(
       'usePostRemixModal must be used within GlobalModalsProvider',

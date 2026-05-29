@@ -6,7 +6,7 @@ import type {
   WebSectionProps,
 } from '@props/website/neural-grid.props';
 import type { VariantProps } from 'class-variance-authority';
-import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode, Ref } from 'react';
 import {
   neuralGridItemVariants,
   neuralGridVariants,
@@ -18,15 +18,21 @@ export interface NeuralGridProps
   extends HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof neuralGridVariants> {}
 
-const NeuralGrid = forwardRef<HTMLDivElement, NeuralGridProps>(
-  ({ className, columns, radius, ...props }, ref) => (
+function NeuralGrid({
+  className,
+  columns,
+  radius,
+  ref,
+  ...props
+}: NeuralGridProps & { ref?: Ref<HTMLDivElement> }) {
+  return (
     <div
       className={cn(neuralGridVariants({ columns, radius }), className)}
       ref={ref}
       {...props}
     />
-  ),
-);
+  );
+}
 NeuralGrid.displayName = 'NeuralGrid';
 
 /* ─── NeuralGridItem ─── */
@@ -44,22 +50,20 @@ export interface NeuralGridItemProps
   description?: ReactNode;
 }
 
-const NeuralGridItem = forwardRef<HTMLDivElement, NeuralGridItemProps>(
-  (
-    {
-      className,
-      padding,
-      align,
-      inverted,
-      tierLabel,
-      icon: Icon,
-      title,
-      description,
-      children,
-      ...props
-    },
-    ref,
-  ) => (
+function NeuralGridItem({
+  className,
+  padding,
+  align,
+  inverted,
+  tierLabel,
+  icon: Icon,
+  title,
+  description,
+  children,
+  ref,
+  ...props
+}: NeuralGridItemProps & { ref?: Ref<HTMLDivElement> }) {
+  return (
     <div
       className={cn(
         neuralGridItemVariants({ align, inverted, padding }),
@@ -103,8 +107,8 @@ const NeuralGridItem = forwardRef<HTMLDivElement, NeuralGridItemProps>(
       )}
       {children}
     </div>
-  ),
-);
+  );
+}
 NeuralGridItem.displayName = 'NeuralGridItem';
 
 /* ─── WebSection ─── */
@@ -129,18 +133,16 @@ const maxWidthClasses = {
   xl: 'max-w-6xl',
 } as const;
 
-const WebSection = forwardRef<HTMLElement, WebSectionProps>(
-  (
-    {
-      className,
-      bg = 'default',
-      py = 'lg',
-      maxWidth = 'lg',
-      children,
-      ...props
-    },
-    ref,
-  ) => (
+function WebSection({
+  className,
+  bg = 'default',
+  py = 'lg',
+  maxWidth = 'lg',
+  children,
+  ref,
+  ...props
+}: WebSectionProps & { ref?: Ref<HTMLElement> }) {
+  return (
     <section
       className={cn(pyClasses[py], bgClasses[bg], className)}
       ref={ref}
@@ -157,25 +159,23 @@ const WebSection = forwardRef<HTMLElement, WebSectionProps>(
         </div>
       </div>
     </section>
-  ),
-);
+  );
+}
 WebSection.displayName = 'WebSection';
 
 /* ─── CtaSection ─── */
 
-const CtaSection = forwardRef<HTMLElement, CtaSectionProps>(
-  (
-    {
-      className,
-      title,
-      description,
-      bg = 'default',
-      beforeButtons,
-      children,
-      ...props
-    },
-    ref,
-  ) => (
+function CtaSection({
+  className,
+  title,
+  description,
+  bg = 'default',
+  beforeButtons,
+  children,
+  ref,
+  ...props
+}: CtaSectionProps & { ref?: Ref<HTMLElement> }) {
+  return (
     <section
       className={cn('py-40', bg === 'subtle' && 'bg-fill/[0.02]', className)}
       ref={ref}
@@ -196,8 +196,8 @@ const CtaSection = forwardRef<HTMLElement, CtaSectionProps>(
         </div>
       </div>
     </section>
-  ),
-);
+  );
+}
 CtaSection.displayName = 'CtaSection';
 
 export type {

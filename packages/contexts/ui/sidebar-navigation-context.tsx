@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import {
   createContext,
+  use,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -204,5 +204,5 @@ const DEFAULT_CONTEXT: SidebarNavigationContextType = {
 };
 
 export function useSidebarNavigation(): SidebarNavigationContextType {
-  return useContext(SidebarNavigationContext) ?? DEFAULT_CONTEXT;
+  return use(SidebarNavigationContext) ?? DEFAULT_CONTEXT;
 }

@@ -41,7 +41,7 @@ import {
   type ReactNode,
   type RefObject,
   type SetStateAction,
-  useContext,
+  use,
 } from 'react';
 import type {
   Path,
@@ -184,7 +184,7 @@ export const PromptBarInternalContext =
   createContext<PromptBarInternalContextValue | null>(null);
 
 export function usePromptBarInternal(): PromptBarInternalContextValue {
-  const context = useContext(PromptBarInternalContext);
+  const context = use(PromptBarInternalContext);
   if (!context) {
     throw new Error(
       'usePromptBarInternal must be used within a PromptBarInternalContext.Provider',

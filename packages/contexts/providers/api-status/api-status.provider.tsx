@@ -8,8 +8,8 @@ import { Button } from '@ui/primitives/button';
 import {
   createContext,
   type ReactNode,
+  use,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -37,7 +37,7 @@ const API_HEALTH_CACHE_TTL_MS = 60_000;
 let lastApiHealthCheck: ApiHealthCacheEntry | null = null;
 
 export function useApiStatus(): ApiStatusContextValue {
-  const context = useContext(ApiStatusContext);
+  const context = use(ApiStatusContext);
   if (!context) {
     throw new Error('useApiStatus must be used within ApiStatusProvider');
   }

@@ -24,8 +24,8 @@ import {
   createContext,
   type PropsWithChildren,
   startTransition,
+  use,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -579,7 +579,7 @@ const DEFAULT_BRAND_CONTEXT: BrandContextType = {
 };
 
 export function useBrand(): BrandContextType {
-  return useContext(BrandContext) ?? DEFAULT_BRAND_CONTEXT;
+  return use(BrandContext) ?? DEFAULT_BRAND_CONTEXT;
 }
 
 /** Use when you only need the brand ID — won't re-render on other changes */

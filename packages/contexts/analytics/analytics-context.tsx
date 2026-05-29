@@ -5,13 +5,7 @@ import type { AnalyticsContextType } from '@genfeedai/interfaces/analytics/analy
 import type { DateRange } from '@genfeedai/interfaces/utils/date.interface';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { subDays } from 'date-fns';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
+import { createContext, use, useCallback, useEffect, useState } from 'react';
 
 const AnalyticsContext = createContext<AnalyticsContextType | undefined>(
   undefined,
@@ -67,7 +61,7 @@ export function AnalyticsProvider({
 }
 
 export function useAnalyticsContext() {
-  const context = useContext(AnalyticsContext);
+  const context = use(AnalyticsContext);
   if (!context) {
     throw new Error(
       'useAnalyticsContext must be used within AnalyticsProvider',

@@ -7,7 +7,7 @@ import {
   createContext,
   type HTMLAttributes,
   type ReactNode,
-  useContext,
+  use,
 } from 'react';
 import { cn } from '../../lib/utils';
 
@@ -57,7 +57,7 @@ interface ModalContextValue {
 
 const ModalContext = createContext<ModalContextValue>({ size: 'md' });
 
-const useModalContext = () => useContext(ModalContext);
+const useModalContext = () => use(ModalContext);
 
 // Root
 const ModalRoot = DialogPrimitive.Root;
