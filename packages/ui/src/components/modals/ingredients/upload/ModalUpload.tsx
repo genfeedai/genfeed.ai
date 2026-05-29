@@ -1,3 +1,5 @@
+'use client';
+
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
@@ -32,128 +34,21 @@ import { SocketService } from '@genfeedai/services/core/socket.service';
 import { VoiceCloneService } from '@genfeedai/services/ingredients/voice-clone.service';
 import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
 import { ScopeSelector } from '@ui/assets/ScopeSelector';
-import Badge from '@ui/display/badge/Badge';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
-import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { HiMicrophone, HiStop } from 'react-icons/hi2';
-
-type FileStatusUpdater = Dispatch<
-  SetStateAction<Map<string, FileUploadStatus>>
->;
-
-/**
- * Helper to update file status in the status map.
- */
-function updateFileStatus(
-  setFileStatuses: FileStatusUpdater,
-  fileId: string,
-  updates: Partial<FileUploadStatus>,
-): void {
-  setFileStatuses((prev) => {
-    const newMap = new Map(prev);
-    const existing = newMap.get(fileId);
-    if (existing) {
-      newMap.set(fileId, { ...existing, ...updates });
-    }
-    return newMap;
-  });
-}
-
-/**
- * Gets badge variant based on file upload status.
- */
-function getStatusBadgeVariant(
-  status: FileUploadStatus['status'],
-): 'success' | 'error' | 'info' | 'ghost' {
-  switch (status) {
-    case UploadStatus.COMPLETED:
-      return 'success';
-    case UploadStatus.FAILED:
-      return 'error';
-    case UploadStatus.UPLOADING:
-      return 'info';
-    default:
-      return 'ghost';
-  }
-}
-
-/**
- * Gets badge label based on file upload status.
- */
-function getStatusBadgeLabel(fileStatus: FileUploadStatus): string {
-  switch (fileStatus.status) {
-    case UploadStatus.UPLOADING:
-      return `${fileStatus.progress}%`;
-    case UploadStatus.COMPLETED:
-      return '\u2713';
-    case UploadStatus.FAILED:
-      return '\u2717';
-    default:
-      return 'pending';
-  }
-}
-
-/**
- * Gets max file size in MB based on category.
- */
-function getMaxFileSize(
-  isImageLike: boolean,
-  isAudioLike: boolean,
-  isVideoLike: boolean,
-): number {
-  if (isImageLike) {
-    return 10;
-  }
-  if (isAudioLike) {
-    return 25;
-  }
-  if (isVideoLike) {
-    return 50;
-  }
-  return 10;
-}
-
-/**
- * Gets accepted file extensions based on category.
- */
-function getAcceptedTypes(
-  isImageLike: boolean,
-  isVideoLike: boolean,
-  isAudioLike: boolean,
-): string[] {
-  if (isImageLike) {
-    return ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
-  }
-  if (isVideoLike) {
-    return ['.mp4', '.avi', '.mov', '.mkv', '.webm'];
-  }
-  if (isAudioLike) {
-    return ['.mp3', '.wav', '.aac', '.flac', '.ogg'];
-  }
-  return [];
-}
-
-/**
- * Gets dimension recommendation text based on width/height constraints.
- */
-function getDimensionText(width?: number, height?: number): string {
-  if (width && height) {
-    return `Recommended size: ${width}x${height}px`;
-  }
-  if (width) {
-    return `Recommended width: ${width}px`;
-  }
-  if (height) {
-    return `Recommended height: ${height}px`;
-  }
-  return '';
-}
+import UploadFileList from './UploadFileList';
+import UploadRequirements from './UploadRequirements';
+import UploadVoiceCloneSection from './UploadVoiceCloneSection';
+import {
+  getAcceptedTypes,
+  getDimensionText,
+  getMaxFileSize,
+  updateFileStatus,
+} from './upload.utils';
 
 export default function ModalUpload({
   category,
@@ -474,6 +369,12 @@ export default function ModalUpload({
   const dimensionText = getDimensionText(width, height);
   const selectedFileList = recordedFile ? [recordedFile] : files;
 
+  const handleStartRecording = useCallback(() => {
+    startRecording().catch((err) => {
+      logger.error('Failed to start recording', err);
+    });
+  }, [startRecording]);
+
   const handleSubmit = async () => {
     let selectedFiles = selectedFileList;
 
@@ -723,90 +624,19 @@ export default function ModalUpload({
     >
       <form ref={formRef} onSubmit={onSubmit}>
         {isVoiceLike ? (
-          <div className="mb-4 space-y-4">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">Voice name</p>
-              <Input
-                onChange={(event) => setVoiceCloneName(event.target.value)}
-                placeholder="My Voice"
-                value={voiceCloneName}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">Provider</p>
-              <RadioGroup
-                className="flex flex-wrap gap-4"
-                onValueChange={(value) =>
-                  setVoiceCloneProvider(value as VoiceProvider)
-                }
-                value={voiceCloneProvider}
-              >
-                <label
-                  className="flex cursor-pointer items-center gap-2 text-sm"
-                  htmlFor="voice-provider-elevenlabs"
-                >
-                  <RadioGroupItem
-                    id="voice-provider-elevenlabs"
-                    value={VoiceProvider.ELEVENLABS}
-                  />
-                  <span>ElevenLabs</span>
-                </label>
-                {isSelfHostedVoiceAvailable && (
-                  <label
-                    className="flex cursor-pointer items-center gap-2 text-sm"
-                    htmlFor="voice-provider-genfeed-ai"
-                  >
-                    <RadioGroupItem
-                      id="voice-provider-genfeed-ai"
-                      value={VoiceProvider.GENFEED_AI}
-                    />
-                    <span>Genfeed AI</span>
-                  </label>
-                )}
-              </RadioGroup>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                icon={isRecording ? <HiStop /> : <HiMicrophone />}
-                onClick={() => {
-                  if (isRecording) {
-                    stopRecording();
-                    return;
-                  }
-
-                  startRecording().catch((err) => {
-                    logger.error('Failed to start recording', err);
-                  });
-                }}
-                type="button"
-                variant={ButtonVariant.SECONDARY}
-                withWrapper={false}
-              >
-                {isRecording ? 'Stop recording' : 'Record sample'}
-              </Button>
-              {isRecordingSupported ? (
-                <span className="text-xs text-muted-foreground">
-                  Record a short clean voice sample directly from your
-                  microphone.
-                </span>
-              ) : (
-                <span className="text-xs text-muted-foreground">
-                  Microphone recording is not supported in this browser.
-                </span>
-              )}
-            </div>
-
-            {recordedFile ? (
-              <div className="rounded-lg border border-white/[0.08] bg-white/[0.03] p-3 text-sm text-muted-foreground">
-                Recorded sample ready: {recordedFile.name}
-              </div>
-            ) : null}
-            {recordingError ? (
-              <div className="text-xs text-destructive">{recordingError}</div>
-            ) : null}
-          </div>
+          <UploadVoiceCloneSection
+            voiceCloneName={voiceCloneName}
+            onVoiceCloneNameChange={setVoiceCloneName}
+            voiceCloneProvider={voiceCloneProvider}
+            onVoiceCloneProviderChange={setVoiceCloneProvider}
+            isSelfHostedVoiceAvailable={isSelfHostedVoiceAvailable}
+            isRecording={isRecording}
+            isRecordingSupported={isRecordingSupported}
+            recordedFile={recordedFile}
+            recordingError={recordingError}
+            onStartRecording={handleStartRecording}
+            onStopRecording={stopRecording}
+          />
         ) : null}
 
         <div
@@ -817,70 +647,13 @@ export default function ModalUpload({
         >
           <Input type="file" {...getInputProps({ name: 'file' })} />
           {selectedFileList.length > 0 ? (
-            <div className="text-left space-y-1">
-              <div className="text-xs opacity-70">
-                {selectedFileList.length} / {maxFiles} selected
-              </div>
-              <ul className="space-y-2">
-                {selectedFileList.map((f) => {
-                  // Find the status for this file
-                  const fileStatus = Array.from(fileStatuses.values()).find(
-                    (status) => status.file.name === f.name,
-                  );
-
-                  return (
-                    <li
-                      key={`${f.name}-${f.size}-${f.lastModified}`}
-                      className="space-y-1"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate max-w-52" title={f.name}>
-                          {f.name}
-                        </span>
-
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant={
-                              f.size > maxSize * 1024 * 1024 ? 'error' : 'ghost'
-                            }
-                            className="whitespace-nowrap text-xs"
-                          >
-                            {formatSize(f.size)}
-                          </Badge>
-
-                          {fileStatus && (
-                            <Badge
-                              variant={getStatusBadgeVariant(fileStatus.status)}
-                              className="text-xs whitespace-nowrap"
-                            >
-                              {getStatusBadgeLabel(fileStatus)}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-
-                      {fileStatus &&
-                        fileStatus.status === UploadStatus.UPLOADING && (
-                          <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                            <div
-                              className="bg-primary h-full rounded-full transition-all duration-300 ease-out"
-                              style={{ width: `${fileStatus.progress}%` }}
-                            />
-                          </div>
-                        )}
-
-                      {fileStatus &&
-                        fileStatus.status === UploadStatus.FAILED &&
-                        fileStatus.error && (
-                          <div className="text-xs text-error opacity-80">
-                            {fileStatus.error}
-                          </div>
-                        )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+            <UploadFileList
+              selectedFileList={selectedFileList}
+              maxFiles={maxFiles}
+              maxSize={maxSize}
+              fileStatuses={fileStatuses}
+              formatSize={formatSize}
+            />
           ) : (
             <p>Drop files here or click to upload</p>
           )}
@@ -897,34 +670,13 @@ export default function ModalUpload({
           />
         </FormControl> */}
 
-        {(acceptedTypes.length > 0 ||
-          dimensionText ||
-          maxFiles >= 1 ||
-          dimensionWarning) && (
-          <div className="text-xs text-muted-foreground mt-3 space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="opacity-70">Requirements</span>
-              <Badge variant="ghost">
-                {maxFiles === 1 ? 'Single file' : `Up to ${maxFiles} files`}
-              </Badge>
-
-              <Badge variant="ghost">≤ {maxSize}MB each</Badge>
-
-              {acceptedTypes.length > 0 && (
-                <Badge variant="ghost">
-                  {acceptedTypes
-                    .map((e) => e.replace('.', '').toUpperCase())
-                    .join(', ')}
-                </Badge>
-              )}
-            </div>
-            {dimensionWarning ? (
-              <p className="text-warning">{dimensionWarning}</p>
-            ) : (
-              dimensionText && <div className="opacity-80">{dimensionText}</div>
-            )}
-          </div>
-        )}
+        <UploadRequirements
+          acceptedTypes={acceptedTypes}
+          maxFiles={maxFiles}
+          maxSize={maxSize}
+          dimensionText={dimensionText}
+          dimensionWarning={dimensionWarning}
+        />
 
         {/* Privacy/Scope selector - only for media uploads, not assets like logos/banners */}
         {category !== AssetCategory.LOGO &&

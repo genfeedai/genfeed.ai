@@ -11,31 +11,26 @@ import type {
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { Model } from '@models/ai/model.model';
-import type { TableAction, TableColumn } from '@props/ui/display/table.props';
+import type { TableAction } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { ModelsService } from '@services/ai/models.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import StatsCards from '@ui/card/stats/StatsCards';
-import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Switch } from '@ui/primitives/switch';
 import { ErrorHandler } from '@utils/error/error-handler.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { HiInformationCircle, HiTrash } from 'react-icons/hi2';
+import ModelsAdminHeader from './components/ModelsAdminHeader';
+import { buildModelsTableColumns } from './components/ModelsTableColumns';
 import {
-  HiDocumentText,
-  HiFilm,
-  HiInformationCircle,
-  HiMusicalNote,
-  HiPhoto,
-  HiTrash,
-} from 'react-icons/hi2';
+  buildDefaultModelCards,
+  buildDefaultModelMap,
+} from './components/models-admin-header.helpers';
 
 export default function ModelsList({
   type,
@@ -293,90 +288,19 @@ export default function ModelsList({
   }, [defaultModelsError]);
 
   // Process default models for admin cards
-  const defaultModels = useMemo(() => {
-    if (!isAdminScope || !defaultModelsData) {
-      return {};
-    }
-    const defaults: {
-      image?: IModel;
-      video?: IModel;
-      music?: IModel;
-      text?: IModel;
-    } = {};
-    for (const model of defaultModelsData) {
-      if (model.isDefault) {
-        if (model.category === ModelCategory.IMAGE) {
-          defaults.image = model;
-        } else if (model.category === ModelCategory.VIDEO) {
-          defaults.video = model;
-        } else if (model.category === ModelCategory.MUSIC) {
-          defaults.music = model;
-        } else if (model.category === ModelCategory.TEXT) {
-          defaults.text = model;
-        }
-      }
-    }
-    return defaults;
-  }, [isAdminScope, defaultModelsData]);
+  const defaultModels = useMemo(
+    () =>
+      isAdminScope && defaultModelsData
+        ? buildDefaultModelMap(defaultModelsData)
+        : {},
+    [isAdminScope, defaultModelsData],
+  );
 
   // Transform default models to StatsCards format (admin only)
-  const defaultModelCards = useMemo(() => {
-    if (!isAdminScope) {
-      return [];
-    }
-
-    const allCards = [
-      {
-        categoryMatch: 'image',
-        colorClass: 'bg-purple-500/20 text-purple-400',
-        count: 0,
-        description: defaultModels.image?.label || 'Not set',
-        icon: HiPhoto,
-        label: 'Image',
-      },
-      {
-        categoryMatch: 'video',
-        colorClass: 'bg-blue-500/20 text-blue-400',
-        count: 0,
-        description: defaultModels.video?.label || 'Not set',
-        icon: HiFilm,
-        label: 'Video',
-      },
-      {
-        categoryMatch: 'music',
-        colorClass: 'bg-amber-500/20 text-amber-400',
-        count: 0,
-        description: defaultModels.music?.label || 'Not set',
-        icon: HiMusicalNote,
-        label: 'Music',
-      },
-      {
-        categoryMatch: 'text',
-        colorClass: 'bg-green-500/20 text-green-400',
-        count: 0,
-        description: defaultModels.text?.label || 'Not set',
-        icon: HiDocumentText,
-        label: 'Text',
-      },
-    ];
-
-    // Add opacity to card if it doesn't match the active category
-    return allCards.map((card) => {
-      const isActiveCategory =
-        category === 'all' ||
-        category === card.categoryMatch ||
-        (category === 'other' && card.categoryMatch === 'text');
-
-      return {
-        cardClassName: isActiveCategory ? undefined : 'opacity-50',
-        colorClass: card.colorClass,
-        count: card.count,
-        description: card.description,
-        icon: card.icon,
-        label: card.label,
-      };
-    });
-  }, [isAdminScope, category, defaultModels]);
+  const defaultModelCards = useMemo(
+    () => (isAdminScope ? buildDefaultModelCards(defaultModels, category) : []),
+    [isAdminScope, category, defaultModels],
+  );
 
   // Mark component as mounted after first render
   useEffect(() => {
@@ -604,110 +528,16 @@ export default function ModelsList({
     }
   }, [selectedModel, getModelsService, handleRefresh, notificationsService]);
 
-  const columns: TableColumn<IModel>[] = useMemo(
-    () => [
-      { header: 'Label', key: 'label' },
-      {
-        className: 'truncate max-w-40',
-        header: 'Description',
-        key: 'description',
-        render: (model: IModel) => model.description || '-',
-      },
-      ...(isAdminScope
-        ? [
-            { className: 'font-mono text-sm', header: 'Key', key: 'key' },
-            {
-              header: 'Provider',
-              key: 'provider',
-              render: (model: IModel) => (
-                <Badge
-                  className={`text-xs uppercase ${model.providerBadgeClass}`}
-                >
-                  {model.provider}
-                </Badge>
-              ),
-            },
-          ]
-        : []),
-      {
-        header: 'Category',
-        key: 'category',
-        render: (model: IModel) => (
-          <Badge className={`text-xs uppercase ${model.categoryBadgeClass}`}>
-            {model.category}
-          </Badge>
-        ),
-      },
-      {
-        header: 'Value',
-        key: 'cost',
-        render: (val: IModel) => {
-          const tier = val.costTier || 'low';
-          const tierLabel =
-            tier === 'high' ? 'Best' : tier === 'medium' ? 'Better' : 'Good';
-          const tierClass =
-            tier === 'high'
-              ? 'bg-emerald-500/20 text-emerald-400'
-              : tier === 'medium'
-                ? 'bg-blue-500/20 text-blue-400'
-                : 'bg-foreground/10 text-foreground/70';
-          return <Badge className={`text-xs ${tierClass}`}>{tierLabel}</Badge>;
-        },
-      },
-      ...(isAdminScope
-        ? [
-            {
-              header: 'Active',
-              key: 'isActive',
-              render: (model: IModel) => (
-                <Switch
-                  isChecked={model.isActive}
-                  isDisabled={
-                    model.isActive && isOnlyDefaultInCategory(model)
-                      ? true
-                      : togglingModelId === model.id
-                  }
-                  onChange={() => handleAdminToggle(model, 'isActive')}
-                />
-              ),
-            },
-            {
-              header: 'Default',
-              key: 'isDefault',
-              render: (model: IModel) => (
-                <Switch
-                  isChecked={model.isDefault}
-                  isDisabled={
-                    !!(
-                      !model.isActive ||
-                      isOnlyDefaultInCategory(model) ||
-                      togglingModelId === model.id
-                    )
-                  }
-                  onChange={() => handleAdminToggle(model, 'isDefault')}
-                />
-              ),
-            },
-          ]
-        : [
-            {
-              header: '',
-              key: 'enabled',
-              render: (model: IModel) => {
-                const isEnabled = isModelEnabled(model.id);
-                const isToggling = togglingModelId === model.id;
-
-                return (
-                  <Switch
-                    isChecked={isEnabled}
-                    onChange={() => handleToggleModel(model, !isEnabled)}
-                    isDisabled={isToggling || model.isDefault}
-                  />
-                );
-              },
-            },
-          ]),
-    ],
+  const columns = useMemo(
+    () =>
+      buildModelsTableColumns({
+        isAdminScope,
+        isModelEnabled,
+        isOnlyDefaultInCategory,
+        handleAdminToggle,
+        handleToggleModel,
+        togglingModelId,
+      }),
     [
       isAdminScope,
       isModelEnabled,
@@ -757,17 +587,14 @@ export default function ModelsList({
   return (
     <>
       {isAdminScope && (
-        <>
-          <div className="mb-4">
-            <AdminOrgBrandFilter
-              organization={adminOrg}
-              brand={adminBrand}
-              onOrganizationChange={handleAdminOrgChange}
-              onBrandChange={handleAdminBrandChange}
-            />
-          </div>
-          <StatsCards items={defaultModelCards} isLoading={isLoadingDefaults} />
-        </>
+        <ModelsAdminHeader
+          organization={adminOrg}
+          brand={adminBrand}
+          onOrganizationChange={handleAdminOrgChange}
+          onBrandChange={handleAdminBrandChange}
+          defaultModelCards={defaultModelCards}
+          isLoadingDefaults={isLoadingDefaults}
+        />
       )}
 
       <AppTable<IModel>

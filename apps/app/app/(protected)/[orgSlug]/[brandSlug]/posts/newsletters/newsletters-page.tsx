@@ -12,19 +12,14 @@ import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
-import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  HiArchiveBox,
-  HiCheckCircle,
-  HiEnvelope,
-  HiMagnifyingGlass,
-  HiSparkles,
-} from 'react-icons/hi2';
+import { HiEnvelope, HiMagnifyingGlass } from 'react-icons/hi2';
+import NewsletterContextReview from './newsletters-context-review';
+import NewsletterEditor from './newsletters-editor';
+import NewsletterGeneratePanel from './newsletters-generate-panel';
 
 type TopicProposal = {
   angle: string;
@@ -32,7 +27,7 @@ type TopicProposal = {
   title: string;
 };
 
-type NewsletterContextPreview = Awaited<
+export type NewsletterContextPreview = Awaited<
   ReturnType<NewslettersService['getContext']>
 >;
 
@@ -428,233 +423,30 @@ function NewslettersPageContent() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card className="space-y-4 p-5">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold">Generate next issue</h2>
-              <p className="text-sm text-muted-foreground">
-                Start from AI proposals or set a manual topic, then choose which
-                recent issues the draft should remember.
-              </p>
-            </div>
-            <Button
-              label="Generate Proposals"
-              variant={ButtonVariant.SOFT}
-              icon={<HiSparkles />}
-              isLoading={isGeneratingTopics}
-              onClick={handleGenerateTopics}
-            />
-          </div>
+        <NewsletterGeneratePanel
+          instructions={instructions}
+          isGeneratingDraft={isGeneratingDraft}
+          isGeneratingTopics={isGeneratingTopics}
+          manualAngle={manualAngle}
+          manualTopic={manualTopic}
+          proposals={proposals}
+          publishedNewsletters={publishedNewsletters}
+          selectedContextSet={selectedContextSet}
+          selectedProposal={selectedProposal}
+          onGenerateDraft={handleGenerateDraft}
+          onGenerateTopics={handleGenerateTopics}
+          onInstructionsChange={setInstructions}
+          onManualAngleChange={setManualAngle}
+          onManualTopicChange={setManualTopic}
+          onSelectProposal={setSelectedProposal}
+          onToggleContext={(id, checked) => {
+            setSelectedContextIds((prev) =>
+              checked ? [...prev, id] : prev.filter((item) => item !== id),
+            );
+          }}
+        />
 
-          <Textarea
-            label="Editorial instructions"
-            rows={4}
-            placeholder="Audience framing, structure preferences, exclusions, or tone guidance..."
-            value={instructions}
-            onChange={(event) => setInstructions(event.target.value)}
-          />
-
-          <div className="space-y-3">
-            <div className="text-sm font-medium text-foreground">
-              AI topic proposals
-            </div>
-            {proposals.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-                Generate proposals to get issue angles grounded in brand context
-                and recent published newsletters.
-              </div>
-            ) : (
-              <div className="grid gap-3">
-                {proposals.map((proposal) => {
-                  const isSelected =
-                    selectedProposal?.title === proposal.title &&
-                    selectedProposal?.angle === proposal.angle;
-
-                  return (
-                    <Button
-                      key={`${proposal.title}-${proposal.angle}`}
-                      variant={ButtonVariant.UNSTYLED}
-                      withWrapper={false}
-                      className={`rounded-lg border p-4 text-left transition-colors ${
-                        isSelected
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/40'
-                      }`}
-                      onClick={() => setSelectedProposal(proposal)}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="font-medium text-foreground">
-                          {proposal.title}
-                        </div>
-                        {isSelected ? (
-                          <Badge status="active">Selected</Badge>
-                        ) : null}
-                      </div>
-                      <div className="mt-2 text-sm text-foreground/90">
-                        {proposal.angle}
-                      </div>
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        {proposal.reason}
-                      </div>
-                    </Button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <span className="text-sm font-medium text-foreground">
-                Manual topic
-              </span>
-              <Input
-                placeholder="Enter a topic to bypass proposals"
-                value={manualTopic}
-                onChange={(event) => setManualTopic(event.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <span className="text-sm font-medium text-foreground">
-                Manual angle
-              </span>
-              <Input
-                placeholder="Optional framing"
-                value={manualAngle}
-                onChange={(event) => setManualAngle(event.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="text-sm font-medium text-foreground">
-              Prior newsletters in memory
-            </div>
-            {publishedNewsletters.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-                No published newsletters yet. The first issue will rely on brand
-                memory, instructions, and any current sources.
-              </div>
-            ) : (
-              <div className="grid gap-2">
-                {publishedNewsletters.map((newsletter) => (
-                  <span
-                    key={newsletter.id}
-                    className="flex items-start gap-3 rounded-lg border border-border p-3 text-sm"
-                  >
-                    <Checkbox
-                      checked={selectedContextSet.has(newsletter.id)}
-                      onCheckedChange={(value) => {
-                        setSelectedContextIds((prev) =>
-                          value
-                            ? [...prev, newsletter.id]
-                            : prev.filter((item) => item !== newsletter.id),
-                        );
-                      }}
-                    />
-                    <span className="space-y-1">
-                      <span className="block font-medium text-foreground">
-                        {newsletter.label}
-                      </span>
-                      <span className="block text-muted-foreground">
-                        {newsletter.topic}
-                      </span>
-                    </span>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <Button
-            label="Generate Review Draft"
-            variant={ButtonVariant.SOFT}
-            isLoading={isGeneratingDraft}
-            onClick={handleGenerateDraft}
-          />
-        </Card>
-
-        <Card className="space-y-4 p-5">
-          <div>
-            <h2 className="text-lg font-semibold">Context review</h2>
-            <p className="text-sm text-muted-foreground">
-              Inspect the memory stack behind the current draft before approving
-              or publishing it.
-            </p>
-          </div>
-
-          {contextPreview ? (
-            <div className="space-y-4">
-              <div className="rounded-lg border border-border p-3">
-                <div className="text-sm font-medium text-foreground">
-                  Selected continuity issues
-                </div>
-                <div className="mt-3 space-y-2">
-                  {contextPreview.selectedContext.length > 0 ? (
-                    contextPreview.selectedContext.map((item) => (
-                      <div key={item.id} className="rounded bg-muted/30 p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="text-sm font-medium text-foreground">
-                            {item.label}
-                          </div>
-                          <Badge status={item.status}>
-                            {statusLabel(item.status as Newsletter['status'])}
-                          </Badge>
-                        </div>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {item.topic}
-                        </div>
-                        {item.summary ? (
-                          <div className="mt-2 text-xs text-muted-foreground">
-                            {item.summary}
-                          </div>
-                        ) : null}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-sm text-muted-foreground">
-                      No prior issues were attached to this draft.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-border p-3">
-                <div className="text-sm font-medium text-foreground">
-                  Context sources
-                </div>
-                <div className="mt-3 space-y-2">
-                  {contextPreview.contextSources.length > 0 ? (
-                    contextPreview.contextSources.slice(0, 5).map((source) => (
-                      <div
-                        key={`${source.label}-${source.url ?? 'internal'}`}
-                        className="rounded bg-muted/30 p-3"
-                      >
-                        <div className="text-sm font-medium text-foreground">
-                          {source.label}
-                        </div>
-                        {source.summary ? (
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            {source.summary}
-                          </div>
-                        ) : null}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-sm text-muted-foreground">
-                      No context summaries were attached.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-              Generate or select a newsletter to inspect the memory context used
-              during drafting.
-            </div>
-          )}
-        </Card>
+        <NewsletterContextReview contextPreview={contextPreview} />
       </div>
 
       <Card className="p-5">
@@ -760,122 +552,24 @@ function NewslettersPageContent() {
             </div>
 
             {selectedNewsletter ? (
-              <div className="space-y-4 rounded-lg border border-border p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Badge status={selectedNewsletter.status}>
-                        {statusLabel(selectedNewsletter.status)}
-                      </Badge>
-                      {editorDirty ? (
-                        <Badge status="pending">Unsaved changes</Badge>
-                      ) : null}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Draft, revise, approve, then publish when the issue is
-                      ready.
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      label="Save"
-                      variant={ButtonVariant.SOFT}
-                      isLoading={isSaving}
-                      isDisabled={!editorDirty}
-                      onClick={handleSave}
-                    />
-                    <Button
-                      label="Regenerate"
-                      variant={ButtonVariant.SOFT}
-                      isLoading={isGeneratingDraft}
-                      onClick={handleRegenerate}
-                    />
-                    <Button
-                      label="Approve"
-                      variant={ButtonVariant.SOFT}
-                      icon={<HiCheckCircle />}
-                      isLoading={isApproving}
-                      isDisabled={selectedNewsletter.status === 'published'}
-                      onClick={() => handleApprove(selectedNewsletter.id)}
-                    />
-                    <Button
-                      label="Publish"
-                      variant={ButtonVariant.SOFT}
-                      icon={<HiSparkles />}
-                      isLoading={isPublishing}
-                      isDisabled={selectedNewsletter.status === 'published'}
-                      onClick={() => handlePublish(selectedNewsletter.id)}
-                    />
-                    <Button
-                      label="Archive"
-                      variant={ButtonVariant.UNSTYLED}
-                      icon={<HiArchiveBox />}
-                      className="rounded-lg border border-border px-3 py-2 text-sm"
-                      isLoading={isArchiving}
-                      onClick={() => handleArchive(selectedNewsletter.id)}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Input
-                    placeholder="Newsletter label"
-                    value={editorState.label}
-                    onChange={(event) =>
-                      setEditorState((prev) => ({
-                        ...prev,
-                        label: event.target.value,
-                      }))
-                    }
-                  />
-                  <Input
-                    placeholder="Newsletter topic"
-                    value={editorState.topic}
-                    onChange={(event) =>
-                      setEditorState((prev) => ({
-                        ...prev,
-                        topic: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Input
-                    placeholder="Angle"
-                    value={editorState.angle}
-                    onChange={(event) =>
-                      setEditorState((prev) => ({
-                        ...prev,
-                        angle: event.target.value,
-                      }))
-                    }
-                  />
-                  <Input
-                    placeholder="Summary"
-                    value={editorState.summary}
-                    onChange={(event) =>
-                      setEditorState((prev) => ({
-                        ...prev,
-                        summary: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-
-                <Textarea
-                  label="Newsletter content"
-                  rows={22}
-                  value={editorState.content}
-                  onChange={(event) =>
-                    setEditorState((prev) => ({
-                      ...prev,
-                      content: event.target.value,
-                    }))
-                  }
-                />
-              </div>
+              <NewsletterEditor
+                editorDirty={editorDirty}
+                editorState={editorState}
+                isApproving={isApproving}
+                isArchiving={isArchiving}
+                isGeneratingDraft={isGeneratingDraft}
+                isPublishing={isPublishing}
+                isSaving={isSaving}
+                selectedNewsletter={selectedNewsletter}
+                onApprove={handleApprove}
+                onArchive={handleArchive}
+                onEditorChange={(patch) =>
+                  setEditorState((prev) => ({ ...prev, ...patch }))
+                }
+                onPublish={handlePublish}
+                onRegenerate={handleRegenerate}
+                onSave={handleSave}
+              />
             ) : (
               <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
                 Select a newsletter to edit content, revise context, and move it

@@ -3,13 +3,11 @@
 import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
-  ButtonSize,
   ButtonVariant,
   PromptCategory,
   SystemPromptKey,
 } from '@genfeedai/enums';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { useWebsocketPrompt } from '@hooks/utils/use-websocket-prompt/use-websocket-prompt';
 import { Prompt } from '@models/content/prompt.model';
 import { PromptsService } from '@services/content/prompts.service';
@@ -21,47 +19,31 @@ import { BrandsService } from '@services/social/brands.service';
 import type { Editor } from '@tiptap/core';
 import Mention, { type MentionNodeAttrs } from '@tiptap/extension-mention';
 import Placeholder from '@tiptap/extension-placeholder';
-import { EditorContent, ReactRenderer, useEditor } from '@tiptap/react';
+import { ReactRenderer, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import type { SuggestionOptions } from '@tiptap/suggestion';
 import { Modal } from '@ui/modals/compound/modal.compound';
-import { Button as BaseButton, Button } from '@ui/primitives/button';
+import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import {
-  type Ref,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useState,
-} from 'react';
-import { HiOutlineSparkles } from 'react-icons/hi2';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import tippy, { type Instance } from 'tippy.js';
+import { WorkspaceTaskBrandField } from './workspace-task-brand-field';
+import {
+  type WorkspaceBrandMentionItem,
+  WorkspaceBrandMentionList,
+} from './workspace-task-brand-mention-list';
+import {
+  TASK_MODE_OPTIONS,
+  TASK_PRESETS,
+  type WorkspaceTaskMode,
+} from './workspace-task-composer.constants';
 import {
   extractBrandMentionMatch,
   getBrandDisplayLabel,
 } from './workspace-task-composer.helpers';
-
-type WorkspaceTaskMode = 'standard' | 'research' | 'trends';
-
-interface WorkspaceBrandMentionItem {
-  id: string;
-  label: string;
-}
-
-interface WorkspaceBrandMentionListProps {
-  command: (item: WorkspaceBrandMentionItem) => void;
-  items: WorkspaceBrandMentionItem[];
-  ref?: Ref<{ onKeyDown: (props: { event: KeyboardEvent }) => boolean }>;
-}
+import { WorkspaceTaskFacecamPanel } from './workspace-task-facecam-panel';
+import { WorkspaceTaskToolbar } from './workspace-task-toolbar';
 
 interface FacecamOption {
   id: string;
@@ -74,126 +56,6 @@ interface WorkspaceTaskComposerProps {
   onOpenChange: (open: boolean) => void;
   onTaskCreated: (task: Task) => void;
   open: boolean;
-}
-
-const TASK_PRESETS = [
-  {
-    label: 'Post',
-    outputType: 'post' as const,
-  },
-  {
-    label: 'Newsletter',
-    outputType: 'newsletter' as const,
-  },
-  {
-    label: 'Image',
-    outputType: 'image' as const,
-  },
-  {
-    label: 'Video',
-    outputType: 'video' as const,
-  },
-  {
-    label: 'Facecam',
-    outputType: 'facecam' as const,
-  },
-  {
-    label: 'Caption',
-    outputType: 'caption' as const,
-  },
-  {
-    label: 'Auto',
-    outputType: 'ingredient' as const,
-  },
-];
-
-const TASK_MODE_OPTIONS: Array<{
-  description: string;
-  id: WorkspaceTaskMode;
-  label: string;
-}> = [
-  {
-    description: 'Create the requested output directly.',
-    id: 'standard',
-    label: 'Standard',
-  },
-  {
-    description:
-      'Route the task as a research brief with findings and next steps.',
-    id: 'research',
-    label: 'Research',
-  },
-  {
-    description:
-      'Produce a trend-focused report with signals, angles, and recommendations.',
-    id: 'trends',
-    label: 'Trends',
-  },
-];
-
-export function WorkspaceBrandMentionList({
-  command,
-  items,
-  ref,
-}: WorkspaceBrandMentionListProps) {
-  const [selectedIndex, setSelectedIndex] = useState(0);
-
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, []);
-
-  useImperativeHandle(ref, () => ({
-    onKeyDown: ({ event }: { event: KeyboardEvent }) => {
-      if (event.key === 'ArrowUp') {
-        setSelectedIndex((prev) => (prev + items.length - 1) % items.length);
-        return true;
-      }
-
-      if (event.key === 'ArrowDown') {
-        setSelectedIndex((prev) => (prev + 1) % items.length);
-        return true;
-      }
-
-      if (event.key === 'Enter') {
-        const item = items[selectedIndex];
-        if (item) {
-          command(item);
-        }
-        return true;
-      }
-
-      return false;
-    },
-  }));
-
-  if (items.length === 0) {
-    return (
-      <div className="rounded-lg border border-white/[0.12] bg-popover px-3 py-2 text-xs text-muted-foreground shadow-lg">
-        No brands found
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-h-48 overflow-y-auto rounded-lg border border-white/[0.12] bg-popover shadow-lg">
-      {items.map((item, index) => (
-        <BaseButton
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          key={item.id}
-          onClick={() => command(item)}
-          className={cn(
-            'flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors',
-            index === selectedIndex
-              ? 'bg-accent text-accent-foreground'
-              : 'text-popover-foreground hover:bg-accent/50',
-          )}
-        >
-          <span className="font-medium">@{item.label}</span>
-        </BaseButton>
-      ))}
-    </div>
-  );
 }
 
 export function WorkspaceTaskComposer({
@@ -708,41 +570,16 @@ export function WorkspaceTaskComposer({
         </Modal.Header>
 
         <Modal.Body className="space-y-4">
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between gap-3">
-              <span className="block text-xs font-medium text-foreground/60">
-                Target brand
-              </span>
-              {taskTargetBrandId ? (
-                <Button
-                  size={ButtonSize.XS}
-                  variant={ButtonVariant.GHOST}
-                  className="px-2 text-xs text-foreground/55"
-                  onClick={() => {
-                    taskTargetEditor?.commands.clearContent();
-                    setTaskTargetBrandId(null);
-                    setTaskTargetBrandLabel(null);
-                  }}
-                >
-                  Clear
-                </Button>
-              ) : null}
-            </div>
-            {taskTargetEditor ? (
-              <EditorContent editor={taskTargetEditor} />
-            ) : (
-              <div className="min-h-9 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-foreground/35">
-                Type @ to target a brand.
-              </div>
-            )}
-            <p className="text-xs text-foreground/35">
-              Targeting{' '}
-              <span className="font-medium text-foreground/55">
-                {selectedTargetBrandLabel}
-              </span>
-              {taskTargetBrandId ? ' from this modal' : ' by default'}.
-            </p>
-          </div>
+          <WorkspaceTaskBrandField
+            editor={taskTargetEditor}
+            onClear={() => {
+              taskTargetEditor?.commands.clearContent();
+              setTaskTargetBrandId(null);
+              setTaskTargetBrandLabel(null);
+            }}
+            selectedTargetBrandLabel={selectedTargetBrandLabel}
+            taskTargetBrandId={taskTargetBrandId}
+          />
 
           <Textarea
             id="workspace-task-request"
@@ -762,62 +599,19 @@ export function WorkspaceTaskComposer({
             }}
           />
 
-          <div className="flex flex-wrap items-center gap-2">
-            {TASK_PRESETS.map((preset) => (
-              <Button
-                key={preset.outputType}
-                size={ButtonSize.XS}
-                variant={
-                  taskOutputType === preset.outputType
-                    ? ButtonVariant.DEFAULT
-                    : ButtonVariant.SECONDARY
-                }
-                className="font-semibold uppercase tracking-[0.12em]"
-                disabled={taskMode !== 'standard'}
-                onClick={() => setTaskOutputType(preset.outputType)}
-              >
-                {preset.label}
-              </Button>
-            ))}
-            <span className="h-4 w-px bg-white/10" />
-            {TASK_MODE_OPTIONS.map((mode) => (
-              <Button
-                key={mode.id}
-                size={ButtonSize.XS}
-                variant={
-                  taskMode === mode.id
-                    ? ButtonVariant.DEFAULT
-                    : ButtonVariant.SECONDARY
-                }
-                className="font-semibold"
-                onClick={() => setTaskMode(mode.id)}
-              >
-                {mode.label}
-              </Button>
-            ))}
-            <div className="ml-auto flex items-center gap-1.5">
-              {previousTaskRequest ? (
-                <Button
-                  size={ButtonSize.XS}
-                  variant={ButtonVariant.GHOST}
-                  className="px-2 text-xs text-foreground/55"
-                  onClick={handleUndoTaskEnhancement}
-                >
-                  Undo
-                </Button>
-              ) : null}
-              <Button
-                size={ButtonSize.XS}
-                variant={ButtonVariant.GHOST}
-                className="px-2 text-xs text-foreground/70"
-                disabled={taskEnhancementBusy || !taskRequest.trim()}
-                onClick={() => void handleEnhanceTaskRequest()}
-              >
-                <HiOutlineSparkles className="size-3.5" />
-                {taskEnhancementBusy ? 'Enhancing…' : 'Enhance - 1 credit'}
-              </Button>
-            </div>
-          </div>
+          <WorkspaceTaskToolbar
+            isEnhancementBusy={taskEnhancementBusy}
+            hasPreviousRequest={previousTaskRequest !== null}
+            hasRequest={taskRequest.trim().length > 0}
+            modeOptions={TASK_MODE_OPTIONS}
+            onEnhance={() => void handleEnhanceTaskRequest()}
+            onOutputTypeChange={setTaskOutputType}
+            onTaskModeChange={setTaskMode}
+            onUndoEnhancement={handleUndoTaskEnhancement}
+            outputType={taskOutputType}
+            presets={TASK_PRESETS}
+            taskMode={taskMode}
+          />
 
           {taskMode !== 'standard' ? (
             <p className="text-xs text-foreground/35">
@@ -829,87 +623,21 @@ export function WorkspaceTaskComposer({
           ) : null}
 
           {taskOutputType === 'facecam' ? (
-            <div className="rounded-lg border border-white/10 bg-black/20 p-3 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/55">
-                  Facecam settings
-                </p>
-                {facecamLoading ? (
-                  <span className="text-[11px] text-foreground/40">
-                    Loading avatars & voices…
-                  </span>
-                ) : null}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="facecam-avatar"
-                    className="text-[11px] text-foreground/55"
-                  >
-                    Avatar
-                  </label>
-                  <Select
-                    value={facecamAvatarId}
-                    onValueChange={(value) => setFacecamAvatarId(value)}
-                    disabled={facecamLoading || facecamAvatars.length === 0}
-                  >
-                    <SelectTrigger id="facecam-avatar">
-                      <SelectValue placeholder="Pick an avatar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {facecamAvatars.map((avatar) => (
-                        <SelectItem key={avatar.id} value={avatar.id}>
-                          {avatar.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="facecam-voice"
-                    className="text-[11px] text-foreground/55"
-                  >
-                    Voice
-                  </label>
-                  <Select
-                    value={facecamVoiceId}
-                    onValueChange={(value) => {
-                      setFacecamVoiceId(value);
-                      const match = facecamVoices.find((v) => v.id === value);
-                      setFacecamVoiceProvider(match?.provider ?? 'heygen');
-                    }}
-                    disabled={facecamLoading || facecamVoices.length === 0}
-                  >
-                    <SelectTrigger id="facecam-voice">
-                      <SelectValue placeholder="Pick a voice" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {facecamVoices.map((voice) => (
-                        <SelectItem key={voice.id} value={voice.id}>
-                          {voice.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <Checkbox
-                isChecked={facecamSaveAsDefault}
-                label="Save as brand default"
-                className="text-xs text-foreground/55"
-                onCheckedChange={(checked) =>
-                  setFacecamSaveAsDefault(checked === true)
-                }
-              />
-
-              {facecamError ? (
-                <p className="text-[11px] text-rose-300">{facecamError}</p>
-              ) : null}
-            </div>
+            <WorkspaceTaskFacecamPanel
+              avatars={facecamAvatars}
+              avatarId={facecamAvatarId}
+              error={facecamError}
+              isLoading={facecamLoading}
+              isSaveAsDefault={facecamSaveAsDefault}
+              onAvatarChange={setFacecamAvatarId}
+              onSaveAsDefaultChange={setFacecamSaveAsDefault}
+              onVoiceChange={(voiceId, provider) => {
+                setFacecamVoiceId(voiceId);
+                setFacecamVoiceProvider(provider);
+              }}
+              voiceId={facecamVoiceId}
+              voices={facecamVoices}
+            />
           ) : null}
 
           {taskError ? (

@@ -16,7 +16,6 @@ import Badge from '@ui/display/badge/Badge';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -27,13 +26,15 @@ import {
 } from '@ui/primitives/select';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
-import { FaInstagram, FaReddit, FaXTwitter } from 'react-icons/fa6';
 import {
   HiArrowLeft,
   HiArrowRight,
   HiCheck,
   HiRocketLaunch,
 } from 'react-icons/hi2';
+import OutreachCampaignWizardStep1 from './OutreachCampaignWizardStep1';
+import OutreachCampaignWizardStep3 from './OutreachCampaignWizardStep3';
+import OutreachCampaignWizardStep4 from './OutreachCampaignWizardStep4';
 
 const STEPS = [
   { id: 1, label: 'Platform & Type' },
@@ -42,57 +43,6 @@ const STEPS = [
   { id: 4, label: 'Rate Limits' },
   { id: 5, label: 'Review' },
 ];
-
-const platformOptions = [
-  {
-    icon: <FaXTwitter />,
-    label: 'Twitter / X',
-    value: CampaignPlatform.TWITTER,
-  },
-  {
-    icon: <FaReddit />,
-    label: 'Reddit',
-    value: CampaignPlatform.REDDIT,
-  },
-  {
-    icon: <FaInstagram className="text-pink-500" />,
-    label: 'Instagram',
-    value: CampaignPlatform.INSTAGRAM,
-  },
-];
-
-const typeOptions = [
-  {
-    description: 'Add specific URLs to target',
-    label: 'Manual',
-    value: CampaignType.MANUAL,
-  },
-  {
-    description: 'AI discovers relevant content',
-    label: 'Discovery',
-    value: CampaignType.DISCOVERY,
-  },
-  {
-    description: 'Schedule replies in advance',
-    label: 'Scheduled Blast',
-    value: CampaignType.SCHEDULED_BLAST,
-  },
-  {
-    description: 'Send cold DMs to target users',
-    label: 'DM Outreach',
-    value: CampaignType.DM_OUTREACH,
-  },
-];
-
-const toneOptions = Object.values(ReplyTone).map((tone) => ({
-  label: tone.charAt(0).toUpperCase() + tone.slice(1).replace('_', ' '),
-  value: tone,
-}));
-
-const lengthOptions = Object.values(ReplyLength).map((length) => ({
-  label: length.charAt(0).toUpperCase() + length.slice(1),
-  value: length,
-}));
 
 interface CampaignFormData {
   label: string;
@@ -277,55 +227,12 @@ export default function OutreachCampaignWizard() {
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-6">
-            <div>
-              <label className="mb-2 block text-sm font-medium">Platform</label>
-              <div className="grid grid-cols-2 gap-4">
-                {platformOptions.map((option) => (
-                  <Button
-                    key={option.value}
-                    variant={ButtonVariant.UNSTYLED}
-                    withWrapper={false}
-                    onClick={() => handleChange('platform', option.value)}
-                    className={`flex items-center gap-3 border p-4 transition-colors ${
-                      formData.platform === option.value
-                        ? 'border-primary bg-primary/10'
-                        : 'border-white/[0.08] hover:border-primary/50'
-                    }`}
-                  >
-                    <span className="text-2xl">{option.icon}</span>
-                    <span className="font-medium">{option.label}</span>
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium">
-                Campaign Type
-              </label>
-              <div className="space-y-3">
-                {typeOptions.map((option) => (
-                  <Button
-                    key={option.value}
-                    variant={ButtonVariant.UNSTYLED}
-                    withWrapper={false}
-                    onClick={() => handleChange('campaignType', option.value)}
-                    className={`flex w-full flex-col items-start border p-4 transition-colors ${
-                      formData.campaignType === option.value
-                        ? 'border-primary bg-primary/10'
-                        : 'border-white/[0.08] hover:border-primary/50'
-                    }`}
-                  >
-                    <span className="font-medium">{option.label}</span>
-                    <span className="text-sm text-foreground/60">
-                      {option.description}
-                    </span>
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </div>
+          <OutreachCampaignWizardStep1
+            platform={formData.platform}
+            campaignType={formData.campaignType}
+            onPlatformChange={(value) => handleChange('platform', value)}
+            onTypeChange={(value) => handleChange('campaignType', value)}
+          />
         );
 
       case 2:
@@ -437,287 +344,62 @@ export default function OutreachCampaignWizard() {
 
       case 3:
         return (
-          <div className="space-y-6">
-            {formData.campaignType === CampaignType.DM_OUTREACH ? (
-              <>
-                <div className="flex items-center gap-4">
-                  <label
-                    className="text-sm font-medium"
-                    htmlFor="campaign-wizard-dm-use-ai"
-                  >
-                    Use AI Generation
-                  </label>
-                  <Checkbox
-                    id="campaign-wizard-dm-use-ai"
-                    checked={formData.dmUseAiGeneration}
-                    onCheckedChange={(checked) =>
-                      handleChange('dmUseAiGeneration', checked === true)
-                    }
-                    aria-label="Use AI generation for outreach DMs"
-                  />
-                </div>
-
-                {formData.dmUseAiGeneration ? (
-                  <>
-                    <Textarea
-                      label="Product Context"
-                      placeholder="What are you selling? Describe your product..."
-                      value={formData.dmContext}
-                      onChange={(e) =>
-                        handleChange('dmContext', e.target.value)
-                      }
-                      rows={3}
-                    />
-
-                    <div className="space-y-1.5">
-                      <label
-                        htmlFor="campaign-wizard-dm-offer"
-                        className="text-sm font-medium text-foreground"
-                      >
-                        Offer
-                      </label>
-                      <Input
-                        id="campaign-wizard-dm-offer"
-                        placeholder="e.g., 30-Day Content Sprint"
-                        value={formData.dmOffer}
-                        onChange={(e) =>
-                          handleChange('dmOffer', e.target.value)
-                        }
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label
-                        htmlFor="campaign-wizard-dm-cta-link"
-                        className="text-sm font-medium text-foreground"
-                      >
-                        CTA Link
-                      </label>
-                      <Input
-                        id="campaign-wizard-dm-cta-link"
-                        placeholder="https://academy.genfeed.ai"
-                        value={formData.dmCtaLink}
-                        onChange={(e) =>
-                          handleChange('dmCtaLink', e.target.value)
-                        }
-                      />
-                    </div>
-
-                    <Textarea
-                      label="Custom Instructions"
-                      placeholder="Keep it casual, mention the free trial..."
-                      value={formData.dmCustomInstructions}
-                      onChange={(e) =>
-                        handleChange('dmCustomInstructions', e.target.value)
-                      }
-                      rows={3}
-                    />
-                  </>
-                ) : (
-                  <Textarea
-                    label="DM Template"
-                    placeholder="Hey {{username}}! {{offer}} — check it out: {{cta}}"
-                    value={formData.dmTemplateText}
-                    onChange={(e) =>
-                      handleChange('dmTemplateText', e.target.value)
-                    }
-                    rows={4}
-                  />
-                )}
-              </>
-            ) : (
-              <>
-                <div className="flex items-center gap-4">
-                  <label
-                    className="text-sm font-medium"
-                    htmlFor="campaign-wizard-use-ai"
-                  >
-                    Use AI Generation
-                  </label>
-                  <Checkbox
-                    id="campaign-wizard-use-ai"
-                    checked={formData.useAiGeneration}
-                    onCheckedChange={(checked) =>
-                      handleChange('useAiGeneration', checked === true)
-                    }
-                    aria-label="Use AI generation for replies"
-                  />
-                </div>
-
-                {formData.useAiGeneration ? (
-                  <>
-                    <div className="space-y-1.5">
-                      <label
-                        className="text-sm font-medium text-foreground"
-                        htmlFor="campaign-wizard-reply-tone"
-                      >
-                        Reply Tone
-                      </label>
-                      <Select
-                        value={formData.tone}
-                        onValueChange={(value) =>
-                          handleChange('tone', value as ReplyTone)
-                        }
-                      >
-                        <SelectTrigger id="campaign-wizard-reply-tone">
-                          <SelectValue placeholder="Select a tone" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {toneOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label
-                        className="text-sm font-medium text-foreground"
-                        htmlFor="campaign-wizard-reply-length"
-                      >
-                        Reply Length
-                      </label>
-                      <Select
-                        value={formData.length}
-                        onValueChange={(value) =>
-                          handleChange('length', value as ReplyLength)
-                        }
-                      >
-                        <SelectTrigger id="campaign-wizard-reply-length">
-                          <SelectValue placeholder="Select a length" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {lengthOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <Textarea
-                      label="Custom Instructions"
-                      placeholder="Always mention our product name..."
-                      value={formData.customInstructions}
-                      onChange={(e) =>
-                        handleChange('customInstructions', e.target.value)
-                      }
-                      rows={3}
-                    />
-
-                    <Textarea
-                      label="Context"
-                      placeholder="We are a SaaS startup that helps..."
-                      value={formData.context}
-                      onChange={(e) => handleChange('context', e.target.value)}
-                      rows={3}
-                    />
-
-                    <div className="space-y-1.5">
-                      <label
-                        htmlFor="campaign-wizard-cta-link"
-                        className="text-sm font-medium text-foreground"
-                      >
-                        CTA Link
-                      </label>
-                      <Input
-                        id="campaign-wizard-cta-link"
-                        placeholder="https://your-product.com"
-                        value={formData.ctaLink}
-                        onChange={(e) =>
-                          handleChange('ctaLink', e.target.value)
-                        }
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <Textarea
-                    label="Template Text"
-                    placeholder="Your reply template here..."
-                    value={formData.templateText}
-                    onChange={(e) =>
-                      handleChange('templateText', e.target.value)
-                    }
-                    rows={4}
-                  />
-                )}
-              </>
-            )}
-          </div>
+          <OutreachCampaignWizardStep3
+            campaignType={formData.campaignType}
+            useAiGeneration={formData.useAiGeneration}
+            tone={formData.tone}
+            length={formData.length}
+            customInstructions={formData.customInstructions}
+            context={formData.context}
+            ctaLink={formData.ctaLink}
+            templateText={formData.templateText}
+            dmUseAiGeneration={formData.dmUseAiGeneration}
+            dmContext={formData.dmContext}
+            dmOffer={formData.dmOffer}
+            dmCtaLink={formData.dmCtaLink}
+            dmCustomInstructions={formData.dmCustomInstructions}
+            dmTemplateText={formData.dmTemplateText}
+            onUseAiGenerationChange={(value) =>
+              handleChange('useAiGeneration', value)
+            }
+            onToneChange={(value) => handleChange('tone', value)}
+            onLengthChange={(value) => handleChange('length', value)}
+            onCustomInstructionsChange={(value) =>
+              handleChange('customInstructions', value)
+            }
+            onContextChange={(value) => handleChange('context', value)}
+            onCtaLinkChange={(value) => handleChange('ctaLink', value)}
+            onTemplateTextChange={(value) =>
+              handleChange('templateText', value)
+            }
+            onDmUseAiGenerationChange={(value) =>
+              handleChange('dmUseAiGeneration', value)
+            }
+            onDmContextChange={(value) => handleChange('dmContext', value)}
+            onDmOfferChange={(value) => handleChange('dmOffer', value)}
+            onDmCtaLinkChange={(value) => handleChange('dmCtaLink', value)}
+            onDmCustomInstructionsChange={(value) =>
+              handleChange('dmCustomInstructions', value)
+            }
+            onDmTemplateTextChange={(value) =>
+              handleChange('dmTemplateText', value)
+            }
+          />
         );
 
       case 4:
         return (
-          <div className="space-y-6">
-            <div className="space-y-1.5">
-              <label
-                htmlFor="campaign-wizard-max-per-hour"
-                className="text-sm font-medium text-foreground"
-              >
-                Max Replies per Hour
-              </label>
-              <Input
-                id="campaign-wizard-max-per-hour"
-                type="number"
-                min={1}
-                max={50}
-                value={formData.maxPerHour}
-                onChange={(e) =>
-                  handleChange('maxPerHour', parseInt(e.target.value, 10) || 10)
-                }
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="campaign-wizard-max-per-day"
-                className="text-sm font-medium text-foreground"
-              >
-                Max Replies per Day
-              </label>
-              <Input
-                id="campaign-wizard-max-per-day"
-                type="number"
-                min={1}
-                max={200}
-                value={formData.maxPerDay}
-                onChange={(e) =>
-                  handleChange('maxPerDay', parseInt(e.target.value, 10) || 50)
-                }
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="campaign-wizard-delay-between-replies"
-                className="text-sm font-medium text-foreground"
-              >
-                Delay Between Replies (seconds)
-              </label>
-              <Input
-                id="campaign-wizard-delay-between-replies"
-                type="number"
-                min={30}
-                value={formData.delayBetweenRepliesSeconds}
-                onChange={(e) =>
-                  handleChange(
-                    'delayBetweenRepliesSeconds',
-                    parseInt(e.target.value, 10) || 60,
-                  )
-                }
-              />
-            </div>
-
-            {formData.campaignType === CampaignType.DM_OUTREACH && (
-              <p className="text-sm text-foreground/60">
-                Recommended DM limits: 5/hour, 20/day, 120s delay to avoid
-                account restrictions.
-              </p>
-            )}
-          </div>
+          <OutreachCampaignWizardStep4
+            campaignType={formData.campaignType}
+            maxPerHour={formData.maxPerHour}
+            maxPerDay={formData.maxPerDay}
+            delayBetweenRepliesSeconds={formData.delayBetweenRepliesSeconds}
+            onMaxPerHourChange={(value) => handleChange('maxPerHour', value)}
+            onMaxPerDayChange={(value) => handleChange('maxPerDay', value)}
+            onDelayBetweenRepliesSecondsChange={(value) =>
+              handleChange('delayBetweenRepliesSeconds', value)
+            }
+          />
         );
 
       case 5:

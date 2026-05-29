@@ -36,25 +36,17 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import { SocketService } from '@genfeedai/services/core/socket.service';
 import { ImagesService } from '@genfeedai/services/ingredients/images.service';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
-import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import FormDropdown from '@ui/primitives/dropdown-field';
-import FormControl from '@ui/primitives/field';
-import { Input } from '@ui/primitives/input';
 import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useForm } from 'react-hook-form';
-import {
-  HiAdjustmentsHorizontal,
-  HiArrowPath,
-  HiArrowUp,
-  HiPhoto,
-  HiTag,
-} from 'react-icons/hi2';
+import { HiArrowUp } from 'react-icons/hi2';
+import TrainingFileList from './TrainingFileList';
+import TrainingFormInputs from './TrainingFormInputs';
 
 type FileStatusUpdater = Dispatch<
   SetStateAction<Map<string, FileUploadStatus>>
@@ -76,40 +68,6 @@ function updateFileStatus(
     }
     return newMap;
   });
-}
-
-/**
- * Gets badge variant based on file upload status.
- */
-function getStatusBadgeVariant(
-  status: FileUploadStatus['status'],
-): 'success' | 'error' | 'info' | 'ghost' {
-  switch (status) {
-    case UploadStatus.COMPLETED:
-      return 'success';
-    case UploadStatus.FAILED:
-      return 'error';
-    case UploadStatus.UPLOADING:
-      return 'info';
-    default:
-      return 'ghost';
-  }
-}
-
-/**
- * Gets badge label based on file upload status.
- */
-function getStatusBadgeLabel(fileStatus: FileUploadStatus): string {
-  switch (fileStatus.status) {
-    case UploadStatus.UPLOADING:
-      return `${fileStatus.progress}%`;
-    case UploadStatus.COMPLETED:
-      return '\u2713';
-    case UploadStatus.FAILED:
-      return '\u2717';
-    default:
-      return 'pending';
-  }
 }
 
 export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
@@ -232,18 +190,6 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
   const _computedCost = Math.round(
     ((steps || 1000) / 1000) * EnvironmentService.CREDITS_TRAINING_COST,
   );
-
-  const formatSize = (bytes: number) => {
-    const kb = bytes / 1024;
-    const mb = kb / 1024;
-    if (mb >= 1) {
-      return `${mb.toFixed(1)} MB`;
-    }
-    if (kb >= 1) {
-      return `${Math.ceil(kb)} KB`;
-    }
-    return `${bytes} B`;
-  };
 
   const maxSize = 10; // 10MB for images
   const maxFiles = 25;
@@ -520,258 +466,35 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1">
           {/* Left Column - Form Inputs & Dropzone */}
-          <div className="space-y-4 mt-4">
-            {/* First Row: Label + Description */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormControl
-                label="Label"
-                error={form.formState.errors.label?.message}
-                isRequired
-              >
-                <Input
-                  name="label"
-                  type="text"
-                  placeholder="e.g., My Character"
-                  control={form.control}
-                  className="h-10 border border-input px-3 w-full"
-                  isDisabled={isSubmitting}
-                />
-              </FormControl>
-
-              <FormControl
-                label="Description (optional)"
-                error={form.formState.errors.description?.message}
-              >
-                <Input
-                  name="description"
-                  type="text"
-                  placeholder="Brief description of the training"
-                  control={form.control}
-                  className="h-10 border border-input px-3 w-full"
-                  isDisabled={isSubmitting}
-                />
-              </FormControl>
-            </div>
-
-            {/* Second Row: Trigger Word */}
-            <FormControl
-              label="Trigger Word"
-              error={form.formState.errors.trigger?.message}
-              isRequired
-            >
-              <div className="flex w-full">
-                <Input
-                  name="trigger"
-                  type="text"
-                  placeholder="e.g., XQ7Z"
-                  control={form.control}
-                  className="h-10 border border-input px-3 flex-1"
-                  isDisabled={isSubmitting}
-                />
-
-                <Button
-                  icon={<HiArrowPath />}
-                  onClick={generateRandomTrigger}
-                  isDisabled={isSubmitting}
-                  tooltip="Generate Random Trigger"
-                  tooltipPosition="left"
-                  variant={ButtonVariant.SECONDARY}
-                  className=" border-l-0"
-                />
-              </div>
-            </FormControl>
-
-            {/* Third Row: Category + Steps */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormControl
-                label="Category"
-                isRequired
-                error={form.formState.errors.category?.message}
-              >
-                <FormDropdown
-                  name="category"
-                  icon={<HiTag className="size-4" />}
-                  label="Category"
-                  value={form.watch('category')}
-                  className="h-10 px-3 gap-2 text-sm flex-shrink-0 bg-secondary text-secondary-foreground"
-                  isDisabled={isSubmitting}
-                  options={[
-                    { key: TrainingCategory.SUBJECT, label: 'Subject' },
-                    { key: TrainingCategory.STYLE, label: 'Style' },
-                  ]}
-                  onChange={(e) => {
-                    form.setValue(
-                      'category',
-                      e.target.value as TrainingCategory,
-                      {
-                        shouldValidate: true,
-                      },
-                    );
-                  }}
-                />
-              </FormControl>
-
-              <FormControl
-                label="Training Steps"
-                error={form.formState.errors.steps?.message}
-                helpText="More steps = better quality, higher cost"
-              >
-                <FormDropdown
-                  name="steps"
-                  icon={<HiAdjustmentsHorizontal className="size-4" />}
-                  label="Steps"
-                  value={form.watch('steps')}
-                  className="h-10 px-3 gap-2 text-sm flex-shrink-0 bg-secondary text-secondary-foreground"
-                  isDisabled={isSubmitting}
-                  options={[
-                    { key: 1000, label: '1,000 (Low)' },
-                    { key: 2000, label: '2,000 (Medium)' },
-                    { key: 3000, label: '3,000 (Default)' },
-                    { key: 4000, label: '4,000 (High)' },
-                    { key: 5000, label: '5,000 (Best)' },
-                  ]}
-                  onChange={(e) => {
-                    form.setValue('steps', Number(e.target.value), {
-                      shouldValidate: true,
-                    });
-                  }}
-                />
-              </FormControl>
-            </div>
-
-            {/* Dropzone */}
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold">
-                Training Images ({files.length} / {maxFiles})
-              </h4>
-
-              <div
-                {...getRootProps({
-                  className: `file-uploader !max-w-full bg-primary/10 border-primary/10 border-2 border-dashed p-4 text-center cursor-pointer transition-all ${
-                    isDragActive ? 'border-primary bg-primary/20' : ''
-                  }`,
-                })}
-              >
-                <Input type="file" {...getInputProps({ name: 'file' })} />
-                <div className="flex flex-col items-center gap-2">
-                  <HiPhoto className="text-4xl opacity-50" />
-                  {isDragActive ? (
-                    <p className="text-sm">Drop the images here…</p>
-                  ) : (
-                    <>
-                      <p className="text-sm font-medium">
-                        Drop images here or click to upload
-                      </p>
-                      <p className="text-xs opacity-70">
-                        Minimum 10 images required • Up to {maxFiles} files •
-                        Max {maxSize}MB each
-                      </p>
-                      <p className="text-xs opacity-70">
-                        Supported: JPG, JPEG, PNG, WEBP, GIF
-                      </p>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+          <TrainingFormInputs
+            control={form.control}
+            errors={form.formState.errors}
+            watch={form.watch}
+            isSubmitting={isSubmitting}
+            filesCount={files.length}
+            maxFiles={maxFiles}
+            maxSize={maxSize}
+            isDragActive={isDragActive}
+            getRootProps={getRootProps}
+            getInputProps={getInputProps}
+            onGenerateRandomTrigger={generateRandomTrigger}
+            onCategoryChange={(value) =>
+              form.setValue('category', value, { shouldValidate: true })
+            }
+            onStepsChange={(value) =>
+              form.setValue('steps', value, { shouldValidate: true })
+            }
+          />
 
           {/* Right Column - Uploaded Files List */}
-          <div className="flex flex-col gap-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold">Uploaded Files</h4>
-              {files.length > 0 && (
-                <div className="flex gap-2">
-                  {completedCount > 0 && (
-                    <Badge variant="success" className="text-xs">
-                      {completedCount} completed
-                    </Badge>
-                  )}
-
-                  {uploadingCount > 0 && (
-                    <Badge variant="info" className="text-xs">
-                      {uploadingCount} uploading
-                    </Badge>
-                  )}
-
-                  {failedCount > 0 && (
-                    <Badge variant="error" className="text-xs">
-                      {failedCount} failed
-                    </Badge>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {files.length === 0 ? (
-              <div className="flex items-center justify-center h-full min-h-52 border-2 border-dashed border-white/[0.08]">
-                <p className="text-sm opacity-50">
-                  No files uploaded yet. Upload at least 10 images to start.
-                </p>
-              </div>
-            ) : (
-              <ul className="space-y-2 overflow-y-auto max-h-96">
-                {files.map((f) => {
-                  const fileStatus = Array.from(fileStatuses.values()).find(
-                    (status) => status.file.name === f.name,
-                  );
-
-                  return (
-                    <li
-                      key={`${f.name}-${f.size}-${f.lastModified}`}
-                      className="space-y-1 p-2 bg-background/50"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className="truncate max-w-56 text-sm"
-                          title={f.name}
-                        >
-                          {f.name}
-                        </span>
-
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant={
-                              f.size > maxSize * 1024 * 1024 ? 'error' : 'ghost'
-                            }
-                            className="whitespace-nowrap text-xs"
-                          >
-                            {formatSize(f.size)}
-                          </Badge>
-                          {fileStatus && (
-                            <Badge
-                              variant={getStatusBadgeVariant(fileStatus.status)}
-                              className="text-xs whitespace-nowrap"
-                            >
-                              {getStatusBadgeLabel(fileStatus)}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-
-                      {fileStatus &&
-                        fileStatus.status === UploadStatus.UPLOADING && (
-                          <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                            <div
-                              className="bg-primary h-full rounded-full transition-all duration-300 ease-out"
-                              style={{ width: `${fileStatus.progress}%` }}
-                            />
-                          </div>
-                        )}
-
-                      {fileStatus &&
-                        fileStatus.status === UploadStatus.FAILED &&
-                        fileStatus.error && (
-                          <div className="text-xs text-error opacity-80">
-                            {fileStatus.error}
-                          </div>
-                        )}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
+          <TrainingFileList
+            files={files}
+            fileStatuses={fileStatuses}
+            maxSize={maxSize}
+            completedCount={completedCount}
+            uploadingCount={uploadingCount}
+            failedCount={failedCount}
+          />
         </div>
 
         {/* Footer - Actions */}

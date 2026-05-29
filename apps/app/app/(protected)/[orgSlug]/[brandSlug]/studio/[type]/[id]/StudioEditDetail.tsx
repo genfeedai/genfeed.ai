@@ -5,7 +5,6 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { editFormSchema } from '@genfeedai/client/schemas';
 import { ITEMS_PER_PAGE, MODEL_KEYS } from '@genfeedai/constants';
 import {
-  ButtonSize,
   ButtonVariant,
   ImageFormat,
   IngredientCategory,
@@ -38,7 +37,6 @@ import { createMediaHandler } from '@services/core/socket-manager.service';
 import { ImagesService } from '@services/ingredients/images.service';
 import { VideosService } from '@services/ingredients/videos.service';
 import Card from '@ui/card/Card';
-import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Loading from '@ui/loading/default/Loading';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import {
@@ -49,9 +47,6 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';
-import { resolveIngredientReferenceUrl } from '@utils/media/reference.util';
-import { buildStudioAgentHref } from '@utils/url/desktop-loop-url.util';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -65,8 +60,11 @@ import {
 } from 'react';
 import type { Resolver } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
-import { HiArrowLeft, HiCheck, HiClock } from 'react-icons/hi2';
+import { HiCheck, HiClock } from 'react-icons/hi2';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import StudioEditDetailAssetPreview from './StudioEditDetailAssetPreview';
+import StudioEditDetailHeader from './StudioEditDetailHeader';
+import StudioEditDetailVersionHistory from './StudioEditDetailVersionHistory';
 
 const CATEGORY_LABELS: Partial<Record<IngredientCategory, string>> = {
   [IngredientCategory.VIDEO]: 'Video',
@@ -519,59 +517,6 @@ export default function StudioEditDetail({
     );
   }
 
-  function renderAssetPreview(): ReactNode {
-    if (!selectedIngredient?.ingredientUrl) {
-      return (
-        <div className="aspect-video bg-muted shadow-lg flex items-center justify-center p-16">
-          <span className="text-foreground/50 text-lg">
-            No preview available
-          </span>
-        </div>
-      );
-    }
-
-    if (categoryType === IngredientCategory.VIDEO) {
-      return (
-        <div className="relative w-full h-full flex items-center justify-center">
-          <VideoPlayer
-            videoRef={videoRef}
-            src={selectedIngredient.ingredientUrl}
-            thumbnail={selectedIngredient.thumbnailUrl}
-            config={{
-              autoPlay: false,
-              controls: true,
-              loop: false,
-              muted: false,
-              playsInline: true,
-              preload: 'metadata',
-            }}
-          />
-        </div>
-      );
-    }
-
-    if (categoryType === IngredientCategory.IMAGE) {
-      return (
-        <div className="relative">
-          <Image
-            src={selectedIngredient.ingredientUrl}
-            alt={selectedIngredient.metadataLabel || 'Image'}
-            className="max-w-full max-h-sidebar w-auto h-auto object-contain shadow-lg"
-            width={selectedIngredient.width || 1920}
-            height={selectedIngredient.height || 1080}
-            priority
-          />
-        </div>
-      );
-    }
-
-    return (
-      <div className="aspect-video bg-muted shadow-lg flex items-center justify-center p-16">
-        <span className="text-foreground/50 text-lg">No preview available</span>
-      </div>
-    );
-  }
-
   if (loadError && !isLoading) {
     return (
       <div className="flex flex-col h-screen items-center justify-center">
@@ -602,42 +547,11 @@ export default function StudioEditDetail({
 
   return (
     <div className="flex flex-col h-screen">
-      <div className="border-b border-white/[0.08] bg-card">
-        <div className="flex items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-4">
-            <PrimitiveButton
-              asChild
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.SM}
-            >
-              <Link href={href('/studio')}>
-                <HiArrowLeft className="size-4" />
-                Back to Generate
-              </Link>
-            </PrimitiveButton>
-
-            <h1 className="text-xl font-semibold">
-              Edit {CATEGORY_LABELS[categoryType] ?? 'Media'}
-            </h1>
-          </div>
-          {selectedIngredient ? (
-            <PrimitiveButton
-              asChild
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.SM}
-            >
-              <Link
-                href={buildStudioAgentHref(
-                  selectedIngredient.metadataLabel || 'Untitled asset',
-                  selectedIngredient.promptText,
-                )}
-              >
-                Ask Agent
-              </Link>
-            </PrimitiveButton>
-          ) : null}
-        </div>
-      </div>
+      <StudioEditDetailHeader
+        categoryLabel={CATEGORY_LABELS[categoryType] ?? 'Media'}
+        selectedIngredient={selectedIngredient}
+        backHref={href('/studio')}
+      />
 
       <div className="flex-1 overflow-hidden">
         {isLoading ? (
@@ -690,104 +604,11 @@ export default function StudioEditDetail({
                   </div>
                 </Card>
 
-                {(results.length > 0 || processingAssets.size > 0) && (
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold mb-4">
-                      Version History
-                    </h3>
-                    <div className="space-y-3">
-                      {Array.from(processingAssets.values()).map((asset) => {
-                        const referenceImageUrl = resolveIngredientReferenceUrl(
-                          asset.references,
-                        );
-
-                        return (
-                          <Card key={asset.id} className="p-3 bg-card">
-                            <div className="aspect-video bg-background overflow-hidden relative mb-2">
-                              {referenceImageUrl ? (
-                                <Image
-                                  src={referenceImageUrl}
-                                  alt="Processing preview"
-                                  className="w-full h-full object-cover"
-                                  width={asset.width || 1920}
-                                  height={asset.height || 1080}
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-muted animate-pulse" />
-                              )}
-                              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                <div className="size-8 rounded-full bg-white/20 animate-pulse" />
-                              </div>
-                            </div>
-                            <p className="font-medium text-sm">Processing…</p>
-                            <p className="text-xs text-foreground/60">
-                              <ClientFormattedDate
-                                format="date"
-                                locales="en-US"
-                                options={{
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                  month: 'short',
-                                }}
-                                value="now"
-                              />
-                            </p>
-                          </Card>
-                        );
-                      })}
-
-                      {results.map((result) => (
-                        <Button
-                          key={result.id}
-                          type="button"
-                          variant={ButtonVariant.UNSTYLED}
-                          onClick={() => push(href(`/edit/${result.id}`))}
-                          className="cursor-pointer w-full text-left bg-transparent border-0 p-0"
-                        >
-                          <Card className="p-3 bg-card hover:shadow-lg transition-all">
-                            <div className="aspect-video bg-background overflow-hidden mb-2">
-                              {result.thumbnailUrl ? (
-                                <Image
-                                  src={result.thumbnailUrl}
-                                  alt="Version"
-                                  className="w-full h-full object-cover"
-                                  width={result.width || 1920}
-                                  height={result.height || 1080}
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-foreground/30">
-                                  No preview
-                                </div>
-                              )}
-                            </div>
-                            <p className="font-medium text-sm mb-1">
-                              {result.metadataLabel || 'Version'}
-                            </p>
-                            <p className="text-xs text-foreground/60">
-                              <ClientFormattedDate
-                                format="date"
-                                locales="en-US"
-                                options={{
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                  month: 'short',
-                                }}
-                                value={result.createdAt}
-                              />
-                            </p>
-                            {result.promptText && (
-                              <p className="text-xs text-foreground/80 line-clamp-2 mt-2">
-                                {result.promptText}
-                              </p>
-                            )}
-                          </Card>
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <StudioEditDetailVersionHistory
+                  processingAssets={processingAssets}
+                  results={results}
+                  onResultClick={(id) => push(href(`/edit/${id}`))}
+                />
               </div>
 
               <div className="border-t border-white/[0.08] p-4 space-y-3">
@@ -840,7 +661,11 @@ export default function StudioEditDetail({
                 <div className="flex flex-col items-center justify-center h-full">
                   <h3 className="text-lg font-semibold mb-4">Current Asset</h3>
                   <div className="relative max-w-full max-h-sidebar flex items-center justify-center">
-                    {renderAssetPreview()}
+                    <StudioEditDetailAssetPreview
+                      selectedIngredient={selectedIngredient}
+                      categoryType={categoryType}
+                      videoRef={videoRef}
+                    />
                   </div>
                 </div>
               </div>
