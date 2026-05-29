@@ -1,6 +1,5 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type {
   HarnessProfileScope,
   ICreateHarnessProfilePayload,
@@ -12,20 +11,14 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
-import { Badge } from '@ui/primitives/badge';
-import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import HarnessHeader from './HarnessHeader';
+import HarnessIdentityCard from './HarnessIdentityCard';
+import HarnessRightColumn from './HarnessRightColumn';
+import HarnessVoiceCard from './HarnessVoiceCard';
 
 const HARNESS_PROFILE_SCOPES = [
   'brand',
@@ -275,147 +268,25 @@ export default function BrandSettingsHarnessPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-border/70 bg-background/80 p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-tight">
-                Harness Profile
-              </h1>
-              <Badge variant="outline">v1.1</Badge>
-              <Badge
-                variant={draft.status === 'active' ? 'success' : 'warning'}
-              >
-                {draft.status ?? 'active'}
-              </Badge>
-            </div>
-            <p className="max-w-3xl text-sm text-muted-foreground">
-              Structure-first voice rules injected into content generation. Keep
-              it concrete: hook, one-liners, transitions, proof, conclusion.
-            </p>
-          </div>
-          <Button
-            disabled={isSaving}
-            onClick={handleSave}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-          >
-            {isSaving ? 'Saving...' : 'Save harness'}
-          </Button>
-        </div>
-      </Card>
+      <HarnessHeader draft={draft} isSaving={isSaving} onSave={handleSave} />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
         <div className="space-y-6">
-          <Card className="p-6">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="harness-label">Label</Label>
-                <Input
-                  id="harness-label"
-                  onChange={(event) => updateDraft('label', event.target.value)}
-                  value={draft.label}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="harness-scope">Scope</Label>
-                <Select
-                  onValueChange={updateScope}
-                  value={draft.scope ?? 'brand'}
-                >
-                  <SelectTrigger id="harness-scope">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {HARNESS_PROFILE_SCOPES.map((scope) => (
-                      <SelectItem key={scope} value={scope}>
-                        {scope}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="harness-description">Description</Label>
-                <Input
-                  id="harness-description"
-                  onChange={(event) =>
-                    updateDraft('description', event.target.value)
-                  }
-                  placeholder="What this profile is for"
-                  value={draft.description ?? ''}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="harness-platforms">Platforms</Label>
-                <Textarea
-                  id="harness-platforms"
-                  maxHeight={180}
-                  onChange={(event) =>
-                    updateDraft('platforms', splitLines(event.target.value))
-                  }
-                  value={joinLines(draft.platforms)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="harness-audience">ICP / Audience</Label>
-                <Textarea
-                  id="harness-audience"
-                  maxHeight={180}
-                  onChange={(event) =>
-                    updateDraft('audience', splitLines(event.target.value))
-                  }
-                  value={joinLines(draft.audience)}
-                />
-              </div>
-            </div>
-          </Card>
+          <HarnessIdentityCard
+            draft={draft}
+            joinLines={joinLines}
+            onDraftChange={updateDraft}
+            onScopeChange={updateScope}
+            scopes={HARNESS_PROFILE_SCOPES}
+            splitLines={splitLines}
+          />
 
-          <Card className="p-6">
-            <div className="mb-4 space-y-1">
-              <h2 className="text-lg font-semibold">Voice</h2>
-              <p className="text-sm text-muted-foreground">
-                The attitude and vocabulary the model should carry into every
-                draft.
-              </p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {(
-                ['tone', 'style', 'stance', 'aggression', 'sarcasm'] as const
-              ).map((key) => (
-                <div className="space-y-2" key={key}>
-                  <Label htmlFor={`harness-${key}`}>{key}</Label>
-                  <Input
-                    id={`harness-${key}`}
-                    onChange={(event) => updateVoice(key, event.target.value)}
-                    value={(draft.voice?.[key] as string | undefined) ?? ''}
-                  />
-                </div>
-              ))}
-              <div className="space-y-2">
-                <Label htmlFor="harness-vocabulary">Vocabulary</Label>
-                <Textarea
-                  id="harness-vocabulary"
-                  maxHeight={180}
-                  onChange={(event) =>
-                    updateVoice('vocabulary', splitLines(event.target.value))
-                  }
-                  value={joinLines(draft.voice?.vocabulary)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="harness-banned">Banned phrases</Label>
-                <Textarea
-                  id="harness-banned"
-                  maxHeight={180}
-                  onChange={(event) =>
-                    updateVoice('bannedPhrases', splitLines(event.target.value))
-                  }
-                  value={joinLines(draft.voice?.bannedPhrases)}
-                />
-              </div>
-            </div>
-          </Card>
+          <HarnessVoiceCard
+            joinLines={joinLines}
+            onVoiceChange={updateVoice}
+            splitLines={splitLines}
+            voice={draft.voice}
+          />
 
           <Card className="p-6">
             <div className="mb-4 space-y-1">
@@ -445,84 +316,13 @@ export default function BrandSettingsHarnessPage() {
           </Card>
         </div>
 
-        <div className="space-y-6">
-          <Card className="p-6">
-            <div className="mb-4 space-y-1">
-              <h2 className="text-lg font-semibold">Structure</h2>
-              <p className="text-sm text-muted-foreground">
-                Format rules for one-liners, threads, and articles.
-              </p>
-            </div>
-            <div className="space-y-4">
-              {(
-                [
-                  'shortFormSkeleton',
-                  'longFormSkeleton',
-                  'lineRules',
-                  'transitions',
-                  'endings',
-                ] as const
-              ).map((key) => (
-                <div className="space-y-2" key={key}>
-                  <Label htmlFor={`harness-structure-${key}`}>{key}</Label>
-                  <Textarea
-                    id={`harness-structure-${key}`}
-                    maxHeight={220}
-                    onChange={(event) =>
-                      updateList('structure', key, event.target.value)
-                    }
-                    value={joinLines(draft.structure?.[key])}
-                  />
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="mb-4 space-y-1">
-              <h2 className="text-lg font-semibold">Examples</h2>
-              <p className="text-sm text-muted-foreground">
-                Paste one example per block. These are injected as reference
-                signals, not copied.
-              </p>
-            </div>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="harness-good">Good examples</Label>
-                <Textarea
-                  id="harness-good"
-                  maxHeight={260}
-                  onChange={(event) =>
-                    updateList('examples', 'good', event.target.value)
-                  }
-                  value={joinLines(draft.examples?.good)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="harness-avoid">Anti-examples</Label>
-                <Textarea
-                  id="harness-avoid"
-                  maxHeight={220}
-                  onChange={(event) =>
-                    updateList('examples', 'avoid', event.target.value)
-                  }
-                  value={joinLines(draft.examples?.avoid)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="harness-guardrails">Guardrails</Label>
-                <Textarea
-                  id="harness-guardrails"
-                  maxHeight={220}
-                  onChange={(event) =>
-                    updateDraft('guardrails', splitLines(event.target.value))
-                  }
-                  value={joinLines(draft.guardrails)}
-                />
-              </div>
-            </div>
-          </Card>
-        </div>
+        <HarnessRightColumn
+          draft={draft}
+          joinLines={joinLines}
+          onDraftChange={updateDraft}
+          onListChange={updateList}
+          splitLines={splitLines}
+        />
       </div>
     </div>
   );

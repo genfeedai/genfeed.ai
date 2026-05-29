@@ -3,13 +3,10 @@
 import { SidebarNavigationProvider } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
 import type { AppLayoutProps } from '@genfeedai/props/layout/app-layout.props';
 import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { Button } from '@ui/primitives/button';
-import Image from 'next/image';
 import {
   type CSSProperties,
   cloneElement,
@@ -21,6 +18,15 @@ import {
   useMemo,
   useState,
 } from 'react';
+import {
+  clampAgentPanelHeight,
+  persistAgentPanelHeight,
+  persistSidebarCollapsed,
+  readPersistedAgentPanelHeight,
+  readPersistedSidebarCollapsed,
+} from './app-layout.utils';
+import CollapsedSidebarLogoToggle from './CollapsedSidebarLogoToggle';
+import DesktopSidebar from './DesktopSidebar';
 
 const EMPTY_ARRAY: never[] = [];
 
@@ -30,174 +36,7 @@ const AGENT_PANEL_HEIGHT = 380;
 const DESKTOP_TITLEBAR_HEIGHT = 32;
 const SIDEBAR_TRANSITION_DURATION_MS = 300;
 const SIDEBAR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
-const SIDEBAR_COLLAPSED_STORAGE_PREFIX = 'genfeed:sidebar:collapsed';
-const AGENT_PANEL_HEIGHT_STORAGE_KEY = 'genfeed:agent-panel:height';
-const AGENT_PANEL_MIN_HEIGHT = 240;
-const AGENT_PANEL_MAX_HEIGHT = 720;
 const IS_DESKTOP_SHELL = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
-
-function getSidebarCollapsedStorageKey(): string {
-  if (typeof window === 'undefined') {
-    return `${SIDEBAR_COLLAPSED_STORAGE_PREFIX}:anon`;
-  }
-
-  const clerk = window.Clerk as { user?: { id?: string } } | undefined;
-  const userId = clerk?.user?.id ?? 'anon';
-  return `${SIDEBAR_COLLAPSED_STORAGE_PREFIX}:${userId}`;
-}
-
-function readPersistedSidebarCollapsed(): boolean | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    const stored = window.localStorage.getItem(getSidebarCollapsedStorageKey());
-    if (stored === 'true') {
-      return true;
-    }
-    if (stored === 'false') {
-      return false;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function persistSidebarCollapsed(nextValue: boolean): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(
-      getSidebarCollapsedStorageKey(),
-      String(nextValue),
-    );
-  } catch {
-    // Ignore storage write failures (private mode, quota, etc.)
-  }
-}
-
-function readPersistedAgentPanelHeight(): number | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    const stored = window.localStorage.getItem(AGENT_PANEL_HEIGHT_STORAGE_KEY);
-    if (!stored) {
-      return null;
-    }
-
-    const parsed = Number.parseInt(stored, 10);
-    if (Number.isNaN(parsed)) {
-      return null;
-    }
-
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function clampAgentPanelHeight(nextHeight: number): number {
-  if (typeof window === 'undefined') {
-    return Math.min(
-      AGENT_PANEL_MAX_HEIGHT,
-      Math.max(AGENT_PANEL_MIN_HEIGHT, nextHeight),
-    );
-  }
-
-  return Math.min(
-    Math.min(AGENT_PANEL_MAX_HEIGHT, Math.floor(window.innerHeight * 0.7)),
-    Math.max(AGENT_PANEL_MIN_HEIGHT, nextHeight),
-  );
-}
-
-function persistAgentPanelHeight(nextHeight: number): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(
-      AGENT_PANEL_HEIGHT_STORAGE_KEY,
-      String(nextHeight),
-    );
-  } catch {
-    // Ignore storage write failures.
-  }
-}
-
-function DesktopSidebar({
-  children,
-  collapsedWidth = SIDEBAR_COLLAPSED_WIDTH,
-  isCollapsed,
-  shellChromeVariant = 'default',
-  width = SIDEBAR_WIDTH,
-}: {
-  children: ReactNode;
-  collapsedWidth?: number;
-  isCollapsed: boolean;
-  shellChromeVariant?: AppLayoutProps['shellChromeVariant'];
-  width?: number;
-}) {
-  const targetWidth = isCollapsed ? collapsedWidth : width;
-
-  return (
-    <aside
-      data-testid="desktop-sidebar-rail"
-      className={cn(
-        'fixed bottom-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
-        shellChromeVariant === 'transparent'
-          ? 'bg-transparent'
-          : 'bg-background',
-        !isCollapsed &&
-          shellChromeVariant !== 'transparent' &&
-          'border-r border-border',
-      )}
-      style={{
-        minWidth: targetWidth,
-        top: 'var(--desktop-titlebar-height)',
-        transition: `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
-        width: targetWidth,
-      }}
-    >
-      {children}
-    </aside>
-  );
-}
-
-function CollapsedSidebarLogoToggle({ onClick }: { onClick: () => void }) {
-  const logoUrl = useThemeLogo();
-
-  return (
-    <Button
-      type="button"
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-      onClick={onClick}
-      ariaLabel="Expand sidebar"
-      className="fixed left-2 z-[60] hidden size-8 items-center justify-center rounded-md bg-background text-foreground shadow-sm transition-colors hover:bg-background-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 md:flex"
-      style={{ top: 'calc(var(--desktop-titlebar-height) + 0.5rem)' }}
-    >
-      {logoUrl ? (
-        <Image
-          src={logoUrl}
-          alt={EnvironmentService.LOGO_ALT}
-          className="size-4 object-contain dark:invert"
-          width={16}
-          height={16}
-          sizes="16px"
-        />
-      ) : (
-        <span className="text-sm font-bold leading-none">G</span>
-      )}
-    </Button>
-  );
-}
 
 export default function AppLayout({
   children,
