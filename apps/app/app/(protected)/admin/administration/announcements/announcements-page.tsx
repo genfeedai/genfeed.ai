@@ -1,6 +1,5 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
 import type { IAnnouncement } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
@@ -10,20 +9,11 @@ import type {
 import { AdminAnnouncementsService } from '@services/admin/announcements.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import CardEmpty from '@ui/card/empty/CardEmpty';
-import Badge from '@ui/display/badge/Badge';
-import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
-import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
-import { Input } from '@ui/primitives/input';
-import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  HiCalendar,
-  HiOutlineGlobeAlt,
-  HiOutlineMegaphone,
-} from 'react-icons/hi2';
+import { HiOutlineMegaphone } from 'react-icons/hi2';
+import AnnouncementComposeForm from './announcement-compose-form';
+import AnnouncementHistoryList from './announcement-history-list';
 
 const TABS = [
   { id: 'compose', label: 'Compose' },
@@ -38,30 +28,7 @@ const INITIAL_FORM: AnnouncementComposeFormState = {
   twitterEnabled: false,
 };
 
-const ANNOUNCEMENT_HISTORY_SKELETON_KEYS = [
-  'announcement-history-skeleton-1',
-  'announcement-history-skeleton-2',
-  'announcement-history-skeleton-3',
-] as const;
-
 const TWEET_MAX_CHARS = 280;
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleString('en-US', {
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function truncate(text: string, maxLength: number): string {
-  if (text.length <= maxLength) {
-    return text;
-  }
-  return `${text.slice(0, maxLength)}…`;
-}
 
 export default function AnnouncementsPage({
   defaultTab = 'compose',
@@ -188,187 +155,21 @@ export default function AnnouncementsPage({
       onTabChange={setActiveTab}
     >
       {activeTab === 'compose' && (
-        <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
-          {/* Body */}
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="announcement-body"
-              className="text-sm font-medium text-foreground"
-            >
-              Body <span className="text-rose-400">*</span>
-            </label>
-            <Textarea
-              id="announcement-body"
-              className="w-full min-h-[160px] bg-background border border-white/10 px-3 py-2 text-sm text-foreground placeholder:text-foreground/40 resize-y focus:outline-none focus:border-white/25 transition-colors"
-              placeholder="Write your announcement here — supports Markdown for Discord…"
-              value={form.body}
-              onChange={(e) => handleFieldChange('body', e.target.value)}
-              disabled={isSubmitting}
-              required
-            />
-          </div>
-
-          {/* Tweet text */}
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="announcement-tweet"
-              className="text-sm font-medium text-foreground"
-            >
-              Tweet text{' '}
-              <span className="text-foreground/50">(optional, max 280)</span>
-            </label>
-            <div className="relative">
-              <Textarea
-                id="announcement-tweet"
-                className="w-full min-h-[100px] bg-background border border-white/10 px-3 py-2 text-sm text-foreground placeholder:text-foreground/40 resize-y focus:outline-none focus:border-white/25 transition-colors"
-                placeholder="Short version for Twitter/X…"
-                value={form.tweetText}
-                onChange={(e) => handleFieldChange('tweetText', e.target.value)}
-                disabled={isSubmitting}
-              />
-              <span
-                className={`absolute bottom-2 right-3 text-xs tabular-nums ${
-                  tweetOverLimit ? 'text-rose-400' : 'text-foreground/40'
-                }`}
-              >
-                {tweetCharCount}/{TWEET_MAX_CHARS}
-              </span>
-            </div>
-          </div>
-
-          {/* Channels */}
-          <div className="flex flex-col gap-3">
-            <span className="text-sm font-medium text-foreground">
-              Channels <span className="text-rose-400">*</span>
-            </span>
-
-            <span className="flex items-center gap-3 cursor-pointer select-none">
-              <Checkbox
-                checked={form.discordEnabled}
-                onCheckedChange={(checked) =>
-                  handleFieldChange('discordEnabled', checked === true)
-                }
-                disabled={isSubmitting}
-                aria-label="Publish announcement to Discord"
-              />
-              <span className="text-sm text-foreground">Discord</span>
-            </span>
-
-            {form.discordEnabled && (
-              <div className="ml-7 flex flex-col gap-2">
-                <label
-                  htmlFor="discord-channel-id"
-                  className="text-xs text-foreground/60"
-                >
-                  Discord channel ID <span className="text-rose-400">*</span>
-                </label>
-                <Input
-                  id="discord-channel-id"
-                  type="text"
-                  className="w-full max-w-xs bg-background border border-white/10 px-3 py-1.5 text-sm text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-white/25 transition-colors"
-                  placeholder="e.g. 1234567890"
-                  value={form.discordChannelId}
-                  onChange={(e) =>
-                    handleFieldChange('discordChannelId', e.target.value)
-                  }
-                  disabled={isSubmitting}
-                  required={form.discordEnabled}
-                />
-              </div>
-            )}
-
-            <span className="flex items-center gap-3 cursor-pointer select-none">
-              <Checkbox
-                checked={form.twitterEnabled}
-                onCheckedChange={(checked) =>
-                  handleFieldChange('twitterEnabled', checked === true)
-                }
-                disabled={isSubmitting}
-                aria-label="Publish announcement to Twitter/X"
-              />
-              <span className="text-sm text-foreground">Twitter/X</span>
-            </span>
-          </div>
-
-          {/* Submit */}
-          <Button
-            type="submit"
-            isDisabled={isSubmitting || tweetOverLimit}
-            className="flex items-center gap-2"
-          >
-            <HiOutlineGlobeAlt className="size-4" />
-            {isSubmitting ? 'Publishing…' : 'Publish'}
-          </Button>
-        </form>
+        <AnnouncementComposeForm
+          form={form}
+          isSubmitting={isSubmitting}
+          tweetCharCount={tweetCharCount}
+          tweetOverLimit={tweetOverLimit}
+          onFieldChange={handleFieldChange}
+          onSubmit={handleSubmit}
+        />
       )}
 
       {activeTab === 'history' && (
-        <div className="space-y-3">
-          {isLoadingHistory ? (
-            ANNOUNCEMENT_HISTORY_SKELETON_KEYS.map((key) => (
-              <SkeletonCard key={key} showImage={false} />
-            ))
-          ) : announcements.length === 0 ? (
-            <CardEmpty label="No announcements yet" />
-          ) : (
-            announcements.map((announcement) => (
-              <div
-                key={announcement.id}
-                className="border border-white/5 bg-card p-4 space-y-3"
-              >
-                {/* Body preview */}
-                <p className="text-sm text-foreground leading-relaxed">
-                  {truncate(announcement.body, 100)}
-                </p>
-
-                {/* Meta row */}
-                <div className="flex flex-wrap items-center gap-2">
-                  {announcement.channels.discord && (
-                    <Badge variant="blue">Discord</Badge>
-                  )}
-                  {announcement.channels.twitter && (
-                    <Badge variant="outline">Twitter/X</Badge>
-                  )}
-
-                  <span className="flex items-center gap-1 text-xs text-foreground/50 ml-auto">
-                    <HiCalendar className="size-3.5" />
-                    {formatDate(
-                      announcement.publishedAt ?? announcement.createdAt,
-                    )}
-                  </span>
-                </div>
-
-                {/* Links row */}
-                {(announcement.discordMessageUrl || announcement.tweetUrl) && (
-                  <div className="flex items-center gap-3 pt-1 border-t border-white/5">
-                    {announcement.discordMessageUrl && (
-                      <Button asChild variant={ButtonVariant.GHOST}>
-                        <a
-                          href={announcement.discordMessageUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View on Discord
-                        </a>
-                      </Button>
-                    )}
-                    {announcement.tweetUrl && (
-                      <Button asChild variant={ButtonVariant.GHOST}>
-                        <a
-                          href={announcement.tweetUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View Tweet
-                        </a>
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+        <AnnouncementHistoryList
+          isLoadingHistory={isLoadingHistory}
+          announcements={announcements}
+        />
       )}
     </Container>
   );

@@ -4,19 +4,13 @@ import type {
   IDesktopGenerationProviderPublicConfig,
   IDesktopIngredient,
 } from '@genfeedai/desktop-contracts';
-import { ButtonVariant } from '@genfeedai/enums';
 import { DropZone } from '@renderer/components/DropZone';
-import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
 import { useCallback, useEffect, useState } from 'react';
-
-const PLATFORM_FILTERS = [
-  { label: 'All', value: '' },
-  { label: 'TikTok', value: 'tiktok' },
-  { label: 'Twitter', value: 'twitter' },
-  { label: 'Instagram', value: 'instagram' },
-  { label: 'LinkedIn', value: 'linkedin' },
-] as const;
+import { LibraryAssetGrid } from './LibraryAssetGrid';
+import { LibraryFiltersBar } from './LibraryFiltersBar';
+import { LibraryGeneratePanel } from './LibraryGeneratePanel';
+import { LibraryIngredientsGrid } from './LibraryIngredientsGrid';
+import { LibraryViewHeader } from './LibraryViewHeader';
 
 type SortBy = 'date' | 'votes';
 
@@ -99,13 +93,13 @@ export const LibraryView = ({ workspaceId }: LibraryViewProps) => {
     async (paths: string[]) => {
       if (!workspaceId) return;
       try {
-        const assets = await window.genfeedDesktop.files.importAssets(
+        const imported = await window.genfeedDesktop.files.importAssets(
           workspaceId,
           paths,
         );
         await window.genfeedDesktop.notifications.notify(
           'Import Complete',
-          `${String(assets.length)} asset(s) imported to workspace.`,
+          `${String(imported.length)} asset(s) imported to workspace.`,
         );
         await loadAssets();
       } catch (err) {
@@ -181,156 +175,38 @@ export const LibraryView = ({ workspaceId }: LibraryViewProps) => {
       className="view-library"
       onFilesDropped={(paths) => void handleFilesDropped(paths)}
     >
-      <div className="view-header">
-        <h2>Library</h2>
-        <span className="muted-text">
-          {ingredients.length} ingredients · {assets.length} assets
-        </span>
-      </div>
+      <LibraryViewHeader
+        assetCount={assets.length}
+        ingredientCount={ingredients.length}
+      />
 
-      <div className="panel-card">
-        <div className="ingredient-header">
-          <strong className="ingredient-title">Generate Image Asset</strong>
-          {providerConfig && (
-            <span className="platform-badge">
-              {providerConfig.displayName ?? providerConfig.provider}
-            </span>
-          )}
-        </div>
-        <div className="library-filters">
-          <Input
-            className="input-field"
-            disabled={!workspaceId || isGeneratingAsset}
-            onChange={(event) => setAssetPrompt(event.target.value)}
-            placeholder="Prompt"
-            type="text"
-            value={assetPrompt}
-          />
-          <Button
-            disabled={
-              !workspaceId ||
-              !assetPrompt.trim() ||
-              !providerConfig ||
-              isGeneratingAsset
-            }
-            onClick={() => void handleGenerateAsset()}
-            type="button"
-            variant={ButtonVariant.DEFAULT}
-          >
-            {isGeneratingAsset ? 'Generating…' : 'Generate'}
-          </Button>
-        </div>
-        {assetJob && (
-          <p className="muted-text">
-            Job {assetJob.status}
-            {assetJob.assetIds.length > 0
-              ? ` · ${assetJob.assetIds.length} asset`
-              : ''}
-          </p>
-        )}
-        {assetError && <div className="error-banner">{assetError}</div>}
-      </div>
+      <LibraryGeneratePanel
+        assetError={assetError}
+        assetJob={assetJob}
+        assetPrompt={assetPrompt}
+        isGeneratingAsset={isGeneratingAsset}
+        onGenerate={() => void handleGenerateAsset()}
+        onPromptChange={setAssetPrompt}
+        providerConfig={providerConfig}
+        workspaceId={workspaceId}
+      />
 
-      {assets.length > 0 && (
-        <div className="ingredient-grid">
-          {assets.map((asset) => (
-            <div className="ingredient-card panel-card" key={asset.id}>
-              <div className="ingredient-header">
-                <strong className="ingredient-title">
-                  {asset.displayName}
-                </strong>
-                <span className="platform-badge">{asset.residency}</span>
-              </div>
-              <p className="ingredient-content">
-                {asset.kind} · {asset.origin} · {asset.mimeType}
-              </p>
-              <div className="ingredient-footer">
-                <span className="vote-count">
-                  {Math.round(asset.sizeBytes / 1024)} KB
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <LibraryAssetGrid assets={assets} />
 
-      <div className="library-filters">
-        <div className="pill-group">
-          {PLATFORM_FILTERS.map((pf) => (
-            <Button
-              className={`pill-button ${platformFilter === pf.value ? 'pill-active' : ''}`}
-              key={pf.value}
-              onClick={() => setPlatformFilter(pf.value)}
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-            >
-              {pf.label}
-            </Button>
-          ))}
-        </div>
-        <div className="pill-group">
-          <Button
-            className={`pill-button ${sortBy === 'votes' ? 'pill-active' : ''}`}
-            onClick={() => setSortBy('votes')}
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-          >
-            By Votes
-          </Button>
-          <Button
-            className={`pill-button ${sortBy === 'date' ? 'pill-active' : ''}`}
-            onClick={() => setSortBy('date')}
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-          >
-            By Date
-          </Button>
-        </div>
-      </div>
+      <LibraryFiltersBar
+        onPlatformChange={setPlatformFilter}
+        onSortChange={setSortBy}
+        platformFilter={platformFilter}
+        sortBy={sortBy}
+      />
 
-      {loading && (
-        <div className="skeleton-grid">
-          {Array.from({ length: 6 }, (_, i) => (
-            <div className="skeleton-card" key={`skel-${String(i)}`} />
-          ))}
-        </div>
-      )}
-
-      {error && <div className="error-banner">{error}</div>}
-
-      {!loading && !error && sortedIngredients.length === 0 && (
-        <p className="empty-state">
-          No ingredients found. Try changing your filter or creating content in
-          a conversation.
-        </p>
-      )}
-
-      {!loading && sortedIngredients.length > 0 && (
-        <div className="ingredient-grid">
-          {sortedIngredients.map((ingredient) => (
-            <div className="ingredient-card panel-card" key={ingredient.id}>
-              <div className="ingredient-header">
-                <strong className="ingredient-title">{ingredient.title}</strong>
-                {ingredient.platform && (
-                  <span className="platform-badge">{ingredient.platform}</span>
-                )}
-              </div>
-              <p className="ingredient-content">{ingredient.content}</p>
-              <div className="ingredient-footer">
-                <span className="vote-count">▲ {ingredient.totalVotes}</span>
-                <Button
-                  className="small"
-                  onClick={() => void handleCopy(ingredient)}
-                  type="button"
-                  variant={ButtonVariant.GHOST}
-                >
-                  {copiedId === ingredient.id ? '✓ Copied' : 'Copy'}
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <LibraryIngredientsGrid
+        copiedId={copiedId}
+        error={error}
+        ingredients={sortedIngredients}
+        loading={loading}
+        onCopy={(ingredient) => void handleCopy(ingredient)}
+      />
     </DropZone>
   );
 };

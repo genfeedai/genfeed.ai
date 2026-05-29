@@ -1,25 +1,18 @@
 'use client';
 
-import {
-  ComponentSize,
-  DropdownDirection,
-  IngredientCategory,
-} from '@genfeedai/enums';
+import { ComponentSize, IngredientCategory } from '@genfeedai/enums';
 import {
   BG_BLUR,
   BORDER_WHITE_30,
   cn,
 } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useQuickActions } from '@genfeedai/hooks/ui/use-quick-actions/use-quick-actions';
-import type { IIngredient } from '@genfeedai/interfaces';
 import type { IQuickAction } from '@genfeedai/interfaces/ui/quick-actions.interface';
 import type { StudioQuickActionsProps } from '@genfeedai/props/studio/studio.props';
-import DropdownPrompt from '@ui/dropdowns/prompt/DropdownPrompt';
-import DropdownScope from '@ui/dropdowns/scope/DropdownScope';
-import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import QuickActionButton from '@ui/quick-actions/button/QuickActionButton';
 import QuickActionsMenu from '@ui/quick-actions/menu/QuickActionsMenu';
 import { useCallback, useMemo, useState } from 'react';
+import IngredientContextActions from './IngredientContextActions';
 
 export default function IngredientQuickActions(
   props: StudioQuickActionsProps & { isMasonryCompact?: boolean },
@@ -267,47 +260,16 @@ export default function IngredientQuickActions(
   return (
     <div className={cn('flex flex-wrap items-center gap-2', alignmentClass)}>
       {!isMasonryCompact && contextActions.length > 0 && (
-        <div
-          data-testid="context-actions-group"
-          className={cn(sharedShellClassName, 'flex items-center gap-1')}
-        >
-          {contextActions.some((action) => action.id === 'prompt') && (
-            <DropdownPrompt
-              promptText={selectedIngredient.promptText ?? ''}
-              direction={DropdownDirection.UP}
-              className={dropdownButtonClassName}
-              onCopy={() => {
-                if (handlers.onCopy) {
-                  handlers.onCopy(selectedIngredient);
-                }
-              }}
-              onReprompt={
-                onReprompt ? () => onReprompt(selectedIngredient) : undefined
-              }
-            />
-          )}
-
-          {contextActions.some((action) => action.id === 'status') && (
-            <DropdownStatus
-              entity={selectedIngredient}
-              onStatusChange={onRefresh}
-              className={dropdownButtonClassName}
-              position="bottom-full"
-            />
-          )}
-
-          {contextActions.some((action) => action.id === 'scope') && (
-            <DropdownScope
-              item={selectedIngredient}
-              className={dropdownButtonClassName}
-              position="bottom-full"
-              onScopeChange={(scope, updatedItem) => {
-                onScopeChange?.(scope, updatedItem as IIngredient);
-                onRefresh?.();
-              }}
-            />
-          )}
-        </div>
+        <IngredientContextActions
+          contextActions={contextActions}
+          selectedIngredient={selectedIngredient}
+          onCopy={handlers.onCopy}
+          onReprompt={onReprompt}
+          onRefresh={onRefresh}
+          onScopeChange={onScopeChange}
+          dropdownButtonClassName={dropdownButtonClassName}
+          sharedShellClassName={sharedShellClassName}
+        />
       )}
 
       <div
