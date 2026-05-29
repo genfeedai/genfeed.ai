@@ -1,5 +1,8 @@
+import type { IAgentRun } from '@genfeedai/interfaces';
 import { Task, type TaskEvent } from '@services/management/tasks.service';
 import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
+
+export const EMPTY_AGENT_RUNS: IAgentRun[] = [];
 
 export type WorkspaceSection = 'activity' | 'inbox' | 'overview';
 export type InboxView = 'all' | 'recent' | 'unread';
