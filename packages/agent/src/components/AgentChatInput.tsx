@@ -1,3 +1,6 @@
+import { AgentChatInputAttachmentTray } from '@genfeedai/agent/components/AgentChatInputAttachmentTray';
+import { AgentChatInputStyles } from '@genfeedai/agent/components/AgentChatInputStyles';
+import { AgentChatInputToolbar } from '@genfeedai/agent/components/AgentChatInputToolbar';
 import { BrandMentionList } from '@genfeedai/agent/components/BrandMentionList';
 import { ContentMentionList } from '@genfeedai/agent/components/ContentMentionList';
 import { CredentialMentionList } from '@genfeedai/agent/components/CredentialMentionList';
@@ -15,7 +18,6 @@ import { useTeamMentions } from '@genfeedai/agent/hooks/use-team-mentions';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type {
   AttachmentItem,
@@ -28,9 +30,7 @@ import { type Editor, Extension, type JSONContent } from '@tiptap/core';
 import Placeholder from '@tiptap/extension-placeholder';
 import { EditorContent, ReactRenderer, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarShell from '@ui/prompt-bars/components/shell/PromptBarShell';
 import {
   type ChangeEvent,
@@ -43,12 +43,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  HiArrowUp,
-  HiOutlineArrowPath,
-  HiOutlineMicrophone,
-  HiOutlinePaperClip,
-} from 'react-icons/hi2';
 import tippy, { type Instance } from 'tippy.js';
 
 export type ExtractedMention =
@@ -622,42 +616,7 @@ export function AgentChatInput({
 
   return (
     <div className="w-full relative" {...dragHandlers}>
-      <style>{`
-        .ProseMirror {
-          min-height: 36px;
-          max-height: 200px;
-          overflow-y: auto;
-          outline: none;
-        }
-        .ProseMirror p.is-editor-empty:first-child::before {
-          content: attr(data-placeholder);
-          float: left;
-          pointer-events: none;
-          height: 0;
-          color: hsl(var(--foreground) / 0.3);
-        }
-        .mention {
-          border-radius: 0.25rem;
-          padding: 0.125rem 0.25rem;
-          font-weight: 500;
-        }
-        .mention-brand {
-          background-color: hsl(35 90% 55% / 0.15);
-          color: hsl(35 90% 55%);
-        }
-        .mention-team {
-          background-color: hsl(210 90% 55% / 0.15);
-          color: hsl(210 90% 55%);
-        }
-        .mention-credential {
-          background-color: hsl(var(--primary) / 0.15);
-          color: hsl(var(--primary));
-        }
-        .mention-content {
-          background-color: hsl(150 60% 45% / 0.15);
-          color: hsl(150 60% 45%);
-        }
-      `}</style>
+      <AgentChatInputStyles />
 
       {isDragActive && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-md border-2 border-dashed border-primary/50 bg-primary/5">
@@ -686,115 +645,40 @@ export function AgentChatInput({
         onPointerDown={handleShellPointerDown}
       >
         {hasAttachments && (
-          <div className="px-2 pb-1 pt-1">
-            <PromptBarAttachedAssetsTray
-              assets={trayAssets}
-              density="compact"
-              isDisabled={disabled}
-              onBrowseAssets={() => fileInputRef.current?.click()}
-              onRemoveAttachedAsset={handleRemoveAttachment}
-            />
-          </div>
+          <AgentChatInputAttachmentTray
+            assets={trayAssets}
+            isDisabled={disabled}
+            onBrowseAssets={() => fileInputRef.current?.click()}
+            onRemoveAttachedAsset={handleRemoveAttachment}
+          />
         )}
 
         <div className="p-2">
           <EditorContent editor={editor} className="flex-1" />
         </div>
 
-        <div className="mt-1">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <Button
-              variant={ButtonVariant.GHOST}
-              onClick={() => {
-                void handlePlanModeToggle();
-              }}
-              isDisabled={disabled}
-              ariaLabel={
-                draftPlanModeEnabled ? 'Disable plan mode' : 'Enable plan mode'
-              }
-              className={cn(
-                'h-9 rounded-md px-3 text-xs font-medium',
-                draftPlanModeEnabled &&
-                  'border border-primary/40 bg-primary/12 text-primary',
-              )}
-            >
-              {draftPlanModeEnabled ? 'Plan mode on' : 'Plan mode off'}
-            </Button>
-            <div className="flex items-center gap-2">
-              {addFiles && (
-                <Button
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                  onClick={() => fileInputRef.current?.click()}
-                  isDisabled={disabled || isUploading}
-                  className="shrink-0 flex size-9 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
-                  ariaLabel="Attach image"
-                >
-                  <HiOutlinePaperClip className="size-4" />
-                </Button>
-              )}
-
-              {showStop && onStop ? (
-                <Button
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                  onClick={() => {
-                    void onStop();
-                  }}
-                  className="shrink-0 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1.5 text-xs font-medium text-red-300 transition-colors hover:bg-red-500/20"
-                  ariaLabel="Stop agent"
-                >
-                  Stop
-                </Button>
-              ) : null}
-
-              {isTranscribing ? (
-                <Button
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                  isDisabled
-                  className="shrink-0 flex size-9 items-center justify-center rounded-md bg-primary/20 text-primary"
-                  aria-label="Transcribing"
-                >
-                  <HiOutlineArrowPath className="size-4 animate-spin" />
-                </Button>
-              ) : !showStop && isListening ? (
-                <Button
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                  onClick={stopListening}
-                  className="relative shrink-0 flex size-9 items-center justify-center rounded-md bg-red-500/20 text-red-400 transition-colors hover:bg-red-500/30"
-                  aria-label="Stop listening"
-                >
-                  <HiOutlineMicrophone className="size-4" />
-                  <span className="absolute right-0 top-0 size-2 animate-pulse rounded-full bg-red-500" />
-                </Button>
-              ) : shouldShowVoiceInput ? (
-                <Button
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                  onClick={startListening}
-                  isDisabled={disabled}
-                  className="shrink-0 flex size-9 items-center justify-center rounded-md border border-white/12 bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
-                  ariaLabel="Start voice input"
-                >
-                  <HiOutlineMicrophone className="size-4" />
-                </Button>
-              ) : shouldShowSendButton ? (
-                <Button
-                  variant={ButtonVariant.GENERATE}
-                  size={ButtonSize.ICON}
-                  icon={<HiArrowUp />}
-                  onClick={handleSend}
-                  isDisabled={
-                    disabled || !editor || !canSendMessage || isUploading
-                  }
-                  className="shrink-0"
-                />
-              ) : null}
-            </div>
-          </div>
-        </div>
+        <AgentChatInputToolbar
+          draftPlanModeEnabled={draftPlanModeEnabled}
+          onPlanModeToggle={() => {
+            void handlePlanModeToggle();
+          }}
+          disabled={disabled}
+          isUploading={isUploading}
+          showStop={showStop}
+          onStop={onStop}
+          isTranscribing={isTranscribing}
+          isListening={isListening}
+          shouldShowVoiceInput={shouldShowVoiceInput}
+          shouldShowSendButton={shouldShowSendButton}
+          canSendMessage={canSendMessage}
+          hasEditor={Boolean(editor)}
+          onStartListening={startListening}
+          onStopListening={stopListening}
+          onSend={handleSend}
+          onAttachClick={
+            addFiles ? () => fileInputRef.current?.click() : undefined
+          }
+        />
       </PromptBarShell>
     </div>
   );

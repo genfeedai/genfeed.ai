@@ -19,10 +19,8 @@ import {
 } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -35,6 +33,9 @@ import { Textarea } from '@ui/primitives/textarea';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import { HiOutlineRectangleGroup } from 'react-icons/hi2';
+import OrchestratorBlueprintPreview from './OrchestratorBlueprintPreview';
+import OrchestratorGoalSection from './OrchestratorGoalSection';
+import OrchestratorSpecialistsSection from './OrchestratorSpecialistsSection';
 
 interface OrchestratorFormState {
   blueprintId: string;
@@ -403,40 +404,11 @@ export default function ContentTeamOrchestratorPage() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">
-              Existing Specialists
-            </p>
-            <div className="space-y-2 rounded border border-white/[0.08] p-4">
-              {strategies.length === 0 ? (
-                <p className="text-sm text-foreground/50">
-                  No existing strategies found. The blueprint can still create
-                  the initial team.
-                </p>
-              ) : (
-                strategies.map((strategy) => (
-                  <span
-                    key={strategy.id}
-                    className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-white/[0.06] px-3 py-2"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        {strategy.label}
-                      </p>
-                      <p className="text-xs text-foreground/50">
-                        {strategy.displayRole ?? strategy.agentType}
-                      </p>
-                    </div>
-                    <Checkbox
-                      aria-label={`Select ${strategy.label}`}
-                      checked={form.selectedStrategyIds.includes(strategy.id)}
-                      onCheckedChange={() => toggleStrategy(strategy.id)}
-                    />
-                  </span>
-                ))
-              )}
-            </div>
-          </div>
+          <OrchestratorSpecialistsSection
+            selectedStrategyIds={form.selectedStrategyIds}
+            strategies={strategies}
+            toggleStrategy={toggleStrategy}
+          />
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
@@ -489,89 +461,20 @@ export default function ContentTeamOrchestratorPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <div className="space-y-1.5 md:col-span-2">
-              <label
-                className="text-sm font-medium text-foreground"
-                htmlFor="content-team-goal-label"
-              >
-                Company Goal Label
-              </label>
-              <Input
-                id="content-team-goal-label"
-                onChange={(event) =>
-                  handleChange('goalLabel', event.target.value)
-                }
-                placeholder="April views target"
-                value={form.goalLabel}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                className="text-sm font-medium text-foreground"
-                htmlFor="content-team-goal-metric"
-              >
-                Goal Metric
-              </label>
-              <Select
-                value={form.goalMetric}
-                onValueChange={(value) =>
-                  handleChange(
-                    'goalMetric',
-                    value as 'engagement_rate' | 'posts' | 'views',
-                  )
-                }
-              >
-                <SelectTrigger id="content-team-goal-metric">
-                  <SelectValue placeholder="Choose a metric" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="views">Views</SelectItem>
-                  <SelectItem value="posts">Posts</SelectItem>
-                  <SelectItem value="engagement_rate">
-                    Engagement Rate
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                className="text-sm font-medium text-foreground"
-                htmlFor="content-team-goal-target"
-              >
-                Goal Target
-              </label>
-              <Input
-                id="content-team-goal-target"
-                min={0}
-                onChange={(event) =>
-                  handleChange('goalTargetValue', event.target.value)
-                }
-                type="number"
-                value={form.goalTargetValue}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label
-              className="text-sm font-medium text-foreground"
-              htmlFor="content-team-goal-description"
-            >
-              Goal Context
-            </label>
-            <Textarea
-              id="content-team-goal-description"
-              onChange={(event) =>
-                handleChange('goalDescription', event.target.value)
-              }
-              placeholder="Explain what winning this campaign should look like."
-              rows={3}
-              value={form.goalDescription}
-            />
-          </div>
+          <OrchestratorGoalSection
+            goalDescription={form.goalDescription}
+            goalLabel={form.goalLabel}
+            goalMetric={form.goalMetric}
+            goalTargetValue={form.goalTargetValue}
+            onChangeDescription={(value) =>
+              handleChange('goalDescription', value)
+            }
+            onChangeLabel={(value) => handleChange('goalLabel', value)}
+            onChangeMetric={(value) => handleChange('goalMetric', value)}
+            onChangeTargetValue={(value) =>
+              handleChange('goalTargetValue', value)
+            }
+          />
 
           <div className="flex items-center gap-3">
             <Button
@@ -588,30 +491,11 @@ export default function ContentTeamOrchestratorPage() {
           </div>
         </form>
 
-        <Card
-          bodyClassName="space-y-4 p-5"
-          description={selectedBlueprint?.description}
-          label={selectedBlueprint?.label ?? 'Blueprint Preview'}
-        >
-          <div className="space-y-3 text-sm">
-            <div>
-              <p className="text-foreground/45">Planned Roles</p>
-              <p className="mt-1 font-medium text-foreground">
-                {blueprintRoles.map((role) => role.displayRole).join(', ')}
-              </p>
-            </div>
-            <div>
-              <p className="text-foreground/45">Approval Policy</p>
-              <p className="mt-1 font-medium text-foreground">Manual review</p>
-            </div>
-            <div>
-              <p className="text-foreground/45">Existing Agents Attached</p>
-              <p className="mt-1 font-medium text-foreground">
-                {form.selectedStrategyIds.length}
-              </p>
-            </div>
-          </div>
-        </Card>
+        <OrchestratorBlueprintPreview
+          blueprintRoles={blueprintRoles}
+          selectedBlueprint={selectedBlueprint}
+          selectedStrategyCount={form.selectedStrategyIds.length}
+        />
       </div>
     </Container>
   );

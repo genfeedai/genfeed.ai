@@ -7,10 +7,7 @@ import {
 } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
-  AlertCategory,
   type AssetScope,
-  ButtonSize,
-  ButtonVariant,
   IngredientCategory,
   IngredientStatus,
   ModalEnum,
@@ -37,15 +34,14 @@ import {
   isVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
 import { useQuery } from '@tanstack/react-query';
-import Alert from '@ui/feedback/alert/Alert';
-import IngredientDetailImage from '@ui/ingredients/detail-image/IngredientDetailImage';
-import IngredientDetailVideo from '@ui/ingredients/detail-video/IngredientDetailVideo';
 import TextOverlayPanel from '@ui/ingredients/text-overlay-panel/TextOverlayPanel';
 import Loading from '@ui/loading/default/Loading';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
-import { Button } from '@ui/primitives/button';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import IngredientOverlayAlerts from './IngredientOverlayAlerts';
+import IngredientOverlayBadges from './IngredientOverlayBadges';
+import IngredientOverlayMediaContent from './IngredientOverlayMediaContent';
 
 export default function IngredientOverlay({
   ingredient,
@@ -437,17 +433,7 @@ export default function IngredientOverlay({
         onClose={handleModalClose}
         badges={
           localIngredient ? (
-            <>
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-foreground/55">
-                Ingredient
-              </span>
-              <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-foreground/70">
-                {localIngredient.category}
-              </span>
-              <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-foreground/70">
-                {localIngredient.status}
-              </span>
-            </>
+            <IngredientOverlayBadges ingredient={localIngredient} />
           ) : null
         }
       >
@@ -455,161 +441,64 @@ export default function IngredientOverlay({
           <Loading isFullSize={false} />
         ) : (
           <div className="mx-auto flex h-auto max-w-[1520px] flex-col gap-4 p-4 md:p-6">
-            {error ? (
-              <Alert type={AlertCategory.ERROR}>
-                <p>{error}</p>
-              </Alert>
-            ) : null}
+            <IngredientOverlayAlerts
+              error={error}
+              localIngredient={localIngredient}
+              viewingChild={viewingChild}
+              onBackToParent={() => {
+                setViewingChild(null);
+                setLocalIngredient(parentIngredient);
 
-            {localIngredient.status === IngredientStatus.ARCHIVED && (
-              <Alert type={AlertCategory.WARNING}>
-                <p>This ingredient is archived.</p>
-              </Alert>
-            )}
+                if (parentIngredient) {
+                  findAllIngredientChildren(parentIngredient.id);
+                }
+              }}
+            />
 
-            {EnvironmentService.isDevelopment && (
-              <Alert type={AlertCategory.INFO}>
-                <p>Ingredient ID: {localIngredient.id}</p>
-              </Alert>
-            )}
-
-            {viewingChild &&
-              (() => {
-                const childMetadata =
-                  typeof viewingChild.metadata === 'object' &&
-                  viewingChild.metadata
-                    ? (viewingChild.metadata as IMetadata)
-                    : null;
-
-                return (
-                  <Alert type={AlertCategory.INFO}>
-                    <div className="flex justify-between items-center w-full gap-2">
-                      <p>
-                        Viewing child: {childMetadata?.label || 'Child Asset'}
-                      </p>
-
-                      <Button
-                        label="Back to parent"
-                        variant={ButtonVariant.GHOST}
-                        size={ButtonSize.SM}
-                        onClick={() => {
-                          setViewingChild(null);
-                          setLocalIngredient(parentIngredient);
-
-                          if (parentIngredient) {
-                            findAllIngredientChildren(parentIngredient.id);
-                          }
-                        }}
-                      />
-                    </div>
-                  </Alert>
-                );
-              })()}
-
-            <div className="rounded-3xl border border-white/8 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.015))] p-4 shadow-[0_32px_120px_rgba(0,0,0,0.4)] md:p-6">
-              <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                {isVideo ? (
-                  <IngredientDetailVideo
-                    video={localIngredient}
-                    videoRef={videoRef}
-                    credentials={credentials}
-                    childIngredients={childIngredients}
-                    // Actions (Handlers)
-                    onReload={handleReload}
-                    // onSeeDetails={handlers.handleSeeDetails}
-                    onShareVideo={() => handlers.handleShare(localIngredient!)}
-                    // onGenerateCaptions={handlers.handleGenerateCaptions}
-                    onPublishVideo={handlers.handlePublish}
-                    onDownloadVideo={async (video) => {
-                      await handlers.handleDownload(video);
-                      return undefined;
-                    }}
-                    // onUpscaleVideo={handlers.handleUpscale}
-                    // onCloneVideo={handlers.handleClone}
-                    // onVoteIngredient={handlers.handleVote}
-                    // onReverseVideo={handlers.handleReverse}
-                    // onMirrorVideo={handlers.handleMirror}
-                    // onPortraitVideo={handlers.handlePortrait}
-                    // onConvertToGif={handlers.handleConvertToGif}
-                    // onAddTextOverlay={() => setShowTextOverlayPanel(true)}
-                    onUpdateMetadata={(field: string, value: string) =>
-                      handlers.handleUpdateMetadata(
-                        localIngredient!,
-                        field,
-                        value,
-                      )
-                    }
-                    onUpdateSharing={(field: string, value: boolean | string) =>
-                      handlers.handleUpdateSharing(
-                        localIngredient!,
-                        field,
-                        value,
-                      )
-                    }
-                    isPublishing={loadingStates.isPublishing}
-                    isDownloading={loadingStates.isDownloading}
-                    isUpscaling={loadingStates.isUpscaling}
-                    isCloning={loadingStates.isCloning}
-                    isVoting={loadingStates.isVoting}
-                    isReversing={loadingStates.isReversing}
-                    isMirroring={loadingStates.isMirroring}
-                    isPortraiting={loadingStates.isPortraiting}
-                    isConverting={loadingStates.isConverting}
-                    isGeneratingCaptions={loadingStates.isGeneratingCaptions}
-                    isAddingTextOverlay={loadingStates.isAddingTextOverlay}
-                    onUsePrompt={handleUsePrompt}
-                  />
-                ) : isImage ? (
-                  <IngredientDetailImage
-                    childIngredients={childIngredients}
-                    image={localIngredient as any}
-                    isCloning={loadingStates.isCloning}
-                    isConvertingToVideo={loadingStates.isConvertingToVideo}
-                    isDownloading={loadingStates.isDownloading}
-                    isPublishing={loadingStates.isPublishing}
-                    isUpdating={isUpdating}
-                    isUpscaling={loadingStates.isUpscaling}
-                    isVoting={loadingStates.isVoting}
-                    // onCloneImage={handlers.handleClone}
-                    // onConvertToVideo={handlers.handleConvertToVideo}
-                    onCreateVariation={handleCreateVariation}
-                    onDownloadImage={async (image) => {
-                      await handlers.handleDownload(image);
-                      return undefined;
-                    }}
-                    onPublishImage={handlers.handlePublish}
-                    // onSeeDetails={handlers.handleSeeDetails}
-                    onShareImage={() => handlers.handleShare(localIngredient!)}
-                    onUpdateMetadata={(field: string, value: string) =>
-                      handlers.handleUpdateMetadata(
-                        localIngredient!,
-                        field,
-                        value,
-                      )
-                    }
-                    onUpdateSharing={(field: string, value: boolean | string) =>
-                      handlers.handleUpdateSharing(
-                        localIngredient!,
-                        field,
-                        value,
-                      )
-                    }
-                    onScopeChange={handleScopeChange}
-                    // onUpscaleImage={handlers.handleUpscale}
-                    // onVoteIngredient={handlers.handleVote}
-                    onUsePrompt={handleUsePrompt}
-                  />
-                ) : (
-                  <div className="col-span-3 text-center">
-                    <p className="text-lg mb-2">{metadataLabel}</p>
-
-                    <p className="text-sm text-foreground/60">
-                      {localIngredient.category}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
+            <IngredientOverlayMediaContent
+              localIngredient={localIngredient}
+              isVideo={isVideo}
+              isImage={isImage}
+              metadataLabel={metadataLabel}
+              videoRef={videoRef}
+              credentials={credentials}
+              childIngredients={childIngredients}
+              isPublishing={loadingStates.isPublishing}
+              isDownloading={loadingStates.isDownloading}
+              isUpscaling={loadingStates.isUpscaling}
+              isCloning={loadingStates.isCloning}
+              isVoting={loadingStates.isVoting}
+              isReversing={loadingStates.isReversing}
+              isMirroring={loadingStates.isMirroring}
+              isPortraiting={loadingStates.isPortraiting}
+              isConverting={loadingStates.isConverting}
+              isConvertingToVideo={loadingStates.isConvertingToVideo}
+              isGeneratingCaptions={loadingStates.isGeneratingCaptions}
+              isAddingTextOverlay={loadingStates.isAddingTextOverlay}
+              isUpdating={isUpdating}
+              onReload={handleReload}
+              onShareVideo={() => handlers.handleShare(localIngredient!)}
+              onPublishVideo={handlers.handlePublish}
+              onDownloadVideo={async (video) => {
+                await handlers.handleDownload(video);
+                return undefined;
+              }}
+              onUpdateMetadata={(field: string, value: string) =>
+                handlers.handleUpdateMetadata(localIngredient!, field, value)
+              }
+              onUpdateSharing={(field: string, value: boolean | string) =>
+                handlers.handleUpdateSharing(localIngredient!, field, value)
+              }
+              onUsePrompt={handleUsePrompt}
+              onCreateVariation={handleCreateVariation}
+              onDownloadImage={async (image) => {
+                await handlers.handleDownload(image);
+                return undefined;
+              }}
+              onPublishImage={handlers.handlePublish}
+              onShareImage={() => handlers.handleShare(localIngredient!)}
+              onScopeChange={handleScopeChange}
+            />
           </div>
         )}
       </EntityOverlayShell>

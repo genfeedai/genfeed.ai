@@ -102,3 +102,40 @@ export function getVisibleReviewItems(
     }
   });
 }
+
+export function getNextActiveItemId(
+  items: IBatchItem[],
+  currentItemId: string | null,
+): string | null {
+  if (items.length === 0) {
+    return null;
+  }
+
+  if (!currentItemId) {
+    return items[0]?.id ?? null;
+  }
+
+  const currentIndex = items.findIndex((item) => item.id === currentItemId);
+
+  if (currentIndex === -1) {
+    return items[0]?.id ?? null;
+  }
+
+  return items[currentIndex + 1]?.id ?? items[currentIndex - 1]?.id ?? null;
+}
+
+export function parseReviewFilter(value: string | null): ReviewFilter | null {
+  if (
+    value === 'ready' ||
+    value === 'approved' ||
+    value === 'changes_requested' ||
+    value === 'failed' ||
+    value === 'pending' ||
+    value === 'skipped' ||
+    value === 'all'
+  ) {
+    return value;
+  }
+
+  return null;
+}
