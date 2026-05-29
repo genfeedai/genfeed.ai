@@ -4,48 +4,33 @@ import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { EMPTY_STATES, ITEMS_PER_PAGE } from '@genfeedai/constants';
 import {
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-  CredentialPlatform,
-  IngredientCategory,
   ModelCategory,
   PageScope,
-  Platform,
-  PostCategory,
+  type Platform,
   PostStatus,
   ViewType,
   WebSocketEventStatus,
 } from '@genfeedai/enums';
-import type {
-  ICredential,
-  IIngredient,
-  IPost,
-  IPreset,
-  IQueryParams,
-} from '@genfeedai/interfaces';
+import type { IIngredient, IPost, IPreset } from '@genfeedai/interfaces';
 import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
-import {
-  normalizePostsPlatform,
-  PLATFORM_LABEL_MAP,
-} from '@helpers/content/posts.helper';
-import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
-import {
-  formatDateInTimezone,
-  getBrowserTimezone,
-} from '@helpers/formatting/timezone/timezone.helper';
+import { normalizePostsPlatform } from '@helpers/content/posts.helper';
+import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluation';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
-import PostsGrid, {
-  type PostCardAction,
-} from '@pages/posts/list/components/PostsGrid';
+import { buildPostsCardActions } from '@pages/posts/list/components/PostsCardActions';
+import PostsGrid from '@pages/posts/list/components/PostsGrid';
 import PostsListToolbar from '@pages/posts/list/components/PostsListToolbar';
-import { postCardIcons } from '@pages/posts/list/components/posts-grid.helpers';
+import { buildPostsTableActions } from '@pages/posts/list/components/PostsTableActions';
+import { buildPostsTableColumns } from '@pages/posts/list/components/PostsTableColumns';
+import {
+  getAvailablePlatforms,
+  getCredentialForPlatform,
+} from '@pages/posts/list/components/posts-credential.helpers';
+import { generatePosts } from '@pages/posts/list/components/posts-generate.helpers';
+import { fetchPosts } from '@pages/posts/list/components/posts-query.helpers';
 import type { ContentProps } from '@props/layout/content.props';
-import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import {
   useConfirmDeleteModal,
   useIngredientOverlay,
@@ -54,7 +39,6 @@ import {
 } from '@providers/global-modals/global-modals.provider';
 import { PagesService } from '@services/content/pages.service';
 import { PostsService } from '@services/content/posts.service';
-import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { PresetsService } from '@services/elements/presets.service';
@@ -63,34 +47,17 @@ import { BrandsService } from '@services/social/brands.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
-import Badge from '@ui/display/badge/Badge';
-import HtmlContent from '@ui/display/html-content/HtmlContent';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import AppTable from '@ui/display/table/Table';
-import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
-import EvaluationBadge from '@ui/evaluation/badge/EvaluationBadge';
 import Loading from '@ui/loading/default/Loading';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
-import { Button } from '@ui/primitives/button';
 import PromptBarPost from '@ui/prompt-bars/post/PromptBarPost';
 import PromptBarSurfaceRenderer from '@ui/prompt-bars/surface/PromptBarSurfaceRenderer';
 import { POSTS_PROMPT_BAR_SURFACE } from '@ui/prompt-bars/surface/prompt-bar-surface.config';
 import { WebSocketPaths } from '@utils/network/websocket.util';
-import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  HiArrowTopRightOnSquare,
-  HiArrowUp,
-  HiDocumentDuplicate,
-  HiEye,
-  HiPencil,
-  HiSquares2X2,
-  HiTableCells,
-  HiTrash,
-} from 'react-icons/hi2';
+import { HiSquares2X2, HiTableCells } from 'react-icons/hi2';
 
 // View type constants
 const VIEW_TYPE_GRID = ViewType.GRID;
@@ -105,50 +72,6 @@ const getDefaultSort = (status?: PostStatus): string => {
   }
   return 'createdAt: -1';
 };
-
-// Eval cell component - handles evaluation button/badge for a single post
-interface EvalCellProps {
-  post: IPost;
-  onEvaluated: (postId: string, score: number) => void;
-}
-
-function EvalCell({ post, onEvaluated }: EvalCellProps) {
-  const { evaluation, isEvaluating, evaluate } = useEvaluation({
-    autoFetch: false, // Don't auto-fetch - we already have evalScore from API
-    contentId: post.id,
-    contentType: 'post',
-  });
-
-  // If we have a score from the API or from a fresh evaluation, show badge
-  const score = evaluation?.overallScore ?? post.evalScore;
-
-  if (score != null) {
-    return <EvaluationBadge score={score} size={ComponentSize.XS} />;
-  }
-
-  // No score - show evaluate button
-  const handleEvaluate = async () => {
-    try {
-      const result = await evaluate();
-      if (result?.overallScore != null) {
-        onEvaluated(post.id, result.overallScore);
-      }
-    } catch {
-      // Error already handled by useEvaluation hook
-    }
-  };
-
-  return (
-    <Button
-      variant={ButtonVariant.GENERATE}
-      icon={<HiArrowUp />}
-      tooltip="Evaluate"
-      isLoading={isEvaluating}
-      onClick={handleEvaluate}
-      size={ButtonSize.XS}
-    />
-  );
-}
 
 export interface PostsListProps extends ContentProps {
   initialPostPresets?: IPreset[];
@@ -375,88 +298,23 @@ export default function PostsList({
     enabled: scope === PageScope.SUPERADMIN || isReady,
     initialData: initialPosts != null ? hydratedPosts : undefined,
     staleTime: initialPosts != null ? Number.POSITIVE_INFINITY : undefined,
-    queryFn: async () => {
-      let url = 'GET /posts';
-
-      const query: IQueryParams & {
-        platform?: string;
-        status?: string;
-        search?: string;
-        sort?: string;
-      } = {
-        limit: ITEMS_PER_PAGE,
-        page: currentPage,
-      };
-
-      if (platformFilter) {
-        query.platform = platformFilter;
-      }
-
-      // Add status filter from filters state
-      // For publisher app (PUBLISHER scope), exclude PUBLIC by default if no status filter is set
-      if (scope === PageScope.PUBLISHER && !filterStatus && !status) {
-        // Exclude PUBLIC status - we'll filter client-side after fetching
-      } else if (filterStatus) {
-        query.status = filterStatus;
-      } else if (status) {
-        // If status prop is provided (analytics app), use it
-        query.status = status;
-      }
-
-      // Add search filter
-      if (filterSearch) {
-        query.search = filterSearch;
-      }
-
-      // Add sort filter
-      if (filterSort) {
-        query.sort = filterSort;
-      }
-
-      let data: IPost[] = [];
-
-      // Load posts based on scope
-      if (
-        (scope === PageScope.BRAND || scope === PageScope.PUBLISHER) &&
-        brandId
-      ) {
-        const service = await getBrandsService();
-        url = `GET /brands/${brandId}/posts`;
-        data = await service.findBrandPosts(brandId, query);
-      } else if (scope === PageScope.ORGANIZATION && organizationId) {
-        const service = await getOrganizationsService();
-        url = `GET /organizations/${organizationId}/posts`;
-        data = await service.findOrganizationPosts(organizationId, query);
-      } else if (scope === PageScope.SUPERADMIN) {
-        const service = await getPostsService();
-        url = 'GET /posts';
-        if (adminOrg) {
-          query.organization = adminOrg;
-        }
-        if (adminBrand) {
-          query.brand = adminBrand;
-        }
-        data = await service.findAll(query);
-      } else if (!scope && organizationId) {
-        // Default to organization scope
-        const service = await getOrganizationsService();
-        url = `GET /organizations/${organizationId}/posts`;
-        data = await service.findOrganizationPosts(organizationId, query);
-      } else {
-        // Fallback to global (will likely require superadmin)
-        const service = await getPostsService();
-        data = await service.findAll(query);
-      }
-
-      logger.info(`${url} success`, data);
-
-      // For publisher app (PUBLISHER scope), exclude PUBLIC posts by default if no status filter is set
-      if (scope === PageScope.PUBLISHER && !filterStatus && !status) {
-        return data.filter((post) => post.status !== PostStatus.PUBLIC);
-      }
-
-      return data;
-    },
+    queryFn: () =>
+      fetchPosts({
+        adminBrand,
+        adminOrg,
+        brandId,
+        currentPage,
+        filterSearch,
+        filterSort,
+        filterStatus,
+        getBrandsService,
+        getOrganizationsService,
+        getPostsService,
+        organizationId,
+        platformFilter,
+        scope,
+        status,
+      }),
     queryKey: postsQueryKey,
   });
 
@@ -525,67 +383,15 @@ export default function PostsList({
     [setPosts],
   );
 
-  const getCredentialForPlatform = useCallback(
-    (platform: Platform): ICredential | undefined => {
-      // Map Platform enum to CredentialPlatform enum
-      // Using Partial since not all platforms have corresponding credentials
-      const platformMap: Partial<Record<Platform, CredentialPlatform>> = {
-        [Platform.TWITTER]: CredentialPlatform.TWITTER,
-        [Platform.INSTAGRAM]: CredentialPlatform.INSTAGRAM,
-        [Platform.YOUTUBE]: CredentialPlatform.YOUTUBE,
-        [Platform.TIKTOK]: CredentialPlatform.TIKTOK,
-        [Platform.FACEBOOK]: CredentialPlatform.FACEBOOK,
-        [Platform.LINKEDIN]: CredentialPlatform.LINKEDIN,
-        [Platform.REDDIT]: CredentialPlatform.REDDIT,
-        [Platform.DISCORD]: CredentialPlatform.DISCORD,
-        [Platform.TELEGRAM]: CredentialPlatform.TELEGRAM,
-        [Platform.TWITCH]: CredentialPlatform.TWITCH,
-        [Platform.MEDIUM]: CredentialPlatform.MEDIUM,
-        [Platform.PINTEREST]: CredentialPlatform.PINTEREST,
-        // THREADS uses Instagram credentials
-        [Platform.THREADS]: CredentialPlatform.INSTAGRAM,
-      };
-
-      const credentialPlatform = platformMap[platform];
-      return credentials.find(
-        (cred) => cred.platform === credentialPlatform && cred.isConnected,
-      );
-    },
+  const getCredentialForCurrentPlatform = useCallback(
+    (p: Platform) => getCredentialForPlatform(p, credentials),
     [credentials],
   );
 
-  const availablePlatforms = useMemo(() => {
-    const platforms: Platform[] = [];
-    credentials.forEach((cred) => {
-      if (!cred.isConnected) {
-        return;
-      }
-
-      // Map CredentialPlatform back to Platform
-      // Using Partial since not all CredentialPlatform values may have Platform equivalents
-      const platformMap: Partial<Record<CredentialPlatform, Platform | null>> =
-        {
-          [CredentialPlatform.TWITTER]: Platform.TWITTER,
-          [CredentialPlatform.INSTAGRAM]: Platform.INSTAGRAM,
-          [CredentialPlatform.YOUTUBE]: Platform.YOUTUBE,
-          [CredentialPlatform.TIKTOK]: Platform.TIKTOK,
-          [CredentialPlatform.FACEBOOK]: Platform.FACEBOOK,
-          [CredentialPlatform.LINKEDIN]: Platform.LINKEDIN,
-          [CredentialPlatform.REDDIT]: Platform.REDDIT,
-          [CredentialPlatform.DISCORD]: Platform.DISCORD,
-          [CredentialPlatform.TELEGRAM]: Platform.TELEGRAM,
-          [CredentialPlatform.TWITCH]: Platform.TWITCH,
-          [CredentialPlatform.MEDIUM]: Platform.MEDIUM,
-          [CredentialPlatform.PINTEREST]: Platform.PINTEREST,
-        };
-
-      const mappedPlatform = platformMap[cred.platform];
-      if (mappedPlatform && !platforms.includes(mappedPlatform)) {
-        platforms.push(mappedPlatform);
-      }
-    });
-    return platforms;
-  }, [credentials]);
+  const availablePlatforms = useMemo(
+    () => getAvailablePlatforms(credentials),
+    [credentials],
+  );
 
   // Track previous platform and status to detect actual changes
   const prevPlatformRef = useRef(platform);
@@ -614,258 +420,9 @@ export default function PostsList({
     }
   }, [platform, status, pathname, router, searchParamsString]);
 
-  const getDimensions = (ingredient?: IIngredient): string => {
-    if (!ingredient) {
-      return '';
-    }
-    const width = ingredient.metadataWidth;
-    const height = ingredient.metadataHeight;
-    if (!width || !height) {
-      return '';
-    }
-    return `${width}×${height}`;
-  };
-
-  const formatDuration = (seconds?: number): string => {
-    if (!seconds) {
-      return '';
-    }
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const hasPublicPosts = useMemo(
     () => posts.some((post) => post.status === PostStatus.PUBLIC),
     [posts],
-  );
-
-  // Table columns configuration - memoized to prevent unnecessary re-renders
-  const columns: TableColumn<IPost>[] = useMemo(
-    () => [
-      {
-        className: 'w-20',
-        header: '',
-        key: 'thumbnail',
-        render: (post: IPost) => {
-          const ingredient = post.ingredients?.[0] as IIngredient;
-          const isVideo = ingredient?.category === IngredientCategory.VIDEO;
-
-          return (
-            <Button
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              className="w-16 aspect-video overflow-hidden bg-background cursor-pointer hover:opacity-80 transition-opacity"
-              aria-label="View ingredient"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (ingredient) {
-                  openIngredientOverlay(ingredient, () => findAllPosts());
-                }
-              }}
-            >
-              {isVideo ? (
-                <VideoPlayer
-                  src={ingredient?.ingredientUrl}
-                  thumbnail={ingredient.thumbnailUrl}
-                  config={{
-                    controls: false,
-                    loop: true,
-                    muted: true,
-                    playsInline: false,
-                    preload: 'metadata',
-                  }}
-                />
-              ) : (
-                <Image
-                  src={
-                    ingredient?.ingredientUrl ||
-                    `${EnvironmentService.assetsEndpoint}/placeholders/square.jpg`
-                  }
-                  alt={ingredient?.metadataLabel || 'Thumbnail'}
-                  width={64}
-                  height={36}
-                  className="object-cover w-full h-full"
-                />
-              )}
-            </Button>
-          );
-        },
-      },
-      {
-        className: 'max-w-md',
-        header: 'Content',
-        key: 'content',
-        render: (post: IPost) => {
-          const ingredient = post.ingredients?.[0] as IIngredient;
-          const isVideo = post.category === PostCategory.VIDEO;
-          const isTweet = post.platform === Platform.TWITTER;
-
-          return (
-            <div>
-              <div className="font-semibold text-foreground">
-                {isTweet && post.description ? (
-                  <HtmlContent
-                    content={post.description}
-                    className="line-clamp-1"
-                  />
-                ) : ingredient ? (
-                  <Button
-                    variant={ButtonVariant.UNSTYLED}
-                    withWrapper={false}
-                    className="truncate cursor-pointer hover:text-primary transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openIngredientOverlay(ingredient, () => findAllPosts());
-                    }}
-                  >
-                    {ingredient.metadataLabel || 'Untitled'}
-                  </Button>
-                ) : (
-                  <span className="truncate">Untitled</span>
-                )}
-              </div>
-
-              <div className="text-xs text-foreground/60 flex items-center gap-2 mt-1">
-                <span className="capitalize">{post.category}</span>
-                {getDimensions(ingredient) && (
-                  <>
-                    <span>•</span>
-                    <span>{getDimensions(ingredient)}</span>
-                  </>
-                )}
-                {isVideo && ingredient?.metadataDuration && (
-                  <>
-                    <span>•</span>
-                    <span>{formatDuration(ingredient.metadataDuration)}</span>
-                  </>
-                )}
-              </div>
-            </div>
-          );
-        },
-      },
-      {
-        header: 'Platform',
-        key: 'platform',
-        render: (post: IPost) => <PlatformBadge platform={post.platform} />,
-      },
-      {
-        header: 'Status',
-        key: 'status',
-        render: (post: IPost) => {
-          const editableStatuses = [
-            PostStatus.DRAFT,
-            PostStatus.SCHEDULED,
-            PostStatus.UNLISTED,
-            PostStatus.PRIVATE,
-            PostStatus.PUBLIC,
-          ];
-
-          const isEditable = editableStatuses.includes(
-            post.status as PostStatus,
-          );
-
-          if (isEditable) {
-            // Use DropdownStatus for editable posts
-            return (
-              <DropdownStatus
-                entity={post}
-                onStatusChange={() => {
-                  // Refresh posts list after status change
-                  findAllPosts();
-                }}
-              />
-            );
-          }
-
-          // Use static Badge for non-editable statuses (PROCESSING, FAILED)
-          const displayStatus =
-            post.status === PostStatus.UNLISTED ? 'UNLISTED' : post.status;
-          return (
-            <Badge status={post.status} className="text-xs">
-              {displayStatus}
-            </Badge>
-          );
-        },
-      },
-      {
-        className: 'text-xs',
-        header: 'Scheduled',
-        key: 'scheduledDate',
-        render: (p: IPost) =>
-          p.scheduledDate
-            ? formatDateInTimezone(p.scheduledDate, browserTimezone, 'short')
-            : '-',
-      },
-      // Eval column - hidden in Analytics app
-      ...(scope !== PageScope.ANALYTICS
-        ? [
-            {
-              className: 'text-center w-20',
-              header: 'Eval',
-              key: 'evalScore',
-              render: (post: IPost) => (
-                <EvalCell post={post} onEvaluated={handlePostEvaluated} />
-              ),
-            },
-          ]
-        : []),
-      ...(hasPublicPosts
-        ? [
-            {
-              className: 'text-right',
-              header: 'Views',
-              key: 'views',
-              render: (post: IPost) => (
-                <span className="font-mono">
-                  {formatNumberWithCommas(post.totalViews || 0)}
-                </span>
-              ),
-            },
-            {
-              className: 'text-right',
-              header: 'Likes',
-              key: 'likes',
-              render: (post: IPost) => (
-                <span className="font-mono">
-                  {formatNumberWithCommas(post.totalLikes || 0)}
-                </span>
-              ),
-            },
-            {
-              className: 'text-right',
-              header: 'Comments',
-              key: 'comments',
-              render: (post: IPost) => (
-                <span className="font-mono">
-                  {formatNumberWithCommas(post.totalComments || 0)}
-                </span>
-              ),
-            },
-            {
-              className: 'text-right',
-              header: 'Eng %',
-              key: 'engagement',
-              render: (post: IPost) => (
-                <span className="font-mono">
-                  {(post.avgEngagementRate || 0).toFixed(1)}%
-                </span>
-              ),
-            },
-          ]
-        : []),
-    ],
-    [
-      hasPublicPosts,
-      browserTimezone,
-      scope,
-      handlePostEvaluated,
-      openIngredientOverlay,
-      findAllPosts,
-      formatDuration,
-      getDimensions,
-    ],
   );
 
   const handleDelete = useCallback(
@@ -940,76 +497,39 @@ export default function PostsList({
     [getPostsService, notificationsService, openPostRemixModal, router, href],
   );
 
-  // Table actions configuration - memoized to prevent unnecessary re-renders
-  const actions: TableAction<IPost>[] = useMemo(
+  // Table columns configuration - memoized to prevent unnecessary re-renders
+  const columns = useMemo(
     () =>
-      scope !== PageScope.SUPERADMIN
-        ? [
-            {
-              icon: () => <HiEye />,
-              isVisible: (post: IPost) => {
-                const hasIngredient =
-                  post.ingredients && post.ingredients.length > 0;
-                return hasIngredient && post.status !== PostStatus.PUBLIC;
-              },
-              onClick: handleViewIngredient,
-              size: ButtonSize.SM,
-              tooltip: 'View Ingredient',
-              variant: ButtonVariant.SECONDARY,
-            },
-            {
-              icon: () => <HiPencil />,
-              isVisible: (post: IPost) => {
-                const editableStatuses = [
-                  PostStatus.SCHEDULED,
-                  PostStatus.DRAFT,
-                  PostStatus.FAILED,
-                  PostStatus.PROCESSING,
-                ];
+      buildPostsTableColumns({
+        browserTimezone,
+        hasPublicPosts,
+        onEvaluated: handlePostEvaluated,
+        onOpenIngredient: (ingredient) =>
+          openIngredientOverlay(ingredient, () => findAllPosts()),
+        onStatusChanged: () => findAllPosts(),
+        scope,
+      }),
+    [
+      hasPublicPosts,
+      browserTimezone,
+      scope,
+      handlePostEvaluated,
+      openIngredientOverlay,
+      findAllPosts,
+    ],
+  );
 
-                return editableStatuses.includes(post.status as PostStatus);
-              },
-              onClick: handleEditPost,
-              size: ButtonSize.SM,
-              tooltip: 'Edit Post',
-              variant: ButtonVariant.DEFAULT,
-            },
-            {
-              icon: () => <HiTrash />,
-              isVisible: (post: IPost) => {
-                // Show delete for draft posts (not published)
-                return post.status !== PostStatus.PUBLIC;
-              },
-              onClick: (post: IPost) => handleDelete(post),
-              size: ButtonSize.SM,
-              tooltip: 'Delete',
-              variant: ButtonVariant.DESTRUCTIVE,
-            },
-            {
-              icon: () => <HiDocumentDuplicate />,
-              isVisible: (post: IPost) => post.status === PostStatus.PUBLIC,
-              onClick: handleRemixPost,
-              size: ButtonSize.SM,
-              tooltip: 'Create Remix',
-              variant: ButtonVariant.DEFAULT,
-            },
-            {
-              icon: () => <HiArrowTopRightOnSquare />,
-              isVisible: (post: IPost) => !!post.platformUrl,
-              onClick: handleOpenPlatformUrl,
-              tooltip: 'View',
-              variant: ButtonVariant.SECONDARY,
-            },
-          ]
-        : [
-            {
-              icon: () => <HiArrowTopRightOnSquare />,
-              isVisible: (post: IPost) => !!post.platformUrl,
-              onClick: handleOpenPlatformUrl,
-              tooltip: 'View',
-              variant: ButtonVariant.SECONDARY,
-            },
-          ],
+  // Table actions configuration - memoized to prevent unnecessary re-renders
+  const actions = useMemo(
+    () =>
+      buildPostsTableActions({
+        onDelete: handleDelete,
+        onEdit: handleEditPost,
+        onOpenPlatformUrl: handleOpenPlatformUrl,
+        onRemix: handleRemixPost,
+        onViewIngredient: handleViewIngredient,
+        scope,
+      }),
     [
       scope,
       handleDelete,
@@ -1030,68 +550,21 @@ export default function PostsList({
     [],
   );
 
-  const primaryCardAction = useMemo<PostCardAction | undefined>(
+  const { primaryCardAction, secondaryCardActions } = useMemo(
     () =>
-      scope === PageScope.SUPERADMIN
-        ? undefined
-        : {
-            icon: postCardIcons.edit,
-            isVisible: (post: IPost) =>
-              editableStatuses.includes(post.status as PostStatus),
-            key: 'edit',
-            label: 'Edit post',
-            onClick: handleEditPost,
-          },
-    [editableStatuses, handleEditPost, scope],
-  );
-
-  const secondaryCardActions = useMemo<PostCardAction[]>(
-    () =>
-      scope !== PageScope.SUPERADMIN
-        ? [
-            {
-              icon: postCardIcons.viewIngredient,
-              isVisible: (post: IPost) =>
-                Boolean(post.ingredients?.length) &&
-                post.status !== PostStatus.PUBLIC,
-              key: 'view-ingredient',
-              label: 'View ingredient',
-              onClick: handleViewIngredient,
-            },
-            {
-              destructive: true,
-              icon: postCardIcons.delete,
-              isVisible: (post: IPost) => post.status !== PostStatus.PUBLIC,
-              key: 'delete',
-              label: 'Delete post',
-              onClick: handleDelete,
-            },
-            {
-              icon: postCardIcons.remix,
-              isVisible: (post: IPost) => post.status === PostStatus.PUBLIC,
-              key: 'remix',
-              label: 'Create remix',
-              onClick: handleRemixPost,
-            },
-            {
-              icon: postCardIcons.viewPlatform,
-              isVisible: (post: IPost) => Boolean(post.platformUrl),
-              key: 'open-platform',
-              label: 'Open on platform',
-              onClick: handleOpenPlatformUrl,
-            },
-          ]
-        : [
-            {
-              icon: postCardIcons.viewPlatform,
-              isVisible: (post: IPost) => Boolean(post.platformUrl),
-              key: 'open-platform',
-              label: 'Open on platform',
-              onClick: handleOpenPlatformUrl,
-            },
-          ],
+      buildPostsCardActions({
+        editableStatuses,
+        onDelete: handleDelete,
+        onEdit: handleEditPost,
+        onOpenPlatformUrl: handleOpenPlatformUrl,
+        onRemix: handleRemixPost,
+        onViewIngredient: handleViewIngredient,
+        scope,
+      }),
     [
+      editableStatuses,
       handleDelete,
+      handleEditPost,
       handleOpenPlatformUrl,
       handleRemixPost,
       handleViewIngredient,
@@ -1225,57 +698,25 @@ export default function PostsList({
       selectedPlatform?: Platform,
       isThread?: boolean,
     ) => {
-      // Use selected platform or current platform filter, default to first available
-      const targetPlatform =
-        selectedPlatform ||
-        (platform !== 'all' ? platform : availablePlatforms[0]);
-
-      if (!targetPlatform) {
-        return alert('No platform selected. Please select a platform.');
-      }
-
-      const credential = getCredentialForPlatform(targetPlatform);
-      if (!credential) {
-        const platformLabel = PLATFORM_LABEL_MAP[targetPlatform];
-        return alert(`No ${platformLabel} account connected for this brand`);
-      }
-
-      setIsGenerating(true);
-
-      try {
-        const postsService = await getPostsService();
-
-        if (isThread) {
-          // Generate cohesive thread
-          await postsService.generateThread({
-            count: count || 5,
-            credential: credential.id,
-            tone: 'professional',
-            topic: prompt,
-          });
-        } else {
-          // Generate individual tweets
-          await postsService.generateTweets({
-            count: count || 10,
-            credential: credential.id,
-            tone: 'professional',
-            topic: prompt,
-          });
-        }
-
-        // Refresh list immediately to show PROCESSING posts
-        await findAllPosts();
-      } catch (error) {
-        logger.error('Failed to generate posts', error);
-        alert('Failed to generate posts. Please try again.');
-      } finally {
-        setIsGenerating(false);
-      }
+      await generatePosts({
+        availablePlatforms,
+        count,
+        getCredentialForPlatform: getCredentialForCurrentPlatform,
+        getPostsService,
+        isThread,
+        onGeneratingChange: setIsGenerating,
+        onRefresh: async () => {
+          await findAllPosts();
+        },
+        platform,
+        prompt,
+        selectedPlatform,
+      });
     },
     [
       platform,
       availablePlatforms,
-      getCredentialForPlatform,
+      getCredentialForCurrentPlatform,
       getPostsService,
       findAllPosts,
     ],
