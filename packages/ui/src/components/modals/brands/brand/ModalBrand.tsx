@@ -608,9 +608,12 @@ export default function BrandOverlay({
     enabled: !!overlayBrandId,
   });
 
-  const mutateBrand = (data: BrandOverlayRecord) => {
-    queryClient.setQueryData(brandModalKey, data);
-  };
+  const mutateBrand = useCallback(
+    (brandId: string, data: BrandOverlayRecord) => {
+      queryClient.setQueryData(['brand-modal', brandId], data);
+    },
+    [queryClient],
+  );
 
   const activeBrand: BrandOverlayRecord | null =
     loadedBrand ??
@@ -831,7 +834,7 @@ export default function BrandOverlay({
         const updatedBrand = await service.patch(overlayBrandId, {
           [field]: value,
         });
-        mutateBrand(updatedBrand as BrandOverlayRecord);
+        mutateBrand(overlayBrandId, updatedBrand as BrandOverlayRecord);
         onConfirm?.(true);
       } catch (updateError) {
         logger.error('Failed to update brand field', updateError);
@@ -1001,7 +1004,7 @@ export default function BrandOverlay({
 
       if (overlayBrandId) {
         const updatedBrand = await service.patch(overlayBrandId, formData);
-        mutateBrand(updatedBrand as BrandOverlayRecord);
+        mutateBrand(overlayBrandId, updatedBrand as BrandOverlayRecord);
         await refreshBrand();
         onConfirm?.(true);
         setOverlayView('overview');
@@ -1012,7 +1015,7 @@ export default function BrandOverlay({
         const createdBrandDetail = await service.findOne(createdBrand.id);
 
         setOverlayBrandId(createdBrand.id);
-        mutateBrand(createdBrandDetail as BrandOverlayRecord);
+        mutateBrand(createdBrand.id, createdBrandDetail as BrandOverlayRecord);
         onConfirm?.(true, createdBrand.id);
         setOverlayView('overview');
       }

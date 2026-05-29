@@ -236,9 +236,10 @@ export default function IssueDetail({
 
   useEffect(() => {
     loadIssue();
+    const controller = controllerRef.current;
 
     return () => {
-      controllerRef.current?.abort();
+      controller?.abort();
     };
   }, [loadIssue]);
 

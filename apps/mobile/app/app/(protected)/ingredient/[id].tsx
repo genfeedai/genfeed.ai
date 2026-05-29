@@ -69,7 +69,7 @@ export default function IngredientDetail() {
               </Text>
             </View>
           )}
-          {metadata.width && metadata.height && (
+          {Number(metadata.width) > 0 && Number(metadata.height) > 0 && (
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Dimensions:</Text>
               <Text style={styles.metaValue}>
@@ -77,7 +77,7 @@ export default function IngredientDetail() {
               </Text>
             </View>
           )}
-          {metadata.duration && (
+          {Number(metadata.duration) > 0 && (
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Duration:</Text>
               <Text style={styles.metaValue}>{metadata.duration}s</Text>

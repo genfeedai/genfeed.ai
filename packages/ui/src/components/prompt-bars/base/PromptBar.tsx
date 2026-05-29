@@ -276,7 +276,10 @@ function PromptBar({
   useEffect(() => {
     setIsAutoMode(watchedAutoSelectModel === true);
   }, [watchedAutoSelectModel]);
-  const watchedModels = watchedModelsValue || [];
+  const watchedModels = useMemo(
+    () => watchedModelsValue || [],
+    [watchedModelsValue],
+  );
   const normalizedWatchedModels = useMemo(
     () =>
       (watchedModels as string[]).filter((modelKey): modelKey is string =>

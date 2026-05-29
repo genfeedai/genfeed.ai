@@ -52,9 +52,12 @@ export default function PostAnalyticsDashboard({
     enabled: !!isSignedIn && !!publicationId,
   });
 
-  const setAnalytics = (data: IPostAnalyticsSummary | null) => {
-    queryClient.setQueryData(publicationAnalyticsKey, data);
-  };
+  const setAnalytics = useCallback(
+    (data: IPostAnalyticsSummary | null) => {
+      queryClient.setQueryData(['publication-analytics', publicationId], data);
+    },
+    [queryClient, publicationId],
+  );
 
   const analytics: IPostAnalyticsSummary | null = analyticsData ?? null;
 
