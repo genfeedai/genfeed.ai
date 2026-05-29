@@ -1,56 +1,23 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import {
-  ButtonSize,
-  ButtonVariant,
-  LinkCategory,
-  OrganizationCategory,
-} from '@genfeedai/enums';
+import { LinkCategory, type OrganizationCategory } from '@genfeedai/enums';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
 import { OnboardingService } from '@services/onboarding/onboarding.service';
 import { OnboardingFunnelService } from '@services/onboarding/onboarding-funnel.service';
 import { UsersService } from '@services/organization/users.service';
-import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import {
-  HiArrowRight,
-  HiBriefcase,
-  HiGlobeAlt,
-  HiSparkles,
-  HiUserCircle,
-  HiUserGroup,
-} from 'react-icons/hi2';
 import {
   deriveBrandNameFromDomain,
   extractBrandDomain,
   ONBOARDING_STORAGE_KEYS,
 } from '@/lib/onboarding/onboarding-access.util';
-
-const ACCOUNT_TYPES = [
-  {
-    category: OrganizationCategory.CREATOR,
-    description: 'Individual content creator or influencer',
-    icon: HiUserCircle,
-    label: 'Creator',
-  },
-  {
-    category: OrganizationCategory.BUSINESS,
-    description: 'Company, brand, or e-commerce store',
-    icon: HiBriefcase,
-    label: 'Business',
-  },
-  {
-    category: OrganizationCategory.AGENCY,
-    description: 'Managing content for multiple clients',
-    icon: HiUserGroup,
-    label: 'Agency',
-  },
-];
+import BrandAccountTypeSelector from './brand-account-type-selector';
+import BrandFormFields from './brand-form-fields';
+import BrandStepHeader from './brand-step-header';
 
 const TIMELINE_STEPS = [
   {
@@ -309,135 +276,22 @@ function BrandContentContent() {
 
   return (
     <div ref={sectionRef}>
-      {/* Badge */}
-      <div className="step-badge opacity-0 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-8">
-        <HiSparkles className="size-3" />
-        Step 1 of 3
-      </div>
+      <BrandStepHeader />
 
-      <h1 className="step-headline opacity-0 text-4xl md:text-5xl font-serif leading-none tracking-tighter text-white mb-4">
-        Set up your <span className="font-light italic">brand.</span>
-      </h1>
+      <BrandAccountTypeSelector
+        accountType={accountType}
+        onSelect={handleAccountTypeSelect}
+      />
 
-      <p className="step-description opacity-0 text-lg text-white/40 mb-8 max-w-lg">
-        Confirm your workspace details so we can personalize your first content
-        setup.
-      </p>
-
-      {/* Account type selector */}
-      <div className="step-form opacity-0 max-w-md mb-8">
-        <p className="text-xs font-medium text-white/50 uppercase tracking-wider mb-3">
-          I am a…
-        </p>
-        <div className="grid grid-cols-3 gap-3">
-          {ACCOUNT_TYPES.map(({ category, description, icon: Icon, label }) => (
-            <Button
-              key={category}
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => handleAccountTypeSelect(category)}
-              className={`group rounded-none p-4 border text-center transition-all ${
-                accountType === category
-                  ? 'border-white/30 bg-white/[0.08]'
-                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
-              }`}
-            >
-              <Icon
-                className={`h-6 w-6 mx-auto mb-2 transition-colors ${
-                  accountType === category
-                    ? 'text-white'
-                    : 'text-white/40 group-hover:text-white/70'
-                }`}
-              />
-              <span
-                className={`text-sm font-medium block ${
-                  accountType === category ? 'text-white' : 'text-white/60'
-                }`}
-              >
-                {label}
-              </span>
-              <span className="text-[10px] text-white/30 leading-tight block mt-1">
-                {description}
-              </span>
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      <div className="step-form opacity-0 max-w-md space-y-6">
-        {/* Name */}
-        <div>
-          <label
-            htmlFor="brand-name"
-            className="block text-xs font-medium text-white/50 uppercase tracking-wider mb-2"
-          >
-            Name
-            <span className="text-white/25 font-normal normal-case tracking-normal ml-1">
-              (required)
-            </span>
-          </label>
-          <Input
-            id="brand-name"
-            type="text"
-            value={brandName}
-            onChange={(e) => setBrandName(e.target.value)}
-            placeholder="Your name or brand"
-            required
-            className="h-12 rounded-none border-white/[0.08] bg-white/[0.04] px-4 text-sm text-white placeholder:text-white/20 focus-visible:border-white/30 focus-visible:ring-0"
-          />
-        </div>
-
-        {/* Website URL */}
-        <div>
-          <label
-            htmlFor="brand-website-url"
-            className="block text-xs font-medium text-white/50 uppercase tracking-wider mb-2"
-          >
-            Website URL
-            <span className="text-white/20 font-normal normal-case tracking-normal ml-1">
-              (optional)
-            </span>
-          </label>
-          <div className="relative">
-            <HiGlobeAlt className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-white/30" />
-            <Input
-              id="brand-website-url"
-              type="url"
-              value={websiteUrl}
-              onChange={(e) => setWebsiteUrl(e.target.value)}
-              placeholder="https://yoursite.com"
-              className="h-12 rounded-none border-white/[0.08] bg-white/[0.04] px-4 pl-12 text-sm text-white placeholder:text-white/20 focus-visible:border-white/30 focus-visible:ring-0"
-            />
-          </div>
-          <p className="text-xs text-white/20 mt-1.5">
-            We&apos;ll extract your brand colors, logo, and voice
-          </p>
-        </div>
-
-        {/* Continue button */}
-        <div className="step-actions opacity-0">
-          <div className="flex items-center gap-3">
-            <Button
-              variant={ButtonVariant.WHITE}
-              size={ButtonSize.DEFAULT}
-              label="Continue"
-              icon={<HiArrowRight className="size-4" />}
-              isLoading={submitting}
-              isDisabled={!brandName.trim()}
-              onClick={() => handleContinue()}
-              className="rounded-none px-5"
-            />
-            <Button
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.DEFAULT}
-              label="Skip Onboarding"
-              isLoading={submitting}
-              onClick={handleSkipOnboarding}
-              className="rounded-none px-5"
-            />
-          </div>
-        </div>
-      </div>
+      <BrandFormFields
+        brandName={brandName}
+        websiteUrl={websiteUrl}
+        submitting={submitting}
+        onBrandNameChange={setBrandName}
+        onWebsiteUrlChange={setWebsiteUrl}
+        onContinue={() => handleContinue()}
+        onSkip={handleSkipOnboarding}
+      />
     </div>
   );
 }
