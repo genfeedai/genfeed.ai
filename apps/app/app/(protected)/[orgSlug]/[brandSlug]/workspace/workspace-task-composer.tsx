@@ -267,6 +267,8 @@ export function WorkspaceTaskComposer({
         const apiEndpoint = EnvironmentService.apiEndpoint;
         const headers = { Authorization: `Bearer ${token}` };
 
+        if (controller.signal.aborted) return;
+
         const [avatarsResponse, voicesResponse, clonedVoices] =
           await Promise.all([
             fetch(`${apiEndpoint}/heygen/avatars`, {
@@ -281,8 +283,6 @@ export function WorkspaceTaskComposer({
               .getClonedVoices()
               .catch(() => []),
           ]);
-
-        if (controller.signal.aborted) return;
 
         if (!avatarsResponse.ok || !voicesResponse.ok) {
           const detail =

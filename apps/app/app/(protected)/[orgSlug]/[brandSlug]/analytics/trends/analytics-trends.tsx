@@ -139,14 +139,14 @@ export default function AnalyticsTrends() {
       const url = 'GET /trends';
 
       try {
+        if (controller.signal.aborted) {
+          return;
+        }
         const service = await getTrendsService();
         if (controller.signal.aborted) {
           return;
         }
         const data = await service.getTrendingTopics();
-        if (controller.signal.aborted) {
-          return;
-        }
 
         setTiktokTrends(data.filter((t) => t.platform === Platform.TIKTOK));
         setYoutubeTrends(data.filter((t) => t.platform === Platform.YOUTUBE));

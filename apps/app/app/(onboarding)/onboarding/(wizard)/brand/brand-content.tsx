@@ -142,14 +142,14 @@ function BrandContentContent() {
         prefetchedRef.current = true;
         const service = UsersService.getInstance(token);
 
+        if (controller.signal.aborted) {
+          return;
+        }
+
         const [brands, organizations] = await Promise.all([
           service.findMeBrands({ pagination: false }),
           service.findMeOrganizations(),
         ]);
-
-        if (controller.signal.aborted) {
-          return;
-        }
 
         const brand = brands[0];
         const org = organizations[0];

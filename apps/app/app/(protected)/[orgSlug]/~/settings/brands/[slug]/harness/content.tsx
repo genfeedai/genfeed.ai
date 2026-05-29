@@ -148,16 +148,16 @@ export default function BrandSettingsHarnessPage() {
     async function loadProfile() {
       setIsFetching(true);
       try {
+        if (controller.signal.aborted) {
+          return;
+        }
+
         const service = await getHarnessProfilesService();
         const profiles = await service.findForBrand(brandId);
         const activeProfile =
           profiles.find((item) => item.isDefault && item.status === 'active') ??
           profiles[0] ??
           null;
-
-        if (controller.signal.aborted) {
-          return;
-        }
 
         setProfile(activeProfile as IHarnessProfile | null);
         setDraft(createDraft(brandId, brandLabel, activeProfile));

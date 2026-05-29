@@ -108,6 +108,10 @@ export default function LibraryLandingVisualPreview() {
 
     async function loadVisuals() {
       try {
+        if (controller.signal.aborted) {
+          return;
+        }
+
         const [videosResult, imagesResult, gifsResult] =
           await Promise.allSettled([
             getVideosService().then((service) =>
@@ -129,10 +133,6 @@ export default function LibraryLandingVisualPreview() {
               }),
             ),
           ]);
-
-        if (controller.signal.aborted) {
-          return;
-        }
 
         setVisualBuckets({
           gifs: gifsResult.status === 'fulfilled' ? gifsResult.value : [],

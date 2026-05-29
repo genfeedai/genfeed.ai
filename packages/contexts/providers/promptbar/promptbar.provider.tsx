@@ -126,14 +126,6 @@ function PromptBarProviderContent({
         }),
       ];
 
-      const results = await Promise.all(dataPromises);
-
-      const fontFamiliesData = results[0] as IFontFamily[];
-      const presetsData = results[1] as IPreset[];
-      const modelsData = results[2] as IModel[];
-      const trainingsData = results[3] as ITraining[];
-      const tagsData = results[4] as ITag[];
-
       if (currentFetchId !== fetchIdRef.current) {
         logger.info('PromptBar fetch superseded, discarding stale results', {
           currentFetchId: fetchIdRef.current,
@@ -141,6 +133,14 @@ function PromptBarProviderContent({
         });
         return;
       }
+
+      const results = await Promise.all(dataPromises);
+
+      const fontFamiliesData = results[0] as IFontFamily[];
+      const presetsData = results[1] as IPreset[];
+      const modelsData = results[2] as IModel[];
+      const trainingsData = results[3] as ITraining[];
+      const tagsData = results[4] as ITag[];
 
       logger.info('PromptBar data loaded', {
         enabledModels: orgSettings?.enabledModels?.length ?? 'N/A',

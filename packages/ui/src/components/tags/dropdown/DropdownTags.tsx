@@ -131,6 +131,11 @@ export default function DropdownTags({
 
       const url = `GET /tags ${scope ? `?category=${scope}` : ''}`;
       try {
+        // Only update state if component is still mounted
+        if (!isMountedRef.current) {
+          return;
+        }
+
         const service = await getTagsService();
         const params: any = {
           category: scope,
@@ -141,11 +146,6 @@ export default function DropdownTags({
         }
 
         const tags = await service.findAll(params);
-
-        // Only update state if component is still mounted
-        if (!isMountedRef.current) {
-          return;
-        }
 
         // Skip data update if this request was superseded (controller aborted)
         // but always clear loading state for mounted component

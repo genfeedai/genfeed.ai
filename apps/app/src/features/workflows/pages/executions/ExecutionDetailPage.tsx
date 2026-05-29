@@ -119,14 +119,14 @@ export default function ExecutionDetailPage({
       setError(null);
 
       try {
+        if (controller.signal.aborted) {
+          return;
+        }
         const service = await getService();
         if (controller.signal.aborted) {
           return;
         }
         const result = await service.getExecution(runId);
-        if (controller.signal.aborted) {
-          return;
-        }
         setExecution(mapExecution(result));
       } catch (err) {
         if (controller.signal.aborted) {
