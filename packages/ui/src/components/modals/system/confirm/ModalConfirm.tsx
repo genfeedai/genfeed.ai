@@ -32,8 +32,9 @@ export default function ModalConfirm({
   const isMountedRef = useRef(true);
 
   useEffect(() => {
+    const mountedRef = isMountedRef;
     return () => {
-      isMountedRef.current = false;
+      mountedRef.current = false;
     };
   }, []);
 

@@ -204,8 +204,9 @@ export default function DropdownTags({
 
   // Cleanup on unmount
   useEffect(() => {
+    const mountedRef = isMountedRef;
     return () => {
-      isMountedRef.current = false;
+      mountedRef.current = false;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
