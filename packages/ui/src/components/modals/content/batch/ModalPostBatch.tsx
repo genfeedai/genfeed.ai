@@ -4,21 +4,12 @@ import {
 } from '@genfeedai/client/schemas';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
-  AlertCategory,
-  ButtonVariant,
-  ComponentSize,
   CredentialPlatform,
   IngredientCategory,
   ModalEnum,
   PostCategory,
   PostStatus,
 } from '@genfeedai/enums';
-import { getPublisherPostsHref } from '@genfeedai/helpers/content/posts.helper';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import {
-  hasFormErrors,
-  parseFormErrors,
-} from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
@@ -41,15 +32,10 @@ import { CredentialsService } from '@genfeedai/services/organization/credentials
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { ErrorHandler } from '@genfeedai/utils/error/error-handler.util';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
-import Badge from '@ui/display/badge/Badge';
-import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import Alert from '@ui/feedback/alert/Alert';
 import ModalPostContent from '@ui/modals/content/post/ModalPostContent';
 import ModalPostFooter from '@ui/modals/content/post/ModalPostFooter';
 import ModalPostHeader from '@ui/modals/content/post/ModalPostHeader';
 import Modal from '@ui/modals/modal/Modal';
-import { Button } from '@ui/primitives/button';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   startTransition,
@@ -60,142 +46,14 @@ import {
   useState,
 } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { FaInstagram, FaTiktok, FaXTwitter, FaYoutube } from 'react-icons/fa6';
-
-const SCHEDULER_ALLOWED_MINUTES: readonly number[] = [0, 15, 30, 45];
-const SCHEDULER_ALLOWED_MINUTES_SET = new Set(SCHEDULER_ALLOWED_MINUTES);
-
-// Platform icon mapping
-const PLATFORM_ICONS = {
-  [CredentialPlatform.YOUTUBE]: FaYoutube,
-  [CredentialPlatform.INSTAGRAM]: FaInstagram,
-  [CredentialPlatform.TWITTER]: FaXTwitter,
-  [CredentialPlatform.TIKTOK]: FaTiktok,
-};
-
-type ModalPostBatchEmptyStateProps = {
-  ingredient: ModalPostProps['ingredient'];
-  credentials: ModalPostProps['credentials'];
-  hasAvailableCredentials: boolean;
-  hasInvalidCredentials: boolean;
-  onClose: () => void;
-  onOpenCredentials: () => void;
-};
-
-// All supported platforms
-const ALL_PLATFORMS = [
-  CredentialPlatform.YOUTUBE,
-  CredentialPlatform.TIKTOK,
-  CredentialPlatform.INSTAGRAM,
-  CredentialPlatform.TWITTER,
-];
-
-// Get available platforms based on content type and carousel mode
-function getAvailablePlatforms(
-  category: IngredientCategory,
-  isCarousel: boolean,
-): CredentialPlatform[] {
-  // GIFs only supported on Twitter/X
-  if (category === IngredientCategory.GIF) {
-    return [CredentialPlatform.TWITTER];
-  }
-
-  // Images
-  if (category === IngredientCategory.IMAGE) {
-    if (isCarousel) {
-      return [
-        CredentialPlatform.INSTAGRAM,
-        CredentialPlatform.TWITTER,
-        CredentialPlatform.TIKTOK,
-      ];
-    }
-    return [CredentialPlatform.INSTAGRAM, CredentialPlatform.TWITTER];
-  }
-
-  // Videos - YouTube doesn't support carousels
-  if (isCarousel) {
-    return ALL_PLATFORMS.filter((p) => p !== CredentialPlatform.YOUTUBE);
-  }
-  return ALL_PLATFORMS;
-}
-
-function getCredentialErrorMessage(category: IngredientCategory): string {
-  switch (category) {
-    case IngredientCategory.IMAGE:
-      return 'No credentials available for images. Please connect Instagram or Twitter/X to publish images.';
-    case IngredientCategory.GIF:
-      return 'No credentials available for GIFs. Please connect Twitter/X to publish GIFs.';
-    default:
-      return 'No credentials available for this content. Please connect a compatible platform.';
-  }
-}
-
-function ModalPostBatchEmptyState({
-  ingredient,
-  credentials,
-  hasAvailableCredentials,
-  hasInvalidCredentials,
-  onClose,
-  onOpenCredentials,
-}: ModalPostBatchEmptyStateProps) {
-  if (!ingredient) {
-    return (
-      <div className="text-center py-8 px-4">
-        <h3 className="text-lg font-semibold mb-4">No Content Selected</h3>
-        <p className="text-foreground/70 mb-6">
-          Please select content to publish.
-        </p>
-
-        <Button
-          label="Close"
-          variant={ButtonVariant.SECONDARY}
-          onClick={onClose}
-        />
-      </div>
-    );
-  }
-
-  if (credentials?.length === 0 || !hasAvailableCredentials) {
-    const title = hasInvalidCredentials
-      ? 'Reconnect Accounts'
-      : 'No Credentials Available';
-    const errorMessage =
-      credentials?.length === 0
-        ? 'Please connect your social media accounts first to publish content.'
-        : hasInvalidCredentials
-          ? 'Your connected accounts need to be reconnected before publishing.'
-          : getCredentialErrorMessage(ingredient.category);
-    const actionLabel = hasInvalidCredentials
-      ? 'Reconnect Account'
-      : 'Connect Account';
-
-    return (
-      <div className="text-center py-8 px-4">
-        <h3 className="text-lg font-semibold mb-4">{title}</h3>
-        <p className="text-foreground/70 mb-6">{errorMessage}</p>
-
-        <div className="flex gap-3 justify-center">
-          <Button
-            label="Close"
-            variant={ButtonVariant.SECONDARY}
-            onClick={onClose}
-          />
-
-          <Button
-            label={actionLabel}
-            variant={ButtonVariant.DEFAULT}
-            onClick={() => {
-              onClose();
-              onOpenCredentials();
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  return null;
-}
+import {
+  getAvailablePlatforms,
+  SCHEDULER_ALLOWED_MINUTES_SET,
+} from './batch-post.utils';
+import ModalPostBatchEmptyState from './ModalPostBatchEmptyState';
+import ModalPostBatchFormAlerts from './ModalPostBatchFormAlerts';
+import ModalPostBatchIngredientPreview from './ModalPostBatchIngredientPreview';
+import ModalPostBatchResultsView from './ModalPostBatchResultsView';
 
 export default function ModalPostBatch({
   ingredient,
@@ -494,7 +352,7 @@ export default function ModalPostBatch({
           const localDate =
             config.overrideSchedule && config.customScheduledDate
               ? new Date(config.customScheduledDate)
-              : globalScheduledDate!;
+              : (globalScheduledDate ?? new Date());
 
           const scheduledDate = localDate.toISOString();
 
@@ -618,7 +476,7 @@ export default function ModalPostBatch({
     ];
 
     // Filter platforms based on content type
-    let availablePlatforms;
+    let availablePlatforms: CredentialPlatform[];
     if (isGif) {
       // GIFs can only be published to Twitter/X
       availablePlatforms = [CredentialPlatform.TWITTER];
@@ -1027,245 +885,19 @@ export default function ModalPostBatch({
           <div className="flex gap-6 h-full overflow-hidden">
             {/* Left side - Ingredient preview (hidden on results tab) */}
             {ingredient && activeTab !== 'results' && (
-              <div className="w-1/3 flex-shrink-0 max-h-full overflow-y-auto pr-2">
-                <div className="sticky top-0 space-y-3">
-                  <div
-                    className={cn(
-                      'relative overflow-hidden shadow-lg flex items-center justify-center mx-auto w-fit',
-                      // Smart width constraints based on aspect ratio
-                      aspectRatioInfo.isPortrait ? 'max-w-2xl' : 'max-w-4xl',
-                    )}
-                    style={{
-                      aspectRatio: `${aspectRatioInfo.width} / ${aspectRatioInfo.height}`,
-                      maxHeight: '60vh',
-                    }}
-                  >
-                    {ingredient.category === IngredientCategory.VIDEO ? (
-                      ingredient.ingredientUrl ? (
-                        <VideoPlayer
-                          src={ingredient.ingredientUrl}
-                          thumbnail={ingredient?.thumbnailUrl ?? undefined}
-                          config={{
-                            autoPlay: false,
-                            controls: true,
-                            loop: false,
-                            muted: true,
-                            playsInline: true,
-                            preload: 'metadata',
-                          }}
-                        />
-                      ) : (
-                        <div className="aspect-video w-full bg-background/70 flex items-center justify-center text-foreground/60">
-                          Video preview unavailable.
-                        </div>
-                      )
-                    ) : (
-                      <Image
-                        src={
-                          ingredient.ingredientUrl ||
-                          `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`
-                        }
-                        alt={ingredient.metadataLabel || 'Ingredient'}
-                        width={aspectRatioInfo.width}
-                        height={aspectRatioInfo.height}
-                        className="h-auto object-contain"
-                        sizes="(max-width: 768px) 100vw, 33vw"
-                        style={{
-                          aspectRatio: `${aspectRatioInfo.width} / ${aspectRatioInfo.height}`,
-                          maxHeight: '60vh',
-                          width: 'auto',
-                        }}
-                      />
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-sm truncate max-w-full">
-                      {ingredient.metadataLabel || 'Untitled'}
-                    </h4>
-
-                    {ingredient.metadataDescription && (
-                      <p className="text-xs text-foreground/70 line-clamp-2">
-                        {ingredient.metadataDescription}
-                      </p>
-                    )}
-
-                    <div className="flex flex-wrap gap-2">
-                      <Badge size={ComponentSize.SM}>
-                        {ingredient.category}
-                      </Badge>
-                      {ingredient.ingredientFormat && (
-                        <Badge size={ComponentSize.SM}>
-                          {ingredient.ingredientFormat}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <ModalPostBatchIngredientPreview
+                ingredient={ingredient}
+                aspectRatioInfo={aspectRatioInfo}
+              />
             )}
 
             {/* Right side - Form or Results */}
             <div className="flex-1 h-full overflow-y-auto flex flex-col">
               {activeTab === 'results' ? (
-                // Results View - Real-time status tracking
-                <div className="h-full flex flex-col items-center justify-center p-6">
-                  <div className="w-full max-w-md space-y-6">
-                    {/* Header */}
-                    <div className="text-center">
-                      <h2 className="text-2xl font-semibold mb-2">
-                        Submission Status
-                      </h2>
-
-                      <p className="text-foreground/70">
-                        {
-                          platformStatuses.filter(
-                            (r) => r.status === 'completed',
-                          ).length
-                        }{' '}
-                        of {platformStatuses.length} platform
-                        {platformStatuses.length !== 1 ? 's' : ''} scheduled
-                        {platformStatuses.some(
-                          (r) =>
-                            r.status === 'pending' || r.status === 'submitting',
-                        )
-                          ? ' (in progress…)'
-                          : ' successfully'}
-                      </p>
-                    </div>
-
-                    {/* Platform statuses */}
-                    <div className="space-y-2">
-                      {platformStatuses.map((status) => {
-                        const PlatformIcon =
-                          PLATFORM_ICONS[
-                            status.platform as keyof typeof PLATFORM_ICONS
-                          ];
-
-                        const getStatusColor = () => {
-                          switch (status.status) {
-                            case 'completed':
-                              return 'bg-success/10 border-success/20';
-                            case 'failed':
-                              return 'bg-error/10 border-error/20';
-                            case 'submitting':
-                              return 'bg-info/10 border-info/20';
-                            default:
-                              return 'bg-background/50 border-white/[0.08]';
-                          }
-                        };
-
-                        const getIconColor = () => {
-                          switch (status.status) {
-                            case 'completed':
-                              return 'text-success';
-                            case 'failed':
-                              return 'text-error';
-                            case 'submitting':
-                              return 'text-info';
-                            default:
-                              return 'text-foreground/40';
-                          }
-                        };
-
-                        const getStatusBadge = () => {
-                          switch (status.status) {
-                            case 'completed':
-                              return <Badge status="success">Completed</Badge>;
-                            case 'failed':
-                              return <Badge status="error">Failed</Badge>;
-                            case 'submitting':
-                              return <Badge status="info">Submitting…</Badge>;
-                            default:
-                              return <Badge variant="ghost">Pending</Badge>;
-                          }
-                        };
-
-                        return (
-                          <div
-                            key={status.credentialId}
-                            className={`flex items-center gap-3 p-4 border transition-all ${getStatusColor()}`}
-                          >
-                            {PlatformIcon && (
-                              <PlatformIcon
-                                className={`size-5 ${getIconColor()}`}
-                              />
-                            )}
-                            <div className="flex-1">
-                              {status.handle && (
-                                <p className="text-sm text-foreground/60">
-                                  @{status.handle}
-                                </p>
-                              )}
-                              {status.error && (
-                                <p className="text-sm text-error mt-1">
-                                  {status.error}
-                                </p>
-                              )}
-                            </div>
-                            {getStatusBadge()}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Final confirmation - only show when all submissions complete */}
-                    {platformStatuses.length > 0 &&
-                      platformStatuses.every(
-                        (s) =>
-                          s.status === 'completed' || s.status === 'failed',
-                      ) && (
-                        <div className="w-full space-y-4 pt-4 border-t border-white/[0.08]">
-                          <Alert
-                            type={AlertCategory.SUCCESS}
-                            className="w-full"
-                          >
-                            <div className="space-y-1">
-                              <p className="font-semibold">
-                                All posts have been created
-                              </p>
-                              <p className="text-sm opacity-80">
-                                {
-                                  platformStatuses.filter(
-                                    (s) => s.status === 'completed',
-                                  ).length
-                                }{' '}
-                                post
-                                {platformStatuses.filter(
-                                  (s) => s.status === 'completed',
-                                ).length !== 1
-                                  ? 's'
-                                  : ''}{' '}
-                                waiting to be processed and will be published at
-                                the scheduled time.
-                              </p>
-                            </div>
-                          </Alert>
-
-                          <div className="flex w-full gap-2 justify-between">
-                            <Button
-                              label="Close"
-                              variant={ButtonVariant.GHOST}
-                              onClick={closeModalPost}
-                            />
-
-                            <Button
-                              label="View Scheduled Posts"
-                              variant={ButtonVariant.DEFAULT}
-                              onClick={() => {
-                                push(
-                                  `${EnvironmentService.apps.app}${getPublisherPostsHref(
-                                    {
-                                      status: PostStatus.SCHEDULED,
-                                    },
-                                  )}`,
-                                );
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                  </div>
-                </div>
+                <ModalPostBatchResultsView
+                  platformStatuses={platformStatuses}
+                  onClose={closeModalPost}
+                />
               ) : (
                 // Form View
                 <form
@@ -1273,40 +905,15 @@ export default function ModalPostBatch({
                   onSubmit={onSubmit}
                   className="h-full flex flex-col"
                 >
-                  {hasFormErrors(form.formState.errors) && (
-                    <Alert type={AlertCategory.ERROR} className="mb-4">
-                      <div className="space-y-1">
-                        {parseFormErrors(form.formState.errors).map((error) => (
-                          <div key={error}>{error}</div>
-                        ))}
-                      </div>
-                    </Alert>
-                  )}
-
-                  {invalidCredentialConfigs.length > 0 && (
-                    <Alert type={AlertCategory.WARNING} className="mb-4">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="space-y-1">
-                          <div className="font-medium">
-                            Some accounts need to be reconnected.
-                          </div>
-                          <div className="text-xs text-foreground/70">
-                            {invalidCredentialSummary
-                              ? `Reconnect ${invalidCredentialSummary} to publish on those platforms.`
-                              : 'Reconnect your social accounts to enable publishing.'}
-                          </div>
-                        </div>
-                        <Button
-                          label="Manage Connections"
-                          variant={ButtonVariant.OUTLINE}
-                          onClick={() => {
-                            closeModalPost();
-                            push(`${EnvironmentService.apps.app}/credentials`);
-                          }}
-                        />
-                      </div>
-                    </Alert>
-                  )}
+                  <ModalPostBatchFormAlerts
+                    formErrors={form.formState.errors}
+                    invalidCredentialConfigs={invalidCredentialConfigs}
+                    invalidCredentialSummary={invalidCredentialSummary}
+                    onManageConnections={() => {
+                      closeModalPost();
+                      push(`${EnvironmentService.apps.app}/credentials`);
+                    }}
+                  />
 
                   <ModalPostHeader
                     activeTab={activeTab}
