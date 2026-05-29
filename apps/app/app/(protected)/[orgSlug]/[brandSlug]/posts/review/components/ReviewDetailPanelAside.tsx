@@ -1,28 +1,18 @@
 'use client';
 
-import { BatchItemStatus, ButtonVariant } from '@genfeedai/enums';
+import { BatchItemStatus } from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
 import {
   DefinitionDetail,
   DefinitionList,
   DefinitionTerm,
 } from '@genfeedai/ui';
-import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
-import { Button } from '@ui/primitives/button';
-import { Textarea } from '@ui/primitives/textarea';
-import Link from 'next/link';
-import {
-  HiCheck,
-  HiOutlineLightBulb,
-  HiSparkles,
-  HiXMark,
-} from 'react-icons/hi2';
-import {
-  isApproved,
-  isChangesRequested,
-  isReadyToReview,
-} from './review-state';
+import { HiOutlineLightBulb } from 'react-icons/hi2';
+import ReviewDecisionPanel from './ReviewDecisionPanel';
+import ReviewHistoryPanel from './ReviewHistoryPanel';
+import ReviewLineagePanel from './ReviewLineagePanel';
+import ReviewPublishOutcomePanel from './ReviewPublishOutcomePanel';
 
 type ReviewPanelItem = IBatchItem & {
   gateOverallScore?: number;
@@ -51,14 +41,6 @@ interface ReviewDetailPanelAsideProps {
   statusLabel: string;
 }
 
-function getApproveLabel(item: ReviewPanelItem): string {
-  if (item.postId && !item.scheduledDate) {
-    return 'Approve and open draft';
-  }
-
-  return 'Approve and schedule';
-}
-
 export default function ReviewDetailPanelAside({
   browserTimezone,
   feedback,
@@ -78,87 +60,18 @@ export default function ReviewDetailPanelAside({
 }: ReviewDetailPanelAsideProps) {
   return (
     <aside className="space-y-4">
-      <InsetSurface className="p-5" tone="contrast">
-        <h3 className="text-sm font-medium text-foreground">Decision</h3>
-        <p className="mt-1 text-sm text-foreground/55">
-          Keep momentum by making the decision from this panel.
-        </p>
-
-        <div className="mt-4 flex flex-col gap-3">
-          <span className="space-y-2">
-            <span className="text-xs font-medium uppercase tracking-[0.18em] text-foreground/45">
-              Reviewer notes
-            </span>
-            <Textarea
-              value={feedback}
-              onChange={(event) => setFeedback(event.target.value)}
-              placeholder="Add revision guidance or rejection context"
-              className="min-h-28 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-white/20"
-            />
-          </span>
-
-          {isReady ? (
-            <>
-              <Button
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                isDisabled={isActioning}
-                onClick={() => onApprove(item.id)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500/15 px-4 py-3 text-sm font-medium text-emerald-400 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
-              >
-                <HiCheck className="size-4" />
-                {getApproveLabel(item)}
-              </Button>
-              <Button
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                isDisabled={isActioning}
-                onClick={() => onRequestChanges(item.id, feedback)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500/15 px-4 py-3 text-sm font-medium text-amber-300 transition-colors hover:bg-amber-500/25 disabled:opacity-50"
-              >
-                <HiSparkles className="size-4" />
-                Request changes
-              </Button>
-              <Button
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                isDisabled={isActioning}
-                onClick={() => onReject(item.id, feedback)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-400 transition-colors hover:bg-rose-500/25 disabled:opacity-50"
-              >
-                <HiXMark className="size-4" />
-                Reject and remove
-              </Button>
-            </>
-          ) : (
-            <InsetSurface
-              className="px-4 py-3 text-sm text-foreground/55"
-              density="compact"
-            >
-              {isApproved(item)
-                ? 'This item has already been approved.'
-                : isChangesRequested(item)
-                  ? 'Changes were requested for this item.'
-                  : item.reviewDecision === 'rejected'
-                    ? 'This item was rejected.'
-                    : 'This item is not currently actionable.'}
-            </InsetSurface>
-          )}
-
-          {isReadyToReview(item) && (
-            <Button
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => onToggleSelect(item.id)}
-              className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm font-medium text-foreground/75 transition-colors hover:border-white/20 hover:bg-white/[0.04]"
-            >
-              {isSelected
-                ? 'Remove from bulk selection'
-                : 'Add to bulk selection'}
-            </Button>
-          )}
-        </div>
-      </InsetSurface>
+      <ReviewDecisionPanel
+        feedback={feedback}
+        isActioning={isActioning}
+        isReady={isReady}
+        isSelected={isSelected}
+        item={item}
+        onApprove={onApprove}
+        onReject={onReject}
+        onRequestChanges={onRequestChanges}
+        onToggleSelect={onToggleSelect}
+        setFeedback={setFeedback}
+      />
 
       <InsetSurface className="p-5" tone="contrast">
         <h3 className="text-sm font-medium text-foreground">Details</h3>
@@ -188,76 +101,7 @@ export default function ReviewDetailPanelAside({
         </DefinitionList>
       </InsetSurface>
 
-      <InsetSurface className="p-5" tone="contrast">
-        <h3 className="text-sm font-medium text-foreground">Lineage</h3>
-        <DefinitionList className="mt-4 text-sm">
-          <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Topic</DefinitionTerm>
-            <DefinitionDetail variant="value">
-              {item.opportunityTopic ?? 'Not recorded'}
-            </DefinitionDetail>
-          </div>
-          <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Source type</DefinitionTerm>
-            <DefinitionDetail variant="value" className="capitalize">
-              {item.opportunitySourceType ?? 'Not recorded'}
-            </DefinitionDetail>
-          </div>
-          <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Workflow</DefinitionTerm>
-            <DefinitionDetail variant="value">
-              {item.sourceWorkflowName ??
-                item.sourceWorkflowId ??
-                'Not recorded'}
-            </DefinitionDetail>
-          </div>
-          <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Action</DefinitionTerm>
-            <DefinitionDetail variant="value">
-              {item.sourceActionId ?? 'Not recorded'}
-            </DefinitionDetail>
-          </div>
-          <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Generation</DefinitionTerm>
-            <DefinitionDetail variant="value">
-              {item.postGenerationId ?? 'Not linked'}
-            </DefinitionDetail>
-          </div>
-        </DefinitionList>
-
-        <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4">
-          {item.sourceWorkflowId && (
-            <Link
-              className="inline-flex rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-foreground/75 transition-colors hover:border-white/20 hover:bg-white/[0.04]"
-              href={
-                item.sourceActionId
-                  ? `/orchestration/${item.sourceWorkflowId}?opportunity=${item.sourceActionId}`
-                  : `/orchestration/${item.sourceWorkflowId}`
-              }
-            >
-              Open strategy
-            </Link>
-          )}
-          {item.postId && (
-            <Link
-              className="inline-flex rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-foreground/75 transition-colors hover:border-white/20 hover:bg-white/[0.04]"
-              href={`/posts/${item.postId}`}
-            >
-              Open draft
-            </Link>
-          )}
-          {item.postUrl && (
-            <a
-              className="inline-flex rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-foreground/75 transition-colors hover:border-white/20 hover:bg-white/[0.04]"
-              href={item.postUrl}
-              rel="noreferrer"
-              target="_blank"
-            >
-              Open published URL
-            </a>
-          )}
-        </div>
-      </InsetSurface>
+      <ReviewLineagePanel item={item} />
 
       {(item.gateOverallScore !== undefined ||
         (item.gateReasons?.length ?? 0) > 0) && (
@@ -297,140 +141,15 @@ export default function ReviewDetailPanelAside({
         </InsetSurface>
       )}
 
-      <InsetSurface className="p-5" tone="contrast">
-        <h3 className="text-sm font-medium text-foreground">Publish Outcome</h3>
-        <DefinitionList className="mt-4 text-sm">
-          <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Post status</DefinitionTerm>
-            <DefinitionDetail variant="value">
-              {item.postStatus ?? 'Not linked'}
-            </DefinitionDetail>
-          </div>
-          <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>External ID</DefinitionTerm>
-            <DefinitionDetail variant="value">
-              {item.postExternalId ?? 'Not published'}
-            </DefinitionDetail>
-          </div>
-          <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Published</DefinitionTerm>
-            <DefinitionDetail variant="value">
-              {item.postPublishedAt
-                ? formatDateInTimezone(
-                    item.postPublishedAt,
-                    browserTimezone,
-                    'MMM d, yyyy h:mm a',
-                  )
-                : 'Not published'}
-            </DefinitionDetail>
-          </div>
-          <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Last attempt</DefinitionTerm>
-            <DefinitionDetail variant="value">
-              {item.postLastAttemptAt
-                ? formatDateInTimezone(
-                    item.postLastAttemptAt,
-                    browserTimezone,
-                    'MMM d, yyyy h:mm a',
-                  )
-                : 'No attempts recorded'}
-            </DefinitionDetail>
-          </div>
-          <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Retry count</DefinitionTerm>
-            <DefinitionDetail variant="value">
-              {item.postRetryCount ?? 0}
-            </DefinitionDetail>
-          </div>
-        </DefinitionList>
+      <ReviewPublishOutcomePanel
+        browserTimezone={browserTimezone}
+        item={item}
+      />
 
-        <div className="mt-4 border-t border-white/10 pt-4">
-          <h4 className="text-xs font-medium uppercase tracking-[0.18em] text-foreground/45">
-            Performance snapshot
-          </h4>
-          <DefinitionList className="mt-3 text-sm">
-            <div className="flex items-start justify-between gap-4">
-              <DefinitionTerm>Views</DefinitionTerm>
-              <DefinitionDetail variant="value">
-                {item.postTotalViews ?? 0}
-              </DefinitionDetail>
-            </div>
-            <div className="flex items-start justify-between gap-4">
-              <DefinitionTerm>Likes</DefinitionTerm>
-              <DefinitionDetail variant="value">
-                {item.postTotalLikes ?? 0}
-              </DefinitionDetail>
-            </div>
-            <div className="flex items-start justify-between gap-4">
-              <DefinitionTerm>Comments</DefinitionTerm>
-              <DefinitionDetail variant="value">
-                {item.postTotalComments ?? 0}
-              </DefinitionDetail>
-            </div>
-            <div className="flex items-start justify-between gap-4">
-              <DefinitionTerm>Shares</DefinitionTerm>
-              <DefinitionDetail variant="value">
-                {item.postTotalShares ?? 0}
-              </DefinitionDetail>
-            </div>
-            <div className="flex items-start justify-between gap-4">
-              <DefinitionTerm>Engagement</DefinitionTerm>
-              <DefinitionDetail variant="value">
-                {item.postAvgEngagementRate !== undefined
-                  ? `${item.postAvgEngagementRate.toFixed(1)}%`
-                  : 'Not synced'}
-              </DefinitionDetail>
-            </div>
-          </DefinitionList>
-        </div>
-
-        {item.postUrl && (
-          <a
-            className="mt-4 inline-flex text-sm text-primary underline-offset-2 hover:underline"
-            href={item.postUrl}
-            rel="noreferrer"
-            target="_blank"
-          >
-            Open published URL
-          </a>
-        )}
-      </InsetSurface>
-
-      {reviewEvents.length > 0 && (
-        <InsetSurface className="p-5" tone="contrast">
-          <h3 className="text-sm font-medium text-foreground">
-            Review history
-          </h3>
-          <div className="mt-4 space-y-4">
-            {reviewEvents.map((event) => (
-              <InsetSurface
-                key={`${event.reviewedAt}-${event.decision}-${event.feedback ?? 'no-feedback'}`}
-                tone="default"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <p className="text-sm font-medium capitalize text-foreground">
-                    {event.decision === 'request_changes'
-                      ? 'Changes requested'
-                      : event.decision}
-                  </p>
-                  <p className="text-xs text-foreground/45">
-                    {formatDateInTimezone(
-                      event.reviewedAt,
-                      browserTimezone,
-                      'MMM d, yyyy h:mm a',
-                    )}
-                  </p>
-                </div>
-                {event.feedback && (
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-foreground/75">
-                    {event.feedback}
-                  </p>
-                )}
-              </InsetSurface>
-            ))}
-          </div>
-        </InsetSurface>
-      )}
+      <ReviewHistoryPanel
+        browserTimezone={browserTimezone}
+        reviewEvents={reviewEvents}
+      />
 
       {item.reviewFeedback && (
         <InsetSurface className="p-5" tone="contrast">

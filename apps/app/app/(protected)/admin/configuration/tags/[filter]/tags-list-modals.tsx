@@ -1,11 +1,11 @@
 'use client';
 
 import { PageScope, TagCategory } from '@genfeedai/enums';
-import type { ITag } from '@genfeedai/interfaces';
+import type { ContentScope, ITag } from '@genfeedai/interfaces';
 import { LazyModalTag } from '@ui/lazy/modal/LazyModal';
 
 type TagsListModalsProps = {
-  scope: PageScope;
+  scope: ContentScope;
   selectedTag: ITag | null;
   organizationId: string | undefined;
   onConfirm: () => void;
