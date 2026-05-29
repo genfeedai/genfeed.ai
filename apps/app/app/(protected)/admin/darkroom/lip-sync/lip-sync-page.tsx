@@ -317,7 +317,12 @@ export default function LipSyncPage() {
           className="mt-6"
           data-testid="darkroom-lip-sync-result-surface"
         >
-          <video className="w-full max-w-lg rounded" controls src={videoUrl}>
+          <video
+            aria-label="Lip sync result video"
+            className="w-full max-w-lg rounded"
+            controls
+            src={videoUrl}
+          >
             <track kind="captions" />
           </video>
           <div className="mt-3">

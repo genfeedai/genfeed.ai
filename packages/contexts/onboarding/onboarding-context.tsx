@@ -160,7 +160,7 @@ export default function OnboardingProvider({
   if (isLoading || !initialized) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+        <div className="size-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
       </div>
     );
   }

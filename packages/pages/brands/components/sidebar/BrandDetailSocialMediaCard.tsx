@@ -59,72 +59,72 @@ const platformIconMap: Partial<Record<CredentialPlatform, ReactNode>> = {
 
 const OAUTH_PLATFORMS = [
   {
-    icon: <FaXTwitter className="mr-1.5 h-3.5 w-3.5" />,
+    icon: <FaXTwitter className="mr-1.5 size-3.5" />,
     label: 'Twitter',
     platform: CredentialPlatform.TWITTER,
   },
   {
-    icon: <FaTiktok className="mr-1.5 h-3.5 w-3.5" />,
+    icon: <FaTiktok className="mr-1.5 size-3.5" />,
     label: 'TikTok',
     platform: CredentialPlatform.TIKTOK,
   },
   {
-    icon: <FaYoutube className="mr-1.5 h-3.5 w-3.5" />,
+    icon: <FaYoutube className="mr-1.5 size-3.5" />,
     label: 'YouTube',
     platform: CredentialPlatform.YOUTUBE,
   },
   {
-    icon: <FaInstagram className="mr-1.5 h-3.5 w-3.5" />,
+    icon: <FaInstagram className="mr-1.5 size-3.5" />,
     label: 'Instagram',
     platform: CredentialPlatform.INSTAGRAM,
   },
   {
-    icon: <FaStar className="mr-1.5 h-3.5 w-3.5" />,
+    icon: <FaStar className="mr-1.5 size-3.5" />,
     label: 'Fanvue',
     platform: CredentialPlatform.FANVUE,
   },
   {
-    icon: <FaFacebook className="mr-1.5 h-3.5 w-3.5" />,
+    icon: <FaFacebook className="mr-1.5 size-3.5" />,
     label: 'Facebook',
     platform: CredentialPlatform.FACEBOOK,
   },
   {
-    icon: <FaLinkedin className="mr-1.5 h-3.5 w-3.5" />,
+    icon: <FaLinkedin className="mr-1.5 size-3.5" />,
     label: 'LinkedIn',
     platform: CredentialPlatform.LINKEDIN,
   },
   {
-    icon: <FaPinterest className="mr-1.5 h-3.5 w-3.5" />,
+    icon: <FaPinterest className="mr-1.5 size-3.5" />,
     label: 'Pinterest',
     platform: CredentialPlatform.PINTEREST,
   },
   {
-    icon: <FaReddit className="mr-1.5 h-3.5 w-3.5" />,
+    icon: <FaReddit className="mr-1.5 size-3.5" />,
     label: 'Reddit',
     platform: CredentialPlatform.REDDIT,
   },
   {
-    icon: <FaThreads className="mr-1.5 h-3.5 w-3.5" />,
+    icon: <FaThreads className="mr-1.5 size-3.5" />,
     label: 'Threads',
     platform: CredentialPlatform.THREADS,
   },
   {
-    icon: <FaWordpress className="mr-1.5 h-3.5 w-3.5" />,
+    icon: <FaWordpress className="mr-1.5 size-3.5" />,
     label: 'WordPress',
     platform: CredentialPlatform.WORDPRESS,
   },
   {
-    icon: <FaSnapchat className="mr-1.5 h-3.5 w-3.5" />,
+    icon: <FaSnapchat className="mr-1.5 size-3.5" />,
     label: 'Snapchat',
     platform: CredentialPlatform.SNAPCHAT,
   },
   {
-    icon: <FaMastodon className="mr-1.5 h-3.5 w-3.5" />,
+    icon: <FaMastodon className="mr-1.5 size-3.5" />,
     label: 'Mastodon',
     platform: CredentialPlatform.MASTODON,
   },
   {
-    icon: <FaShopify className="mr-1.5 h-3.5 w-3.5" />,
+    icon: <FaShopify className="mr-1.5 size-3.5" />,
     label: 'Shopify',
     platform: CredentialPlatform.SHOPIFY,
   },

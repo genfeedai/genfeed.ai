@@ -220,23 +220,19 @@ export default function OutreachCampaignWizard() {
             ? {
                 excludeAuthors: formData.excludeAuthors
                   .split(',')
-                  .map((s) => s.trim())
-                  .filter(Boolean),
+                  .flatMap((s) => (s.trim() ? [s.trim()] : [])),
                 hashtags: formData.hashtags
                   .split(',')
-                  .map((s) => s.trim())
-                  .filter(Boolean),
+                  .flatMap((s) => (s.trim() ? [s.trim()] : [])),
                 keywords: formData.keywords
                   .split(',')
-                  .map((s) => s.trim())
-                  .filter(Boolean),
+                  .flatMap((s) => (s.trim() ? [s.trim()] : [])),
                 maxAgeHours: formData.maxAgeHours,
                 maxEngagement: formData.maxEngagement,
                 minEngagement: formData.minEngagement,
                 subreddits: formData.subreddits
                   .split(',')
-                  .map((s) => s.trim())
-                  .filter(Boolean),
+                  .flatMap((s) => (s.trim() ? [s.trim()] : [])),
               }
             : undefined,
         label: formData.label,
@@ -360,7 +356,10 @@ export default function OutreachCampaignWizard() {
             />
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <label
+                className="text-sm font-medium text-foreground"
+                htmlFor="campaign-wizard-credential"
+              >
                 Credential
               </label>
               <Select
@@ -368,7 +367,7 @@ export default function OutreachCampaignWizard() {
                 onValueChange={(value) => handleChange('credential', value)}
                 required
               >
-                <SelectTrigger>
+                <SelectTrigger id="campaign-wizard-credential">
                   <SelectValue placeholder="Select a credential" />
                 </SelectTrigger>
                 <SelectContent>
@@ -442,10 +441,14 @@ export default function OutreachCampaignWizard() {
             {formData.campaignType === CampaignType.DM_OUTREACH ? (
               <>
                 <div className="flex items-center gap-4">
-                  <label className="text-sm font-medium">
+                  <label
+                    className="text-sm font-medium"
+                    htmlFor="campaign-wizard-dm-use-ai"
+                  >
                     Use AI Generation
                   </label>
                   <Checkbox
+                    id="campaign-wizard-dm-use-ai"
                     checked={formData.dmUseAiGeneration}
                     onCheckedChange={(checked) =>
                       handleChange('dmUseAiGeneration', checked === true)
@@ -525,10 +528,14 @@ export default function OutreachCampaignWizard() {
             ) : (
               <>
                 <div className="flex items-center gap-4">
-                  <label className="text-sm font-medium">
+                  <label
+                    className="text-sm font-medium"
+                    htmlFor="campaign-wizard-use-ai"
+                  >
                     Use AI Generation
                   </label>
                   <Checkbox
+                    id="campaign-wizard-use-ai"
                     checked={formData.useAiGeneration}
                     onCheckedChange={(checked) =>
                       handleChange('useAiGeneration', checked === true)
@@ -540,7 +547,10 @@ export default function OutreachCampaignWizard() {
                 {formData.useAiGeneration ? (
                   <>
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium text-foreground">
+                      <label
+                        className="text-sm font-medium text-foreground"
+                        htmlFor="campaign-wizard-reply-tone"
+                      >
                         Reply Tone
                       </label>
                       <Select
@@ -549,7 +559,7 @@ export default function OutreachCampaignWizard() {
                           handleChange('tone', value as ReplyTone)
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id="campaign-wizard-reply-tone">
                           <SelectValue placeholder="Select a tone" />
                         </SelectTrigger>
                         <SelectContent>
@@ -563,7 +573,10 @@ export default function OutreachCampaignWizard() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium text-foreground">
+                      <label
+                        className="text-sm font-medium text-foreground"
+                        htmlFor="campaign-wizard-reply-length"
+                      >
                         Reply Length
                       </label>
                       <Select
@@ -572,7 +585,7 @@ export default function OutreachCampaignWizard() {
                           handleChange('length', value as ReplyLength)
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id="campaign-wizard-reply-length">
                           <SelectValue placeholder="Select a length" />
                         </SelectTrigger>
                         <SelectContent>

@@ -103,12 +103,12 @@ export function AssetControlsHeader({
               <ViewToggle
                 options={[
                   {
-                    icon: <HiSquares2X2 className="w-4 h-4" />,
+                    icon: <HiSquares2X2 className="size-4" />,
                     label: 'Masonry view',
                     type: ViewType.MASONRY,
                   },
                   {
-                    icon: <HiTableCells className="w-4 h-4" />,
+                    icon: <HiTableCells className="size-4" />,
                     label: 'Table view',
                     type: ViewType.TABLE,
                   },

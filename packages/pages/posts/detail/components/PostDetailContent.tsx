@@ -338,7 +338,7 @@ export default function PostDetailContent({
               }
               isChecked={isLastChildGrokTweet}
               isDisabled={isTogglingGrok}
-              className="h-4 w-4 accent-primary"
+              className="size-4 accent-primary"
               onChange={(e) => handleToggleGrokFeedback(e.target.checked)}
             />
           )}
@@ -358,7 +358,7 @@ export default function PostDetailContent({
                 }
                 isChecked={hasFirstComment}
                 isDisabled={isTogglingFirstComment}
-                className="h-4 w-4 accent-primary"
+                className="size-4 accent-primary"
                 onChange={(e) => handleToggleFirstComment(e.target.checked)}
               />
 

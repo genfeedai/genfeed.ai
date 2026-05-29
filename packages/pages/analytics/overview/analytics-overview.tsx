@@ -137,8 +137,8 @@ function OverviewPlaceholderCard({
   return (
     <Card variant={CardVariant.DEFAULT} bodyClassName="p-6">
       <div className="flex h-full flex-col gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 text-foreground/70">
-          <Icon className="h-6 w-6" />
+        <div className="flex size-12 items-center justify-center rounded-xl bg-white/5 text-foreground/70">
+          <Icon className="size-6" />
         </div>
 
         <div className="space-y-2">
@@ -667,10 +667,10 @@ export default function AnalyticsOverview({
                 alt={item.organization.name || 'Org'}
                 width={24}
                 height={24}
-                className="h-6 w-6 rounded-full object-cover"
+                className="size-6 rounded-full object-cover"
               />
             ) : (
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs">
+              <div className="flex size-6 items-center justify-center rounded-full bg-muted text-xs">
                 {(item.organization.name || 'U').charAt(0).toUpperCase()}
               </div>
             )}
@@ -728,10 +728,10 @@ export default function AnalyticsOverview({
                 alt={item.name || 'Brand'}
                 width={24}
                 height={24}
-                className="h-6 w-6 rounded-full object-cover"
+                className="size-6 rounded-full object-cover"
               />
             ) : (
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs">
+              <div className="flex size-6 items-center justify-center rounded-full bg-muted text-xs">
                 {(item.name || 'U').charAt(0).toUpperCase()}
               </div>
             )}
@@ -793,11 +793,11 @@ export default function AnalyticsOverview({
             <div className="space-y-5">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-foreground/60">
                 {dashboardState === 'active' ? (
-                  <HiOutlineCheckCircle className="h-4 w-4 text-emerald-400" />
+                  <HiOutlineCheckCircle className="size-4 text-emerald-400" />
                 ) : dashboardState === 'warming_up' ? (
-                  <HiMiniArrowTrendingUp className="h-4 w-4 text-amber-300" />
+                  <HiMiniArrowTrendingUp className="size-4 text-amber-300" />
                 ) : (
-                  <HiOutlineInformationCircle className="h-4 w-4 text-sky-300" />
+                  <HiOutlineInformationCircle className="size-4 text-sky-300" />
                 )}
                 {heroContent.badge}
               </div>
@@ -843,7 +843,7 @@ export default function AnalyticsOverview({
                     What this date range can currently support
                   </div>
                 </div>
-                <HiOutlineSquares2X2 className="h-5 w-5 text-foreground/45" />
+                <HiOutlineSquares2X2 className="size-5 text-foreground/45" />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">

@@ -94,11 +94,15 @@ export function EngagementOpportunityCard({
 
       {/* Draft reply */}
       <div className="mb-3">
-        <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <label
+          htmlFor="engagement-reply"
+          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+        >
           Draft Reply
         </label>
         {isEditing ? (
           <Textarea
+            id="engagement-reply"
             value={reply}
             onChange={(e) => setReply(e.target.value)}
             rows={3}

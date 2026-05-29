@@ -271,7 +271,12 @@ export function VoiceCloneCard({
       {/* Audio preview if provided */}
       {action.audioUrl && (
         <div className="mb-3">
-          <audio src={action.audioUrl} controls className="w-full">
+          <audio
+            src={action.audioUrl}
+            controls
+            aria-label="Voice preview"
+            className="w-full"
+          >
             <track kind="captions" />
           </audio>
         </div>

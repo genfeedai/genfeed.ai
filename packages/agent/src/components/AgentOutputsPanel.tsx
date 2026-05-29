@@ -60,6 +60,7 @@ function renderVariantPreview(
       <video
         src={variant.url}
         controls
+        aria-label={variant.title ?? group.title}
         className="gen-shell-surface aspect-[4/5] w-full rounded-[1.25rem] object-cover"
       >
         <track kind="captions" />
@@ -74,7 +75,12 @@ function renderVariantPreview(
           <HiOutlineMusicalNote className="size-4 text-primary/80" />
           {variant.title ?? group.title}
         </div>
-        <audio src={variant.url} controls className="w-full">
+        <audio
+          src={variant.url}
+          controls
+          aria-label={variant.title ?? group.title}
+          className="w-full"
+        >
           <track kind="captions" />
         </audio>
       </div>

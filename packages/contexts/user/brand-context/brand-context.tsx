@@ -147,10 +147,7 @@ export function BrandProvider({
     AuthService.getInstance(token),
   );
 
-  const sessionKey = useMemo(
-    () => `${effectiveUserId ?? 'none'}:${effectiveOrgId ?? 'none'}`,
-    [effectiveUserId, effectiveOrgId],
-  );
+  const sessionKey = `${effectiveUserId ?? 'none'}:${effectiveOrgId ?? 'none'}`;
 
   const clerkData = useMemo(() => {
     if (user) {

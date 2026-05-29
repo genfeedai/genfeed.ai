@@ -652,8 +652,11 @@ export default function PostsList({
           const isVideo = ingredient?.category === IngredientCategory.VIDEO;
 
           return (
-            <div
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               className="w-16 aspect-video overflow-hidden bg-background cursor-pointer hover:opacity-80 transition-opacity"
+              aria-label="View ingredient"
               onClick={(e) => {
                 e.stopPropagation();
                 if (ingredient) {
@@ -685,7 +688,7 @@ export default function PostsList({
                   className="object-cover w-full h-full"
                 />
               )}
-            </div>
+            </Button>
           );
         },
       },
@@ -707,7 +710,9 @@ export default function PostsList({
                     className="line-clamp-1"
                   />
                 ) : ingredient ? (
-                  <span
+                  <Button
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
                     className="truncate cursor-pointer hover:text-primary transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -715,7 +720,7 @@ export default function PostsList({
                     }}
                   >
                     {ingredient.metadataLabel || 'Untitled'}
-                  </span>
+                  </Button>
                 ) : (
                   <span className="truncate">Untitled</span>
                 )}

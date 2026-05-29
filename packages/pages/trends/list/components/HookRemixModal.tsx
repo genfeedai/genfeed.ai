@@ -157,7 +157,7 @@ export default function HookRemixModal({
     >
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm text-foreground/70 bg-background/50 p-3">
-          <HiOutlineFilm className="w-5 h-5 text-primary shrink-0" />
+          <HiOutlineFilm className="size-5 text-primary shrink-0" />
           <span>
             Extract the viral hook from this video and combine it with your CTA
             clip to create a new remix.
@@ -266,7 +266,7 @@ export default function HookRemixModal({
             onClick={handleSubmit}
             isLoading={isSubmitting}
             isDisabled={!isFormValid || isSubmitting}
-            icon={<HiOutlineSparkles className="w-3.5 h-3.5" />}
+            icon={<HiOutlineSparkles className="size-3.5" />}
           />
         </ModalActions>
       </div>

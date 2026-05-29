@@ -101,6 +101,7 @@ function DownloadNodeComponent(props: NodeProps) {
               <div className="relative aspect-video min-h-[120px] w-full overflow-hidden rounded-md bg-black/20">
                 <video
                   src={activeMedia}
+                  aria-label="Output video preview"
                   className="absolute inset-0 size-full object-contain cursor-pointer"
                   autoPlay
                   muted

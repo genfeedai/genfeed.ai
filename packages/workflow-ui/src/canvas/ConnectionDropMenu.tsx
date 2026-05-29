@@ -217,6 +217,7 @@ function ConnectionDropMenuComponent() {
               ref={inputRef}
               type="text"
               placeholder="Search compatible nodes..."
+              aria-label="Search compatible nodes"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-7 pr-2 py-1.5 text-xs bg-[var(--secondary)] border border-[var(--border)] outline-none focus:ring-1 focus:ring-[var(--ring)]"

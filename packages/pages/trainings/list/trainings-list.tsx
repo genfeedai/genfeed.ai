@@ -459,7 +459,7 @@ export default function TrainingsList({
     return (
       <div className="container mx-auto flex min-h-56 items-center justify-center px-4 py-8">
         <Card className="p-12 w-full max-w-md text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
             <span className="text-2xl">!</span>
           </div>
 

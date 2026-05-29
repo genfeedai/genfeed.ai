@@ -109,11 +109,11 @@ export default function TrendDetail({
   function getTrendDirectionIcon() {
     switch (analysis.trendDirection) {
       case 'rising':
-        return <HiArrowTrendingUp className="h-5 w-5 text-success" />;
+        return <HiArrowTrendingUp className="size-5 text-success" />;
       case 'falling':
-        return <HiArrowTrendingDown className="h-5 w-5 text-error" />;
+        return <HiArrowTrendingDown className="size-5 text-error" />;
       default:
-        return <HiOutlineChartBar className="h-5 w-5 text-warning" />;
+        return <HiOutlineChartBar className="size-5 text-warning" />;
     }
   }
 
@@ -196,17 +196,17 @@ export default function TrendDetail({
             label="Back to Trends"
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
-            icon={<HiArrowLeft className="h-4 w-4" />}
+            icon={<HiArrowLeft className="size-4" />}
             onClick={() => router.push(backHref)}
           />
           <div className="flex items-center gap-3">
             {platformConfig && (
               <div
-                className="flex items-center justify-center w-10 h-10 rounded-full"
+                className="flex items-center justify-center size-10 rounded-full"
                 style={{ backgroundColor: `${platformConfig.color}20` }}
               >
                 <platformConfig.icon
-                  className="h-5 w-5"
+                  className="size-5"
                   style={{ color: platformConfig.color }}
                 />
               </div>
@@ -238,14 +238,14 @@ export default function TrendDetail({
           label="Generate From Trend"
           variant={ButtonVariant.DEFAULT}
           size={ButtonSize.SM}
-          icon={<HiOutlineSparkles className="h-4 w-4" />}
+          icon={<HiOutlineSparkles className="size-4" />}
           onClick={() => router.push(buildTrendStudioHref(trend))}
         />
         <Button
           label="Open In Agent"
           variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
-          icon={<HiOutlineFire className="h-4 w-4" />}
+          icon={<HiOutlineFire className="size-4" />}
           onClick={() => router.push(buildTrendAgentHref(trend))}
         />
       </div>
@@ -344,7 +344,7 @@ export default function TrendDetail({
                       <div className="flex items-center gap-2">
                         {Icon && (
                           <Icon
-                            className="h-4 w-4"
+                            className="size-4"
                             style={{ color: config?.color }}
                           />
                         )}

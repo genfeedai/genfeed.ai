@@ -442,7 +442,7 @@ export default function LivestreamChatBotPage({
   if (isLoading) {
     return (
       <div className="p-6 text-sm text-muted-foreground">
-        Loading livestream bot...
+        Loading livestream bot…
       </div>
     );
   }
@@ -516,18 +516,17 @@ export default function LivestreamChatBotPage({
               }))
             }
           />
-          <label className="flex items-center gap-3 pt-7 text-sm">
-            <Checkbox
-              checked={form.transcriptEnabled}
-              onCheckedChange={(checked) =>
-                setForm((current) => ({
-                  ...current,
-                  transcriptEnabled: Boolean(checked),
-                }))
-              }
-            />
-            Transcript-assisted context enabled
-          </label>
+          <Checkbox
+            checked={form.transcriptEnabled}
+            label="Transcript-assisted context enabled"
+            className="pt-7"
+            onCheckedChange={(checked) =>
+              setForm((current) => ({
+                ...current,
+                transcriptEnabled: Boolean(checked),
+              }))
+            }
+          />
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">

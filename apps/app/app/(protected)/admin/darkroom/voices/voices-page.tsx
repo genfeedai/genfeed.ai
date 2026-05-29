@@ -295,7 +295,12 @@ export default function VoicesPage() {
                       Download
                     </a>
                   </div>
-                  <audio className="mt-3 w-full" controls src={audio.audioUrl}>
+                  <audio
+                    aria-label="Generated audio"
+                    className="mt-3 w-full"
+                    controls
+                    src={audio.audioUrl}
+                  >
                     <track kind="captions" />
                   </audio>
                 </div>

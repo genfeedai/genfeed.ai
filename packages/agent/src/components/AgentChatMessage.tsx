@@ -280,7 +280,12 @@ function ContentPreviewCard({
               key={url}
               className="overflow-hidden rounded-lg border border-border"
             >
-              <video src={url} controls className="w-full">
+              <video
+                src={url}
+                controls
+                aria-label="Generated video"
+                className="w-full"
+              >
                 <track kind="captions" />
               </video>
             </div>
@@ -290,7 +295,13 @@ function ContentPreviewCard({
       {action.audio && action.audio.length > 0 && (
         <div className="space-y-2">
           {action.audio.map((url) => (
-            <audio key={url} src={url} controls className="w-full">
+            <audio
+              key={url}
+              src={url}
+              controls
+              aria-label="Generated audio"
+              className="w-full"
+            >
               <track kind="captions" />
             </audio>
           ))}
@@ -298,10 +309,10 @@ function ContentPreviewCard({
       )}
       {action.ctas && action.ctas.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {action.ctas.map((cta, index) =>
+          {action.ctas.map((cta) =>
             cta.href ? (
               <a
-                key={`${action.id}-content-preview-cta-${index}`}
+                key={`${action.id}-content-preview-cta-${cta.label}`}
                 href={cta.href}
                 target="_blank"
                 rel="noopener noreferrer"

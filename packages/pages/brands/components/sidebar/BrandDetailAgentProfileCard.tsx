@@ -904,7 +904,10 @@ export default function BrandDetailAgentProfileCard({
 
                       <div className="grid gap-4 md:grid-cols-2">
                         <div>
-                          <label className="mb-1 block text-xs font-medium">
+                          <label
+                            className="mb-1 block text-xs font-medium"
+                            htmlFor={`${platform.value}-canonical-source`}
+                          >
                             Voice Source Override
                           </label>
                           <Select
@@ -920,7 +923,10 @@ export default function BrandDetailAgentProfileCard({
                               )
                             }
                           >
-                            <SelectTrigger className="w-full">
+                            <SelectTrigger
+                              id={`${platform.value}-canonical-source`}
+                              className="w-full"
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -935,7 +941,10 @@ export default function BrandDetailAgentProfileCard({
                         </div>
 
                         <div>
-                          <label className="mb-1 block text-xs font-medium">
+                          <label
+                            className="mb-1 block text-xs font-medium"
+                            htmlFor={`${platform.value}-default-model`}
+                          >
                             Model Override
                           </label>
                           <Select
@@ -950,7 +959,10 @@ export default function BrandDetailAgentProfileCard({
                               )
                             }
                           >
-                            <SelectTrigger className="w-full">
+                            <SelectTrigger
+                              id={`${platform.value}-default-model`}
+                              className="w-full"
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -967,10 +979,14 @@ export default function BrandDetailAgentProfileCard({
                         </div>
 
                         <div>
-                          <label className="mb-1 block text-xs font-medium">
+                          <label
+                            className="mb-1 block text-xs font-medium"
+                            htmlFor={`${platform.value}-tone`}
+                          >
                             Tone Override
                           </label>
                           <Input
+                            id={`${platform.value}-tone`}
                             value={override.tone}
                             onChange={(event) =>
                               handlePlatformOverrideChange(
@@ -983,10 +999,14 @@ export default function BrandDetailAgentProfileCard({
                         </div>
 
                         <div>
-                          <label className="mb-1 block text-xs font-medium">
+                          <label
+                            className="mb-1 block text-xs font-medium"
+                            htmlFor={`${platform.value}-style`}
+                          >
                             Style Override
                           </label>
                           <Input
+                            id={`${platform.value}-style`}
                             value={override.style}
                             onChange={(event) =>
                               handlePlatformOverrideChange(
@@ -999,10 +1019,14 @@ export default function BrandDetailAgentProfileCard({
                         </div>
 
                         <div>
-                          <label className="mb-1 block text-xs font-medium">
+                          <label
+                            className="mb-1 block text-xs font-medium"
+                            htmlFor={`${platform.value}-frequency`}
+                          >
                             Frequency Override
                           </label>
                           <Input
+                            id={`${platform.value}-frequency`}
                             value={override.frequency}
                             onChange={(event) =>
                               handlePlatformOverrideChange(
@@ -1015,10 +1039,14 @@ export default function BrandDetailAgentProfileCard({
                         </div>
 
                         <div>
-                          <label className="mb-1 block text-xs font-medium">
+                          <label
+                            className="mb-1 block text-xs font-medium"
+                            htmlFor={`${platform.value}-audience`}
+                          >
                             Audience Override
                           </label>
                           <Input
+                            id={`${platform.value}-audience`}
                             placeholder="developers, operators"
                             value={override.audience}
                             onChange={(event) =>
@@ -1032,10 +1060,14 @@ export default function BrandDetailAgentProfileCard({
                         </div>
 
                         <div>
-                          <label className="mb-1 block text-xs font-medium">
+                          <label
+                            className="mb-1 block text-xs font-medium"
+                            htmlFor={`${platform.value}-goals`}
+                          >
                             Goals Override
                           </label>
                           <Input
+                            id={`${platform.value}-goals`}
                             placeholder="engagement, leads"
                             value={override.goals}
                             onChange={(event) =>
@@ -1049,10 +1081,14 @@ export default function BrandDetailAgentProfileCard({
                         </div>
 
                         <div>
-                          <label className="mb-1 block text-xs font-medium">
+                          <label
+                            className="mb-1 block text-xs font-medium"
+                            htmlFor={`${platform.value}-messaging-pillars`}
+                          >
                             Messaging Pillars Override
                           </label>
                           <Input
+                            id={`${platform.value}-messaging-pillars`}
                             placeholder="clarity, proof"
                             value={override.messagingPillars}
                             onChange={(event) =>
@@ -1066,10 +1102,14 @@ export default function BrandDetailAgentProfileCard({
                         </div>
 
                         <div>
-                          <label className="mb-1 block text-xs font-medium">
+                          <label
+                            className="mb-1 block text-xs font-medium"
+                            htmlFor={`${platform.value}-approved-hooks`}
+                          >
                             Approved Hooks Override
                           </label>
                           <Input
+                            id={`${platform.value}-approved-hooks`}
                             placeholder="clarity, proof"
                             value={override.approvedHooks}
                             onChange={(event) =>
@@ -1083,10 +1123,14 @@ export default function BrandDetailAgentProfileCard({
                         </div>
 
                         <div>
-                          <label className="mb-1 block text-xs font-medium">
+                          <label
+                            className="mb-1 block text-xs font-medium"
+                            htmlFor={`${platform.value}-banned-phrases`}
+                          >
                             Banned Phrases Override
                           </label>
                           <Input
+                            id={`${platform.value}-banned-phrases`}
                             placeholder="clickbait, jargon"
                             value={override.bannedPhrases}
                             onChange={(event) =>
@@ -1100,10 +1144,14 @@ export default function BrandDetailAgentProfileCard({
                         </div>
 
                         <div>
-                          <label className="mb-1 block text-xs font-medium">
+                          <label
+                            className="mb-1 block text-xs font-medium"
+                            htmlFor={`${platform.value}-do-not-sound-like`}
+                          >
                             Avoid Override
                           </label>
                           <Input
+                            id={`${platform.value}-do-not-sound-like`}
                             placeholder="clickbait, jargon"
                             value={override.doNotSoundLike}
                             onChange={(event) =>
@@ -1117,10 +1165,14 @@ export default function BrandDetailAgentProfileCard({
                         </div>
 
                         <div className="md:col-span-2">
-                          <label className="mb-1 block text-xs font-medium">
+                          <label
+                            className="mb-1 block text-xs font-medium"
+                            htmlFor={`${platform.value}-content-types`}
+                          >
                             Content Types Override
                           </label>
                           <Input
+                            id={`${platform.value}-content-types`}
                             placeholder="thread, reel, explainer"
                             value={override.contentTypes}
                             onChange={(event) =>
@@ -1134,10 +1186,14 @@ export default function BrandDetailAgentProfileCard({
                         </div>
 
                         <div className="md:col-span-2">
-                          <label className="mb-1 block text-xs font-medium">
+                          <label
+                            className="mb-1 block text-xs font-medium"
+                            htmlFor={`${platform.value}-writing-rules`}
+                          >
                             Writing Rules Override
                           </label>
                           <Input
+                            id={`${platform.value}-writing-rules`}
                             placeholder="Lead with a claim, use proof"
                             value={override.writingRules}
                             onChange={(event) =>
@@ -1151,10 +1207,14 @@ export default function BrandDetailAgentProfileCard({
                         </div>
 
                         <div className="md:col-span-2">
-                          <label className="mb-1 block text-xs font-medium">
+                          <label
+                            className="mb-1 block text-xs font-medium"
+                            htmlFor={`${platform.value}-persona`}
+                          >
                             Persona Override
                           </label>
                           <Textarea
+                            id={`${platform.value}-persona`}
                             className="min-h-[90px]"
                             value={override.persona}
                             onChange={(event) =>
@@ -1168,10 +1228,14 @@ export default function BrandDetailAgentProfileCard({
                         </div>
 
                         <div className="md:col-span-2">
-                          <label className="mb-1 block text-xs font-medium">
+                          <label
+                            className="mb-1 block text-xs font-medium"
+                            htmlFor={`${platform.value}-sample-output`}
+                          >
                             Sample Output Override
                           </label>
                           <Textarea
+                            id={`${platform.value}-sample-output`}
                             className="min-h-[90px]"
                             placeholder="Short example of how this platform-specific voice should sound."
                             value={override.sampleOutput}
@@ -1186,10 +1250,14 @@ export default function BrandDetailAgentProfileCard({
                         </div>
 
                         <div className="md:col-span-2">
-                          <label className="mb-1 block text-xs font-medium">
+                          <label
+                            className="mb-1 block text-xs font-medium"
+                            htmlFor={`${platform.value}-exemplar-texts`}
+                          >
                             Exemplar Texts Override
                           </label>
                           <Input
+                            id={`${platform.value}-exemplar-texts`}
                             placeholder="Short example of a winning post."
                             value={override.exemplarTexts}
                             onChange={(event) =>

@@ -107,7 +107,10 @@ function VideoTrimNodeComponent(props: NodeProps) {
 
         {/* Start Time */}
         <div>
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <label
+            htmlFor={`trim-start-${id}`}
+            className="text-xs text-[var(--muted-foreground)]"
+          >
             Start: {formatTime(nodeData.startTime)}
           </label>
           <Slider
@@ -119,6 +122,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
             className="nodrag w-full"
           />
           <input
+            id={`trim-start-${id}`}
             type="text"
             value={formatTime(nodeData.startTime)}
             onChange={handleStartTimeChange}
@@ -129,7 +133,10 @@ function VideoTrimNodeComponent(props: NodeProps) {
 
         {/* End Time */}
         <div>
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <label
+            htmlFor={`trim-end-${id}`}
+            className="text-xs text-[var(--muted-foreground)]"
+          >
             End: {formatTime(nodeData.endTime)}
           </label>
           <Slider
@@ -141,6 +148,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
             className="nodrag w-full"
           />
           <input
+            id={`trim-end-${id}`}
             type="text"
             value={formatTime(nodeData.endTime)}
             onChange={handleEndTimeChange}
@@ -161,6 +169,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
           <div className="relative">
             <video
               src={nodeData.outputVideo}
+              aria-label="Trimmed video output"
               className="w-full h-20 object-cover rounded"
               controls
             />

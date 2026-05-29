@@ -543,6 +543,10 @@ export default function ModalUpload({
           status: UploadStatus.UPLOADING,
         });
 
+        const socketEmit = socketService.socket?.emit
+          ? socketService.socket.emit.bind(socketService.socket)
+          : null;
+
         try {
           const handleProgress = (
             progress: number,
@@ -555,7 +559,7 @@ export default function ModalUpload({
             });
 
             // Emit WebSocket event for progress tracking
-            if (socketService.socket?.emit) {
+            if (socketEmit) {
               const progressData: IUploadProgressData = {
                 fileId,
                 fileName: selectedFile.name,
@@ -564,7 +568,7 @@ export default function ModalUpload({
                 status: UploadStatus.UPLOADING,
                 total,
               };
-              socketService.socket.emit('upload:progress', progressData);
+              socketEmit('upload:progress', progressData);
             }
           };
 
@@ -644,14 +648,14 @@ export default function ModalUpload({
           });
 
           // Emit completion event
-          if (socketService.socket?.emit) {
+          if (socketEmit) {
             const completeData: IUploadProgressData = {
               fileId,
               fileName: selectedFile.name,
               progress: 100,
               status: UploadStatus.COMPLETED,
             };
-            socketService.socket.emit('upload:progress', completeData);
+            socketEmit('upload:progress', completeData);
           }
         } catch (error: unknown) {
           logger.error(`Upload failed for ${selectedFile.name}`, error);
@@ -666,7 +670,7 @@ export default function ModalUpload({
           });
 
           // Emit failure event
-          if (socketService.socket?.emit) {
+          if (socketEmit) {
             const failData: IUploadProgressData = {
               error: errorMessage,
               fileId,
@@ -674,7 +678,7 @@ export default function ModalUpload({
               progress: 0,
               status: UploadStatus.FAILED,
             };
-            socketService.socket.emit('upload:progress', failData);
+            socketEmit('upload:progress', failData);
           }
         }
       }

@@ -144,13 +144,19 @@ export function NodeSearch() {
         </div>
 
         {/* Content */}
-        <div role="listbox" className="p-4" onKeyDown={handleKeyDown}>
+        <div
+          role="listbox"
+          tabIndex={0}
+          className="p-4"
+          onKeyDown={handleKeyDown}
+        >
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <input
               ref={inputRef}
               type="text"
               placeholder="Search nodes by name, type, or comment..."
+              aria-label="Search nodes"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-sm bg-[var(--secondary)] border border-[var(--border)] outline-none focus:ring-1 focus:ring-[var(--ring)]"

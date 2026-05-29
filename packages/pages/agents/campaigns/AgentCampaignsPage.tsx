@@ -86,27 +86,26 @@ function CampaignStatsStrip({ campaigns }: { campaigns: AgentCampaign[] }) {
     );
 
     const nextOrchestration = activeCampaigns
-      .map((c) => c.nextOrchestratedAt)
-      .filter(Boolean)
+      .flatMap((c) => (c.nextOrchestratedAt ? [c.nextOrchestratedAt] : []))
       .sort()
       .at(0);
 
     return [
       {
         accent: `${campaigns.length} total`,
-        icon: <HiOutlinePlayCircle className="h-4 w-4 text-emerald-400" />,
+        icon: <HiOutlinePlayCircle className="size-4 text-emerald-400" />,
         label: 'Active Campaigns',
         value: String(activeCampaigns.length),
       },
       {
         accent: `of ${totalCreditsAllocated.toLocaleString()} allocated`,
-        icon: <HiOutlineCurrencyDollar className="h-4 w-4 text-purple-400" />,
+        icon: <HiOutlineCurrencyDollar className="size-4 text-purple-400" />,
         label: 'Total Credits Used',
         value: totalCreditsUsed.toLocaleString(),
       },
       {
         accent: `${Math.round(totalCreditsAllocated > 0 ? (totalCreditsUsed / totalCreditsAllocated) * 100 : 0)}% utilization`,
-        icon: <HiOutlineBolt className="h-4 w-4 text-amber-400" />,
+        icon: <HiOutlineBolt className="size-4 text-amber-400" />,
         label: 'Credits Allocated',
         value: totalCreditsAllocated.toLocaleString(),
       },
@@ -114,7 +113,7 @@ function CampaignStatsStrip({ campaigns }: { campaigns: AgentCampaign[] }) {
         accent: nextOrchestration
           ? formatRelativeTime(nextOrchestration)
           : 'no scheduled runs',
-        icon: <HiOutlineClock className="h-4 w-4 text-cyan-400" />,
+        icon: <HiOutlineClock className="size-4 text-cyan-400" />,
         label: 'Next Orchestration',
         value: nextOrchestration ? formatDate(nextOrchestration) : '—',
       },
@@ -131,7 +130,7 @@ function CampaignStatsStrip({ campaigns }: { campaigns: AgentCampaign[] }) {
             bodyClassName="p-4"
           >
             <div className="flex items-start gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.06]">
+              <div className="flex size-8 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.06]">
                 {item.icon}
               </div>
               <div className="space-y-1">
@@ -170,8 +169,8 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
     <div className="group relative flex flex-col gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 transition-colors hover:border-white/[0.14] hover:bg-white/[0.04]">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.06]">
-            <HiOutlineCpuChip className="h-4 w-4 text-foreground/60" />
+          <div className="flex size-8 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.06]">
+            <HiOutlineCpuChip className="size-4 text-foreground/60" />
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">
@@ -200,7 +199,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
             href={`/orchestration/campaigns/${campaign.id}`}
             aria-label={`Open ${campaign.label}`}
           >
-            <HiOutlineArrowRight className="h-3.5 w-3.5" />
+            <HiOutlineArrowRight className="size-3.5" />
           </Link>
         </Button>
       </div>
@@ -394,7 +393,7 @@ export default function AgentCampaignsPage() {
     >
       {isLoading ? (
         <div className="flex items-center justify-center py-20 text-sm text-foreground/40">
-          Loading campaigns...
+          Loading campaigns…
         </div>
       ) : hasCampaigns ? (
         <div className="space-y-8">
@@ -417,8 +416,8 @@ export default function AgentCampaignsPage() {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center gap-4 py-20">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.02]">
-            <HiOutlineRectangleGroup className="h-6 w-6 text-foreground/30" />
+          <div className="flex size-12 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.02]">
+            <HiOutlineRectangleGroup className="size-6 text-foreground/30" />
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-foreground/60">

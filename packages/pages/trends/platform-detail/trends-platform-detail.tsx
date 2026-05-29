@@ -254,7 +254,7 @@ export default function TrendsPlatformDetail({
         <div className="space-y-6">
           <section className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <HiOutlineArrowTrendingUp className="h-5 w-5 text-foreground/70" />
+              <HiOutlineArrowTrendingUp className="size-5 text-foreground/70" />
               <h2 className="text-lg font-semibold text-foreground">
                 {label} content feed
               </h2>
@@ -267,7 +267,7 @@ export default function TrendsPlatformDetail({
               </div>
             ) : isLoading ? (
               <div className="py-3 text-sm text-foreground/40">
-                Loading content feed...
+                Loading content feed…
               </div>
             ) : items.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -286,14 +286,14 @@ export default function TrendsPlatformDetail({
           {relatedContent.videos ? (
             <section className="space-y-4">
               <div className="flex flex-wrap items-center gap-2">
-                <HiOutlineFilm className="h-5 w-5 text-foreground/70" />
+                <HiOutlineFilm className="size-5 text-foreground/70" />
                 <h2 className="text-lg font-semibold text-foreground">
                   Related viral videos
                 </h2>
               </div>
               {isLoadingVideos ? (
                 <div className="py-3 text-sm text-foreground/40">
-                  Loading viral videos...
+                  Loading viral videos…
                 </div>
               ) : viralVideos.length > 0 ? (
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
@@ -319,14 +319,14 @@ export default function TrendsPlatformDetail({
           {relatedContent.hashtags ? (
             <section className="space-y-4">
               <div className="flex flex-wrap items-center gap-2">
-                <HiHashtag className="h-5 w-5 text-foreground/70" />
+                <HiHashtag className="size-5 text-foreground/70" />
                 <h2 className="text-lg font-semibold text-foreground">
                   Trending hashtags
                 </h2>
               </div>
               {isLoadingHashtags ? (
                 <div className="py-3 text-sm text-foreground/40">
-                  Loading hashtags...
+                  Loading hashtags…
                 </div>
               ) : hashtags.length > 0 ? (
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
@@ -352,14 +352,14 @@ export default function TrendsPlatformDetail({
           {relatedContent.sounds ? (
             <section className="space-y-4">
               <div className="flex flex-wrap items-center gap-2">
-                <HiMusicalNote className="h-5 w-5 text-foreground/70" />
+                <HiMusicalNote className="size-5 text-foreground/70" />
                 <h2 className="text-lg font-semibold text-foreground">
                   Trending sounds
                 </h2>
               </div>
               {isLoadingSounds ? (
                 <div className="py-3 text-sm text-foreground/40">
-                  Loading sounds...
+                  Loading sounds…
                 </div>
               ) : sounds.length > 0 ? (
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">

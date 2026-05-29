@@ -296,8 +296,14 @@ export function AgentStrategyConfig({
         </h3>
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-foreground">Label</label>
+          <label
+            htmlFor="strategy-label"
+            className="text-xs font-medium text-foreground"
+          >
+            Label
+          </label>
           <Input
+            id="strategy-label"
             type="text"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
@@ -306,9 +312,15 @@ export function AgentStrategyConfig({
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-foreground">Topics</label>
+          <label
+            htmlFor="strategy-topic-input"
+            className="text-xs font-medium text-foreground"
+          >
+            Topics
+          </label>
           <div className="flex gap-2">
             <Input
+              id="strategy-topic-input"
               type="text"
               value={topicInput}
               onChange={(e) => setTopicInput(e.target.value)}
@@ -352,8 +364,14 @@ export function AgentStrategyConfig({
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-foreground">Voice</label>
+          <label
+            htmlFor="strategy-voice"
+            className="text-xs font-medium text-foreground"
+          >
+            Voice
+          </label>
           <Textarea
+            id="strategy-voice"
             value={voice}
             onChange={(e) => setVoice(e.target.value)}
             placeholder="Describe your brand voice..."
@@ -362,9 +380,7 @@ export function AgentStrategyConfig({
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-foreground">
-            Platforms
-          </label>
+          <span className="text-xs font-medium text-foreground">Platforms</span>
           <div className="flex flex-wrap gap-2">
             {PLATFORM_OPTIONS.map((platform) => (
               <Button
@@ -393,11 +409,14 @@ export function AgentStrategyConfig({
 
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
+            <label
+              htmlFor="strategy-run-frequency"
+              className="text-xs font-medium text-foreground"
+            >
               Run Frequency
             </label>
             <Select value={runFrequency} onValueChange={setRunFrequency}>
-              <SelectTrigger>
+              <SelectTrigger id="strategy-run-frequency">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -411,11 +430,14 @@ export function AgentStrategyConfig({
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
+            <label
+              htmlFor="strategy-timezone"
+              className="text-xs font-medium text-foreground"
+            >
               Timezone
             </label>
             <Select value={timezone} onValueChange={setTimezone}>
-              <SelectTrigger>
+              <SelectTrigger id="strategy-timezone">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -429,10 +451,14 @@ export function AgentStrategyConfig({
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
+            <label
+              htmlFor="strategy-posts-per-week"
+              className="text-xs font-medium text-foreground"
+            >
               Posts / Week
             </label>
             <Input
+              id="strategy-posts-per-week"
               type="number"
               value={postsPerWeek}
               onChange={(e) => setPostsPerWeek(Number(e.target.value))}
@@ -451,10 +477,14 @@ export function AgentStrategyConfig({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
+            <label
+              htmlFor="strategy-daily-budget"
+              className="text-xs font-medium text-foreground"
+            >
               Daily Credit Budget
             </label>
             <Input
+              id="strategy-daily-budget"
               type="number"
               value={dailyCreditBudget}
               onChange={(e) => setDailyCreditBudget(Number(e.target.value))}
@@ -463,10 +493,14 @@ export function AgentStrategyConfig({
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
+            <label
+              htmlFor="strategy-weekly-budget"
+              className="text-xs font-medium text-foreground"
+            >
               Weekly Credit Budget
             </label>
             <Input
+              id="strategy-weekly-budget"
               type="number"
               value={weeklyCreditBudget}
               onChange={(e) => setWeeklyCreditBudget(Number(e.target.value))}
@@ -508,9 +542,9 @@ export function AgentStrategyConfig({
         {isEngagementOpen && (
           <div className="space-y-4 border-t border-border px-4 pb-4 pt-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-foreground">
+              <span className="text-xs font-medium text-foreground">
                 Enable Engagement
-              </label>
+              </span>
               <Button
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
@@ -530,11 +564,15 @@ export function AgentStrategyConfig({
             {isEngagementEnabled && (
               <>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground">
+                  <label
+                    htmlFor="strategy-keyword-input"
+                    className="text-xs font-medium text-foreground"
+                  >
                     Keywords
                   </label>
                   <div className="flex gap-2">
                     <Input
+                      id="strategy-keyword-input"
                       type="text"
                       value={keywordInput}
                       onChange={(e) => setKeywordInput(e.target.value)}
@@ -579,14 +617,17 @@ export function AgentStrategyConfig({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-foreground">
+                    <label
+                      htmlFor="strategy-tone"
+                      className="text-xs font-medium text-foreground"
+                    >
                       Tone
                     </label>
                     <Select
                       value={engagementTone}
                       onValueChange={setEngagementTone}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="strategy-tone">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -600,10 +641,14 @@ export function AgentStrategyConfig({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-foreground">
+                    <label
+                      htmlFor="strategy-max-per-day"
+                      className="text-xs font-medium text-foreground"
+                    >
                       Max / Day
                     </label>
                     <Input
+                      id="strategy-max-per-day"
                       type="number"
                       value={maxEngagementsPerDay}
                       onChange={(e) =>

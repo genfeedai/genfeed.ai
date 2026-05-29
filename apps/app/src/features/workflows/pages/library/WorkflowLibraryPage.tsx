@@ -69,6 +69,7 @@ function WorkflowCardPreview({
     <div className="relative aspect-video overflow-hidden rounded border border-white/5 bg-background/40">
       {isVideoPreview ? (
         <video
+          aria-label="Workflow preview"
           src={previewUrl}
           className="h-full w-full object-cover object-center"
           autoPlay

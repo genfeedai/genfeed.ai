@@ -29,7 +29,7 @@ import type {
 } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 import { CostModal } from '../components/CostModal';
-import { ContextMenu } from '../components/context-menu';
+import { ContextMenu } from '../components/context-menu/ContextMenu';
 import { GlobalImageHistory } from '../components/GlobalImageHistory';
 import { MultiSelectToolbar } from '../components/MultiSelectToolbar';
 import { NotificationToast } from '../components/NotificationToast';

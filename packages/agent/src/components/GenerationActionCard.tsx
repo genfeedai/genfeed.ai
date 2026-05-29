@@ -407,10 +407,14 @@ export function GenerationActionCard({
       <div className="space-y-3 p-3">
         {/* Prompt */}
         <div>
-          <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <label
+            htmlFor="gen-action-prompt"
+            className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+          >
             Prompt
           </label>
           <Textarea
+            id="gen-action-prompt"
             ref={textareaRef}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -424,9 +428,9 @@ export function GenerationActionCard({
         {/* Model & Aspect Ratio row */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               Model
-            </label>
+            </span>
             {modelsLoading ? (
               <Select disabled value="loading-models">
                 <SelectTrigger className="w-full">
@@ -481,9 +485,9 @@ export function GenerationActionCard({
             )}
           </div>
           <div>
-            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               Aspect Ratio
-            </label>
+            </span>
             <AspectRatioDropdown
               name="aspectRatio"
               value={aspectRatio}
@@ -499,7 +503,10 @@ export function GenerationActionCard({
         {/* Duration (video only, if model supports it) */}
         {showDuration && (
           <div>
-            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            <label
+              htmlFor="gen-action-duration"
+              className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+            >
               Duration (seconds)
             </label>
             <Select
@@ -507,7 +514,7 @@ export function GenerationActionCard({
               onValueChange={(value) => setDuration(Number(value))}
               disabled={isDisabled}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="gen-action-duration" className="w-full">
                 <SelectValue placeholder="Select duration" />
               </SelectTrigger>
               <SelectContent>

@@ -455,6 +455,7 @@ function AgentLabSurface({
     return (
       <div className="pointer-events-none fixed inset-0 z-40 top-16">
         <div
+          aria-label="Close"
           className="pointer-events-auto absolute inset-0 bg-black/45"
           onClick={onClose}
           onKeyDown={(event) => {

@@ -157,7 +157,7 @@ export default function AgentCampaignDetailPage() {
         icon={HiOutlineRectangleGroup}
       >
         <div className="flex items-center justify-center py-20">
-          <div className="animate-pulse text-foreground/50">Loading...</div>
+          <div className="animate-pulse text-foreground/50">Loading…</div>
         </div>
       </Container>
     );

@@ -395,7 +395,7 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
                 );
                 if (previewUrl) {
                   return (
-                    <div className="group relative h-10 w-10 shrink-0 overflow-hidden bg-background">
+                    <div className="group relative size-10 shrink-0 overflow-hidden bg-background">
                       <Image
                         src={previewUrl}
                         alt={a.label || 'Activity asset'}
@@ -406,8 +406,8 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
                       />
                       {resultType === IngredientCategory.VIDEO && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/50 transition-colors">
-                          <HiPlay className="h-4 w-4 text-white group-hover:hidden" />
-                          <HiEye className="h-5 w-5 text-white hidden group-hover:block" />
+                          <HiPlay className="size-4 text-white group-hover:hidden" />
+                          <HiEye className="size-5 text-white hidden group-hover:block" />
                         </div>
                       )}
                       {resultType !== IngredientCategory.VIDEO && (
@@ -420,7 +420,7 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
                           }}
                           className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
-                          <HiEye className="h-5 w-5 text-white" />
+                          <HiEye className="size-5 text-white" />
                         </Button>
                       )}
                       {resultType === IngredientCategory.VIDEO && (
@@ -442,7 +442,7 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
 
             if (parsedMediaUrl && status === 'completed') {
               return (
-                <div className="relative h-10 w-10 shrink-0 overflow-hidden bg-background">
+                <div className="relative size-10 shrink-0 overflow-hidden bg-background">
                   <Image
                     src={parsedMediaUrl}
                     alt={a.label || 'Activity asset'}
@@ -476,7 +476,7 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
 
             if (assetInfo?.url) {
               return (
-                <div className="relative h-10 w-10 shrink-0 overflow-hidden bg-background">
+                <div className="relative size-10 shrink-0 overflow-hidden bg-background">
                   <Image
                     src={assetInfo.url}
                     alt="Generated asset"
@@ -487,7 +487,7 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
                   />
                   {assetInfo.type === 'video' && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                      <HiPlay className="h-4 w-4 text-white" />
+                      <HiPlay className="size-4 text-white" />
                     </div>
                   )}
                 </div>
@@ -497,8 +497,8 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
 
           // Placeholder
           return (
-            <div className="h-8 w-8 shrink-0 bg-background flex items-center justify-center">
-              <HiFilm className="h-4 w-4 text-foreground/40" />
+            <div className="size-8 shrink-0 bg-background flex items-center justify-center">
+              <HiFilm className="size-4 text-foreground/40" />
             </div>
           );
         },
@@ -561,8 +561,8 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {getPlatformIcon(postInfo.platform, 'w-4 h-4')}
-                    <HiArrowTopRightOnSquare className="w-3 h-3" />
+                    {getPlatformIcon(postInfo.platform, 'size-4')}
+                    <HiArrowTopRightOnSquare className="size-3" />
                   </a>
                 </PrimitiveButton>
               );
@@ -601,9 +601,9 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
         getClassName: (a: IActivity) => (a.isRead ? 'opacity-50' : ''),
         icon: (a: IActivity) =>
           a.isRead ? (
-            <HiEnvelopeOpen className="w-4 h-4 text-foreground/50" />
+            <HiEnvelopeOpen className="size-4 text-foreground/50" />
           ) : (
-            <HiEnvelope className="w-4 h-4 text-info" />
+            <HiEnvelope className="size-4 text-info" />
           ),
         onClick: (a: IActivity) => toggleActivityRead(a.id),
         tooltip: (a: IActivity) =>

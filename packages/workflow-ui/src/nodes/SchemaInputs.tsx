@@ -190,10 +190,11 @@ function SliderInput({
   const step = property.type === 'integer' ? 1 : 0.1;
   const currentValue =
     typeof value === 'number' ? value : ((property.default as number) ?? min);
+  const inputId = `schema-slider-${propertyKey}`;
 
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs text-muted-foreground">
+      <label htmlFor={inputId} className="text-xs text-muted-foreground">
         {formatLabel(propertyKey, property.title)}
       </label>
 
@@ -208,6 +209,7 @@ function SliderInput({
         />
 
         <input
+          id={inputId}
           type="number"
           min={min}
           max={max}
@@ -280,13 +282,15 @@ function NumberInput({
     typeof value === 'number'
       ? value
       : (property.default as number | undefined);
+  const inputId = `schema-number-${propertyKey}`;
 
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs text-muted-foreground">
+      <label htmlFor={inputId} className="text-xs text-muted-foreground">
         {formatLabel(propertyKey, property.title)}
       </label>
       <input
+        id={inputId}
         type="number"
         value={currentValue ?? ''}
         placeholder={property.nullable ? 'Random' : undefined}

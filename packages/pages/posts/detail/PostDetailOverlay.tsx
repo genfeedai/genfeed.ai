@@ -68,14 +68,14 @@ export default function PostDetailOverlay({
               <Button
                 label="Open page"
                 variant={ButtonVariant.SECONDARY}
-                icon={<HiArrowTopRightOnSquare className="h-4 w-4" />}
+                icon={<HiArrowTopRightOnSquare className="size-4" />}
                 onClick={() => router.push(href(`/posts/${postId}`))}
               />
             ) : null}
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-6">
           {postId ? (
             <PostDetail postId={postId} scope={scope} presentation="overlay" />
           ) : null}

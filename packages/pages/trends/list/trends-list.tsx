@@ -174,7 +174,7 @@ export default function TrendsList() {
 
       {isLoading ? (
         <div className="py-8 text-sm text-foreground/40">
-          Loading content feed...
+          Loading content feed…
         </div>
       ) : null}
 
@@ -182,7 +182,7 @@ export default function TrendsList() {
         <div className="space-y-8">
           <section className="space-y-4">
             <div className="flex items-center gap-2">
-              <HiOutlineArrowTrendingUp className="h-5 w-5 text-foreground/70" />
+              <HiOutlineArrowTrendingUp className="size-5 text-foreground/70" />
               <h2 className="text-lg font-semibold text-foreground">
                 Trending Content Feed
               </h2>
@@ -208,7 +208,7 @@ export default function TrendsList() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <HiOutlineFilm className="h-5 w-5 text-foreground/70" />
+                  <HiOutlineFilm className="size-5 text-foreground/70" />
                   <h2 className="text-lg font-semibold text-foreground">
                     Viral Videos
                   </h2>

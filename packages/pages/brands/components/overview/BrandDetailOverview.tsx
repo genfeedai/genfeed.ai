@@ -26,7 +26,7 @@ export default function BrandDetailOverview({
 
   return (
     <div className="flex items-start gap-6">
-      <div className="w-32 h-32 rounded-full overflow-hidden flex-shrink-0 relative group bg-background flex items-center justify-center">
+      <div className="size-32 rounded-full overflow-hidden flex-shrink-0 relative group bg-background flex items-center justify-center">
         <Image
           src={
             brand.logoUrl

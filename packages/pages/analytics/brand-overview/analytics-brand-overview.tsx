@@ -60,6 +60,12 @@ const PlatformTimeSeriesChart = dynamic(
   },
 );
 
+const BRAND_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+
 type PostWithAnalytics = Post & {
   totalViews?: number;
   totalLikes?: number;
@@ -144,8 +150,9 @@ export default function AnalyticsBrandOverview({
         const credentials = await service.findBrandCredentials(brandId);
         const connected = credentials
           .filter((cred) => cred.isConnected)
-          .map((cred) => cred.platform?.toLowerCase())
-          .filter(Boolean) as string[];
+          .flatMap((cred) =>
+            cred.platform?.toLowerCase() ? [cred.platform.toLowerCase()] : [],
+          );
         setConnectedPlatforms(connected);
       } catch {
         // Error handling
@@ -188,11 +195,7 @@ export default function AnalyticsBrandOverview({
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return new Intl.DateTimeFormat('en-US', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    }).format(date);
+    return BRAND_DATE_FORMATTER.format(date);
   };
 
   const platformCount = analytics
@@ -339,9 +342,9 @@ export default function AnalyticsBrandOverview({
                     href={`${basePath}/brands/${brandId}/platforms/${platform}`}
                     className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground/70 hover:text-foreground transition-colors px-3 py-1.5 border border-border hover:border-primary/40"
                   >
-                    {getPlatformIcon(platform, 'w-4 h-4')}
+                    {getPlatformIcon(platform, 'size-4')}
                     <span className="capitalize">{platform}</span>
-                    <HiArrowRight className="w-3 h-3" />
+                    <HiArrowRight className="size-3" />
                   </Link>
                 ))}
               </div>
@@ -404,11 +407,11 @@ export default function AnalyticsBrandOverview({
                             alt="Post thumbnail"
                             width={64}
                             height={64}
-                            className="w-16 h-16 object-cover"
+                            className="size-16 object-cover"
                           />
                         ) : (
-                          <div className="w-16 h-16 bg-muted flex items-center justify-center">
-                            <HiVideoCamera className="w-6 h-6 text-foreground/30" />
+                          <div className="size-16 bg-muted flex items-center justify-center">
+                            <HiVideoCamera className="size-6 text-foreground/30" />
                           </div>
                         )}
                         <div className="max-w-xs">
@@ -432,7 +435,7 @@ export default function AnalyticsBrandOverview({
                   key: 'platform',
                   render: (post) => (
                     <div className="flex items-center justify-center">
-                      {getPlatformIcon(post.platform, 'w-5 h-5')}
+                      {getPlatformIcon(post.platform, 'size-5')}
                     </div>
                   ),
                 },
@@ -505,7 +508,7 @@ export default function AnalyticsBrandOverview({
               ]}
               actions={[
                 {
-                  icon: <HiArrowRight className="w-4 h-4" />,
+                  icon: <HiArrowRight className="size-4" />,
                   onClick: (post) => setSelectedPostId(post.id),
                   tooltip: 'View Post Details',
                 },

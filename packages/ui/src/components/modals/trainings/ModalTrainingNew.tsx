@@ -337,6 +337,10 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
           status: UploadStatus.UPLOADING,
         });
 
+        const socketEmit = socketService.socket?.emit
+          ? socketService.socket.emit.bind(socketService.socket)
+          : null;
+
         try {
           const handleProgress = (
             progress: number,
@@ -348,7 +352,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
               status: UploadStatus.UPLOADING,
             });
 
-            if (socketService.socket?.emit) {
+            if (socketEmit) {
               const progressData: IUploadProgressData = {
                 fileId,
                 fileName: selectedFile.name,
@@ -357,7 +361,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
                 status: UploadStatus.UPLOADING,
                 total,
               };
-              socketService.socket.emit('upload:progress', progressData);
+              socketEmit('upload:progress', progressData);
             }
           };
 
@@ -392,14 +396,14 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
             status: UploadStatus.COMPLETED,
           });
 
-          if (socketService.socket?.emit) {
+          if (socketEmit) {
             const completeData: IUploadProgressData = {
               fileId,
               fileName: selectedFile.name,
               progress: 100,
               status: UploadStatus.COMPLETED,
             };
-            socketService.socket.emit('upload:progress', completeData);
+            socketEmit('upload:progress', completeData);
           }
         } catch (fileError: unknown) {
           logger.error(`Upload failed for ${selectedFile.name}`, fileError);
@@ -413,7 +417,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
             status: UploadStatus.FAILED,
           });
 
-          if (socketService.socket?.emit) {
+          if (socketEmit) {
             const failData: IUploadProgressData = {
               error: errorMessage,
               fileId,
@@ -422,7 +426,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
               status: UploadStatus.FAILED,
             };
 
-            socketService.socket.emit('upload:progress', failData);
+            socketEmit('upload:progress', failData);
           }
         }
       }

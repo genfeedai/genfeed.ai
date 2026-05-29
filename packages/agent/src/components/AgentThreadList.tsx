@@ -792,7 +792,6 @@ export function AgentThreadList({
           role="img"
           aria-label={statusA11yLabel}
           title={statusMeta?.label ?? `${conv.title || 'Conversation'} status`}
-          tabIndex={statusMeta ? 0 : -1}
         />
       );
 

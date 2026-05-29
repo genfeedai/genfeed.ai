@@ -63,6 +63,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { FaInstagram, FaTiktok, FaXTwitter, FaYoutube } from 'react-icons/fa6';
 
 const SCHEDULER_ALLOWED_MINUTES: readonly number[] = [0, 15, 30, 45];
+const SCHEDULER_ALLOWED_MINUTES_SET = new Set(SCHEDULER_ALLOWED_MINUTES);
 
 // Platform icon mapping
 const PLATFORM_ICONS = {
@@ -286,7 +287,7 @@ export default function ModalPostBatch({
 
     while (
       nextAllowed <= now ||
-      !SCHEDULER_ALLOWED_MINUTES.includes(nextAllowed.getMinutes())
+      !SCHEDULER_ALLOWED_MINUTES_SET.has(nextAllowed.getMinutes())
     ) {
       nextAllowed.setMinutes(nextAllowed.getMinutes() + 1);
     }

@@ -1,5 +1,6 @@
+import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ErrorScreen, LoadingScreen } from '@/components/ScreenStates';
 import { colors } from '@/constants';
 import { useIngredient } from '@/hooks/use-ingredients';
@@ -38,7 +39,7 @@ export default function IngredientDetail() {
           <Image
             source={{ uri: thumbnail }}
             style={styles.image}
-            resizeMode="contain"
+            contentFit="contain"
           />
         </View>
       )}

@@ -166,8 +166,11 @@ function ReframeNodeComponent(props: NodeProps) {
 
         {/* Optional Prompt */}
         <div className="space-y-1.5">
-          <Label className="text-xs">Prompt (optional)</Label>
+          <Label htmlFor={`reframe-prompt-${id}`} className="text-xs">
+            Prompt (optional)
+          </Label>
           <input
+            id={`reframe-prompt-${id}`}
             type="text"
             value={nodeData.prompt}
             onChange={handlePromptChange}
@@ -212,6 +215,7 @@ function ReframeNodeComponent(props: NodeProps) {
             <video
               ref={videoRef}
               src={nodeData.outputVideo}
+              aria-label="Reframed video output"
               className="h-32 w-full rounded-md object-cover cursor-pointer"
               onClick={togglePlayback}
               onEnded={() => setIsPlaying(false)}

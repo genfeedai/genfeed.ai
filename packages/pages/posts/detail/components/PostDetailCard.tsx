@@ -313,18 +313,18 @@ export default function PostDetailCard({
               {hasAnalytics && (
                 <div className="flex flex-wrap items-center gap-4 border-t border-white/[0.08] pt-3">
                   <div className="flex items-center gap-1.5 text-xs text-foreground/60">
-                    <HiEye className="w-3.5 h-3.5" />
+                    <HiEye className="size-3.5" />
                     <span>{formatCompactNumber(post.totalViews ?? 0)}</span>
                   </div>
                   {post.totalLikes !== undefined && (
                     <div className="flex items-center gap-1.5 text-xs text-foreground/60">
-                      <HiHeart className="w-3.5 h-3.5 text-rose-500" />
+                      <HiHeart className="size-3.5 text-rose-500" />
                       <span>{formatCompactNumber(post.totalLikes)}</span>
                     </div>
                   )}
                   {post.totalComments !== undefined && (
                     <div className="flex items-center gap-1.5 text-xs text-foreground/60">
-                      <HiChatBubbleLeftRight className="w-3.5 h-3.5 text-secondary" />
+                      <HiChatBubbleLeftRight className="size-3.5 text-secondary" />
                       <span>{formatCompactNumber(post.totalComments)}</span>
                     </div>
                   )}

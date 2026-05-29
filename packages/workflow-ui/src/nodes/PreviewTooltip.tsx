@@ -104,6 +104,7 @@ export function PreviewTooltip({
           {mediaInfo.type === 'video' && (
             <video
               src={mediaInfo.url}
+              aria-label="Video preview"
               autoPlay
               muted
               loop

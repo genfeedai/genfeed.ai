@@ -358,14 +358,20 @@ export function ClipWorkflowRunCard({
       </div>
 
       <div className="space-y-3 p-3">
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="text-muted-foreground">Prompt</span>
+        <div className="flex flex-col gap-1 text-xs">
+          <label
+            htmlFor="clip-workflow-prompt"
+            className="text-muted-foreground"
+          >
+            Prompt
+          </label>
           <Textarea
+            id="clip-workflow-prompt"
             className="min-h-[72px]"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
           />
-        </label>
+        </div>
 
         <div className="grid grid-cols-2 gap-2 text-xs">
           <label className="flex items-center gap-2 border border-border p-2">

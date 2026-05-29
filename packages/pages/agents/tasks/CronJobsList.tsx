@@ -508,7 +508,7 @@ export default function CronJobsList() {
               {new Date(job.nextRun).toLocaleString()}
             </span>
           ) : (
-            <span className="text-sm text-white/30">—</span>
+            <span className="text-sm text-white/30">-</span>
           ),
       },
       {
@@ -676,7 +676,10 @@ export default function CronJobsList() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <label
+                className="text-sm font-medium text-foreground"
+                htmlFor="cron-job-type"
+              >
                 Type
               </label>
               <Select
@@ -688,7 +691,7 @@ export default function CronJobsList() {
                   }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger id="cron-job-type">
                   <SelectValue placeholder="Select a job type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -701,7 +704,10 @@ export default function CronJobsList() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">
+              <label
+                className="text-sm font-medium text-foreground"
+                htmlFor="cron-schedule-preset"
+              >
                 Schedule Preset
               </label>
               <Select
@@ -721,7 +727,10 @@ export default function CronJobsList() {
                   setForm((prev) => ({ ...prev, schedule: preset.schedule }));
                 }}
               >
-                <SelectTrigger aria-label="Schedule preset">
+                <SelectTrigger
+                  id="cron-schedule-preset"
+                  aria-label="Schedule preset"
+                >
                   <SelectValue placeholder="Choose a schedule preset" />
                 </SelectTrigger>
                 <SelectContent>
@@ -940,7 +949,7 @@ export default function CronJobsList() {
           </div>
 
           {isRunsLoading ? (
-            <div className="text-xs text-white/60">Loading runs...</div>
+            <div className="text-xs text-white/60">Loading runs…</div>
           ) : runs.length === 0 ? (
             <div className="text-xs text-white/60">No runs yet.</div>
           ) : (

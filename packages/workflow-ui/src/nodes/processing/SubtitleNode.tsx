@@ -184,6 +184,7 @@ function SubtitleNodeComponent(props: NodeProps) {
           <div className="relative">
             <video
               src={nodeData.outputVideo}
+              aria-label="Subtitled video output"
               className="w-full h-20 object-cover rounded"
               muted
             />
