@@ -2,6 +2,7 @@ import type {
   MultiPostSchema,
   PostModalSchema,
   PromptTextareaSchema,
+  ThreadModalSchema,
 } from '@genfeedai/client/schemas';
 import type {
   AssetScope,
@@ -47,8 +48,9 @@ import type { ElementBlacklist } from '@genfeedai/models/elements/blacklist.mode
 import type { Music } from '@genfeedai/models/ingredients/music.model';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type { ContentProps } from '@props/layout/content.props';
+import type React from 'react';
 import type { ReactNode } from 'react';
-import type { UseFormReturn } from 'react-hook-form';
+import type { FieldArrayWithId, UseFormReturn } from 'react-hook-form';
 
 /**
  * Base props for modal components
@@ -248,6 +250,28 @@ export interface ModalCreateThreadProps {
   credentials?: ICredential[];
   onConfirm?: () => void;
   onClose?: () => void;
+}
+
+export interface ModalCreateThreadSettingsProps {
+  form: UseFormReturn<ThreadModalSchema>;
+  credentials: ICredential[];
+  credentialOptions: { label: string; value: string }[];
+  browserTimezone: string;
+}
+
+export interface ModalCreateThreadPostsListProps {
+  form: UseFormReturn<ThreadModalSchema>;
+  fields: FieldArrayWithId<ThreadModalSchema, 'posts', 'id'>[];
+  charLimit: number;
+  onAddPost: () => void;
+  onRemovePost: (index: number) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+}
+
+export interface ModalCreateThreadPreviewProps {
+  fields: FieldArrayWithId<ThreadModalSchema, 'posts', 'id'>[];
+  form: UseFormReturn<ThreadModalSchema>;
+  charLimit: number;
 }
 
 /**

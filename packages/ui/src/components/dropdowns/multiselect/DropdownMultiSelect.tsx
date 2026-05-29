@@ -1,15 +1,9 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-  DropdownDirection,
-} from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, DropdownDirection } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import * as formatHelper from '@genfeedai/helpers/formatting/format/format.helper';
 import type { MultiSelectDropdownProps } from '@genfeedai/props/ui/forms/button.props';
-import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
@@ -18,10 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
-import FormSearchbar from '@ui/primitives/searchbar';
 import {
   type ChangeEvent,
-  type ReactNode,
   type RefObject,
   useCallback,
   useMemo,
@@ -29,6 +21,9 @@ import {
   useState,
 } from 'react';
 import { HiChevronDown } from 'react-icons/hi2';
+import MultiSelectOptionsList from './MultiSelectOptionsList';
+import MultiSelectSearchBar from './MultiSelectSearchBar';
+import MultiSelectTabBar from './MultiSelectTabBar';
 
 const EMPTY_ARRAY: never[] = [];
 
@@ -196,96 +191,6 @@ export default function MultiSelectDropdown({
     name,
   ]);
 
-  const optionsElements: ReactNode = (() => {
-    if (optionsForDisplay.length === 0) {
-      return (
-        <div className="px-3 py-2 text-sm text-foreground/60">
-          No options available
-        </div>
-      );
-    }
-
-    const elements: ReactNode[] = [];
-    let lastGroup: string | null = null;
-
-    optionsForDisplay.forEach((option, index) => {
-      const optionGroup = option.group ?? 'models';
-
-      if (shouldDisplayGroupHeaders && optionGroup !== lastGroup) {
-        const headerLabel =
-          resolvedGroupLabels[optionGroup] ??
-          formatHelper.capitalize(optionGroup ?? '');
-
-        elements.push(
-          <div
-            key={`group-${optionGroup}`}
-            className={`px-3 ${lastGroup ? 'pt-3' : 'pt-2'} pb-1 text-[11px] font-semibold uppercase tracking-wide text-foreground/50`}
-          >
-            {headerLabel}
-          </div>,
-        );
-      }
-
-      lastGroup = optionGroup;
-
-      elements.push(
-        <div
-          key={option.value || `option-${index}`}
-          role="option"
-          aria-selected={option.value ? values.includes(option.value) : false}
-          aria-disabled={!option.value}
-          onClick={(e) => {
-            e.preventDefault();
-            if (option.value) {
-              handleToggle(option.value);
-            }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              if (option.value) {
-                handleToggle(option.value);
-              }
-            }
-          }}
-          tabIndex={option.value ? 0 : -1}
-          className={cn(
-            'w-full px-2.5 py-1.5 text-left text-sm hover:bg-accent transition-colors cursor-pointer',
-            !option.value && 'opacity-50 cursor-not-allowed',
-          )}
-        >
-          <span className="flex items-center justify-start gap-2">
-            {option.value && (
-              <div className="pointer-events-none">
-                <Checkbox
-                  name={`option-${option.value}`}
-                  isChecked={values.includes(option.value)}
-                  onChange={() => {
-                    // Row click/keyboard handles selection state.
-                  }}
-                  className="size-3.5 !border-white/20 data-[state=checked]:!bg-blue-500 data-[state=checked]:!border-blue-500 data-[state=checked]:!text-white"
-                />
-              </div>
-            )}
-            {option.icon && (
-              <span className="flex items-center">{option.icon}</span>
-            )}
-            <span className="flex flex-col flex-1 min-w-0">
-              <span className="text-sm">{option.label}</span>
-              {option.description && (
-                <span className="text-xs text-foreground/55 truncate">
-                  {option.description}
-                </span>
-              )}
-            </span>
-          </span>
-        </div>,
-      );
-    });
-
-    return elements;
-  })();
-
   return (
     <DropdownMenu
       onOpenChange={(open) => {
@@ -323,45 +228,21 @@ export default function MultiSelectDropdown({
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
         {hasTabs && tabs && (
-          <>
-            <div className="flex items-center gap-2 px-3 py-2">
-              {tabs.map((tab) => {
-                const isActive = activeTabOrDefault === tab.id;
-                return (
-                  <Button
-                    key={tab.id}
-                    withWrapper={false}
-                    variant={ButtonVariant.GHOST}
-                    size={ButtonSize.XS}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={cn(
-                      'rounded-full',
-                      isActive
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-foreground/70',
-                    )}
-                  >
-                    {tab.label}
-                  </Button>
-                );
-              })}
-            </div>
-            <DropdownMenuSeparator />
-          </>
+          <MultiSelectTabBar
+            tabs={tabs}
+            activeTabOrDefault={activeTabOrDefault}
+            setActiveTab={setActiveTab}
+          />
         )}
 
         {isSearchEnabled && (
-          <div className="sticky top-0 bg-[#141414] z-10 px-2 py-1.5 border-b border-white/10">
-            <FormSearchbar
-              value={searchTerm}
-              onChange={handleSearchChange}
-              placeholder={searchPlaceholder}
-              inputRef={searchInputRef}
-              onClick={(e) => e.stopPropagation()}
-              onClear={() => setSearchTerm('')}
-              size={ComponentSize.SM}
-            />
-          </div>
+          <MultiSelectSearchBar
+            searchTerm={searchTerm}
+            searchPlaceholder={searchPlaceholder}
+            searchInputRef={searchInputRef}
+            onSearchChange={handleSearchChange}
+            onClear={() => setSearchTerm('')}
+          />
         )}
 
         {selectableOptions.length > 1 && (
@@ -400,7 +281,13 @@ export default function MultiSelectDropdown({
           </>
         )}
 
-        {optionsElements}
+        <MultiSelectOptionsList
+          optionsForDisplay={optionsForDisplay}
+          values={values}
+          shouldDisplayGroupHeaders={shouldDisplayGroupHeaders}
+          resolvedGroupLabels={resolvedGroupLabels}
+          handleToggle={handleToggle}
+        />
       </DropdownMenuContent>
     </DropdownMenu>
   );

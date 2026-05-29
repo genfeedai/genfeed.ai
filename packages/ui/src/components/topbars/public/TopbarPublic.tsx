@@ -8,8 +8,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ComponentType, ReactNode, SVGProps } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { HiBars3, HiChevronDown, HiXMark } from 'react-icons/hi2';
+import TopbarPublicDesktopDropdown from './TopbarPublicDesktopDropdown';
+import TopbarPublicMobileMenu from './TopbarPublicMobileMenu';
 
 const EMPTY_ARRAY: never[] = [];
 
@@ -256,158 +257,26 @@ export default function TopbarPublic({
       </header>
 
       {/* Desktop Dropdown Portal - isolated stacking context to appear above backdrop-blur header */}
-      {mounted &&
-        openDropdown &&
-        currentDropdown &&
-        createPortal(
-          <div
-            className="fixed hidden lg:block"
-            style={{
-              isolation: 'isolate',
-              left: dropdownPosition.left,
-              paddingTop: 8,
-              top: dropdownPosition.top - 8,
-              zIndex: 50,
-            }}
-            onMouseEnter={() => handleDropdownOpen(openDropdown)}
-            onMouseLeave={handleDropdownClose}
-          >
-            <ul
-              className="w-72 p-3 shadow-2xl border border-white/10"
-              style={{ backgroundColor: '#09090b' }}
-            >
-              {currentDropdown.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = isLinkActive(pathname, item.href);
-
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        'flex items-start gap-3 px-4 py-3 transition-colors',
-                        isActive
-                          ? 'bg-white/10 text-white'
-                          : 'text-white/80 hover:bg-white/5 hover:text-white',
-                      )}
-                      onClick={handleDropdownClose}
-                    >
-                      {Icon && (
-                        <Icon className="size-5 flex-shrink-0 mt-0.5 text-white/60" />
-                      )}
-                      <div className="flex flex-col">
-                        <span className="font-medium text-sm">
-                          {item.label}
-                        </span>
-                        {item.description && (
-                          <span className="text-xs text-white/50 mt-0.5">
-                            {item.description}
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>,
-          document.body,
-        )}
+      <TopbarPublicDesktopDropdown
+        mounted={mounted}
+        openDropdown={openDropdown}
+        currentDropdown={currentDropdown}
+        dropdownPosition={dropdownPosition}
+        pathname={pathname}
+        onMouseEnterDropdown={() => handleDropdownOpen(openDropdown ?? '')}
+        onMouseLeaveDropdown={handleDropdownClose}
+        onItemClick={handleDropdownClose}
+      />
 
       {/* Mobile Menu Portal */}
-      {mounted &&
-        isMobileMenuOpen &&
-        createPortal(
-          <div className="lg:hidden fixed inset-0 z-50">
-            {/* Backdrop */}
-            <Button
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-              onClick={() => setIsMobileMenuOpen(false)}
-              ariaLabel="Close menu"
-            />
-
-            {/* Menu Panel */}
-            <div
-              className="relative z-10 w-full max-h-[80vh] overflow-y-auto mt-20 border-b border-white/10"
-              style={{ backgroundColor: '#09090b' }}
-            >
-              <nav className="container mx-auto p-6">
-                <ul className="space-y-6">
-                  {/* Mobile Dropdowns */}
-                  {dropdowns.map((dropdown) => (
-                    <li key={dropdown.label}>
-                      <span className="block text-[10px] uppercase tracking-[0.2em] text-white/40 font-bold mb-3">
-                        {dropdown.label}
-                      </span>
-                      <ul className="space-y-1">
-                        {dropdown.items.map((item) => {
-                          const Icon = item.icon;
-                          const isActive = isLinkActive(pathname, item.href);
-
-                          return (
-                            <li key={item.href}>
-                              <Link
-                                href={item.href}
-                                className={cn(
-                                  'flex items-center gap-3 px-4 py-3 transition-colors',
-                                  isActive
-                                    ? 'bg-white/10 text-white'
-                                    : 'text-white/70 hover:bg-white/5 hover:text-white',
-                                )}
-                                onClick={() => setIsMobileMenuOpen(false)}
-                              >
-                                {Icon && (
-                                  <Icon className="size-5 text-white/50" />
-                                )}
-                                <span className="font-medium">
-                                  {item.label}
-                                </span>
-                              </Link>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </li>
-                  ))}
-
-                  {/* Mobile Flat Links */}
-                  {navLinks.length > 0 && (
-                    <li>
-                      <span className="block text-[10px] uppercase tracking-[0.2em] text-white/40 font-bold mb-3">
-                        More
-                      </span>
-                      <ul className="space-y-1">
-                        {navLinks.map((link) => {
-                          const isActive = isLinkActive(pathname, link.href);
-
-                          return (
-                            <li key={link.href}>
-                              <Link
-                                href={link.href}
-                                className={cn(
-                                  'block px-4 py-3 font-medium transition-colors',
-                                  isActive
-                                    ? 'bg-white/10 text-white'
-                                    : 'text-white/70 hover:bg-white/5 hover:text-white',
-                                )}
-                                onClick={() => setIsMobileMenuOpen(false)}
-                              >
-                                {link.label}
-                              </Link>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </li>
-                  )}
-                </ul>
-              </nav>
-            </div>
-          </div>,
-          document.body,
-        )}
+      <TopbarPublicMobileMenu
+        mounted={mounted}
+        isMobileMenuOpen={isMobileMenuOpen}
+        dropdowns={dropdowns}
+        navLinks={navLinks}
+        pathname={pathname}
+        onClose={() => setIsMobileMenuOpen(false)}
+      />
     </>
   );
 }

@@ -7,38 +7,15 @@ import type {
   ProviderModel,
   ProviderType,
 } from '@genfeedai/types';
-import {
-  ModelCapabilityEnum,
-  ModelUseCaseEnum,
-  ProviderTypeEnum,
-} from '@genfeedai/types';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import {
-  AlertTriangle,
-  Clock,
-  ExternalLink,
-  Layers,
-  Palette,
-  Repeat,
-  Search,
-  Sparkles,
-  User,
-  X,
-  ZoomIn,
-} from 'lucide-react';
-import Image from 'next/image';
-import {
-  type JSX,
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { AlertTriangle, ExternalLink, Search, Sparkles, X } from 'lucide-react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { logger } from '@/lib/logger';
 import { useSettingsStore } from '@/store/settingsStore';
+import { USE_CASE_CONFIG } from './ModelBrowserBadges';
+import { ModelCard } from './ModelCard';
 
 // =============================================================================
 // TYPES
@@ -50,180 +27,6 @@ interface ModelBrowserModalProps {
   onSelect: (model: ProviderModel) => void;
   capabilities?: ModelCapability[];
   title?: string;
-}
-
-// =============================================================================
-// PROVIDER BADGE
-// =============================================================================
-
-const PROVIDER_COLORS: Record<ProviderType, string> = {
-  [ProviderTypeEnum.REPLICATE]:
-    'bg-blue-500/10 text-blue-500 border-blue-500/20',
-  [ProviderTypeEnum.FAL]:
-    'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-  [ProviderTypeEnum.HUGGINGFACE]:
-    'bg-orange-500/10 text-orange-500 border-orange-500/20',
-  [ProviderTypeEnum.GENFEED_AI]:
-    'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-};
-
-function ProviderBadge({ provider }: { provider: ProviderType }) {
-  const labels: Record<ProviderType, string> = {
-    [ProviderTypeEnum.REPLICATE]: 'Replicate',
-    [ProviderTypeEnum.FAL]: 'fal.ai',
-    [ProviderTypeEnum.HUGGINGFACE]: 'Hugging Face',
-    [ProviderTypeEnum.GENFEED_AI]: 'Genfeed AI',
-  };
-
-  return (
-    <span
-      className={`rounded border px-1.5 py-0.5 text-[10px] font-medium ${PROVIDER_COLORS[provider]}`}
-    >
-      {labels[provider]}
-    </span>
-  );
-}
-
-// =============================================================================
-// CAPABILITY BADGE
-// =============================================================================
-
-function CapabilityBadge({ capability }: { capability: ModelCapability }) {
-  const labels: Record<ModelCapability, string> = {
-    [ModelCapabilityEnum.TEXT_TO_IMAGE]: 'txt->img',
-    [ModelCapabilityEnum.IMAGE_TO_IMAGE]: 'img->img',
-    [ModelCapabilityEnum.TEXT_TO_VIDEO]: 'txt->vid',
-    [ModelCapabilityEnum.IMAGE_TO_VIDEO]: 'img->vid',
-    [ModelCapabilityEnum.TEXT_GENERATION]: 'txt->txt',
-  };
-
-  return (
-    <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">
-      {labels[capability]}
-    </span>
-  );
-}
-
-// =============================================================================
-// USE CASE CONFIG
-// =============================================================================
-
-const USE_CASE_CONFIG: Record<
-  ModelUseCase,
-  { label: string; icon: typeof Sparkles }
-> = {
-  [ModelUseCaseEnum.STYLE_TRANSFER]: { icon: Palette, label: 'Style Transfer' },
-  [ModelUseCaseEnum.CHARACTER_CONSISTENT]: {
-    icon: User,
-    label: 'Character Consistent',
-  },
-  [ModelUseCaseEnum.IMAGE_VARIATION]: {
-    icon: Repeat,
-    label: 'Image Variation',
-  },
-  [ModelUseCaseEnum.INPAINTING]: { icon: Layers, label: 'Inpainting' },
-  [ModelUseCaseEnum.UPSCALE]: { icon: ZoomIn, label: 'Upscale' },
-  [ModelUseCaseEnum.GENERAL]: { icon: Sparkles, label: 'General' },
-};
-
-function UseCaseBadge({ useCase }: { useCase: ModelUseCase }) {
-  const config = USE_CASE_CONFIG[useCase];
-  if (!config || useCase === 'general') return null;
-  const Icon = config.icon;
-
-  return (
-    <span className="inline-flex items-center gap-1 rounded bg-purple-500/10 px-1.5 py-0.5 text-[10px] font-medium text-purple-400 border border-purple-500/20">
-      <Icon className="size-2.5" />
-      {config.label}
-    </span>
-  );
-}
-
-// =============================================================================
-// MODEL CARD
-// =============================================================================
-
-interface ModelCardProps {
-  model: ProviderModel;
-  onSelect: (model: ProviderModel) => void;
-  isRecent?: boolean;
-}
-
-function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
-  const [imgError, setImgError] = useState(false);
-
-  return (
-    <Button
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-      onClick={() => onSelect(model)}
-      className="group w-full rounded-xl border border-border bg-card text-left transition hover:border-primary overflow-hidden"
-    >
-      <div className="flex items-stretch">
-        {/* Thumbnail or placeholder - full height */}
-        {model.thumbnail && !imgError ? (
-          <Image
-            unoptimized
-            src={model.thumbnail}
-            alt={model.displayName}
-            className="w-20 shrink-0 object-cover bg-secondary"
-            onError={() => setImgError(true)}
-            width={800}
-            height={600}
-          />
-        ) : (
-          <div className="flex w-20 shrink-0 items-center justify-center bg-secondary">
-            <Sparkles className="size-6 text-muted-foreground" />
-          </div>
-        )}
-
-        <div className="min-w-0 flex-1 p-4">
-          {/* Name and provider */}
-          <div className="flex items-center gap-2">
-            <h3 className="truncate text-sm font-medium text-foreground">
-              {model.displayName}
-            </h3>
-            {isRecent && <Clock className="size-3 text-muted-foreground" />}
-          </div>
-
-          {/* Model ID */}
-          <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
-            {model.id}
-          </p>
-
-          {/* Badges */}
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <ProviderBadge provider={model.provider} />
-            {model.capabilities.map((cap) => (
-              <CapabilityBadge key={cap} capability={cap} />
-            ))}
-            {model.useCases?.reduce<JSX.Element[]>((badges, uc) => {
-              if (uc !== 'general') {
-                badges.push(<UseCaseBadge key={uc} useCase={uc} />);
-              }
-              return badges;
-            }, [])}
-          </div>
-
-          {/* Description and pricing */}
-          {(model.description || model.pricing) && (
-            <div className="mt-2 flex items-center justify-between gap-2">
-              {model.description && (
-                <p className="line-clamp-1 text-xs text-muted-foreground">
-                  {model.description}
-                </p>
-              )}
-              {model.pricing && (
-                <span className="shrink-0 text-xs font-medium text-chart-2">
-                  {model.pricing}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </Button>
-  );
 }
 
 // =============================================================================
