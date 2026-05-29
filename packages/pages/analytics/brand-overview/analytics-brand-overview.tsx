@@ -4,12 +4,6 @@ import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { PageScope, PostStatus } from '@genfeedai/enums';
 import type { IAnalytics } from '@genfeedai/interfaces';
-import { getPublisherPostsHref } from '@helpers/content/posts.helper';
-import {
-  formatCompactNumberIntl,
-  formatPercentageSimple,
-} from '@helpers/formatting/format/format.helper';
-import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Post } from '@models/content/post.model';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
@@ -17,48 +11,12 @@ import type { PlatformComparisonData } from '@props/analytics/analytics.props';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import { logger } from '@services/core/logger.service';
 import { BrandsService } from '@services/social/brands.service';
-import Card from '@ui/card/Card';
-import HtmlContent from '@ui/display/html-content/HtmlContent';
-import Table from '@ui/display/table/Table';
-import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
-import dynamic from 'next/dynamic';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  HiArrowRight,
-  HiChartBar,
-  HiEye,
-  HiFire,
-  HiGlobeAlt,
-  HiHeart,
-  HiOutlineChartBar,
-  HiVideoCamera,
-} from 'react-icons/hi2';
-
-const PlatformComparisonChart = dynamic(
-  () =>
-    import(
-      '@ui/analytics/charts/platform-comparison/platform-comparison-chart'
-    ).then((mod) => mod.PlatformComparisonChart),
-  {
-    loading: () => <div className="h-chart w-full bg-muted/60 animate-pulse" />,
-    ssr: false,
-  },
-);
-
-const PlatformTimeSeriesChart = dynamic(
-  () =>
-    import(
-      '@ui/analytics/charts/platform-time-series/platform-time-series-chart'
-    ).then((mod) => mod.PlatformTimeSeriesChart),
-  {
-    loading: () => <div className="h-chart w-full bg-muted/60 animate-pulse" />,
-    ssr: false,
-  },
-);
+import { HiOutlineChartBar } from 'react-icons/hi2';
+import BrandChartsGrid from './BrandChartsGrid';
+import BrandKPISection from './BrandKPISection';
+import BrandTopPostsTable from './BrandTopPostsTable';
 
 const BRAND_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
@@ -82,7 +40,6 @@ export default function AnalyticsBrandOverview({
   basePath = '/analytics',
   brandId,
 }: AnalyticsBrandOverviewProps) {
-  const _router = useRouter();
   const { dateRange } = useAnalyticsContext();
 
   const getBrandsService = useAuthedService((token: string) =>
@@ -265,257 +222,28 @@ export default function AnalyticsBrandOverview({
       icon={HiOutlineChartBar}
     >
       <div className="space-y-6">
-        <KPISection
-          title="Brand Performance"
-          gridCols={{ desktop: 3, mobile: 1, tablet: 3 }}
-          className="bg-background"
+        <BrandKPISection
+          analytics={analytics}
           isLoading={isLoading}
-          items={[
-            {
-              description: 'Published content',
-              icon: HiVideoCamera,
-              iconClassName: 'bg-white/10 text-foreground',
-              label: 'Total Posts',
-              value: analytics?.totalPosts || 0,
-            },
-            {
-              description: analytics?.viewsGrowth
-                ? `${analytics.viewsGrowth > 0 ? '+' : ''}${analytics.viewsGrowth}% from last period`
-                : 'Total views',
-              icon: HiEye,
-              iconClassName: 'bg-white/10 text-foreground',
-              label: 'Total Views',
-              value: analytics?.totalViews || 0,
-            },
-            {
-              description: analytics?.engagementGrowth
-                ? `${analytics.engagementGrowth > 0 ? '+' : ''}${analytics.engagementGrowth}% from last period`
-                : 'Total engagement',
-              icon: HiHeart,
-              iconClassName: 'bg-white/10 text-foreground',
-              label: 'Total Engagement',
-              value: analytics?.totalEngagement || analytics?.totalLikes || 0,
-            },
-            {
-              description: 'Average engagement rate',
-              icon: HiFire,
-              iconClassName: 'bg-white/10 text-foreground',
-              label: 'Engagement Rate',
-              value: analytics?.avgEngagementRate
-                ? `${analytics.avgEngagementRate.toFixed(2)}%`
-                : '0%',
-            },
-            {
-              description: 'Publishing channels',
-              icon: HiGlobeAlt,
-              iconClassName: 'bg-white/10 text-foreground',
-              label: 'Active Platforms',
-              value: platformCount,
-            },
-            {
-              description: 'Per content piece',
-              icon: HiChartBar,
-              iconClassName: 'bg-white/10 text-foreground',
-              label: 'Avg Views/Post',
-              value:
-                analytics?.totalPosts && analytics?.totalViews
-                  ? formatCompactNumberIntl(
-                      analytics.totalViews / analytics.totalPosts,
-                    )
-                  : 0,
-            },
-          ]}
+          platformCount={platformCount}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card label="Platform Comparison">
-            <PlatformComparisonChart
-              data={platformComparisonData}
-              isLoading={isLoading}
-              height={300}
-            />
-            {platformComparisonData.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-4">
-                {platformComparisonData.map(({ platform }) => (
-                  <Link
-                    key={platform}
-                    href={`${basePath}/brands/${brandId}/platforms/${platform}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground/70 hover:text-foreground transition-colors px-3 py-1.5 border border-border hover:border-primary/40"
-                  >
-                    {getPlatformIcon(platform, 'size-4')}
-                    <span className="capitalize">{platform}</span>
-                    <HiArrowRight className="size-3" />
-                  </Link>
-                ))}
-              </div>
-            )}
-          </Card>
+        <BrandChartsGrid
+          basePath={basePath}
+          brandId={brandId}
+          connectedPlatforms={connectedPlatforms}
+          isLoading={isLoading}
+          isLoadingTimeSeries={isLoadingTimeSeries}
+          platformComparisonData={platformComparisonData}
+          timeSeriesData={timeSeriesData}
+        />
 
-          <Card label="Performance Trends">
-            <PlatformTimeSeriesChart
-              data={timeSeriesData}
-              platforms={
-                connectedPlatforms.length > 0
-                  ? (connectedPlatforms as Array<
-                      | 'instagram'
-                      | 'tiktok'
-                      | 'youtube'
-                      | 'twitter'
-                      | 'facebook'
-                      | 'linkedin'
-                    >)
-                  : []
-              }
-              isLoading={isLoadingTimeSeries}
-              height={300}
-            />
-          </Card>
-        </div>
-
-        <Card
-          label={`Recent Posts (Top 5)`}
-          className="bg-background"
-          headerAction={
-            <Link
-              href={getPublisherPostsHref({ status: PostStatus.PUBLIC })}
-              className="text-sm text-primary hover:underline flex items-center gap-1"
-            >
-              View All
-            </Link>
-          }
-        >
-          <div className="overflow-x-auto">
-            <Table
-              items={topPosts}
-              isLoading={isLoadingPosts}
-              emptyLabel="No published posts found for this brand"
-              getRowKey={(post) => post.id}
-              onRowClick={(post) => setSelectedPostId(post.id)}
-              columns={[
-                {
-                  header: 'Preview',
-                  key: 'thumbnail',
-                  render: (post) => {
-                    const ingredient = post.ingredients?.[0];
-                    const thumbnailUrl =
-                      ingredient?.thumbnailUrl || ingredient?.ingredientUrl;
-                    return (
-                      <div className="flex items-center gap-3">
-                        {thumbnailUrl ? (
-                          <Image
-                            src={thumbnailUrl}
-                            alt="Post thumbnail"
-                            width={64}
-                            height={64}
-                            className="size-16 object-cover"
-                          />
-                        ) : (
-                          <div className="size-16 bg-muted flex items-center justify-center">
-                            <HiVideoCamera className="size-6 text-foreground/30" />
-                          </div>
-                        )}
-                        <div className="max-w-xs">
-                          {post.description ? (
-                            <HtmlContent
-                              content={post.description}
-                              className="font-medium line-clamp-2 text-sm"
-                            />
-                          ) : (
-                            <div className="font-medium line-clamp-2 text-sm">
-                              {ingredient?.metadataLabel || 'Untitled'}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  },
-                },
-                {
-                  header: 'Platform',
-                  key: 'platform',
-                  render: (post) => (
-                    <div className="flex items-center justify-center">
-                      {getPlatformIcon(post.platform, 'size-5')}
-                    </div>
-                  ),
-                },
-                {
-                  header: 'Published',
-                  key: 'publishedAt',
-                  render: (post) => (
-                    <span className="text-sm">
-                      {post.publishedAt ? formatDate(post.publishedAt) : '-'}
-                    </span>
-                  ),
-                },
-                {
-                  header: 'Views',
-                  key: 'totalViews',
-                  render: (post) => {
-                    const postWithAnalytics = post as PostWithAnalytics;
-                    return (
-                      <span className="font-mono font-semibold">
-                        {formatCompactNumberIntl(
-                          postWithAnalytics.totalViews || 0,
-                        )}
-                      </span>
-                    );
-                  },
-                },
-                {
-                  header: 'Likes',
-                  key: 'totalLikes',
-                  render: (post) => {
-                    const postWithAnalytics = post as PostWithAnalytics;
-                    return (
-                      <span className="font-mono">
-                        {formatCompactNumberIntl(
-                          postWithAnalytics.totalLikes || 0,
-                        )}
-                      </span>
-                    );
-                  },
-                },
-                {
-                  header: 'Comments',
-                  key: 'totalComments',
-                  render: (post) => {
-                    const postWithAnalytics = post as PostWithAnalytics;
-                    return (
-                      <span className="font-mono">
-                        {formatCompactNumberIntl(
-                          postWithAnalytics.totalComments || 0,
-                        )}
-                      </span>
-                    );
-                  },
-                },
-                {
-                  header: 'Eng. Rate',
-                  key: 'engagementRate',
-                  render: (post) => {
-                    const postWithAnalytics = post as PostWithAnalytics;
-                    return (
-                      <span className="font-mono">
-                        {formatPercentageSimple(
-                          postWithAnalytics.engagementRate || 0,
-                          2,
-                        )}
-                      </span>
-                    );
-                  },
-                },
-              ]}
-              actions={[
-                {
-                  icon: <HiArrowRight className="size-4" />,
-                  onClick: (post) => setSelectedPostId(post.id),
-                  tooltip: 'View Post Details',
-                },
-              ]}
-            />
-          </div>
-        </Card>
+        <BrandTopPostsTable
+          formatDate={formatDate}
+          isLoadingPosts={isLoadingPosts}
+          onSelectPost={setSelectedPostId}
+          topPosts={topPosts}
+        />
       </div>
 
       <PostDetailOverlay

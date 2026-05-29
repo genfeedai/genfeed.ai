@@ -1,5 +1,3 @@
-import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
-import { AgentChatMessage } from '@genfeedai/agent/components/AgentChatMessage';
 import type {
   AgentChatMessage as AgentChatMessageModel,
   AgentToolCall,
@@ -8,43 +6,26 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { TableColumn } from '@props/ui/display/table.props';
-import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
-import PromptBarSurfaceRenderer from '@ui/prompt-bars/surface/PromptBarSurfaceRenderer';
-import { MISSION_CONTROL_PROMPT_BAR_SURFACE } from '@ui/prompt-bars/surface/prompt-bar-surface.config';
-import {
-  type ReactElement,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
-import {
-  HiOutlineBeaker,
-  HiOutlineBolt,
-  HiOutlineChatBubbleBottomCenterText,
-  HiOutlineCommandLine,
-  HiOutlineFunnel,
-  HiOutlineMagnifyingGlass,
-  HiOutlineRectangleStack,
-  HiOutlineSparkles,
-  HiOutlineTableCells,
-  HiOutlineXMark,
-} from 'react-icons/hi2';
+import { type ReactElement, useCallback, useMemo, useState } from 'react';
+import { HiOutlineBeaker } from 'react-icons/hi2';
+import { AgentLabSurface } from './AgentLabSurface';
+import { MissionControlBulkBar } from './MissionControlBulkBar';
+import { MissionControlLabBanner } from './MissionControlLabBanner';
+import { MissionControlStatsGrid } from './MissionControlStatsGrid';
+import { MissionControlToolbar } from './MissionControlToolbar';
 
-type AgentLabMode = 'overlay' | 'rail';
-type AgentLabStatus =
+export type AgentLabMode = 'overlay' | 'rail';
+export type AgentLabStatus =
   | 'blocked'
   | 'drafting'
   | 'needs-review'
   | 'ready'
   | 'scheduled';
-type AgentLabPriority = 'high' | 'low' | 'medium';
-type AgentLabContextKind = 'bulk' | 'page' | 'row';
+export type AgentLabPriority = 'high' | 'low' | 'medium';
+export type AgentLabContextKind = 'bulk' | 'page' | 'row';
 
 interface MissionControlRow {
   id: string;
@@ -58,7 +39,7 @@ interface MissionControlRow {
   updatedAt: string;
 }
 
-interface AgentLabContext {
+export interface AgentLabContext {
   badges: string[];
   kind: AgentLabContextKind;
   prompt: string;
@@ -320,166 +301,6 @@ function StatusBadge({ status }: { status: AgentLabStatus }): ReactElement {
   );
 }
 
-function AgentLabSurface({
-  context,
-  messages,
-  mode,
-  onClose,
-  onCopy,
-  onSend,
-  open,
-}: {
-  context: AgentLabContext | null;
-  messages: AgentChatMessageModel[];
-  mode: AgentLabMode;
-  onClose: () => void;
-  onCopy: (content: string) => void | Promise<void>;
-  onSend: (content: string) => void;
-  open: boolean;
-}): ReactElement | null {
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const viewport = scrollRef.current;
-    if (!viewport) {
-      return;
-    }
-
-    viewport.scrollTop = viewport.scrollHeight;
-  }, [open]);
-
-  if (!open) {
-    return null;
-  }
-
-  const shell = (
-    <aside
-      aria-label={
-        mode === 'overlay'
-          ? 'Agent overlay comparison surface'
-          : 'Agent rail comparison surface'
-      }
-      data-mode={mode}
-      data-testid="agent-lab-surface"
-      className={cn(
-        'relative flex h-full flex-col overflow-hidden border-l border-white/[0.08] bg-background/95 shadow-2xl backdrop-blur-xl',
-        mode === 'overlay'
-          ? 'w-full sm:w-[min(44rem,calc(100vw-3rem))]'
-          : 'w-full sm:w-[24rem]',
-      )}
-    >
-      <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">
-            {mode === 'overlay' ? 'Overlay Sheet' : 'Right Rail'}
-          </p>
-          <h2 className="mt-1 text-sm font-semibold text-foreground">
-            {context?.title ?? 'Mission Control agent'}
-          </h2>
-        </div>
-        <Button
-          variant={ButtonVariant.GHOST}
-          onClick={onClose}
-          ariaLabel="Close agent lab surface"
-          className="text-foreground/60 hover:text-foreground"
-        >
-          <HiOutlineXMark className="size-4" />
-        </Button>
-      </div>
-
-      {context ? (
-        <div className="border-b border-white/[0.08] px-4 py-3">
-          <p className="text-sm text-foreground/80">{context.scopeSummary}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {context.badges.map((badge) => (
-              <span
-                key={badge}
-                className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[11px] text-foreground/55"
-              >
-                {badge}
-              </span>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 pb-44"
-        data-testid="agent-lab-messages"
-      >
-        {messages.length === 0 ? (
-          <div className="mx-auto mt-20 max-w-sm text-center">
-            <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <HiOutlineSparkles className="size-6" />
-            </div>
-            <h3 className="mt-5 text-xl font-semibold text-foreground">
-              Open the conversation from the page
-            </h3>
-            <p className="mt-2 text-sm text-foreground/60">
-              Use the page, row, or bulk actions to seed the agent with context,
-              then compare whether the rail or the overlay sheet feels better.
-            </p>
-          </div>
-        ) : (
-          messages.map((message, index) => (
-            <AgentChatMessage
-              key={message.id}
-              message={message}
-              messageIndex={index}
-              onCopy={onCopy}
-            />
-          ))
-        )}
-      </div>
-
-      <div className="relative shrink-0">
-        <PromptBarSurfaceRenderer
-          surface={MISSION_CONTROL_PROMPT_BAR_SURFACE}
-          topContent={<LowCreditsBanner />}
-        >
-          <AgentChatInput
-            onSend={onSend}
-            placeholder="Ask about this Mission Control context…"
-          />
-        </PromptBarSurfaceRenderer>
-      </div>
-    </aside>
-  );
-
-  if (mode === 'overlay') {
-    return (
-      <div className="pointer-events-none fixed inset-0 z-40 top-16">
-        <div
-          aria-label="Close"
-          className="pointer-events-auto absolute inset-0 bg-black/45"
-          onClick={onClose}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              onClose();
-            }
-          }}
-          role="button"
-          tabIndex={-1}
-        />
-        <div className="pointer-events-auto absolute inset-y-0 right-0 flex justify-end">
-          {shell}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="pointer-events-none fixed inset-y-0 right-0 z-30 top-16 hidden sm:block">
-      <div className="pointer-events-auto h-full">{shell}</div>
-    </div>
-  );
-}
-
 export function MissionControlView({
   onStartNewThread,
 }: {
@@ -704,176 +525,48 @@ export function MissionControlView({
         }
       >
         <div className="space-y-6">
-          <div className="rounded-2xl border border-primary/15 bg-primary/5 p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="max-w-2xl">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/80">
-                  Internal Prototype
-                </p>
-                <h2 className="mt-2 text-xl font-semibold text-foreground">
-                  Test the conversation surface without leaving the SaaS UI
-                </h2>
-                <p className="mt-2 text-sm text-foreground/65">
-                  The table, filters, and row selection persist while you switch
-                  between a narrow right rail and a wider overlay sheet. The
-                  agent conversation is seeded locally so the UX comparison
-                  stays deterministic.
-                </p>
-              </div>
+          <MissionControlLabBanner
+            mode={mode}
+            onModeChange={setMode}
+            onAskAboutTable={() =>
+              openSeededConversation(
+                buildPageContext(
+                  search,
+                  statusFilter,
+                  visibleRows,
+                  selectedRows,
+                ),
+              )
+            }
+          />
 
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant={
-                    mode === 'rail'
-                      ? ButtonVariant.DEFAULT
-                      : ButtonVariant.SECONDARY
-                  }
-                  onClick={() => setMode('rail')}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <HiOutlineRectangleStack className="size-4" />
-                    Right Rail
-                  </span>
-                </Button>
-                <Button
-                  variant={
-                    mode === 'overlay'
-                      ? ButtonVariant.DEFAULT
-                      : ButtonVariant.SECONDARY
-                  }
-                  onClick={() => setMode('overlay')}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <HiOutlineTableCells className="size-4" />
-                    Overlay Sheet
-                  </span>
-                </Button>
-                <Button
-                  variant={ButtonVariant.SECONDARY}
-                  onClick={() =>
-                    openSeededConversation(
-                      buildPageContext(
-                        search,
-                        statusFilter,
-                        visibleRows,
-                        selectedRows,
-                      ),
-                    )
-                  }
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <HiOutlineChatBubbleBottomCenterText className="size-4" />
-                    Ask About This Table
-                  </span>
-                </Button>
-              </div>
-            </div>
-          </div>
+          <MissionControlStatsGrid stats={stats} />
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"
-              >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
-                  {stat.label}
-                </p>
-                <p className="mt-3 text-2xl font-semibold text-foreground">
-                  {stat.value}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center">
-                <label
-                  className="relative flex-1"
-                  htmlFor="mission-control-search"
-                >
-                  <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/35" />
-                  <Input
-                    id="mission-control-search"
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    className="w-full rounded-xl border border-white/[0.08] bg-background px-10 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/30 focus:border-primary/40"
-                    placeholder="Search assets, channels, owners, or status"
-                  />
-                </label>
-
-                <div className="flex flex-wrap gap-2">
-                  {STATUS_OPTIONS.map((option) => (
-                    <Button
-                      key={option.value}
-                      variant={
-                        statusFilter === option.value
-                          ? ButtonVariant.DEFAULT
-                          : ButtonVariant.SECONDARY
-                      }
-                      onClick={() => setStatusFilter(option.value)}
-                    >
-                      <span className="inline-flex items-center gap-2">
-                        <HiOutlineFunnel className="size-4" />
-                        {option.label}
-                      </span>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant={ButtonVariant.SECONDARY}
-                  onClick={() => {
-                    setSearch('');
-                    setStatusFilter('all');
-                    setSelectedIds([]);
-                  }}
-                >
-                  Reset Filters
-                </Button>
-                <Button
-                  variant={ButtonVariant.SECONDARY}
-                  onClick={() => {
-                    setActiveContext(null);
-                    setMessages([]);
-                    setSurfaceOpen(true);
-                  }}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <HiOutlineCommandLine className="size-4" />
-                    Open Empty Surface
-                  </span>
-                </Button>
-              </div>
-            </div>
-          </div>
+          <MissionControlToolbar
+            search={search}
+            statusFilter={statusFilter}
+            statusOptions={STATUS_OPTIONS}
+            onSearchChange={setSearch}
+            onStatusFilterChange={setStatusFilter}
+            onReset={() => {
+              setSearch('');
+              setStatusFilter('all');
+              setSelectedIds([]);
+            }}
+            onOpenEmptySurface={() => {
+              setActiveContext(null);
+              setMessages([]);
+              setSurfaceOpen(true);
+            }}
+          />
 
           {selectedRows.length > 0 ? (
-            <div className="flex flex-col gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/8 p-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  {selectedRows.length} rows selected for comparison
-                </p>
-                <p className="mt-1 text-sm text-foreground/65">
-                  Use the same selected scope in either surface and see whether
-                  the reasoning still feels comfortable in the narrow rail.
-                </p>
-              </div>
-              <Button
-                variant={ButtonVariant.DEFAULT}
-                onClick={() =>
-                  openSeededConversation(buildBulkContext(selectedRows))
-                }
-              >
-                <span className="inline-flex items-center gap-2">
-                  <HiOutlineBolt className="size-4" />
-                  Ask Agent About Selected Rows
-                </span>
-              </Button>
-            </div>
+            <MissionControlBulkBar
+              selectedCount={selectedRows.length}
+              onAskAgent={() =>
+                openSeededConversation(buildBulkContext(selectedRows))
+              }
+            />
           ) : null}
 
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-2">
