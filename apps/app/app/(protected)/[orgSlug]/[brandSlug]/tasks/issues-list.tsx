@@ -271,10 +271,12 @@ export default function IssuesList() {
 
   useEffect(() => {
     loadIssues();
-    const controller = controllerRef.current;
 
     return () => {
-      controller?.abort();
+      // loadIssues() is also invoked outside this effect (handleCreateIssue),
+      // replacing the ref, so cleanup must abort the current controller rather
+      // than one captured at setup time.
+      controllerRef.current?.abort();
     };
   }, [loadIssues]);
 
