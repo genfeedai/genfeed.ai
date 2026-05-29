@@ -132,6 +132,65 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, './src/shared'),
       },
       { find: '@workers', replacement: path.resolve(serviceDir, './src') },
+      {
+        find: '@genfeedai/types',
+        replacement: path.resolve(serviceDir, '../../../packages/types/src'),
+      },
+      {
+        find: /^@genfeedai\/types\/(.*)$/,
+        replacement: path.resolve(serviceDir, '../../../packages/types/src/$1'),
+      },
+      {
+        find: '@genfeedai/interfaces',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/interfaces/src',
+        ),
+      },
+      {
+        find: /^@genfeedai\/interfaces\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/interfaces/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/tools',
+        replacement: path.resolve(serviceDir, '../../../packages/tools/src'),
+      },
+      {
+        find: /^@genfeedai\/tools\/(.*)$/,
+        replacement: path.resolve(serviceDir, '../../../packages/tools/src/$1'),
+      },
+      {
+        find: '@genfeedai/serializers',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/serializers/src',
+        ),
+      },
+      {
+        find: /^@genfeedai\/serializers\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/serializers/src/$1',
+        ),
+      },
+      {
+        find: /^@serializers\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/serializers/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/utils',
+        replacement: path.resolve(serviceDir, '../../../packages/utils'),
+      },
+      {
+        find: /^@genfeedai\/utils\/(.*)$/,
+        replacement: path.resolve(serviceDir, '../../../packages/utils/$1'),
+      },
     ],
   },
   test: {
