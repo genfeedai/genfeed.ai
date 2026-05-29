@@ -10,29 +10,12 @@ import {
   DEFAULT_AGENT_GENERATION_PRIORITY,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
-import {
-  ButtonSize,
-  ButtonVariant,
-  ModelCategory,
-  type RouterPriority,
-} from '@genfeedai/enums';
+import { ModelCategory, type RouterPriority } from '@genfeedai/enums';
 import { resolveGenerationModelControls } from '@helpers/generation-controls.helper';
-import AspectRatioDropdown from '@ui/dropdowns/aspect-ratio/AspectRatioDropdown';
-import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
 import {
   AUTO_MODEL_OPTION_VALUE,
   getAutoModelLabel,
 } from '@ui/dropdowns/model-selector/model-selector.constants';
-import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorites';
-import { Button } from '@ui/primitives/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
 import {
   type ReactElement,
   useCallback,
@@ -41,13 +24,11 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  HiArrowPath,
-  HiOutlineClipboard,
-  HiOutlinePhoto,
-  HiOutlineVideoCamera,
-  HiPlay,
-} from 'react-icons/hi2';
+import { HiOutlinePhoto, HiOutlineVideoCamera } from 'react-icons/hi2';
+import { GenerationActionCardControls } from './GenerationActionCardControls';
+import { GenerationActionCardHeader } from './GenerationActionCardHeader';
+import { GenerationActionCardHoverActions } from './GenerationActionCardHoverActions';
+import { GenerationActionCardStatusPanel } from './GenerationActionCardStatusPanel';
 
 interface GenerationActionCardProps {
   action: AgentUiAction;
@@ -97,55 +78,6 @@ function formatStructuredPrompt(prompt: string): string {
     .trim();
 }
 
-function QualityBadge({
-  score,
-  feedback,
-  onRegenerate,
-}: {
-  score: number;
-  feedback?: string[];
-  onRegenerate?: () => void;
-}): ReactElement | null {
-  if (score >= 8) {
-    return (
-      <div className="flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
-        ✨ Quality: {score}/10
-      </div>
-    );
-  }
-
-  if (score < 6) {
-    return (
-      <div className="space-y-1">
-        <div className="flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-          ⚠️ Quality: {score}/10
-        </div>
-        {feedback && feedback.length > 0 && (
-          <p className="text-xs text-muted-foreground">{feedback[0]}</p>
-        )}
-        {onRegenerate && (
-          <Button
-            variant={ButtonVariant.OUTLINE}
-            size={ButtonSize.XS}
-            onClick={onRegenerate}
-            className="border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900"
-          >
-            <HiArrowPath className="size-3" />
-            Regenerate
-          </Button>
-        )}
-      </div>
-    );
-  }
-
-  // Score 6-7: neutral display
-  return (
-    <div className="flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-      Quality: {score}/10
-    </div>
-  );
-}
-
 export function GenerationActionCard({
   action,
   apiService,
@@ -176,7 +108,6 @@ export function GenerationActionCard({
   const [modelsLoading, setModelsLoading] = useState(true);
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const setThreadUiBusy = useAgentChatStore((s) => s.setThreadUiBusy);
-  const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
   const abortRef = useRef<AbortController | null>(null);
   const busyThreadIdRef = useRef<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -365,258 +296,91 @@ export function GenerationActionCard({
     await handleGenerate();
   }, [clearGenerationOutcome, handleGenerate]);
 
-  const isDisabled = status === 'generating';
+  const handleRetryVoid = useCallback(() => {
+    void handleRetry();
+  }, [handleRetry]);
+
+  const handleGenerateVoid = useCallback(() => {
+    void handleGenerate();
+  }, [handleGenerate]);
+
+  const handleModelChange = useCallback((_name: string, values: string[]) => {
+    const hasAutoOption = values.includes(AUTO_MODEL_OPTION_VALUE);
+    const manualValues = values.filter(
+      (value) => value !== AUTO_MODEL_OPTION_VALUE,
+    );
+    const nextModelKey = manualValues.at(-1) ?? '';
+
+    if (hasAutoOption && manualValues.length === 0) {
+      setIsAutoMode(true);
+      setModelKey('');
+      return;
+    }
+
+    setIsAutoMode(false);
+    setModelKey(nextModelKey);
+  }, []);
+
+  const handleAspectRatioChange = useCallback(
+    (_name: string, value: string) => setAspectRatio(value),
+    [],
+  );
+
+  const handleDurationChange = useCallback(
+    (value: number) => setDuration(value),
+    [],
+  );
+
   const isImage = generationType === 'image';
   const Icon = isImage ? HiOutlinePhoto : HiOutlineVideoCamera;
 
   return (
     <div className="group/card relative mt-2 overflow-hidden border border-border bg-background">
-      {/* Hover actions */}
-      <div className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full border border-white/[0.08] bg-background/80 px-1.5 py-1 opacity-0 shadow-sm backdrop-blur-sm transition-opacity group-hover/card:opacity-100">
-        <Button
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.ICON}
-          onClick={handleCopyPrompt}
-          isDisabled={!prompt.trim()}
-          ariaLabel="Copy prompt"
-          className="p-1 text-muted-foreground hover:text-foreground"
-        >
-          <HiOutlineClipboard className="size-3.5" />
-        </Button>
-        <Button
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.ICON}
-          onClick={() => {
-            void handleRetry();
-          }}
-          ariaLabel="Retry"
-          className="p-1 text-muted-foreground hover:text-foreground"
-        >
-          <HiArrowPath className="size-3.5" />
-        </Button>
-      </div>
+      <GenerationActionCardHoverActions
+        canCopy={!!prompt.trim()}
+        onCopy={handleCopyPrompt}
+        onRetry={handleRetryVoid}
+      />
 
-      {/* Header */}
-      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <Icon className="size-4 text-primary" />
-        <span className="text-sm font-medium text-foreground">
-          {action.title}
-        </span>
-      </div>
+      <GenerationActionCardHeader Icon={Icon} title={action.title} />
 
       <div className="space-y-3 p-3">
-        {/* Prompt */}
-        <div>
-          <label
-            htmlFor="gen-action-prompt"
-            className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
-          >
-            Prompt
-          </label>
-          <Textarea
-            id="gen-action-prompt"
-            ref={textareaRef}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            disabled={isDisabled}
-            rows={2}
-            className="w-full resize-none"
-            placeholder="Describe what you want to generate…"
-          />
-        </div>
+        <GenerationActionCardControls
+          prompt={prompt}
+          onPromptChange={setPrompt}
+          textareaRef={textareaRef}
+          isDisabled={status === 'generating'}
+          modelsLoading={modelsLoading}
+          filteredModels={filteredModels}
+          isAutoMode={isAutoMode}
+          modelKey={modelKey}
+          autoModelLabel={autoModelLabel}
+          prioritize={prioritize}
+          onPrioritizeChange={setPrioritize}
+          onModelChange={handleModelChange}
+          aspectRatio={aspectRatio}
+          availableAspectRatios={availableAspectRatios}
+          onAspectRatioChange={handleAspectRatioChange}
+          showDuration={showDuration}
+          duration={duration}
+          durationOptions={durationOptions}
+          onDurationChange={handleDurationChange}
+        />
 
-        {/* Model & Aspect Ratio row */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              Model
-            </span>
-            {modelsLoading ? (
-              <Select disabled value="loading-models">
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Loading Genfeed models…" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="loading-models">
-                    Loading Genfeed models…
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            ) : (
-              <div
-                className={isDisabled ? 'pointer-events-none opacity-50' : ''}
-              >
-                <ModelSelectorPopover
-                  name="models"
-                  className="w-full justify-between border border-border bg-background hover:bg-accent/50"
-                  models={filteredModels}
-                  values={
-                    isAutoMode
-                      ? [AUTO_MODEL_OPTION_VALUE]
-                      : modelKey
-                        ? [modelKey]
-                        : []
-                  }
-                  autoLabel={autoModelLabel}
-                  prioritize={prioritize}
-                  onPrioritizeChange={setPrioritize}
-                  favoriteModelKeys={favoriteModelKeys}
-                  onFavoriteToggle={onFavoriteToggle}
-                  onChange={(_name, values) => {
-                    const hasAutoOption = values.includes(
-                      AUTO_MODEL_OPTION_VALUE,
-                    );
-                    const manualValues = values.filter(
-                      (value) => value !== AUTO_MODEL_OPTION_VALUE,
-                    );
-                    const nextModelKey = manualValues.at(-1) ?? '';
-
-                    if (hasAutoOption && manualValues.length === 0) {
-                      setIsAutoMode(true);
-                      setModelKey('');
-                      return;
-                    }
-
-                    setIsAutoMode(false);
-                    setModelKey(nextModelKey);
-                  }}
-                />
-              </div>
-            )}
-          </div>
-          <div>
-            <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              Aspect Ratio
-            </span>
-            <AspectRatioDropdown
-              name="aspectRatio"
-              value={aspectRatio}
-              ratios={availableAspectRatios}
-              onChange={(_name, value) => setAspectRatio(value)}
-              className="w-full justify-between border border-border bg-background hover:bg-accent/50"
-              isDisabled={isDisabled}
-              placeholder="Aspect ratio"
-            />
-          </div>
-        </div>
-
-        {/* Duration (video only, if model supports it) */}
-        {showDuration && (
-          <div>
-            <label
-              htmlFor="gen-action-duration"
-              className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
-            >
-              Duration (seconds)
-            </label>
-            <Select
-              value={String(duration)}
-              onValueChange={(value) => setDuration(Number(value))}
-              disabled={isDisabled}
-            >
-              <SelectTrigger id="gen-action-duration" className="w-full">
-                <SelectValue placeholder="Select duration" />
-              </SelectTrigger>
-              <SelectContent>
-                {durationOptions.map((option) => (
-                  <SelectItem key={option} value={String(option)}>
-                    {option}s
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {/* Generate button */}
-        {status === 'idle' && (
-          <Button
-            variant={ButtonVariant.DEFAULT}
-            onClick={handleGenerate}
-            isDisabled={!prompt.trim()}
-            className="w-full"
-          >
-            <HiPlay className="size-4" />
-            Generate {isImage ? 'Image' : 'Video'}
-          </Button>
-        )}
-
-        {/* Generating state */}
-        {status === 'generating' && (
-          <div className="flex items-center justify-center gap-2 border border-border px-4 py-3">
-            <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            <span className="text-sm text-muted-foreground">Generating…</span>
-          </div>
-        )}
-
-        {/* Error state */}
-        {status === 'error' && (
-          <div className="space-y-2">
-            <div className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
-              {error}
-            </div>
-            <Button
-              variant={ButtonVariant.OUTLINE}
-              onClick={() => {
-                void handleRetry();
-              }}
-              className="w-full"
-            >
-              <HiArrowPath className="size-4" />
-              Try Again
-            </Button>
-          </div>
-        )}
-
-        {/* Result state */}
-        {status === 'done' && resultUrl && (
-          <div className="space-y-2">
-            <div className="overflow-hidden border border-border">
-              {isImage ? (
-                <img
-                  src={resultUrl}
-                  alt="Generated result"
-                  className="w-full object-cover"
-                />
-              ) : (
-                <video src={resultUrl} controls className="w-full">
-                  <track kind="captions" />
-                </video>
-              )}
-            </div>
-            {qualityScore !== undefined && (
-              <QualityBadge
-                score={qualityScore}
-                feedback={qualityFeedback}
-                onRegenerate={
-                  onRegenerateProp ??
-                  (() => {
-                    void handleRetry();
-                  })
-                }
-              />
-            )}
-            <div className="flex gap-2">
-              <a
-                href={`/${generationType === 'video' ? 'videos' : 'images'}/${resultId}`}
-                className="flex flex-1 items-center justify-center border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
-              >
-                Open in Library
-              </a>
-              <Button
-                variant={ButtonVariant.OUTLINE}
-                size={ButtonSize.SM}
-                onClick={() => {
-                  void handleRetry();
-                }}
-                className="flex-1"
-              >
-                <HiArrowPath className="size-3" />
-                Regenerate
-              </Button>
-            </div>
-          </div>
-        )}
+        <GenerationActionCardStatusPanel
+          status={status}
+          isImage={isImage}
+          isPromptEmpty={!prompt.trim()}
+          resultUrl={resultUrl}
+          resultId={resultId}
+          error={error}
+          generationType={generationType}
+          qualityScore={qualityScore}
+          qualityFeedback={qualityFeedback}
+          onGenerate={handleGenerateVoid}
+          onRetry={handleRetryVoid}
+          onRegenerateProp={onRegenerateProp}
+        />
       </div>
     </div>
   );

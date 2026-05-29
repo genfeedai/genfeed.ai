@@ -2,12 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { EMPTY_STATES } from '@genfeedai/constants';
-import {
-  ComponentSize,
-  ModalEnum,
-  PageScope,
-  TagCategory,
-} from '@genfeedai/enums';
+import { ModalEnum, PageScope } from '@genfeedai/enums';
 import type { IQueryParams, ITag } from '@genfeedai/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -19,9 +14,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
-import { LazyModalTag } from '@ui/lazy/modal/LazyModal';
 import { Switch } from '@ui/primitives/switch';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -33,6 +26,15 @@ import {
   useState,
 } from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
+import {
+  TagAccountCell,
+  TagCategoryCell,
+  TagDescriptionCell,
+  TagKeyCell,
+  TagLabelCell,
+  TagOrgCell,
+} from './tags-list-columns';
+import TagsListModals from './tags-list-modals';
 
 function isGlobalTag(tag: ITag): boolean {
   return !tag.organization && !tag.user;
@@ -304,44 +306,22 @@ function TagsListContent({
       {
         header: 'Label',
         key: 'label',
-        render: (t: ITag) => (
-          <div className="flex items-center gap-2">
-            <span
-              className="px-2 py-1 text-xs font-medium"
-              style={{
-                backgroundColor: t.backgroundColor,
-                color: t.textColor,
-              }}
-            >
-              {t.label}
-            </span>
-          </div>
-        ),
+        render: (t: ITag) => <TagLabelCell tag={t} />,
       },
       {
         header: 'Description',
         key: 'description',
-        render: (t: ITag) => (
-          <span className="text-sm text-foreground/70 line-clamp-2">
-            {t.description || '-'}
-          </span>
-        ),
+        render: (t: ITag) => <TagDescriptionCell tag={t} />,
       },
       {
         header: 'Key',
         key: 'key',
-        render: (t: ITag) => (
-          <span className="font-mono text-sm">{t.key || '-'}</span>
-        ),
+        render: (t: ITag) => <TagKeyCell tag={t} />,
       },
       {
         header: 'Category',
         key: 'category',
-        render: (t: ITag) => (
-          <Badge variant="outline" size={ComponentSize.SM}>
-            {t.category ?? 'N/A'}
-          </Badge>
-        ),
+        render: (t: ITag) => <TagCategoryCell tag={t} />,
       },
       // Conditionally add Organization column
       // - For superadmin: always show
@@ -352,11 +332,7 @@ function TagsListContent({
             {
               header: 'Organization',
               key: 'organization',
-              render: (t: ITag) => (
-                <span className="text-sm text-foreground/70">
-                  {t.organization?.label || '-'}
-                </span>
-              ),
+              render: (t: ITag) => <TagOrgCell tag={t} />,
             },
           ]
         : []),
@@ -369,11 +345,7 @@ function TagsListContent({
             {
               header: 'Account',
               key: 'user',
-              render: (t: ITag) => (
-                <span className="text-sm text-foreground/70">
-                  {t.user?.email || '-'}
-                </span>
-              ),
+              render: (t: ITag) => <TagAccountCell tag={t} />,
             },
           ]
         : []),
@@ -493,28 +465,15 @@ function TagsListContent({
         emptyLabel={EMPTY_STATES.TAGS_YET}
       />
 
-      {scope === PageScope.SUPERADMIN && (
-        <LazyModalTag
-          item={selectedTag}
-          entityType={TagCategory.CREDENTIAL}
-          onConfirm={() => {
-            setSelectedTag(null);
-            refresh();
-          }}
-        />
-      )}
-
-      {scope === PageScope.ORGANIZATION && (
-        <LazyModalTag
-          item={selectedTag}
-          entityType={TagCategory.ORGANIZATION}
-          entityId={organizationId}
-          onConfirm={() => {
-            setSelectedTag(null);
-            refresh();
-          }}
-        />
-      )}
+      <TagsListModals
+        scope={scope}
+        selectedTag={selectedTag}
+        organizationId={organizationId}
+        onConfirm={() => {
+          setSelectedTag(null);
+          refresh();
+        }}
+      />
     </>
   );
 }

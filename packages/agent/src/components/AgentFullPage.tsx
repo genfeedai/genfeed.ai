@@ -1,5 +1,7 @@
 import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
-import { AgentOnboardingChecklist } from '@genfeedai/agent/components/AgentOnboardingChecklist';
+import { AgentFullPageMobileBar } from '@genfeedai/agent/components/AgentFullPageMobileBar';
+import { AgentFullPageMobileDrawers } from '@genfeedai/agent/components/AgentFullPageMobileDrawers';
+import { AgentFullPageOnboardingChrome } from '@genfeedai/agent/components/AgentFullPageOnboardingChrome';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
@@ -16,27 +18,17 @@ import {
 import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outputs';
 import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-role';
 import type { MemberRole } from '@genfeedai/enums';
-import { AgentThreadStatus, ButtonVariant } from '@genfeedai/enums';
+import { AgentThreadStatus } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from '@ui/primitives';
-import { Button } from '@ui/primitives/button';
 import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 import {
   HiOutlineBriefcase,
   HiOutlineCalendarDays,
   HiOutlineChartBar,
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineCheckCircle,
   HiOutlineClipboardDocumentCheck,
   HiOutlineHeart,
   HiOutlineMagnifyingGlass,
   HiOutlinePaintBrush,
-  HiOutlinePhoto,
   HiOutlineRocketLaunch,
 } from 'react-icons/hi2';
 
@@ -461,30 +453,12 @@ export function AgentFullPage({
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="flex items-center gap-2 border-b border-white/[0.08] px-4 py-3 xl:hidden">
-          {showThreadSidebar ? (
-            <Button
-              variant={ButtonVariant.OUTLINE}
-              withWrapper={false}
-              onClick={() => setMobileThreadsOpen(true)}
-              className="inline-flex items-center gap-2 border-white/[0.12] bg-white/[0.03] px-3 py-2 text-sm font-medium text-foreground/75 hover:bg-white/[0.06] hover:text-foreground"
-            >
-              <HiOutlineChatBubbleLeftRight className="size-4" />
-              Threads
-            </Button>
-          ) : null}
-          {hasThreadOutputs ? (
-            <Button
-              variant={ButtonVariant.OUTLINE}
-              withWrapper={false}
-              onClick={() => setMobileOutputsOpen(true)}
-              className="inline-flex items-center gap-2 border-white/[0.12] bg-white/[0.03] px-3 py-2 text-sm font-medium text-foreground/75 hover:bg-white/[0.06] hover:text-foreground"
-            >
-              <HiOutlinePhoto className="size-4" />
-              Outputs
-            </Button>
-          ) : null}
-        </div>
+        <AgentFullPageMobileBar
+          showThreadSidebar={showThreadSidebar}
+          hasThreadOutputs={hasThreadOutputs}
+          onOpenThreads={() => setMobileThreadsOpen(true)}
+          onOpenOutputs={() => setMobileOutputsOpen(true)}
+        />
 
         <div className="flex min-h-0 flex-1">
           <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -530,90 +504,29 @@ export function AgentFullPage({
         </div>
       </div>
 
-      {/* Onboarding checklist sidebar — desktop */}
       {showOnboardingChecklistChrome && onboardingMode && (
-        <div className="w-80 shrink-0 border-l border-white/[0.06] max-md:hidden">
-          <AgentOnboardingChecklist
-            completionPercent={onboardingCompletionPercent}
-            currentStepId={currentStepId}
-            earnedCredits={onboardingEarnedCredits}
-            signupGiftCredits={onboardingSignupGiftCredits}
-            steps={onboardingSteps}
-            totalOnboardingCreditsVisible={onboardingTotalVisibleCredits}
-            totalJourneyCredits={onboardingTotalJourneyCredits}
-          />
-        </div>
+        <AgentFullPageOnboardingChrome
+          completionPercent={onboardingCompletionPercent}
+          currentStepId={currentStepId}
+          earnedCredits={onboardingEarnedCredits}
+          signupGiftCredits={onboardingSignupGiftCredits}
+          steps={onboardingSteps}
+          totalOnboardingCreditsVisible={onboardingTotalVisibleCredits}
+          totalJourneyCredits={onboardingTotalJourneyCredits}
+          mobileChecklistOpen={mobileChecklistOpen}
+          onMobileChecklistOpenChange={setMobileChecklistOpen}
+        />
       )}
 
-      {/* Onboarding checklist — mobile bottom bar + drawer */}
-      {showOnboardingChecklistChrome && onboardingMode && (
-        <>
-          <Button
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-            className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between border-t border-white/[0.06] bg-background/95 px-4 py-3 backdrop-blur-sm md:hidden"
-            onClick={() => setMobileChecklistOpen(true)}
-          >
-            <div className="flex items-center gap-2">
-              <HiOutlineCheckCircle className="size-5 text-primary" />
-              <span className="text-sm font-medium text-foreground">
-                Activation Journey
-              </span>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              {onboardingEarnedCredits}/{onboardingTotalJourneyCredits} credits
-            </span>
-          </Button>
-
-          <Drawer
-            open={mobileChecklistOpen}
-            onOpenChange={setMobileChecklistOpen}
-          >
-            <DrawerContent className="max-h-[70vh]">
-              <DrawerHeader>
-                <DrawerTitle>Activation Journey</DrawerTitle>
-              </DrawerHeader>
-              <div className="overflow-y-auto px-1 pb-6">
-                <AgentOnboardingChecklist
-                  completionPercent={onboardingCompletionPercent}
-                  currentStepId={currentStepId}
-                  earnedCredits={onboardingEarnedCredits}
-                  signupGiftCredits={onboardingSignupGiftCredits}
-                  steps={onboardingSteps}
-                  totalOnboardingCreditsVisible={onboardingTotalVisibleCredits}
-                  totalJourneyCredits={onboardingTotalJourneyCredits}
-                />
-              </div>
-            </DrawerContent>
-          </Drawer>
-        </>
-      )}
-
-      {showThreadSidebar ? (
-        <Drawer open={mobileThreadsOpen} onOpenChange={setMobileThreadsOpen}>
-          <DrawerContent className="max-h-[85vh]">
-            <DrawerHeader>
-              <DrawerTitle>Threads</DrawerTitle>
-            </DrawerHeader>
-            <div className="min-h-0 overflow-y-auto pb-6">
-              <AgentSidebarContent apiService={apiService} />
-            </div>
-          </DrawerContent>
-        </Drawer>
-      ) : null}
-
-      {hasThreadOutputs ? (
-        <Drawer open={mobileOutputsOpen} onOpenChange={setMobileOutputsOpen}>
-          <DrawerContent className="max-h-[85vh]">
-            <DrawerHeader>
-              <DrawerTitle>Outputs</DrawerTitle>
-            </DrawerHeader>
-            <div className="min-h-0 overflow-y-auto pb-6">
-              <AgentOutputsPanel className="h-full" />
-            </div>
-          </DrawerContent>
-        </Drawer>
-      ) : null}
+      <AgentFullPageMobileDrawers
+        apiService={apiService}
+        showThreadSidebar={showThreadSidebar}
+        mobileThreadsOpen={mobileThreadsOpen}
+        onMobileThreadsOpenChange={setMobileThreadsOpen}
+        hasThreadOutputs={hasThreadOutputs}
+        mobileOutputsOpen={mobileOutputsOpen}
+        onMobileOutputsOpenChange={setMobileOutputsOpen}
+      />
     </div>
   );
 }

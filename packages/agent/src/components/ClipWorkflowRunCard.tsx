@@ -5,35 +5,13 @@ import {
   buildAgentGenerationRequestBody,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
-import { Input } from '@ui/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
-import {
-  HiCheckCircle,
-  HiExclamationCircle,
-  HiOutlineArrowPathRoundedSquare,
-  HiOutlineBolt,
-  HiOutlineFilm,
-  HiOutlinePlay,
-  HiOutlineSparkles,
-} from 'react-icons/hi2';
-
-interface ClipWorkflowRunCardProps {
-  action: AgentUiAction;
-  apiService: AgentApiService;
-}
+import { HiExclamationCircle, HiOutlineFilm } from 'react-icons/hi2';
+import { ClipWorkflowSettingsPanel } from './ClipWorkflowSettingsPanel';
+import { ClipWorkflowStatusFooter } from './ClipWorkflowStatusFooter';
+import { ClipWorkflowStepsList } from './ClipWorkflowStepsList';
 
 type StepKey =
   | 'trigger_workflow'
@@ -43,14 +21,6 @@ type StepKey =
   | 'supervised_review';
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
 
-const STEP_LABELS: Record<StepKey, string> = {
-  generate_clip: 'Generate 30s landscape clip',
-  merge_clips: 'Merge generated clips (optional)',
-  reframe_portrait: 'Reframe to Instagram portrait',
-  supervised_review: 'Open supervised review',
-  trigger_workflow: 'Trigger workflow execution',
-};
-
 const STEP_ORDER: StepKey[] = [
   'trigger_workflow',
   'generate_clip',
@@ -59,11 +29,9 @@ const STEP_ORDER: StepKey[] = [
   'supervised_review',
 ];
 
-function toStepStatusClass(status: StepStatus): string {
-  if (status === 'completed') return 'text-green-600';
-  if (status === 'failed') return 'text-destructive';
-  if (status === 'running') return 'text-primary';
-  return 'text-muted-foreground';
+interface ClipWorkflowRunCardProps {
+  action: AgentUiAction;
+  apiService: AgentApiService;
 }
 
 export function ClipWorkflowRunCard({
@@ -358,104 +326,36 @@ export function ClipWorkflowRunCard({
       </div>
 
       <div className="space-y-3 p-3">
-        <div className="flex flex-col gap-1 text-xs">
-          <label
-            htmlFor="clip-workflow-prompt"
-            className="text-muted-foreground"
-          >
-            Prompt
-          </label>
-          <Textarea
-            id="clip-workflow-prompt"
-            className="min-h-[72px]"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-          />
-        </div>
+        <ClipWorkflowSettingsPanel
+          prompt={prompt}
+          onPromptChange={setPrompt}
+          autonomousMode={autonomousMode}
+          onAutonomousModeChange={setAutonomousMode}
+          requireStepConfirmation={requireStepConfirmation}
+          onRequireStepConfirmationChange={setRequireStepConfirmation}
+          mergeGeneratedVideos={mergeGeneratedVideos}
+          onMergeGeneratedVideosChange={(checked) => {
+            setMergeGeneratedVideos(checked);
+            setStep('merge_clips', checked ? 'pending' : 'skipped');
+          }}
+          durationSeconds={durationSeconds}
+          onDurationSecondsChange={setDurationSeconds}
+          workflows={action.workflows}
+          workflowId={workflowId}
+          onWorkflowIdChange={(nextId, status) => {
+            setWorkflowId(nextId);
+            setStep('trigger_workflow', status);
+          }}
+          nextNonPublishStep={nextNonPublishStep}
+          canMerge={canMerge}
+          steps={steps}
+          onRunNext={runNext}
+          onAddAnotherClip={addAnotherClip}
+          onMergeNow={() => runOneStep('merge_clips')}
+          onOpenSupervisedReview={() => runOneStep('supervised_review')}
+        />
 
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <label className="flex items-center gap-2 border border-border p-2">
-            <Checkbox
-              isChecked={autonomousMode}
-              onChange={(e) => setAutonomousMode(e.target.checked)}
-            />
-            Autonomous mode
-          </label>
-          <label className="flex items-center gap-2 border border-border p-2">
-            <Checkbox
-              isChecked={requireStepConfirmation}
-              onChange={(e) => setRequireStepConfirmation(e.target.checked)}
-            />
-            Confirm each step
-          </label>
-          <label className="flex items-center gap-2 border border-border p-2">
-            <Checkbox
-              isChecked={mergeGeneratedVideos}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                setMergeGeneratedVideos(checked);
-                setStep('merge_clips', checked ? 'pending' : 'skipped');
-              }}
-            />
-            Merge multiple clips
-          </label>
-          <label className="flex items-center gap-2 border border-border p-2">
-            <span>Duration (s)</span>
-            <Input
-              type="number"
-              min={5}
-              max={60}
-              value={durationSeconds}
-              onChange={(e) =>
-                setDurationSeconds(
-                  Math.max(5, Math.min(60, Number(e.target.value || 30))),
-                )
-              }
-              className="w-16 px-1.5 py-0.5 text-right"
-            />
-          </label>
-        </div>
-
-        {action.workflows != null && action.workflows.length > 0 && (
-          <label className="flex flex-col gap-1 text-xs">
-            <span className="text-muted-foreground">Workflow</span>
-            <Select
-              value={workflowId ?? ''}
-              onValueChange={(value) => {
-                const nextId = value || undefined;
-                setWorkflowId(nextId);
-                setStep('trigger_workflow', nextId ? 'pending' : 'skipped');
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="No workflow binding" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">No workflow binding</SelectItem>
-                {action.workflows.map((wf) => (
-                  <SelectItem key={wf.id} value={wf.id}>
-                    {wf.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </label>
-        )}
-
-        <div className="border border-border p-2.5">
-          <p className="mb-2 text-xs font-medium text-foreground">Run Steps</p>
-          <div className="space-y-1.5">
-            {STEP_ORDER.map((step) => (
-              <div
-                key={step}
-                className={`flex items-center justify-between text-xs ${toStepStatusClass(steps[step])}`}
-              >
-                <span>{STEP_LABELS[step]}</span>
-                <span className="capitalize">{steps[step]}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <ClipWorkflowStepsList steps={steps} />
 
         {error && (
           <div className="flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
@@ -464,91 +364,17 @@ export function ClipWorkflowRunCard({
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant={ButtonVariant.DEFAULT}
-            size={ButtonSize.SM}
-            onClick={runNext}
-            isDisabled={!nextNonPublishStep}
-          >
-            <HiOutlinePlay className="size-3.5" />
-            {nextNonPublishStep ? 'Run Next Step' : 'Pipeline Ready'}
-          </Button>
-
-          <Button
-            variant={ButtonVariant.OUTLINE}
-            size={ButtonSize.SM}
-            onClick={addAnotherClip}
-          >
-            <HiOutlineBolt className="size-3.5" />
-            Generate Another Clip
-          </Button>
-
-          {canMerge && (
-            <Button
-              variant={ButtonVariant.OUTLINE}
-              size={ButtonSize.SM}
-              onClick={() => runOneStep('merge_clips')}
-            >
-              <HiOutlineArrowPathRoundedSquare className="size-3.5" />
-              Merge Now
-            </Button>
+        <ClipWorkflowStatusFooter
+          generatedVideoIds={generatedVideoIds}
+          workflowExecutionId={workflowExecutionId}
+          finalVideoId={finalVideoId}
+          draftReviewUrl={draftReviewUrl}
+          supervisedReviewStatus={steps.supervised_review}
+          workflowExecutionUrl={href(
+            `/workflows/executions/${workflowExecutionId ?? ''}`,
           )}
-
-          <Button
-            variant={ButtonVariant.OUTLINE}
-            size={ButtonSize.SM}
-            onClick={() => runOneStep('supervised_review')}
-            isDisabled={
-              steps.reframe_portrait !== 'completed' ||
-              steps.supervised_review === 'completed'
-            }
-          >
-            <HiOutlineSparkles className="size-3.5" />
-            Open Supervised Review
-          </Button>
-        </div>
-
-        <div className="space-y-1 text-xs text-muted-foreground">
-          <p>Generated clips: {generatedVideoIds.length}</p>
-          {workflowExecutionId && (
-            <a
-              className="block text-primary underline-offset-2 hover:underline"
-              href={href(`/workflows/executions/${workflowExecutionId}`)}
-            >
-              View workflow execution →
-            </a>
-          )}
-          {finalVideoId && (
-            <a
-              className="block text-primary underline-offset-2 hover:underline"
-              href={`/g/video/${finalVideoId}`}
-            >
-              Open final asset →
-            </a>
-          )}
-          {draftReviewUrl && (
-            <a
-              className="block text-primary underline-offset-2 hover:underline"
-              href={draftReviewUrl}
-            >
-              Open draft handoff →
-            </a>
-          )}
-          <a
-            className="block text-primary underline-offset-2 hover:underline"
-            href={href('/posts/review')}
-          >
-            Open human review queue →
-          </a>
-        </div>
-
-        {steps.supervised_review === 'completed' && (
-          <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
-            <HiCheckCircle className="size-4" />
-            Handed off into the supervised publishing flow for human review.
-          </div>
-        )}
+          humanReviewUrl={href('/posts/review')}
+        />
       </div>
     </div>
   );

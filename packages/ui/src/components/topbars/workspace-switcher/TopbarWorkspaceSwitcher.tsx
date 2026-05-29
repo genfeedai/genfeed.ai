@@ -12,7 +12,6 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { logger } from '@genfeedai/services/core/logger.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
-import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
@@ -20,23 +19,13 @@ import {
   PopoverPanelContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import { Textarea } from '@ui/primitives/textarea';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
-import {
-  HiCheck,
-  HiChevronDown,
-  HiOutlineSquares2X2,
-  HiPlus,
-} from 'react-icons/hi2';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { HiChevronDown, HiOutlineSquares2X2 } from 'react-icons/hi2';
+import WorkspaceActionButton from './WorkspaceActionButton';
+import WorkspaceSwitcherCreateOrgModal from './WorkspaceSwitcherCreateOrgModal';
+import WorkspaceSwitcherSection from './WorkspaceSwitcherSection';
 
 type OrganizationEntry = {
   id: string;
@@ -424,213 +413,17 @@ export default function TopbarWorkspaceSwitcher({
         </PopoverPanelContent>
       </Popover>
 
-      <Modal.Root open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <Modal.Content size="sm">
-          <Modal.Header>
-            <Modal.Title>Create Organization</Modal.Title>
-            <Modal.Description>
-              A new workspace with a default brand and 100 starter credits.
-            </Modal.Description>
-          </Modal.Header>
-
-          <Modal.Body>
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="topbar-ws-org-name"
-                  className="text-xs font-medium text-white/70"
-                >
-                  Name <span className="text-red-400">*</span>
-                </label>
-                <Input
-                  id="topbar-ws-org-name"
-                  type="text"
-                  value={newOrganizationLabel}
-                  onChange={(event) =>
-                    setNewOrganizationLabel(event.target.value)
-                  }
-                  placeholder="My Organization"
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      void handleCreateOrganization();
-                    }
-                  }}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="topbar-ws-org-description"
-                  className="text-xs font-medium text-white/70"
-                >
-                  Description <span className="text-white/30">(optional)</span>
-                </label>
-                <Textarea
-                  id="topbar-ws-org-description"
-                  value={newOrganizationDescription}
-                  onChange={(event) =>
-                    setNewOrganizationDescription(event.target.value)
-                  }
-                  placeholder="What does this organization do?"
-                  rows={2}
-                  className="resize-none"
-                />
-              </div>
-
-              {createOrganizationError ? (
-                <p className="text-xs text-red-400">
-                  {createOrganizationError}
-                </p>
-              ) : null}
-            </div>
-          </Modal.Body>
-
-          <Modal.Footer>
-            <Modal.CloseButton asChild>
-              <Button
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-                className="px-4 py-2 text-sm text-white/60 transition-colors hover:text-white"
-              >
-                Cancel
-              </Button>
-            </Modal.CloseButton>
-            <Button
-              variant={ButtonVariant.DEFAULT}
-              withWrapper={false}
-              isDisabled={
-                isCreatingOrganization ||
-                newOrganizationLabel.trim().length === 0
-              }
-              onClick={() => void handleCreateOrganization()}
-              className="px-4 py-2 text-sm font-medium"
-            >
-              {isCreatingOrganization ? 'Creating\u2026' : 'Create'}
-            </Button>
-          </Modal.Footer>
-        </Modal.Content>
-      </Modal.Root>
+      <WorkspaceSwitcherCreateOrgModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+        newOrganizationLabel={newOrganizationLabel}
+        onLabelChange={setNewOrganizationLabel}
+        newOrganizationDescription={newOrganizationDescription}
+        onDescriptionChange={setNewOrganizationDescription}
+        isCreatingOrganization={isCreatingOrganization}
+        createOrganizationError={createOrganizationError}
+        onConfirm={() => void handleCreateOrganization()}
+      />
     </>
-  );
-}
-
-function WorkspaceSwitcherSection({
-  emptyMessage,
-  items,
-  title,
-  onSelect,
-}: {
-  emptyMessage: string;
-  items: {
-    icon?: ReactNode;
-    id: string;
-    imageUrl?: string;
-    isActive: boolean;
-    label: string;
-    meta?: string;
-  }[];
-  title: string;
-  onSelect: (id: string) => void;
-}) {
-  return (
-    <div className="border-b border-white/[0.06] px-1 pb-2 pt-1 last:border-b-0">
-      <p className="px-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/32">
-        {title}
-      </p>
-
-      {items.length === 0 ? (
-        <div className="gen-shell-empty-state rounded-md p-3 text-xs text-foreground/42">
-          {emptyMessage}
-        </div>
-      ) : (
-        <div className="space-y-1">
-          {items.map((item) => (
-            <Button
-              key={item.id}
-              ariaLabel={`Select ${item.label}`}
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => {
-                if (!item.isActive) {
-                  onSelect(item.id);
-                }
-              }}
-              isDisabled={item.isActive}
-              className={cn(
-                'flex w-full items-center gap-3 rounded-md p-2.5 text-left transition-all duration-200',
-                item.isActive
-                  ? 'gen-shell-surface text-foreground shadow-[0_18px_40px_-32px_rgba(0,0,0,0.88)]'
-                  : 'text-foreground/68 hover:bg-white/[0.035] hover:text-foreground',
-              )}
-            >
-              {item.imageUrl ? (
-                <div className="gen-shell-surface flex size-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-full">
-                  <Image
-                    src={item.imageUrl}
-                    alt={item.label}
-                    width={20}
-                    height={20}
-                    className="object-cover object-center"
-                    sizes="20px"
-                    style={{ height: 'auto', width: 'auto' }}
-                  />
-                </div>
-              ) : item.icon ? (
-                <div className="flex size-5 flex-shrink-0 items-center justify-center text-foreground/42">
-                  {item.icon}
-                </div>
-              ) : (
-                <div
-                  className={cn(
-                    'flex size-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
-                    item.isActive
-                      ? 'bg-white text-background'
-                      : 'bg-white/[0.08] text-foreground/58',
-                  )}
-                >
-                  {item.label.charAt(0).toUpperCase()}
-                </div>
-              )}
-
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium tracking-[-0.01em]">
-                  {item.label}
-                </p>
-                {item.meta ? (
-                  <p className="truncate text-xs text-foreground/42">
-                    {item.meta}
-                  </p>
-                ) : null}
-              </div>
-
-              {item.isActive ? (
-                <HiCheck className="size-4 flex-shrink-0 text-emerald-300" />
-              ) : null}
-            </Button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function WorkspaceActionButton({
-  label,
-  onClick,
-}: {
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <Button
-      ariaLabel={label}
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-      onClick={onClick}
-      className="gen-shell-control flex w-full items-center gap-2.5 rounded-md p-2.5 text-left text-sm font-medium text-foreground/72"
-    >
-      <HiPlus className="size-4 flex-shrink-0" />
-      <span>{label}</span>
-    </Button>
   );
 }

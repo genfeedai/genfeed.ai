@@ -1,11 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  AlertCategory,
-  ButtonVariant,
-  IngredientCategory,
-} from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import {
   createCacheKey,
@@ -14,34 +10,24 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
 import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
-import type {
-  IngredientDetailImageProps,
-  IngredientDetailProps,
-  IngredientDetailVideoProps,
-} from '@props/content/ingredient.props';
+import type { IngredientDetailProps } from '@props/content/ingredient.props';
 import {
   useIngredientOverlay,
   usePostModal,
 } from '@providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { ClipboardService } from '@services/core/clipboard.service';
-import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Card from '@ui/card/Card';
-import Alert from '@ui/feedback/alert/Alert';
-import IngredientDetailImage from '@ui/ingredients/detail-image/IngredientDetailImage';
-import IngredientDetailVideo from '@ui/ingredients/detail-video/IngredientDetailVideo';
 import Container from '@ui/layout/container/Container';
-import { LazyModalTrim } from '@ui/lazy/modal/LazyModal';
 import Loading from '@ui/loading/default/Loading';
 import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
-import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
-import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { HiArrowLeft } from 'react-icons/hi2';
+import IngredientDetailBody from './ingredient-detail-body';
+import IngredientDetailCacheAlert from './ingredient-detail-cache-alert';
+import IngredientDetailNotFound from './ingredient-detail-not-found';
 
 const INGREDIENT_CACHE_TTL_MS = 15 * 60 * 1000;
 
@@ -393,143 +379,43 @@ export default function IngredientDetail({ type, id }: IngredientDetailProps) {
   }
 
   if (!ingredient) {
-    return (
-      <Container>
-        <Card className="text-center">
-          <h3 className="text-lg font-bold mb-4">Ingredient Not Found</h3>
-          <p className="text-foreground/70 mb-6">
-            The ingredient you&apos;re looking for doesn&apos;t exist or has
-            been deleted.
-          </p>
-
-          <Link
-            href={`/ingredients/${type}`}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2"
-          >
-            <HiArrowLeft /> Back to {type}
-          </Link>
-        </Card>
-      </Container>
-    );
+    return <IngredientDetailNotFound type={type} />;
   }
 
   return (
-    <>
-      <Container>
-        {isUsingCache && (
-          <Alert type={AlertCategory.WARNING} className="mb-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="space-y-1">
-                <div className="font-medium">
-                  Live ingredient data is unavailable.
-                </div>
-                <div className="text-xs text-foreground/70">
-                  Showing cached data{cachedLabel ? ` from ${cachedLabel}` : ''}
-                  .
-                </div>
-              </div>
-              <Button
-                label="Retry"
-                variant={ButtonVariant.OUTLINE}
-                onClick={findIngredient}
-              />
-            </div>
-          </Alert>
-        )}
-
-        <Breadcrumb
-          segments={[
-            { href: `/ingredients/${type}`, label: type },
-            {
-              href: pathname,
-              label: ingredient.metadataLabel || ingredient.id,
-            },
-          ]}
-        />
-
-        <div className="grid grid-cols-3 gap-6 h-full p-6">
-          {ingredient.category === IngredientCategory.VIDEO ? (
-            <IngredientDetailVideo
-              video={ingredient}
-              childIngredients={childIngredients}
-              credentials={credentials}
-              onShareVideo={handleShareVideo}
-              onTrimVideo={handleTrimVideo}
-              onPublishVideo={
-                handlers.handlePublish as IngredientDetailVideoProps['onPublishVideo']
-              }
-              onDownloadVideo={
-                handlers.handleDownload as IngredientDetailVideoProps['onDownloadVideo']
-              }
-              // onUpscaleVideo={handlers.handleUpscale}
-              // onCloneVideo={handlers.handleClone}
-              onReverseVideo={handlers.handleReverse}
-              onMirrorVideo={handlers.handleMirror}
-              // onPortraitVideo={handlers.handlePortrait}
-              onConvertToGif={handlers.handleConvertToGif}
-              onGenerateCaptions={handlers.handleGenerateCaptions}
-              onAddTextOverlay={handlers.handleAddTextOverlay}
-              onCopyPrompt={handlers.handleCopyPrompt}
-              onReprompt={handlers.handleReprompt}
-              // onSeeDetails={handlers.handleSeeDetails}
-              onUpdateSharing={handleUpdateSharing}
-              onUpdateMetadata={handleUpdateMetadata}
-              isPublishing={loadingStates.isPublishing}
-              isDownloading={loadingStates.isDownloading}
-              isUpscaling={loadingStates.isUpscaling}
-              isCloning={loadingStates.isCloning}
-              isReversing={loadingStates.isReversing}
-              isMirroring={loadingStates.isMirroring}
-              isPortraiting={loadingStates.isPortraiting}
-              isConverting={loadingStates.isConverting}
-              isGeneratingCaptions={loadingStates.isGeneratingCaptions}
-              isAddingTextOverlay={loadingStates.isAddingTextOverlay}
-              isUpdating={isUpdating}
-            />
-          ) : (
-            <IngredientDetailImage
-              image={ingredient}
-              childIngredients={childIngredients}
-              onShareImage={handleShareVideo}
-              onPublishImage={
-                handlers.handlePublish as IngredientDetailImageProps['onPublishImage']
-              }
-              onDownloadImage={
-                handlers.handleDownload as IngredientDetailImageProps['onDownloadImage']
-              }
-              // onUpscaleImage={handlers.handleUpscale}
-              // onCloneImage={handlers.handleClone}
-              onConvertToVideo={handlers.handleConvertToVideo}
-              onUseAsVideoReference={handlers.handleUseAsVideoReference}
-              onCopyPrompt={handlers.handleCopyPrompt}
-              onReprompt={handlers.handleReprompt}
-              // onSeeDetails={handlers.handleSeeDetails}
-              onUpdateSharing={handleUpdateSharing}
-              onUpdateMetadata={handleUpdateMetadata}
-              isPublishing={loadingStates.isPublishing}
-              isDownloading={loadingStates.isDownloading}
-              isUpscaling={loadingStates.isUpscaling}
-              isCloning={loadingStates.isCloning}
-              isConvertingToVideo={loadingStates.isConvertingToVideo}
-              isUpdating={isUpdating}
-            />
-          )}
-        </div>
-      </Container>
-
-      {isTrimModalOpen && ingredient.category === IngredientCategory.VIDEO && (
-        <LazyModalTrim
-          videoUrl={`${EnvironmentService.ingredientsEndpoint}/ingredients/${ingredient.id}`}
-          videoId={ingredient.id}
-          videoDuration={
-            typeof ingredient.metadata === 'object'
-              ? ingredient.metadata?.duration || 10
-              : 10
-          }
-          onConfirm={handleTrimConfirm}
-          onClose={handleTrimClose}
+    <Container>
+      {isUsingCache && (
+        <IngredientDetailCacheAlert
+          cachedLabel={cachedLabel}
+          onRetry={findIngredient}
         />
       )}
-    </>
+
+      <Breadcrumb
+        segments={[
+          { href: `/ingredients/${type}`, label: type },
+          {
+            href: pathname,
+            label: ingredient.metadataLabel || ingredient.id,
+          },
+        ]}
+      />
+
+      <IngredientDetailBody
+        ingredient={ingredient}
+        childIngredients={childIngredients}
+        credentials={credentials}
+        isTrimModalOpen={isTrimModalOpen}
+        isUpdating={isUpdating}
+        handlers={handlers}
+        loadingStates={loadingStates}
+        onShareVideo={handleShareVideo}
+        onTrimVideo={handleTrimVideo}
+        onUpdateSharing={handleUpdateSharing}
+        onUpdateMetadata={handleUpdateMetadata}
+        onTrimConfirm={handleTrimConfirm}
+        onTrimClose={handleTrimClose}
+      />
+    </Container>
   );
 }
