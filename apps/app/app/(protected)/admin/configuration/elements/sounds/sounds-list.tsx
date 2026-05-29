@@ -1,23 +1,19 @@
 'use client';
 
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { ComponentSize, ModalEnum, PageScope } from '@genfeedai/enums';
-import type { IQueryParams, ISound } from '@genfeedai/interfaces';
+import { ModalEnum, PageScope } from '@genfeedai/enums';
+import type { IQueryParams } from '@genfeedai/interfaces';
 import type { IElementContentProps } from '@genfeedai/interfaces/ui/elements-content.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Sound } from '@models/ingredients/sound.model';
-import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SoundsService } from '@services/elements/sounds.service';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
-import { LazyModalSound } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Checkbox } from '@ui/primitives/checkbox';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Suspense,
@@ -28,6 +24,8 @@ import {
   useState,
 } from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
+import { buildSoundsColumns } from './sounds-list-columns';
+import SoundsListModals from './sounds-list-modals';
 
 function SoundsListContent({
   scope = PageScope.BRAND,
@@ -111,80 +109,6 @@ function SoundsListContent({
     onLoadingChangeRef.current = onLoadingChange;
     onRefreshingChangeRef.current = onRefreshingChange;
   });
-
-  const columns: TableColumn<Sound>[] = [
-    { header: 'Label', key: 'label' },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
-    {
-      header: 'Category',
-      key: 'category',
-      render: (sound: ISound) => (
-        <Badge variant="outline" size={ComponentSize.SM} className="uppercase">
-          {sound.category ?? 'Undefined'}
-        </Badge>
-      ),
-    },
-    {
-      header: 'Active',
-      key: 'isActive',
-      render: (sound: Sound) => (
-        <Checkbox
-          name={`isActive-${sound.id}`}
-          isChecked={sound.isActive}
-          isDisabled={
-            updatingIds.has(sound.id) || scope !== PageScope.SUPERADMIN
-          }
-          onChange={() => handleToggleActive(sound)}
-        />
-      ),
-    },
-    {
-      header: 'Default',
-      key: 'isDefault',
-      render: (sound: Sound) => (
-        <Checkbox
-          name={`isDefault-${sound.id}`}
-          isChecked={sound.isDefault}
-          isDisabled={
-            !sound.isActive ||
-            updatingIds.has(sound.id) ||
-            scope !== PageScope.SUPERADMIN
-          }
-          onChange={() => handleToggleDefault(sound)}
-        />
-      ),
-    },
-    {
-      header: 'Description',
-      key: 'description',
-      render: (sound: Sound) => sound.description || '-',
-    },
-  ];
-
-  const actions =
-    scope === PageScope.SUPERADMIN
-      ? [
-          {
-            icon: <HiPencil />,
-            onClick: (sound: Sound) => openSoundModal(ModalEnum.SOUND, sound),
-            tooltip: 'Edit',
-          },
-          {
-            icon: <HiTrash />,
-            onClick: (sound: Sound) => {
-              setSelectedSound(sound);
-              openConfirm({
-                confirmLabel: 'Delete',
-                isError: true,
-                label: 'Delete Sound',
-                message: `Are you sure you want to delete "${sound.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(sound),
-              });
-            },
-            tooltip: 'Delete',
-          },
-        ]
-      : [];
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
@@ -307,6 +231,38 @@ function SoundsListContent({
     }
   };
 
+  const columns = buildSoundsColumns({
+    updatingIds,
+    scope,
+    onToggleActive: handleToggleActive,
+    onToggleDefault: handleToggleDefault,
+  });
+
+  const actions =
+    scope === PageScope.SUPERADMIN
+      ? [
+          {
+            icon: <HiPencil />,
+            onClick: (sound: Sound) => openSoundModal(ModalEnum.SOUND, sound),
+            tooltip: 'Edit',
+          },
+          {
+            icon: <HiTrash />,
+            onClick: (sound: Sound) => {
+              setSelectedSound(sound);
+              openConfirm({
+                confirmLabel: 'Delete',
+                isError: true,
+                label: 'Delete Sound',
+                message: `Are you sure you want to delete "${sound.label}"? This action cannot be undone.`,
+                onConfirm: () => handleDelete(sound),
+              });
+            },
+            tooltip: 'Delete',
+          },
+        ]
+      : [];
+
   return (
     <>
       {scope === PageScope.SUPERADMIN && (
@@ -329,15 +285,14 @@ function SoundsListContent({
         emptyLabel="No sounds found"
       />
 
-      {scope === PageScope.SUPERADMIN && (
-        <LazyModalSound
-          sound={selectedSound}
-          onConfirm={() => {
-            setSelectedSound(null);
-            findAllSounds(true);
-          }}
-        />
-      )}
+      <SoundsListModals
+        scope={scope}
+        selectedSound={selectedSound}
+        onConfirm={() => {
+          setSelectedSound(null);
+          findAllSounds(true);
+        }}
+      />
 
       <div className="mt-4">
         <AutoPagination showTotal totalLabel="sounds" />

@@ -1,6 +1,5 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IDarkroomCharacter } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdminDarkroomService } from '@services/admin/darkroom.service';
@@ -8,20 +7,11 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import Container from '@ui/layout/container/Container';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
-import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiOutlineVideoCamera } from 'react-icons/hi2';
+import LipSyncConfigForm from './lip-sync-config-form';
+import LipSyncProcessingStatus from './lip-sync-processing-status';
+import LipSyncResultVideo from './lip-sync-result-video';
 
 type AudioSourceType = 'upload' | 'tts';
 
@@ -165,179 +155,27 @@ export default function LipSyncPage() {
       icon={HiOutlineVideoCamera}
     >
       {/* Configuration */}
-      <WorkspaceSurface
-        title="Generate Lip Sync Video"
-        tone="muted"
-        data-testid="darkroom-lip-sync-surface"
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            {/* Character Selector */}
-            <div>
-              <span className="block text-sm font-medium text-foreground/70 mb-1">
-                Character
-              </span>
-              <Select
-                onValueChange={setSelectedCharacter}
-                value={selectedCharacter}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a character..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {(characters || []).map((c) => (
-                    <SelectItem key={c.id} value={c.slug}>
-                      {c.emoji ? `${c.emoji} ` : ''}
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Audio Source Toggle */}
-            <div>
-              <span className="block text-sm font-medium text-foreground/70 mb-1">
-                Audio Source
-              </span>
-              <Select
-                onValueChange={(value) =>
-                  setAudioSource(value as AudioSourceType)
-                }
-                value={audioSource}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="upload">Audio URL</SelectItem>
-                  <SelectItem value="tts">Generate TTS</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Source Image URL */}
-          <div className="mb-4">
-            <span className="block text-sm font-medium text-foreground/70 mb-1">
-              Source Image URL
-            </span>
-            <Input
-              className="w-full"
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://cdn.genfeed.ai/darkroom/character/image.png"
-              value={imageUrl}
-            />
-          </div>
-
-          {/* Audio URL (when upload mode) */}
-          {audioSource === 'upload' && (
-            <div className="mb-4">
-              <span className="block text-sm font-medium text-foreground/70 mb-1">
-                Audio URL
-              </span>
-              <Input
-                className="w-full"
-                onChange={(e) => setAudioUrl(e.target.value)}
-                placeholder="https://cdn.genfeed.ai/audio/voice.mp3"
-                value={audioUrl}
-              />
-            </div>
-          )}
-
-          {/* TTS Text (when TTS mode) */}
-          {audioSource === 'tts' && (
-            <div className="mb-4">
-              <span className="block text-sm font-medium text-foreground/70 mb-1">
-                Text for TTS
-              </span>
-              <Textarea
-                className="w-full min-h-[80px]"
-                onChange={(e) => setTtsText(e.target.value)}
-                placeholder="Enter text to convert to speech..."
-                rows={3}
-                value={ttsText}
-              />
-            </div>
-          )}
-
-          {/* Image Preview */}
-          {imageUrl && (
-            <div className="mb-4">
-              <span className="block text-sm font-medium text-foreground/70 mb-1">
-                Source Preview
-              </span>
-              <Image
-                unoptimized
-                alt="Source"
-                className="size-48 rounded object-cover border border-foreground/10"
-                src={imageUrl}
-                width={800}
-                height={600}
-              />
-            </div>
-          )}
-
-          <Button
-            withWrapper={false}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-            isDisabled={!selectedCharacter || !imageUrl.trim() || isGenerating}
-            onClick={handleGenerate}
-          >
-            {isGenerating ? 'Generating...' : 'Generate Lip Sync'}
-          </Button>
-        </div>
-      </WorkspaceSurface>
+      <LipSyncConfigForm
+        characters={characters}
+        selectedCharacter={selectedCharacter}
+        onSelectedCharacterChange={setSelectedCharacter}
+        audioSource={audioSource}
+        onAudioSourceChange={setAudioSource}
+        imageUrl={imageUrl}
+        onImageUrlChange={setImageUrl}
+        audioUrl={audioUrl}
+        onAudioUrlChange={setAudioUrl}
+        ttsText={ttsText}
+        onTtsTextChange={setTtsText}
+        isGenerating={isGenerating}
+        onGenerate={handleGenerate}
+      />
 
       {/* Processing Status */}
-      {isGenerating && jobId && (
-        <WorkspaceSurface
-          title="Processing Lip Sync Video"
-          tone="muted"
-          className="mt-6"
-          data-testid="darkroom-lip-sync-progress-surface"
-        >
-          <div className="flex items-center gap-3">
-            <div className="animate-spin size-5 border-2 border-primary border-t-transparent rounded-full" />
-            <div>
-              <p className="text-sm text-foreground/50">
-                Job ID: {jobId} - This may take a few minutes
-              </p>
-            </div>
-          </div>
-        </WorkspaceSurface>
-      )}
+      {isGenerating && jobId && <LipSyncProcessingStatus jobId={jobId} />}
 
       {/* Result Video */}
-      {videoUrl && (
-        <WorkspaceSurface
-          title="Result"
-          tone="muted"
-          className="mt-6"
-          data-testid="darkroom-lip-sync-result-surface"
-        >
-          <video
-            aria-label="Lip sync result video"
-            className="w-full max-w-lg rounded"
-            controls
-            src={videoUrl}
-          >
-            <track kind="captions" />
-          </video>
-          <div className="mt-3">
-            <a
-              className="text-sm text-primary hover:underline"
-              download
-              href={videoUrl}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              Download Video
-            </a>
-          </div>
-        </WorkspaceSurface>
-      )}
+      {videoUrl && <LipSyncResultVideo videoUrl={videoUrl} />}
     </Container>
   );
 }
