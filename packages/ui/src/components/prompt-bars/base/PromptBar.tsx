@@ -233,9 +233,6 @@ function PromptBar({
   const isInternalUpdateRef = useRef(false);
   const hasExpandedRef = useRef(false);
   const [promptBarHeight, setPromptBarHeight] = useState(0);
-  const [attachedPromptAssets, setAttachedPromptAssets] = useState<
-    PromptBarAttachedAsset[]
-  >([]);
   const [isDragActive, setIsDragActive] = useState(false);
   const [dragError, setDragError] = useState<string | null>(null);
   const dragDepthRef = useRef(0);
@@ -406,6 +403,27 @@ function PromptBar({
     supportsMultipleReferences,
   });
 
+  const attachedPromptAssets = useMemo<PromptBarAttachedAsset[]>(() => {
+    const source = referenceSource === 'brand' ? 'library' : 'upload';
+    const nextAttachedAssets = references.map((reference) =>
+      toAttachedPromptAsset(
+        reference,
+        currentModelCategory === ModelCategory.VIDEO
+          ? 'startFrame'
+          : 'reference',
+        source,
+      ),
+    );
+
+    if (endFrame) {
+      nextAttachedAssets.push(
+        toAttachedPromptAsset(endFrame, 'endFrame', source),
+      );
+    }
+
+    return nextAttachedAssets;
+  }, [currentModelCategory, endFrame, referenceSource, references]);
+
   const {
     handleTextChange,
     handleTextareaChange,
@@ -486,27 +504,6 @@ function PromptBar({
       notificationsService.error(`Voice input error: ${speechError}`);
     }
   }, [speechError, notificationsService]);
-
-  useEffect(() => {
-    const source = referenceSource === 'brand' ? 'library' : 'upload';
-    const nextAttachedAssets = references.map((reference) =>
-      toAttachedPromptAsset(
-        reference,
-        currentModelCategory === ModelCategory.VIDEO
-          ? 'startFrame'
-          : 'reference',
-        source,
-      ),
-    );
-
-    if (endFrame) {
-      nextAttachedAssets.push(
-        toAttachedPromptAsset(endFrame, 'endFrame', source),
-      );
-    }
-
-    setAttachedPromptAssets(nextAttachedAssets);
-  }, [currentModelCategory, endFrame, referenceSource, references]);
 
   useEffect(() => {
     if (normalizedWatchedModels.length > 0 && !watchedDuration) {
