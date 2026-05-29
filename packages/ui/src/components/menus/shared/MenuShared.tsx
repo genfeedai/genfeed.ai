@@ -1,10 +1,8 @@
 'use client';
 
-import { UserButton, useAuth, useUser } from '@clerk/nextjs';
 import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { useOverviewBootstrap } from '@genfeedai/hooks/data/overview/use-overview-bootstrap';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
@@ -14,75 +12,21 @@ import { Kbd } from '@genfeedai/ui';
 
 import MenuItem from '@ui/menus/item/MenuItem';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
-import UserDropdown from '@ui/menus/user-dropdown/UserDropdown';
 import WorkspaceSwitcher from '@ui/menus/workspace-switcher/WorkspaceSwitcher';
 import { Button } from '@ui/primitives/button';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
-
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-  type MouseEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import {
-  HiChevronDown,
-  HiChevronRight,
-  HiOutlineArrowLeft,
-  HiOutlineDocumentText,
-  HiPlus,
-} from 'react-icons/hi2';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { HiOutlineArrowLeft, HiPlus } from 'react-icons/hi2';
+import CollapsibleGroup from './CollapsibleGroup';
+import DrillDownGroupRow from './DrillDownGroupRow';
+import SidebarUserProfile from './SidebarUserProfile';
+import WorkspaceInboxMenuItem from './WorkspaceInboxMenuItem';
 
 /** Single-column sidebar width */
 const SIDEBAR_WIDTH = 240;
-
-const DRILL_DOWN_GROUP_ICON_OVERRIDES = {
-  Posts: HiOutlineDocumentText,
-} as const;
-
-function WorkspaceInboxMenuItem({
-  href,
-  isActive,
-  isComingSoon,
-  label,
-  onClick,
-  outline,
-  solid,
-}: {
-  href?: string;
-  isActive: boolean;
-  isComingSoon?: boolean;
-  label: string;
-  onClick?: () => void;
-  outline?: MenuItemConfig['outline'];
-  solid?: MenuItemConfig['solid'];
-}) {
-  const { reviewInbox } = useOverviewBootstrap();
-  const actionableCount =
-    reviewInbox.pendingCount +
-    reviewInbox.readyCount +
-    reviewInbox.changesRequestedCount +
-    reviewInbox.rejectedCount;
-
-  return (
-    <MenuItem
-      badgeCount={actionableCount}
-      href={href}
-      isActive={isActive}
-      isCollapsed={false}
-      isComingSoon={isComingSoon}
-      label={label}
-      onClick={onClick}
-      outline={outline}
-      solid={solid}
-      variant="icon"
-    />
-  );
-}
 
 export default function MenuShared({
   config,
@@ -563,7 +507,7 @@ export default function MenuShared({
                     size="xs"
                     className="bg-black/10 text-black/52"
                   >
-                    {'\u2318\u21E7'}N
+                    {'⌘⇧'}N
                   </Kbd>
                 </Link>
               ) : (
@@ -593,7 +537,7 @@ export default function MenuShared({
                     size="xs"
                     className="bg-black/10 text-black/52"
                   >
-                    {'\u2318\u21E7'}N
+                    {'⌘⇧'}N
                   </Kbd>
                 </Button>
               )}
@@ -732,243 +676,5 @@ export default function MenuShared({
         <SidebarUserProfile isCollapsed={isCollapsed} />
       </div>
     </div>
-  );
-}
-
-function SidebarUserProfile({
-  isCollapsed = false,
-}: {
-  isCollapsed?: boolean;
-}) {
-  const { isSignedIn } = useAuth();
-  const { user } = useUser();
-
-  if (!user) {
-    return null;
-  }
-
-  if (isCollapsed) {
-    return (
-      <div className="border-t border-border p-3 flex justify-center">
-        {isSignedIn ? <UserButton /> : null}
-      </div>
-    );
-  }
-
-  return (
-    <div className="border-t border-border p-3">
-      <div className="flex items-center gap-2.5">
-        {isSignedIn ? <UserButton /> : null}
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-foreground/88">
-            {user.fullName ?? user.primaryEmailAddress?.emailAddress ?? 'User'}
-          </p>
-        </div>
-        <UserDropdown
-          userName={user.fullName ?? 'User'}
-          userEmail={user.primaryEmailAddress?.emailAddress ?? ''}
-        />
-      </div>
-    </div>
-  );
-}
-
-const COLLAPSED_GROUPS_KEY = 'genfeed:sidebar:collapsed';
-
-function getCollapsedGroups(): Set<string> {
-  if (typeof window === 'undefined') {
-    return new Set();
-  }
-  try {
-    const stored = localStorage.getItem(COLLAPSED_GROUPS_KEY);
-    return stored ? new Set(JSON.parse(stored) as string[]) : new Set();
-  } catch {
-    return new Set();
-  }
-}
-
-function persistCollapsedGroups(groups: Set<string>): void {
-  try {
-    localStorage.setItem(COLLAPSED_GROUPS_KEY, JSON.stringify([...groups]));
-  } catch {
-    // Silently ignore localStorage errors
-  }
-}
-
-/** Collapsible group with label header and toggle */
-function CollapsibleGroup({
-  label,
-  isDrillDown,
-  children,
-  storageKey,
-  actions,
-  className,
-  contentClassName,
-  headerClassName,
-  onCollapsedChange,
-}: {
-  label: string;
-  isDrillDown: boolean;
-  children: React.ReactNode;
-  storageKey?: string;
-  actions?: React.ReactNode;
-  className?: string;
-  contentClassName?: string;
-  headerClassName?: string;
-  onCollapsedChange?: (isCollapsed: boolean) => void;
-}) {
-  const key = storageKey ?? label;
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  useEffect(() => {
-    const collapsed = getCollapsedGroups().has(key);
-    if (collapsed) {
-      setIsCollapsed(true);
-    }
-  }, [key]);
-
-  const toggleMenuShared = useCallback(() => {
-    setIsCollapsed((prev) => {
-      const next = !prev;
-      const groups = getCollapsedGroups();
-      if (next) {
-        groups.add(key);
-      } else {
-        groups.delete(key);
-      }
-      persistCollapsedGroups(groups);
-      onCollapsedChange?.(next);
-      return next;
-    });
-  }, [key, onCollapsedChange]);
-
-  // DrillDown groups render their own row — no separate label needed
-  if (isDrillDown) {
-    return <div className={cn('mt-1', className)}>{children}</div>;
-  }
-
-  // Ungrouped items (empty label) render flat without a collapsible header
-  if (!label) {
-    return <div className={cn('mt-1', className)}>{children}</div>;
-  }
-
-  return (
-    <div className={cn('mt-2', className)}>
-      <div
-        className={cn(
-          'group/collapsible flex w-full items-center p-1 text-white/30',
-          headerClassName,
-        )}
-      >
-        <Button
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          onClick={toggleMenuShared}
-          className="flex items-center gap-1.5 hover:text-white/50 transition-colors duration-150 cursor-pointer"
-        >
-          <HiChevronDown
-            className={cn(
-              'size-3 transition-transform duration-200',
-              isCollapsed && '-rotate-90',
-            )}
-          />
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em]">
-            {label}
-          </span>
-        </Button>
-        {actions && !isCollapsed && <div className="ml-auto">{actions}</div>}
-      </div>
-      {!isCollapsed && <div className={contentClassName}>{children}</div>}
-    </div>
-  );
-}
-
-/** A single row representing a drill-down group with > chevron */
-function DrillDownGroupRow({
-  group,
-  isActive,
-  defaultHref,
-  onEnter,
-}: {
-  group: { group: string; items: MenuItemConfig[] };
-  isActive: boolean;
-  defaultHref?: string;
-  onEnter: () => void;
-}) {
-  const { push } = useRouter();
-  const firstItem = group.items[0];
-  const OutlineIcon =
-    DRILL_DOWN_GROUP_ICON_OVERRIDES[
-      group.group as keyof typeof DRILL_DOWN_GROUP_ICON_OVERRIDES
-    ] ?? firstItem?.outline;
-
-  const activateMenuShared = () => {
-    onEnter();
-    if (defaultHref) {
-      push(defaultHref);
-    }
-  };
-
-  const handleLinkClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    // Keep native link behavior for modified/middle clicks.
-    if (
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey
-    ) {
-      return;
-    }
-    onEnter();
-  };
-
-  const rowClasses = cn(
-    'flex w-full items-center gap-3 rounded px-3 py-1.5 transition-colors duration-150 group',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-    isActive
-      ? 'bg-white/[0.08] text-white'
-      : 'text-white/80 hover:bg-white/[0.04]',
-  );
-
-  const content = (
-    <>
-      {OutlineIcon && (
-        <OutlineIcon
-          className={cn(
-            'size-4 transition-colors duration-200',
-            isActive ? 'text-primary' : 'text-white/80 group-hover:text-white',
-          )}
-        />
-      )}
-      <span
-        className={cn(
-          'text-xs font-medium flex-1 text-left',
-          isActive ? 'text-white font-semibold' : 'text-white/90',
-        )}
-      >
-        {group.group}
-      </span>
-      <HiChevronRight className="size-4 text-white/30" />
-    </>
-  );
-
-  if (defaultHref) {
-    return (
-      <Link href={defaultHref} onClick={handleLinkClick} className={rowClasses}>
-        {content}
-      </Link>
-    );
-  }
-
-  return (
-    <Button
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-      onClick={activateMenuShared}
-      className={cn(rowClasses, 'cursor-pointer')}
-    >
-      {content}
-    </Button>
   );
 }

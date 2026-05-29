@@ -11,7 +11,6 @@ import {
 import type {
   AdPack,
   AdsChannel,
-  AdsResearchDetail,
   AdsResearchFilters,
   AdsResearchItem,
   AdsResearchMetric,
@@ -21,7 +20,6 @@ import type {
   AdsResearchTimeframe,
   CampaignLaunchPrep,
 } from '@genfeedai/interfaces';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
@@ -30,86 +28,22 @@ import {
 } from '@services/ads/ads-research.service';
 import { useQuery } from '@tanstack/react-query';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
-import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
 import FormSearchbar from '@ui/primitives/searchbar';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ui/primitives/table';
-import Image from 'next/image';
-import Link from 'next/link';
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  HiOutlineArrowTopRightOnSquare,
-  HiOutlineChartBar,
   HiOutlineFunnel,
   HiOutlineMegaphone,
-  HiOutlineRocketLaunch,
-  HiOutlineSparkles,
-  HiOutlineWrenchScrewdriver,
-  HiOutlineXMark,
   HiTableCells,
   HiViewColumns,
 } from 'react-icons/hi2';
-
-const ALL_FILTER_VALUE = '__all__';
-
-const SOURCE_OPTIONS: Array<{ label: string; value: AdsResearchSource }> = [
-  { label: 'Public + My Accounts', value: 'all' },
-  { label: 'Public', value: 'public' },
-  { label: 'My Accounts', value: 'my_accounts' },
-];
-
-const PLATFORM_OPTIONS: Array<{
-  label: string;
-  value: AdsResearchPlatform | 'all';
-}> = [
-  { label: 'All Platforms', value: 'all' },
-  { label: 'Meta Ads', value: 'meta' },
-  { label: 'Google Ads', value: 'google' },
-];
-
-const GOOGLE_CHANNEL_OPTIONS: Array<{ label: string; value: AdsChannel }> = [
-  { label: 'All Inventory', value: 'all' },
-  { label: 'Search', value: 'search' },
-  { label: 'Display', value: 'display' },
-  { label: 'YouTube', value: 'youtube' },
-];
-
-const METRIC_OPTIONS: Array<{ label: string; value: AdsResearchMetric }> = [
-  { label: 'Performance Score', value: 'performanceScore' },
-  { label: 'CTR', value: 'ctr' },
-  { label: 'ROAS', value: 'roas' },
-  { label: 'Conversions', value: 'conversions' },
-  { label: 'Spend Efficiency', value: 'spendEfficiency' },
-];
-
-const TIMEFRAME_OPTIONS: Array<{
-  label: string;
-  value: AdsResearchTimeframe;
-}> = [
-  { label: 'Last 7 Days', value: 'last_7_days' },
-  { label: 'Last 30 Days', value: 'last_30_days' },
-  { label: 'Last 90 Days', value: 'last_90_days' },
-  { label: 'All Time', value: 'all_time' },
-];
+import { AdsResearchAdGrid, AdsResearchAdTable } from './AdsResearchAdCards';
+import { DetailSidebar } from './AdsResearchDetailSidebar';
+import { AdsResearchFilterPanel } from './AdsResearchFilterPanel';
 
 const SORT_OPTIONS = [
   { label: 'Score (High → Low)', value: 'score' },
@@ -149,645 +83,8 @@ type CredentialOption = {
 
 type AdSortKey = 'score' | 'ctr' | 'roas';
 
-function formatMetric(value?: number): string {
-  if (typeof value !== 'number' || Number.isNaN(value)) {
-    return 'n/a';
-  }
-
-  if (value >= 1000) {
-    return value.toLocaleString();
-  }
-
-  return Number.isInteger(value) ? String(value) : value.toFixed(2);
-}
-
 function getBrandLabel(selectedBrand?: { label?: string; name?: string }) {
   return selectedBrand?.label || selectedBrand?.name || 'Brand';
-}
-
-function getCredentialLabel(credential: {
-  id: string;
-  externalHandle?: string;
-  externalId?: string;
-  platform?: string;
-}) {
-  return (
-    credential.externalHandle ||
-    credential.externalId ||
-    credential.platform ||
-    credential.id
-  );
-}
-
-function getMetricValue(
-  item: AdsResearchItem,
-  metric: AdsResearchMetric,
-): number | undefined {
-  switch (metric) {
-    case 'ctr':
-      return item.metrics.ctr;
-    case 'roas':
-      return item.metrics.roas;
-    case 'conversions':
-      return item.metrics.conversions;
-    default:
-      return item.metrics.performanceScore ?? item.metricValue;
-  }
-}
-
-function getMetricLabel(metric: AdsResearchMetric): string {
-  switch (metric) {
-    case 'ctr':
-      return 'CTR';
-    case 'roas':
-      return 'ROAS';
-    case 'conversions':
-      return 'Conversions';
-    case 'spendEfficiency':
-      return 'Efficiency';
-    default:
-      return 'Score';
-  }
-}
-
-function FilterSelect<T extends string>({
-  label,
-  onChange,
-  options,
-  value,
-}: {
-  label: string;
-  onChange: (value: T) => void;
-  options: Array<{ label: string; value: T }>;
-  value: T;
-}) {
-  return (
-    <Select
-      value={value || (ALL_FILTER_VALUE as T)}
-      onValueChange={(nextValue) =>
-        onChange((nextValue === ALL_FILTER_VALUE ? '' : nextValue) as T)
-      }
-    >
-      <SelectTrigger className="h-8 w-auto min-w-[120px] bg-transparent text-xs">
-        <SelectValue placeholder={label} />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((option) => (
-          <SelectItem
-            key={option.value || ALL_FILTER_VALUE}
-            value={option.value || ALL_FILTER_VALUE}
-          >
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
-function AdGridCard({
-  isSelected,
-  item,
-  metric,
-  onSelect,
-}: {
-  isSelected: boolean;
-  item: AdsResearchItem;
-  metric: AdsResearchMetric;
-  onSelect: (item: AdsResearchItem) => void;
-}) {
-  const metricValue = getMetricValue(item, metric);
-  const previewUrl = item.previewUrl || item.imageUrls?.[0];
-
-  return (
-    <Button
-      type="button"
-      variant={ButtonVariant.UNSTYLED}
-      onClick={() => onSelect(item)}
-      className={cn(
-        'group rounded-xl border border-white/[0.06] bg-card p-4 text-left transition-all duration-200 hover:border-white/[0.10]',
-        isSelected && 'border-primary/45 shadow-lg shadow-primary/10',
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-card text-white/70">
-            <HiOutlineMegaphone className="size-4" />
-          </div>
-
-          <div className="min-w-0">
-            <h3 className="line-clamp-2 text-base font-semibold text-foreground">
-              {item.title}
-            </h3>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              <Badge variant={item.source === 'public' ? 'blue' : 'accent'}>
-                {item.source === 'public' ? 'Public' : 'Connected'}
-              </Badge>
-              <Badge variant="ghost">
-                {item.platform === 'meta' ? 'Meta' : 'Google'}
-              </Badge>
-              {item.channel !== 'all' && (
-                <Badge variant="ghost">{item.channel}</Badge>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-white/[0.06] bg-card px-3 py-2 text-right">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-            {getMetricLabel(metric)}
-          </div>
-          <div className="text-lg font-semibold text-foreground">
-            {formatMetric(metricValue)}
-          </div>
-        </div>
-      </div>
-
-      <p className="mt-4 line-clamp-4 min-h-[5rem] text-sm leading-6 text-foreground/72">
-        {item.headline || item.body || item.explanation || 'No copy available.'}
-      </p>
-
-      {previewUrl && (
-        <div className="relative mt-3 h-36 overflow-hidden rounded-lg border border-white/[0.06] bg-black/20">
-          <Image
-            src={previewUrl}
-            alt={item.title}
-            fill
-            unoptimized
-            sizes="(min-width: 768px) 20rem, 100vw"
-            className="object-cover"
-          />
-        </div>
-      )}
-
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        {item.accountName && (
-          <span className="rounded-full border border-white/[0.06] bg-card px-2.5 py-1 text-xs text-foreground/60">
-            {item.accountName}
-          </span>
-        )}
-        {item.industry && (
-          <span className="rounded-full border border-white/[0.06] bg-card px-2.5 py-1 text-xs text-foreground/60">
-            {item.industry}
-          </span>
-        )}
-      </div>
-    </Button>
-  );
-}
-
-function AdTableRow({
-  isSelected,
-  item,
-  metric,
-  onSelect,
-}: {
-  isSelected: boolean;
-  item: AdsResearchItem;
-  metric: AdsResearchMetric;
-  onSelect: (item: AdsResearchItem) => void;
-}) {
-  const metricValue = getMetricValue(item, metric);
-
-  return (
-    <TableRow
-      className={cn(
-        'cursor-pointer border-b border-white/[0.06] transition-colors hover:bg-white/[0.03]',
-        isSelected && 'bg-primary/5',
-      )}
-      onClick={() => onSelect(item)}
-    >
-      <TableCell className="px-4 py-3">
-        <Badge variant="ghost">
-          {item.platform === 'meta' ? 'Meta' : 'Google'}
-        </Badge>
-      </TableCell>
-      <TableCell className="max-w-[300px] px-4 py-3">
-        <span className="line-clamp-1 text-sm font-medium text-foreground">
-          {item.title}
-        </span>
-      </TableCell>
-      <TableCell className="px-4 py-3">
-        <Badge variant={item.source === 'public' ? 'blue' : 'accent'}>
-          {item.source === 'public' ? 'Public' : 'Connected'}
-        </Badge>
-      </TableCell>
-      <TableCell className="px-4 py-3 text-sm text-foreground/60">
-        {formatMetric(metricValue)}
-      </TableCell>
-      <TableCell className="px-4 py-3 text-sm text-foreground/60">
-        {formatMetric(item.metrics.ctr)}
-      </TableCell>
-      <TableCell className="px-4 py-3 text-sm text-foreground/60">
-        {item.channel !== 'all' ? item.channel : '—'}
-      </TableCell>
-      <TableCell className="px-4 py-3 text-sm text-foreground/40">
-        {item.accountName || '—'}
-      </TableCell>
-    </TableRow>
-  );
-}
-
-function SummaryMetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-white/[0.06] bg-card p-3">
-      <div className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-        {label}
-      </div>
-      <div className="mt-1 text-lg font-semibold text-foreground">{value}</div>
-    </div>
-  );
-}
-
-function AdPackPanel({ adPack }: { adPack: AdPack }) {
-  return (
-    <div className="space-y-4 rounded-xl bg-emerald-500/5 p-4">
-      <div className="flex items-center gap-2">
-        <Badge variant="success">Ad Pack Ready</Badge>
-        <span className="text-sm text-muted-foreground">
-          Review before launch
-        </span>
-      </div>
-
-      <div>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-          Headlines
-        </div>
-        <div className="space-y-2">
-          {adPack.headlines.map((headline) => (
-            <div
-              key={headline}
-              className="rounded-lg border border-white/[0.06] bg-card px-3 py-2 text-sm text-foreground"
-            >
-              {headline}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-          Primary Text
-        </div>
-        <p className="whitespace-pre-wrap text-sm text-foreground/85">
-          {adPack.primaryText}
-        </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <div>
-          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-            CTA
-          </div>
-          <p className="text-sm text-foreground/85">{adPack.cta}</p>
-        </div>
-        <div>
-          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-            Channel
-          </div>
-          <p className="text-sm text-foreground/85">
-            {adPack.campaignRecipe.platform === 'meta'
-              ? 'Meta Ads'
-              : 'Google Ads'}{' '}
-            / {adPack.campaignRecipe.channel}
-          </p>
-        </div>
-      </div>
-
-      <div>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-          Creative Brief
-        </div>
-        <p className="text-sm text-foreground/85">
-          {adPack.assetCreativeBrief}
-        </p>
-      </div>
-
-      <div>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-          Targeting Notes
-        </div>
-        <p className="text-sm text-foreground/85">{adPack.targetingNotes}</p>
-      </div>
-
-      <div>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-          Campaign Recipe
-        </div>
-        <p className="text-sm text-foreground/85">
-          {adPack.campaignRecipe.budgetStrategy}
-        </p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {adPack.campaignRecipe.placements.map((placement) => (
-            <Badge key={placement} variant="ghost">
-              {placement}
-            </Badge>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function LaunchPrepPanel({ prep }: { prep: CampaignLaunchPrep }) {
-  const { href } = useOrgUrl();
-
-  return (
-    <div className="space-y-4 rounded-xl bg-amber-500/5 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Badge variant="warning">Review Required</Badge>
-          <span className="text-sm text-muted-foreground">
-            Campaign stays paused until approved
-          </span>
-        </div>
-        <Badge variant="ghost">{prep.publishMode}</Badge>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-3">
-        <SummaryMetricCard label="Campaign" value={prep.campaign.name} />
-        <SummaryMetricCard label="Ad Set" value={prep.adSet.name} />
-        <SummaryMetricCard label="Ad" value={prep.ad.name} />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <div>
-          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-            Objective
-          </div>
-          <p className="text-sm text-foreground/85">
-            {prep.campaign.objective}
-          </p>
-        </div>
-        <div>
-          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-            Optimization Goal
-          </div>
-          <p className="text-sm text-foreground/85">
-            {prep.adSet.optimizationGoal}
-          </p>
-        </div>
-      </div>
-
-      <div>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-          Launch Notes
-        </div>
-        <ul className="space-y-2 text-sm text-foreground/85">
-          {prep.notes.map((note) => (
-            <li
-              key={note}
-              className="rounded-lg border border-white/[0.06] bg-card px-3 py-2"
-            >
-              {note}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {prep.workflowId && (
-        <Link
-          href={href(`/workflows/${prep.workflowId}`)}
-          className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
-        >
-          Open linked workflow
-          <HiOutlineArrowTopRightOnSquare className="size-4" />
-        </Link>
-      )}
-    </div>
-  );
-}
-
-function DetailSidebar({
-  detail,
-  detailLoading,
-  href,
-  onClose,
-  onRunAction,
-  busyAction,
-  actionError,
-  adPackResult,
-  launchPrepResult,
-  workflowResult,
-}: {
-  detail: AdsResearchDetail | null;
-  detailLoading: boolean;
-  href: (path: string) => string;
-  selectedAd: SelectedAdRef;
-  onClose: () => void;
-  onRunAction: (action: 'ad_pack' | 'workflow' | 'launch_prep') => void;
-  busyAction: 'ad_pack' | 'workflow' | 'launch_prep' | null;
-  actionError: string | null;
-  adPackResult: AdPack | null;
-  launchPrepResult: CampaignLaunchPrep | null;
-  workflowResult: {
-    description?: string;
-    workflowId: string;
-    workflowName: string;
-  } | null;
-  brandLabel: string;
-}) {
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-40 bg-black/50 transition-opacity"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Sidebar */}
-      <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-[480px] overflow-y-auto border-l border-white/[0.06] bg-background shadow-2xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.06] bg-background px-5 py-4">
-          <div className="flex items-center gap-2">
-            <HiOutlineChartBar className="size-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Ad Detail</h2>
-          </div>
-          <Button
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.SM}
-            icon={<HiOutlineXMark className="size-4" />}
-            onClick={onClose}
-            ariaLabel="Close detail"
-          />
-        </div>
-
-        <div className="space-y-5 p-5">
-          {detailLoading || !detail ? (
-            <p className="text-sm text-muted-foreground">Loading ad detail…</p>
-          ) : (
-            <>
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="ghost">
-                    {detail.platform === 'meta' ? 'Meta Ads' : 'Google Ads'}
-                  </Badge>
-                  {detail.channel !== 'all' && (
-                    <Badge variant="ghost">{detail.channel}</Badge>
-                  )}
-                  {detail.status && <Badge status={detail.status} />}
-                </div>
-
-                <div>
-                  <h3 className="text-xl font-semibold text-foreground">
-                    {detail.title}
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {detail.accountName || detail.campaignName || 'Ad detail'}
-                  </p>
-                </div>
-
-                <p className="text-sm leading-6 text-foreground/85">
-                  {detail.explanation}
-                </p>
-
-                {detail.creative.headline && (
-                  <div>
-                    <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-                      Headline
-                    </div>
-                    <p className="text-sm text-foreground/85">
-                      {detail.creative.headline}
-                    </p>
-                  </div>
-                )}
-
-                {detail.creative.body && (
-                  <div>
-                    <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-                      Primary Text
-                    </div>
-                    <p className="whitespace-pre-wrap text-sm text-foreground/85">
-                      {detail.creative.body}
-                    </p>
-                  </div>
-                )}
-
-                <div className="grid gap-3 md:grid-cols-2">
-                  <SummaryMetricCard
-                    label="CTR"
-                    value={formatMetric(detail.metrics.ctr)}
-                  />
-                  <SummaryMetricCard
-                    label="ROAS"
-                    value={formatMetric(detail.metrics.roas)}
-                  />
-                </div>
-
-                <div>
-                  <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-                    Detected Patterns
-                  </div>
-                  {detail.patternSummary && detail.patternSummary.length > 0 ? (
-                    <div className="space-y-2">
-                      {detail.patternSummary.map((pattern) => (
-                        <div
-                          key={`${pattern.id}-${pattern.label}`}
-                          className="rounded-lg border border-white/[0.06] bg-card p-3"
-                        >
-                          <div className="mb-1 flex items-center justify-between gap-2">
-                            <span className="text-sm font-medium text-foreground">
-                              {pattern.label}
-                            </span>
-                            {typeof pattern.score === 'number' && (
-                              <Badge variant="ghost">
-                                {formatMetric(pattern.score)}
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-xs leading-5 text-muted-foreground">
-                            {pattern.summary}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No reusable pattern summary was attached to this ad yet.
-                    </p>
-                  )}
-                </div>
-
-                {detail.landingPageUrl && (
-                  <a
-                    href={detail.landingPageUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
-                  >
-                    Open landing page
-                    <HiOutlineArrowTopRightOnSquare className="size-4" />
-                  </a>
-                )}
-              </div>
-
-              {actionError && (
-                <Alert type={AlertCategory.ERROR}>
-                  <div className="text-xs">{actionError}</div>
-                </Alert>
-              )}
-
-              <div className="grid gap-2">
-                <Button
-                  variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.SM}
-                  isLoading={busyAction === 'ad_pack'}
-                  onClick={() => onRunAction('ad_pack')}
-                  icon={<HiOutlineSparkles className="size-4" />}
-                >
-                  Remix for my brand
-                </Button>
-                <Button
-                  variant={ButtonVariant.DEFAULT}
-                  size={ButtonSize.SM}
-                  isLoading={busyAction === 'workflow'}
-                  onClick={() => onRunAction('workflow')}
-                  icon={<HiOutlineWrenchScrewdriver className="size-4" />}
-                >
-                  Create workflow
-                </Button>
-                <Button
-                  variant={ButtonVariant.OUTLINE}
-                  size={ButtonSize.SM}
-                  isLoading={busyAction === 'launch_prep'}
-                  onClick={() => onRunAction('launch_prep')}
-                  icon={<HiOutlineRocketLaunch className="size-4" />}
-                >
-                  Prepare campaign
-                </Button>
-              </div>
-
-              {workflowResult && (
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-                  <div className="mb-2 flex items-center gap-2">
-                    <Badge variant="primary">Workflow Created</Badge>
-                    <span className="text-sm font-medium text-foreground">
-                      {workflowResult.workflowName}
-                    </span>
-                  </div>
-                  {workflowResult.description && (
-                    <p className="mb-3 text-sm text-foreground/75">
-                      {workflowResult.description}
-                    </p>
-                  )}
-                  <Link
-                    href={href(`/workflows/${workflowResult.workflowId}`)}
-                    className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
-                  >
-                    Open workflow editor
-                    <HiOutlineArrowTopRightOnSquare className="size-4" />
-                  </Link>
-                </div>
-              )}
-
-              {adPackResult && <AdPackPanel adPack={adPackResult} />}
-              {launchPrepResult && <LaunchPrepPanel prep={launchPrepResult} />}
-            </>
-          )}
-        </div>
-      </aside>
-    </>
-  );
 }
 
 export default function AdsResearchPageClient({
@@ -1242,94 +539,31 @@ export default function AdsResearchPageClient({
 
       {/* Collapsible Filter Panel */}
       {showFilters && (
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          {initialPlatform === 'all' && (
-            <FilterSelect
-              label="Platform"
-              options={PLATFORM_OPTIONS}
-              value={platform}
-              onChange={(value) =>
-                setPlatform((value || 'all') as AdsResearchPlatform | 'all')
-              }
-            />
-          )}
-          <FilterSelect
-            label="Source"
-            options={SOURCE_OPTIONS}
-            value={source}
-            onChange={setSource}
-          />
-          {showChannelFilter && (
-            <FilterSelect
-              label="Google Channel"
-              options={GOOGLE_CHANNEL_OPTIONS}
-              value={channel}
-              onChange={setChannel}
-            />
-          )}
-          <FilterSelect
-            label="Metric"
-            options={METRIC_OPTIONS}
-            value={metric}
-            onChange={setMetric}
-          />
-          <FilterSelect
-            label="Timeframe"
-            options={TIMEFRAME_OPTIONS}
-            value={timeframe}
-            onChange={setTimeframe}
-          />
-          <Input
-            value={industry}
-            onChange={(event) => setIndustry(event.target.value)}
-            placeholder="Niche / industry…"
-            className="h-8 w-[160px] text-xs"
-          />
-          <Select
-            value={credentialId || ALL_FILTER_VALUE}
-            onValueChange={(value) =>
-              setCredentialId(value === ALL_FILTER_VALUE ? '' : value)
-            }
-          >
-            <SelectTrigger className="h-8 w-auto min-w-[160px] bg-transparent text-xs">
-              <SelectValue placeholder="Credential" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_FILTER_VALUE}>No credential</SelectItem>
-              {credentialOptions.map((credential: CredentialOption) => (
-                <SelectItem key={credential.id} value={credential.id}>
-                  {getCredentialLabel(credential)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={adAccountId || ALL_FILTER_VALUE}
-            onValueChange={(value) =>
-              setAdAccountId(value === ALL_FILTER_VALUE ? '' : value)
-            }
-          >
-            <SelectTrigger className="h-8 w-auto min-w-[160px] bg-transparent text-xs">
-              <SelectValue placeholder="Ad Account" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_FILTER_VALUE}>No ad account</SelectItem>
-              {adAccounts.map((account) => (
-                <SelectItem key={account.id} value={account.id}>
-                  {account.name || account.id}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {effectivePlatform === 'google' && (
-            <Input
-              value={loginCustomerId}
-              onChange={(event) => setLoginCustomerId(event.target.value)}
-              placeholder="MCC / manager ID"
-              className="h-8 w-[140px] text-xs"
-            />
-          )}
-        </div>
+        <AdsResearchFilterPanel
+          adAccountId={adAccountId}
+          adAccounts={adAccounts}
+          channel={channel}
+          credentialId={credentialId}
+          credentialOptions={credentialOptions}
+          effectivePlatform={effectivePlatform}
+          industry={industry}
+          initialPlatform={initialPlatform}
+          loginCustomerId={loginCustomerId}
+          metric={metric}
+          platform={platform}
+          showChannelFilter={showChannelFilter}
+          source={source}
+          timeframe={timeframe}
+          onAdAccountChange={setAdAccountId}
+          onChannelChange={setChannel}
+          onCredentialChange={setCredentialId}
+          onIndustryChange={setIndustry}
+          onLoginCustomerIdChange={setLoginCustomerId}
+          onMetricChange={setMetric}
+          onPlatformChange={setPlatform}
+          onSourceChange={setSource}
+          onTimeframeChange={setTimeframe}
+        />
       )}
 
       {(resultsError || accountsError || detailError) && (
@@ -1357,101 +591,22 @@ export default function AdsResearchPageClient({
 
       {/* Card Grid / Table */}
       {viewType === ViewType.GRID ? (
-        allAds.length === 0 && !isLoading ? (
-          <div className="py-8 text-center text-sm text-foreground/40">
-            {search.trim()
-              ? 'No ads match your search.'
-              : 'No ads match the current filters. Adjust filters or widen the timeframe.'}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {allAds.map((item) => {
-              const key =
-                item.source === 'my_accounts'
-                  ? `connected-${item.sourceId}`
-                  : `public-${item.id}`;
-              const itemKey =
-                item.source === 'my_accounts'
-                  ? `my_accounts:${item.platform}:${item.sourceId}`
-                  : `public:${item.platform}:${item.id}`;
-
-              return (
-                <AdGridCard
-                  key={key}
-                  item={item}
-                  metric={metric}
-                  isSelected={selectedKey === itemKey}
-                  onSelect={handleSelectAd}
-                />
-              );
-            })}
-          </div>
-        )
+        <AdsResearchAdGrid
+          ads={allAds}
+          isLoading={isLoading}
+          metric={metric}
+          search={search}
+          selectedKey={selectedKey}
+          onSelect={handleSelectAd}
+        />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
-          <Table className="w-full text-left">
-            <TableHeader>
-              <TableRow className="border-b border-white/[0.06] bg-card">
-                <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-                  Platform
-                </TableHead>
-                <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-                  Title
-                </TableHead>
-                <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-                  Source
-                </TableHead>
-                <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-                  {getMetricLabel(metric)}
-                </TableHead>
-                <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-                  CTR
-                </TableHead>
-                <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-                  Channel
-                </TableHead>
-                <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-                  Account
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {allAds.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="px-4 py-8 text-center text-sm text-foreground/40"
-                  >
-                    {search.trim()
-                      ? 'No ads match your search.'
-                      : 'No ads match the current filters.'}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                allAds.map((item) => {
-                  const key =
-                    item.source === 'my_accounts'
-                      ? `connected-${item.sourceId}`
-                      : `public-${item.id}`;
-                  const itemKey =
-                    item.source === 'my_accounts'
-                      ? `my_accounts:${item.platform}:${item.sourceId}`
-                      : `public:${item.platform}:${item.id}`;
-
-                  return (
-                    <AdTableRow
-                      key={key}
-                      item={item}
-                      metric={metric}
-                      isSelected={selectedKey === itemKey}
-                      onSelect={handleSelectAd}
-                    />
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <AdsResearchAdTable
+          ads={allAds}
+          metric={metric}
+          search={search}
+          selectedKey={selectedKey}
+          onSelect={handleSelectAd}
+        />
       )}
 
       {/* Slide-over Detail Sidebar */}

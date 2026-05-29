@@ -1,40 +1,18 @@
 'use client';
 
 import StreakNotificationsBridge from '@app-components/streaks/StreakNotificationsBridge';
+import { ADMIN_MENU_ITEMS } from '@app-config/admin-menu-items.config';
+import { ANALYTICS_MENU_ITEMS } from '@app-config/analytics-menu-items.config';
+import { COMPOSE_MENU_ITEMS } from '@app-config/compose-menu-items.config';
 import {
-  ADMIN_LOGO_HREF,
-  ADMIN_MENU_ITEMS,
-} from '@app-config/admin-menu-items.config';
-import {
-  ANALYTICS_LOGO_HREF,
-  ANALYTICS_MENU_ITEMS,
-} from '@app-config/analytics-menu-items.config';
-import {
-  COMPOSE_LOGO_HREF,
-  COMPOSE_MENU_ITEMS,
-} from '@app-config/compose-menu-items.config';
-import {
-  APP_LOGO_HREF,
   APP_MENU_ITEMS,
   getAppSecondaryMenuItems,
   POSTS_INSERT_AFTER_LABEL,
 } from '@app-config/menu-items.config';
-import {
-  ORG_LOGO_HREF,
-  ORG_MENU_ITEMS,
-} from '@app-config/org-menu-items.config';
-import {
-  SETTINGS_LOGO_HREF,
-  SETTINGS_MENU_ITEMS,
-} from '@app-config/settings-menu-items.config';
-import {
-  STUDIO_LOGO_HREF,
-  STUDIO_MENU_ITEMS,
-} from '@app-config/studio-menu-items.config';
-import {
-  WORKFLOWS_LOGO_HREF,
-  WORKFLOWS_MENU_ITEMS,
-} from '@app-config/workflows-menu-items.config';
+import { ORG_MENU_ITEMS } from '@app-config/org-menu-items.config';
+import { SETTINGS_MENU_ITEMS } from '@app-config/settings-menu-items.config';
+import { STUDIO_MENU_ITEMS } from '@app-config/studio-menu-items.config';
+import { WORKFLOWS_MENU_ITEMS } from '@app-config/workflows-menu-items.config';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.provider';
 import {
   AGENT_PANEL_OPEN_KEY,
@@ -44,7 +22,6 @@ import {
 } from '@genfeedai/agent';
 import type { AppContext } from '@genfeedai/interfaces';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import { Kbd } from '@genfeedai/ui';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useUserRole } from '@hooks/auth/use-user-role';
 import { useAgentThreadCommands } from '@hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
@@ -71,15 +48,9 @@ import ProductionDataBanner from '@ui/banners/production-data/ProductionDataBann
 import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-initializer/CommandPaletteInitializer';
 import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import AppLayout from '@ui/layouts/app/AppLayout';
-import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarActionTrigger';
-import SidebarBackRow from '@ui/menus/sidebar-back-row/SidebarBackRow';
-import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
-import AdminSidebar from '@ui/shell/menus/AdminSidebar';
-import AppSidebar from '@ui/shell/menus/AppSidebar';
 import AdminTopbar from '@ui/shell/topbars/AdminTopbar';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type ReactNode,
@@ -90,7 +61,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { HiPlus } from 'react-icons/hi2';
 
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { useOptionalAuth } from '@/hooks/useOptionalAuth';
@@ -102,6 +72,8 @@ import {
 } from '@/lib/navigation/operator-shell';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 import { useCommandPaletteStore } from '@/store/commandPaletteStore';
+
+import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 
 type AgentPanelProps = {
   apiService: AgentApiService;
@@ -178,49 +150,6 @@ function AgentThreadCommandsBridge({
   });
 
   return null;
-}
-
-function ChatSidebarContent({
-  conversationActions,
-  renderConversations,
-}: {
-  conversationActions: ReactNode;
-  renderConversations: () => ReactNode;
-}) {
-  const { href, orgHref } = useOrgUrl();
-
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <SidebarBackRow label="Workspace" href={href('/workspace/overview')} />
-
-      <div className="flex min-h-0 flex-1 flex-col px-3 pb-2 pt-2">
-        <div className="flex items-center justify-between px-3 pb-2">
-          <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/35">
-            Conversations
-          </span>
-          {conversationActions}
-        </div>
-
-        <div className="pb-1">
-          <Link
-            href={orgHref('/chat/new')}
-            className="flex h-9 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-white/80 transition-colors duration-200 group cursor-pointer hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-          >
-            <HiPlus className="size-4 text-white/80 group-hover:text-white" />
-            <span className="text-sm font-medium text-white/90">New Chat</span>
-            <Kbd
-              variant="ghost"
-              className="ml-auto text-[11px] opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-            >
-              ⌘⇧N
-            </Kbd>
-          </Link>
-        </div>
-
-        <div className="min-h-0 flex-1">{renderConversations()}</div>
-      </div>
-    </div>
-  );
 }
 
 interface AppLayoutWithDynamicMenuProps extends LayoutProps {
@@ -328,7 +257,7 @@ function AppLayoutWithDynamicMenu({
     insertAfterLabel: POSTS_INSERT_AFTER_LABEL,
     items: APP_MENU_ITEMS,
   });
-  const { href: buildHref, orgHref, orgSlug, brandSlug } = useOrgUrl();
+  const { orgHref, orgSlug, brandSlug } = useOrgUrl();
   const agentApiService = useMemo(() => {
     if (!shouldInitAgentApiService) {
       return null;
@@ -599,200 +528,64 @@ function AppLayoutWithDynamicMenu({
   );
 
   const menuComponent = useMemo(() => {
-    if (isFocusedOnboardingRoute) {
+    if (isFocusedOnboardingRoute || isEditorCanvasRoute) {
       return undefined;
-    }
-
-    if (isEditorCanvasRoute) {
-      return undefined;
-    }
-
-    if (isStudioRoute) {
-      return (
-        <AppSidebar
-          backHref={withTaskContextHref(
-            buildHref(STUDIO_LOGO_HREF),
-            taskContextSearchParams,
-          )}
-          backLabel="Library"
-          items={studioMenuItems}
-          logoHref={withTaskContextHref(
-            buildHref(STUDIO_LOGO_HREF),
-            taskContextSearchParams,
-          )}
-          sectionLabel="Studio"
-          shellChromeVariant={shellChromeVariant}
-        />
-      );
-    }
-
-    if (isAdminRoute) {
-      return (
-        <AdminSidebar
-          items={adminMenuItems}
-          logoHref={withTaskContextHref(
-            ADMIN_LOGO_HREF,
-            taskContextSearchParams,
-          )}
-        />
-      );
-    }
-
-    if (isComposeRoute) {
-      return (
-        <AppSidebar
-          items={composeMenuItems}
-          logoHref={withTaskContextHref(
-            buildHref(COMPOSE_LOGO_HREF),
-            taskContextSearchParams,
-          )}
-          sectionLabel="Compose"
-          shellChromeVariant={shellChromeVariant}
-        />
-      );
-    }
-
-    if (isWorkflowsRoute) {
-      return (
-        <AppSidebar
-          items={workflowsMenuItems}
-          logoHref={withTaskContextHref(
-            buildHref(WORKFLOWS_LOGO_HREF),
-            taskContextSearchParams,
-          )}
-          sectionLabel="Workflows"
-          shellChromeVariant={shellChromeVariant}
-        />
-      );
-    }
-
-    if (isEditorRoute) {
-      return (
-        <AppSidebar
-          items={[]}
-          logoHref={withTaskContextHref(
-            buildHref('/workspace/overview'),
-            taskContextSearchParams,
-          )}
-          sectionLabel="Editor"
-          shellChromeVariant={shellChromeVariant}
-        />
-      );
-    }
-
-    if (isAnalyticsRoute) {
-      return (
-        <AppSidebar
-          items={analyticsMenuItems}
-          logoHref={withTaskContextHref(
-            buildHref(ANALYTICS_LOGO_HREF),
-            taskContextSearchParams,
-          )}
-          sectionLabel="Analytics"
-          shellChromeVariant={shellChromeVariant}
-        />
-      );
-    }
-
-    if (isOrgRoute) {
-      return (
-        <AppSidebar
-          items={orgMenuItems}
-          logoHref={withTaskContextHref(
-            orgHref(ORG_LOGO_HREF),
-            taskContextSearchParams,
-          )}
-          sectionLabel="Organization"
-          shellChromeVariant={shellChromeVariant}
-        />
-      );
-    }
-
-    if (isSettingsRoute) {
-      return (
-        <AppSidebar
-          items={settingsMenuItems}
-          logoHref={withTaskContextHref(
-            buildHref(SETTINGS_LOGO_HREF),
-            taskContextSearchParams,
-          )}
-          sectionLabel="Settings"
-          shellChromeVariant={shellChromeVariant}
-        />
-      );
     }
 
     return (
-      <AppSidebar
-        items={isConversationRoute ? [] : menuItems}
-        logoHref={withTaskContextHref(
-          buildHref(APP_LOGO_HREF),
-          taskContextSearchParams,
-        )}
-        sectionLabel={undefined}
-        collapsedSidebarWidth={0}
-        mobileSidebarWidth={isConversationRoute ? undefined : 304}
-        renderTopSlot={
-          isConversationRoute
-            ? undefined
-            : () => (
-                <>
-                  <SidebarActionTrigger
-                    ariaLabel="Open new task modal"
-                    icon={<HiPlus className="size-4 flex-shrink-0" />}
-                    label="New Task"
-                    onClick={dispatchOpenTaskComposer}
-                    shortcut="⌘⇧N"
-                  />
-                  <SidebarSearchTrigger onClick={handleOpenCommandPalette} />
-                </>
-              )
-        }
-        secondaryItems={isConversationRoute ? undefined : secondaryMenuItems}
-        renderBody={
-          isConversationRoute
-            ? () => (
-                <ChatSidebarContent
-                  conversationActions={conversationActions}
-                  renderConversations={renderConversations}
-                />
-              )
-            : undefined
-        }
-        shellMode={isConversationRoute ? 'default' : 'workspace'}
-        showPrimaryItems={!isConversationRoute}
-        sidebarWidth={isConversationRoute ? undefined : 304}
+      <AppProtectedLayoutSidebar
         shellChromeVariant={shellChromeVariant}
+        taskContextSearchParams={taskContextSearchParams}
+        isAdminRoute={isAdminRoute}
+        isAnalyticsRoute={isAnalyticsRoute}
+        isComposeRoute={isComposeRoute}
+        isConversationRoute={isConversationRoute}
+        isEditorRoute={isEditorRoute}
+        isFocusedOnboardingRoute={isFocusedOnboardingRoute}
+        isOrgRoute={isOrgRoute}
+        isSettingsRoute={isSettingsRoute}
+        isStudioRoute={isStudioRoute}
+        isWorkflowsRoute={isWorkflowsRoute}
+        adminMenuItems={adminMenuItems}
+        analyticsMenuItems={analyticsMenuItems}
+        composeMenuItems={composeMenuItems}
+        menuItems={menuItems}
+        orgMenuItems={orgMenuItems}
+        secondaryMenuItems={secondaryMenuItems}
+        settingsMenuItems={settingsMenuItems}
+        studioMenuItems={studioMenuItems}
+        workflowsMenuItems={workflowsMenuItems}
+        conversationActions={conversationActions}
+        renderConversations={renderConversations}
+        onOpenCommandPalette={handleOpenCommandPalette}
       />
     );
   }, [
-    buildHref,
-    orgHref,
+    adminMenuItems,
     analyticsMenuItems,
     composeMenuItems,
     conversationActions,
-    adminMenuItems,
-    menuItems,
+    handleOpenCommandPalette,
     isAdminRoute,
     isAnalyticsRoute,
     isComposeRoute,
+    isConversationRoute,
     isEditorCanvasRoute,
     isEditorRoute,
+    isFocusedOnboardingRoute,
     isOrgRoute,
     isSettingsRoute,
     isStudioRoute,
     isWorkflowsRoute,
-    renderConversations,
-    isFocusedOnboardingRoute,
-    isConversationRoute,
+    menuItems,
     orgMenuItems,
-    shellChromeVariant,
+    renderConversations,
     secondaryMenuItems,
     settingsMenuItems,
+    shellChromeVariant,
     studioMenuItems,
     taskContextSearchParams,
     workflowsMenuItems,
-    handleOpenCommandPalette,
   ]);
 
   const topbarComponent =

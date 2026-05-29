@@ -11,19 +11,13 @@ import type {
   IDesktopGeneratedContent,
   IGenfeedDesktopBridge,
 } from '@genfeedai/desktop-contracts';
-import {
-  ButtonVariant,
-  CredentialPlatform,
-  PostStatus,
-} from '@genfeedai/enums';
+import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import type { ICredential } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { PostsService } from '@services/content/posts.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import Card from '@ui/card/Card';
-import InsetSurface from '@ui/display/inset-surface/InsetSurface';
-import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -36,14 +30,11 @@ import { Textarea } from '@ui/primitives/textarea';
 import { track } from '@vercel/analytics';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  HiClipboardDocument,
-  HiDocumentText,
-  HiPlus,
-  HiSparkles,
-  HiTrash,
-} from 'react-icons/hi2';
 import { getDesktopBridge, isDesktopShell } from '@/lib/desktop/runtime';
+import PostsWriteAccountBar from './posts-write-account-bar';
+import PostsWriteActionBar from './posts-write-action-bar';
+import PostsWritePreviewPanel from './posts-write-preview-panel';
+import PostsWriteThreadEditor from './posts-write-thread-editor';
 
 type Tone = 'professional' | 'casual' | 'viral' | 'educational' | 'humorous';
 type GenerationFormat = 'post' | 'thread' | 'x-article';
@@ -197,33 +188,16 @@ function getFormatOptions(
   return [{ label: SOCIAL_FORMAT_LABELS.post, value: 'post' }];
 }
 
-function getFormatConstraintLabel(
-  credential: ICredential | undefined,
-  format: GenerationFormat,
-): string {
-  const platform = credential?.platform;
+function getCredentialLabel(credential: ICredential): string {
+  const platform =
+    PLATFORM_LABELS[credential.platform as CredentialPlatform] ??
+    credential.platform;
+  const handle =
+    'externalHandle' in credential && credential.externalHandle
+      ? `@${credential.externalHandle}`
+      : null;
 
-  if (isXPlatform(platform) && format === 'x-article') {
-    return 'Copy-only X Article export';
-  }
-
-  if (isXPlatform(platform)) {
-    return '280 weighted characters per post';
-  }
-
-  if (String(platform ?? '').toLowerCase() === CredentialPlatform.INSTAGRAM) {
-    return 'Caption-ready account context';
-  }
-
-  if (String(platform ?? '').toLowerCase() === CredentialPlatform.YOUTUBE) {
-    return 'Long-form platform copy context';
-  }
-
-  return 'Account-aware draft context';
-}
-
-function getFormatPublishabilityLabel(format: GenerationFormat): string {
-  return format === 'x-article' ? 'Copy only' : 'Publishable';
+  return handle ? `${platform} ${handle}` : String(platform);
 }
 
 async function generateDesktopContent(params: {
@@ -262,18 +236,6 @@ async function queueDesktopPostSync(params: {
       type: params.generated.type,
     }),
   );
-}
-
-function getCredentialLabel(credential: ICredential): string {
-  const platform =
-    PLATFORM_LABELS[credential.platform as CredentialPlatform] ??
-    credential.platform;
-  const handle =
-    'externalHandle' in credential && credential.externalHandle
-      ? `@${credential.externalHandle}`
-      : null;
-
-  return handle ? `${platform} ${handle}` : platform;
 }
 
 function PostsWritePageContent() {
@@ -606,101 +568,20 @@ function PostsWritePageContent() {
         className="border-white/10 bg-white/[0.03]"
       >
         <div className="grid gap-5">
-          {hasPrefilledIngredient ? (
-            <InsetSurface
-              className="border-primary/20 bg-primary/10 text-sm text-foreground/80"
-              tone="default"
-            >
-              A generated asset is preselected for supervised review. Save a
-              draft in Genfeed to open it directly in the post editor before
-              scheduling or publishing.
-            </InsetSurface>
-          ) : null}
-          {!hasConnectedCredentials ? (
-            <InsetSurface
-              className="border-dashed bg-black/10 text-sm text-foreground/65"
-              tone="contrast"
-            >
-              Post mode is open right away. You can write and copy content now,
-              then connect an account later if you want to save or publish
-              inside Genfeed.
-            </InsetSurface>
-          ) : (
-            <div className="grid gap-2 text-sm text-foreground/75">
-              <span>Account</span>
-              <Select
-                value={selectedCredentialId}
-                onValueChange={setSelectedCredentialId}
-              >
-                <SelectTrigger aria-label="Account">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {connectedCredentials.map((credential) => (
-                    <SelectItem key={credential.id} value={credential.id}>
-                      {getCredentialLabel(credential)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {desktop && !selectedCredential ? (
-            <div className="grid gap-2 text-sm text-foreground/75">
-              <span>Platform</span>
-              <Select
-                value={desktopPlatform}
-                onValueChange={(value) =>
-                  setDesktopPlatform(value as DesktopContentPlatform)
-                }
-              >
-                <SelectTrigger aria-label="Platform">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DESKTOP_PLATFORM_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : null}
-
-          <div className="grid gap-2 text-sm text-foreground/75">
-            <span>Format</span>
-            <Select
-              value={selectedFormat}
-              onValueChange={(value) =>
-                setSelectedFormat(value as GenerationFormat)
-              }
-            >
-              <SelectTrigger aria-label="Format">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {formatOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {selectedCredential ? (
-            <InsetSurface
-              className="border-white/10 bg-black/10 text-sm text-foreground/70"
-              tone="contrast"
-            >
-              {getCredentialLabel(selectedCredential)} ·{' '}
-              {SOCIAL_FORMAT_LABELS[selectedFormat]} ·{' '}
-              {getFormatPublishabilityLabel(selectedFormat)} ·{' '}
-              {getFormatConstraintLabel(selectedCredential, selectedFormat)}
-            </InsetSurface>
-          ) : null}
+          <PostsWriteAccountBar
+            connectedCredentials={connectedCredentials}
+            desktop={desktop}
+            desktopPlatform={desktopPlatform}
+            formatOptions={formatOptions}
+            hasConnectedCredentials={hasConnectedCredentials}
+            hasPrefilledIngredient={hasPrefilledIngredient}
+            onCredentialChange={setSelectedCredentialId}
+            onDesktopPlatformChange={setDesktopPlatform}
+            onFormatChange={setSelectedFormat}
+            selectedCredential={selectedCredential}
+            selectedCredentialId={selectedCredentialId}
+            selectedFormat={selectedFormat}
+          />
 
           <div className="grid gap-2 text-sm text-foreground/75">
             <span>Working title</span>
@@ -726,73 +607,13 @@ function PostsWritePageContent() {
           </label>
 
           {selectedFormat === 'thread' ? (
-            <div className="grid gap-3 text-sm text-foreground/75">
-              <div className="flex items-center justify-between gap-3">
-                <span>Thread draft</span>
-                <Button
-                  type="button"
-                  variant={ButtonVariant.UNSTYLED}
-                  onClick={addDraftSegment}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.05]"
-                >
-                  <HiPlus className="size-3.5" />
-                  Add post
-                </Button>
-              </div>
-              <div className="grid gap-3">
-                {draftSegments.map((segment, index) => {
-                  const count = segment.length;
-                  const isOverLimit =
-                    characterLimit !== null && count > characterLimit;
-
-                  return (
-                    <div
-                      key={`thread-segment-${index.toString()}`}
-                      className="rounded-xl border border-white/10 bg-black/20 p-3"
-                    >
-                      <div className="mb-2 flex items-center justify-between gap-3">
-                        <span className="text-xs font-medium text-foreground">
-                          Post {index + 1}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={
-                              isOverLimit
-                                ? 'text-xs text-red-400'
-                                : 'text-xs text-foreground/45'
-                            }
-                          >
-                            {characterLimit
-                              ? `${count}/${characterLimit}`
-                              : `${count} chars`}
-                          </span>
-                          {draftSegments.length > 1 ? (
-                            <Button
-                              type="button"
-                              variant={ButtonVariant.UNSTYLED}
-                              aria-label={`Remove post ${index + 1}`}
-                              onClick={() => removeDraftSegment(index)}
-                              className="inline-flex size-7 items-center justify-center rounded-lg text-foreground/45 transition hover:bg-white/[0.06] hover:text-foreground"
-                            >
-                              <HiTrash className="size-3.5" />
-                            </Button>
-                          ) : null}
-                        </div>
-                      </div>
-                      <Textarea
-                        aria-label={`Thread post ${index + 1}`}
-                        value={segment}
-                        onChange={(event) =>
-                          updateDraftSegment(index, event.target.value)
-                        }
-                        placeholder="Write this part of the thread..."
-                        className="min-h-28 border-0 bg-transparent p-0 text-sm text-foreground outline-none placeholder:text-foreground/35 focus-visible:ring-0"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <PostsWriteThreadEditor
+              characterLimit={characterLimit}
+              draftSegments={draftSegments}
+              onAddSegment={addDraftSegment}
+              onRemoveSegment={removeDraftSegment}
+              onUpdateSegment={updateDraftSegment}
+            />
           ) : (
             <label
               className="grid gap-2 text-sm text-foreground/75"
@@ -834,115 +655,28 @@ function PostsWritePageContent() {
             </p>
           ) : null}
 
-          <div className="flex flex-wrap gap-3">
-            <Button
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-              onClick={() => void handleCopyDraft()}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-white/[0.05]"
-            >
-              <HiClipboardDocument className="size-4" />
-              Copy content
-            </Button>
-            <Button
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-              onClick={handleStartBlankDraft}
-              disabled={
-                !selectedCredential ||
-                isSubmitting ||
-                selectedFormat === 'x-article'
-              }
-              className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <HiDocumentText className="size-4" />
-              {isSubmitting ? 'Working...' : 'Save draft in Genfeed'}
-            </Button>
-            <Button
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-              onClick={() => void handleGenerate(selectedFormat)}
-              disabled={!canGenerate}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <HiSparkles className="size-4" />
-              {isSubmitting
-                ? 'Working...'
-                : `${generatePostLabel} (${SOCIAL_FORMAT_LABELS[selectedFormat]})`}
-            </Button>
-          </div>
+          <PostsWriteActionBar
+            canGenerate={canGenerate}
+            canSaveDraft={
+              Boolean(selectedCredential) && selectedFormat !== 'x-article'
+            }
+            generatePostLabel={generatePostLabel}
+            isSubmitting={isSubmitting}
+            onCopy={() => void handleCopyDraft()}
+            onGenerate={() => void handleGenerate(selectedFormat)}
+            onSaveDraft={() => void handleStartBlankDraft()}
+            selectedFormat={selectedFormat}
+          />
         </div>
       </Card>
 
-      <Card
-        bodyClassName="gap-0 p-6"
-        className="border-white/10 bg-white/[0.03]"
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-medium">Preview</h2>
-            <p className="mt-1 text-sm text-foreground/55">
-              {SOCIAL_FORMAT_LABELS[selectedFormat]} for{' '}
-              {selectedCredential
-                ? getCredentialLabel(selectedCredential)
-                : DESKTOP_PLATFORM_OPTIONS.find(
-                    (option) => option.value === desktopPlatform,
-                  )?.label}
-            </p>
-          </div>
-          <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-foreground/55">
-            {draftSegments.length}{' '}
-            {draftSegments.length === 1 ? 'post' : 'posts'}
-          </span>
-        </div>
-
-        <div className="mt-5 grid gap-3">
-          {draftSegments.map((segment, index) => {
-            const count = segment.length;
-            const isOverLimit =
-              characterLimit !== null && count > characterLimit;
-
-            return (
-              <div
-                key={`preview-segment-${index.toString()}`}
-                className="rounded-xl border border-white/10 bg-black/20 p-4"
-              >
-                <div className="mb-3 flex items-center justify-between gap-3 text-xs">
-                  <span className="font-medium text-foreground/70">
-                    {selectedFormat === 'thread'
-                      ? `Post ${index + 1}`
-                      : SOCIAL_FORMAT_LABELS[selectedFormat]}
-                  </span>
-                  <span
-                    className={
-                      isOverLimit ? 'text-red-400' : 'text-foreground/40'
-                    }
-                  >
-                    {characterLimit ? `${count}/${characterLimit}` : count}
-                  </span>
-                </div>
-                {segment.trim() ? (
-                  <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/85">
-                    {segment}
-                  </p>
-                ) : (
-                  <p className="text-sm text-foreground/35">
-                    Draft preview appears here.
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="mt-5 rounded-xl border border-white/10 bg-black/10 p-4 text-sm text-foreground/60">
-          <p className="font-medium text-foreground">Agent context</p>
-          <p className="mt-1">
-            The co-pilot sees the current draft, selected text, format, account,
-            and prompt instructions while you write.
-          </p>
-        </div>
-      </Card>
+      <PostsWritePreviewPanel
+        characterLimit={characterLimit}
+        desktopPlatform={desktopPlatform}
+        draftSegments={draftSegments}
+        selectedCredential={selectedCredential}
+        selectedFormat={selectedFormat}
+      />
     </section>
   );
 }

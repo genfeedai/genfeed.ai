@@ -15,13 +15,10 @@ import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  HiOutlineFilm,
-  HiOutlineMagnifyingGlass,
-  HiOutlineSparkles,
-} from 'react-icons/hi2';
+import { HiOutlineMagnifyingGlass, HiOutlineSparkles } from 'react-icons/hi2';
 
-import ClipResultCard from './components/ClipResultCard';
+import ClipsInputForm from './components/ClipsInputForm';
+import ClipsProgressView from './components/ClipsProgressView';
 import HighlightReviewCard from './components/HighlightReviewCard';
 import { ClipsApiService } from './services/clips-api.service';
 
@@ -366,64 +363,12 @@ export default function StudioClipsPage() {
   // ═══════════════════════════════════════════════════════════════
   if (step === 'progress' && project) {
     return (
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <div className="mb-8">
-          <div className="flex items-center gap-3">
-            <HiOutlineFilm className="size-6 text-primary" />
-            <h1 className="text-2xl font-semibold text-zinc-100">
-              AI Clip Factory
-            </h1>
-          </div>
-          <p className="mt-2 text-sm text-zinc-500">
-            {project.status === 'completed'
-              ? `Done -- ${project.clips.length} clips generated`
-              : project.status === 'failed'
-                ? 'Pipeline failed. Check logs for details.'
-                : `Generating ${selectedCount} clips...`}
-          </p>
-
-          {project.status !== 'completed' && project.status !== 'failed' && (
-            <div className="mt-4 flex items-center gap-3">
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
-                <div className="h-full w-2/3 animate-pulse rounded-full bg-primary transition-all duration-500" />
-              </div>
-              <span className="text-xs capitalize text-zinc-500">
-                {project.status}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {project.clips.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {project.clips.map((clip) => (
-              <ClipResultCard
-                key={clip._id}
-                clip={clip}
-                clipsService={clipsService}
-              />
-            ))}
-          </div>
-        ) : (
-          project.status !== 'completed' && (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 py-20">
-              <Spinner size={ComponentSize.LG} className="mb-4 text-primary" />
-              <p className="text-sm text-zinc-500">
-                Generating avatar clips for selected highlights…
-              </p>
-            </div>
-          )
-        )}
-
-        <div className="mt-8">
-          <Button
-            variant={ButtonVariant.LINK}
-            className="text-sm text-zinc-500 hover:text-zinc-300"
-            onClick={resetToInput}
-            label="Start new project"
-          />
-        </div>
-      </div>
+      <ClipsProgressView
+        project={project}
+        selectedCount={selectedCount}
+        clipsService={clipsService}
+        onReset={resetToInput}
+      />
     );
   }
 
@@ -611,114 +556,16 @@ export default function StudioClipsPage() {
   // Step 1: Input form
   // ═══════════════════════════════════════════════════════════════
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
-      <div className="mb-8 text-center">
-        <div className="mb-4 flex justify-center">
-          <div className="rounded-2xl bg-primary/10 p-3">
-            <HiOutlineSparkles className="size-8 text-primary" />
-          </div>
-        </div>
-        <h1 className="text-3xl font-semibold text-zinc-100">
-          AI Clip Factory
-        </h1>
-        <p className="mt-2 text-sm text-zinc-500">
-          Drop a YouTube URL, review AI-detected highlights, generate avatar
-          clips
-        </p>
-      </div>
-
-      <div className="space-y-5 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
-        {/* YouTube URL */}
-        <div>
-          <label
-            htmlFor="youtube-url"
-            className="mb-1.5 block text-sm font-medium text-zinc-300"
-          >
-            YouTube URL
-          </label>
-          <Input
-            id="youtube-url"
-            type="url"
-            value={youtubeUrl}
-            onChange={(e) => setYoutubeUrl(e.target.value)}
-            placeholder="https://www.youtube.com/watch?v=..."
-          />
-        </div>
-
-        {/* Max Clips Slider */}
-        <div>
-          <label
-            htmlFor="max-clips"
-            className="mb-1.5 flex items-center justify-between text-sm font-medium text-zinc-300"
-          >
-            <span>Max Clips</span>
-            <span className="text-xs text-zinc-500">{maxClips}</span>
-          </label>
-          <Input
-            id="max-clips"
-            type="range"
-            min={1}
-            max={30}
-            value={maxClips}
-            onChange={(e) => setMaxClips(Number(e.target.value))}
-            className="w-full accent-primary"
-          />
-          <div className="mt-1 flex justify-between text-[10px] text-zinc-600">
-            <span>1</span>
-            <span>15</span>
-            <span>30</span>
-          </div>
-        </div>
-
-        {/* Min Virality Score */}
-        <div>
-          <label
-            htmlFor="min-virality"
-            className="mb-1.5 flex items-center justify-between text-sm font-medium text-zinc-300"
-          >
-            <span>Min Virality Score</span>
-            <span className="text-xs text-zinc-500">{minViralityScore}</span>
-          </label>
-          <Input
-            id="min-virality"
-            type="range"
-            min={0}
-            max={100}
-            value={minViralityScore}
-            onChange={(e) => setMinViralityScore(Number(e.target.value))}
-            className="w-full accent-primary"
-          />
-          <div className="mt-1 flex justify-between text-[10px] text-zinc-600">
-            <span>0</span>
-            <span>50</span>
-            <span>100</span>
-          </div>
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
-            {error}
-          </div>
-        )}
-
-        {/* Submit */}
-        <Button
-          variant={ButtonVariant.UNSTYLED}
-          onClick={handleAnalyze}
-          isDisabled={isSubmitting || !youtubeUrl}
-          isLoading={isSubmitting}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
-          icon={
-            isSubmitting ? (
-              <Spinner size={ComponentSize.SM} className="text-white" />
-            ) : (
-              <HiOutlineMagnifyingGlass className="size-4" />
-            )
-          }
-          label={isSubmitting ? 'Analyzing…' : 'Analyze Video'}
-        />
-      </div>
-    </div>
+    <ClipsInputForm
+      youtubeUrl={youtubeUrl}
+      onSetYoutubeUrl={setYoutubeUrl}
+      maxClips={maxClips}
+      onSetMaxClips={setMaxClips}
+      minViralityScore={minViralityScore}
+      onSetMinViralityScore={setMinViralityScore}
+      error={error}
+      isSubmitting={isSubmitting}
+      onAnalyze={handleAnalyze}
+    />
   );
 }

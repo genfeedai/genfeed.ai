@@ -2,7 +2,6 @@
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import {
-  ButtonVariant,
   EditorTrackType,
   IngredientCategory,
   IngredientFormat,
@@ -22,17 +21,14 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
-import { Button } from '@ui/primitives/button';
 import { track } from '@vercel/analytics';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import EditorEffectsPanel from './EditorEffectsPanel';
-import EditorPreview, { type EditorPreviewRef } from './EditorPreview';
-import EditorPropertiesPanel from './EditorPropertiesPanel';
-import EditorTextPanel from './EditorTextPanel';
-import EditorTimeline from './EditorTimeline';
-import EditorToolbar from './EditorToolbar';
+import EditorLayout from './EditorLayout';
+import EditorLoadingState from './EditorLoadingState';
+import EditorNotFound from './EditorNotFound';
+import type { EditorPreviewRef } from './EditorPreview';
 
 const DEFAULT_FPS = 30;
 const AUTO_SAVE_INTERVAL = 30000;
@@ -619,128 +615,44 @@ export default function EditorPageContent({
   ]);
 
   if (state.isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full size-12 border-t-2 border-b-2 border-primary" />
-      </div>
-    );
+    return <EditorLoadingState />;
   }
 
   if (!state.project) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4">
-        <h1 className="text-xl font-semibold">Project not found</h1>
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.DEFAULT}
-          onClick={handleBack}
-        >
-          Go Back
-        </Button>
-      </div>
-    );
+    return <EditorNotFound onBack={handleBack} />;
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background">
-      {/* Toolbar */}
-      <EditorToolbar
-        projectName={state.project.name}
-        format={state.project.settings.format}
-        isPlaying={state.isPlaying}
-        currentFrame={state.currentFrame}
-        totalFrames={state.project.totalDurationFrames}
-        fps={state.project.settings.fps}
-        zoom={state.zoom}
-        isDirty={state.isDirty}
-        isRendering={state.isRendering}
-        onPlayPause={handlePlayPause}
-        onSeekStart={handleSeekStart}
-        onSeekEnd={handleSeekEnd}
-        onStepBack={handleStepBack}
-        onStepForward={handleStepForward}
-        onZoomChange={handleZoomChange}
-        onFormatChange={handleFormatChange}
-        onAddVideoTrack={handleAddVideoTrack}
-        onAddAudioTrack={handleAddAudioTrack}
-        onSave={handleSave}
-        onRender={handleRender}
-        onBack={handleBack}
-      />
-
-      {/* Main content area — three-column layout */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left panel — Text overlays */}
-        <div className="w-60 shrink-0 overflow-y-auto">
-          <EditorTextPanel
-            tracks={state.project.tracks}
-            fps={state.project.settings.fps}
-            totalFrames={state.project.totalDurationFrames}
-            selectedTrackId={state.selectedTrackId}
-            selectedClipId={state.selectedClipId}
-            onAddTextTrack={handleAddTextTrack}
-            onTrackUpdate={handleTrackUpdate}
-            onClipSelect={handleClipSelect}
-          />
-        </div>
-
-        {/* Center — Preview + Timeline */}
-        <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Preview area */}
-          <div className="flex-1 p-4 bg-muted/30">
-            <div className="h-full flex items-center justify-center">
-              <div className="w-full max-w-4xl">
-                <EditorPreview
-                  ref={previewRef}
-                  tracks={state.project.tracks}
-                  width={state.project.settings.width}
-                  height={state.project.settings.height}
-                  fps={state.project.settings.fps}
-                  totalFrames={state.project.totalDurationFrames}
-                  onFrameChange={handleFrameChange}
-                  onPlayingChange={handlePlayingChange}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Timeline area */}
-          <div className="h-64 shrink-0 border-t border-white/[0.08] overflow-hidden">
-            <EditorTimeline
-              tracks={state.project.tracks}
-              currentFrame={state.currentFrame}
-              totalFrames={state.project.totalDurationFrames}
-              fps={state.project.settings.fps}
-              zoom={state.zoom}
-              onSeek={handleSeek}
-              onTrackUpdate={handleTrackUpdate}
-              onClipMove={handleClipMove}
-              onClipResize={handleClipResize}
-              onClipSelect={handleClipSelect}
-              selectedClipId={state.selectedClipId}
-            />
-          </div>
-        </div>
-
-        {/* Right panel — Effects & Properties */}
-        <div className="w-64 shrink-0 overflow-y-auto flex flex-col">
-          <EditorEffectsPanel
-            tracks={state.project.tracks}
-            selectedTrackId={state.selectedTrackId}
-            selectedClipId={state.selectedClipId}
-            onTrackUpdate={handleTrackUpdate}
-          />
-          <div className="border-t border-white/[0.08]">
-            <EditorPropertiesPanel
-              tracks={state.project.tracks}
-              fps={state.project.settings.fps}
-              selectedTrackId={state.selectedTrackId}
-              selectedClipId={state.selectedClipId}
-              onTrackUpdate={handleTrackUpdate}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
+    <EditorLayout
+      project={state.project}
+      previewRef={previewRef}
+      isPlaying={state.isPlaying}
+      currentFrame={state.currentFrame}
+      zoom={state.zoom}
+      isDirty={state.isDirty}
+      isRendering={state.isRendering}
+      selectedTrackId={state.selectedTrackId}
+      selectedClipId={state.selectedClipId}
+      onPlayPause={handlePlayPause}
+      onSeek={handleSeek}
+      onSeekStart={handleSeekStart}
+      onSeekEnd={handleSeekEnd}
+      onStepBack={handleStepBack}
+      onStepForward={handleStepForward}
+      onZoomChange={handleZoomChange}
+      onFormatChange={handleFormatChange}
+      onAddVideoTrack={handleAddVideoTrack}
+      onAddAudioTrack={handleAddAudioTrack}
+      onSave={handleSave}
+      onRender={handleRender}
+      onBack={handleBack}
+      onAddTextTrack={handleAddTextTrack}
+      onTrackUpdate={handleTrackUpdate}
+      onClipMove={handleClipMove}
+      onClipResize={handleClipResize}
+      onClipSelect={handleClipSelect}
+      onFrameChange={handleFrameChange}
+      onPlayingChange={handlePlayingChange}
+    />
   );
 }

@@ -5,8 +5,6 @@ import {
   AgentAutonomyMode,
   AgentRunFrequency,
   AgentType,
-  ButtonSize,
-  ButtonVariant,
 } from '@genfeedai/enums';
 import type { IAgentWizardFormData } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -14,139 +12,14 @@ import { AgentStrategiesService } from '@services/automation/agent-strategies.se
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Container from '@ui/layout/container/Container';
-import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
-import { Input } from '@ui/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
-import { FaLinkedin, FaXTwitter, FaYoutube } from 'react-icons/fa6';
-import {
-  HiArrowLeft,
-  HiArrowRight,
-  HiCheck,
-  HiOutlineBolt,
-  HiOutlineCpuChip,
-  HiOutlineDocumentText,
-  HiOutlineMegaphone,
-  HiOutlinePhoto,
-  HiOutlineSparkles,
-  HiOutlineUser,
-  HiOutlineVideoCamera,
-} from 'react-icons/hi2';
-
-const AGENT_TYPES: {
-  type: AgentType;
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-  defaultBudget: number;
-  platforms: string[];
-}[] = [
-  {
-    defaultBudget: 100,
-    description: 'Versatile agent for any content type',
-    icon: <HiOutlineCpuChip className="size-6" />,
-    label: 'General',
-    platforms: ['twitter', 'instagram', 'linkedin'],
-    type: AgentType.GENERAL,
-  },
-  {
-    defaultBudget: 50,
-    description: 'Optimized for Twitter/X threads and posts',
-    icon: <FaXTwitter className="size-5" />,
-    label: 'X Content',
-    platforms: ['twitter'],
-    type: AgentType.X_CONTENT,
-  },
-  {
-    defaultBudget: 200,
-    description: 'Generates images for social media content',
-    icon: <HiOutlinePhoto className="size-6" />,
-    label: 'Image Creator',
-    platforms: ['instagram', 'twitter'],
-    type: AgentType.IMAGE_CREATOR,
-  },
-  {
-    defaultBudget: 500,
-    description: 'Creates short-form video content',
-    icon: <HiOutlineVideoCamera className="size-6" />,
-    label: 'Video Creator',
-    platforms: ['tiktok', 'youtube', 'instagram'],
-    type: AgentType.VIDEO_CREATOR,
-  },
-  {
-    defaultBudget: 300,
-    description: 'AI-powered avatar for creator content',
-    icon: <HiOutlineUser className="size-6" />,
-    label: 'AI Avatar',
-    platforms: ['tiktok', 'youtube'],
-    type: AgentType.AI_AVATAR,
-  },
-  {
-    defaultBudget: 500,
-    description: 'Expert long-form articles and blog content writer',
-    icon: <HiOutlineDocumentText className="size-6" />,
-    label: 'Article Writer',
-    platforms: ['linkedin', 'wordpress'],
-    type: AgentType.ARTICLE_WRITER,
-  },
-  {
-    defaultBudget: 200,
-    description: 'LinkedIn thought leadership and professional posts',
-    icon: <FaLinkedin className="size-5" />,
-    label: 'LinkedIn Copywriter',
-    platforms: ['linkedin'],
-    type: AgentType.LINKEDIN_CONTENT,
-  },
-  {
-    defaultBudget: 300,
-    description: 'Video ad scripts and performance marketing copy',
-    icon: <HiOutlineMegaphone className="size-6" />,
-    label: 'Ads Script Writer',
-    platforms: ['instagram', 'tiktok', 'youtube', 'facebook'],
-    type: AgentType.ADS_SCRIPT_WRITER,
-  },
-  {
-    defaultBudget: 200,
-    description: 'TikTok/IG hooks, captions, and text overlays',
-    icon: <HiOutlineBolt className="size-6" />,
-    label: 'Short-Form Writer',
-    platforms: ['tiktok', 'instagram'],
-    type: AgentType.SHORT_FORM_WRITER,
-  },
-  {
-    defaultBudget: 150,
-    description: 'CTAs, conversion copy, and action-driving content',
-    icon: <HiOutlineSparkles className="size-6" />,
-    label: 'CTA / Conversion',
-    platforms: ['instagram', 'linkedin', 'twitter', 'youtube'],
-    type: AgentType.CTA_CONTENT,
-  },
-  {
-    defaultBudget: 400,
-    description: 'YouTube scripts, titles, descriptions, and Shorts',
-    icon: <FaYoutube className="size-5" />,
-    label: 'YouTube Script',
-    platforms: ['youtube'],
-    type: AgentType.YOUTUBE_SCRIPT,
-  },
-];
-
-const PLATFORM_OPTIONS = [
-  { label: 'Twitter / X', value: 'twitter' },
-  { label: 'Instagram', value: 'instagram' },
-  { label: 'TikTok', value: 'tiktok' },
-  { label: 'YouTube', value: 'youtube' },
-  { label: 'LinkedIn', value: 'linkedin' },
-];
+import { HiOutlineCpuChip } from 'react-icons/hi2';
+import { StepIndicator } from './AgentWizardHelpers';
+import AgentWizardStepBrand from './AgentWizardStepBrand';
+import AgentWizardStepConfigure from './AgentWizardStepConfigure';
+import AgentWizardStepReview from './AgentWizardStepReview';
+import AgentWizardStepType from './AgentWizardStepType';
 
 const DEFAULT_FORM: IAgentWizardFormData = {
   agentType: AgentType.GENERAL,
@@ -164,13 +37,6 @@ const DEFAULT_FORM: IAgentWizardFormData = {
   topics: '',
   voice: '',
 };
-
-const STEPS = [
-  { id: 1, label: 'Choose Type' },
-  { id: 2, label: 'Pick Brand' },
-  { id: 3, label: 'Configure' },
-  { id: 4, label: 'Review & Launch' },
-];
 
 function mapBrandFrequencyToRunFrequency(
   frequency?: string,
@@ -190,60 +56,19 @@ function mapBrandFrequencyToRunFrequency(
   return AgentRunFrequency.DAILY;
 }
 
-function StepIndicator({ current }: { current: number }) {
-  return (
-    <div className="flex items-center gap-2 mb-6">
-      {STEPS.map((step, i) => (
-        <div key={step.id} className="flex items-center gap-2">
-          <span
-            className={`flex size-7 items-center justify-center rounded-full text-xs font-medium transition-colors ${
-              current === step.id
-                ? 'bg-foreground text-background'
-                : current > step.id
-                  ? 'bg-success text-success-foreground'
-                  : 'bg-foreground/10 text-foreground/50'
-            }`}
-          >
-            {current > step.id ? <HiCheck className="size-4" /> : step.id}
-          </span>
-          <span
-            className={`text-sm ${current >= step.id ? 'text-foreground' : 'text-foreground/40'}`}
-          >
-            {step.label}
-          </span>
-          {i < STEPS.length - 1 && (
-            <span className="mx-2 h-px w-6 bg-foreground/10" />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SelectCardButton({
-  isSelected,
-  onClick,
-  children,
-}: {
-  isSelected: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <Button
-      withWrapper={false}
-      variant={ButtonVariant.UNSTYLED}
-      onClick={onClick}
-      className={`w-full rounded border p-4 text-left transition-colors ${
-        isSelected
-          ? 'border-foreground bg-foreground/5'
-          : 'border-foreground/10 hover:border-foreground/30'
-      }`}
-    >
-      {children}
-    </Button>
-  );
-}
+const AGENT_TYPE_LABELS: Partial<Record<AgentType, string>> = {
+  [AgentType.GENERAL]: 'General',
+  [AgentType.X_CONTENT]: 'X Content',
+  [AgentType.IMAGE_CREATOR]: 'Image Creator',
+  [AgentType.VIDEO_CREATOR]: 'Video Creator',
+  [AgentType.AI_AVATAR]: 'AI Avatar',
+  [AgentType.ARTICLE_WRITER]: 'Article Writer',
+  [AgentType.LINKEDIN_CONTENT]: 'LinkedIn Copywriter',
+  [AgentType.ADS_SCRIPT_WRITER]: 'Ads Script Writer',
+  [AgentType.SHORT_FORM_WRITER]: 'Short-Form Writer',
+  [AgentType.CTA_CONTENT]: 'CTA / Conversion',
+  [AgentType.YOUTUBE_SCRIPT]: 'YouTube Script',
+};
 
 export default function AgentWizardPage() {
   const { push } = useRouter();
@@ -258,7 +83,11 @@ export default function AgentWizardPage() {
 
   const { brands } = useBrand();
 
-  const selectedTypeConfig = AGENT_TYPES.find((t) => t.type === form.agentType);
+  const selectedTypeConfig = form.agentType
+    ? {
+        label: AGENT_TYPE_LABELS[form.agentType as AgentType] ?? form.agentType,
+      }
+    : undefined;
   const selectedBrandLabel = brands.find((b) => b.id === form.brand)?.label;
 
   const handleBrandSelect = useCallback(
@@ -310,7 +139,52 @@ export default function AgentWizardPage() {
   );
 
   const handleSelectType = useCallback((type: AgentType) => {
-    const config = AGENT_TYPES.find((t) => t.type === type);
+    const AGENT_TYPE_DEFAULTS: Partial<
+      Record<AgentType, { defaultBudget: number; platforms: string[] }>
+    > = {
+      [AgentType.GENERAL]: {
+        defaultBudget: 100,
+        platforms: ['twitter', 'instagram', 'linkedin'],
+      },
+      [AgentType.X_CONTENT]: { defaultBudget: 50, platforms: ['twitter'] },
+      [AgentType.IMAGE_CREATOR]: {
+        defaultBudget: 200,
+        platforms: ['instagram', 'twitter'],
+      },
+      [AgentType.VIDEO_CREATOR]: {
+        defaultBudget: 500,
+        platforms: ['tiktok', 'youtube', 'instagram'],
+      },
+      [AgentType.AI_AVATAR]: {
+        defaultBudget: 300,
+        platforms: ['tiktok', 'youtube'],
+      },
+      [AgentType.ARTICLE_WRITER]: {
+        defaultBudget: 500,
+        platforms: ['linkedin', 'wordpress'],
+      },
+      [AgentType.LINKEDIN_CONTENT]: {
+        defaultBudget: 200,
+        platforms: ['linkedin'],
+      },
+      [AgentType.ADS_SCRIPT_WRITER]: {
+        defaultBudget: 300,
+        platforms: ['instagram', 'tiktok', 'youtube', 'facebook'],
+      },
+      [AgentType.SHORT_FORM_WRITER]: {
+        defaultBudget: 200,
+        platforms: ['tiktok', 'instagram'],
+      },
+      [AgentType.CTA_CONTENT]: {
+        defaultBudget: 150,
+        platforms: ['instagram', 'linkedin', 'twitter', 'youtube'],
+      },
+      [AgentType.YOUTUBE_SCRIPT]: {
+        defaultBudget: 400,
+        platforms: ['youtube'],
+      },
+    };
+    const config = AGENT_TYPE_DEFAULTS[type];
     setForm((prev) => ({
       ...prev,
       agentType: type,
@@ -374,492 +248,43 @@ export default function AgentWizardPage() {
         <StepIndicator current={step} />
 
         {step === 1 && (
-          <div className="space-y-4">
-            <p className="text-sm text-foreground/60">
-              Select the type of agent you want to create
-            </p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {AGENT_TYPES.map((config) => (
-                <SelectCardButton
-                  key={config.type}
-                  isSelected={form.agentType === config.type}
-                  onClick={() => handleSelectType(config.type)}
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-foreground/70">{config.icon}</span>
-                    <span className="font-medium text-sm">{config.label}</span>
-                  </div>
-                  <p className="text-xs text-foreground/50">
-                    {config.description}
-                  </p>
-                  <p className="mt-2 text-xs text-foreground/40">
-                    Default budget: {config.defaultBudget} credits/day
-                  </p>
-                </SelectCardButton>
-              ))}
-            </div>
-            <div className="flex justify-end pt-2">
-              <Button
-                label={
-                  <>
-                    Pick Brand <HiArrowRight />
-                  </>
-                }
-                variant={ButtonVariant.DEFAULT}
-                onClick={() => setStep(2)}
-              />
-            </div>
-          </div>
+          <AgentWizardStepType
+            selectedAgentType={form.agentType as AgentType}
+            onSelectType={handleSelectType}
+            onNext={() => setStep(2)}
+          />
         )}
 
         {step === 2 && (
-          <div className="space-y-5">
-            <p className="text-sm text-foreground/60">
-              Choose a brand to auto-fill voice, strategy, and model defaults
-            </p>
-
-            {brands.length > 0 ? (
-              <div className="space-y-1.5">
-                <span className="text-sm font-medium text-foreground">
-                  Brand (optional)
-                </span>
-                <Select
-                  value={form.brand}
-                  onValueChange={(value) => handleBrandSelect(value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="No brand selected" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brands.map((b) => (
-                      <SelectItem key={b.id} value={b.id}>
-                        {b.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <p className="text-xs text-foreground/50">
-                No brands found. You can continue and configure manually.
-              </p>
-            )}
-
-            <div className="flex justify-between pt-2">
-              <Button
-                label={
-                  <>
-                    <HiArrowLeft /> Back
-                  </>
-                }
-                variant={ButtonVariant.SECONDARY}
-                onClick={() => setStep(1)}
-              />
-              <Button
-                label={
-                  <>
-                    Configure <HiArrowRight />
-                  </>
-                }
-                variant={ButtonVariant.DEFAULT}
-                onClick={() => setStep(3)}
-              />
-            </div>
-          </div>
+          <AgentWizardStepBrand
+            brands={brands}
+            selectedBrandId={form.brand}
+            onBrandSelect={handleBrandSelect}
+            onBack={() => setStep(1)}
+            onNext={() => setStep(3)}
+          />
         )}
 
         {step === 3 && (
-          <div className="space-y-5">
-            <div className="space-y-1.5">
-              <label
-                htmlFor="agent-wizard-label"
-                className="text-sm font-medium text-foreground"
-              >
-                Agent Label
-              </label>
-              <Input
-                id="agent-wizard-label"
-                placeholder="e.g. Daily X Content Agent"
-                value={form.label}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, label: e.target.value }))
-                }
-                required
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <p className="text-sm font-medium text-foreground">Platforms</p>
-              <div className="flex flex-wrap gap-2">
-                {PLATFORM_OPTIONS.map((opt) => (
-                  <Button
-                    key={opt.value}
-                    withWrapper={false}
-                    size={ButtonSize.XS}
-                    variant={
-                      form.platforms.includes(opt.value)
-                        ? ButtonVariant.DEFAULT
-                        : ButtonVariant.SECONDARY
-                    }
-                    onClick={() => handleTogglePlatform(opt.value)}
-                    className="transition-colors"
-                  >
-                    {opt.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="agent-topics"
-                className="text-sm font-medium text-foreground"
-              >
-                Topics
-              </label>
-              <Textarea
-                id="agent-topics"
-                className="min-h-20"
-                placeholder="marketing, AI, technology (comma-separated)"
-                value={form.topics}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, topics: e.target.value }))
-                }
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <span className="text-sm font-medium text-foreground">
-                Run Frequency
-              </span>
-              <Select
-                value={form.runFrequency}
-                onValueChange={(value) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    runFrequency: value as AgentRunFrequency,
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a run frequency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={AgentRunFrequency.DAILY}>Daily</SelectItem>
-                  <SelectItem value={AgentRunFrequency.TWICE_DAILY}>
-                    Twice Daily
-                  </SelectItem>
-                  <SelectItem value={AgentRunFrequency.EVERY_6_HOURS}>
-                    Every 6 Hours
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="agent-voice-persona"
-                className="text-sm font-medium text-foreground"
-              >
-                Voice & Persona (auto-filled from brand)
-              </label>
-              <Textarea
-                id="agent-voice-persona"
-                className="min-h-20"
-                placeholder="Tone, style, audience, and persona instructions..."
-                value={form.voice ?? ''}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, voice: e.target.value }))
-                }
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <span className="text-sm font-medium text-foreground">
-                Quality Tier
-              </span>
-              <Select
-                value={form.qualityTier}
-                onValueChange={(value) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    qualityTier: value as IAgentWizardFormData['qualityTier'],
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a quality tier" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="budget">Budget</SelectItem>
-                  <SelectItem value="balanced">Balanced</SelectItem>
-                  <SelectItem value="high_quality">High Quality</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="agent-model"
-                className="text-sm font-medium text-foreground"
-              >
-                Model (optional)
-              </label>
-              <Input
-                id="agent-model"
-                type="text"
-                placeholder="deepseek/deepseek-chat"
-                value={form.model ?? ''}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, model: e.target.value }))
-                }
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="agent-daily-credit-budget"
-                className="text-sm font-medium text-foreground"
-              >
-                Daily Credit Budget
-              </label>
-              <Input
-                id="agent-daily-credit-budget"
-                type="number"
-                min={10}
-                max={10000}
-                value={form.dailyCreditBudget}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    dailyCreditBudget: Number(e.target.value),
-                  }))
-                }
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="agent-min-credit-threshold"
-                className="text-sm font-medium text-foreground"
-              >
-                Min Credit Threshold
-              </label>
-              <Input
-                id="agent-min-credit-threshold"
-                type="number"
-                min={1}
-                max={10000}
-                value={form.minCreditThreshold}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    minCreditThreshold: Number(e.target.value),
-                  }))
-                }
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <p className="text-sm font-medium text-foreground">
-                Autonomy Mode
-              </p>
-              <div className="flex gap-3">
-                {[
-                  {
-                    description: 'Review before publishing',
-                    label: 'Supervised',
-                    value: AgentAutonomyMode.SUPERVISED,
-                  },
-                  {
-                    description: 'Publishes automatically',
-                    label: 'Auto-Publish',
-                    value: AgentAutonomyMode.AUTO_PUBLISH,
-                  },
-                ].map((opt) => (
-                  <SelectCardButton
-                    key={opt.value}
-                    isSelected={form.autonomyMode === opt.value}
-                    onClick={() =>
-                      setForm((prev) => ({
-                        ...prev,
-                        autonomyMode: opt.value,
-                        autoPublishConfidenceThreshold:
-                          opt.value === AgentAutonomyMode.AUTO_PUBLISH
-                            ? Math.max(prev.autoPublishConfidenceThreshold, 0.8)
-                            : prev.autoPublishConfidenceThreshold,
-                      }))
-                    }
-                  >
-                    <p className="text-sm font-medium">{opt.label}</p>
-                    <p className="text-xs text-foreground/50">
-                      {opt.description}
-                    </p>
-                  </SelectCardButton>
-                ))}
-              </div>
-            </div>
-
-            {form.autonomyMode === AgentAutonomyMode.AUTO_PUBLISH && (
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="agent-auto-publish-threshold"
-                  className="text-sm font-medium text-foreground"
-                >
-                  Auto-publish Confidence Threshold
-                </label>
-                <Input
-                  id="agent-auto-publish-threshold"
-                  type="number"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={form.autoPublishConfidenceThreshold}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      autoPublishConfidenceThreshold: Number(e.target.value),
-                    }))
-                  }
-                />
-              </div>
-            )}
-
-            <div className="flex justify-between pt-2">
-              <Button
-                label={
-                  <>
-                    <HiArrowLeft /> Back
-                  </>
-                }
-                variant={ButtonVariant.SECONDARY}
-                onClick={() => setStep(2)}
-              />
-              <Button
-                label={
-                  <>
-                    Review <HiArrowRight />
-                  </>
-                }
-                variant={ButtonVariant.DEFAULT}
-                onClick={() => setStep(4)}
-                isDisabled={!form.label.trim()}
-              />
-            </div>
-          </div>
+          <AgentWizardStepConfigure
+            form={form}
+            setForm={setForm}
+            onTogglePlatform={handleTogglePlatform}
+            onBack={() => setStep(2)}
+            onNext={() => setStep(4)}
+          />
         )}
 
         {step === 4 && (
-          <div className="space-y-5">
-            <p className="text-sm text-foreground/60">
-              Review your agent configuration before launching
-            </p>
-
-            <div className="rounded border border-foreground/10 divide-y divide-foreground/10">
-              {[
-                {
-                  label: 'Label',
-                  value: form.label,
-                },
-                {
-                  label: 'Brand',
-                  value: selectedBrandLabel ?? '—',
-                },
-                {
-                  label: 'Model',
-                  value: form.model || '—',
-                },
-                {
-                  label: 'Quality Tier',
-                  value: form.qualityTier,
-                },
-                {
-                  label: 'Type',
-                  value: selectedTypeConfig?.label ?? form.agentType,
-                },
-                {
-                  label: 'Platforms',
-                  value: form.platforms.join(', ') || '—',
-                },
-                {
-                  label: 'Topics',
-                  value: form.topics || '—',
-                },
-                {
-                  label: 'Run Frequency',
-                  value: form.runFrequency,
-                },
-                {
-                  label: 'Daily Credit Budget',
-                  value: `${form.dailyCreditBudget} credits`,
-                },
-                {
-                  label: 'Min Credit Threshold',
-                  value: `${form.minCreditThreshold} credits`,
-                },
-                {
-                  label: 'Autonomy Mode',
-                  value:
-                    form.autonomyMode === AgentAutonomyMode.AUTO_PUBLISH
-                      ? 'Auto-Publish'
-                      : 'Supervised',
-                },
-                ...(form.autonomyMode === AgentAutonomyMode.AUTO_PUBLISH
-                  ? [
-                      {
-                        label: 'Auto-publish Threshold',
-                        value: String(form.autoPublishConfidenceThreshold),
-                      },
-                    ]
-                  : []),
-              ].map(({ label, value }) => (
-                <div
-                  key={label}
-                  className="flex items-center justify-between px-4 py-3 text-sm"
-                >
-                  <span className="text-foreground/50">{label}</span>
-                  <span className="font-medium">{value}</span>
-                </div>
-              ))}
-            </div>
-
-            <span className="flex items-center gap-3 cursor-pointer">
-              <Checkbox
-                checked={form.startImmediately}
-                onCheckedChange={(checked) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    startImmediately: checked === true,
-                  }))
-                }
-                aria-label="Start immediately after creation"
-              />
-              <span className="text-sm">Start immediately after creation</span>
-            </span>
-
-            <div className="flex justify-between pt-2">
-              <Button
-                label={
-                  <>
-                    <HiArrowLeft /> Back
-                  </>
-                }
-                variant={ButtonVariant.SECONDARY}
-                onClick={() => setStep(3)}
-              />
-              <Button
-                label={
-                  <>
-                    <HiCheck /> Create Agent
-                  </>
-                }
-                variant={ButtonVariant.DEFAULT}
-                onClick={handleSubmit}
-                isLoading={isSubmitting}
-                isDisabled={isSubmitting}
-              />
-            </div>
-          </div>
+          <AgentWizardStepReview
+            form={form}
+            setForm={setForm}
+            selectedBrandLabel={selectedBrandLabel}
+            selectedTypeConfig={selectedTypeConfig}
+            onBack={() => setStep(3)}
+            onSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
+          />
         )}
       </div>
     </Container>

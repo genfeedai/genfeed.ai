@@ -13,12 +13,13 @@ import type { Bot, BotLivestreamSettings } from '@models/automation/bot.model';
 import type { LivestreamSession } from '@models/automation/livestream-session.model';
 import { BotsService } from '@services/automation/bots.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Card from '@ui/card/Card';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { startTransition, useEffect, useMemo, useState } from 'react';
+import LivestreamBotConfigCard from './LivestreamBotConfigCard';
+import LivestreamPlatformTargets from './LivestreamPlatformTargets';
+import LivestreamSessionPanels from './LivestreamSessionPanels';
 
 type LivestreamPagePlatform = 'youtube' | 'twitch';
 
@@ -464,212 +465,25 @@ export default function LivestreamChatBotPage({
         </p>
       </div>
 
-      <Card className="p-6">
-        <div className="grid gap-4 md:grid-cols-2">
-          <Input
-            label="Bot Label"
-            value={form.label}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, label: event.target.value }))
-            }
-          />
-          <Input
-            label="Description"
-            value={form.description}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                description: event.target.value,
-              }))
-            }
-          />
-          <Input
-            label="Scheduled Cadence (minutes)"
-            type="number"
-            value={String(form.scheduledCadenceMinutes)}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                scheduledCadenceMinutes: Number(event.target.value || 10),
-              }))
-            }
-          />
-          <Input
-            label="Minimum Gap (seconds)"
-            type="number"
-            value={String(form.minimumMessageGapSeconds)}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                minimumMessageGapSeconds: Number(event.target.value || 90),
-              }))
-            }
-          />
-          <Input
-            label="Max Auto Posts Per Hour"
-            type="number"
-            value={String(form.maxAutoPostsPerHour)}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                maxAutoPostsPerHour: Number(event.target.value || 6),
-              }))
-            }
-          />
-          <Checkbox
-            checked={form.transcriptEnabled}
-            label="Transcript-assisted context enabled"
-            className="pt-7"
-            onCheckedChange={(checked) =>
-              setForm((current) => ({
-                ...current,
-                transcriptEnabled: Boolean(checked),
-              }))
-            }
-          />
-        </div>
+      <LivestreamBotConfigCard
+        form={form}
+        isSaving={isSaving}
+        onFormChange={(patch) =>
+          setForm((current) => ({ ...current, ...patch }))
+        }
+        onSave={() => void handleSave()}
+      />
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <Input
-            label="Primary Link Label"
-            value={form.linkLabel}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                linkLabel: event.target.value,
-              }))
-            }
-          />
-          <Input
-            label="Primary Link URL"
-            value={form.linkUrl}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                linkUrl: event.target.value,
-              }))
-            }
-          />
-          <Textarea
-            label="Scheduled Host Prompt Template"
-            value={form.hostPromptTemplate}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                hostPromptTemplate: event.target.value,
-              }))
-            }
-          />
-          <Textarea
-            label="Context-Aware Question Template"
-            value={form.contextTemplate}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                contextTemplate: event.target.value,
-              }))
-            }
-          />
-        </div>
+      <LivestreamPlatformTargets
+        form={form}
+        onFormChange={(patch) =>
+          setForm((current) => ({ ...current, ...patch }))
+        }
+        youtubeLastPostedAt={youtubeFirstStatus?.lastPostedAt}
+        twitchLastPostedAt={twitchStatus?.lastPostedAt}
+      />
 
-        <div className="mt-6 flex justify-end">
-          <Button
-            isLoading={isSaving}
-            label="Save Bot Configuration"
-            variant={ButtonVariant.DEFAULT}
-            onClick={() => void handleSave()}
-          />
-        </div>
-      </Card>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold">YouTube Live</h2>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Primary delivery target for the show.
-          </p>
-          <div className="grid gap-4">
-            <Input
-              label="YouTube Channel ID"
-              value={form.youtubeChannelId}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  youtubeChannelId: event.target.value,
-                }))
-              }
-            />
-            <Input
-              label="YouTube Credential ID"
-              value={form.youtubeCredentialId}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  youtubeCredentialId: event.target.value,
-                }))
-              }
-            />
-            <Input
-              label="Resolved Live Chat ID"
-              value={form.youtubeLiveChatId}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  youtubeLiveChatId: event.target.value,
-                }))
-              }
-            />
-            <p className="text-xs text-muted-foreground">
-              Last YouTube delivery:{' '}
-              {youtubeFirstStatus?.lastPostedAt || 'None yet'}
-            </p>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold">Twitch</h2>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Secondary delivery target for simultaneous streams.
-          </p>
-          <div className="grid gap-4">
-            <Input
-              label="Twitch Broadcaster ID"
-              value={form.twitchChannelId}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  twitchChannelId: event.target.value,
-                }))
-              }
-            />
-            <Input
-              label="Twitch Credential ID"
-              value={form.twitchCredentialId}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  twitchCredentialId: event.target.value,
-                }))
-              }
-            />
-            <Input
-              label="Twitch Sender ID"
-              value={form.twitchSenderId}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  twitchSenderId: event.target.value,
-                }))
-              }
-            />
-            <p className="text-xs text-muted-foreground">
-              Last Twitch delivery: {twitchStatus?.lastPostedAt || 'None yet'}
-            </p>
-          </div>
-        </Card>
-      </div>
-
-      <Card className="p-6">
+      <div className="gen-glass rounded-xl p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">Runtime Controls</h2>
@@ -770,58 +584,12 @@ export default function LivestreamChatBotPage({
             />
           </div>
         </div>
-      </Card>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold">Current Context</h2>
-          <div className="mt-4 space-y-2 text-sm">
-            <p>
-              <span className="font-medium">Source:</span>{' '}
-              {session?.context.source || 'none'}
-            </p>
-            <p>
-              <span className="font-medium">Topic:</span>{' '}
-              {session?.context.currentTopic || 'No active topic'}
-            </p>
-            <p>
-              <span className="font-medium">Summary:</span>{' '}
-              {session?.context.transcriptSummary ||
-                'No transcript summary yet'}
-            </p>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold">Recent Deliveries</h2>
-          <div className="mt-4 space-y-3">
-            {recentDeliveries.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No delivery events yet.
-              </p>
-            ) : (
-              recentDeliveries.map((delivery) => (
-                <div
-                  key={delivery.id}
-                  className="rounded-lg border border-white/[0.08] p-3 text-sm"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium">
-                      {delivery.platform.toUpperCase()} · {delivery.status}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {delivery.createdAt || 'just now'}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-muted-foreground">
-                    {delivery.message}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
       </div>
+
+      <LivestreamSessionPanels
+        recentDeliveries={recentDeliveries}
+        session={session}
+      />
     </div>
   );
 }
