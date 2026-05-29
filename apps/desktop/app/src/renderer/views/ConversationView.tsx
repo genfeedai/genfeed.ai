@@ -12,117 +12,19 @@ import type {
   IDesktopThread,
   IDesktopWorkspace,
 } from '@genfeedai/desktop-contracts';
-import { ButtonVariant } from '@genfeedai/enums';
 import { DropZone } from '@renderer/components/DropZone';
-import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-const PLATFORM_OPTIONS: Array<{
-  description: string;
-  label: string;
-  value: DesktopContentPlatform;
-}> = [
-  {
-    description: 'Fast hooks and threads',
-    label: 'Twitter/X',
-    value: 'twitter',
-  },
-  { description: 'Short-form scripts', label: 'TikTok', value: 'tiktok' },
-  {
-    description: 'Captions and carousels',
-    label: 'Instagram',
-    value: 'instagram',
-  },
-  {
-    description: 'Founder and GTM posts',
-    label: 'LinkedIn',
-    value: 'linkedin',
-  },
-  { description: 'Long-form video angles', label: 'YouTube', value: 'youtube' },
-];
+import { ConversationComposerToolbar } from './ConversationComposerToolbar';
+import { ConversationHeader } from './ConversationHeader';
+import { ConversationInputBar } from './ConversationInputBar';
+import { MessageBubble } from './ConversationMessageBubble';
+import { PROVIDER_PRESETS } from './ConversationProviderPresets';
+import { ConversationSidepanel } from './ConversationSidepanel';
 
-const TYPE_OPTIONS: Array<{
-  label: string;
-  value: DesktopContentType;
-}> = [
-  { label: 'Hook', value: 'hook' },
-  { label: 'Thread', value: 'thread' },
-  { label: 'Caption', value: 'caption' },
-  { label: 'Script', value: 'script' },
-  { label: 'Reply', value: 'reply' },
-  { label: 'Article', value: 'article' },
-];
-
-const PUBLISH_INTENT_OPTIONS: Array<{
-  label: string;
-  value: DesktopPublishIntent;
-}> = [
-  { label: 'Save for review', value: 'review' },
-  { label: 'Create as draft', value: 'draft' },
-  { label: 'Publish after generate', value: 'publish' },
-];
-
-const UNLINKED_PROJECT_VALUE = '__not_linked__';
 const CREDIT_CHECKOUT_PATH =
   '/onboarding/post-signup?credits=1000&source=desktop';
 const PROVIDER_KEYS_PATH = '/settings/api-keys?source=desktop';
-
-const PROVIDER_PRESETS: Record<
-  DesktopGenerationProviderKind,
-  {
-    baseUrl: string;
-    displayName: string;
-    model: string;
-  }
-> = {
-  'lm-studio': {
-    baseUrl: 'http://localhost:1234/v1',
-    displayName: 'LM Studio',
-    model: 'local-model',
-  },
-  fal: {
-    baseUrl: 'https://queue.fal.run',
-    displayName: 'fal.ai',
-    model: 'fal-ai/any-llm',
-  },
-  ollama: {
-    baseUrl: 'http://localhost:11434/v1',
-    displayName: 'Ollama',
-    model: 'llama3.1',
-  },
-  'openai-compatible': {
-    baseUrl: 'http://localhost:8000/v1',
-    displayName: 'OpenAI-compatible',
-    model: 'gpt-4o-mini',
-  },
-  replicate: {
-    baseUrl: 'https://api.replicate.com/v1',
-    displayName: 'Replicate',
-    model: 'meta/llama-2-70b-chat',
-  },
-};
-
-function isGenerationAccessError(message: string | null): boolean {
-  if (!message) {
-    return false;
-  }
-
-  const normalized = message.toLowerCase();
-  return (
-    normalized.includes('credits') ||
-    normalized.includes('api key') ||
-    normalized.includes('provider')
-  );
-}
 
 function createId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -136,134 +38,6 @@ function buildDraftTitle(prompt: string, type: DesktopContentType): string {
 
   return trimmed.length > 48 ? `${trimmed.slice(0, 48)}…` : trimmed;
 }
-
-function formatTime(value: string): string {
-  return new Date(value).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function formatRelativeDate(value: string): string {
-  const delta = Date.now() - new Date(value).getTime();
-  const minutes = Math.floor(delta / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${String(minutes)}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${String(hours)}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${String(days)}d ago`;
-}
-
-const GeneratedContentCard = ({
-  content,
-  onPublish,
-  publishResult,
-}: {
-  content: IDesktopGeneratedContent;
-  onPublish: () => Promise<void>;
-  publishResult?: IDesktopPublishResult;
-}) => {
-  const [copied, setCopied] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(content.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
-  const handlePublish = async () => {
-    setIsPublishing(true);
-    try {
-      await onPublish();
-    } finally {
-      setIsPublishing(false);
-    }
-  };
-
-  return (
-    <div className="generated-card">
-      <div className="generated-card-header">
-        <span className="platform-badge">{content.platform}</span>
-        <span className="content-type-badge">{content.type}</span>
-        {publishResult && (
-          <span className="status-badge status-active">Published</span>
-        )}
-      </div>
-      <pre className="generated-card-content">{content.content}</pre>
-      {content.hooks && content.hooks.length > 0 && (
-        <div className="generated-card-hooks">
-          <span className="generated-card-hooks-label">Hook options:</span>
-          <ol className="generated-hooks-list">
-            {content.hooks.map((hook, index) => (
-              <li key={`${content.id}-hook-${String(index)}`}>{hook}</li>
-            ))}
-          </ol>
-        </div>
-      )}
-      {publishResult && (
-        <div className="generated-card-publish-meta muted-text">
-          Published to {publishResult.platform} at{' '}
-          {formatTime(publishResult.publishedAt)}
-        </div>
-      )}
-      <div className="generated-card-actions">
-        <Button
-          className="small"
-          onClick={() => void handleCopy()}
-          type="button"
-          variant={ButtonVariant.GHOST}
-        >
-          {copied ? '✓ Copied' : '📋 Copy'}
-        </Button>
-        <Button
-          className="small"
-          disabled={isPublishing || publishResult !== undefined}
-          onClick={() => void handlePublish()}
-          type="button"
-          variant={ButtonVariant.GHOST}
-        >
-          {publishResult
-            ? 'Published'
-            : isPublishing
-              ? 'Publishing…'
-              : '🚀 Publish'}
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-const MessageBubble = ({
-  message,
-  onPublishGeneratedContent,
-  publishResult,
-}: {
-  message: IDesktopMessage;
-  onPublishGeneratedContent?: () => Promise<void>;
-  publishResult?: IDesktopPublishResult;
-}) => {
-  const isUser = message.role === 'user';
-
-  return (
-    <div className={`message-row ${isUser ? 'message-user' : 'message-ai'}`}>
-      {!isUser && <div className="message-avatar">G</div>}
-      <div className={`message-bubble ${isUser ? 'bubble-user' : 'bubble-ai'}`}>
-        <p className="message-text">{message.content}</p>
-        {message.generatedContent && onPublishGeneratedContent && (
-          <GeneratedContentCard
-            content={message.generatedContent}
-            onPublish={onPublishGeneratedContent}
-            publishResult={publishResult}
-          />
-        )}
-        <span className="message-time">{formatTime(message.createdAt)}</span>
-      </div>
-      {isUser && <div className="message-avatar user-avatar-bubble">U</div>}
-    </div>
-  );
-};
 
 interface ConversationViewProps {
   onCreateThread: () => IDesktopThread;
@@ -893,361 +667,60 @@ export const ConversationView = ({
 
   return (
     <div className="conversation-view">
-      <div className="conversation-header">
-        <div>
-          <h2 className="conversation-title">
-            {selectedDraft?.title ?? thread?.title ?? 'New Content Run'}
-          </h2>
-          <p className="muted-text conversation-subtitle">
-            Build a workspace-backed content run, then generate, publish, and
-            iterate from one native surface.
-          </p>
-        </div>
-        {isGenerating && <span className="generating-badge">Generating…</span>}
-      </div>
-
-      {error && (
-        <div className="error-banner">
-          <span>{error}</span>
-          {isGenerationAccessError(error) && (
-            <div className="error-banner-actions">
-              <Button
-                className="small"
-                onClick={() => void handleOpenCreditsCheckout()}
-                type="button"
-                variant={ButtonVariant.GHOST}
-              >
-                Buy credits
-              </Button>
-              <Button
-                className="small"
-                onClick={() => void handleOpenProviderKeys()}
-                type="button"
-                variant={ButtonVariant.GHOST}
-              >
-                Add provider keys
-              </Button>
-              <Button
-                className="small"
-                onClick={handleFocusLocalProvider}
-                type="button"
-                variant={ButtonVariant.GHOST}
-              >
-                Local provider
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+      <ConversationHeader
+        error={error}
+        isGenerating={isGenerating}
+        onFocusLocalProvider={handleFocusLocalProvider}
+        onOpenCreditsCheckout={handleOpenCreditsCheckout}
+        onOpenProviderKeys={handleOpenProviderKeys}
+        title={selectedDraft?.title ?? thread?.title ?? 'New Content Run'}
+      />
 
       <div className="conversation-shell">
-        <aside className="conversation-sidepanel panel-card">
-          <div className="conversation-panel-header">
-            <h3>Saved Runs</h3>
-            <Button
-              className="small"
-              onClick={() => {
-                setSelectedDraftId(null);
-                setInput('');
-              }}
-              type="button"
-              variant={ButtonVariant.GHOST}
-            >
-              New
-            </Button>
-          </div>
-
-          {!workspaceId && (
-            <p className="empty-state compact">
-              Open a workspace to create and persist content runs.
-            </p>
-          )}
-
-          {workspaceId && isLoadingDrafts && (
-            <p className="muted-text">Loading drafts…</p>
-          )}
-
-          {workspaceId && drafts.length === 0 && !isLoadingDrafts && (
-            <p className="empty-state compact">
-              No content runs yet. Save a draft or create one from a trend.
-            </p>
-          )}
-
-          <div className="draft-list">
-            {drafts.map((draft) => (
-              <Button
-                className={`draft-list-item ${
-                  selectedDraftId === draft.id ? 'active' : ''
-                }`}
-                key={draft.id}
-                onClick={() => setSelectedDraftId(draft.id)}
-                type="button"
-                variant={ButtonVariant.UNSTYLED}
-              >
-                <span className="draft-list-title">{draft.title}</span>
-                <span className="draft-list-meta">
-                  <span className={`status-badge status-${draft.status}`}>
-                    {draft.status}
-                  </span>
-                  <span>{formatRelativeDate(draft.updatedAt)}</span>
-                </span>
-                <span className="draft-list-submeta">
-                  {draft.platform} · {draft.type}
-                </span>
-                <span className="draft-list-actions">
-                  <span>
-                    {draft.sourceType === 'trend' ? 'Trend' : 'Prompt'}
-                  </span>
-                  <Button
-                    aria-label={`Delete draft ${draft.title}`}
-                    className="draft-list-delete"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void handleDeleteDraft(draft.id);
-                    }}
-                    type="button"
-                    variant={ButtonVariant.GHOST}
-                  >
-                    ✕
-                  </Button>
-                </span>
-              </Button>
-            ))}
-          </div>
-
-          <div className="provider-panel" id="desktop-provider-panel">
-            <div className="conversation-panel-header">
-              <h3>Local Provider</h3>
-              <span
-                className={`status-badge ${
-                  providerConfig ? 'status-active' : 'status-pending'
-                }`}
-              >
-                {providerConfig ? 'Ready' : 'Optional'}
-              </span>
-            </div>
-            <p className="muted-text provider-status">
-              Genfeed server credits are the default when connected. Configure a
-              local provider only for offline or bring-your-own-key generation.
-            </p>
-
-            <div className="provider-preset-group">
-              {(
-                Object.keys(PROVIDER_PRESETS) as DesktopGenerationProviderKind[]
-              ).map((presetKey) => (
-                <Button
-                  className={`provider-preset ${
-                    providerKind === presetKey ? 'active' : ''
-                  }`}
-                  key={presetKey}
-                  onClick={() => applyProviderPreset(presetKey)}
-                  type="button"
-                  variant={ButtonVariant.UNSTYLED}
-                >
-                  {PROVIDER_PRESETS[presetKey].displayName}
-                </Button>
-              ))}
-            </div>
-
-            <label className="provider-field" htmlFor="desktop-provider-url">
-              <span>Base URL</span>
-              <Input
-                id="desktop-provider-url"
-                onChange={(event) => setProviderBaseUrl(event.target.value)}
-                placeholder="http://localhost:11434/v1"
-                type="url"
-                value={providerBaseUrl}
-              />
-            </label>
-
-            <label className="provider-field" htmlFor="desktop-provider-model">
-              <span>Model</span>
-              <Input
-                id="desktop-provider-model"
-                onChange={(event) => setProviderModel(event.target.value)}
-                placeholder="llama3.1"
-                type="text"
-                value={providerModel}
-              />
-            </label>
-
-            <label
-              className="provider-field"
-              htmlFor="desktop-provider-api-key"
-            >
-              <span>
-                API key
-                {providerConfig?.apiKeyConfigured ? ' saved' : ''}
-              </span>
-              <Input
-                id="desktop-provider-api-key"
-                onChange={(event) => setProviderApiKey(event.target.value)}
-                placeholder={
-                  providerConfig?.apiKeyConfigured
-                    ? 'Leave blank to keep saved key'
-                    : 'Optional for local providers'
-                }
-                type="password"
-                value={providerApiKey}
-              />
-            </label>
-
-            <div className="provider-actions">
-              <Button
-                className="small"
-                disabled={isSavingProvider}
-                onClick={() => void handleSaveProvider()}
-                type="button"
-                variant={ButtonVariant.GHOST}
-              >
-                {isSavingProvider ? 'Saving…' : 'Save'}
-              </Button>
-              <Button
-                className="small"
-                disabled={isTestingProvider}
-                onClick={() => void handleTestProvider()}
-                type="button"
-                variant={ButtonVariant.GHOST}
-              >
-                {isTestingProvider ? 'Testing…' : 'Test'}
-              </Button>
-              <Button
-                className="small"
-                onClick={() => void handleClearProvider()}
-                type="button"
-                variant={ButtonVariant.GHOST}
-              >
-                Clear
-              </Button>
-            </div>
-
-            {providerStatus && (
-              <p className="muted-text provider-status">{providerStatus}</p>
-            )}
-          </div>
-        </aside>
+        <ConversationSidepanel
+          drafts={drafts}
+          isLoadingDrafts={isLoadingDrafts}
+          isSavingProvider={isSavingProvider}
+          isTestingProvider={isTestingProvider}
+          onApplyProviderPreset={applyProviderPreset}
+          onClearProvider={handleClearProvider}
+          onDeleteDraft={handleDeleteDraft}
+          onNewDraft={() => {
+            setSelectedDraftId(null);
+            setInput('');
+          }}
+          onProviderApiKeyChange={setProviderApiKey}
+          onProviderBaseUrlChange={setProviderBaseUrl}
+          onProviderModelChange={setProviderModel}
+          onSaveProvider={handleSaveProvider}
+          onSelectDraft={setSelectedDraftId}
+          onTestProvider={handleTestProvider}
+          providerApiKey={providerApiKey}
+          providerBaseUrl={providerBaseUrl}
+          providerConfig={providerConfig}
+          providerKind={providerKind}
+          providerModel={providerModel}
+          providerStatus={providerStatus}
+          selectedDraftId={selectedDraftId}
+          workspaceId={workspaceId}
+        />
 
         <section className="conversation-main">
-          <div className="composer-toolbar panel-card">
-            <div className="composer-control-group">
-              <label className="composer-label" htmlFor="desktop-platform">
-                Platform
-              </label>
-              <Select
-                onValueChange={(value) =>
-                  setPlatform(value as DesktopContentPlatform)
-                }
-                value={platform}
-              >
-                <SelectTrigger id="desktop-platform">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PLATFORM_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="composer-control-group">
-              <label className="composer-label" htmlFor="desktop-content-type">
-                Output
-              </label>
-              <Select
-                onValueChange={(value) =>
-                  setContentType(value as DesktopContentType)
-                }
-                value={contentType}
-              >
-                <SelectTrigger id="desktop-content-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TYPE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="composer-control-group">
-              <label
-                className="composer-label"
-                htmlFor="desktop-publish-intent"
-              >
-                Intent
-              </label>
-              <Select
-                onValueChange={(value) =>
-                  setPublishIntent(value as DesktopPublishIntent)
-                }
-                value={publishIntent}
-              >
-                <SelectTrigger id="desktop-publish-intent">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PUBLISH_INTENT_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="composer-control-group composer-project-group">
-              <label className="composer-label" htmlFor="desktop-project-link">
-                Cloud project
-              </label>
-              <Select
-                onValueChange={(value) =>
-                  void handleProjectLink(
-                    value === UNLINKED_PROJECT_VALUE ? '' : value,
-                  )
-                }
-                value={workspace?.linkedProjectId ?? UNLINKED_PROJECT_VALUE}
-              >
-                <SelectTrigger id="desktop-project-link">
-                  <SelectValue placeholder="Not linked" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={UNLINKED_PROJECT_VALUE}>
-                    Not linked
-                  </SelectItem>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Button
-              className="small"
-              disabled={!workspaceId || !input.trim()}
-              onClick={() => void handleSaveDraft()}
-              type="button"
-              variant={ButtonVariant.GHOST}
-            >
-              Save draft
-            </Button>
-            <Button
-              className="small"
-              disabled={!workspaceId}
-              onClick={() => void handleImportAssets()}
-              type="button"
-              variant={ButtonVariant.GHOST}
-            >
-              Import assets
-            </Button>
-          </div>
+          <ConversationComposerToolbar
+            contentType={contentType}
+            input={input}
+            onContentTypeChange={setContentType}
+            onImportAssets={handleImportAssets}
+            onPlatformChange={setPlatform}
+            onProjectLink={handleProjectLink}
+            onPublishIntentChange={setPublishIntent}
+            onSaveDraft={handleSaveDraft}
+            platform={platform}
+            projects={projects}
+            publishIntent={publishIntent}
+            workspace={workspace}
+            workspaceId={workspaceId}
+          />
 
           <DropZone
             className="conversation-messages"
@@ -1291,32 +764,16 @@ export const ConversationView = ({
             <div ref={messagesEndRef} />
           </DropZone>
 
-          <div className="conversation-input-bar">
-            <Textarea
-              className="conversation-input"
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Describe the content run you want to execute… (⌘+Enter to send)"
-              ref={inputRef}
-              rows={3}
-              value={input}
-            />
-            <div className="conversation-input-actions">
-              <span className="muted-text">
-                {PLATFORM_OPTIONS.find((option) => option.value === platform)
-                  ?.description ?? 'Content generation'}
-              </span>
-              <Button
-                className="send-button"
-                disabled={!input.trim() || isGenerating || !workspaceId}
-                onClick={() => void handleSend()}
-                type="button"
-                variant={ButtonVariant.DEFAULT}
-              >
-                {isGenerating ? 'Generating…' : 'Generate'}
-              </Button>
-            </div>
-          </div>
+          <ConversationInputBar
+            input={input}
+            isGenerating={isGenerating}
+            onInputChange={setInput}
+            onKeyDown={handleKeyDown}
+            onSend={() => void handleSend()}
+            platform={platform}
+            textareaRef={inputRef}
+            workspaceId={workspaceId}
+          />
         </section>
       </div>
     </div>
