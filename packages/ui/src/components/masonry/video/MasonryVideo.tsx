@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { ButtonSize, ButtonVariant, IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { stopAndResetVideo } from '@genfeedai/hooks/media/video-utils/video.utils';
 import useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
@@ -10,22 +10,18 @@ import type { MasonryVideoProps } from '@genfeedai/props/content/masonry.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { resolveIngredientReferenceUrl } from '@genfeedai/utils/media/reference.util';
-import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import DraggableIngredient from '@ui/drag-drop/draggable/DraggableIngredient';
 import { writeIngredientTransferData } from '@ui/drag-drop/shared/ingredient-transfer';
 import DropZoneIngredient from '@ui/drag-drop/zone-ingredient/DropZoneIngredient';
-import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import MasonryBadgeOverlay from '@ui/masonry/shared/MasonryBadgeOverlay';
 import MasonryBrandLogo from '@ui/masonry/shared/MasonryBrandLogo';
 import MasonryConfirmBridge from '@ui/masonry/shared/MasonryConfirmBridge';
 import { createDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
-import { Button } from '@ui/primitives/button';
-import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
-import Image from 'next/image';
 import type { DragEvent, MouseEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { HiHandThumbUp } from 'react-icons/hi2';
+import MasonryVideoActionsBar from './MasonryVideoActionsBar';
+import MasonryVideoMediaArea from './MasonryVideoMediaArea';
 
 const MASONRY_TILE_RADIUS_CLASS = 'rounded-lg';
 
@@ -336,198 +332,57 @@ export default function MasonryVideo({
         />
 
         {/* Media content */}
-        {isUnavailable ? (
-          <div
-            data-testid={`masonry-ingredient-${video.id}`}
-            role="button"
-            tabIndex={0}
-            className="cursor-pointer relative w-full"
-            draggable={isDragEnabled && !!onUpdateParent}
-            onDragStartCapture={handleMediaDragStart}
-            style={{
-              aspectRatio:
-                metadata?.width && metadata?.height
-                  ? `${metadata.width} / ${metadata.height}`
-                  : '9 / 16',
-            }}
-            onClick={() => {
-              if (!isDarkroomLocked) {
-                onClickIngredient?.(video);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                if (!isDarkroomLocked) {
-                  onClickIngredient?.(video);
-                }
-              }
-            }}
-          >
-            {isProcessing && (
-              <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none bg-black/20 backdrop-blur-sm">
-                <div
-                  role="presentation"
-                  className="pointer-events-auto"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <DropdownStatus
-                    entity={video}
-                    onStatusChange={onRefresh}
-                    className="scale-110"
-                  />
-                </div>
-              </div>
-            )}
-            <Image
-              src={placeholderImageUrl}
-              alt={metadataLabel ?? 'Video'}
-              fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              className={cn(
-                'object-cover object-center',
-                isDarkroomLocked && 'blur-sm',
-              )}
-              loading="lazy"
-              onLoad={() => onImageLoad?.()}
-            />
-          </div>
-        ) : (
-          <div
-            data-testid={`masonry-ingredient-${video.id}`}
-            role="button"
-            tabIndex={0}
-            className="cursor-pointer relative w-full"
-            draggable={isDragEnabled && !!onUpdateParent}
-            onDragStartCapture={handleMediaDragStart}
-            style={{
-              aspectRatio:
-                metadata?.width && metadata?.height
-                  ? `${metadata.width} / ${metadata.height}`
-                  : '9 / 16',
-            }}
-            onClick={() => {
-              if (!isDarkroomLocked) {
-                onClickIngredient?.(video);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                if (!isDarkroomLocked) {
-                  onClickIngredient?.(video);
-                }
-              }
-            }}
-          >
-            <VideoPlayer
-              src={
-                ingredientUrl && ingredientUrl !== ''
-                  ? ingredientUrl
-                  : placeholderImageUrl
-              }
-              thumbnail={thumbnailImageUrl}
-              videoRef={videoRef}
-              className="pointer-events-none select-none"
-              config={{
-                autoPlay: false,
-                controls: false,
-                loop: true,
-                muted: true,
-                playsInline: true,
-                preload: 'metadata',
-              }}
-            />
-          </div>
-        )}
-
-        {isDarkroomLocked && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/35 backdrop-blur-sm px-4 text-center">
-            <div className="rounded-full border border-white/20 bg-black/50 px-3 py-1 text-xs font-medium text-white">
-              Sensitive darkroom asset
-            </div>
-          </div>
-        )}
+        <MasonryVideoMediaArea
+          video={video}
+          metadata={metadata}
+          isUnavailable={isUnavailable}
+          isProcessing={isProcessing}
+          isDarkroomLocked={isDarkroomLocked}
+          isDragEnabled={isDragEnabled}
+          hasUpdateParent={!!onUpdateParent}
+          placeholderImageUrl={placeholderImageUrl}
+          thumbnailImageUrl={thumbnailImageUrl}
+          ingredientUrl={ingredientUrl}
+          metadataLabel={metadataLabel}
+          videoRef={videoRef}
+          handleMediaDragStart={handleMediaDragStart}
+          onClickIngredient={onClickIngredient}
+          onRefresh={onRefresh}
+          onImageLoad={onImageLoad}
+        />
       </div>
 
       {/* Quick actions bar */}
-      {isActionsEnabled && (
-        <div
-          className={cn(
-            'absolute inset-x-0 bottom-0 z-50 w-full overflow-visible border-t border-white/[0.08] bg-black/72 p-2 backdrop-blur-sm transition-opacity duration-200',
-            isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none',
-            'group-hover:opacity-100',
-          )}
-        >
-          <div className="flex items-end justify-end gap-2">
-            <div className="flex-shrink-0 flex items-center gap-2">
-              {onVoteIngredient ? (
-                <Button
-                  label={
-                    <>
-                      <HiHandThumbUp /> {video.totalVotes || 0}
-                    </>
-                  }
-                  variant={ButtonVariant.DEFAULT}
-                  size={ButtonSize.SM}
-                  className={`${
-                    video.hasVoted
-                      ? 'bg-green-500 hover:bg-green-600 text-white cursor-default'
-                      : ''
-                  } ${video.isVoteAnimating ? 'animate-vote' : ''}`}
-                  onClick={() => onVoteIngredient?.(video)}
-                />
-              ) : (
-                !isUnavailable &&
-                isHovered && (
-                  <div
-                    role="presentation"
-                    className="quick-actions-wrapper flex items-center gap-2"
-                    onClick={(e) => e.stopPropagation()}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onMouseEnter={handleQuickActionsMouseEnter}
-                    onMouseLeave={handleQuickActionsMouseLeave}
-                  >
-                    <IngredientQuickActions
-                      {...actionStates}
-                      isMasonryCompact
-                      selectedIngredient={video}
-                      availableTags={availableTags}
-                      isLoadingTags={isLoadingTags}
-                      isPortraiting={isPortraiting}
-                      isGeneratingCaptions={isGeneratingCaptions}
-                      isMirroring={isMirroring}
-                      isReversing={isReversing}
-                      isSelected={isSelected}
-                      onPublish={handlers.handlePublish}
-                      onShare={onShareIngredient}
-                      onUpscale={handlers.handleUpscale}
-                      onClone={handlers.handleClone}
-                      onDelete={handlers.handleDelete}
-                      onConvertToGif={handlers.handleConvertToGif}
-                      onPortrait={handlers.handlePortrait}
-                      onSquare={handlers.handleSquare}
-                      onLandscape={handlers.handleLandscape}
-                      onReverse={onReverse || handlers.handleReverse}
-                      onMirror={onMirror || handlers.handleMirror}
-                      onSeeDetails={onSeeDetails}
-                      onMarkArchived={handlers.handleMarkArchived}
-                      onMarkValidated={onMarkValidated}
-                      onMarkRejected={onMarkRejected}
-                      onToggleFavorite={onToggleFavorite}
-                      onCopy={onCopyPrompt}
-                      onReprompt={onReprompt}
-                      onDownload={handleDownload}
-                      onScopeChange={onScopeChange}
-                      onRefresh={onRefresh}
-                    />
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <MasonryVideoActionsBar
+        video={video}
+        isHovered={isHovered}
+        isActionsEnabled={isActionsEnabled}
+        isUnavailable={isUnavailable}
+        isSelected={isSelected}
+        isPortraiting={isPortraiting}
+        isGeneratingCaptions={isGeneratingCaptions}
+        isMirroring={isMirroring}
+        isReversing={isReversing}
+        actionStates={actionStates}
+        handlers={handlers}
+        availableTags={availableTags}
+        isLoadingTags={isLoadingTags}
+        handleDownload={handleDownload}
+        handleQuickActionsMouseEnter={handleQuickActionsMouseEnter}
+        handleQuickActionsMouseLeave={handleQuickActionsMouseLeave}
+        onVoteIngredient={onVoteIngredient}
+        onShareIngredient={onShareIngredient}
+        onSeeDetails={onSeeDetails}
+        onMarkValidated={onMarkValidated}
+        onMarkRejected={onMarkRejected}
+        onToggleFavorite={onToggleFavorite}
+        onCopyPrompt={onCopyPrompt}
+        onReprompt={onReprompt}
+        onScopeChange={onScopeChange}
+        onRefresh={onRefresh}
+        onReverse={onReverse}
+        onMirror={onMirror}
+      />
     </div>
   );
 

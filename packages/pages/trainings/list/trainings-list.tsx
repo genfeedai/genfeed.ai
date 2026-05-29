@@ -8,30 +8,20 @@ import {
   PageScope,
   TrainingStatus,
 } from '@genfeedai/enums';
-import type {
-  IBrand,
-  IOrganization,
-  ITraining,
-  IUser,
-} from '@genfeedai/interfaces';
-import { Code } from '@genfeedai/ui';
-import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
+import type { ITraining } from '@genfeedai/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { Training } from '@models/ai/training.model';
 import type { ContentProps } from '@props/layout/content.props';
-import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import {
@@ -39,17 +29,13 @@ import {
   LazyModalTrainingNew,
 } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
-import { Switch } from '@ui/primitives/switch';
 import { getErrorMessage } from '@utils/error/error-handler.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  HiEye,
-  HiOutlineCpuChip,
-  HiPencil,
-  HiPlus,
-  HiTrash,
-} from 'react-icons/hi2';
+import { HiOutlineCpuChip, HiPlus } from 'react-icons/hi2';
+import TrainingsErrorState from './components/TrainingsErrorState';
+import { buildTrainingsTableActions } from './components/TrainingsTableActions';
+import { buildTrainingsTableColumns } from './components/TrainingsTableColumns';
 
 export default function TrainingsList({
   scope = PageScope.ORGANIZATION,
@@ -329,155 +315,30 @@ export default function TrainingsList({
   }, []);
 
   // Memoize columns to prevent unnecessary re-renders
-  const columns: TableColumn<ITraining>[] = useMemo(() => {
-    const baseColumns: TableColumn<ITraining>[] = [
-      {
-        header: 'Name',
-        key: 'label',
-        render: (training) => (
-          <div>
-            <div className="font-semibold text-foreground">
-              {training.label}
-            </div>
-            {training.externalId && (
-              <div className="text-xs text-muted-foreground">
-                {training.externalId}
-              </div>
-            )}
-          </div>
-        ),
-      },
-      {
-        header: 'Trigger Word',
-        key: 'trigger_word',
-        render: (training: ITraining) => (
-          <Code size="md">{training.trigger}</Code>
-        ),
-      },
-      {
-        header: 'Status',
-        key: 'status',
-        render: (training: ITraining) => <Badge status={training.status} />,
-      },
-      {
-        className: 'text-center',
-        header: 'Steps',
-        key: 'steps',
-        render: (training: ITraining) => (
-          <span className="text-center">
-            {formatNumberWithCommas(training.steps || 0)}
-          </span>
-        ),
-      },
-      {
-        className: 'text-center',
-        header: 'Sources',
-        key: 'totalSources',
-        render: (training: ITraining) => (
-          <span className="text-center">{training.totalSources || 0}</span>
-        ),
-      },
-      {
-        className: 'text-center',
-        header: 'Generated',
-        key: 'totalGeneratedImages',
-        render: (training: ITraining) => (
-          <span className="text-center">
-            {training.totalGeneratedImages || 0}
-          </span>
-        ),
-      },
-      {
-        header: 'Active',
-        key: 'isActive',
-        render: (training: ITraining) => (
-          <Switch
-            isChecked={training.isActive !== false}
-            onChange={() => handleToggleActive(training)}
-          />
-        ),
-      },
-    ];
-
-    // Add owner column for admin app
-    if (scope === PageScope.SUPERADMIN) {
-      baseColumns.splice(1, 0, {
-        header: 'Owner',
-        key: 'owner',
-        render: (training: ITraining) => (
-          <div className="text-sm">
-            {training.organization && (
-              <div className="text-foreground/80">
-                {(training?.organization as IOrganization).label}
-              </div>
-            )}
-            {training.brand && (
-              <div className="text-muted-foreground">
-                {(training?.brand as IBrand).label}
-              </div>
-            )}
-            <div className="text-xs text-muted-foreground">
-              {(training?.user as IUser).fullName}
-            </div>
-          </div>
-        ),
-      });
-    }
-
-    return baseColumns;
-  }, [scope, handleToggleActive]);
+  const columns = useMemo(
+    () =>
+      buildTrainingsTableColumns({
+        scope,
+        onToggleActive: handleToggleActive,
+      }),
+    [scope, handleToggleActive],
+  );
 
   // Memoize actions to prevent unnecessary re-renders
-  const actions: TableAction<ITraining>[] = useMemo(
-    () => [
-      {
-        icon: () => <HiPencil />,
-        onClick: (training: ITraining) => {
-          openTrainingModal(training);
-        },
-        tooltip: 'Edit',
-      },
-      {
-        icon: () => <HiEye />,
-        onClick: (training: ITraining) =>
+  const actions = useMemo(
+    () =>
+      buildTrainingsTableActions({
+        onEdit: openTrainingModal,
+        onView: (training: ITraining) =>
           router.push(`/trainings/${training.id}`),
-        tooltip: 'Details',
-      },
-      {
-        className: 'text-error hover:text-error',
-        icon: () => <HiTrash />,
-        onClick: (training: ITraining) => {
-          openDeleteConfirmation(training);
-        },
-        tooltip: 'Delete',
-      },
-    ],
+        onDelete: openDeleteConfirmation,
+      }),
     [openTrainingModal, openDeleteConfirmation, router],
   );
 
   if (error) {
     return (
-      <div className="container mx-auto flex min-h-56 items-center justify-center px-4 py-8">
-        <Card className="p-12 w-full max-w-md text-center">
-          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
-            <span className="text-2xl">!</span>
-          </div>
-
-          <h3 className="mb-2 text-lg font-semibold text-foreground">
-            Failed to load trainings
-          </h3>
-
-          <p className="mb-4 text-muted-foreground">{error}</p>
-
-          <div className="flex justify-center">
-            <Button
-              label="Try Again"
-              onClick={() => handleRefresh()}
-              className="mt-4"
-            />
-          </div>
-        </Card>
-      </div>
+      <TrainingsErrorState error={error} onRetry={() => handleRefresh()} />
     );
   }
 
