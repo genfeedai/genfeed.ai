@@ -15,6 +15,10 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
 }));
 
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: vi.fn(() => ({ data: [], error: undefined, isLoading: true })),
+}));
+
 vi.mock('@ui/masonry/grid/MasonryGrid', () => ({
   default: vi.fn(() => <div data-testid="masonry-grid" />),
 }));
