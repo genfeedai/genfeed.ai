@@ -270,9 +270,10 @@ export default function IssuesList() {
 
   useEffect(() => {
     loadIssues();
+    const controller = controllerRef.current;
 
     return () => {
-      controllerRef.current?.abort();
+      controller?.abort();
     };
   }, [loadIssues]);
 

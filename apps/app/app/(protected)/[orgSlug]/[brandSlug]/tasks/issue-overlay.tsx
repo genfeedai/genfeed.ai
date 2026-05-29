@@ -115,9 +115,10 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
       setShowAllComments(false);
       loadComments();
     }
+    const controller = controllerRef.current;
 
     return () => {
-      controllerRef.current?.abort();
+      controller?.abort();
     };
   }, [issue, loadComments]);
 

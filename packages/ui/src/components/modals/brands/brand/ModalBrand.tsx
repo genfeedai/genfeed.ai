@@ -608,9 +608,12 @@ export default function BrandOverlay({
     enabled: !!overlayBrandId,
   });
 
-  const mutateBrand = (data: BrandOverlayRecord) => {
-    queryClient.setQueryData(brandModalKey, data);
-  };
+  const mutateBrand = useCallback(
+    (data: BrandOverlayRecord) => {
+      queryClient.setQueryData(['brand-modal', overlayBrandId], data);
+    },
+    [queryClient, overlayBrandId],
+  );
 
   const activeBrand: BrandOverlayRecord | null =
     loadedBrand ??

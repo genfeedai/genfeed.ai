@@ -101,12 +101,12 @@ export default function ModalPreset({
     closeModal();
   };
 
-  const cleanupPromptSubscription = () => {
+  const cleanupPromptSubscription = useCallback(() => {
     if (promptSubscriptionRef.current) {
       promptSubscriptionRef.current();
       promptSubscriptionRef.current = null;
     }
-  };
+  }, []);
 
   // Watch the description field for reactive updates
   const watchedDescription = form.watch('description');

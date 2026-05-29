@@ -175,12 +175,14 @@ export function TerminalView({ workspaceId }: TerminalViewProps) {
 
     return () => {
       isDisposed = true;
-      resizeObserverRef.current?.disconnect();
+      const resizeObserver = resizeObserverRef.current;
+      const terminal = terminalRef.current;
+      resizeObserver?.disconnect();
       resizeObserverRef.current = null;
       for (const disposable of dataDisposables) {
         disposable.dispose();
       }
-      terminalRef.current?.dispose();
+      terminal?.dispose();
       terminalRef.current = null;
       fitAddonRef.current = null;
       setIsTerminalReady(false);

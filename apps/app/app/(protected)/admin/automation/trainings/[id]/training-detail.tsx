@@ -87,9 +87,10 @@ export default function TrainingDetail({
     if (trainingId) {
       loadTraining();
     }
+    const abortController = abortControllerRef.current;
 
     return () => {
-      abortControllerRef.current?.abort();
+      abortController?.abort();
     };
   }, [trainingId, loadTraining]);
 
