@@ -13,7 +13,6 @@ import type { ICreatorWatchlist } from '@genfeedai/interfaces/analytics/creator-
 import type { ITrendPlatformConfig } from '@genfeedai/interfaces/analytics/platform-config.interface';
 import { createLocalStorageCache } from '@helpers/data/cache/cache.helper';
 import { formatDate } from '@helpers/formatting/date/date.helper';
-import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import HookRemixModal from '@pages/trends/list/components/HookRemixModal';
 import type { TrendItem } from '@props/trends/trends-page.props';
@@ -25,11 +24,6 @@ import {
   ViralVideoLeaderboard,
 } from '@ui/analytics/trends';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
-import Table from '@ui/display/table/Table';
-import { VStack } from '@ui/layout/stack';
-import { Heading } from '@ui/typography/heading';
-import { Text } from '@ui/typography/text';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -38,6 +32,10 @@ import {
   HiOutlineHashtag,
   HiOutlineMusicalNote,
 } from 'react-icons/hi2';
+import CrossPlatformLeaderboardSection from './CrossPlatformLeaderboardSection';
+import PlaybookSection from './PlaybookSection';
+import TrendingTopicsSection from './TrendingTopicsSection';
+import TrendsPageHeader from './TrendsPageHeader';
 
 const TRENDS_PLATFORMS: ITrendPlatformConfig[] = [
   PLATFORM_CONFIGS.tiktok,
@@ -52,26 +50,6 @@ const PLATFORM_CONFIG_LOOKUP = PLATFORM_CONFIGS;
 
 const TRENDS_CACHE_TTL = 30 * 60 * 1000;
 const trendsCache = createLocalStorageCache({ prefix: 'trends:' });
-
-function getGrowthRateClass(rate: number): string {
-  if (rate > 0) {
-    return 'text-success';
-  }
-  if (rate < 0) {
-    return 'text-error';
-  }
-  return '';
-}
-
-function getViralityBadgeClass(score: number): string {
-  if (score >= 70) {
-    return 'bg-primary text-primary-foreground';
-  }
-  if (score >= 40) {
-    return 'bg-secondary text-secondary-foreground';
-  }
-  return 'bg-muted text-muted-foreground';
-}
 
 export default function AnalyticsTrends() {
   const { push } = useRouter();
@@ -450,46 +428,13 @@ export default function AnalyticsTrends() {
 
   return (
     <div className="space-y-8 pb-12">
-      <header>
-        <VStack gap={3}>
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge className="bg-info text-info-foreground text-xs uppercase tracking-wide">
-              Live sync
-            </Badge>
-
-            {formattedLastSyncedAt && (
-              <Text size="sm" color="subtle-60">
-                Last updated {formattedLastSyncedAt}
-              </Text>
-            )}
-
-            <Text size="sm" color="subtle-60">
-              Tracking {viralVideos.length} standout videos across{' '}
-              {TRENDS_PLATFORMS.length} platforms
-            </Text>
-
-            {leadingPlatform && leadingPlatform.totalMentions > 0 && (
-              <Text size="sm" color="subtle-60">
-                Highest term volume:{' '}
-                <Text weight="semibold" color="default">
-                  {leadingPlatform.label}
-                </Text>{' '}
-                ({formatCompactNumber(leadingPlatform.totalMentions)} mentions)
-              </Text>
-            )}
-            <Text size="sm" color="subtle-60">
-              {totalTrackedTopics} active keywords monitored
-            </Text>
-          </div>
-          <Heading size="2xl" as="h1">
-            Social Media Trends
-          </Heading>
-          <Text as="p" color="subtle-70" className="max-w-3xl">
-            Monitor competitor hooks, creators, and viral moments so you can
-            replicate the playbook for your next campaign.
-          </Text>
-        </VStack>
-      </header>
+      <TrendsPageHeader
+        formattedLastSyncedAt={formattedLastSyncedAt}
+        videoCount={viralVideos.length}
+        platformCount={TRENDS_PLATFORMS.length}
+        leadingPlatform={leadingPlatform}
+        totalTrackedTopics={totalTrackedTopics}
+      />
 
       {/* Trending Topics Section */}
       <section>
@@ -499,104 +444,12 @@ export default function AnalyticsTrends() {
           label="Trending Topics"
           icon={HiOutlineFire}
         >
-          <p className="text-sm text-foreground/60">
-            Click on a trend to see detailed analytics and cross-platform data.
-          </p>
-          {isLoadingTrends ? (
-            <div className="animate-pulse space-y-3">
-              {[
-                'trend-skeleton-1',
-                'trend-skeleton-2',
-                'trend-skeleton-3',
-                'trend-skeleton-4',
-                'trend-skeleton-5',
-              ].map((skeletonId) => (
-                <div key={skeletonId} className="h-12 bg-background" />
-              ))}
-            </div>
-          ) : trendingTopics.length === 0 ? (
-            <div className="text-center py-8 text-foreground/60">
-              <HiOutlineFire className="size-12 mx-auto mb-3 opacity-30" />
-              <p>No trending topics available.</p>
-              <p className="text-sm mt-1">
-                Connect your social accounts to see personalized trends.
-              </p>
-            </div>
-          ) : (
-            <Table<TrendItem>
-              items={trendingTopics.slice(0, 20)}
-              getRowKey={(item) => item.id}
-              onRowClick={(item) => push(`/analytics/trends/detail/${item.id}`)}
-              columns={[
-                {
-                  className: 'min-w-32',
-                  header: 'Platform',
-                  key: 'platform',
-                  render: (item) => {
-                    const config = PLATFORM_CONFIG_LOOKUP[item.platform];
-                    const Icon = config?.icon;
-                    return (
-                      <div className="flex items-center gap-2">
-                        {Icon && (
-                          <Icon
-                            className="size-4"
-                            style={{ color: config?.color }}
-                          />
-                        )}
-                        <span className="font-medium">
-                          {config?.label || item.platform}
-                        </span>
-                      </div>
-                    );
-                  },
-                },
-                {
-                  className: 'min-w-48',
-                  header: 'Topic',
-                  key: 'topic',
-                  render: (item) => (
-                    <span className="font-semibold text-foreground">
-                      {item.topic}
-                    </span>
-                  ),
-                },
-                {
-                  className: 'min-w-24',
-                  header: 'Mentions',
-                  key: 'mentions',
-                  render: (item) => (
-                    <span className="font-medium">
-                      {formatCompactNumber(item.mentions)}
-                    </span>
-                  ),
-                },
-                {
-                  className: 'min-w-20',
-                  header: 'Growth',
-                  key: 'growthRate',
-                  render: (item) => (
-                    <span
-                      className={`font-medium ${getGrowthRateClass(item.growthRate)}`}
-                    >
-                      {item.growthRate > 0 ? '+' : ''}
-                      {item.growthRate}%
-                    </span>
-                  ),
-                },
-                {
-                  className: 'min-w-20',
-                  header: 'Virality',
-                  key: 'viralityScore',
-                  render: (item) => (
-                    <Badge
-                      value={item.viralityScore}
-                      className={`text-xs ${getViralityBadgeClass(item.viralityScore)}`}
-                    />
-                  ),
-                },
-              ]}
-            />
-          )}
+          <TrendingTopicsSection
+            isLoadingTrends={isLoadingTrends}
+            trendingTopics={trendingTopics}
+            platformConfigLookup={PLATFORM_CONFIG_LOOKUP}
+            onRowClick={(item) => push(`/analytics/trends/detail/${item.id}`)}
+          />
         </Card>
       </section>
 
@@ -650,249 +503,16 @@ export default function AnalyticsTrends() {
         </Card>
       </section>
 
-      {(viralLeaderboard.length > 0 || creatorLeaderboard.length > 0) && (
-        <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          {viralLeaderboard.length > 0 && (
-            <Card
-              className="xl:col-span-2 border border-white/[0.08] bg-card/80 backdrop-blur"
-              bodyClassName="space-y-6"
-            >
-              <VStack gap={2}>
-                <Heading size="xl">Cross-Platform Leaderboard</Heading>
-                <Text as="p" size="sm" color="subtle-60">
-                  Top viral content across all platforms in the last 72 hours.
-                </Text>
-              </VStack>
-              <Table<ITrendVideo>
-                items={viralLeaderboard}
-                columns={[
-                  {
-                    className: 'w-10',
-                    header: '#',
-                    key: 'rank',
-                    render: (video) => (
-                      <span className="font-semibold text-foreground/70">
-                        {viralLeaderboard.findIndex(
-                          (entry: ITrendVideo) => entry.id === video.id,
-                        ) + 1}
-                      </span>
-                    ),
-                  },
-                  {
-                    className: 'min-w-56',
-                    header: 'Video',
-                    key: 'title',
-                    render: (video) => (
-                      <div className="flex flex-col gap-2">
-                        <span className="font-semibold text-foreground">
-                          {video.title || video.hook || 'Untitled'}
-                        </span>
-                        <span className="text-xs text-foreground/60">
-                          @{video.creatorHandle}
-                          {video.publishedAt &&
-                            ` - ${formatDate(video.publishedAt)}`}
-                        </span>
-                      </div>
-                    ),
-                  },
-                  {
-                    className: 'min-w-40',
-                    header: 'Platform',
-                    key: 'platform',
-                    render: (video) => {
-                      const platform = PLATFORM_CONFIG_LOOKUP[video.platform];
-                      const Icon = platform?.icon;
+      <CrossPlatformLeaderboardSection
+        viralLeaderboard={viralLeaderboard}
+        creatorLeaderboard={creatorLeaderboard}
+        platformConfigLookup={PLATFORM_CONFIG_LOOKUP}
+      />
 
-                      return (
-                        <div className="flex items-center gap-2">
-                          {Icon && (
-                            <span className="text-lg text-foreground/70">
-                              <Icon />
-                            </span>
-                          )}
-                          <span className="font-medium text-foreground">
-                            {platform?.label ?? video.platform}
-                          </span>
-                        </div>
-                      );
-                    },
-                  },
-                  {
-                    className: 'min-w-24',
-                    header: 'Views',
-                    key: 'views',
-                    render: (video) => (
-                      <span className="font-semibold text-foreground">
-                        {formatCompactNumber(
-                          video.views || video.viewCount || 0,
-                        )}
-                      </span>
-                    ),
-                  },
-                  {
-                    className: 'min-w-32',
-                    header: 'Engagement',
-                    key: 'engagementRate',
-                    render: (video) => (
-                      <span className="font-semibold text-foreground">
-                        {(video.engagementRate || 0).toFixed(1)}%
-                      </span>
-                    ),
-                  },
-                  {
-                    className: 'min-w-20 text-right',
-                    header: 'Score',
-                    key: 'viralScore',
-                    render: (video) => {
-                      const rank =
-                        viralLeaderboard.findIndex(
-                          (entry: ITrendVideo) => entry.id === video.id,
-                        ) + 1;
-
-                      const badgeTone =
-                        rank <= 3
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground';
-
-                      return (
-                        <Badge
-                          value={Math.round(video.viralScore || 0)}
-                          className={`${badgeTone} text-xs`}
-                        />
-                      );
-                    },
-                  },
-                ]}
-                getRowKey={(video) => video.id || video.externalId || ''}
-              />
-            </Card>
-          )}
-
-          {creatorLeaderboard.length > 0 && (
-            <Card
-              className="border border-white/[0.08] bg-card/80 backdrop-blur"
-              bodyClassName="space-y-6"
-            >
-              <VStack gap={2}>
-                <Heading size="xl">Creator watchlist</Heading>
-                <Text as="p" size="sm" color="subtle-60">
-                  Fastest-growing creators to follow and benchmark this week.
-                </Text>
-              </VStack>
-              <ul className="space-y-4">
-                {creatorLeaderboard.map((brand: ICreatorWatchlist) => {
-                  const platform = PLATFORM_CONFIG_LOOKUP[brand.platform];
-                  const Icon = platform?.icon;
-
-                  return (
-                    <li
-                      key={brand.id}
-                      className="flex items-start justify-between gap-4 border-b border-white/[0.08] pb-4 last:border-b-0 last:pb-0"
-                    >
-                      <div className="flex items-start gap-3">
-                        {Icon && (
-                          <span className="mt-1 flex size-8 items-center justify-center rounded-full bg-background/60 text-base text-foreground/70">
-                            <Icon />
-                          </span>
-                        )}
-                        <div className="space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-semibold text-foreground">
-                              {brand.handle}
-                            </span>
-                            <Badge className="bg-transparent text-xs border border-white/[0.08] text-[10px] uppercase tracking-wide">
-                              +{brand.growthRate}% 30d
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-foreground/60">
-                            {brand.displayName} • {brand.contentPillar}
-                          </p>
-                          <p className="text-[11px] text-foreground/60">
-                            Posting cadence: {brand.postingCadence}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right text-xs text-foreground/60">
-                        <p className="font-semibold text-foreground">
-                          {formatCompactNumber(brand.followers)} followers
-                        </p>
-                        <p className="font-semibold text-foreground">
-                          {formatCompactNumber(brand.avgViews)} avg views
-                        </p>
-                        <p className="font-semibold text-foreground">
-                          {brand.avgEngagementRate.toFixed(1)}% ER
-                        </p>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </Card>
-          )}
-        </section>
-      )}
-
-      {playbooks.length > 0 && (
-        <section>
-          <Card
-            className="border border-white/[0.08] bg-card/80 backdrop-blur"
-            bodyClassName="space-y-6"
-          >
-            <VStack gap={2}>
-              <Heading size="xl">Viral format playbook</Heading>
-              <Text as="p" size="sm" color="subtle-60">
-                Repeatable storytelling patterns pulled from today&apos;s
-                winning videos.
-              </Text>
-            </VStack>
-            <ul className="space-y-4">
-              {playbooks.map((pattern: ITrendPlaybook) => (
-                <li
-                  key={pattern.id}
-                  className=" border border-white/[0.08] bg-card/70 p-4"
-                >
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div className="space-y-2">
-                      <h3 className="font-semibold text-foreground">
-                        {pattern.title}
-                      </h3>
-                      <p className="text-sm text-foreground/60">
-                        {pattern.description}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {pattern.platforms.map((platformId: string) => {
-                        const platform = PLATFORM_CONFIG_LOOKUP[platformId];
-
-                        if (!platform) {
-                          return null;
-                        }
-
-                        const Icon = platform.icon;
-
-                        return (
-                          <Badge
-                            key={`${pattern.id}-${platformId}`}
-                            className="bg-transparent text-xs border border-white/[0.08] text-[10px] uppercase tracking-wide"
-                          >
-                            <span className="flex items-center gap-2">
-                              <Icon className="text-sm" />
-                              {platform.label}
-                            </span>
-                          </Badge>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <p className="mt-3 text-xs leading-relaxed text-foreground/60">
-                    Action: {pattern.action}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </section>
-      )}
+      <PlaybookSection
+        playbooks={playbooks}
+        platformConfigLookup={PLATFORM_CONFIG_LOOKUP}
+      />
 
       <HookRemixModal
         video={remixVideo}

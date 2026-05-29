@@ -5,7 +5,6 @@ import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.contex
 import { useBackgroundTaskContext } from '@genfeedai/contexts/ui/background-task-context';
 import {
   ActivityKey,
-  ButtonSize,
   ButtonVariant,
   ComponentSize,
   IngredientCategory,
@@ -29,328 +28,30 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Badge from '@ui/display/badge/Badge';
-import {
-  Button,
-  buttonVariants,
-  Button as PrimitiveButton,
-} from '@ui/primitives/button';
+import { Button } from '@ui/primitives/button';
 import {
   Popover,
   PopoverPanelContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { HiArrowPath, HiCheck, HiXMark } from 'react-icons/hi2';
+import ActivitiesTriggerButton from './ActivitiesTriggerButton';
 import {
-  HiArrowPath,
-  HiBell,
-  HiCheck,
-  HiFilm,
-  HiPlay,
-  HiXMark,
-} from 'react-icons/hi2';
-
-const FIVE_SECONDS_MS = 5_000;
-const ONE_MINUTE_MS = 60_000;
-
-// Background task keys that get special rendering
-const BACKGROUND_TASK_KEYS = [
-  // Video lifecycle
-  ActivityKey.VIDEO_PROCESSING,
-  ActivityKey.VIDEO_GENERATED,
-  ActivityKey.VIDEO_COMPLETED,
-  ActivityKey.VIDEO_FAILED,
-  // Image lifecycle
-  ActivityKey.IMAGE_PROCESSING,
-  ActivityKey.IMAGE_GENERATED,
-  ActivityKey.IMAGE_FAILED,
-  // Music lifecycle
-  ActivityKey.MUSIC_PROCESSING,
-  ActivityKey.MUSIC_GENERATED,
-  ActivityKey.MUSIC_FAILED,
-  // Post lifecycle
-  ActivityKey.POST_GENERATED,
-  ActivityKey.POST_CREATED,
-  ActivityKey.POST_SCHEDULED,
-  ActivityKey.POST_PUBLISHED,
-  ActivityKey.POST_FAILED,
-  // Model training lifecycle
-  ActivityKey.MODELS_TRAINING_CREATED,
-  ActivityKey.MODELS_TRAINING_COMPLETED,
-  ActivityKey.MODELS_TRAINING_FAILED,
-  // Article lifecycle
-  ActivityKey.ARTICLE_PROCESSING,
-  ActivityKey.ARTICLE_GENERATED,
-  ActivityKey.ARTICLE_FAILED,
-];
-
-// Parse activity value JSON safely
-function parseActivityValue(value: string): Record<string, unknown> | null {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return null;
-  }
-}
-
-// Check if activity is a background task (merge, generation, post, etc.)
-function isBackgroundTask(activity: IActivity): boolean {
-  return BACKGROUND_TASK_KEYS.includes(activity.key as ActivityKey);
-}
-
-// Activity key groupings for task type detection
-const VIDEO_KEYS = [
-  ActivityKey.VIDEO_PROCESSING,
-  ActivityKey.VIDEO_COMPLETED,
-  ActivityKey.VIDEO_FAILED,
-];
-const IMAGE_KEYS = [
-  ActivityKey.IMAGE_PROCESSING,
-  ActivityKey.IMAGE_GENERATED,
-  ActivityKey.IMAGE_FAILED,
-];
-const MUSIC_KEYS = [
-  ActivityKey.MUSIC_PROCESSING,
-  ActivityKey.MUSIC_GENERATED,
-  ActivityKey.MUSIC_FAILED,
-];
-const POST_KEYS = [
-  ActivityKey.POST_GENERATED,
-  ActivityKey.POST_CREATED,
-  ActivityKey.POST_SCHEDULED,
-  ActivityKey.POST_PUBLISHED,
-  ActivityKey.POST_FAILED,
-];
-const TRAINING_KEYS = [
-  ActivityKey.MODELS_TRAINING_CREATED,
-  ActivityKey.MODELS_TRAINING_COMPLETED,
-  ActivityKey.MODELS_TRAINING_FAILED,
-];
-const ARTICLE_KEYS = [
-  ActivityKey.ARTICLE_PROCESSING,
-  ActivityKey.ARTICLE_GENERATED,
-  ActivityKey.ARTICLE_FAILED,
-];
-
-// Get task type from activity key
-function getTaskType(
-  activity: IActivity,
-): 'merge' | 'generation' | 'post' | 'training' | 'unknown' {
-  const key = activity.key as ActivityKey;
-
-  if (VIDEO_KEYS.includes(key)) {
-    const parsed = parseActivityValue(activity.value);
-    return parsed?.type === 'merge' ? 'merge' : 'generation';
-  }
-
-  if (
-    IMAGE_KEYS.includes(key) ||
-    MUSIC_KEYS.includes(key) ||
-    ARTICLE_KEYS.includes(key)
-  ) {
-    return 'generation';
-  }
-
-  if (POST_KEYS.includes(key)) {
-    return 'post';
-  }
-
-  if (TRAINING_KEYS.includes(key)) {
-    return 'training';
-  }
-
-  return 'unknown';
-}
-
-// Status mappings for activity keys
-const COMPLETED_KEYS = new Set([
-  ActivityKey.VIDEO_COMPLETED,
-  ActivityKey.VIDEO_GENERATED,
-  ActivityKey.IMAGE_GENERATED,
-  ActivityKey.MUSIC_GENERATED,
-  ActivityKey.POST_GENERATED,
-  ActivityKey.POST_PUBLISHED,
-  ActivityKey.MODELS_TRAINING_COMPLETED,
-  ActivityKey.ARTICLE_GENERATED,
-]);
-
-const FAILED_KEYS = new Set([
-  ActivityKey.VIDEO_FAILED,
-  ActivityKey.IMAGE_FAILED,
-  ActivityKey.MUSIC_FAILED,
-  ActivityKey.POST_FAILED,
-  ActivityKey.MODELS_TRAINING_FAILED,
-  ActivityKey.ARTICLE_FAILED,
-]);
-
-// Get background task status from activity key
-function getBackgroundTaskStatus(
-  key: string,
-): 'processing' | 'completed' | 'failed' {
-  if (COMPLETED_KEYS.has(key as ActivityKey)) {
-    return 'completed';
-  }
-  if (FAILED_KEYS.has(key as ActivityKey)) {
-    return 'failed';
-  }
-  return 'processing';
-}
-
-// Get result type (category) from activity key
-function getResultTypeFromActivityKey(
-  key: string,
-): IngredientCategory | undefined {
-  if (VIDEO_KEYS.includes(key as ActivityKey)) {
-    return IngredientCategory.VIDEO;
-  }
-  if (IMAGE_KEYS.includes(key as ActivityKey)) {
-    return IngredientCategory.IMAGE;
-  }
-  if (MUSIC_KEYS.includes(key as ActivityKey)) {
-    return IngredientCategory.MUSIC;
-  }
-  return undefined;
-}
-
-// Get default label for a task based on its type and activity key
-function getTaskLabel(
-  activity: IActivity,
-  taskType: ReturnType<typeof getTaskType>,
-  parsed: Record<string, unknown> | null,
-): string {
-  const key = activity.key as ActivityKey;
-
-  switch (taskType) {
-    case 'merge':
-      return 'Video Merge';
-
-    case 'generation': {
-      if (IMAGE_KEYS.includes(key)) {
-        return 'Image Generation';
-      }
-      if (VIDEO_KEYS.includes(key)) {
-        return 'Video Generation';
-      }
-      if (MUSIC_KEYS.includes(key)) {
-        return 'Music Generation';
-      }
-      if (ARTICLE_KEYS.includes(key)) {
-        return 'Article Generation';
-      }
-      return 'Content Generation';
-    }
-
-    case 'post': {
-      const populatedActivity = activity as IActivityPopulated;
-      const postDescription =
-        populatedActivity.post?.description ||
-        parsed?.description ||
-        parsed?.sentence ||
-        null;
-      return (
-        extractPostDescription(postDescription as string | null) ||
-        'Post Publishing'
-      );
-    }
-
-    case 'training':
-      return 'Model Training';
-
-    default:
-      return 'Background Task';
-  }
-}
-
-// Extract and truncate post description for display
-function extractPostDescription(
-  description: string | undefined | null,
-  maxLength: number = 60,
-): string | null {
-  if (!description) {
-    return null;
-  }
-
-  // Strip HTML tags
-  const textOnly = description.replace(/<[^>]*>/g, '').trim();
-
-  if (!textOnly) {
-    return null;
-  }
-
-  // Truncate if needed
-  if (textOnly.length <= maxLength) {
-    return textOnly;
-  }
-
-  // Truncate at word boundary if possible
-  const truncated = textOnly.substring(0, maxLength);
-  const lastSpace = truncated.lastIndexOf(' ');
-  if (lastSpace > maxLength * 0.7) {
-    // If we can find a space reasonably close to the end, use it
-    return `${truncated.substring(0, lastSpace)}…`;
-  }
-
-  return `${truncated}…`;
-}
-
-function formatEtaDuration(durationMs: number): string {
-  const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
-  if (totalSeconds < 60) {
-    return `${totalSeconds}s`;
-  }
-
-  const totalMinutes = Math.round(totalSeconds / 60);
-  if (totalMinutes < 60) {
-    return `${totalMinutes} min`;
-  }
-
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-}
-
-function formatEtaRange(durationMs: number): string {
-  const lowerBound = Math.max(FIVE_SECONDS_MS, Math.round(durationMs * 0.7));
-  const upperBound = Math.round(durationMs * 1.35);
-
-  if (upperBound < ONE_MINUTE_MS) {
-    return `${Math.round(lowerBound / 1000)}-${Math.round(upperBound / 1000)}s`;
-  }
-
-  return `${Math.round(lowerBound / ONE_MINUTE_MS)}-${Math.round(
-    upperBound / ONE_MINUTE_MS,
-  )} min`;
-}
-
-function getTaskEtaLabel(task: IBackgroundTask): string | null {
-  if (!task.estimatedDurationMs) {
-    return null;
-  }
-
-  if (task.etaConfidence === 'low') {
-    return `Usually ${formatEtaRange(task.estimatedDurationMs)}`;
-  }
-
-  return `About ${formatEtaDuration(
-    task.remainingDurationMs ?? task.estimatedDurationMs,
-  )} left`;
-}
-
-function getTaskElapsedLabel(task: IBackgroundTask): string | null {
-  if (!task.startedAt) {
-    return null;
-  }
-
-  const startedAtMs = new Date(task.startedAt).getTime();
-  if (Number.isNaN(startedAtMs)) {
-    return null;
-  }
-
-  return formatEtaDuration(Math.max(1_000, Date.now() - startedAtMs));
-}
+  getBackgroundTaskStatus,
+  getResultTypeFromActivityKey,
+  getTaskElapsedLabel,
+  getTaskEtaLabel,
+  getTaskLabel,
+  getTaskType,
+  isBackgroundTask,
+  parseActivityValue,
+} from './activities.utils';
+import BackgroundTaskRow from './BackgroundTaskRow';
+import RealtimeTaskRow from './RealtimeTaskRow';
 
 export default function TopbarActivities() {
   const { activeGenerations } = useAssetSelection();
@@ -714,24 +415,18 @@ export default function TopbarActivities() {
     }
   };
 
-  const renderBackgroundTask = (activity: IActivity) => {
+  const buildBackgroundTaskRowProps = (activity: IActivity) => {
     const parsed = parseActivityValue(activity.value);
     const status = getBackgroundTaskStatus(activity.key);
     const taskType = getTaskType(activity);
-
-    // Generate label based on task type and activity key
     const label =
       (parsed?.label as string) || getTaskLabel(activity, taskType, parsed);
-
     const progress = parsed?.progress as number | undefined;
-    const _resultId = parsed?.resultId as string | undefined;
     const resultType =
       (parsed?.resultType as IngredientCategory) ||
       getResultTypeFromActivityKey(activity.key) ||
       IngredientCategory.VIDEO;
-    const isLoading = loadingTaskId === activity.id;
 
-    // Get preview from populated ingredient data
     let preview: { url: string; category: IngredientCategory } | undefined;
     const populatedActivity = activity as IActivityPopulated;
     if (populatedActivity.ingredient && resultType) {
@@ -754,138 +449,7 @@ export default function TopbarActivities() {
       };
     }
 
-    // Status icon - only for processing and failed (not completed)
-    const statusIcon = (() => {
-      if (isLoading) {
-        return (
-          <span className="animate-spin size-4 border-2 border-primary border-t-transparent rounded-full" />
-        );
-      }
-      switch (status) {
-        case 'processing':
-          return activity.isRead ? null : (
-            <HiBell className="size-4 animate-pulse text-primary" />
-          );
-        case 'failed':
-          return <HiXMark className="size-4 text-error" />;
-        case 'completed':
-          return null;
-      }
-    })();
-
-    // Badge configuration based on status
-    const statusBadgeConfig = {
-      completed: { label: 'Ready', variant: 'success' as const },
-      failed: { label: 'Failed', variant: 'error' as const },
-      processing: { label: 'Processing', variant: 'primary' as const },
-    };
-
-    const badgeConfig = statusBadgeConfig[status];
-    const statusBadge = (
-      <Badge variant={badgeConfig.variant} size={ComponentSize.SM}>
-        {badgeConfig.label}
-      </Badge>
-    );
-
-    return (
-      <div key={activity.id} className="w-full">
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.UNSTYLED}
-          onClick={() => handleBackgroundTaskClick(activity)}
-          isDisabled={isLoading}
-          className={cn(
-            'flex w-full items-center gap-3 px-3 py-2 text-left text-sm',
-            'font-medium transition-colors duration-150 text-foreground/70 hover:text-foreground/90',
-            'hover:bg-background/60 focus:bg-background/60 focus:outline-none',
-            status === 'completed' && 'cursor-pointer',
-            status === 'processing' && 'cursor-wait',
-          )}
-        >
-          {/* Square Preview Image/Thumbnail */}
-          {preview &&
-          status === 'completed' &&
-          !failedPreviews.has(activity.id) ? (
-            <div className="relative size-12 shrink-0 overflow-hidden bg-background">
-              <Image
-                src={preview.url}
-                alt={label}
-                fill
-                className="object-cover"
-                sizes="48px"
-                unoptimized
-                onError={() => {
-                  // Mark this preview as failed so we show placeholder instead
-                  setFailedPreviews((prev) => new Set(prev).add(activity.id));
-                }}
-              />
-              {preview.category === IngredientCategory.VIDEO && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                  <HiPlay className="size-4 text-white" />
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="size-12 shrink-0 bg-background flex items-center justify-center">
-              <HiFilm className="size-5 text-foreground/40" />
-            </div>
-          )}
-
-          {/* Content Section */}
-          <div className="flex-1 min-w-0 flex flex-col gap-1">
-            {/* Label and Status Icon */}
-            <div className="flex items-center gap-2">
-              <span className="flex-1 truncate text-sm font-medium">
-                {label}
-              </span>
-              {statusIcon && <span className="shrink-0">{statusIcon}</span>}
-            </div>
-
-            {/* Progress Bar */}
-            {status === 'processing' && progress !== undefined && (
-              <div className="w-full">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-foreground/60">Progress</span>
-                  <span className="text-xs font-medium text-foreground/80">
-                    {Math.round(progress)}%
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-background rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary transition-all duration-300 ease-out"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Indeterminate progress spinner for processing without progress */}
-            {status === 'processing' && progress === undefined && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-foreground/60">Processing…</span>
-                <span className="animate-spin size-4 border-2 border-primary border-t-transparent rounded-full" />
-              </div>
-            )}
-
-            {/* Status Badge and Timestamp */}
-            <div className="flex items-center justify-between gap-2">
-              {statusBadge}
-              <span className="text-xs text-foreground/50 shrink-0">
-                <ClientDateTime
-                  value={activity.createdAt}
-                  format={(date) =>
-                    date.toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })
-                  }
-                />
-              </span>
-            </div>
-          </div>
-        </Button>
-      </div>
-    );
+    return { label, preview, progress, status };
   };
 
   const renderItem = (item: UnifiedActivityItem) => {
@@ -918,7 +482,25 @@ export default function TopbarActivities() {
         </div>
       );
     } else if (item.type === 'background-task') {
-      return renderBackgroundTask(item.data as IActivity);
+      const activity = item.data as IActivity;
+      const { label, preview, progress, status } =
+        buildBackgroundTaskRowProps(activity);
+      return (
+        <BackgroundTaskRow
+          key={item.id}
+          activity={activity}
+          loadingTaskId={loadingTaskId}
+          failedPreviews={failedPreviews}
+          status={status}
+          label={label}
+          progress={progress}
+          preview={preview}
+          onFailedPreview={(id) =>
+            setFailedPreviews((prev) => new Set(prev).add(id))
+          }
+          onClick={handleBackgroundTaskClick}
+        />
+      );
     } else {
       const activity = item.data as IActivity;
       return (
@@ -979,185 +561,20 @@ export default function TopbarActivities() {
     [notificationsService, removeTask, href, push],
   );
 
-  const renderRealtimeTask = (task: IBackgroundTask) => {
-    const isProcessing =
-      task.status === 'pending' || task.status === 'processing';
-    const etaLabel = getTaskEtaLabel(task);
-    const elapsedLabel = getTaskElapsedLabel(task);
-    const badgeVariant: 'success' | 'error' | 'primary' =
-      task.status === 'completed'
-        ? 'success'
-        : task.status === 'failed'
-          ? 'error'
-          : 'primary';
-
-    return (
-      <Button
-        key={task.id}
-        withWrapper={false}
-        variant={ButtonVariant.UNSTYLED}
-        onClick={() => handleRealtimeTaskClick(task)}
-        className={cn(
-          'flex w-full flex-col items-start gap-2 px-3 py-2 text-left text-sm',
-          'font-medium transition-colors duration-150 text-foreground/70 hover:text-foreground/90',
-          'hover:bg-background/60 focus:bg-background/60 focus:outline-none',
-          isProcessing && 'cursor-wait',
-        )}
-      >
-        <div className="flex w-full items-center justify-between gap-2">
-          <span className="truncate">{task.title}</span>
-          {task.status === 'completed' ? (
-            <HiCheck className="size-4 text-success" />
-          ) : task.status === 'failed' ? (
-            <HiXMark className="size-4 text-error" />
-          ) : (
-            <HiArrowPath className="size-4 animate-spin text-primary" />
-          )}
-        </div>
-
-        {isProcessing && (
-          <div className="w-full">
-            {task.currentPhase && (
-              <div className="mb-1 text-xs text-foreground/60">
-                {task.currentPhase}
-              </div>
-            )}
-            <div className="mb-1 flex items-center justify-between">
-              <span className="text-xs text-foreground/60">Progress</span>
-              <span className="text-xs font-medium text-foreground/80">
-                {Math.round(task.progress)}%
-              </span>
-            </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-background">
-              <div
-                className="h-full bg-primary transition-all duration-300 ease-out"
-                style={{ width: `${task.progress}%` }}
-              />
-            </div>
-            {(etaLabel || elapsedLabel) && (
-              <div className="mt-2 flex items-center justify-between gap-2 text-xs text-foreground/60">
-                <span>{etaLabel ?? 'Processing…'}</span>
-                {elapsedLabel && <span>Elapsed {elapsedLabel}</span>}
-              </div>
-            )}
-            {(task.remainingDurationMs ?? task.estimatedDurationMs ?? 0) >=
-              60_000 && (
-              <div className="mt-2 text-xs text-foreground/50">
-                You can keep working. We’ll notify you when it’s ready.
-              </div>
-            )}
-          </div>
-        )}
-
-        {!isProcessing && elapsedLabel && (
-          <div className="text-xs text-foreground/60">
-            {task.status === 'completed'
-              ? `Completed in ${elapsedLabel}`
-              : `Failed after ${elapsedLabel}`}
-          </div>
-        )}
-
-        <div className="flex w-full items-center justify-between gap-2">
-          <Badge variant={badgeVariant} size={ComponentSize.SM}>
-            {task.status === 'pending'
-              ? 'Pending'
-              : task.status === 'processing'
-                ? 'Processing'
-                : task.status === 'completed'
-                  ? 'Ready'
-                  : 'Failed'}
-          </Badge>
-          <span className="text-xs text-foreground/50 shrink-0">
-            <ClientDateTime
-              value={task.createdAt}
-              format={(date) =>
-                date.toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-              }
-            />
-          </span>
-        </div>
-      </Button>
-    );
-  };
-
   useEffect(() => {
     setIsHydrated(true);
   }, []);
 
   const triggerButton = (
-    <PrimitiveButton
-      aria-label={
-        hasActiveGenerations ||
-        hasProcessingTasks ||
-        activeRealtimeTasks.length > 0
-          ? `${activeGenerations.length + processingBackgroundTasks.length + activeRealtimeTasks.length} active task${activeGenerations.length + processingBackgroundTasks.length + activeRealtimeTasks.length > 1 ? 's' : ''}`
-          : 'View activities'
+    <ActivitiesTriggerButton
+      hasActiveGenerations={hasActiveGenerations}
+      hasProcessingTasks={hasProcessingTasks}
+      activeRealtimeTaskCount={activeRealtimeTasks.length}
+      hasAllRealtimeTasksDone={hasAllRealtimeTasksDone}
+      totalLegacyCount={
+        activeGenerations.length + processingBackgroundTasks.length
       }
-      className={cn(
-        buttonVariants({
-          size: ButtonSize.ICON,
-          variant: ButtonVariant.GHOST,
-        }),
-        'relative flex size-9 items-center justify-center p-2 min-h-0 m-0 transition-colors duration-150',
-        hasActiveGenerations ||
-          hasProcessingTasks ||
-          activeRealtimeTasks.length > 0
-          ? 'text-primary hover:bg-background/60'
-          : 'text-foreground/70 hover:text-foreground/90 hover:bg-background/60',
-      )}
-      type="button"
-    >
-      {(() => {
-        if (activeRealtimeTasks.length > 0) {
-          return (
-            <Badge
-              variant="error"
-              size={ComponentSize.SM}
-              className="absolute -right-1 -top-1 w-5 animate-pulse flex items-center justify-center"
-            >
-              {activeRealtimeTasks.length}
-            </Badge>
-          );
-        }
-
-        if (hasAllRealtimeTasksDone) {
-          return (
-            <Badge
-              variant="success"
-              size={ComponentSize.SM}
-              className="absolute -right-1 -top-1 w-5 flex items-center justify-center"
-            >
-              <HiCheck className="size-3" />
-            </Badge>
-          );
-        }
-
-        const totalCount =
-          activeGenerations.length + processingBackgroundTasks.length;
-
-        if (totalCount === 0) {
-          return null;
-        }
-
-        return (
-          <Badge
-            variant="error"
-            size={ComponentSize.SM}
-            className="absolute -right-1 -top-1 w-5 animate-pulse flex items-center justify-center"
-          >
-            {totalCount}
-          </Badge>
-        );
-      })()}
-
-      <HiBell
-        aria-hidden="true"
-        className={cn('size-5 transition-colors text-current')}
-      />
-    </PrimitiveButton>
+    />
   );
 
   if (!isHydrated) {
@@ -1224,7 +641,15 @@ export default function TopbarActivities() {
                   .sort(
                     (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
                   )
-                  .map((task) => renderRealtimeTask(task))}
+                  .map((task) => (
+                    <RealtimeTaskRow
+                      key={task.id}
+                      task={task}
+                      etaLabel={getTaskEtaLabel(task)}
+                      elapsedLabel={getTaskElapsedLabel(task)}
+                      onClick={handleRealtimeTaskClick}
+                    />
+                  ))}
                 <div className="border-t border-white/[0.08] my-1" />
               </>
             )}

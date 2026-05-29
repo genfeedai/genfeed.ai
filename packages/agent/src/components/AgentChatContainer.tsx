@@ -1,18 +1,13 @@
-import {
-  AgentChatInput,
-  type ExtractedMention,
-} from '@genfeedai/agent/components/AgentChatInput';
-import {
-  AgentChatMessage,
-  UiActionRenderer,
-} from '@genfeedai/agent/components/AgentChatMessage';
+import { AgentChatEmptyState } from '@genfeedai/agent/components/AgentChatEmptyState';
+import type { ExtractedMention } from '@genfeedai/agent/components/AgentChatInput';
+import { AgentChatPromptBar } from '@genfeedai/agent/components/AgentChatPromptBar';
+import { AgentChatTimeline } from '@genfeedai/agent/components/AgentChatTimeline';
+import { AgentConversationSkeleton } from '@genfeedai/agent/components/AgentConversationSkeleton';
 import { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInputRequestOverlay';
-import { AgentPlanReviewCard } from '@genfeedai/agent/components/AgentPlanReviewCard';
+import { AgentPlanReviewSection } from '@genfeedai/agent/components/AgentPlanReviewSection';
 import { AGENT_REFRESH_CONVERSATIONS_EVENT } from '@genfeedai/agent/components/AgentThreadList';
-import { AnimatedStatusText } from '@genfeedai/agent/components/AnimatedStatusText';
 import { OnboardingConversationCard } from '@genfeedai/agent/components/OnboardingConversationCard';
-import { TimelineStreamingRow } from '@genfeedai/agent/components/TimelineStreamingRow';
-import { TimelineWorkGroup } from '@genfeedai/agent/components/TimelineWorkGroup';
+import { WorkflowPhaseProgressBar } from '@genfeedai/agent/components/WorkflowPhaseProgressBar';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
 import {
@@ -35,8 +30,6 @@ import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-
 import { deriveTimeline } from '@genfeedai/agent/utils/derive-timeline';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
-import { PhaseProgress } from '@genfeedai/agent/workflow/components/PhaseProgress';
-import { useAgentWorkflowStore } from '@genfeedai/agent/workflow/store';
 import {
   AgentThreadStatus,
   AlertCategory,
@@ -50,9 +43,7 @@ import type {
 import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Alert from '@ui/feedback/alert/Alert';
-import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import {
@@ -63,100 +54,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { HiOutlineArrowDown, HiOutlineSparkles } from 'react-icons/hi2';
-
-function AgentConversationSkeleton({
-  isWideLayout = false,
-  title,
-}: {
-  isWideLayout?: boolean;
-  title?: string | null;
-}): ReactElement {
-  const conversationColumnMaxWidthClass = isWideLayout
-    ? 'max-w-[52rem]'
-    : 'max-w-[46rem]';
-
-  return (
-    <div
-      className="relative flex min-h-full flex-1 flex-col"
-      data-testid="conversation-skeleton"
-    >
-      <div className="flex-1 overflow-y-auto">
-        <div
-          className={cn(
-            'mx-auto flex w-full flex-col px-4 py-5 pb-56 md:px-6 md:pb-72',
-            conversationColumnMaxWidthClass,
-          )}
-        >
-          <div className="mb-8 px-1">
-            {title ? (
-              <p className="truncate text-sm font-medium text-foreground/70">
-                {title}
-              </p>
-            ) : (
-              <Skeleton className="h-4 w-28 rounded-full bg-white/[0.04]" />
-            )}
-          </div>
-
-          <div className="flex flex-1 flex-col gap-12 pt-1">
-            <div className="flex justify-end">
-              <Skeleton className="h-10 w-40 rounded-md bg-white/[0.05]" />
-            </div>
-
-            <div className="max-w-[40rem] space-y-3 pt-2">
-              <Skeleton className="h-4 w-[78%] rounded-full bg-white/[0.04]" />
-              <Skeleton className="h-4 w-[74%] rounded-full bg-white/[0.04]" />
-              <Skeleton className="h-4 w-[60%] rounded-full bg-white/[0.04]" />
-              <Skeleton className="h-4 w-[76%] rounded-full bg-white/[0.04]" />
-              <Skeleton className="h-4 w-[66%] rounded-full bg-white/[0.04]" />
-              <Skeleton className="h-4 w-[52%] rounded-full bg-white/[0.04]" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <PromptBarContainer
-        layoutMode="surface-fixed"
-        maxWidth="4xl"
-        showTopFade
-        zIndex={10}
-        className="bottom-3 md:bottom-5"
-      >
-        <div className="rounded-md border border-white/[0.08] bg-background/80 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.28)] backdrop-blur-xl">
-          <Skeleton className="mb-4 h-5 w-28 rounded-full bg-white/[0.04]" />
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Skeleton className="size-8 rounded-full bg-white/[0.04]" />
-              <Skeleton className="h-4 w-40 rounded-full bg-white/[0.04]" />
-            </div>
-            <div className="flex items-center gap-3">
-              <Skeleton className="h-4 w-16 rounded-full bg-white/[0.04]" />
-              <Skeleton className="size-8 rounded-full bg-white/[0.04]" />
-            </div>
-          </div>
-        </div>
-      </PromptBarContainer>
-    </div>
-  );
-}
-
-/**
- * Shows the workflow phase progress bar when a workflow is active (not in exploring/complete).
- */
-function WorkflowPhaseProgressBar() {
-  const phase = useAgentWorkflowStore((s) => s.phase);
-  if (
-    phase === 'exploring' &&
-    useAgentWorkflowStore.getState().transitions.length === 0
-  ) {
-    return null;
-  }
-  return (
-    <div className="mb-4">
-      <PhaseProgress />
-    </div>
-  );
-}
+import { HiOutlineArrowDown } from 'react-icons/hi2';
 
 interface AgentChatContainerProps {
   apiService: AgentApiService;
@@ -947,55 +845,27 @@ export function AgentChatContainer({
           </div>
         </div>
       ) : isEmpty && !onboardingMode ? (
-        <div className="relative flex min-h-0 flex-1 overflow-hidden">
-          <div className="flex min-h-0 flex-1 overflow-y-auto px-4 py-6 md:px-6">
-            <div
-              className={cn(
-                'mx-auto flex h-full w-full flex-col items-center justify-center',
-                isWideLayout ? 'max-w-3xl' : 'max-w-3xl',
-              )}
-            >
-              <div className="mb-3 flex size-9 items-center justify-center rounded-md bg-foreground/[0.05] ring-1 ring-inset ring-foreground/[0.08]">
-                <HiOutlineSparkles className="size-4 text-foreground/68" />
-              </div>
-
-              <h2 className="mb-1 text-center text-base font-semibold tracking-[-0.02em] text-foreground">
-                {emptyStateTitle}
-              </h2>
-              <p className="max-w-md text-center text-xs leading-5 text-foreground/52">
-                {emptyStateDescription}
-              </p>
-
-              <PromptBarContainer
-                layoutMode="inflow"
-                maxWidth={isWideLayout ? '2xl' : '4xl'}
-                zIndex={60}
-                className="mt-4 w-full"
-              >
-                <AgentChatInput
-                  onSend={handleSend}
-                  disabled={isBusy || isReadOnly}
-                  placeholder={placeholder}
-                  apiService={apiService}
-                  onStop={handleStopRun}
-                  showStop={isRunActive}
-                  attachments={chatAttachments}
-                  isUploading={isAttachmentUploading}
-                  dragState={dragState}
-                  dragHandlers={dragHandlers}
-                  addFiles={addFiles}
-                  removeAttachment={removeAttachment}
-                  getCompletedAttachments={getCompletedAttachments}
-                  clearAllAttachments={clearAllAttachments}
-                />
-              </PromptBarContainer>
-
-              {promptBarSuggestions ? (
-                <div className="mt-5">{promptBarSuggestions}</div>
-              ) : null}
-            </div>
-          </div>
-        </div>
+        <AgentChatEmptyState
+          apiService={apiService}
+          emptyStateTitle={emptyStateTitle}
+          emptyStateDescription={emptyStateDescription}
+          isWideLayout={isWideLayout}
+          isBusy={isBusy}
+          isReadOnly={isReadOnly}
+          isRunActive={isRunActive}
+          placeholder={placeholder}
+          chatAttachments={chatAttachments}
+          isAttachmentUploading={isAttachmentUploading}
+          dragState={dragState}
+          dragHandlers={dragHandlers}
+          addFiles={addFiles}
+          removeAttachment={removeAttachment}
+          getCompletedAttachments={getCompletedAttachments}
+          clearAllAttachments={clearAllAttachments}
+          onSend={handleSend}
+          onStop={handleStopRun}
+          promptBarSuggestions={promptBarSuggestions}
+        />
       ) : (
         <>
           <div
@@ -1030,38 +900,21 @@ export function AgentChatContainer({
                 <WorkflowPhaseProgressBar />
 
                 {latestProposedPlan ? (
-                  <div className="mb-6">
-                    <AgentPlanReviewCard
-                      extraActions={
-                        workspacePlanningTaskId &&
-                        onCreateFollowUpTasks &&
-                        latestProposedPlan.status === 'approved' ? (
-                          <Button
-                            variant={ButtonVariant.SECONDARY}
-                            withWrapper={false}
-                            onClick={() => {
-                              void handleCreateFollowUpTasks();
-                            }}
-                            isDisabled={
-                              Boolean(activeUiAction) ||
-                              isBusy ||
-                              isCreatingFollowUpTasks
-                            }
-                            className="rounded-md px-4 py-2 text-sm"
-                          >
-                            {isCreatingFollowUpTasks
-                              ? 'Creating Tasks...'
-                              : 'Create Follow-up Tasks'}
-                          </Button>
-                        ) : null
-                      }
-                      footerMessage={followUpTaskMessage}
-                      isBusy={Boolean(activeUiAction) || isBusy}
-                      plan={latestProposedPlan}
-                      onApprove={handleApprovePlan}
-                      onRequestChanges={handleRequestPlanChanges}
-                    />
-                  </div>
+                  <AgentPlanReviewSection
+                    plan={latestProposedPlan}
+                    isBusy={isBusy}
+                    activeUiAction={activeUiAction}
+                    isCreatingFollowUpTasks={isCreatingFollowUpTasks}
+                    followUpTaskMessage={followUpTaskMessage}
+                    showFollowUpButton={
+                      Boolean(workspacePlanningTaskId) &&
+                      Boolean(onCreateFollowUpTasks) &&
+                      latestProposedPlan.status === 'approved'
+                    }
+                    onApprove={handleApprovePlan}
+                    onRequestChanges={handleRequestPlanChanges}
+                    onCreateFollowUpTasks={handleCreateFollowUpTasks}
+                  />
                 ) : null}
 
                 {isEmpty && onboardingMode && (
@@ -1075,66 +928,23 @@ export function AgentChatContainer({
                   </div>
                 )}
 
-                {timeline.map((entry, index) => {
-                  switch (entry.kind) {
-                    case 'user-message':
-                    case 'assistant-message':
-                      return (
-                        <AgentChatMessage
-                          key={entry.id}
-                          messageIndex={index}
-                          message={entry.message}
-                          messageAnchorId={`agent-message-${entry.message.id}`}
-                          isHighlighted={
-                            highlightedMessageId === entry.message.id
-                          }
-                          isBusy={isBusy}
-                          apiService={apiService}
-                          onCopy={handleCopy}
-                          onRetry={handleRetry}
-                          onRegenerate={onRegenerate}
-                          onOAuthConnect={onOAuthConnect}
-                          onSelectCreditPack={onSelectCreditPack}
-                          onSelectIngredient={handleIngredientSelect}
-                          onUiAction={handleUiAction}
-                        />
-                      );
-                    case 'work-group':
-                      return <TimelineWorkGroup key={entry.id} entry={entry} />;
-                    case 'streaming':
-                      return (
-                        <TimelineStreamingRow key={entry.id} entry={entry} />
-                      );
-                    default:
-                      return null;
-                  }
-                })}
-
-                {streamState.pendingUiActions.length > 0 &&
-                  streamState.pendingUiActions.map((action) => (
-                    <UiActionRenderer
-                      key={`pending-ui-action-${action.id}`}
-                      action={action}
-                      apiService={apiService}
-                      onCopy={handleCopy}
-                      onOAuthConnect={onOAuthConnect}
-                      onSelectCreditPack={onSelectCreditPack}
-                      onSelectIngredient={handleIngredientSelect}
-                      onUiAction={handleUiAction}
-                    />
-                  ))}
-
-                {isGenerating &&
-                  !isStreamingActive &&
-                  !timeline.some((e) => e.kind === 'streaming') && (
-                    <div className="flex items-center gap-2.5 py-4">
-                      <AnimatedStatusText
-                        text="Thinking"
-                        className="text-xs text-muted-foreground"
-                      />
-                    </div>
-                  )}
-                <div ref={messagesEndRef} />
+                <AgentChatTimeline
+                  timeline={timeline}
+                  pendingUiActions={streamState.pendingUiActions}
+                  isGenerating={isGenerating}
+                  isStreamingActive={isStreamingActive}
+                  isBusy={isBusy}
+                  highlightedMessageId={highlightedMessageId}
+                  apiService={apiService}
+                  messagesEndRef={messagesEndRef}
+                  onCopy={handleCopy}
+                  onRetry={handleRetry}
+                  onRegenerate={onRegenerate}
+                  onOAuthConnect={onOAuthConnect}
+                  onSelectCreditPack={onSelectCreditPack}
+                  onSelectIngredient={handleIngredientSelect}
+                  onUiAction={handleUiAction}
+                />
               </div>
             </div>
 
@@ -1153,32 +963,18 @@ export function AgentChatContainer({
             )}
           </div>
 
-          <PromptBarContainer
+          <AgentChatPromptBar
+            apiService={apiService}
             layoutMode={promptBarLayoutMode}
-            maxWidth="4xl"
-            showTopFade
-            topContent={
-              showSuggestedActionsWhenNotEmpty && promptBarSuggestions ? (
-                <div className="px-1 pb-3">{promptBarSuggestions}</div>
-              ) : undefined
-            }
-            zIndex={40}
-            className={cn(
-              promptBarLayoutMode === 'fixed' && 'bottom-2 md:bottom-4',
-              promptBarLayoutMode === 'surface-fixed' && 'bottom-3 md:bottom-5',
-            )}
-          >
-            <AgentChatInput
-              onSend={handleSend}
-              disabled={isBusy || isReadOnly}
-              placeholder={
-                isReadOnly ? 'Archived threads are read-only' : placeholder
-              }
-              onStop={handleStopRun}
-              apiService={apiService}
-              showStop={isRunActive}
-            />
-          </PromptBarContainer>
+            isBusy={isBusy}
+            isReadOnly={isReadOnly}
+            isRunActive={isRunActive}
+            placeholder={placeholder}
+            showSuggestedActionsWhenNotEmpty={showSuggestedActionsWhenNotEmpty}
+            promptBarSuggestions={promptBarSuggestions}
+            onSend={handleSend}
+            onStop={handleStopRun}
+          />
         </>
       )}
     </div>

@@ -7,7 +7,6 @@ import {
   IngredientCategory,
   IngredientFormat,
   ModelCategory,
-  ViewType,
 } from '@genfeedai/enums';
 import type {
   IFolder,
@@ -16,25 +15,16 @@ import type {
   IModel,
   IQueryParams,
 } from '@genfeedai/interfaces';
-import type {
-  AvatarVoiceData,
-  AvatarVoiceOption,
-} from '@genfeedai/interfaces/studio/studio-generate.interface';
+import type { AvatarVoiceData } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import { formatVideos } from '@helpers/data/data/data.helper';
 import { resolveIngredientAspectRatio } from '@helpers/formatting/aspect-ratio/aspect-ratio.util';
-import {
-  buildGenerationEtaSnapshot,
-  formatEtaRange,
-  shouldDisplayEta,
-} from '@helpers/generation-eta.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useMusicPlayback } from '@hooks/media/use-music-playback/use-music-playback';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   AssetControlsHeader,
-  AssetDisplayGrid,
-  StoryboardPanel,
+  GenerateContentArea,
   StudioComposer,
 } from '@pages/studio/generate/components';
 import {
@@ -51,11 +41,12 @@ import {
 } from '@pages/studio/generate/hooks';
 import {
   buildAvatarVoiceOption,
+  buildGenerateLabel,
+  computeGenerationEstimateLabel,
   isImageOrVideoCategory,
   resolveAvatarPreviewUrl,
   resolveStoryboardFormat,
 } from '@pages/studio/generate/utils';
-import StudioSelectionActionsBar from '@pages/studio/selection/StudioSelectionActionsBar';
 import type { StudioGeneratePageProps } from '@props/studio/studio.props';
 import { usePostModal } from '@providers/global-modals/global-modals.provider';
 import { FoldersService } from '@services/content/folders.service';
@@ -65,7 +56,6 @@ import { AvatarsService } from '@services/ingredients/avatars.service';
 import { ImagesService } from '@services/ingredients/images.service';
 import { VoicesService } from '@services/ingredients/voices.service';
 import { useQuery } from '@tanstack/react-query';
-import InfiniteScroll from '@ui/feedback/infinite-scroll/InfiniteScroll';
 import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -554,126 +544,63 @@ export default function StudioGenerateLayout({
   );
 
   // Generate label
-  const generationEstimateLabel = useMemo(() => {
-    const selectedModel =
-      Array.isArray(promptConfig.models) && promptConfig.models.length > 0
-        ? promptConfig.models[0]
-        : defaultModelKey;
-    const startedAt = new Date();
+  const generationEstimateLabel = useMemo(
+    () =>
+      computeGenerationEstimateLabel({
+        categoryType,
+        defaultModelKey,
+        duration:
+          typeof promptConfig.duration === 'number'
+            ? promptConfig.duration
+            : undefined,
+        format:
+          typeof promptConfig.format === 'string'
+            ? promptConfig.format
+            : undefined,
+        height:
+          typeof promptConfig.height === 'number'
+            ? promptConfig.height
+            : undefined,
+        models: Array.isArray(promptConfig.models)
+          ? (promptConfig.models as string[])
+          : undefined,
+        references: Array.isArray(promptConfig.references)
+          ? (promptConfig.references as string[])
+          : undefined,
+        promptText,
+        width:
+          typeof promptConfig.width === 'number'
+            ? promptConfig.width
+            : undefined,
+      }),
+    [
+      categoryType,
+      defaultModelKey,
+      promptConfig.duration,
+      promptConfig.format,
+      promptConfig.height,
+      promptConfig.models,
+      promptConfig.references,
+      promptConfig.width,
+      promptText,
+    ],
+  );
 
-    const estimate =
-      categoryType === IngredientCategory.IMAGE
-        ? buildGenerationEtaSnapshot({
-            currentPhase: 'Queued',
-            height:
-              typeof promptConfig.height === 'number'
-                ? promptConfig.height
-                : undefined,
-            model: selectedModel,
-            promptText: promptText,
-            resolution:
-              typeof promptConfig.format === 'string'
-                ? promptConfig.format
-                : undefined,
-            startedAt,
-            type: 'image',
-            width:
-              typeof promptConfig.width === 'number'
-                ? promptConfig.width
-                : undefined,
-          })
-        : categoryType === IngredientCategory.VIDEO
-          ? buildGenerationEtaSnapshot({
-              currentPhase: 'Queued',
-              durationSeconds:
-                typeof promptConfig.duration === 'number'
-                  ? promptConfig.duration
-                  : undefined,
-              extraProcessingCount:
-                Array.isArray(promptConfig.references) &&
-                promptConfig.references.length > 0
-                  ? 1
-                  : 0,
-              height:
-                typeof promptConfig.height === 'number'
-                  ? promptConfig.height
-                  : undefined,
-              model: selectedModel,
-              promptText: promptText,
-              resolution:
-                typeof promptConfig.format === 'string'
-                  ? promptConfig.format
-                  : undefined,
-              startedAt,
-              type: 'video',
-              width:
-                typeof promptConfig.width === 'number'
-                  ? promptConfig.width
-                  : undefined,
-            })
-          : categoryType === IngredientCategory.MUSIC
-            ? buildGenerationEtaSnapshot({
-                currentPhase: 'Queued',
-                durationSeconds: 10,
-                model: selectedModel,
-                promptText: promptText,
-                startedAt,
-                type: 'music',
-              })
-            : categoryType === IngredientCategory.AVATAR
-              ? buildGenerationEtaSnapshot({
-                  audioDurationSeconds:
-                    typeof promptConfig.duration === 'number'
-                      ? promptConfig.duration
-                      : undefined,
-                  currentPhase: 'Queued',
-                  model: selectedModel,
-                  promptText: promptText,
-                  provider: 'heygen',
-                  startedAt,
-                  type: 'avatar',
-                })
-              : null;
-
-    if (!shouldDisplayEta(estimate) || !estimate?.estimatedDurationMs) {
-      return null;
-    }
-
-    return `~${formatEtaRange(estimate.estimatedDurationMs)}`;
-  }, [
-    categoryType,
-    defaultModelKey,
-    promptConfig.duration,
-    promptConfig.format,
-    promptConfig.height,
-    promptConfig.models,
-    promptConfig.references,
-    promptConfig.width,
-    promptText,
-  ]);
-
-  const generateLabel = useMemo(() => {
-    const processingCount = activeGenerations.length;
-    const categoryLabels: Record<string, string> = {
-      [IngredientCategory.VIDEO]: 'Generate Video',
-      [IngredientCategory.IMAGE]: 'Generate Image',
-      [IngredientCategory.MUSIC]: 'Generate Music',
-      [IngredientCategory.AVATAR]: 'Generate Avatar Video',
-    };
-
-    const categoryTypeLabel = categoryLabels[categoryType] || 'Generate';
-
-    return processingCount > 0 && !isGenerationCooldown
-      ? `${categoryTypeLabel} (${processingCount} processing)`
-      : generationEstimateLabel
-        ? `${categoryTypeLabel} (${generationEstimateLabel})`
-        : categoryTypeLabel;
-  }, [
-    categoryType,
-    activeGenerations.length,
-    generationEstimateLabel,
-    isGenerationCooldown,
-  ]);
+  const generateLabel = useMemo(
+    () =>
+      buildGenerateLabel({
+        activeGenerationsCount: activeGenerations.length,
+        categoryType,
+        generationEstimateLabel,
+        isGenerationCooldown,
+      }),
+    [
+      categoryType,
+      activeGenerations.length,
+      generationEstimateLabel,
+      isGenerationCooldown,
+    ],
+  );
 
   // Brand switch reset
   useEffect(() => {
@@ -969,93 +896,57 @@ export default function StudioGenerateLayout({
         categoryType={categoryType}
       />
 
-      <div className="flex flex-1 overflow-hidden relative w-full">
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-auto px-6 pt-6 pb-40 md:pb-40">
-            {isVideoCategory && (
-              <StoryboardPanel
-                cameraMovementPreset={cameraMovementPreset}
-                customCameraPrompt={customCameraPrompt}
-                format={storyboardFormat}
-                frames={storyboardFrames}
-                hasInterpolationModel={hasInterpolationModel}
-                isGenerating={isStoryboardGenerating}
-                onCameraMovementPresetChange={setCameraMovementPreset}
-                onClear={clearStoryboard}
-                onCustomCameraPromptChange={setCustomCameraPrompt}
-                onFramesChange={setStoryboardFrames}
-                onGenerate={handleGenerateStoryboard}
-              />
-            )}
-
-            {viewMode === ViewType.TABLE && tableSelectedIds.length > 0 && (
-              <StudioSelectionActionsBar
-                count={tableSelectedIds.length}
-                onClear={handleClearSelection}
-                onBulkDelete={handleBulkDelete}
-                onBulkStatusChange={handleBulkStatusChange}
-                isBulkUpdating={isBulkUpdating}
-              />
-            )}
-
-            {isEmptyStudioState ? (
-              <div className="flex min-h-[55vh] flex-col items-center justify-center gap-3 px-6 text-center">
-                <span className="rounded-full border border-white/[0.1] bg-white/[0.03] px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-foreground/45">
-                  Studio
-                </span>
-                <h2 className="text-2xl font-semibold text-foreground">
-                  Start with a prompt, then refine in place.
-                </h2>
-                <p className="max-w-xl text-sm text-foreground/60">
-                  The composer stays docked while you iterate, compare outputs,
-                  and queue generations without the UI jumping between modes.
-                </p>
-              </div>
-            ) : (
-              <InfiniteScroll
-                onLoadMore={handleLoadMore}
-                hasMore={hasMore}
-                isLoading={isLoadingMore}
-                enabled={!isLoading}
-              >
-                <AssetDisplayGrid
-                  viewMode={viewMode}
-                  supportsMasonry={supportsMasonry}
-                  isLoading={isLoading}
-                  allAssets={allAssets}
-                  initialLoadComplete={initialLoadComplete}
-                  selectedIngredientIds={selectedIngredientIds}
-                  scrollFocusedIngredientId={scrollFocusedAssetId}
-                  resolvedGridFormat={resolvedGridFormat}
-                  categoryType={categoryType}
-                  columns={columns}
-                  actions={actions}
-                  tableSelectedIds={tableSelectedIds}
-                  onTableSelectionChange={setTableSelectedIds}
-                  emptyLabel={emptyLabel}
-                  onRefresh={() => findAllAssets(1, false, true)}
-                  onClickIngredient={handleIngredientClick}
-                  onToggleFavorite={handleToggleFavorite}
-                  onCopyPrompt={handleCopy}
-                  onReprompt={handleReprompt}
-                  onEditIngredient={handleEditIngredient}
-                  onMarkValidated={handleMarkValidated}
-                  onMarkRejected={handleMarkRejected}
-                  onMarkArchived={handleMarkArchived}
-                  onSeeDetails={handleSeeDetails}
-                  onPublishIngredient={handlePublishIngredient}
-                  onUseAsVideoReference={
-                    isImageCategory ? handleConvertImageToVideo : undefined
-                  }
-                  onCreateVariation={
-                    isImageCategory ? handleCreateVariation : undefined
-                  }
-                />
-              </InfiniteScroll>
-            )}
-          </div>
-        </div>
-      </div>
+      <GenerateContentArea
+        isVideoCategory={isVideoCategory}
+        isEmptyStudioState={isEmptyStudioState}
+        cameraMovementPreset={cameraMovementPreset}
+        customCameraPrompt={customCameraPrompt}
+        storyboardFormat={storyboardFormat}
+        storyboardFrames={storyboardFrames}
+        hasInterpolationModel={hasInterpolationModel}
+        isStoryboardGenerating={isStoryboardGenerating}
+        onCameraMovementPresetChange={setCameraMovementPreset}
+        onClearStoryboard={clearStoryboard}
+        onCustomCameraPromptChange={setCustomCameraPrompt}
+        onStoryboardFramesChange={setStoryboardFrames}
+        onGenerateStoryboard={handleGenerateStoryboard}
+        viewMode={viewMode}
+        tableSelectedIds={tableSelectedIds}
+        onClearSelection={handleClearSelection}
+        onBulkDelete={handleBulkDelete}
+        onBulkStatusChange={handleBulkStatusChange}
+        isBulkUpdating={isBulkUpdating}
+        onLoadMore={handleLoadMore}
+        hasMore={hasMore}
+        isLoadingMore={isLoadingMore}
+        isLoading={isLoading}
+        supportsMasonry={supportsMasonry}
+        allAssets={allAssets}
+        initialLoadComplete={initialLoadComplete}
+        selectedIngredientIds={selectedIngredientIds}
+        scrollFocusedAssetId={scrollFocusedAssetId}
+        resolvedGridFormat={resolvedGridFormat}
+        categoryType={categoryType}
+        columns={columns}
+        actions={actions}
+        emptyLabel={emptyLabel}
+        onRefresh={() => findAllAssets(1, false, true)}
+        onClickIngredient={handleIngredientClick}
+        onToggleFavorite={handleToggleFavorite}
+        onCopyPrompt={handleCopy}
+        onReprompt={handleReprompt}
+        onEditIngredient={handleEditIngredient}
+        onMarkValidated={handleMarkValidated}
+        onMarkRejected={handleMarkRejected}
+        onMarkArchived={handleMarkArchived}
+        onSeeDetails={handleSeeDetails}
+        onPublishIngredient={handlePublishIngredient}
+        onUseAsVideoReference={
+          isImageCategory ? handleConvertImageToVideo : undefined
+        }
+        onCreateVariation={isImageCategory ? handleCreateVariation : undefined}
+        onTableSelectionChange={setTableSelectedIds}
+      />
 
       <div className="relative shrink-0">
         <StudioComposer

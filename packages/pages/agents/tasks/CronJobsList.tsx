@@ -1,6 +1,5 @@
 'use client';
 
-import { Pre } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
@@ -14,20 +13,13 @@ import { NotificationsService } from '@services/core/notifications.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
-import Textarea from '@ui/inputs/textarea/Textarea';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiOutlineClock } from 'react-icons/hi2';
+import CronJobForm, { type CronJobFormState } from './CronJobForm';
+import CronJobRunHistory from './CronJobRunHistory';
 
 interface CronJob {
   id: string;
@@ -46,38 +38,6 @@ interface CronJob {
   maxRetries: number;
   retryBackoffMinutes: number;
 }
-
-interface CronJobFormState {
-  id?: string;
-  name: string;
-  jobType: CronJobType;
-  schedule: string;
-  timezone: string;
-  maxRetries: string;
-  retryBackoffMinutes: string;
-  webhookHeadersText: string;
-  webhookSecret: string;
-  webhookUrl: string;
-  payloadText: string;
-}
-
-const CUSTOM_SCHEDULE_PRESET = 'custom';
-
-const schedulePresetOptions = [
-  { label: 'Every 15 minutes', schedule: '*/15 * * * *', value: 'every-15m' },
-  { label: 'Every hour', schedule: '0 * * * *', value: 'hourly' },
-  { label: 'Daily at 9:00 UTC', schedule: '0 9 * * *', value: 'daily-9' },
-  {
-    label: 'Weekdays at 9:00 UTC',
-    schedule: '0 9 * * 1-5',
-    value: 'weekdays-9',
-  },
-  {
-    label: 'Mondays at 9:00 UTC',
-    schedule: '0 9 * * 1',
-    value: 'weekly-monday-9',
-  },
-] as const;
 
 const defaultNewsletterPayload = {
   instructions:
@@ -109,11 +69,12 @@ const defaultFormState: CronJobFormState = {
   webhookUrl: '',
 };
 
-const jobTypeOptions: Array<{ label: string; value: CronJobType }> = [
-  { label: 'Newsletter (Substack)', value: 'newsletter_substack' },
-  { label: 'Workflow Execution', value: 'workflow_execution' },
-  { label: 'Agent Strategy', value: 'agent_strategy_execution' },
-];
+const statusColorMap: Record<string, string> = {
+  failed: 'error',
+  never: 'default',
+  running: 'warning',
+  success: 'success',
+};
 
 function toCronJob(record: CronJobRecord): CronJob {
   return {
@@ -134,13 +95,6 @@ function toCronJob(record: CronJobRecord): CronJob {
     timezone: record.timezone,
   };
 }
-
-const statusColorMap: Record<string, string> = {
-  failed: 'error',
-  never: 'default',
-  running: 'warning',
-  success: 'success',
-};
 
 function validateWebhookUrl(url: string): string | null {
   if (!url.trim()) {
@@ -178,13 +132,6 @@ function parseWebhookHeaders(headersText: string): Record<string, string> {
   }
 
   return Object.fromEntries(entries) as Record<string, string>;
-}
-
-function getSchedulePresetValue(schedule: string): string {
-  const preset = schedulePresetOptions.find(
-    (option) => option.schedule === schedule,
-  );
-  return preset?.value ?? CUSTOM_SCHEDULE_PRESET;
 }
 
 export default function CronJobsList() {
@@ -642,285 +589,15 @@ export default function CronJobsList() {
       </div>
 
       {isFormOpen && (
-        <div className="mb-4 rounded border border-white/10 bg-white/[0.02] p-4">
-          <div className="mb-3 text-sm font-semibold">
-            {form.id ? 'Edit Cron Job' : 'Create Cron Job'}
-          </div>
-          {form.jobType === 'workflow_execution' && (
-            <div className="mb-4 rounded border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-muted-foreground">
-              Workflow schedules start in{' '}
-              <Link
-                href={href('/workflows')}
-                className="font-medium text-foreground underline-offset-2 hover:underline"
-              >
-                Workflows
-              </Link>
-              . Use this form when you need direct cron-level control over a
-              workflow execution job.
-            </div>
-          )}
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label
-                htmlFor="cron-job-name"
-                className="text-sm font-medium text-foreground"
-              >
-                Name
-              </label>
-              <Input
-                id="cron-job-name"
-                value={form.name}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, name: event.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label
-                className="text-sm font-medium text-foreground"
-                htmlFor="cron-job-type"
-              >
-                Type
-              </label>
-              <Select
-                value={form.jobType}
-                onValueChange={(value) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    jobType: value as CronJobType,
-                  }))
-                }
-              >
-                <SelectTrigger id="cron-job-type">
-                  <SelectValue placeholder="Select a job type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {jobTypeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <label
-                className="text-sm font-medium text-foreground"
-                htmlFor="cron-schedule-preset"
-              >
-                Schedule Preset
-              </label>
-              <Select
-                value={getSchedulePresetValue(form.schedule)}
-                onValueChange={(value) => {
-                  if (value === CUSTOM_SCHEDULE_PRESET) {
-                    return;
-                  }
-
-                  const preset = schedulePresetOptions.find(
-                    (option) => option.value === value,
-                  );
-                  if (!preset) {
-                    return;
-                  }
-
-                  setForm((prev) => ({ ...prev, schedule: preset.schedule }));
-                }}
-              >
-                <SelectTrigger
-                  id="cron-schedule-preset"
-                  aria-label="Schedule preset"
-                >
-                  <SelectValue placeholder="Choose a schedule preset" />
-                </SelectTrigger>
-                <SelectContent>
-                  {schedulePresetOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value={CUSTOM_SCHEDULE_PRESET}>Custom</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <label
-                htmlFor="cron-job-schedule"
-                className="text-sm font-medium text-foreground"
-              >
-                Cron Expression
-              </label>
-              <Input
-                id="cron-job-schedule"
-                value={form.schedule}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, schedule: event.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label
-                htmlFor="cron-job-timezone"
-                className="text-sm font-medium text-foreground"
-              >
-                Timezone
-              </label>
-              <Input
-                id="cron-job-timezone"
-                value={form.timezone}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, timezone: event.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label
-                htmlFor="cron-job-max-retries"
-                className="text-sm font-medium text-foreground"
-              >
-                Max Retries
-              </label>
-              <Input
-                id="cron-job-max-retries"
-                type="number"
-                min={0}
-                max={20}
-                value={form.maxRetries}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    maxRetries: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label
-                htmlFor="cron-job-retry-backoff"
-                className="text-sm font-medium text-foreground"
-              >
-                Retry Backoff (minutes)
-              </label>
-              <Input
-                id="cron-job-retry-backoff"
-                type="number"
-                min={1}
-                max={1440}
-                value={form.retryBackoffMinutes}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    retryBackoffMinutes: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="space-y-1 md:col-span-2">
-              <Textarea
-                id="cron-job-payload"
-                label="Payload JSON"
-                rows={10}
-                className="font-mono text-xs"
-                value={form.payloadText}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    payloadText: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            {form.jobType === 'newsletter_substack' && (
-              <>
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="cron-job-webhook-url"
-                    className="text-sm font-medium text-foreground"
-                  >
-                    Substack Bridge Webhook URL
-                  </label>
-                  <Input
-                    id="cron-job-webhook-url"
-                    placeholder="https://your-bridge.example.com/substack/draft"
-                    value={form.webhookUrl}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        webhookUrl: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="cron-job-webhook-secret"
-                    className="text-sm font-medium text-foreground"
-                  >
-                    Substack Bridge Secret
-                  </label>
-                  <Input
-                    id="cron-job-webhook-secret"
-                    placeholder="Optional shared secret"
-                    value={form.webhookSecret}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        webhookSecret: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="space-y-1 md:col-span-2">
-                  <Textarea
-                    id="cron-job-webhook-headers"
-                    label="Substack Bridge Headers JSON"
-                    rows={5}
-                    className="font-mono text-xs"
-                    value={form.webhookHeadersText}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        webhookHeadersText: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <Button
-                    label="Test Webhook"
-                    className="h-8 px-3 text-xs font-semibold"
-                    onClick={async () => {
-                      await testWebhook();
-                    }}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-          <div className="mt-3 flex items-center gap-2">
-            <Button
-              label="Save"
-              className="h-8 px-3 text-xs font-semibold"
-              onClick={async () => {
-                await saveForm();
-              }}
-            />
-            <Button
-              label="Cancel"
-              className="h-8 px-3 text-xs font-semibold"
-              onClick={() => setIsFormOpen(false)}
-            />
-            {form.id && (
-              <Button
-                label="Delete"
-                className="h-8 px-3 text-xs font-semibold"
-                onClick={async () => {
-                  await deleteFormJob();
-                }}
-              />
-            )}
-          </div>
-        </div>
+        <CronJobForm
+          form={form}
+          setForm={setForm}
+          onSave={saveForm}
+          onCancel={() => setIsFormOpen(false)}
+          onDelete={deleteFormJob}
+          onTestWebhook={testWebhook}
+          workflowsHref={href('/workflows')}
+        />
       )}
 
       <AppTable<CronJob>
@@ -932,97 +609,23 @@ export default function CronJobsList() {
       />
 
       {selectedJob && (
-        <div className="mt-5 rounded border border-white/10 bg-white/[0.02] p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="text-sm font-semibold">
-              Run History: {selectedJob.name}
-            </div>
-            <Button
-              label="Close"
-              className="h-7 px-2 text-xs"
-              onClick={() => {
-                setSelectedJob(null);
-                setSelectedRun(null);
-                setRuns([]);
-              }}
-            />
-          </div>
-
-          {isRunsLoading ? (
-            <div className="text-xs text-white/60">Loading runs…</div>
-          ) : runs.length === 0 ? (
-            <div className="text-xs text-white/60">No runs yet.</div>
-          ) : (
-            <div className="grid gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-white/50">Status:</span>
-                {(['all', 'success', 'failed', 'running'] as const).map(
-                  (status) => (
-                    <Button
-                      key={status}
-                      label={status}
-                      className={`h-7 px-2 text-xs ${runStatusFilter === status ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                      onClick={() => setRunStatusFilter(status)}
-                    />
-                  ),
-                )}
-                <span className="ml-2 text-xs text-white/50">Trigger:</span>
-                {(['all', 'scheduled', 'manual'] as const).map((trigger) => (
-                  <Button
-                    key={trigger}
-                    label={trigger}
-                    className={`h-7 px-2 text-xs ${runTriggerFilter === trigger ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                    onClick={() => setRunTriggerFilter(trigger)}
-                  />
-                ))}
-              </div>
-              {filteredRuns.map((run) => (
-                <Button
-                  key={run.id}
-                  className="h-auto w-full justify-start rounded border border-white/10 px-3 py-2 text-left"
-                  onClick={() => setSelectedRun(run)}
-                >
-                  <div className="flex w-full items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        status={statusColorMap[run.status] ?? 'default'}
-                        className="uppercase"
-                      >
-                        {run.status}
-                      </Badge>
-                      <span className="text-xs text-white/70">
-                        {run.trigger}
-                      </span>
-                    </div>
-                    <span className="text-xs text-white/50">
-                      {run.startedAt
-                        ? new Date(run.startedAt).toLocaleString()
-                        : '—'}
-                    </span>
-                  </div>
-                </Button>
-              ))}
-              {filteredRuns.length === 0 && (
-                <div className="text-xs text-white/50">
-                  No runs for the selected filters.
-                </div>
-              )}
-            </div>
-          )}
-
-          {selectedRun && (
-            <div className="mt-3 rounded border border-white/10 bg-black/20 p-3">
-              <div className="mb-1 text-xs text-white/60">Run Detail</div>
-              <Pre
-                variant="ghost"
-                size="sm"
-                className="max-h-72 overflow-y-auto text-white/75"
-              >
-                {JSON.stringify(selectedRun, null, 2)}
-              </Pre>
-            </div>
-          )}
-        </div>
+        <CronJobRunHistory
+          jobName={selectedJob.name}
+          runs={runs}
+          filteredRuns={filteredRuns}
+          isRunsLoading={isRunsLoading}
+          selectedRun={selectedRun}
+          runStatusFilter={runStatusFilter}
+          runTriggerFilter={runTriggerFilter}
+          onClose={() => {
+            setSelectedJob(null);
+            setSelectedRun(null);
+            setRuns([]);
+          }}
+          onSelectRun={setSelectedRun}
+          onSetStatusFilter={setRunStatusFilter}
+          onSetTriggerFilter={setRunTriggerFilter}
+        />
       )}
     </Container>
   );

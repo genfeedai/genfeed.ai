@@ -3,7 +3,6 @@
 import {
   getModelDefaultDuration,
   getModelDurations,
-  getModelMaxOutputs,
 } from '@genfeedai/constants';
 import {
   useGalleryModal,
@@ -36,7 +35,7 @@ import { usePromptBarPricing } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-
 import { usePromptBarReferences } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-references/use-prompt-bar-references';
 import { usePromptBarSync } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
-import type { IAsset, IImage, IIngredient } from '@genfeedai/interfaces';
+import type { IAsset, IImage } from '@genfeedai/interfaces';
 import type {
   GalleryModalOptions,
   PromptBarAttachedAsset,
@@ -52,7 +51,7 @@ import {
   getConfigForRoute,
 } from '@ui-constants/media.constant';
 import { usePathname, useRouter } from 'next/navigation';
-import type { DragEvent, FormEvent } from 'react';
+import type { FormEvent } from 'react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWatch } from 'react-hook-form';
 import {
@@ -60,96 +59,14 @@ import {
   MdOutlineCropPortrait,
   MdOutlineCropSquare,
 } from 'react-icons/md';
-
-const EMPTY_ARRAY: never[] = [];
-
-function getAspectRatioFromFormat(format: IngredientFormat): string {
-  switch (format) {
-    case IngredientFormat.PORTRAIT:
-      return '9:16';
-    case IngredientFormat.SQUARE:
-      return '1:1';
-    default:
-      return '16:9';
-  }
-}
-
-function resizeTextarea(
-  textarea: HTMLTextAreaElement | null,
-  maxHeight: number,
-): void {
-  if (!textarea) {
-    return;
-  }
-  Object.assign(textarea.style, { height: 'auto' });
-
-  if (textarea.scrollHeight > maxHeight) {
-    Object.assign(textarea.style, {
-      height: `${maxHeight}px`,
-      overflowY: 'auto',
-    });
-  } else {
-    Object.assign(textarea.style, {
-      height: `${textarea.scrollHeight}px`,
-      overflowY: 'hidden',
-    });
-  }
-}
-
-function isFileDrag(event: DragEvent<HTMLDivElement>): boolean {
-  return Array.from(event.dataTransfer?.types ?? []).includes('Files');
-}
-
-function toAttachedPromptAsset(
-  asset: IAsset | IImage,
-  role: 'reference' | 'startFrame' | 'endFrame',
-  source: 'upload' | 'library',
-): PromptBarAttachedAsset {
-  return {
-    id: asset.id as string,
-    kind: 'image',
-    name:
-      ('title' in asset && typeof asset.title === 'string' && asset.title) ||
-      ('name' in asset && typeof asset.name === 'string' && asset.name) ||
-      undefined,
-    previewUrl:
-      ('ingredientUrl' in asset && typeof asset.ingredientUrl === 'string'
-        ? asset.ingredientUrl
-        : undefined) || undefined,
-    role,
-    source,
-  };
-}
-
-function normalizeUploadedReference(
-  uploaded: IIngredient | IAsset,
-): IAsset | IImage | null {
-  if (!uploaded?.id) {
-    return null;
-  }
-
-  const maybeUploaded = uploaded as unknown as Record<string, unknown>;
-
-  return {
-    id: uploaded.id,
-    ingredientUrl:
-      typeof maybeUploaded.ingredientUrl === 'string'
-        ? maybeUploaded.ingredientUrl
-        : undefined,
-    metadataHeight:
-      typeof maybeUploaded.metadataHeight === 'number'
-        ? maybeUploaded.metadataHeight
-        : undefined,
-    metadataWidth:
-      typeof maybeUploaded.metadataWidth === 'number'
-        ? maybeUploaded.metadataWidth
-        : undefined,
-    name:
-      typeof maybeUploaded.name === 'string' ? maybeUploaded.name : undefined,
-    title:
-      typeof maybeUploaded.title === 'string' ? maybeUploaded.title : undefined,
-  } as unknown as IAsset | IImage;
-}
+import {
+  EMPTY_ARRAY,
+  getAspectRatioFromFormat,
+  resizeTextarea,
+  toAttachedPromptAsset,
+} from './prompt-bar.helpers';
+import { usePromptBarDragDrop } from './use-prompt-bar-drag-drop';
+import { usePromptBarInternalContextValue } from './use-prompt-bar-internal-context-value';
 
 function PromptBar({
   isDisabled = false,
@@ -233,9 +150,6 @@ function PromptBar({
   const isInternalUpdateRef = useRef(false);
   const hasExpandedRef = useRef(false);
   const [promptBarHeight, setPromptBarHeight] = useState(0);
-  const [isDragActive, setIsDragActive] = useState(false);
-  const [dragError, setDragError] = useState<string | null>(null);
-  const dragDepthRef = useRef(0);
 
   const textareaMaxHeight = isCollapsible ? 300 : 240;
   const resizePromptTextarea = useCallback(
@@ -642,181 +556,32 @@ function PromptBar({
     watchedFormat,
   ]);
 
-  const handleRemoveAttachedAsset = useCallback(
-    (assetId: string) => {
-      if (endFrame?.id === assetId) {
-        setEndFrame(null);
-        form.setValue('endFrame', '', { shouldValidate: true });
-        triggerConfigChange();
-        return;
-      }
-
-      const updatedReferences = references.filter(
-        (reference) => reference.id !== assetId,
-      );
-      setReferences(updatedReferences);
-      setReferenceSource(updatedReferences.length > 0 ? referenceSource : '');
-      form.setValue(
-        'references',
-        updatedReferences.reduce<string[]>((acc, reference) => {
-          if (reference.id) acc.push(reference.id);
-          return acc;
-        }, []),
-        { shouldValidate: true },
-      );
-      triggerConfigChange();
-    },
-    [
-      endFrame,
-      form,
-      referenceSource,
-      references,
-      setEndFrame,
-      setReferenceSource,
-      setReferences,
-      triggerConfigChange,
-    ],
-  );
-
-  const handlePromptBarDragEnter = useCallback(
-    (event: DragEvent<HTMLDivElement>) => {
-      if (
-        isDisabledState ||
-        !currentConfig.buttons?.reference ||
-        isOnlyImagenModels ||
-        !isFileDrag(event)
-      ) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-      dragDepthRef.current += 1;
-      setDragError(null);
-      setIsDragActive(true);
-    },
-    [currentConfig.buttons, isDisabledState, isOnlyImagenModels],
-  );
-
-  const handlePromptBarDragLeave = useCallback(
-    (event: DragEvent<HTMLDivElement>) => {
-      if (!isFileDrag(event)) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-      dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
-      if (dragDepthRef.current === 0) {
-        setIsDragActive(false);
-      }
-    },
-    [],
-  );
-
-  const handleDroppedUploadComplete = useCallback(
-    (uploadedIngredients: (IIngredient | IAsset)[]) => {
-      const uploadedReferences = uploadedIngredients.reduce<
-        (IAsset | IImage)[]
-      >((acc, uploaded) => {
-        const reference = normalizeUploadedReference(uploaded);
-        if (reference !== null) acc.push(reference);
-        return acc;
-      }, []);
-
-      if (uploadedReferences.length === 0) {
-        return;
-      }
-
-      if (!supportsMultipleReferences) {
-        handleReferenceSelect(
-          uploadedReferences[uploadedReferences.length - 1],
-        );
-        triggerConfigChange();
-        return;
-      }
-
-      const mergedReferences = [
-        ...references.filter(
-          (existingReference) =>
-            !uploadedReferences.some(
-              (uploaded) => uploaded.id === existingReference.id,
-            ),
-        ),
-        ...uploadedReferences,
-      ].slice(0, maxReferenceCount);
-
-      handleReferenceSelect(mergedReferences as IAsset[] | IImage[]);
-      triggerConfigChange();
-    },
-    [
-      handleReferenceSelect,
-      maxReferenceCount,
-      references,
-      supportsMultipleReferences,
-      triggerConfigChange,
-    ],
-  );
-
-  const handleDroppedFiles = useCallback(
-    async (event: DragEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      event.stopPropagation();
-      dragDepthRef.current = 0;
-      setIsDragActive(false);
-
-      if (
-        isDisabledState ||
-        !currentConfig.buttons?.reference ||
-        isOnlyImagenModels
-      ) {
-        return;
-      }
-
-      const droppedFiles = Array.from(event.dataTransfer?.files ?? []);
-      if (droppedFiles.length === 0) {
-        return;
-      }
-
-      const validImageFiles = droppedFiles.filter((file) =>
-        file.type.startsWith('image/'),
-      );
-
-      if (validImageFiles.length === 0) {
-        setDragError(
-          'Only image files can be attached as references in the studio prompt bar.',
-        );
-        return;
-      }
-
-      const filesToUpload = supportsMultipleReferences
-        ? validImageFiles.slice(0, maxReferenceCount)
-        : validImageFiles.slice(-1);
-
-      setDragError(null);
-      openUpload({
-        autoSubmit: true,
-        category: IngredientCategory.IMAGE,
-        height: watchedHeight,
-        initialFiles: filesToUpload,
-        isMultiple: supportsMultipleReferences,
-        maxFiles: supportsMultipleReferences ? maxReferenceCount : 1,
-        onComplete: handleDroppedUploadComplete,
-        width: watchedWidth,
-      });
-    },
-    [
-      currentConfig.buttons,
-      handleDroppedUploadComplete,
-      isDisabledState,
-      isOnlyImagenModels,
-      maxReferenceCount,
-      openUpload,
-      supportsMultipleReferences,
-      watchedHeight,
-      watchedWidth,
-    ],
-  );
+  const {
+    isDragActive,
+    dragError,
+    handleRemoveAttachedAsset,
+    handlePromptBarDragEnter,
+    handlePromptBarDragLeave,
+    handleDroppedFiles,
+  } = usePromptBarDragDrop({
+    currentConfig,
+    endFrame,
+    form,
+    handleReferenceSelect,
+    isDisabledState,
+    isOnlyImagenModels,
+    maxReferenceCount,
+    openUpload,
+    referenceSource,
+    references,
+    setEndFrame,
+    setReferenceSource,
+    setReferences,
+    supportsMultipleReferences,
+    triggerConfigChange,
+    watchedHeight,
+    watchedWidth,
+  });
 
   const handleSubmitForm = useCallback(
     (e?: FormEvent) => {
@@ -867,229 +632,118 @@ function PromptBar({
     'size-9 p-0 flex items-center justify-center !border-transparent !bg-transparent !shadow-none text-white/70 hover:!bg-white/5 hover:!text-white';
   const textareaRegister = form.register('text');
 
-  const internalContextValue = useMemo(
-    () => ({
-      currentConfig,
-      pathname,
-      categoryType,
-      currentModelCategory,
-      features: { collapsible: isCollapsible, dragDrop: hasDragDrop },
-      form,
-      isDisabledState,
-      isGenerateBlocked,
-      controlClass,
-      iconButtonClass,
-      isAdvancedMode,
-      isAdvancedControlsEnabled,
-      isAutoMode,
-      setIsAutoMode,
-      models,
-      trainings,
-      selectedModels,
-      trainingIds,
-      normalizedWatchedModels,
-      watchedModels,
-      watchedModel,
-      watchedFormat,
-      watchedWidth,
-      watchedHeight,
-      watchedDuration,
-      watchedSpeech,
-      watchedQuality,
-      subscriptionTier,
-      isModelNotSet,
-      hasAudioToggleValue: hasAudioToggle,
-      hasSpeechValue: hasSpeech,
-      hasModelWithoutDurationEditingValue: hasModelWithoutDurationEditing,
-      hasAnyResolutionOptionsValue: hasAnyResolutionOptions,
-      hasEndFrameValue: hasEndFrame,
-      hasAnyImagenModelValue: hasAnyImagenModel,
-      isOnlyImagenModelsValue: isOnlyImagenModels,
-      supportsInterpolation,
-      supportsMultipleReferences,
-      requiresReferences,
-      maxReferenceCount,
-      formatIcon,
-      videoDurations,
-      references,
-      setReferences,
-      endFrame,
-      setEndFrame,
-      referenceSource,
-      setReferenceSource,
-      folders,
-      profiles,
-      filteredPresets,
-      filteredScenes,
-      filteredFontFamilies,
-      filteredStyles,
-      filteredCameras,
-      filteredLightings,
-      filteredLenses,
-      filteredCameraMovements,
-      filteredMoods,
-      selectedPreset,
-      setSelectedPreset,
-      selectedProfile,
-      setSelectedProfile,
-      triggerConfigChange,
-      refocusTextarea,
-      handleTextareaChange,
-      onTextChange: handleTextChange,
-      handleCopy,
-      enhancePrompt,
-      handleUndo,
-      handleSubmitForm,
-      suggestions,
-      onSuggestionSelect,
-      showSuggestionsWhenEmpty,
-      maxSuggestions,
-      openGallery: openGallery as unknown as (
-        options: GalleryModalOptions,
-      ) => void,
-      openUpload,
-      textareaRef,
-      textareaRegister,
-      modelDropdownRef,
-      promptBarHeight,
-      getModelDefaultDuration,
-      getDefaultVideoResolution,
-      getMinFromAllModels,
-      getModelMaxOutputs,
-      setTextValue,
-      isSupported: isSupported && settings?.isVoiceControlEnabled !== false,
-      toggleVoice,
-      isRecording,
-      isProcessing,
-      isGenerating,
-      isEnhancing,
-      isGenerateDisabled,
-      previousPrompt,
-      selectedModelCost,
-      activeGenerations,
-      generateLabel,
-      avatars,
-      voices,
-      isDragActive,
-      dragError,
-      attachedPromptAssets,
-      onDragEnter: handlePromptBarDragEnter,
-      onDragLeave: handlePromptBarDragLeave,
-      onDropFiles: handleDroppedFiles,
-      onRemoveAttachedAsset: handleRemoveAttachedAsset,
-      onBrowseAssets: openAttachedAssetsBrowser,
-      isCollapsed,
-      setIsCollapsed,
-    }),
-    [
-      currentConfig,
-      pathname,
-      categoryType,
-      currentModelCategory,
-      isCollapsible,
-      hasDragDrop,
-      form,
-      isDisabledState,
-      isGenerateBlocked,
-      isAdvancedMode,
-      isAdvancedControlsEnabled,
-      isAutoMode,
-      setIsAutoMode,
-      models,
-      trainings,
-      selectedModels,
-      trainingIds,
-      normalizedWatchedModels,
-      watchedModels,
-      watchedModel,
-      watchedFormat,
-      watchedWidth,
-      watchedHeight,
-      watchedDuration,
-      watchedSpeech,
-      watchedQuality,
-      subscriptionTier,
-      isModelNotSet,
-      hasAudioToggle,
-      hasSpeech,
-      hasModelWithoutDurationEditing,
-      hasAnyResolutionOptions,
-      hasEndFrame,
-      hasAnyImagenModel,
-      isOnlyImagenModels,
-      supportsInterpolation,
-      supportsMultipleReferences,
-      requiresReferences,
-      maxReferenceCount,
-      formatIcon,
-      videoDurations,
-      references,
-      setReferences,
-      endFrame,
-      setEndFrame,
-      referenceSource,
-      setReferenceSource,
-      folders,
-      profiles,
-      filteredPresets,
-      filteredScenes,
-      filteredFontFamilies,
-      filteredStyles,
-      filteredCameras,
-      filteredLightings,
-      filteredLenses,
-      filteredCameraMovements,
-      filteredMoods,
-      selectedPreset,
-      setSelectedPreset,
-      selectedProfile,
-      setSelectedProfile,
-      triggerConfigChange,
-      refocusTextarea,
-      handleTextareaChange,
-      handleTextChange,
-      handleCopy,
-      enhancePrompt,
-      handleUndo,
-      handleSubmitForm,
-      suggestions,
-      onSuggestionSelect,
-      showSuggestionsWhenEmpty,
-      maxSuggestions,
-      openGallery,
-      openUpload,
-      textareaRef,
-      textareaRegister,
-      modelDropdownRef,
-      promptBarHeight,
-      getMinFromAllModels,
-      setTextValue,
-      isSupported,
-      settings?.isVoiceControlEnabled,
-      toggleVoice,
-      isRecording,
-      isProcessing,
-      isGenerating,
-      isEnhancing,
-      isGenerateDisabled,
-      previousPrompt,
-      selectedModelCost,
-      activeGenerations,
-      generateLabel,
-      avatars,
-      voices,
-      isDragActive,
-      dragError,
-      attachedPromptAssets,
-      handlePromptBarDragEnter,
-      handlePromptBarDragLeave,
-      handleDroppedFiles,
-      handleRemoveAttachedAsset,
-      openAttachedAssetsBrowser,
-      isCollapsed,
-      setIsCollapsed,
-    ],
-  );
+  const internalContextValue = usePromptBarInternalContextValue({
+    activeGenerations,
+    attachedPromptAssets,
+    avatars,
+    controlClass,
+    currentConfig,
+    currentModelCategory,
+    categoryType,
+    dragError,
+    endFrame,
+    enhancePrompt,
+    filteredCameraMovements,
+    filteredCameras,
+    filteredFontFamilies,
+    filteredLenses,
+    filteredLightings,
+    filteredMoods,
+    filteredPresets,
+    filteredScenes,
+    filteredStyles,
+    folders,
+    form,
+    formatIcon,
+    generateLabel,
+    getMinFromAllModels,
+    handleCopy,
+    handleDroppedFiles,
+    handlePromptBarDragEnter,
+    handlePromptBarDragLeave,
+    handleRemoveAttachedAsset,
+    handleSubmitForm,
+    handleTextChange,
+    handleTextareaChange,
+    handleUndo,
+    hasAnyImagenModel,
+    hasAnyResolutionOptions,
+    hasAudioToggle,
+    hasEndFrame,
+    hasModelWithoutDurationEditing,
+    hasSpeech,
+    hasDragDrop,
+    iconButtonClass,
+    isAdvancedControlsEnabled,
+    isAdvancedMode,
+    isAutoMode,
+    isCollapsed,
+    isCollapsible,
+    isDragActive,
+    isDisabledState,
+    isEnhancing,
+    isGenerateBlocked,
+    isGenerateDisabled,
+    isGenerating,
+    isModelNotSet,
+    isOnlyImagenModels,
+    isProcessing,
+    isRecording,
+    isSupported,
+    isVoiceControlEnabled: settings?.isVoiceControlEnabled,
+    maxReferenceCount,
+    maxSuggestions,
+    modelDropdownRef,
+    models,
+    normalizedWatchedModels,
+    openAttachedAssetsBrowser,
+    openGallery: openGallery as unknown as (
+      options: GalleryModalOptions,
+    ) => void,
+    openUpload,
+    pathname,
+    previousPrompt,
+    profiles,
+    promptBarHeight,
+    refocusTextarea,
+    referenceSource,
+    references,
+    requiresReferences,
+    selectedModelCost,
+    selectedModels,
+    selectedPreset,
+    selectedProfile,
+    setEndFrame,
+    setIsAutoMode,
+    setIsCollapsed,
+    setReferenceSource,
+    setReferences,
+    setSelectedPreset,
+    setSelectedProfile,
+    setTextValue,
+    showSuggestionsWhenEmpty,
+    subscriptionTier,
+    suggestions,
+    supportsInterpolation,
+    supportsMultipleReferences,
+    textareaRef,
+    textareaRegister,
+    toggleVoice,
+    trainings,
+    trainingIds,
+    triggerConfigChange,
+    videoDurations,
+    voices,
+    watchedDuration,
+    watchedFormat,
+    watchedHeight,
+    watchedModel,
+    watchedModels,
+    watchedQuality,
+    watchedSpeech,
+    watchedWidth,
+    onSuggestionSelect,
+  });
 
   return (
     <PromptBarInternalContext.Provider value={internalContextValue}>
