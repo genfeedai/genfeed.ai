@@ -2,7 +2,7 @@ import { IngredientStatus } from '@genfeedai/enums';
 import type { IFormat, IIngredient } from '@genfeedai/interfaces';
 import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { AssetSelectionContext } from './asset-selection.context';
 
 export function AssetSelectionProvider({ children }: LayoutProps) {
@@ -49,27 +49,43 @@ export function AssetSelectionProvider({ children }: LayoutProps) {
     setCurrentFormat({ height: 1920, width: 1080 });
   }, []);
 
+  const contextValue = useMemo(
+    () => ({
+      activeGenerations,
+      addToGenerationQueue,
+      clearAll,
+      currentFormat,
+      generatedAssetId,
+      generatedAssetIds,
+      generationQueue,
+      isGenerating,
+      removeFromQueue,
+      selectedIngredient,
+      setCurrentFormat,
+      setGeneratedAssetId,
+      setGeneratedAssetIds,
+      setIsGenerating,
+      setSelectedAsset,
+      updateGenerationStatus,
+    }),
+    // setCurrentFormat, setGeneratedAssetId, setGeneratedAssetIds, setIsGenerating, setSelectedAsset are stable useState setters — omitted from deps
+    [
+      activeGenerations,
+      addToGenerationQueue,
+      clearAll,
+      currentFormat,
+      generatedAssetId,
+      generatedAssetIds,
+      generationQueue,
+      isGenerating,
+      removeFromQueue,
+      selectedIngredient,
+      updateGenerationStatus,
+    ],
+  );
+
   return (
-    <AssetSelectionContext.Provider
-      value={{
-        activeGenerations,
-        addToGenerationQueue,
-        clearAll,
-        currentFormat,
-        generatedAssetId,
-        generatedAssetIds,
-        generationQueue,
-        isGenerating,
-        removeFromQueue,
-        selectedIngredient,
-        setCurrentFormat,
-        setGeneratedAssetId,
-        setGeneratedAssetIds,
-        setIsGenerating,
-        setSelectedAsset,
-        updateGenerationStatus,
-      }}
-    >
+    <AssetSelectionContext.Provider value={contextValue}>
       {children}
     </AssetSelectionContext.Provider>
   );

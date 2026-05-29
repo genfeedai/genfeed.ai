@@ -152,19 +152,20 @@ export function UserProvider({
     [mutate],
   );
 
+  const contextValue = useMemo(
+    () => ({
+      currentUser,
+      isFirstLogin,
+      isLoading,
+      mutateUser,
+      refetchUser,
+      setIsFirstLogin: patchMe,
+    }),
+    [currentUser, isFirstLogin, isLoading, mutateUser, refetchUser, patchMe],
+  );
+
   return (
-    <UserContext.Provider
-      value={{
-        currentUser,
-        isFirstLogin,
-        isLoading,
-        mutateUser,
-        refetchUser,
-        setIsFirstLogin: patchMe,
-      }}
-    >
-      {children}
-    </UserContext.Provider>
+    <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>
   );
 }
 

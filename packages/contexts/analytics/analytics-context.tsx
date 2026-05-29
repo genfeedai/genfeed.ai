@@ -5,7 +5,14 @@ import type { AnalyticsContextType } from '@genfeedai/interfaces/analytics/analy
 import type { DateRange } from '@genfeedai/interfaces/utils/date.interface';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { subDays } from 'date-fns';
-import { createContext, use, useCallback, useEffect, useState } from 'react';
+import {
+  createContext,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 const AnalyticsContext = createContext<AnalyticsContextType | undefined>(
   undefined,
@@ -43,18 +50,22 @@ export function AnalyticsProvider({
     setTimeout(() => setIsRefreshing(false), 1000);
   }, []);
 
+  const contextValue = useMemo(
+    () => ({
+      brandId,
+      dateRange,
+      isRefreshing,
+      refreshTrigger,
+      setBrandId,
+      setDateRange,
+      triggerRefresh,
+    }),
+    // setBrandId, setDateRange are stable useState setters — omitted from deps
+    [brandId, dateRange, isRefreshing, refreshTrigger, triggerRefresh],
+  );
+
   return (
-    <AnalyticsContext.Provider
-      value={{
-        brandId,
-        dateRange,
-        isRefreshing,
-        refreshTrigger,
-        setBrandId,
-        setDateRange,
-        triggerRefresh,
-      }}
-    >
+    <AnalyticsContext.Provider value={contextValue}>
       {children}
     </AnalyticsContext.Provider>
   );

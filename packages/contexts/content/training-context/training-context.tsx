@@ -2,7 +2,7 @@
 
 import type { ITraining } from '@genfeedai/interfaces';
 import type { TrainingContextType } from '@genfeedai/interfaces/training/training-context.interface';
-import { createContext, type ReactNode, use } from 'react';
+import { createContext, type ReactNode, use, useMemo } from 'react';
 
 const TrainingContext = createContext<TrainingContextType | undefined>(
   undefined,
@@ -17,8 +17,13 @@ export function TrainingProvider({
   training: ITraining;
   refreshTraining: () => Promise<void>;
 }) {
+  const contextValue = useMemo(
+    () => ({ refreshTraining, training }),
+    [refreshTraining, training],
+  );
+
   return (
-    <TrainingContext.Provider value={{ refreshTraining, training }}>
+    <TrainingContext.Provider value={contextValue}>
       {children}
     </TrainingContext.Provider>
   );

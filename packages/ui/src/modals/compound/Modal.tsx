@@ -8,6 +8,7 @@ import {
   type HTMLAttributes,
   type ReactNode,
   use,
+  useMemo,
 } from 'react';
 import { cn } from '../../lib/utils';
 
@@ -104,10 +105,12 @@ function ModalContent({
   showCloseButton = true,
   ...props
 }: ModalContentProps) {
+  const modalContextValue = useMemo(() => ({ size }), [size]);
+
   return (
     <ModalPortal>
       <ModalOverlay />
-      <ModalContext.Provider value={{ size }}>
+      <ModalContext.Provider value={modalContextValue}>
         <DialogPrimitive.Content
           ref={ref}
           aria-describedby={props['aria-describedby'] ?? undefined}
