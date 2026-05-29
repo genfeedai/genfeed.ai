@@ -342,12 +342,14 @@ function ModelBrowserModalComponent({
     };
   }, [isOpen, fetchModels]);
 
-  // Reset state when modal closes
-  useEffect(() => {
+  // Reset hasFetched when modal closes (adjusting state while rendering).
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (!isOpen) {
       setHasFetched(false);
     }
-  }, [isOpen]);
+  }
 
   // Filter recent models by capabilities
   const filteredRecentModels = useMemo(() => {
@@ -393,11 +395,12 @@ function ModelBrowserModalComponent({
   return createPortal(
     <>
       {/* Backdrop */}
-      <button
+      <Button
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         aria-label="Close model browser"
         className="fixed inset-0 z-50 bg-black/50"
         onClick={onClose}
-        type="button"
       />
 
       {/* Modal */}
