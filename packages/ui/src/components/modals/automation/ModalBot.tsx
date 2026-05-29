@@ -49,6 +49,10 @@ import {
   HiMegaphone,
   HiTrash,
 } from 'react-icons/hi2';
+import ModalBotChatSettings from './ModalBotChatSettings';
+import ModalBotEngagementSettings from './ModalBotEngagementSettings';
+import ModalBotMonitoringSettings from './ModalBotMonitoringSettings';
+import ModalBotPublishingSettings from './ModalBotPublishingSettings';
 
 const BOT_PLATFORMS = [
   {
@@ -102,27 +106,6 @@ const BOT_CATEGORIES = [
     label: 'Publishing Bot',
     value: BotCategory.PUBLISHING,
   },
-] as const;
-
-const ENGAGEMENT_ACTIONS = [
-  { label: 'Like', value: EngagementAction.LIKE },
-  { label: 'Follow', value: EngagementAction.FOLLOW },
-  { label: 'Retweet', value: EngagementAction.RETWEET },
-  { label: 'Bookmark', value: EngagementAction.BOOKMARK },
-] as const;
-
-const ALERT_TYPES = [
-  { label: 'In-App', value: MonitoringAlertType.IN_APP },
-  { label: 'Email', value: MonitoringAlertType.EMAIL },
-  { label: 'Webhook', value: MonitoringAlertType.WEBHOOK },
-  { label: 'Slack', value: MonitoringAlertType.SLACK },
-] as const;
-
-const PUBLISHING_FREQUENCIES = [
-  { label: 'Hourly', value: PublishingFrequency.HOURLY },
-  { label: 'Daily', value: PublishingFrequency.DAILY },
-  { label: 'Weekly', value: PublishingFrequency.WEEKLY },
-  { label: 'Custom Schedule', value: PublishingFrequency.CUSTOM },
 ] as const;
 
 const DEFAULT_ENGAGEMENT_SETTINGS: IEngagementBotSettings = {
@@ -479,577 +462,52 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
 
           <div className="h-px bg-border my-4" />
 
-          {/* Chat/Comment Bot Settings */}
           {showChatCommentSettings && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Chat Settings</h3>
-
-              <FormControl label="Messages Per Minute">
-                <Input
-                  type="number"
-                  value={settings.messagesPerMinute}
-                  onChange={(e) =>
-                    handleSettingChange(
-                      'messagesPerMinute',
-                      parseInt(e.target.value, 10),
-                    )
-                  }
-                  min={1}
-                  max={60}
-                  disabled={isSubmitting}
-                />
-              </FormControl>
-
-              <FormControl label="Response Delay (seconds)">
-                <Input
-                  type="number"
-                  value={settings.responseDelaySeconds}
-                  onChange={(e) =>
-                    handleSettingChange(
-                      'responseDelaySeconds',
-                      parseInt(e.target.value, 10),
-                    )
-                  }
-                  min={0}
-                  max={300}
-                  disabled={isSubmitting}
-                />
-              </FormControl>
-
-              <FormControl label="Trigger Words (comma separated)">
-                <Textarea
-                  name="triggers"
-                  value={(settings.triggers || []).join(', ')}
-                  onChange={(e) =>
-                    handleSettingChange(
-                      'triggers',
-                      parseCommaSeparated(e.target.value),
-                    )
-                  }
-                  onKeyDown={processKeyDownModalBot}
-                  placeholder="e.g., hello, hi, hey"
-                  isDisabled={isSubmitting}
-                  className="h-16"
-                />
-              </FormControl>
-            </div>
+            <ModalBotChatSettings
+              settings={settings}
+              isSubmitting={isSubmitting}
+              onSettingChange={handleSettingChange}
+              onKeyDown={processKeyDownModalBot}
+              parseCommaSeparated={parseCommaSeparated}
+            />
           )}
 
-          {/* Engagement Bot Settings */}
           {showEngagementSettings && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Engagement Settings</h3>
-
-              <FormControl label="Actions to Perform">
-                <div className="flex flex-wrap gap-3">
-                  {ENGAGEMENT_ACTIONS.map(({ value, label }) => (
-                    <label
-                      key={value}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <Checkbox
-                        isChecked={
-                          engagementSettings.actions?.includes(value) ?? false
-                        }
-                        onCheckedChange={() =>
-                          handleArrayToggle(
-                            'engagementSettings',
-                            'actions',
-                            value,
-                            { actions: [EngagementAction.LIKE] },
-                          )
-                        }
-                        isDisabled={isSubmitting}
-                      />
-                      <span className="text-sm">{label}</span>
-                    </label>
-                  ))}
-                </div>
-              </FormControl>
-
-              <FormControl label="Target Keywords (comma separated)">
-                <Textarea
-                  name="targetKeywords"
-                  value={(engagementSettings.targetKeywords || []).join(', ')}
-                  onChange={(e) =>
-                    handleCategorySettingChange(
-                      'engagementSettings',
-                      'targetKeywords',
-                      parseCommaSeparated(e.target.value),
-                    )
-                  }
-                  onKeyDown={processKeyDownModalBot}
-                  placeholder="e.g., AI, machine learning, tech"
-                  isDisabled={isSubmitting}
-                  className="h-16"
-                />
-              </FormControl>
-
-              <FormControl label="Target Hashtags (comma separated)">
-                <Textarea
-                  name="targetHashtags"
-                  value={(engagementSettings.targetHashtags || []).join(', ')}
-                  onChange={(e) =>
-                    handleCategorySettingChange(
-                      'engagementSettings',
-                      'targetHashtags',
-                      parseCommaSeparated(e.target.value, '#'),
-                    )
-                  }
-                  onKeyDown={processKeyDownModalBot}
-                  placeholder="e.g., AI, tech, innovation"
-                  isDisabled={isSubmitting}
-                  className="h-16"
-                />
-              </FormControl>
-
-              <FormControl label="Target Accounts (comma separated)">
-                <Textarea
-                  name="targetAccounts"
-                  value={(engagementSettings.targetAccounts || []).join(', ')}
-                  onChange={(e) =>
-                    handleCategorySettingChange(
-                      'engagementSettings',
-                      'targetAccounts',
-                      parseCommaSeparated(e.target.value, '@'),
-                    )
-                  }
-                  onKeyDown={processKeyDownModalBot}
-                  placeholder="e.g., elonmusk, OpenAI"
-                  isDisabled={isSubmitting}
-                  className="h-16"
-                />
-              </FormControl>
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormControl label="Actions Per Hour">
-                  <Input
-                    type="number"
-                    value={engagementSettings.actionsPerHour}
-                    onChange={(e) =>
-                      handleCategorySettingChange(
-                        'engagementSettings',
-                        'actionsPerHour',
-                        parseInt(e.target.value, 10),
-                      )
-                    }
-                    min={1}
-                    max={100}
-                    disabled={isSubmitting}
-                  />
-                </FormControl>
-
-                <FormControl label="Actions Per Day">
-                  <Input
-                    type="number"
-                    value={engagementSettings.actionsPerDay}
-                    onChange={(e) =>
-                      handleCategorySettingChange(
-                        'engagementSettings',
-                        'actionsPerDay',
-                        parseInt(e.target.value, 10),
-                      )
-                    }
-                    min={1}
-                    max={1000}
-                    disabled={isSubmitting}
-                  />
-                </FormControl>
-              </div>
-
-              <FormControl label="Delay Between Actions (seconds)">
-                <Input
-                  type="number"
-                  value={engagementSettings.delayBetweenActions}
-                  onChange={(e) =>
-                    handleCategorySettingChange(
-                      'engagementSettings',
-                      'delayBetweenActions',
-                      parseInt(e.target.value, 10),
-                    )
-                  }
-                  min={5}
-                  max={300}
-                  disabled={isSubmitting}
-                />
-              </FormControl>
-
-              <FormControl label="Only Verified Accounts">
-                <Checkbox
-                  isChecked={engagementSettings.onlyVerified ?? false}
-                  onCheckedChange={(checked) =>
-                    handleCategorySettingChange(
-                      'engagementSettings',
-                      'onlyVerified',
-                      checked === true,
-                    )
-                  }
-                  isDisabled={isSubmitting}
-                  label={
-                    <span className="text-sm">
-                      Only engage with verified accounts
-                    </span>
-                  }
-                />
-              </FormControl>
-            </div>
+            <ModalBotEngagementSettings
+              engagementSettings={engagementSettings}
+              isSubmitting={isSubmitting}
+              onArrayToggle={handleArrayToggle}
+              onSettingChange={(field, value) =>
+                handleCategorySettingChange('engagementSettings', field, value)
+              }
+              onKeyDown={processKeyDownModalBot}
+              parseCommaSeparated={parseCommaSeparated}
+            />
           )}
 
-          {/* Monitoring Bot Settings */}
           {showMonitoringSettings && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Monitoring Settings</h3>
-
-              <FormControl label="Keywords to Monitor (comma separated)">
-                <Textarea
-                  name="keywords"
-                  value={(monitoringSettings.keywords || []).join(', ')}
-                  onChange={(e) =>
-                    handleCategorySettingChange(
-                      'monitoringSettings',
-                      'keywords',
-                      parseCommaSeparated(e.target.value),
-                    )
-                  }
-                  onKeyDown={processKeyDownModalBot}
-                  placeholder="e.g., brand name, competitor, product"
-                  isDisabled={isSubmitting}
-                  className="h-20"
-                />
-              </FormControl>
-
-              <FormControl label="Hashtags to Monitor (comma separated)">
-                <Textarea
-                  name="hashtags"
-                  value={(monitoringSettings.hashtags || []).join(', ')}
-                  onChange={(e) =>
-                    handleCategorySettingChange(
-                      'monitoringSettings',
-                      'hashtags',
-                      parseCommaSeparated(e.target.value, '#'),
-                    )
-                  }
-                  onKeyDown={processKeyDownModalBot}
-                  placeholder="e.g., yourbrand, industry"
-                  isDisabled={isSubmitting}
-                  className="h-16"
-                />
-              </FormControl>
-
-              <FormControl label="Exclude Keywords (comma separated)">
-                <Textarea
-                  name="excludeKeywords"
-                  value={(monitoringSettings.excludeKeywords || []).join(', ')}
-                  onChange={(e) =>
-                    handleCategorySettingChange(
-                      'monitoringSettings',
-                      'excludeKeywords',
-                      parseCommaSeparated(e.target.value),
-                    )
-                  }
-                  onKeyDown={processKeyDownModalBot}
-                  placeholder="e.g., spam, unrelated"
-                  isDisabled={isSubmitting}
-                  className="h-16"
-                />
-              </FormControl>
-
-              <FormControl label="Alert Types">
-                <div className="flex flex-wrap gap-3">
-                  {ALERT_TYPES.map(({ value, label }) => (
-                    <label
-                      key={value}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <Checkbox
-                        isChecked={
-                          monitoringSettings.alertTypes?.includes(value) ??
-                          false
-                        }
-                        onCheckedChange={() =>
-                          handleArrayToggle(
-                            'monitoringSettings',
-                            'alertTypes',
-                            value,
-                            { alertTypes: [MonitoringAlertType.IN_APP] },
-                          )
-                        }
-                        isDisabled={isSubmitting}
-                      />
-                      <span className="text-sm">{label}</span>
-                    </label>
-                  ))}
-                </div>
-              </FormControl>
-
-              {monitoringSettings.alertTypes?.includes(
-                MonitoringAlertType.EMAIL,
-              ) && (
-                <FormControl label="Alert Email">
-                  <Input
-                    type="email"
-                    name="alertEmail"
-                    value={monitoringSettings.alertEmail || ''}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                      handleCategorySettingChange(
-                        'monitoringSettings',
-                        'alertEmail',
-                        e.target.value,
-                      )
-                    }
-                    placeholder="alerts@example.com"
-                    isDisabled={isSubmitting}
-                  />
-                </FormControl>
-              )}
-
-              {monitoringSettings.alertTypes?.includes(
-                MonitoringAlertType.WEBHOOK,
-              ) && (
-                <FormControl label="Webhook URL">
-                  <Input
-                    type="url"
-                    name="alertWebhookUrl"
-                    value={monitoringSettings.alertWebhookUrl || ''}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                      handleCategorySettingChange(
-                        'monitoringSettings',
-                        'alertWebhookUrl',
-                        e.target.value,
-                      )
-                    }
-                    placeholder="https://your-webhook.com/endpoint"
-                    isDisabled={isSubmitting}
-                  />
-                </FormControl>
-              )}
-
-              {monitoringSettings.alertTypes?.includes(
-                MonitoringAlertType.SLACK,
-              ) && (
-                <FormControl label="Slack Webhook URL">
-                  <Input
-                    type="url"
-                    name="alertSlackWebhookUrl"
-                    value={monitoringSettings.alertSlackWebhookUrl || ''}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                      handleCategorySettingChange(
-                        'monitoringSettings',
-                        'alertSlackWebhookUrl',
-                        e.target.value,
-                      )
-                    }
-                    placeholder="https://hooks.slack.com/services/…"
-                    isDisabled={isSubmitting}
-                  />
-                </FormControl>
-              )}
-
-              <FormControl label="Alert Frequency">
-                <Select
-                  value={monitoringSettings.alertFrequency}
-                  onValueChange={(value) =>
-                    handleCategorySettingChange(
-                      'monitoringSettings',
-                      'alertFrequency',
-                      value,
-                    )
-                  }
-                  disabled={isSubmitting}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="instant">Instant</SelectItem>
-                    <SelectItem value="hourly">Hourly Digest</SelectItem>
-                    <SelectItem value="daily">Daily Digest</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormControl>
-            </div>
+            <ModalBotMonitoringSettings
+              monitoringSettings={monitoringSettings}
+              isSubmitting={isSubmitting}
+              onArrayToggle={handleArrayToggle}
+              onSettingChange={(field, value) =>
+                handleCategorySettingChange('monitoringSettings', field, value)
+              }
+              onKeyDown={processKeyDownModalBot}
+              parseCommaSeparated={parseCommaSeparated}
+            />
           )}
 
-          {/* Publishing Bot Settings */}
           {showPublishingSettings && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Publishing Settings</h3>
-
-              <FormControl label="Content Source">
-                <Select
-                  value={publishingSettings.contentSourceType}
-                  onValueChange={(value) =>
-                    handleCategorySettingChange(
-                      'publishingSettings',
-                      'contentSourceType',
-                      value,
-                    )
-                  }
-                  disabled={isSubmitting}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="queue">Content Queue</SelectItem>
-                    <SelectItem value="template">Template</SelectItem>
-                    <SelectItem value="ai_generated">AI Generated</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormControl>
-
-              {publishingSettings.contentSourceType === 'ai_generated' && (
-                <FormControl label="AI Prompt">
-                  <Textarea
-                    name="aiPrompt"
-                    value={publishingSettings.aiPrompt || ''}
-                    onChange={(e) =>
-                      handleCategorySettingChange(
-                        'publishingSettings',
-                        'aiPrompt',
-                        e.target.value,
-                      )
-                    }
-                    onKeyDown={processKeyDownModalBot}
-                    placeholder="Generate a tweet about…"
-                    isDisabled={isSubmitting}
-                    className="h-24"
-                  />
-                </FormControl>
-              )}
-
-              <FormControl label="Publishing Frequency">
-                <Select
-                  value={publishingSettings.frequency}
-                  onValueChange={(value) =>
-                    handleCategorySettingChange(
-                      'publishingSettings',
-                      'frequency',
-                      value,
-                    )
-                  }
-                  disabled={isSubmitting}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PUBLISHING_FREQUENCIES.map(({ value, label }) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormControl>
-
-              {publishingSettings.frequency === PublishingFrequency.CUSTOM && (
-                <FormControl label="Custom Cron Expression">
-                  <Input
-                    type="text"
-                    name="customCronExpression"
-                    value={publishingSettings.customCronExpression || ''}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                      handleCategorySettingChange(
-                        'publishingSettings',
-                        'customCronExpression',
-                        e.target.value,
-                      )
-                    }
-                    placeholder="0 */2 * * *"
-                    isDisabled={isSubmitting}
-                  />
-                </FormControl>
-              )}
-
-              <FormControl label="Max Posts Per Day">
-                <Input
-                  type="number"
-                  value={publishingSettings.maxPostsPerDay}
-                  onChange={(e) =>
-                    handleCategorySettingChange(
-                      'publishingSettings',
-                      'maxPostsPerDay',
-                      parseInt(e.target.value, 10),
-                    )
-                  }
-                  min={1}
-                  max={50}
-                  disabled={isSubmitting}
-                />
-              </FormControl>
-
-              <FormControl label="Timezone">
-                <Select
-                  value={publishingSettings.timezone}
-                  onValueChange={(value) =>
-                    handleCategorySettingChange(
-                      'publishingSettings',
-                      'timezone',
-                      value,
-                    )
-                  }
-                  disabled={isSubmitting}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="UTC">UTC</SelectItem>
-                    <SelectItem value="America/New_York">
-                      Eastern Time (ET)
-                    </SelectItem>
-                    <SelectItem value="America/Chicago">
-                      Central Time (CT)
-                    </SelectItem>
-                    <SelectItem value="America/Denver">
-                      Mountain Time (MT)
-                    </SelectItem>
-                    <SelectItem value="America/Los_Angeles">
-                      Pacific Time (PT)
-                    </SelectItem>
-                    <SelectItem value="Europe/London">London (GMT)</SelectItem>
-                    <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
-                    <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormControl>
-
-              <FormControl label="Auto-Add Hashtags (comma separated)">
-                <Textarea
-                  name="autoHashtags"
-                  value={(publishingSettings.autoHashtags || []).join(', ')}
-                  onChange={(e) =>
-                    handleCategorySettingChange(
-                      'publishingSettings',
-                      'autoHashtags',
-                      parseCommaSeparated(e.target.value, '#'),
-                    )
-                  }
-                  onKeyDown={processKeyDownModalBot}
-                  placeholder="e.g., AI, tech, startup"
-                  isDisabled={isSubmitting}
-                  className="h-16"
-                />
-              </FormControl>
-
-              <FormControl label="Append Signature">
-                <Input
-                  type="text"
-                  name="appendSignature"
-                  value={publishingSettings.appendSignature || ''}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    handleCategorySettingChange(
-                      'publishingSettings',
-                      'appendSignature',
-                      e.target.value,
-                    )
-                  }
-                  placeholder="e.g., - Sent via GenFeed"
-                  isDisabled={isSubmitting}
-                />
-              </FormControl>
-            </div>
+            <ModalBotPublishingSettings
+              publishingSettings={publishingSettings}
+              isSubmitting={isSubmitting}
+              onSettingChange={(field, value) =>
+                handleCategorySettingChange('publishingSettings', field, value)
+              }
+              onKeyDown={processKeyDownModalBot}
+              parseCommaSeparated={parseCommaSeparated}
+            />
           )}
         </div>
 
