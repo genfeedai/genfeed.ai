@@ -2,12 +2,7 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  AnalyticsMetric,
-  ButtonVariant,
-  IngredientCategory,
-  Status,
-} from '@genfeedai/enums';
+import { ButtonVariant, IngredientCategory, Status } from '@genfeedai/enums';
 import type { IAnalytics, ITimeSeriesDataPoint } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Video } from '@models/ingredients/video.model';
@@ -19,20 +14,13 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { VideosService } from '@services/ingredients/videos.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { BrandsService } from '@services/social/brands.service';
-import { TimeSeriesChart } from '@ui/analytics/charts/time-series/time-series-chart';
-import Card from '@ui/card/Card';
-import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
-import { LazyMasonryVideo } from '@ui/lazy/masonry/LazyMasonry';
 import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  HiArrowDownTray,
-  HiEye,
-  HiOutlineChartBar,
-  HiUserCircle,
-  HiVideoCamera,
-} from 'react-icons/hi2';
+import { HiArrowDownTray, HiOutlineChartBar } from 'react-icons/hi2';
+import AnalyticsKPISection from './analytics-kpi-section';
+import AnalyticsRecentVideos from './analytics-recent-videos';
+import AnalyticsViewsChart from './analytics-views-chart';
 
 export default function AnalyticsList(_props: ContentProps) {
   const { isSignedIn } = useAuth();
@@ -72,33 +60,6 @@ export default function AnalyticsList(_props: ContentProps) {
     totalViews: 0,
     viewsGrowth: 0,
   });
-
-  const boxes = [
-    {
-      description:
-        stats.monthlyGrowth !== undefined
-          ? `${stats.monthlyGrowth > 0 ? '+' : ''}${stats.monthlyGrowth}% from last month`
-          : 'No growth data',
-      icon: <HiVideoCamera className="text-2xl text-primary" />,
-      label: 'Total Posts',
-      value: stats.totalPosts,
-    },
-    {
-      description:
-        stats.viewsGrowth !== undefined
-          ? `${stats.viewsGrowth > 0 ? '+' : ''}${stats.viewsGrowth}% from last month`
-          : 'No growth data',
-      icon: <HiEye className="text-2xl" />,
-      label: 'Total Views',
-      value: stats.totalViews,
-    },
-    {
-      description: 'YouTube, TikTok, Instagram',
-      icon: <HiUserCircle className="text-2xl text-white" />,
-      label: 'Connected Accounts',
-      value: stats.totalCredentialsConnected,
-    },
-  ];
 
   const findAnalytics = useCallback(async () => {
     setIsLoading(true);
@@ -289,74 +250,14 @@ export default function AnalyticsList(_props: ContentProps) {
         />
       }
     >
-      <KPISection
-        title="Analytics Overview"
-        isLoading={isLoading}
-        gridCols={{ desktop: 3, mobile: 1, tablet: 2 }}
-        className="bg-background"
-        items={[
-          {
-            description: boxes[0].description,
-            icon: HiVideoCamera,
-            iconClassName: 'bg-white/10 text-foreground',
-            label: boxes[0].label,
-            value: boxes[0].value,
-          },
-          {
-            description: boxes[1].description,
-            icon: HiEye,
-            iconClassName: 'bg-white/10 text-foreground',
-            label: boxes[1].label,
-            value: boxes[1].value,
-          },
-          {
-            description: boxes[2].description,
-            icon: HiUserCircle,
-            iconClassName: 'bg-white/10 text-foreground',
-            label: boxes[2].label,
-            value: boxes[2].value,
-          },
-        ]}
+      <AnalyticsKPISection isLoading={isLoading} stats={stats} />
+
+      <AnalyticsViewsChart
+        timeSeriesData={timeSeriesData}
+        isTimeSeriesLoading={isTimeSeriesLoading}
       />
 
-      <div className="grid grid-cols-1 gap-4 mb-6">
-        <Card className="lg:col-span-2">
-          <h2 className="text-lg font-semibold mb-4">Views Performance</h2>
-          <TimeSeriesChart
-            data={timeSeriesData}
-            metrics={[AnalyticsMetric.VIEWS]}
-            isLoading={isTimeSeriesLoading}
-            height={320}
-          />
-        </Card>
-      </div>
-
-      {recentVideos.length > 0 && (
-        <Card>
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-2xl font-semibold">Recent Videos</h2>
-              <p className="text-sm text-foreground/60 mt-1">
-                Your latest video creations with performance metrics
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-            {recentVideos.map((video: Video, index: number) => (
-              <div
-                key={video.id}
-                className="break-inside-avoid"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <div className="relative group">
-                  <LazyMasonryVideo video={video} isActionsEnabled={false} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
+      <AnalyticsRecentVideos recentVideos={recentVideos} />
     </Container>
   );
 }

@@ -1,12 +1,7 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import {
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-  TagCategory,
-} from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, TagCategory } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { ITag } from '@genfeedai/interfaces';
 import type { TagsManagerComponentProps } from '@genfeedai/props/content/tags-manager.props';
@@ -14,13 +9,13 @@ import { IngredientsService } from '@genfeedai/services/content/ingredients.serv
 import { TagsService } from '@genfeedai/services/content/tags.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
-import Badge from '@ui/display/badge/Badge';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
 import { THEME_COLORS } from '@ui-constants/theme.constant';
 import { useState } from 'react';
-import { HiPlus, HiXMark } from 'react-icons/hi2';
+import { HiPlus } from 'react-icons/hi2';
+import TagPickerDropdown from './TagPickerDropdown';
+import TagsList from './TagsList';
 
 export default function TagsManager({
   ingredient,
@@ -195,37 +190,17 @@ export default function TagsManager({
     return <Loading isFullSize={false} />;
   }
 
+  const tagDisplayItems = tags.map(getTagDisplay);
+
   return (
     <div className="flex flex-col gap-3">
       {/* Current Tags */}
-      <div className="flex flex-wrap gap-2">
-        {tags.length === 0 && !isReadOnly && (
-          <span className="text-sm text-muted-foreground">No tags added</span>
-        )}
-
-        {tags.map((tag) => {
-          const tagDisplay = getTagDisplay(tag);
-          return (
-            <Badge
-              key={tagDisplay.id}
-              backgroundColor={tagDisplay.backgroundColor}
-              textColor={tagDisplay.textColor}
-            >
-              <span>{tagDisplay.label}</span>
-
-              {!isReadOnly && (
-                <Button
-                  label={''}
-                  icon={<HiXMark className="size-3" />}
-                  onClick={() => handleRemoveTag(tagDisplay.id)}
-                  isDisabled={isSaving}
-                  className="hover:opacity-70 transition-opacity"
-                />
-              )}
-            </Badge>
-          );
-        })}
-      </div>
+      <TagsList
+        tagDisplayItems={tagDisplayItems}
+        isReadOnly={isReadOnly}
+        isSaving={isSaving}
+        onRemoveTag={handleRemoveTag}
+      />
 
       {/* Add Tag Button */}
       {!isReadOnly && (
@@ -241,113 +216,18 @@ export default function TagsManager({
 
           {/* Tag Picker Dropdown */}
           {showTagPicker && (
-            <div className="absolute z-10 mt-1 w-64 bg-card shadow-lg border border-white/[0.08] p-2">
-              <div className="text-sm font-semibold mb-2 px-2">
-                Available Tags
-              </div>
-
-              {!showNewTagInput ? (
-                <>
-                  <div className="max-h-48 overflow-y-auto">
-                    {(() => {
-                      const unselectedTags = availableTags.filter((tag) => {
-                        return !tags.some((t) =>
-                          typeof t === 'string'
-                            ? t === tag.id
-                            : t.id === tag.id,
-                        );
-                      });
-
-                      if (unselectedTags.length === 0) {
-                        return (
-                          <div className="text-sm text-muted-foreground px-2 py-1">
-                            No available tags
-                          </div>
-                        );
-                      }
-
-                      return unselectedTags.map((tag) => (
-                        <Button
-                          key={tag.id}
-                          withWrapper={false}
-                          variant={ButtonVariant.UNSTYLED}
-                          onClick={() => handleAddTag(tag)}
-                          className="w-full text-left px-2 py-1.5 hover:bg-background transition-colors flex items-center gap-2"
-                        >
-                          <Badge
-                            size={ComponentSize.SM}
-                            backgroundColor={
-                              tag.backgroundColor || THEME_COLORS.PRIMARY
-                            }
-                            textColor={tag.textColor || THEME_COLORS.SECONDARY}
-                          >
-                            {tag.label}
-                          </Badge>
-                        </Button>
-                      ));
-                    })()}
-                  </div>
-
-                  <div className="mt-2 pt-2 border-t border-white/[0.08]">
-                    <Button
-                      withWrapper={false}
-                      variant={ButtonVariant.UNSTYLED}
-                      onClick={() => setShowNewTagInput(true)}
-                      className="w-full text-sm px-2 py-1 hover:bg-background text-primary"
-                    >
-                      + Create New Tag
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <div className="p-2">
-                  <Input
-                    name="newTag"
-                    type="text"
-                    value={newTagLabel}
-                    onChange={(e) => setNewTagLabel(e.target.value)}
-                    placeholder="Enter tag label…"
-                    className="input-sm mb-2"
-                  />
-
-                  <div className="flex gap-2">
-                    <Button
-                      label="Create"
-                      variant={ButtonVariant.DEFAULT}
-                      size={ButtonSize.SM}
-                      className="flex-1"
-                      onClick={handleCreateNewTag}
-                      isDisabled={!newTagLabel.trim() || isSaving}
-                      isLoading={isSaving}
-                    />
-
-                    <Button
-                      label="Cancel"
-                      variant={ButtonVariant.GHOST}
-                      size={ButtonSize.SM}
-                      className="flex-1"
-                      onClick={() => {
-                        setShowNewTagInput(false);
-                        setNewTagLabel('');
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {!showNewTagInput && (
-                <div className="mt-2 pt-2 border-t border-white/[0.08]">
-                  <Button
-                    withWrapper={false}
-                    variant={ButtonVariant.UNSTYLED}
-                    onClick={() => setShowTagPicker(false)}
-                    className="w-full text-sm px-2 py-1 hover:bg-background"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </div>
+            <TagPickerDropdown
+              availableTags={availableTags}
+              currentTags={tags}
+              showNewTagInput={showNewTagInput}
+              newTagLabel={newTagLabel}
+              isSaving={isSaving}
+              onAddTag={handleAddTag}
+              onCreateNewTag={handleCreateNewTag}
+              onNewTagLabelChange={setNewTagLabel}
+              onShowNewTagInput={setShowNewTagInput}
+              onClose={() => setShowTagPicker(false)}
+            />
           )}
         </div>
       )}
