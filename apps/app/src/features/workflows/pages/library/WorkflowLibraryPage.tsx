@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
@@ -10,18 +9,14 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Cloud, CloudUpload } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   HiOutlineBolt,
   HiOutlineDocumentDuplicate,
-  HiOutlineEllipsisVertical,
   HiOutlineMagnifyingGlass,
   HiOutlinePlus,
-  HiOutlineSparkles,
-  HiOutlineTrash,
 } from 'react-icons/hi2';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
@@ -30,194 +25,11 @@ import {
 } from '@/features/workflows/services/workflow-api';
 import { getLifecycleBadgeClass } from '@/features/workflows/utils/status-helpers';
 import { useCloudSession } from '@/hooks/useCloudSession';
+import EmptyWorkflowState from './EmptyWorkflowState';
+import WorkflowCardDropdown from './WorkflowCardDropdown';
+import WorkflowCardPreview from './WorkflowCardPreview';
 
 const SEARCH_DEBOUNCE_MS = 300;
-
-const DEFAULT_WORKFLOW_CARD_CDN =
-  process.env.NEXT_PUBLIC_CDN_URL || 'https://cdn.genfeed.ai';
-const DEFAULT_WORKFLOW_CARD_IMAGE = `${DEFAULT_WORKFLOW_CARD_CDN}${metadata.cards.default}`;
-
-function isVideoUrl(url: string): boolean {
-  const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
-  const lowerUrl = url.toLowerCase();
-  return videoExtensions.some((ext) => lowerUrl.includes(ext));
-}
-
-// ---------------------------------------------------------------------------
-// WorkflowCardPreview
-// ---------------------------------------------------------------------------
-
-function WorkflowCardPreview({
-  name,
-  thumbnail,
-}: {
-  name: string;
-  thumbnail?: string | null;
-}) {
-  const [hasAssetError, setHasAssetError] = useState(false);
-  const previewUrl = useMemo(() => {
-    if (!thumbnail || hasAssetError) {
-      return DEFAULT_WORKFLOW_CARD_IMAGE;
-    }
-    return thumbnail;
-  }, [hasAssetError, thumbnail]);
-
-  const isVideoPreview =
-    previewUrl !== DEFAULT_WORKFLOW_CARD_IMAGE && isVideoUrl(previewUrl);
-
-  return (
-    <div className="relative aspect-video overflow-hidden rounded border border-white/5 bg-background/40">
-      {isVideoPreview ? (
-        <video
-          aria-label="Workflow preview"
-          src={previewUrl}
-          className="h-full w-full object-cover object-center"
-          autoPlay
-          muted
-          loop
-          playsInline
-          onError={() => setHasAssetError(true)}
-        />
-      ) : (
-        <Image
-          unoptimized
-          src={previewUrl}
-          alt={
-            previewUrl === DEFAULT_WORKFLOW_CARD_IMAGE
-              ? 'Default workflow card'
-              : `${name} thumbnail`
-          }
-          className="h-full w-full object-cover object-center"
-          onError={() => setHasAssetError(true)}
-          width={800}
-          height={600}
-        />
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// WorkflowCardDropdown
-// ---------------------------------------------------------------------------
-
-function WorkflowCardDropdown({
-  onDuplicate,
-  onDelete,
-}: {
-  onDuplicate: () => void;
-  onDelete: () => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
-
-  return (
-    <div ref={dropdownRef} className="relative">
-      <Button
-        type="button"
-        variant={ButtonVariant.UNSTYLED}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setIsOpen(!isOpen);
-        }}
-        className="rounded p-1 text-foreground/40 transition-colors hover:bg-white/[0.06] hover:text-foreground"
-      >
-        <HiOutlineEllipsisVertical className="size-4" />
-      </Button>
-
-      {isOpen && (
-        <div className="absolute right-0 top-7 z-20 min-w-[140px] rounded-lg border border-white/10 bg-card py-1 shadow-lg">
-          <Button
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onDuplicate();
-              setIsOpen(false);
-            }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/[0.06]"
-          >
-            <HiOutlineDocumentDuplicate className="size-4" />
-            Duplicate
-          </Button>
-          <Button
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onDelete();
-              setIsOpen(false);
-            }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 transition-colors hover:bg-white/[0.06]"
-          >
-            <HiOutlineTrash className="size-4" />
-            Delete
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// EmptyWorkflowState
-// ---------------------------------------------------------------------------
-
-function EmptyWorkflowState() {
-  const { href } = useOrgUrl();
-
-  return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-white/10 bg-card/40 px-6 py-16 text-center">
-      <span className="flex size-16 items-center justify-center rounded-full bg-foreground/5 text-foreground/30">
-        <HiOutlineSparkles className="size-8" />
-      </span>
-      <div>
-        <p className="text-lg font-medium">No workflows yet</p>
-        <p className="mt-1 text-sm text-foreground/50">
-          Create your first workflow for a fixed, repeatable automation
-          pipeline.
-        </p>
-      </div>
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <Link href={href('/workflows/templates')}>
-          <Button
-            label="Browse Templates"
-            variant={ButtonVariant.SECONDARY}
-            icon={<HiOutlineDocumentDuplicate className="size-4" />}
-          />
-        </Link>
-        <Link href={href('/workflows/new')}>
-          <Button
-            label="Create Workflow"
-            variant={ButtonVariant.DEFAULT}
-            icon={<HiOutlinePlus className="size-4" />}
-          />
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// WorkflowLibraryPage
-// ---------------------------------------------------------------------------
 
 /**
  * Workflow Library - List of saved workflows with search, cards, and actions

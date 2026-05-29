@@ -21,14 +21,9 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { createPromptHandler } from '@genfeedai/services/core/socket-manager.service';
 import { PresetsService } from '@genfeedai/services/elements/presets.service';
 import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
-import TextareaLabelActions from '@ui/content/textarea-label-actions/TextareaLabelActions';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import FormControl from '@ui/primitives/field';
-import { Input } from '@ui/primitives/input';
-import { SelectField } from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
 import {
   type ChangeEvent,
   useCallback,
@@ -36,6 +31,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import ModalPresetFields from './ModalPresetFields';
 
 export default function ModalPreset({
   item,
@@ -247,78 +243,18 @@ export default function ModalPreset({
       onClose={() => setError(null)}
     >
       <form ref={formRef} onSubmit={onSubmit}>
-        <FormControl label="Label">
-          <Input
-            type="text"
-            name="label"
-            control={form.control}
-            onChange={updateModalPreset}
-            placeholder="Enter display label"
-            isRequired={true}
-            isDisabled={isSubmitting}
-          />
-        </FormControl>
-
-        <FormControl label="Key">
-          <Input
-            type="text"
-            name="key"
-            control={form.control}
-            onChange={updateModalPreset}
-            placeholder="lowercase-with-hyphens"
-            isRequired={true}
-            isDisabled={isSubmitting}
-          />
-
-          <p className="text-xs text-foreground/70 mt-1">
-            Unique identifier (lowercase, alphanumeric with hyphens)
-          </p>
-        </FormControl>
-
-        <FormControl label="Type">
-          <SelectField
-            name="category"
-            control={form.control}
-            onChange={updateModalPreset}
-            isRequired={true}
-            isDisabled={isSubmitting}
-          >
-            {Object.values(ModelCategory).map((elementType) => (
-              <option
-                key={elementType}
-                value={elementType}
-                className="capitalize"
-              >
-                {elementType}
-              </option>
-            ))}
-          </SelectField>
-        </FormControl>
-
-        <FormControl
-          label={
-            <TextareaLabelActions
-              label="Description"
-              onCopy={() => handleCopy(watchedDescription || '')}
-              onEnhance={enhanceDescription}
-              onUndo={handleUndo}
-              showUndo={!!previousPrompt}
-              isCopyDisabled={!watchedDescription || isCopying || isSubmitting}
-              isEnhanceDisabled={
-                !watchedDescription || isEnhancing || isSubmitting
-              }
-              isEnhancing={isEnhancing}
-            />
-          }
-        >
-          <Textarea
-            name="description"
-            control={form.control}
-            onChange={updateModalPreset}
-            placeholder="Enter description (optional)"
-            isDisabled={isSubmitting || isEnhancing}
-          />
-        </FormControl>
+        <ModalPresetFields
+          control={form.control}
+          watchedDescription={watchedDescription}
+          isSubmitting={isSubmitting}
+          isCopying={isCopying}
+          isEnhancing={isEnhancing}
+          previousPrompt={previousPrompt}
+          onChange={updateModalPreset}
+          onCopy={() => handleCopy(watchedDescription || '')}
+          onEnhance={enhanceDescription}
+          onUndo={handleUndo}
+        />
 
         <ModalActions>
           <Button
