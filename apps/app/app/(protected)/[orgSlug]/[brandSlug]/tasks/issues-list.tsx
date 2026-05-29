@@ -37,7 +37,8 @@ import {
   HiOutlinePlusCircle,
   HiOutlineViewColumns,
 } from 'react-icons/hi2';
-import IssueOverlay, { openIssueOverlay } from './issue-overlay';
+import IssueOverlay from './issue-overlay';
+import { openIssueOverlay } from './issue-overlay-controls';
 
 type ViewMode = 'kanban' | 'list';
 

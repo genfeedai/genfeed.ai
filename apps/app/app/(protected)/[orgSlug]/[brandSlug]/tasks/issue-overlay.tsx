@@ -3,7 +3,6 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
-import { closeModal, openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   type IssueComment,
@@ -27,8 +26,8 @@ import {
   HiOutlinePhoto,
   HiOutlineUser,
 } from 'react-icons/hi2';
+import { closeIssueOverlay, ISSUE_OVERLAY_ID } from './issue-overlay-controls';
 
-const OVERLAY_ID = 'issue-overlay';
 const VISIBLE_COMMENT_COUNT = 3;
 
 const ENTITY_MODEL_LABELS: Record<TaskLinkedEntityModel, string> = {
@@ -66,14 +65,6 @@ const STATUS_COLORS: Record<TaskStatus, string> = {
   in_review: 'bg-amber-500/20 text-amber-400',
   todo: 'bg-white/15 text-white/70',
 };
-
-export function openIssueOverlay(): void {
-  openModal(OVERLAY_ID);
-}
-
-export function closeIssueOverlay(): void {
-  closeModal(OVERLAY_ID);
-}
 
 interface IssueOverlayProps {
   issue: Task | null;
@@ -145,7 +136,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
 
   return (
     <EntityOverlayShell
-      id={OVERLAY_ID}
+      id={ISSUE_OVERLAY_ID}
       title={issue.title}
       description={issue.identifier}
       badges={
