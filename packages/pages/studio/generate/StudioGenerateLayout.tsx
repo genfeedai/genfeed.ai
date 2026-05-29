@@ -390,8 +390,10 @@ export default function StudioGenerateLayout({
     useQuery<AvatarVoiceData>({
       enabled: shouldLoadAvatarData,
       queryFn: async () => {
-        const avatarsService = await getAvatarsService();
-        const voicesService = await getVoicesService();
+        const [avatarsService, voicesService] = await Promise.all([
+          getAvatarsService(),
+          getVoicesService(),
+        ]);
         const query: IQueryParams = { pagination: false };
 
         const [allAvatars, allVoices] = await Promise.all([
