@@ -4,17 +4,17 @@ import {
   ButtonSize,
   ButtonVariant,
   CredentialPlatform,
-  PostCategory,
 } from '@genfeedai/enums';
 import type { IPostPlatformConfig } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { HiSparkles } from 'react-icons/hi2';
+import ModalPostPlatformInstagram from './ModalPostPlatformInstagram';
+import ModalPostPlatformTitleField from './ModalPostPlatformTitleField';
 import { platformColors, platformIcons } from './platform-map.constants';
 
 type Props = {
@@ -61,6 +61,7 @@ export default function ModalPostPlatformCard({
   const color = platformColors[config.platform];
   const hasCredential = !!config.credentialId;
   const isCredentialValid = config.isCredentialValid !== false;
+  const isGeneratingDesc = generatingDescFor === config.credentialId;
 
   return (
     <div
@@ -118,128 +119,24 @@ export default function ModalPostPlatformCard({
       )}
 
       {isInstagram && (
-        <div className="space-y-3">
-          <p className="text-sm font-medium">Instagram Post Type</p>
-
-          <RadioGroup
-            className="space-y-2"
-            disabled={!isEnabled || isLoading}
-            value={
-              config.category === PostCategory.IMAGE
-                ? 'image'
-                : config.isShareToFeedSelected
-                  ? 'video-feed'
-                  : 'video-only'
-            }
-            onValueChange={(value) => {
-              if (!isEnabled) {
-                return;
-              }
-
-              if (value === 'image') {
-                updatePlatformConfig(config.credentialId, {
-                  category: PostCategory.IMAGE,
-                  isShareToFeedSelected: false,
-                });
-                return;
-              }
-
-              updatePlatformConfig(config.credentialId, {
-                category: PostCategory.VIDEO,
-                isShareToFeedSelected: value === 'video-feed',
-              });
-            }}
-          >
-            {/* Image Post */}
-            <label
-              className="flex items-center gap-2 cursor-pointer"
-              htmlFor={`${config.credentialId}-instagram-image`}
-            >
-              <RadioGroupItem
-                id={`${config.credentialId}-instagram-image`}
-                value="image"
-              />
-              <span className="text-sm">Image Post</span>
-            </label>
-
-            {/* Reel Only */}
-            <label
-              className="flex items-center gap-2 cursor-pointer"
-              htmlFor={`${config.credentialId}-instagram-video-only`}
-            >
-              <RadioGroupItem
-                id={`${config.credentialId}-instagram-video-only`}
-                value="video-only"
-              />
-              <span className="text-sm">Reel only</span>
-            </label>
-
-            {/* Reel + Feed */}
-            <label
-              className="flex items-center gap-2 cursor-pointer"
-              htmlFor={`${config.credentialId}-instagram-video-feed`}
-            >
-              <RadioGroupItem
-                id={`${config.credentialId}-instagram-video-feed`}
-                value="video-feed"
-              />
-              <span className="text-sm">Reel + Feed</span>
-            </label>
-          </RadioGroup>
-        </div>
+        <ModalPostPlatformInstagram
+          config={config}
+          isEnabled={isEnabled}
+          isLoading={isLoading}
+          updatePlatformConfig={updatePlatformConfig}
+        />
       )}
 
       {!isTwitter && (
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label
-              htmlFor={`platform-title-${config.credentialId || config.platform}`}
-              className="text-sm font-medium"
-            >
-              Title
-            </label>
-            <Button
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.XS}
-              className="gap-2"
-              onClick={() =>
-                handleGenerateContent(
-                  config.credentialId,
-                  config.platform,
-                  'title',
-                )
-              }
-              isDisabled={
-                !isEnabled ||
-                isLoading ||
-                generatingTitleFor === config.credentialId
-              }
-              isLoading={generatingTitleFor === config.credentialId}
-              icon={<HiSparkles className="size-3" />}
-              label={
-                generatingTitleFor === config.credentialId
-                  ? 'Generating…'
-                  : 'Generate'
-              }
-            />
-          </div>
-          <Input
-            id={`platform-title-${config.credentialId || config.platform}`}
-            type="text"
-            value={config.label}
-            onChange={(event) => {
-              if (!isEnabled) {
-                return;
-              }
-
-              updatePlatformConfig(config.credentialId, {
-                label: event.target.value,
-              });
-            }}
-            placeholder={globalLabel || 'Enter title'}
-            disabled={!isEnabled || isLoading}
-          />
-        </div>
+        <ModalPostPlatformTitleField
+          config={config}
+          isEnabled={isEnabled}
+          isLoading={isLoading}
+          globalLabel={globalLabel}
+          generatingTitleFor={generatingTitleFor}
+          updatePlatformConfig={updatePlatformConfig}
+          handleGenerateContent={handleGenerateContent}
+        />
       )}
 
       <div>
@@ -261,18 +158,10 @@ export default function ModalPostPlatformCard({
                 'description',
               )
             }
-            isDisabled={
-              !isEnabled ||
-              isLoading ||
-              generatingDescFor === config.credentialId
-            }
-            isLoading={generatingDescFor === config.credentialId}
+            isDisabled={!isEnabled || isLoading || isGeneratingDesc}
+            isLoading={isGeneratingDesc}
             icon={<HiSparkles className="size-3" />}
-            label={
-              generatingDescFor === config.credentialId
-                ? 'Generating…'
-                : 'Generate'
-            }
+            label={isGeneratingDesc ? 'Generating…' : 'Generate'}
           />
         </div>
 
