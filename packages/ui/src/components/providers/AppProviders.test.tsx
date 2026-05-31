@@ -70,7 +70,7 @@ describe('AppProviders', () => {
     );
   });
 
-  it('skips ClerkProvider entirely when Clerk is not configured', async () => {
+  it('mounts ClerkProvider with a local bypass when Clerk is not configured', async () => {
     delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
     vi.resetModules();
 
@@ -80,6 +80,7 @@ describe('AppProviders', () => {
     render(
       <NoClerkAppProviders
         initialTheme="dark"
+        clerkProps={{ signInUrl: '/login' }}
         includeLazyModalErrorDebug={false}
         includeSpeedInsights={false}
         includeToaster={false}
@@ -90,6 +91,11 @@ describe('AppProviders', () => {
     );
 
     expect(screen.getByText('No Clerk content')).toBeInTheDocument();
-    expect(clerkProviderSpy).not.toHaveBeenCalled();
+    expect(clerkProviderSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        __internal_bypassMissingPublishableKey: true,
+        publishableKey: '',
+      }),
+    );
   });
 });

@@ -70,21 +70,26 @@ export interface AppProvidersProps {
  * Checked once at module load — NEXT_PUBLIC_ vars are inlined at build time.
  */
 const cloudConnected = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+const hostedCloud = process.env.NEXT_PUBLIC_GENFEED_CLOUD === 'true';
 
 function ClerkProviderWithTheme({
   children,
   clerkProps,
+  bypassMissingPublishableKey = false,
 }: {
   children: ReactNode;
   clerkProps?: ClerkProviderProps;
+  bypassMissingPublishableKey?: boolean;
 }) {
   const { resolvedTheme } = useTheme();
   const isPlaywrightTest = process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true';
+  const shouldBypassMissingPublishableKey =
+    isPlaywrightTest || bypassMissingPublishableKey;
 
   return (
     <ClerkProvider
       {...clerkProps}
-      {...(isPlaywrightTest
+      {...(shouldBypassMissingPublishableKey
         ? {
             __internal_bypassMissingPublishableKey: true,
             publishableKey: '',
@@ -107,12 +112,15 @@ function MaybeClerkProvider({
   children: ReactNode;
   clerkProps?: ClerkProviderProps;
 }) {
-  if (!cloudConnected || !clerkProps) {
+  if ((!cloudConnected && hostedCloud) || !clerkProps) {
     return <>{children}</>;
   }
 
   return (
-    <ClerkProviderWithTheme clerkProps={clerkProps}>
+    <ClerkProviderWithTheme
+      clerkProps={clerkProps}
+      bypassMissingPublishableKey={!cloudConnected}
+    >
       {children}
     </ClerkProviderWithTheme>
   );
