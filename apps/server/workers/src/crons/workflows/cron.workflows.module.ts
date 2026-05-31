@@ -1,5 +1,6 @@
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { ManagedInferenceModule } from '@api/endpoints/v1/managed-inference/managed-inference.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
@@ -31,6 +32,7 @@ import { GenerateVideoTask } from '@workers/crons/workflows/task-types/generate-
     HttpModule,
     KlingAIModule,
     LeonardoAIModule,
+    ManagedInferenceModule,
     NotificationsModule,
     ReplicateModule,
     WorkflowsModule,

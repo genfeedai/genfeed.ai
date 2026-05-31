@@ -3,18 +3,21 @@ import {
   ManagedInferenceOperation,
   ManagedInferenceProvider,
   type ManagedInferenceRequestDto,
+  type ManagedInferenceVideoInput,
 } from '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
 import type {
   ManagedInferenceAuthenticatedRequest,
   ManagedInferenceResponse,
 } from '@api/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
 import { FalService } from '@api/services/integrations/fal/fal.service';
+import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { LeonardoAIService } from '@api/services/integrations/leonardoai/leonardoai.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { ActivitySource } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -23,6 +26,8 @@ import {
 
 const DEFAULT_MANAGED_INFERENCE_CREDITS = 1;
 const MANAGED_INFERENCE_REFUND_DAYS = 30;
+const MANAGED_VIDEO_POLL_INTERVAL_MS = 10_000;
+const MANAGED_VIDEO_TIMEOUT_MS = 600_000;
 
 @Injectable()
 export class ManagedInferenceService {
@@ -31,6 +36,7 @@ export class ManagedInferenceService {
   constructor(
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly falService: FalService,
+    private readonly fleetService: FleetService,
     private readonly leonardoAIService: LeonardoAIService,
     private readonly replicateService: ReplicateService,
     private readonly loggerService: LoggerService,
@@ -48,11 +54,7 @@ export class ManagedInferenceService {
       throw new UnauthorizedException('Managed inference API key is invalid');
     }
 
-    if (dto.operation !== ManagedInferenceOperation.IMAGE) {
-      throw new BadRequestException(
-        `Unsupported managed inference operation: ${dto.operation}`,
-      );
-    }
+    await this.assertOperationSupported(dto, organizationId);
 
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
@@ -74,16 +76,17 @@ export class ManagedInferenceService {
       organizationId,
       userId,
       credits,
-      `Managed inference ${dto.provider}:${dto.model}`,
-      ActivitySource.IMAGE_GENERATION,
+      `Managed inference ${dto.operation} ${dto.provider}:${dto.model}`,
+      this.getActivitySource(dto),
     );
 
     try {
-      const output = await this.executeProvider(dto);
+      const output = await this.executeProvider(dto, organizationId);
 
       return {
         creditsDebited: credits,
         model: dto.model,
+        operation: dto.operation,
         output,
         provider: dto.provider,
       };
@@ -94,6 +97,17 @@ export class ManagedInferenceService {
   }
 
   private async executeProvider(
+    dto: ManagedInferenceRequestDto,
+    organizationId: string,
+  ): Promise<unknown> {
+    if (dto.operation === ManagedInferenceOperation.VIDEO) {
+      return await this.executeVideoProvider(dto, organizationId);
+    }
+
+    return await this.executeImageProvider(dto);
+  }
+
+  private async executeImageProvider(
     dto: ManagedInferenceRequestDto,
   ): Promise<unknown> {
     if (dto.provider === ManagedInferenceProvider.FAL) {
@@ -126,12 +140,196 @@ export class ManagedInferenceService {
     );
   }
 
+  private async executeVideoProvider(
+    dto: ManagedInferenceRequestDto,
+    organizationId: string,
+  ): Promise<unknown> {
+    if (dto.provider === ManagedInferenceProvider.FAL) {
+      return await this.falService.generateVideo(dto.model, dto.input);
+    }
+
+    if (dto.provider === ManagedInferenceProvider.REPLICATE) {
+      return await this.replicateService.runModel(dto.model, dto.input);
+    }
+
+    if (dto.provider === ManagedInferenceProvider.GENFEEDAI) {
+      return await this.executeGenfeedVideo(dto, organizationId);
+    }
+
+    throw new BadRequestException(
+      `Unsupported managed inference video provider: ${dto.provider}`,
+    );
+  }
+
+  private async executeGenfeedVideo(
+    dto: ManagedInferenceRequestDto,
+    organizationId: string,
+  ): Promise<unknown> {
+    const input = this.validateVideoInput(dto.input);
+    const imageUrl = this.getString(input.imageUrl ?? input.image_url);
+
+    if (!imageUrl) {
+      throw new BadRequestException(
+        'GenfeedAI managed video inference requires imageUrl',
+      );
+    }
+
+    const job = await this.fleetService.generateManagedVideoForOrg({
+      fps: this.getNumber(input.fps),
+      height: this.getNumber(input.height),
+      imageUrl,
+      negativePrompt: this.getString(
+        input.negativePrompt ?? input.negative_prompt,
+      ),
+      organizationId,
+      prompt: input.prompt,
+      seed: this.getNumber(input.seed),
+      width: this.getNumber(input.width),
+    });
+
+    if (!job) {
+      throw new BadRequestException(
+        'GenfeedAI managed video provider is not available',
+      );
+    }
+
+    return await this.waitForManagedVideo(organizationId, job.jobId);
+  }
+
   private getNumber(value: unknown): number | undefined {
     return typeof value === 'number' ? value : undefined;
   }
 
   private getString(value: unknown): string | undefined {
     return typeof value === 'string' ? value : undefined;
+  }
+
+  private async waitForManagedVideo(
+    organizationId: string,
+    jobId: string,
+  ): Promise<{ jobId: string; url: string }> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < MANAGED_VIDEO_TIMEOUT_MS) {
+      const status = await this.fleetService.pollManagedJobForOrg(
+        organizationId,
+        'videos',
+        jobId,
+      );
+
+      const state = this.getString(status?.status);
+      if (state === 'completed' || state === 'succeeded') {
+        const url = this.extractVideoUrl(status);
+        if (!url) {
+          throw new BadRequestException(
+            `GenfeedAI managed video job ${jobId} completed without a video URL`,
+          );
+        }
+
+        return { jobId, url };
+      }
+
+      if (state === 'failed' || state === 'error') {
+        throw new BadRequestException(
+          `GenfeedAI managed video job ${jobId} failed`,
+        );
+      }
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, MANAGED_VIDEO_POLL_INTERVAL_MS),
+      );
+    }
+
+    throw new BadRequestException(
+      `GenfeedAI managed video job ${jobId} timed out`,
+    );
+  }
+
+  private extractVideoUrl(
+    status: Record<string, unknown> | null,
+  ): string | undefined {
+    if (!status) {
+      return undefined;
+    }
+
+    const directUrl =
+      status.url ?? status.video_url ?? status.output_url ?? status.outputUrl;
+    if (typeof directUrl === 'string') {
+      return directUrl;
+    }
+
+    const output = status.output;
+    if (output && typeof output === 'object' && !Array.isArray(output)) {
+      return this.extractVideoUrl(output as Record<string, unknown>);
+    }
+
+    return undefined;
+  }
+
+  private validateVideoInput(
+    input: Record<string, unknown>,
+  ): ManagedInferenceVideoInput {
+    const prompt = this.getString(input.prompt);
+    if (!prompt) {
+      throw new BadRequestException(
+        'Managed video inference requires a prompt',
+      );
+    }
+
+    return { ...input, prompt } as ManagedInferenceVideoInput;
+  }
+
+  private async assertOperationSupported(
+    dto: ManagedInferenceRequestDto,
+    organizationId: string,
+  ): Promise<void> {
+    if (dto.operation === ManagedInferenceOperation.IMAGE) {
+      if (dto.provider === ManagedInferenceProvider.GENFEEDAI) {
+        throw new BadRequestException(
+          'GenfeedAI managed image inference is not supported yet',
+        );
+      }
+      return;
+    }
+
+    if (dto.operation === ManagedInferenceOperation.VIDEO) {
+      this.validateVideoInput(dto.input);
+
+      if (
+        dto.provider !== ManagedInferenceProvider.FAL &&
+        dto.provider !== ManagedInferenceProvider.REPLICATE &&
+        dto.provider !== ManagedInferenceProvider.GENFEEDAI
+      ) {
+        throw new BadRequestException(
+          `Unsupported managed inference video provider: ${dto.provider}`,
+        );
+      }
+
+      if (dto.provider === ManagedInferenceProvider.GENFEEDAI) {
+        const enabled = await this.fleetService.hasDedicatedInstanceForOrg(
+          organizationId,
+          'videos',
+        );
+
+        if (!enabled) {
+          throw new ForbiddenException(
+            'GenfeedAI managed video provider is not enabled for this organization',
+          );
+        }
+      }
+
+      return;
+    }
+
+    throw new BadRequestException(
+      `Unsupported managed inference operation: ${dto.operation}`,
+    );
+  }
+
+  private getActivitySource(dto: ManagedInferenceRequestDto): ActivitySource {
+    return dto.operation === ManagedInferenceOperation.VIDEO
+      ? ActivitySource.VIDEO_GENERATION
+      : ActivitySource.IMAGE_GENERATION;
   }
 
   private async refundCredits(

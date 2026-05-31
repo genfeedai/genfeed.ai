@@ -80,6 +80,18 @@ export class FleetService {
     return this.getInstanceUrl(role);
   }
 
+  async hasDedicatedInstanceForOrg(
+    organizationId: string,
+    role: FleetRole,
+  ): Promise<boolean> {
+    const instance = await this.customerInstancesService.findRunningForOrg(
+      organizationId,
+      role,
+    );
+
+    return Boolean(instance?.apiUrl);
+  }
+
   /**
    * Get the API URL for a fleet instance, or null if not configured.
    */
@@ -235,6 +247,119 @@ export class FleetService {
       return null;
     }
 
+    try {
+      const response = await axios.post(
+        `${url}/generate/video`,
+        {
+          cfg: params.cfg ?? 3.0,
+          fps: params.fps ?? 16,
+          height: params.height ?? 480,
+          image_url: params.imageUrl,
+          negative_prompt:
+            params.negativePrompt ??
+            'blurry, distorted, low quality, watermark, text, morphing, flickering',
+          num_frames: params.numFrames ?? 81,
+          prompt: params.prompt,
+          seed: params.seed ?? 42,
+          steps: params.steps ?? 20,
+          width: params.width ?? 832,
+        },
+        { timeout: 30000 },
+      );
+
+      return { jobId: response.data.job_id };
+    } catch (error) {
+      this.loggerService.error(caller, {
+        error,
+        message: 'Video generation failed',
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Proxy POST to an org-specific videos instance only.
+   * This intentionally does not fall back to the shared fleet URL because
+   * GenfeedAI managed provider access is assigned per customer from console.
+   */
+  async generateManagedVideoForOrg(params: {
+    organizationId: string;
+    imageUrl: string;
+    prompt: string;
+    negativePrompt?: string;
+    numFrames?: number;
+    fps?: number;
+    width?: number;
+    height?: number;
+    steps?: number;
+    cfg?: number;
+    seed?: number;
+  }): Promise<{ jobId: string } | null> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const instance = await this.customerInstancesService.findRunningForOrg(
+      params.organizationId,
+      'videos',
+    );
+    const url = instance?.apiUrl ?? null;
+
+    if (!url) {
+      this.loggerService.warn(caller, {
+        message: 'Managed videos instance is not enabled for organization',
+        organizationId: params.organizationId,
+      });
+      return null;
+    }
+
+    return await this.postVideoGeneration(url, params, caller);
+  }
+
+  async pollManagedJobForOrg(
+    organizationId: string,
+    role: FleetRole,
+    jobId: string,
+  ): Promise<Record<string, unknown> | null> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const instance = await this.customerInstancesService.findRunningForOrg(
+      organizationId,
+      role,
+    );
+    const url = instance?.apiUrl ?? null;
+
+    if (!url) {
+      return null;
+    }
+
+    try {
+      const response = await axios.get(`${url}/generate/${jobId}`, {
+        timeout: 10000,
+      });
+      return response.data;
+    } catch (error) {
+      this.loggerService.error(caller, {
+        error,
+        message: `Poll managed job failed for ${role}/${jobId}`,
+        organizationId,
+      });
+      return null;
+    }
+  }
+
+  private async postVideoGeneration(
+    url: string,
+    params: {
+      imageUrl: string;
+      prompt: string;
+      negativePrompt?: string;
+      numFrames?: number;
+      fps?: number;
+      width?: number;
+      height?: number;
+      steps?: number;
+      cfg?: number;
+      seed?: number;
+    },
+    caller: string,
+  ): Promise<{ jobId: string } | null> {
     try {
       const response = await axios.post(
         `${url}/generate/video`,

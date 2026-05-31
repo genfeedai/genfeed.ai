@@ -4,6 +4,9 @@ vi.mock('@api/collections/credits/services/credits.utils.service', () => ({
 vi.mock('@api/services/integrations/fal/fal.service', () => ({
   FalService: class FalService {},
 }));
+vi.mock('@api/services/integrations/fleet/fleet.service', () => ({
+  FleetService: class FleetService {},
+}));
 vi.mock('@api/services/integrations/leonardoai/leonardoai.service', () => ({
   LeonardoAIService: class LeonardoAIService {},
 }));
@@ -22,6 +25,7 @@ import {
 import type { ManagedInferenceAuthenticatedRequest } from '@api/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
 import { ManagedInferenceService } from '@api/endpoints/v1/managed-inference/managed-inference.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
+import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { LeonardoAIService } from '@api/services/integrations/leonardoai/leonardoai.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { ActivitySource } from '@genfeedai/enums';
@@ -36,7 +40,14 @@ describe('ManagedInferenceService', () => {
 
   const falService = {
     generateImage: vi.fn(),
+    generateVideo: vi.fn(),
   } as unknown as FalService;
+
+  const fleetService = {
+    generateManagedVideoForOrg: vi.fn(),
+    hasDedicatedInstanceForOrg: vi.fn(),
+    pollManagedJobForOrg: vi.fn(),
+  } as unknown as FleetService;
 
   const leonardoAIService = {
     generateImage: vi.fn(),
@@ -67,6 +78,7 @@ describe('ManagedInferenceService', () => {
     service = new ManagedInferenceService(
       creditsUtilsService,
       falService,
+      fleetService,
       leonardoAIService,
       replicateService,
       loggerService,
@@ -95,6 +107,7 @@ describe('ManagedInferenceService', () => {
       creditsDebited: 1,
       model: 'fal-ai/flux/dev',
       output: { url: 'https://img.test/fal.jpg' },
+      operation: ManagedInferenceOperation.IMAGE,
       provider: ManagedInferenceProvider.FAL,
     });
     expect(
@@ -103,9 +116,110 @@ describe('ManagedInferenceService', () => {
       'org-1',
       'user-1',
       1,
-      'Managed inference fal:fal-ai/flux/dev',
+      'Managed inference image fal:fal-ai/flux/dev',
       ActivitySource.IMAGE_GENERATION,
     );
+  });
+
+  it('debits credits and runs fal video inference', async () => {
+    vi.mocked(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).mockResolvedValue(true);
+    vi.mocked(falService.generateVideo).mockResolvedValue({
+      url: 'https://video.test/fal.mp4',
+    });
+
+    const result = await service.execute(
+      {
+        input: { prompt: 'video prompt' },
+        model: 'fal-ai/kling-video/v1/standard/text-to-video',
+        operation: ManagedInferenceOperation.VIDEO,
+        provider: ManagedInferenceProvider.FAL,
+      },
+      request,
+    );
+
+    expect(result).toEqual({
+      creditsDebited: 1,
+      model: 'fal-ai/kling-video/v1/standard/text-to-video',
+      operation: ManagedInferenceOperation.VIDEO,
+      output: { url: 'https://video.test/fal.mp4' },
+      provider: ManagedInferenceProvider.FAL,
+    });
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      1,
+      'Managed inference video fal:fal-ai/kling-video/v1/standard/text-to-video',
+      ActivitySource.VIDEO_GENERATION,
+    );
+  });
+
+  it('runs genfeedai video inference only when enabled for the organization', async () => {
+    vi.mocked(fleetService.hasDedicatedInstanceForOrg).mockResolvedValue(true);
+    vi.mocked(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).mockResolvedValue(true);
+    vi.mocked(fleetService.generateManagedVideoForOrg).mockResolvedValue({
+      jobId: 'job-1',
+    });
+    vi.mocked(fleetService.pollManagedJobForOrg).mockResolvedValue({
+      output: { video_url: 'https://video.test/genfeed.mp4' },
+      status: 'completed',
+    });
+
+    const result = await service.execute(
+      {
+        input: {
+          imageUrl: 'https://img.test/source.jpg',
+          prompt: 'cinematic pan',
+        },
+        model: 'genfeedai/wan-i2v-lora',
+        operation: ManagedInferenceOperation.VIDEO,
+        provider: ManagedInferenceProvider.GENFEEDAI,
+      },
+      request,
+    );
+
+    expect(result.output).toEqual({
+      jobId: 'job-1',
+      url: 'https://video.test/genfeed.mp4',
+    });
+    expect(fleetService.generateManagedVideoForOrg).toHaveBeenCalledWith(
+      expect.objectContaining({
+        imageUrl: 'https://img.test/source.jpg',
+        organizationId: 'org-1',
+        prompt: 'cinematic pan',
+      }),
+    );
+  });
+
+  it('rejects genfeedai video before debit when provider is not enabled', async () => {
+    vi.mocked(fleetService.hasDedicatedInstanceForOrg).mockResolvedValue(false);
+
+    await expect(
+      service.execute(
+        {
+          input: {
+            imageUrl: 'https://img.test/source.jpg',
+            prompt: 'cinematic pan',
+          },
+          model: 'genfeedai/wan-i2v-lora',
+          operation: ManagedInferenceOperation.VIDEO,
+          provider: ManagedInferenceProvider.GENFEEDAI,
+        },
+        request,
+      ),
+    ).rejects.toHaveProperty('status', 403);
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
   });
 
   it('returns 402 before debit when managed credits are insufficient', async () => {

@@ -19,6 +19,9 @@
 - [No external symlinks](feedback_no_external_symlinks.md) — Open source repo. Internal symlinks only.
 - [End-to-end implementation](feedback_end_to_end_implementation.md) — Never ship half-architecture; wire the full user path
 - [P0 status, not label](feedback_p0_status_not_label.md) — P0 is issue status; never create priority labels
+- [GPU instances off by default](feedback_gpu_instances_off_by_default.md) — Keep Genfeed GPU/Fleet inference instances off unless explicitly needed
+- [Inference servers private boundary](feedback_inference_servers_private_boundary.md) — Keep Genfeed inference server implementations out of the public monorepo
+- [GenfeedAI managed provider](feedback_genfeedai_managed_provider.md) — Model Genfeed-managed inference as provider=genfeedai, enabled per customer from console
 
 ## References
 - [MongoDB Atlas URI](reference_mongodb_atlas.md) — Atlas connection string for `cloud` DB

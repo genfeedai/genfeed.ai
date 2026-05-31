@@ -14,6 +14,9 @@ describe('FleetService', () => {
   let service: FleetService;
   let configService: vi.Mocked<ConfigService>;
   let loggerService: vi.Mocked<LoggerService>;
+  let customerInstancesService: {
+    findRunningForOrg: ReturnType<typeof vi.fn>;
+  };
 
   const buildConfig = (overrides: Record<string, string> = {}) => ({
     GPU_IMAGES_URL: 'http://images.fleet.local',
@@ -26,6 +29,10 @@ describe('FleetService', () => {
     configValues: Record<string, string> = {},
   ): Promise<void> => {
     const config = buildConfig(configValues);
+
+    customerInstancesService = {
+      findRunningForOrg: vi.fn().mockResolvedValue(null),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -47,9 +54,7 @@ describe('FleetService', () => {
         },
         {
           provide: CustomerInstancesService,
-          useValue: {
-            findRunningForOrg: vi.fn().mockResolvedValue(null),
-          },
+          useValue: customerInstancesService,
         },
       ],
     }).compile();
@@ -246,6 +251,72 @@ describe('FleetService', () => {
       expect(loggerService.error).toHaveBeenCalled();
     });
 
+    it('uses the dedicated org instance when one is running', async () => {
+      customerInstancesService.findRunningForOrg.mockResolvedValue({
+        apiUrl: 'http://customer-video.local',
+      });
+      mockedAxios.post = vi
+        .fn()
+        .mockResolvedValue({ data: { job_id: 'customer-job' } });
+
+      const result = await service.generateVideo({
+        imageUrl: 'https://example.com/img.jpg',
+        organizationId: 'org-1',
+        prompt: 'customer prompt',
+      });
+
+      expect(result).toEqual({ jobId: 'customer-job' });
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'http://customer-video.local/generate/video',
+        expect.objectContaining({ prompt: 'customer prompt' }),
+        expect.any(Object),
+      );
+    });
+
+    it('requires a dedicated org instance for managed GenfeedAI video', async () => {
+      customerInstancesService.findRunningForOrg.mockResolvedValue(null);
+      mockedAxios.post = vi.fn();
+
+      const result = await service.generateManagedVideoForOrg({
+        imageUrl: 'https://example.com/img.jpg',
+        organizationId: 'org-1',
+        prompt: 'managed prompt',
+      });
+
+      expect(result).toBeNull();
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('runs managed GenfeedAI video on the dedicated org instance', async () => {
+      customerInstancesService.findRunningForOrg.mockResolvedValue({
+        apiUrl: 'http://managed-video.local',
+      });
+      mockedAxios.post = vi
+        .fn()
+        .mockResolvedValue({ data: { job_id: 'managed-job' } });
+
+      const result = await service.generateManagedVideoForOrg({
+        imageUrl: 'https://example.com/img.jpg',
+        organizationId: 'org-1',
+        prompt: 'managed prompt',
+      });
+
+      expect(result).toEqual({ jobId: 'managed-job' });
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'http://managed-video.local/generate/video',
+        expect.objectContaining({ prompt: 'managed prompt' }),
+        expect.any(Object),
+      );
+    });
+
+    it('does not enable managed GenfeedAI video without a dedicated API URL', async () => {
+      customerInstancesService.findRunningForOrg.mockResolvedValue({});
+
+      await expect(
+        service.hasDedicatedInstanceForOrg('org-1', 'videos'),
+      ).resolves.toBe(false);
+    });
+
     it('uses default params when not provided', async () => {
       mockedAxios.post = vi.fn().mockResolvedValue({ data: { job_id: 'j1' } });
 
@@ -316,6 +387,43 @@ describe('FleetService', () => {
       const result = await service.pollJob('videos', 'some_job');
       expect(result).toBeNull();
       expect(loggerService.error).toHaveBeenCalled();
+    });
+  });
+
+  // ── pollManagedJobForOrg ─────────────────────────────────────────────────
+  describe('pollManagedJobForOrg', () => {
+    it('polls the dedicated org instance only', async () => {
+      const jobData = { output_url: 'https://cdn.example.com/out.mp4' };
+      customerInstancesService.findRunningForOrg.mockResolvedValue({
+        apiUrl: 'http://managed-video.local',
+      });
+      mockedAxios.get = vi.fn().mockResolvedValue({ data: jobData });
+
+      const result = await service.pollManagedJobForOrg(
+        'org-1',
+        'videos',
+        'job-1',
+      );
+
+      expect(result).toEqual(jobData);
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        'http://managed-video.local/generate/job-1',
+        expect.objectContaining({ timeout: 10000 }),
+      );
+    });
+
+    it('does not fall back to the shared fleet URL', async () => {
+      customerInstancesService.findRunningForOrg.mockResolvedValue(null);
+      mockedAxios.get = vi.fn();
+
+      const result = await service.pollManagedJobForOrg(
+        'org-1',
+        'videos',
+        'job-1',
+      );
+
+      expect(result).toBeNull();
+      expect(mockedAxios.get).not.toHaveBeenCalled();
     });
   });
 

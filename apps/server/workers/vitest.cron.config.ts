@@ -27,6 +27,20 @@ export default defineConfig({
       },
       { find: '@files', replacement: path.resolve(serviceDir, '../files/src') },
       {
+        find: '@genfeedai/constants',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/constants/src/index.ts',
+        ),
+      },
+      {
+        find: '@genfeedai/enums',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/enums/src/index.ts',
+        ),
+      },
+      {
         find: '@genfeedai/types',
         replacement: path.resolve(serviceDir, '../../../packages/types/src'),
       },
