@@ -35,6 +35,6 @@ describe('YoutubeChatBot', () => {
 
   it('should render without crashing', () => {
     render(<YoutubeChatBot />);
-    expect(screen.getByText('Loading livestream bot...')).toBeInTheDocument();
+    expect(screen.getByText('Loading livestream bot…')).toBeInTheDocument();
   });
 });

@@ -8,10 +8,8 @@ import {
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  WorkspaceBrandMentionList,
-  WorkspaceTaskComposer,
-} from './workspace-task-composer';
+import { WorkspaceBrandMentionList } from './workspace-task-brand-mention-list';
+import { WorkspaceTaskComposer } from './workspace-task-composer';
 import {
   extractBrandMentionMatch,
   getBrandDisplayLabel,

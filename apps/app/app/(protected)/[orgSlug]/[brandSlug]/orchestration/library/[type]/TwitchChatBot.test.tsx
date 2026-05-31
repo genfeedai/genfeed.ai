@@ -35,6 +35,6 @@ describe('TwitchChatBot', () => {
 
   it('should render without crashing', () => {
     render(<TwitchChatBot />);
-    expect(screen.getByText('Loading livestream bot...')).toBeInTheDocument();
+    expect(screen.getByText('Loading livestream bot…')).toBeInTheDocument();
   });
 });
