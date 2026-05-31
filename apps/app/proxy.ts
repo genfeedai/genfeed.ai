@@ -432,18 +432,6 @@ async function resolveCanonicalProtectedPath(
       };
     }
 
-    if (canonicalPath.startsWith('/settings/brands/')) {
-      const [, , , routeBrandSlug, ...rest] = canonicalPath.split('/');
-
-      if (routeBrandSlug) {
-        const suffix = rest.length > 0 ? `/${rest.join('/')}` : '';
-        return {
-          cookieValue,
-          path: `/${slugs.orgSlug}/${routeBrandSlug}/settings${suffix}`,
-        };
-      }
-    }
-
     return { cookieValue, path: `/${slugs.orgSlug}/~${canonicalPath}` };
   }
 

@@ -7856,13 +7856,10 @@ export class AgentToolExecutorService {
         typeof resolveEffectiveBrandAgentConfig
       >[0]['organizationSettings'],
     });
-    const currentBrandDefaultVoiceId =
-      effectiveBrandAgentConfig.identityDefaults.brand.defaultVoiceId?.toString();
-    const orgDefaultVoiceId =
-      effectiveBrandAgentConfig.identityDefaults.organization.defaultVoiceId?.toString();
+    const effectiveDefaultVoiceId =
+      effectiveBrandAgentConfig.identityDefaults.effective.defaultVoiceId?.toString();
 
-    const recommendedVoiceId =
-      currentBrandDefaultVoiceId || orgDefaultVoiceId || readyVoices[0]?.id;
+    const recommendedVoiceId = effectiveDefaultVoiceId || readyVoices[0]?.id;
 
     return {
       creditsUsed: 0,
