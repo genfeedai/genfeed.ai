@@ -9,6 +9,7 @@ import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import MasonryGrid from '@ui/masonry/grid/MasonryGrid';
 import { useEffect } from 'react';
 import { FaImage } from 'react-icons/fa6';
@@ -25,6 +26,7 @@ export default function TrainingImagesTab({
   const getTrainingsService = useAuthedService((token: string) =>
     TrainingsService.getInstance(token),
   );
+  const hasTrainingModel = Boolean(training?.model);
 
   const {
     data: generatedAssets = [],
@@ -41,7 +43,7 @@ export default function TrainingImagesTab({
       logger.info(`${url} success`, data);
       return data;
     },
-    enabled: Boolean(training?.model),
+    enabled: hasTrainingModel,
   });
 
   useEffect(() => {
@@ -50,6 +52,26 @@ export default function TrainingImagesTab({
       notificationsService.error('Failed to fetch generated assets');
     }
   }, [error, notificationsService]);
+
+  if (error) {
+    return (
+      <CardEmptyContent
+        icon={FaImage}
+        label="Generated assets failed to load"
+        description="Refresh the page or try again in a moment."
+      />
+    );
+  }
+
+  if (!hasTrainingModel) {
+    return (
+      <CardEmptyContent
+        icon={FaImage}
+        label="Training model unavailable"
+        description="Generated assets can load once this training has a model."
+      />
+    );
+  }
 
   return isLoading && generatedAssets.length === 0 ? (
     <MasonryGrid

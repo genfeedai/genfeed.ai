@@ -35,12 +35,14 @@ describe('AppProviders', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'false';
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_fake';
     const module = await import('@ui/providers/AppProviders');
     AppProviders = module.default;
   });
 
   afterEach(() => {
+    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
     delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   });
 
@@ -71,6 +73,7 @@ describe('AppProviders', () => {
   });
 
   it('mounts ClerkProvider with a local bypass when Clerk is not configured', async () => {
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'false';
     delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
     vi.resetModules();
 
