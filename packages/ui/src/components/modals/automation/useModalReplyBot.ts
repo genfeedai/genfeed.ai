@@ -107,16 +107,26 @@ export function useModalReplyBot({
           minFollowers?: number;
           maxFollowers?: number;
           mustHaveBio?: boolean;
+          excludeAuthorIds?: string[];
+          excludeAuthors?: string[];
           excludeKeywords?: string[];
+          excludeUrls?: string[];
           includeKeywords?: string[];
           languageFilter?: string[];
+          maxAgeHours?: number;
+          minTextLength?: number;
         };
         form.setValue('filters', {
+          excludeAuthorIds: filters.excludeAuthorIds ?? [],
+          excludeAuthors: filters.excludeAuthors ?? [],
           excludeKeywords: filters.excludeKeywords ?? [],
+          excludeUrls: filters.excludeUrls ?? [],
           includeKeywords: filters.includeKeywords ?? [],
           languageFilter: filters.languageFilter ?? [],
+          maxAgeHours: filters.maxAgeHours,
           maxFollowers: filters.maxFollowers,
           minFollowers: filters.minFollowers ?? 0,
+          minTextLength: filters.minTextLength,
           mustHaveBio: filters.mustHaveBio ?? false,
         });
       }

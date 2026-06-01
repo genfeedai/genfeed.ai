@@ -32,11 +32,16 @@ export const replyBotScheduleSchema = z.object({
 });
 
 export const replyBotFiltersSchema = z.object({
+  excludeAuthorIds: z.array(z.string()).default([]),
+  excludeAuthors: z.array(z.string()).default([]),
   excludeKeywords: z.array(z.string()).default([]),
+  excludeUrls: z.array(z.string()).default([]),
   includeKeywords: z.array(z.string()).default([]),
   languageFilter: z.array(z.string()).default([]),
+  maxAgeHours: z.number().min(0).optional(),
   maxFollowers: z.number().min(0).optional(),
   minFollowers: z.number().min(0).default(0),
+  minTextLength: z.number().min(0).optional(),
   mustHaveBio: z.boolean().default(false),
 });
 
