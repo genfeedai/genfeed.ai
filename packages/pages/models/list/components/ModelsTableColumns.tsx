@@ -22,6 +22,41 @@ export function buildModelsTableColumns({
   handleToggleModel,
   togglingModelId,
 }: BuildModelsTableColumnsParams): TableColumn<IModel>[] {
+  const getRegistryStatus = (model: IModel) => {
+    if (model.isLegacy || model.reviewStatus === 'legacy') {
+      return {
+        className: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+        label: 'Legacy',
+      };
+    }
+
+    if (model.reviewStatus === 'rejected') {
+      return {
+        className: 'bg-red-500/15 text-red-400 border-red-500/30',
+        label: 'Rejected',
+      };
+    }
+
+    if (model.isDiscovered && !model.isActive) {
+      return {
+        className: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+        label: 'Pending',
+      };
+    }
+
+    if (model.isDiscovered) {
+      return {
+        className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+        label: 'Approved',
+      };
+    }
+
+    return {
+      className: 'bg-foreground/10 text-foreground/70',
+      label: 'Seeded',
+    };
+  };
+
   return [
     { header: 'Label', key: 'label' },
     {
@@ -43,6 +78,22 @@ export function buildModelsTableColumns({
                 {model.provider}
               </Badge>
             ),
+          },
+        ]
+      : []),
+    ...(isAdminScope
+      ? [
+          {
+            header: 'Registry',
+            key: 'reviewStatus',
+            render: (model: IModel) => {
+              const status = getRegistryStatus(model);
+              return (
+                <Badge className={`text-xs uppercase ${status.className}`}>
+                  {status.label}
+                </Badge>
+              );
+            },
           },
         ]
       : []),

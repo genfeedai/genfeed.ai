@@ -57,4 +57,8 @@ export const modelAttributes = createEntityAttributes([
   'isDiscovered',
   'discoveredAt',
   'lastSyncedAt',
+  'reviewStatus',
+  'reviewedAt',
+  'reviewedBy',
+  'rejectionReason',
 ]);

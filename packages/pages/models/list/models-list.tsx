@@ -11,7 +11,13 @@ import AppTable from '@ui/display/table/Table';
 import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { useMemo } from 'react';
-import { HiInformationCircle, HiTrash } from 'react-icons/hi2';
+import {
+  HiArchiveBox,
+  HiCheckCircle,
+  HiInformationCircle,
+  HiTrash,
+  HiXCircle,
+} from 'react-icons/hi2';
 import ModelsAdminHeader from './components/ModelsAdminHeader';
 import { useModelsList } from './useModelsList';
 
@@ -45,6 +51,9 @@ export default function ModelsList({
     refresh,
     handleViewDetails,
     handleDelete,
+    handleApproveRegistryModel,
+    handleRejectRegistryModel,
+    handleMarkRegistryModelLegacy,
     openConfirm,
   } = useModelsList({
     type,
@@ -64,6 +73,52 @@ export default function ModelsList({
       },
       ...(isAdminScope
         ? [
+            {
+              icon: <HiCheckCircle />,
+              isVisible: (model: IModel) =>
+                !!model.isDiscovered &&
+                !model.isActive &&
+                model.reviewStatus !== 'rejected',
+              onClick: (model: IModel) => {
+                openConfirm({
+                  confirmLabel: 'Approve',
+                  label: 'Approve Model',
+                  message: `Approve "${model.label}" and make it available for generation?`,
+                  onConfirm: () => handleApproveRegistryModel(model),
+                });
+              },
+              tooltip: 'Approve',
+            },
+            {
+              icon: <HiXCircle />,
+              isVisible: (model: IModel) =>
+                !!model.isDiscovered &&
+                !model.isActive &&
+                model.reviewStatus !== 'rejected',
+              onClick: (model: IModel) => {
+                openConfirm({
+                  confirmLabel: 'Reject',
+                  isError: true,
+                  label: 'Reject Model',
+                  message: `Reject "${model.label}" and keep it out of generation?`,
+                  onConfirm: () => handleRejectRegistryModel(model),
+                });
+              },
+              tooltip: 'Reject',
+            },
+            {
+              icon: <HiArchiveBox />,
+              isVisible: (model: IModel) => model.isActive && !model.isLegacy,
+              onClick: (model: IModel) => {
+                openConfirm({
+                  confirmLabel: 'Mark Legacy',
+                  label: 'Mark Model Legacy',
+                  message: `Mark "${model.label}" as legacy and disable it for generation?`,
+                  onConfirm: () => handleMarkRegistryModelLegacy(model),
+                });
+              },
+              tooltip: 'Mark Legacy',
+            },
             {
               icon: <HiTrash />,
               onClick: (model: IModel) => {
@@ -86,6 +141,9 @@ export default function ModelsList({
       handleViewDetails,
       openConfirm,
       handleDelete,
+      handleApproveRegistryModel,
+      handleRejectRegistryModel,
+      handleMarkRegistryModelLegacy,
       setSelectedModel,
     ],
   );

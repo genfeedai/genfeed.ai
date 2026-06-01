@@ -67,4 +67,8 @@ export interface IModel extends IBaseEntity {
   discoveredAt?: Date;
   lastSyncedAt?: Date;
   margin?: number;
+  rejectionReason?: string;
+  reviewedAt?: Date;
+  reviewedBy?: string;
+  reviewStatus?: 'approved' | 'legacy' | 'pending' | 'rejected';
 }

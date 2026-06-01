@@ -523,6 +523,80 @@ export function useModelsList({
     }
   }, [selectedModel, getModelsService, handleRefresh, notificationsService]);
 
+  const handleApproveRegistryModel = useCallback(
+    async (model: IModel) => {
+      if (!model.id) {
+        return;
+      }
+
+      const url = `PATCH /models/${model.id}/approve`;
+      try {
+        const service = await getModelsService();
+        await service.approveRegistryModel(model.id, {
+          label: model.label,
+        });
+        await handleRefresh();
+        notificationsService.success('Model approved');
+      } catch (error) {
+        logger.error(`${url} failed`, error);
+        const errorDetails = ErrorHandler.extractErrorDetails(error);
+        notificationsService.error(
+          errorDetails.message || 'Failed to approve model',
+        );
+      }
+    },
+    [getModelsService, handleRefresh, notificationsService],
+  );
+
+  const handleRejectRegistryModel = useCallback(
+    async (model: IModel) => {
+      if (!model.id) {
+        return;
+      }
+
+      const url = `PATCH /models/${model.id}/reject`;
+      try {
+        const service = await getModelsService();
+        await service.rejectRegistryModel(
+          model.id,
+          'Rejected from model registry review',
+        );
+        await handleRefresh();
+        notificationsService.success('Model rejected');
+      } catch (error) {
+        logger.error(`${url} failed`, error);
+        const errorDetails = ErrorHandler.extractErrorDetails(error);
+        notificationsService.error(
+          errorDetails.message || 'Failed to reject model',
+        );
+      }
+    },
+    [getModelsService, handleRefresh, notificationsService],
+  );
+
+  const handleMarkRegistryModelLegacy = useCallback(
+    async (model: IModel) => {
+      if (!model.id) {
+        return;
+      }
+
+      const url = `PATCH /models/${model.id}/legacy`;
+      try {
+        const service = await getModelsService();
+        await service.markRegistryModelLegacy(model.id);
+        await handleRefresh();
+        notificationsService.success('Model marked legacy');
+      } catch (error) {
+        logger.error(`${url} failed`, error);
+        const errorDetails = ErrorHandler.extractErrorDetails(error);
+        notificationsService.error(
+          errorDetails.message || 'Failed to mark model legacy',
+        );
+      }
+    },
+    [getModelsService, handleRefresh, notificationsService],
+  );
+
   const columns = useMemo(
     () =>
       buildModelsTableColumns({
@@ -565,6 +639,9 @@ export function useModelsList({
     refresh,
     handleViewDetails,
     handleDelete,
+    handleApproveRegistryModel,
+    handleRejectRegistryModel,
+    handleMarkRegistryModelLegacy,
     openConfirm,
   };
 }
