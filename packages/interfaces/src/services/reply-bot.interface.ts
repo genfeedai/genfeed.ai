@@ -75,12 +75,18 @@ export interface IReplyBotSchedule {
 }
 
 export interface IReplyBotFilters {
+  excludeAuthorIds?: string[];
+  excludeAuthors?: string[];
   keywords: string[];
   hashtags: string[];
   excludeKeywords: string[];
+  excludeUrls?: string[];
   minFollowers?: number;
   maxFollowers?: number;
+  maxAgeHours?: number;
+  minTextLength?: number;
   requireVerified?: boolean;
+  excludedUrls?: string[];
 }
 
 export interface IReplyBotConfig {

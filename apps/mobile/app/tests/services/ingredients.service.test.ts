@@ -15,6 +15,20 @@ vi.mock('expo-constants', () => ({
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
+function mockSuccessfulFetch(response: unknown): void {
+  mockFetch.mockResolvedValueOnce({
+    json: () => Promise.resolve(response),
+    ok: true,
+  });
+}
+
+function mockFailedFetch(statusText: string): void {
+  mockFetch.mockResolvedValueOnce({
+    ok: false,
+    statusText,
+  });
+}
+
 import {
   type Ingredient,
   type IngredientResponse,
@@ -60,10 +74,7 @@ describe('IngredientsService', () => {
     };
 
     it('should fetch images by default', async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve(mockResponse),
-        ok: true,
-      });
+      mockSuccessfulFetch(mockResponse);
 
       const result = await ingredientsService.findAll('test-token');
 
@@ -80,10 +91,7 @@ describe('IngredientsService', () => {
     });
 
     it('should fetch videos when category is video', async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve(mockResponse),
-        ok: true,
-      });
+      mockSuccessfulFetch(mockResponse);
 
       await ingredientsService.findAll('test-token', { category: 'video' });
 
@@ -94,10 +102,7 @@ describe('IngredientsService', () => {
     });
 
     it('should fetch articles when category is article', async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve(mockResponse),
-        ok: true,
-      });
+      mockSuccessfulFetch(mockResponse);
 
       await ingredientsService.findAll('test-token', { category: 'article' });
 
@@ -108,10 +113,7 @@ describe('IngredientsService', () => {
     });
 
     it('should include pagination params when provided', async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve(mockResponse),
-        ok: true,
-      });
+      mockSuccessfulFetch(mockResponse);
 
       await ingredientsService.findAll('test-token', { page: 2, pageSize: 20 });
 
@@ -122,10 +124,7 @@ describe('IngredientsService', () => {
     });
 
     it('should throw error when response is not ok', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        statusText: 'Not Found',
-      });
+      mockFailedFetch('Not Found');
 
       await expect(ingredientsService.findAll('test-token')).rejects.toThrow(
         'Request failed: Not Found',
@@ -150,10 +149,7 @@ describe('IngredientsService', () => {
     };
 
     it('should fetch single ingredient by id', async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve(mockResponse),
-        ok: true,
-      });
+      mockSuccessfulFetch(mockResponse);
 
       const result = await ingredientsService.findOne('test-token', '123');
 
@@ -170,10 +166,7 @@ describe('IngredientsService', () => {
     });
 
     it('should use category-specific endpoint when category is provided', async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve(mockResponse),
-        ok: true,
-      });
+      mockSuccessfulFetch(mockResponse);
 
       await ingredientsService.findOne('test-token', '123', 'image');
 
@@ -184,10 +177,7 @@ describe('IngredientsService', () => {
     });
 
     it('should use articles endpoint for article category', async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve(mockResponse),
-        ok: true,
-      });
+      mockSuccessfulFetch(mockResponse);
 
       await ingredientsService.findOne('test-token', '123', 'article');
 
@@ -198,10 +188,7 @@ describe('IngredientsService', () => {
     });
 
     it('should throw error when response is not ok', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        statusText: 'Not Found',
-      });
+      mockFailedFetch('Not Found');
 
       await expect(
         ingredientsService.findOne('test-token', '123'),

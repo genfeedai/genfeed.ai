@@ -7,27 +7,12 @@ import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
-
-const MODALITY_FILTERS = [
-  { label: 'All', value: 'all' },
-  { label: 'Text', value: 'text' },
-  { label: 'Image', value: 'image' },
-  { label: 'Video', value: 'video' },
-  { label: 'Audio', value: 'audio' },
-] as const;
-
-const STAGE_FILTERS = [
-  { label: 'All', value: 'all' },
-  { label: 'Research', value: 'research' },
-  { label: 'Planning', value: 'planning' },
-  { label: 'Creation', value: 'creation' },
-  { label: 'Review', value: 'review' },
-  { label: 'Publishing', value: 'publishing' },
-  { label: 'Analysis', value: 'analysis' },
-] as const;
-
-type ModalityFilterValue = (typeof MODALITY_FILTERS)[number]['value'];
-type StageFilterValue = (typeof STAGE_FILTERS)[number]['value'];
+import {
+  MODALITY_FILTERS,
+  type ModalityFilterValue,
+  STAGE_FILTERS,
+  type StageFilterValue,
+} from './skill-filter-options';
 
 function getSourceBadgeVariant(
   source: Skill['source'],

@@ -27,6 +27,7 @@ import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
+import { ReplyCandidatePrefilterService } from '@api/services/reply-bot/reply-candidate-prefilter.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -39,6 +40,7 @@ import { forwardRef, Module } from '@nestjs/common';
 
     BotActionExecutorService,
     RateLimitService,
+    ReplyCandidatePrefilterService,
     ReplyGenerationService,
     // Export individual services for testing and direct access
     SocialMonitorService,
@@ -70,6 +72,7 @@ import { forwardRef, Module } from '@nestjs/common';
   providers: [
     BotActionExecutorService,
     RateLimitService,
+    ReplyCandidatePrefilterService,
     ReplyGenerationService,
     // Core services
     SocialMonitorService,

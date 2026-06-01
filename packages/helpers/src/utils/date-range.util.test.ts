@@ -1,4 +1,7 @@
 import {
+  formatApiDate,
+  formatOptionalApiDate,
+  getDateRangeKeys,
   getDateRangeWithDefaults,
   getDefaultDateRange,
 } from '@helpers/utils/date-range.util';
@@ -48,6 +51,50 @@ describe('date-range.util', () => {
       );
 
       expect(diffDays).toBe(6); // 6 days difference = 7 day range (inclusive)
+    });
+  });
+
+  describe('formatApiDate', () => {
+    it('should format string dates for API query params', () => {
+      expect(formatApiDate('2024-01-15T10:30:00Z')).toBe('2024-01-15');
+    });
+
+    it('should format Date objects for API query params', () => {
+      expect(formatApiDate(new Date('2024-02-20T15:45:00Z'))).toBe(
+        '2024-02-20',
+      );
+    });
+  });
+
+  describe('formatOptionalApiDate', () => {
+    it('should return null for empty dates', () => {
+      expect(formatOptionalApiDate(null)).toBeNull();
+      expect(formatOptionalApiDate(undefined)).toBeNull();
+    });
+
+    it('should format provided dates', () => {
+      expect(formatOptionalApiDate(new Date('2024-03-10'))).toBe('2024-03-10');
+    });
+  });
+
+  describe('getDateRangeKeys', () => {
+    it('should return formatted keys for present dates', () => {
+      expect(
+        getDateRangeKeys({
+          endDate: new Date('2024-01-07'),
+          startDate: new Date('2024-01-01'),
+        }),
+      ).toEqual({
+        endDateKey: '2024-01-07',
+        startDateKey: '2024-01-01',
+      });
+    });
+
+    it('should return null keys for missing dates', () => {
+      expect(getDateRangeKeys({ endDate: null, startDate: null })).toEqual({
+        endDateKey: null,
+        startDateKey: null,
+      });
     });
   });
 
