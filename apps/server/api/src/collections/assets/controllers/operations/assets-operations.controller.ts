@@ -66,6 +66,29 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 
+function buildBrandAssetPrompt(
+  brand: BrandDocument,
+  promptPrefix: string,
+): string {
+  const brandInfo = [`${promptPrefix} for ${brand.label}.`];
+
+  if (brand.description) {
+    brandInfo.push(brand.description);
+  }
+
+  if (brand.primaryColor && brand.primaryColor !== '#000000') {
+    brandInfo.push(`Primary color: ${brand.primaryColor}`);
+  }
+
+  if (brand.secondaryColor && brand.secondaryColor !== '#FFFFFF') {
+    brandInfo.push(`Secondary color: ${brand.secondaryColor}`);
+  }
+
+  brandInfo.push('Style: modern, clean, professional');
+
+  return brandInfo.join('. ');
+}
+
 @AutoSwagger()
 @Controller('assets')
 @UseGuards(RolesGuard)
@@ -171,45 +194,15 @@ export class AssetsOperationsController {
     // Build enhanced prompt using brand information
     let enhancedPrompt = text;
     if (brand && category === AssetCategory.BANNER) {
-      const brandInfo: string[] = [];
-      brandInfo.push(
-        `Generate a professional landscape banner (1920x1080) for ${brand.label}.`,
+      enhancedPrompt = buildBrandAssetPrompt(
+        brand,
+        'Generate a professional landscape banner (1920x1080)',
       );
-
-      if (brand.description) {
-        brandInfo.push(brand.description);
-      }
-
-      if (brand.primaryColor && brand.primaryColor !== '#000000') {
-        brandInfo.push(`Primary color: ${brand.primaryColor}`);
-      }
-
-      if (brand.secondaryColor && brand.secondaryColor !== '#FFFFFF') {
-        brandInfo.push(`Secondary color: ${brand.secondaryColor}`);
-      }
-
-      brandInfo.push('Style: modern, clean, professional');
-      enhancedPrompt = `${brandInfo.join('. ')}`;
     } else if (brand && category === AssetCategory.LOGO) {
-      const brandInfo: string[] = [];
-      brandInfo.push(
-        `Generate a professional logo (1024x1024) for ${brand.label}.`,
+      enhancedPrompt = buildBrandAssetPrompt(
+        brand,
+        'Generate a professional logo (1024x1024)',
       );
-
-      if (brand.description) {
-        brandInfo.push(brand.description);
-      }
-
-      if (brand.primaryColor && brand.primaryColor !== '#000000') {
-        brandInfo.push(`Primary color: ${brand.primaryColor}`);
-      }
-
-      if (brand.secondaryColor && brand.secondaryColor !== '#FFFFFF') {
-        brandInfo.push(`Secondary color: ${brand.secondaryColor}`);
-      }
-
-      brandInfo.push('Style: modern, clean, professional');
-      enhancedPrompt = `${brandInfo.join('. ')}`;
     } else if (category === AssetCategory.BANNER) {
       enhancedPrompt = `Generate a professional landscape banner (1920x1080). ${text}`;
     } else if (category === AssetCategory.LOGO) {
