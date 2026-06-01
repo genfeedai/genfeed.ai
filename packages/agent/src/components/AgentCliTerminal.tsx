@@ -84,6 +84,7 @@ export interface AgentCliTerminalController {
   searchQuery: string;
   /** Sessions for the current thread key (multi-tab, T6). */
   sessions: TerminalSessionDto[];
+  persistCwdInput: () => void;
   setCwdInput: (value: string) => void;
   setSearchQuery: (value: string) => void;
   startSession: (kind: TerminalSessionKind) => void;
@@ -251,9 +252,14 @@ function attachTerminalSocketHandlers({
 export function useAgentCliTerminal(
   apiService: AgentApiService,
 ): AgentCliTerminalController {
+  const hostedCloud = isHostedCloud();
   const [activeKind, setActiveKind] = useState<TerminalSessionKind>('shell');
   const [cwdInput, setCwdInputState] = useState(readPersistedTerminalCwd);
-  const [status, setStatus] = useState('connecting to local terminal...');
+  const [status, setStatus] = useState(() =>
+    hostedCloud
+      ? 'terminal unavailable on hosted cloud'
+      : 'connecting to local terminal...',
+  );
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQueryState] = useState('');
 
@@ -405,6 +411,13 @@ export function useAgentCliTerminal(
     startSession(activeKind);
   }, [activeKind, startSession]);
 
+  const persistCwdInput = useCallback(() => {
+    const nextCwd = cwdRef.current.trim();
+    cwdRef.current = nextCwd;
+    setCwdInputState(nextCwd);
+    persistTerminalCwd(nextCwd);
+  }, []);
+
   const toggleSearch = useCallback(() => {
     setIsSearchOpen((prev) => !prev);
   }, []);
@@ -448,8 +461,7 @@ export function useAgentCliTerminal(
 
   // Boot effect — mounts xterm, establishes socket, lists existing sessions
   useEffect(() => {
-    if (isHostedCloud()) {
-      setStatus('terminal unavailable on hosted cloud');
+    if (hostedCloud) {
       return undefined;
     }
 
@@ -643,7 +655,7 @@ export function useAgentCliTerminal(
       sessionIdRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiService]);
+  }, [apiService, hostedCloud]);
 
   // T7: Cmd/Ctrl+F → open search bar
   useEffect(() => {
@@ -669,6 +681,7 @@ export function useAgentCliTerminal(
     cwdInput,
     isSearchOpen,
     killSession,
+    persistCwdInput,
     searchQuery,
     sessions,
     setCwdInput,
@@ -826,6 +839,7 @@ export function AgentCliTerminalControls({
     cwdInput,
     isSearchOpen,
     killSession,
+    persistCwdInput,
     sessions,
     setCwdInput,
     startSession,
@@ -910,7 +924,7 @@ export function AgentCliTerminalControls({
             aria-label="Terminal working directory"
             className="h-6 min-w-0 flex-1 rounded border border-border/50 bg-background/30 px-2 text-[11px] text-foreground/70 outline-none transition-colors placeholder:text-foreground/28 focus:border-emerald-300/50"
             onChange={(event) => setCwdInput(event.target.value)}
-            onBlur={() => submitCwd()}
+            onBlur={persistCwdInput}
             placeholder="$HOME or /path/to/project"
             spellCheck={false}
             value={cwdInput}

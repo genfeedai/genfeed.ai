@@ -1,6 +1,5 @@
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import type { SocialAnalyticsJobData } from '@api/queues/analytics-social/analytics-social-job.interface';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
@@ -12,6 +11,7 @@ import {
   type ProcessorCircuitBreaker,
 } from '@api/shared/utils/circuit-breaker/circuit-breaker.util';
 import { CredentialPlatform } from '@genfeedai/enums';
+import type { SocialAnalyticsJobData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';

@@ -19,7 +19,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "next.config.base.ts",
+    "tailwind.config.base.ts"
   ],
   "main": "./next.config.base.ts",
   "name": "@genfeedai/next-config",

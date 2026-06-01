@@ -1,6 +1,6 @@
 import { ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/ui/lib/utils';
 import type { ComponentType, ReactNode } from 'react';
-import { cn } from '../lib/utils';
 import { Button } from '../primitives/button';
 
 interface MetricCardProps {

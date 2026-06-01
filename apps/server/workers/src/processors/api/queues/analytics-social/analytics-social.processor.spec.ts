@@ -6,11 +6,9 @@ import { MastodonService } from '@api/services/integrations/mastodon/services/ma
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import type { SocialAnalyticsJobData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  AnalyticsSocialProcessor,
-  type SocialAnalyticsJobData,
-} from '@workers/processors/api/queues/analytics-social/analytics-social.processor';
+import { AnalyticsSocialProcessor } from '@workers/processors/api/queues/analytics-social/analytics-social.processor';
 import { Job } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

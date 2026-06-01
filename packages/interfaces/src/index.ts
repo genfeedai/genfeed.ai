@@ -46,6 +46,7 @@ export * from './automation/workflow-builder.interface';
 export * from './batch/batch.interface';
 export * from './batch/manual-review-batch-item.interface';
 export * from './billing/credits.interface';
+export * from './billing/managed-credits.interface';
 export * from './billing/subscription.interface';
 export type {
   ITopbarBalanceSegment,
@@ -162,6 +163,7 @@ export * from './organization/organization-setting.interface';
 export * from './organization/quota-status.interface';
 export * from './providers/providers.interface';
 export * from './publisher/publisher.interface';
+export * from './queues';
 export * from './services/admin.interface';
 export * from './services/bot.interface';
 export * from './services/bot-gateway.interface';

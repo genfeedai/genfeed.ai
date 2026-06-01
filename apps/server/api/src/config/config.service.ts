@@ -41,6 +41,8 @@ interface ApiEnvConfig extends IEnvConfig {
   GF_DEV_ENABLE_SCHEDULERS?: 'true' | 'false';
   GF_DEV_ENABLE_TELEGRAM_POLLING?: 'true' | 'false';
   MARKETPLACE_API_URL?: string;
+  npm_package_description?: string;
+  npm_package_version?: string;
 }
 
 /**

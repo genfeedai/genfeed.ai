@@ -41,6 +41,23 @@ describe('TrackedLinksService', () => {
     expect(prisma.trackedLink.create).not.toHaveBeenCalled();
   });
 
+  it('rejects bracketed IPv6 loopback redirect URLs', async () => {
+    const { prisma, service } = makeService();
+    prisma.trackedLink.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.generateTrackingLink(
+        {
+          platform: 'twitter',
+          url: 'https://[::1]/callback',
+        },
+        'org-1',
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.trackedLink.create).not.toHaveBeenCalled();
+  });
+
   it('normalizes and stores only HTTP(S) redirect URLs', async () => {
     const { prisma, service } = makeService();
     prisma.trackedLink.findFirst.mockResolvedValue(null);

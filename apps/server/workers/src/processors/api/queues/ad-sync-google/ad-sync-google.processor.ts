@@ -1,4 +1,4 @@
-import type { GoogleAdSyncJobData } from '@api/queues/ad-sync-google/ad-sync-google-job.interface';
+import type { GoogleAdSyncJobData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';

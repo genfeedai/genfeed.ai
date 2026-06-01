@@ -1,4 +1,4 @@
-import type { AdInsightsAggregationJobData } from '@api/queues/ad-insights-aggregation/ad-insights-aggregation-job.interface';
+import type { AdInsightsAggregationJobData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';

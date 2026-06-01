@@ -246,6 +246,8 @@ describe('AssetsOperationsController', () => {
         expect.objectContaining({
           height: 1080,
           modelCategory: ModelCategory.IMAGE,
+          prompt:
+            'Generate a professional landscape banner (1920x1080) for Test Brand. Brand description. Primary color: #111111. Secondary color: #222222. Style: modern, clean, professional',
           width: 1920,
         }),
         mockOrgId.toString(),

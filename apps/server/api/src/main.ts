@@ -6,7 +6,6 @@ bootstrap({ app: 'api' });
 
 import { timingSafeEqual } from 'node:crypto';
 import { dirname, join } from 'node:path';
-import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { AppModule } from '@api/app.module';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
@@ -66,8 +65,13 @@ async function main() {
     app.set('trust proxy', 1);
     app.enableShutdownHooks();
 
-    const version = process.env.npm_package_version || '1.0.0';
-    const description = process.env.npm_package_description || 'Genfeed.ai API';
+    const nodeEnv = configService.get('NODE_ENV');
+    const version =
+      configService.get('npm_package_version') ??
+      configService.get('VERSION') ??
+      '1.0.0';
+    const description =
+      configService.get('npm_package_description') ?? 'Genfeed.ai API';
 
     const options = new DocumentBuilder()
       .setTitle('Genfeed.ai API')
@@ -96,7 +100,7 @@ async function main() {
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
       origin: getGenfeedCorsOrigins({
         chromeExtensionId: configService.get('CHROME_EXTENSION_ID'),
-        isDevelopment: configService.get('NODE_ENV') === 'development',
+        isDevelopment: nodeEnv === 'development',
       }),
     });
 
@@ -116,8 +120,7 @@ async function main() {
 
     app.use(express.json({ limit: '50mb' }));
 
-    const limitMultiplier =
-      configService.get('NODE_ENV') === 'production' ? 100 : 1000;
+    const limitMultiplier = nodeEnv === 'production' ? 100 : 1000;
     const limiter = rateLimit({
       limit: 100 * limitMultiplier,
       skip: (req) =>
@@ -149,13 +152,12 @@ async function main() {
             objectSrc: ["'none'"],
             scriptSrc: [
               "'self'",
-              ...(process.env.NODE_ENV === 'production'
+              ...(nodeEnv === 'production'
                 ? []
                 : ["'unsafe-inline'", "'unsafe-eval'"]),
             ],
             styleSrc: ["'self'", "'unsafe-inline'"],
-            upgradeInsecureRequests:
-              process.env.NODE_ENV === 'production' ? [] : null,
+            upgradeInsecureRequests: nodeEnv === 'production' ? [] : null,
           },
         },
         crossOriginEmbedderPolicy: false,
@@ -184,7 +186,7 @@ async function main() {
     const redisCacheInterceptor = app.get(RedisCacheInterceptor);
     const memoryMonitor = app.get(MemoryMonitorService, { strict: false });
     const logApiUsage =
-      configService.get('NODE_ENV') !== 'production' ||
+      nodeEnv !== 'production' ||
       configService.get('API_METRICS_LOGGING') === 'true';
 
     const interceptors = [

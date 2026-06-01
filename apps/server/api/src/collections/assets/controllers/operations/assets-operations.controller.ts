@@ -70,7 +70,7 @@ function buildBrandAssetPrompt(
   brand: BrandDocument,
   promptPrefix: string,
 ): string {
-  const brandInfo = [`${promptPrefix} for ${brand.label}.`];
+  const brandInfo = [`${promptPrefix} for ${brand.label}`];
 
   if (brand.description) {
     brandInfo.push(brand.description);

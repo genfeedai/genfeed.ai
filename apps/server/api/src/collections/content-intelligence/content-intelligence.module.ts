@@ -4,6 +4,7 @@
  * playbook building, and pattern-based content generation.
  */
 
+import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CreatorsController } from '@api/collections/content-intelligence/controllers/creators.controller';
 import { GenerateController } from '@api/collections/content-intelligence/controllers/generate.controller';
@@ -45,6 +46,7 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     forwardRef(() => AgentContextAssemblyModule),
     forwardRef(() => BrandsModule),
+    forwardRef(() => BrandMemoryModule),
     forwardRef(() => ApifyModule),
     forwardRef(() => ContentPerformanceModule),
     forwardRef(() => ContentHarnessModule),

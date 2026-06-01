@@ -24,6 +24,13 @@ const IGNORE_GLOBS = [
   '**/*.test.ts',
 ];
 
+const logger = {
+  error: (message: string) =>
+    console.error(`[CheckNoApiBullmqProcessors] ${message}`),
+  log: (message: string) =>
+    console.log(`[CheckNoApiBullmqProcessors] ${message}`),
+};
+
 type ImportBindings = {
   processorNames: Set<string>;
   workerHostNames: Set<string>;
@@ -168,14 +175,14 @@ function main(): void {
   const violations = files.flatMap(collectViolations);
 
   if (violations.length === 0) {
-    console.log('No API BullMQ processor classes detected.');
+    logger.log('No API BullMQ processor classes detected.');
     return;
   }
 
-  console.error('Disallowed BullMQ processor class(es) detected in API:\n');
+  logger.error('Disallowed BullMQ processor class(es) detected in API:');
 
   for (const violation of violations) {
-    console.error(`- ${violation.file}:${violation.line} ${violation.message}`);
+    logger.error(`${violation.file}:${violation.line} ${violation.message}`);
   }
 
   process.exit(1);
