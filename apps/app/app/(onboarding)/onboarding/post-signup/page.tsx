@@ -31,11 +31,13 @@ function PostSignupPageContent() {
   const [statusMessage, setStatusMessage] = useState(
     'Setting up your workspace...',
   );
-  const checkoutEmail =
-    currentUser?.email || clerkUser?.primaryEmailAddress?.emailAddress || '';
+  const hasClerkUser = Boolean(clerkUser);
+  const clerkPrimaryEmail = clerkUser?.primaryEmailAddress?.emailAddress ?? '';
+  const proactiveLeadId = clerkUser?.publicMetadata?.proactiveLeadId;
+  const checkoutEmail = currentUser?.email || clerkPrimaryEmail || '';
 
   const resolveOnboardingHref = useCallback(async (): Promise<string> => {
-    if (clerkUser?.publicMetadata?.proactiveLeadId) {
+    if (proactiveLeadId) {
       return '/onboarding/proactive';
     }
 
@@ -77,10 +79,10 @@ function PostSignupPageContent() {
       });
 
     return onboardingHref;
-  }, [clerkUser, currentUser, getToken]);
+  }, [currentUser, getToken, proactiveLeadId]);
 
   useEffect(() => {
-    if (isLoading || !currentUser || !clerkUser || calledRef.current) {
+    if (isLoading || !currentUser || !hasClerkUser || calledRef.current) {
       return;
     }
 
@@ -288,9 +290,9 @@ function PostSignupPageContent() {
     };
   }, [
     checkoutEmail,
-    clerkUser,
     currentUser,
     getToken,
+    hasClerkUser,
     isLoading,
     requestedCreditsParam,
     resolveOnboardingHref,

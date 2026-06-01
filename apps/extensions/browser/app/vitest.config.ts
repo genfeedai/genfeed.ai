@@ -23,6 +23,7 @@ export default defineConfig({
       '~style.css': path.resolve(extensionAppDir, './src/style.css'),
       '~utils': path.resolve(extensionAppDir, './src/utils'),
     },
+    extensions: ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],
   },
   test: {
     coverage: {
