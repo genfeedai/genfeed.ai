@@ -11,6 +11,10 @@ import {
 import { Injectable } from '@nestjs/common';
 import Joi from 'joi';
 
+interface FilesEnvConfig extends IEnvConfig {
+  GENFEED_STORAGE_PATH?: string;
+}
+
 /**
  * Files service specific schema - only what this service needs
  */
@@ -24,10 +28,11 @@ const filesSchema = Joi.object({
   GENFEEDAI_API_KEY: Joi.string().optional(),
   // Files-specific
   GENFEEDAI_CDN_URL: Joi.string().uri().required(),
+  GENFEED_STORAGE_PATH: Joi.string().optional().allow(''),
 });
 
 @Injectable()
-export class ConfigService extends BaseConfigService<IEnvConfig> {
+export class ConfigService extends BaseConfigService<FilesEnvConfig> {
   constructor() {
     super(filesSchema, {
       appName: 'files',

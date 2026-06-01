@@ -11,7 +11,6 @@ bootstrap({ app: 'files' });
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import process from 'node:process';
 import { AppModule } from '@files/app.module';
 import { ConfigService } from '@files/config/config.service';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
@@ -59,7 +58,7 @@ async function main() {
     // Serve local files in self-hosted mode (LOCAL + HYBRID)
     if (IS_SELF_HOSTED) {
       const localStorageDir =
-        process.env.GENFEED_STORAGE_PATH ??
+        configService.get('GENFEED_STORAGE_PATH') ??
         path.join(os.homedir(), '.genfeed', 'data', 'files');
 
       if (!fs.existsSync(localStorageDir)) {

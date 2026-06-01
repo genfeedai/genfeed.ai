@@ -1,11 +1,9 @@
+import type { AdInsightsAggregationJobData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Job } from 'bullmq';
 
-import {
-  type AdInsightsAggregationJobData,
-  AdInsightsAggregationProcessor,
-} from './ad-insights-aggregation.processor';
+import { AdInsightsAggregationProcessor } from './ad-insights-aggregation.processor';
 
 const makeJob = (
   data: AdInsightsAggregationJobData,

@@ -162,6 +162,7 @@ export * from './organization/organization-setting.interface';
 export * from './organization/quota-status.interface';
 export * from './providers/providers.interface';
 export * from './publisher/publisher.interface';
+export * from './queues';
 export * from './services/admin.interface';
 export * from './services/bot.interface';
 export * from './services/bot-gateway.interface';
