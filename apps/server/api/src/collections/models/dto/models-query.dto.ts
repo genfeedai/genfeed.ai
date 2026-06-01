@@ -3,7 +3,23 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ModelCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsEnum, IsOptional, ValidateIf } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsIn,
+  IsOptional,
+  ValidateIf,
+} from 'class-validator';
+
+export const MODEL_REGISTRY_STATUSES = [
+  'approved',
+  'discovered',
+  'legacy',
+  'pending',
+  'rejected',
+] as const;
+
+export type ModelRegistryStatus = (typeof MODEL_REGISTRY_STATUSES)[number];
 
 /**
  * Query DTO for filtering and paginating models
@@ -55,4 +71,13 @@ export class ModelsQueryDto extends BaseQueryDto {
   })
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiProperty({
+    description: 'Filter by provider registry review status',
+    enum: MODEL_REGISTRY_STATUSES,
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(MODEL_REGISTRY_STATUSES)
+  registryStatus?: ModelRegistryStatus;
 }

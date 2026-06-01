@@ -18,12 +18,21 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
     handle: vi.fn((error: unknown) => {
       throw error;
     }),
+    forbidden: vi.fn((detail: string) => {
+      throw new HttpException(detail, 403);
+    }),
     notFound: vi.fn((type: string, id: string) => {
       throw new HttpException(`${type} ${id} not found`, 404);
     }),
     validationFailed: vi.fn((errors: unknown[]) => {
       throw new HttpException({ errors }, 400);
     }),
+  },
+}));
+
+vi.mock('@genfeedai/serializers', () => ({
+  ModelSerializer: {
+    serialize: vi.fn((data: unknown) => ({ data })),
   },
 }));
 
@@ -86,6 +95,14 @@ describe('ModelsController', () => {
     query: {},
   } as unknown as RequestWithContext;
 
+  const mockSuperAdminRequest = {
+    ...mockRequest,
+    context: {
+      ...mockRequest.context,
+      isSuperAdmin: true,
+    },
+  } as unknown as RequestWithContext;
+
   const mockRequestNoContext = {
     originalUrl: '/api/models',
     query: {},
@@ -109,9 +126,12 @@ describe('ModelsController', () => {
           useValue: {
             count: vi.fn().mockResolvedValue(1),
             create: vi.fn(),
+            approveRegistryModel: vi.fn(),
             findAll: vi.fn(),
             findOne: vi.fn(),
+            markRegistryModelLegacy: vi.fn(),
             patch: vi.fn(),
+            rejectRegistryModel: vi.fn(),
             remove: vi.fn(),
             updateMany: vi.fn().mockResolvedValue({}),
           },
@@ -227,6 +247,23 @@ describe('ModelsController', () => {
         orderBy: expect.any(Object),
         where: {
           isDeleted: true,
+        },
+      });
+    });
+
+    it('should build query with provider registry status filters', () => {
+      const query: ModelsQueryDto = {
+        registryStatus: 'pending',
+      };
+
+      const result = controller.buildFindAllQuery(mockRegularUser, query);
+
+      expect(result).toMatchObject({
+        where: {
+          isActive: false,
+          isDeleted: false,
+          isDiscovered: true,
+          reviewStatus: 'pending',
         },
       });
     });
@@ -449,6 +486,118 @@ describe('ModelsController', () => {
       ).rejects.toThrow(HttpException);
 
       expect(modelsService.patch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('registry review actions', () => {
+    it('should approve a discovered model for superadmins', async () => {
+      const id = '507f191e810c19729de860ee';
+      const approvedModel = {
+        _id: id,
+        isActive: true,
+        key: 'google/imagen-4',
+        reviewStatus: 'approved',
+      };
+      modelsService.approveRegistryModel.mockResolvedValue(approvedModel);
+
+      const result = await controller.approveRegistryModel(
+        mockSuperAdminRequest,
+        mockSuperAdminUser,
+        id,
+        { label: 'Imagen 4' },
+      );
+
+      expect(modelsService.approveRegistryModel).toHaveBeenCalledWith(
+        id,
+        { label: 'Imagen 4' },
+        mockSuperAdminUser.id,
+      );
+      expect(result).toEqual({ data: approvedModel });
+    });
+
+    it('should reject a discovered model without deleting it', async () => {
+      const id = '507f191e810c19729de860ee';
+      const rejectedModel = {
+        _id: id,
+        isActive: false,
+        key: 'irrelevant/model',
+        reviewStatus: 'rejected',
+      };
+      modelsService.rejectRegistryModel.mockResolvedValue(rejectedModel);
+      modelsService.findOne.mockResolvedValue({
+        _id: id,
+        isDefault: false,
+      });
+
+      await controller.rejectRegistryModel(
+        mockSuperAdminRequest,
+        mockSuperAdminUser,
+        id,
+        {
+          reason: 'Not content-generation relevant',
+        },
+      );
+
+      expect(modelsService.rejectRegistryModel).toHaveBeenCalledWith(id, {
+        reason: 'Not content-generation relevant',
+        reviewedBy: mockSuperAdminUser.id,
+      });
+    });
+
+    it('should mark a registry model as legacy', async () => {
+      const id = '507f191e810c19729de860ee';
+      const legacyModel = {
+        _id: id,
+        isActive: false,
+        isLegacy: true,
+        key: 'google/imagen-3',
+      };
+      modelsService.markRegistryModelLegacy.mockResolvedValue(legacyModel);
+      modelsService.findOne.mockResolvedValue({
+        _id: id,
+        isDefault: false,
+      });
+
+      await controller.markRegistryModelLegacy(
+        mockSuperAdminRequest,
+        mockSuperAdminUser,
+        id,
+        { succeededBy: 'google/imagen-4' },
+      );
+
+      expect(modelsService.markRegistryModelLegacy).toHaveBeenCalledWith(id, {
+        reviewedBy: mockSuperAdminUser.id,
+        succeededBy: 'google/imagen-4',
+      });
+    });
+
+    it('should not disable the only default model through review actions', async () => {
+      const id = '507f191e810c19729de860ee';
+      modelsService.findOne.mockResolvedValue({
+        _id: id,
+        category: 'image',
+        isDefault: true,
+      });
+      modelsService.count.mockResolvedValue(0);
+
+      await expect(
+        controller.markRegistryModelLegacy(
+          mockSuperAdminRequest,
+          mockSuperAdminUser,
+          id,
+          {},
+        ),
+      ).rejects.toThrow(HttpException);
+
+      expect(modelsService.markRegistryModelLegacy).not.toHaveBeenCalled();
+    });
+
+    it('should forbid registry review actions for non-superadmins', async () => {
+      await expect(
+        controller.approveRegistryModel(mockRequest, mockRegularUser, 'id', {}),
+      ).rejects.toThrow(HttpException);
+
+      expect(modelsService.approveRegistryModel).not.toHaveBeenCalled();
     });
   });
 
