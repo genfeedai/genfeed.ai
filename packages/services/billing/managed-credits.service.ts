@@ -1,26 +1,38 @@
+import type {
+  CreateManagedCreditsCheckoutInput,
+  ManagedCreditsCheckoutResult,
+  ManagedCreditsProvisioningResult,
+} from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 
-export interface CreateManagedCreditsCheckoutInput {
-  cancelUrl?: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  quantity?: number;
-  stripePriceId?: string;
-  successUrl?: string;
+export type {
+  CreateManagedCreditsCheckoutInput,
+  ManagedCreditsCheckoutResult,
+  ManagedCreditsProvisioningResult,
+} from '@genfeedai/interfaces';
+
+export class ManagedCreditsApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = 'ManagedCreditsApiError';
+  }
 }
 
-export interface ManagedCreditsCheckoutResult {
-  url: string;
-}
+export function isManagedCreditsTransientError(error: unknown): boolean {
+  if (!(error instanceof ManagedCreditsApiError)) {
+    return false;
+  }
 
-export interface ManagedCreditsProvisioningResult {
-  apiKey: string | null;
-  apiKeyAlreadyExists: boolean;
-  brandId: string;
-  email: string;
-  organizationId: string;
-  userId: string;
+  return (
+    error.status === 408 ||
+    error.status === 409 ||
+    error.status === 425 ||
+    error.status === 429 ||
+    (error.status >= 500 && error.status <= 504)
+  );
 }
 
 interface JsonApiResource<TAttributes> {
@@ -64,6 +76,7 @@ export const ManagedCreditsService = {
 
   async createCheckoutSession(
     input: CreateManagedCreditsCheckoutInput,
+    signal?: AbortSignal,
   ): Promise<ManagedCreditsCheckoutResult> {
     const response = await fetch(
       joinEndpoint(this.apiEndpoint, '/services/stripe/managed/checkout'),
@@ -74,14 +87,16 @@ export const ManagedCreditsService = {
           'Content-Type': 'application/json',
         },
         method: 'POST',
+        signal,
       },
     );
 
     const payload = await parseJson(response);
 
     if (!response.ok) {
-      throw new Error(
+      throw new ManagedCreditsApiError(
         readErrorMessage(payload, 'Failed to create managed credits checkout'),
+        response.status,
       );
     }
 
@@ -89,7 +104,10 @@ export const ManagedCreditsService = {
     const result = document.data?.attributes;
 
     if (!result?.url) {
-      throw new Error('Managed credits checkout did not return a Stripe URL');
+      throw new ManagedCreditsApiError(
+        'Managed credits checkout did not return a Stripe URL',
+        response.status,
+      );
     }
 
     return result;
@@ -116,8 +134,9 @@ export const ManagedCreditsService = {
     const payload = await parseJson(response);
 
     if (!response.ok) {
-      throw new Error(
+      throw new ManagedCreditsApiError(
         readErrorMessage(payload, 'Managed credits checkout result not found'),
+        response.status,
       );
     }
 

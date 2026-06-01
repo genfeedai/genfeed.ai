@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { Code } from '@genfeedai/ui';
 import {
+  isManagedCreditsTransientError,
   type ManagedCreditsProvisioningResult,
   ManagedCreditsService,
 } from '@services/billing/managed-credits.service';
@@ -26,6 +27,7 @@ type CopyTarget = 'api-key' | 'env';
 const CHECKOUT_RESULT_POLL_DELAYS_MS = [1000, 2000, 3000, 5000, 8000];
 
 interface SuccessState {
+  copyError: string | null;
   error: string | null;
   isLoading: boolean;
   result: ManagedCreditsProvisioningResult | null;
@@ -68,6 +70,7 @@ function ManagedCreditsSuccessContentInner() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const [state, setState] = useState<SuccessState>({
+    copyError: null,
     error: null,
     isLoading: true,
     result: null,
@@ -77,6 +80,7 @@ function ManagedCreditsSuccessContentInner() {
   useEffect(() => {
     if (!sessionId) {
       setState({
+        copyError: null,
         error: 'Missing Stripe checkout session.',
         isLoading: false,
         result: null,
@@ -88,7 +92,7 @@ function ManagedCreditsSuccessContentInner() {
     const { signal } = abortController;
     const checkoutSessionId = sessionId;
 
-    setState({ error: null, isLoading: true, result: null });
+    setState({ copyError: null, error: null, isLoading: true, result: null });
 
     async function loadCheckoutResult() {
       let lastError: unknown = null;
@@ -105,7 +109,12 @@ function ManagedCreditsSuccessContentInner() {
           );
 
           if (!signal.aborted) {
-            setState({ error: null, isLoading: false, result });
+            setState({
+              copyError: null,
+              error: null,
+              isLoading: false,
+              result,
+            });
           }
 
           return;
@@ -115,6 +124,10 @@ function ManagedCreditsSuccessContentInner() {
           }
 
           lastError = error;
+
+          if (!isManagedCreditsTransientError(error)) {
+            break;
+          }
 
           const nextDelay = CHECKOUT_RESULT_POLL_DELAYS_MS[attempt];
           if (nextDelay === undefined) {
@@ -127,6 +140,7 @@ function ManagedCreditsSuccessContentInner() {
 
       if (!signal.aborted) {
         setState({
+          copyError: null,
           error: readProvisioningError(lastError),
           isLoading: false,
           result: null,
@@ -142,9 +156,19 @@ function ManagedCreditsSuccessContentInner() {
   }, [sessionId]);
 
   const copyValue = useCallback(async (target: CopyTarget, value: string) => {
-    await navigator.clipboard.writeText(value);
-    setCopiedTarget(target);
-    window.setTimeout(() => setCopiedTarget(null), 2000);
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedTarget(target);
+      setState((previous) => ({ ...previous, copyError: null }));
+      window.setTimeout(() => setCopiedTarget(null), 2000);
+    } catch {
+      setCopiedTarget(null);
+      setState((previous) => ({
+        ...previous,
+        copyError:
+          'Clipboard access failed. Select and copy the value manually.',
+      }));
+    }
   }, []);
 
   const apiKey = state.result?.apiKey ?? '';
@@ -216,6 +240,10 @@ function ManagedCreditsSuccessContentInner() {
                   value={envSnippet}
                   onCopy={() => copyValue('env', envSnippet)}
                 />
+
+                {state.copyError ? (
+                  <p className="text-sm text-amber-500">{state.copyError}</p>
+                ) : null}
               </div>
             ) : null}
           </CardContent>

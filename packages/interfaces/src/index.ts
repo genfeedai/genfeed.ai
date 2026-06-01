@@ -46,6 +46,7 @@ export * from './automation/workflow-builder.interface';
 export * from './batch/batch.interface';
 export * from './batch/manual-review-batch-item.interface';
 export * from './billing/credits.interface';
+export * from './billing/managed-credits.interface';
 export * from './billing/subscription.interface';
 export type {
   ITopbarBalanceSegment,

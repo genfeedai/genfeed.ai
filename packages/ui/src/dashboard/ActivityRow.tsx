@@ -1,5 +1,5 @@
+import { cn } from '@ui/lib/utils';
 import type { ComponentType, ReactNode } from 'react';
-import { cn } from '../lib/utils';
 
 interface ActivityRowProps {
   /** Actor display (avatar + name) */

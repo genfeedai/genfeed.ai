@@ -85,11 +85,25 @@ function PostSignupPageContent() {
     }
 
     calledRef.current = true;
+    const abortController = new AbortController();
+    const { signal } = abortController;
     const fallbackTimeout = window.setTimeout(() => {
-      setShowFallback(true);
+      if (!signal.aborted) {
+        setShowFallback(true);
+      }
     }, 12_000);
 
     const route = async () => {
+      const redirectTo = (href: string) => {
+        if (!signal.aborted) {
+          window.location.href = href;
+        }
+      };
+
+      const redirectToOnboarding = async () => {
+        redirectTo(await resolveOnboardingHref());
+      };
+
       const requestedCredits = parseSelectedCredits(requestedCreditsParam);
       if (requestedCredits) {
         localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedPlan);
@@ -109,17 +123,19 @@ function PostSignupPageContent() {
         localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedPlan);
 
         if (!isEEEnabled()) {
-          window.location.href = await resolveOnboardingHref();
+          await redirectToOnboarding();
           return;
         }
 
-        setStatusMessage('Preparing your plan checkout...');
+        if (!signal.aborted) {
+          setStatusMessage('Preparing your plan checkout...');
+        }
 
         try {
           const onboardingHref = await resolveOnboardingHref();
           const token = await resolveClerkToken(getToken);
           if (!token) {
-            window.location.href = '/onboarding/providers';
+            redirectTo('/onboarding/providers');
             return;
           }
 
@@ -132,10 +148,14 @@ function PostSignupPageContent() {
           });
 
           if (result?.url) {
-            window.location.href = result.url;
+            redirectTo(result.url);
             return;
           }
         } catch (error) {
+          if (signal.aborted) {
+            return;
+          }
+
           logger.error(
             'Failed to create checkout session from post-signup',
             error,
@@ -143,7 +163,7 @@ function PostSignupPageContent() {
         }
 
         // Fallback: if checkout creation failed, go to plan page
-        window.location.href = '/onboarding/providers';
+        redirectTo('/onboarding/providers');
         return;
       }
 
@@ -157,55 +177,66 @@ function PostSignupPageContent() {
 
         if (isSelfHosted()) {
           if (!checkoutEmail) {
-            window.location.href = await resolveOnboardingHref();
+            await redirectToOnboarding();
             return;
           }
 
-          setStatusMessage('Preparing your managed credits checkout...');
+          if (!signal.aborted) {
+            setStatusMessage('Preparing your managed credits checkout...');
+          }
 
           try {
-            const result = await ManagedCreditsService.createCheckoutSession({
-              cancelUrl: `${window.location.origin}/onboarding/providers`,
-              email: checkoutEmail,
-              firstName: currentUser?.firstName || undefined,
-              lastName: currentUser?.lastName || undefined,
-              quantity: credits,
-              successUrl: `${window.location.origin}/managed-credits/success?session_id={CHECKOUT_SESSION_ID}`,
-            });
+            const result = await ManagedCreditsService.createCheckoutSession(
+              {
+                cancelUrl: `${window.location.origin}/onboarding/providers`,
+                email: checkoutEmail,
+                firstName: currentUser?.firstName || undefined,
+                lastName: currentUser?.lastName || undefined,
+                quantity: credits,
+                successUrl: `${window.location.origin}/managed-credits/success?session_id={CHECKOUT_SESSION_ID}`,
+              },
+              signal,
+            );
 
             if (result?.url) {
-              window.location.href = result.url;
+              redirectTo(result.url);
               return;
             }
           } catch (error) {
+            if (signal.aborted) {
+              return;
+            }
+
             logger.error(
               'Failed to create managed credits checkout from post-signup',
               error,
             );
           }
 
-          window.location.href = await resolveOnboardingHref();
+          await redirectToOnboarding();
           return;
         }
 
         if (!isEEEnabled()) {
-          window.location.href = await resolveOnboardingHref();
+          await redirectToOnboarding();
           return;
         }
 
-        setStatusMessage('Preparing your credits checkout...');
+        if (!signal.aborted) {
+          setStatusMessage('Preparing your credits checkout...');
+        }
 
         try {
           const onboardingHref = await resolveOnboardingHref();
           const token = await resolveClerkToken(getToken);
           if (!token) {
-            window.location.href = '/onboarding/providers';
+            redirectTo('/onboarding/providers');
             return;
           }
 
           const paygPriceId = EnvironmentService.plans.payg;
           if (!paygPriceId) {
-            window.location.href = '/onboarding/providers';
+            redirectTo('/onboarding/providers');
             return;
           }
 
@@ -218,30 +249,41 @@ function PostSignupPageContent() {
           });
 
           if (result?.url) {
-            window.location.href = result.url;
+            redirectTo(result.url);
             return;
           }
         } catch (error) {
+          if (signal.aborted) {
+            return;
+          }
+
           logger.error(
             'Failed to create credits checkout from post-signup',
             error,
           );
         }
 
-        window.location.href = '/onboarding/providers';
+        redirectTo('/onboarding/providers');
         return;
       }
 
-      setStatusMessage('Continuing to onboarding...');
-      window.location.href = await resolveOnboardingHref();
+      if (!signal.aborted) {
+        setStatusMessage('Continuing to onboarding...');
+      }
+      await redirectToOnboarding();
     };
 
     route().catch((error) => {
+      if (signal.aborted) {
+        return;
+      }
+
       logger.error('Post-signup routing failed unexpectedly', error);
       window.location.href = '/onboarding/brand';
     });
 
     return () => {
+      abortController.abort();
       window.clearTimeout(fallbackTimeout);
     };
   }, [
