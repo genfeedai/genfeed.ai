@@ -252,9 +252,14 @@ function attachTerminalSocketHandlers({
 export function useAgentCliTerminal(
   apiService: AgentApiService,
 ): AgentCliTerminalController {
+  const hostedCloud = isHostedCloud();
   const [activeKind, setActiveKind] = useState<TerminalSessionKind>('shell');
   const [cwdInput, setCwdInputState] = useState(readPersistedTerminalCwd);
-  const [status, setStatus] = useState('connecting to local terminal...');
+  const [status, setStatus] = useState(() =>
+    hostedCloud
+      ? 'terminal unavailable on hosted cloud'
+      : 'connecting to local terminal...',
+  );
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQueryState] = useState('');
 
@@ -456,8 +461,7 @@ export function useAgentCliTerminal(
 
   // Boot effect — mounts xterm, establishes socket, lists existing sessions
   useEffect(() => {
-    if (isHostedCloud()) {
-      setStatus('terminal unavailable on hosted cloud');
+    if (hostedCloud) {
       return undefined;
     }
 
@@ -651,7 +655,7 @@ export function useAgentCliTerminal(
       sessionIdRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiService]);
+  }, [apiService, hostedCloud]);
 
   // T7: Cmd/Ctrl+F → open search bar
   useEffect(() => {
