@@ -6,6 +6,7 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Slider } from '@ui/primitives/slider';
 import { useCallback } from 'react';
+import { formatPreciseFrameTime } from './editor-time-format.util';
 
 interface EditorPropertiesPanelProps {
   tracks: IEditorTrack[];
@@ -13,14 +14,6 @@ interface EditorPropertiesPanelProps {
   selectedTrackId: string | null;
   selectedClipId: string | null;
   onTrackUpdate: (trackId: string, updates: Partial<IEditorTrack>) => void;
-}
-
-function formatFramesAsTime(frames: number, fps: number): string {
-  const totalSeconds = frames / fps;
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = Math.floor(totalSeconds % 60);
-  const ms = Math.round((totalSeconds % 1) * 1000);
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
 }
 
 function EditorPropertiesPanel({
@@ -130,7 +123,7 @@ function EditorPropertiesPanel({
               Start
             </span>
             <div className="text-sm font-mono bg-background border border-white/[0.08] rounded px-2 py-1">
-              {formatFramesAsTime(selectedClip.startFrame, fps)}
+              {formatPreciseFrameTime(selectedClip.startFrame, fps)}
             </div>
           </div>
           <div>
@@ -138,7 +131,7 @@ function EditorPropertiesPanel({
               Duration
             </span>
             <div className="text-sm font-mono bg-background border border-white/[0.08] rounded px-2 py-1">
-              {formatFramesAsTime(selectedClip.durationFrames, fps)}
+              {formatPreciseFrameTime(selectedClip.durationFrames, fps)}
             </div>
           </div>
         </div>

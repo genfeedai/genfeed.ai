@@ -20,6 +20,7 @@ import {
   StepForward,
 } from 'lucide-react';
 import { HiOutlineFilm, HiOutlineMusicalNote } from 'react-icons/hi2';
+import { formatPlaybackFrameTime } from './editor-time-format.util';
 
 export interface EditorToolbarProps {
   projectName: string;
@@ -43,14 +44,6 @@ export interface EditorToolbarProps {
   onSave: () => void;
   onRender: () => void;
   onBack: () => void;
-}
-
-function formatTime(frames: number, fps: number): string {
-  const totalSeconds = frames / fps;
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = Math.floor(totalSeconds % 60);
-  const centiseconds = Math.floor((totalSeconds % 1) * 100);
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
 }
 
 const FORMAT_OPTIONS = [
@@ -175,7 +168,8 @@ function EditorToolbar({
 
         {/* Time display */}
         <div className="ml-4 font-mono text-sm text-muted-foreground">
-          {formatTime(currentFrame, fps)} / {formatTime(totalFrames, fps)}
+          {formatPlaybackFrameTime(currentFrame, fps)} /{' '}
+          {formatPlaybackFrameTime(totalFrames, fps)}
         </div>
       </div>
 
