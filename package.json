@@ -38,6 +38,9 @@
     "node": ">=24 <25"
   },
   "scripts": {
+    "analyze:claude-patterns": "bun run scripts/daily-pattern-miner.ts",
+    "analyze:claude-patterns:daily": "bun run scripts/analyze-claude-sessions.ts -- --previous-day --out docs/claude-session-analysis-daily.md --json-out docs/claude-session-analysis-daily.json && bun run scripts/daily-pattern-miner.ts -- --input docs/claude-session-analysis-daily.json --out docs/claude-pattern-miner-report.md",
+    "analyze:claude-sessions": "bun run scripts/analyze-claude-sessions.ts",
     "postinstall": "scripts/setup-skills.sh",
     "setup:skills": "scripts/setup-skills.sh",
     "setup:skills:sync": "scripts/setup-skills.sh --sync",
