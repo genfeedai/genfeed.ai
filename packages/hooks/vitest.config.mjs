@@ -163,6 +163,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../utils/$1'),
       },
       {
+        find: /^@genfeedai\/serializers$/,
+        replacement: path.join(SERIALIZERS_SRC, 'index.ts'),
+      },
+      {
+        find: /^@genfeedai\/serializers\/(.*)$/,
+        replacement: path.join(SERIALIZERS_SRC, '$1'),
+      },
+      {
         find: '@ui-constants',
         replacement: path.resolve(__dirname, '../ui/src/components/constants'),
       },

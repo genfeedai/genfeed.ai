@@ -5,7 +5,7 @@ import type { IAgentRun } from '@genfeedai/interfaces';
 import { AgentRunsService } from '@genfeedai/services/ai/agent-runs.service';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 export interface UseActiveAgentRunsReturn {
   activeRuns: IAgentRun[];
@@ -27,9 +27,6 @@ export function useActiveAgentRuns(
 ): UseActiveAgentRunsReturn {
   const { getToken, orgId, userId } = useAuth();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [activeRuns, setActiveRuns] = useState<IAgentRun[]>(
-    options.initialActiveRuns ?? [],
-  );
 
   const shouldRevalidateOnMount =
     options.revalidateOnMount ?? options.initialActiveRuns == null;
@@ -52,11 +49,7 @@ export function useActiveAgentRuns(
   });
 
   useEffect(() => {
-    setActiveRuns(runs);
-  }, [runs]);
-
-  useEffect(() => {
-    if (activeRuns.length > 0) {
+    if (runs.length > 0) {
       intervalRef.current = setInterval(() => {
         void refetch();
       }, 5000);
@@ -68,10 +61,10 @@ export function useActiveAgentRuns(
         intervalRef.current = null;
       }
     };
-  }, [activeRuns.length, refetch]);
+  }, [runs.length, refetch]);
 
   return {
-    activeRuns,
+    activeRuns: runs,
     isLoading,
     refresh: async () => {
       await refetch();

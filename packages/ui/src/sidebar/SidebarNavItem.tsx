@@ -1,4 +1,4 @@
-import { cn } from '@ui/lib/utils';
+import { cn } from '@genfeedai/ui/lib/utils';
 import type { ComponentType, MouseEvent, ReactNode } from 'react';
 
 interface SidebarNavItemProps {
