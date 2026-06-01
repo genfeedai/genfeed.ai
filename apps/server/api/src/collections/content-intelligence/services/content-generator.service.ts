@@ -3,6 +3,7 @@ import { GenerateContentDto } from '@api/collections/content-intelligence/dto/ge
 import { type ContentPatternDocument } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
+import { TopPerformerPromptContextService } from '@api/collections/content-intelligence/services/top-performer-prompt-context.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { ConfigService } from '@api/config/config.service';
@@ -50,6 +51,8 @@ export class ContentGeneratorService {
     private readonly openRouterService: OpenRouterService,
     private readonly patternStoreService: PatternStoreService,
     private readonly playbookBuilderService: PlaybookBuilderService,
+    @Optional()
+    private readonly topPerformerPromptContextService?: TopPerformerPromptContextService,
     @Optional() private readonly brandsService?: BrandsService,
     @Optional() private readonly personasService?: PersonasService,
     @Optional() private readonly contentHarnessService?: ContentHarnessService,
@@ -74,6 +77,7 @@ export class ContentGeneratorService {
         brandGuidance: true,
         brandIdentity: true,
         brandMemory: true,
+        performancePatterns: true,
         ragContext: true,
         recentPosts: true,
       },
@@ -89,9 +93,14 @@ export class ContentGeneratorService {
       organizationId,
       dto,
     );
+    const topPerformerSystemPrompt = await this.buildTopPerformerSystemPrompt(
+      organizationId,
+      dto,
+    );
     const systemPrompt =
-      [baseSystemPrompt, harnessSystemPrompt].filter(Boolean).join('\n\n') ||
-      undefined;
+      [baseSystemPrompt, topPerformerSystemPrompt, harnessSystemPrompt]
+        .filter(Boolean)
+        .join('\n\n') || undefined;
 
     // Get patterns to use
     const patterns = await this.selectPatterns(organizationId, dto);
@@ -236,6 +245,29 @@ export class ContentGeneratorService {
       const formattedBrief = formatHarnessBrief(brief);
       return formattedBrief || undefined;
     } catch {
+      return undefined;
+    }
+  }
+
+  private async buildTopPerformerSystemPrompt(
+    organizationId: string,
+    dto: GenerateContentDto,
+  ): Promise<string | undefined> {
+    if (!this.topPerformerPromptContextService || !dto.brandId) {
+      return undefined;
+    }
+
+    try {
+      return await this.topPerformerPromptContextService.assembleContext({
+        brandId: dto.brandId,
+        organizationId: organizationId.toString(),
+        platform: dto.platform,
+      });
+    } catch (error: unknown) {
+      this.logger.warn(
+        `${this.constructorName}: Top performer context assembly failed`,
+        error,
+      );
       return undefined;
     }
   }
