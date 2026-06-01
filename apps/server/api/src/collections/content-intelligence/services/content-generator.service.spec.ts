@@ -1,6 +1,7 @@
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
+import { TopPerformerPromptContextService } from '@api/collections/content-intelligence/services/top-performer-prompt-context.service';
 import { ConfigService } from '@api/config/config.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
@@ -14,6 +15,7 @@ const PATTERN_ID = 'test-object-id';
 const BASE_DTO = {
   hashtags: undefined,
   platform: 'instagram',
+  brandId: 'brand-123',
   topic: 'AI tools for creators',
   variationsCount: 2,
 };
@@ -48,6 +50,9 @@ describe('ContentGeneratorService', () => {
     incrementUsage: ReturnType<typeof vi.fn>;
   };
   let playbookBuilderService: { findOne: ReturnType<typeof vi.fn> };
+  let topPerformerPromptContextService: {
+    assembleContext: ReturnType<typeof vi.fn>;
+  };
   let mockLogger: {
     log: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
@@ -73,6 +78,9 @@ describe('ContentGeneratorService', () => {
       incrementUsage: vi.fn().mockResolvedValue(undefined),
     };
     playbookBuilderService = { findOne: vi.fn().mockResolvedValue(null) };
+    topPerformerPromptContextService = {
+      assembleContext: vi.fn().mockResolvedValue(undefined),
+    };
     mockLogger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
     const module = await Test.createTestingModule({
@@ -87,6 +95,10 @@ describe('ContentGeneratorService', () => {
         { provide: OpenRouterService, useValue: openRouterService },
         { provide: PatternStoreService, useValue: patternStoreService },
         { provide: PlaybookBuilderService, useValue: playbookBuilderService },
+        {
+          provide: TopPerformerPromptContextService,
+          useValue: topPerformerPromptContextService,
+        },
       ],
     }).compile();
 
@@ -220,6 +232,48 @@ describe('ContentGeneratorService', () => {
           expect.objectContaining({ role: 'system' }),
         ]),
       }),
+    );
+  });
+
+  it('adds scoped top-performer context to the generation system prompt', async () => {
+    topPerformerPromptContextService.assembleContext.mockResolvedValue(
+      '## Historical Performance Context\n- Reuse hook structure like "Contrarian opener".',
+    );
+
+    await service.generateContent(ORG_ID, BASE_DTO as any);
+
+    expect(
+      topPerformerPromptContextService.assembleContext,
+    ).toHaveBeenCalledWith({
+      brandId: 'brand-123',
+      organizationId: ORG_ID,
+      platform: 'instagram',
+    });
+    expect(openRouterService.chatCompletion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            content: expect.stringContaining(
+              '## Historical Performance Context',
+            ),
+            role: 'system',
+          }),
+        ]),
+      }),
+    );
+  });
+
+  it('continues generation when top-performer context is unavailable', async () => {
+    topPerformerPromptContextService.assembleContext.mockRejectedValue(
+      new Error('analytics unavailable'),
+    );
+
+    const results = await service.generateContent(ORG_ID, BASE_DTO as any);
+
+    expect(results).toHaveLength(2);
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Top performer context assembly failed'),
+      expect.any(Error),
     );
   });
 
