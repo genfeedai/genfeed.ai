@@ -5,14 +5,7 @@ import type { IEditorClip, IEditorTrack } from '@genfeedai/interfaces';
 import type { EditorTimelineProps } from '@props/studio/editor-timeline.props';
 import { Button } from '@ui/primitives/button';
 import { useCallback, useRef, useState } from 'react';
-
-function formatTime(frames: number, fps: number): string {
-  const totalSeconds = frames / fps;
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = Math.floor(totalSeconds % 60);
-  const frameNum = Math.floor(frames % fps);
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}:${frameNum.toString().padStart(2, '0')}`;
-}
+import { formatTimelineFrameTime } from './editor-time-format.util';
 
 function TimeRuler({
   totalFrames,
@@ -33,7 +26,7 @@ function TimeRuler({
   for (let frame = 0; frame <= totalFrames; frame += interval) {
     markers.push({
       frame,
-      label: formatTime(frame, fps),
+      label: formatTimelineFrameTime(frame, fps),
       major: frame % (secondFrames * 5) === 0,
     });
   }
@@ -369,7 +362,7 @@ function EditorTimeline({
       <div className="flex sticky top-0 z-20 bg-background">
         <div className="w-48 shrink-0 border-r border-b border-white/[0.08] bg-card px-3 py-1">
           <span className="text-xs text-muted-foreground">
-            {formatTime(currentFrame, fps)}
+            {formatTimelineFrameTime(currentFrame, fps)}
           </span>
         </div>
         <Button
