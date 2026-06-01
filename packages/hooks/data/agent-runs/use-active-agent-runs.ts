@@ -25,7 +25,7 @@ export interface UseActiveAgentRunsOptions {
 export function useActiveAgentRuns(
   options: UseActiveAgentRunsOptions = {},
 ): UseActiveAgentRunsReturn {
-  const { getToken } = useAuth();
+  const { getToken, orgId, userId } = useAuth();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [activeRuns, setActiveRuns] = useState<IAgentRun[]>(
     options.initialActiveRuns ?? [],
@@ -39,7 +39,7 @@ export function useActiveAgentRuns(
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ['active-agent-runs'],
+    queryKey: ['active-agent-runs', userId ?? 'anonymous', orgId ?? 'no-org'],
     queryFn: async () => {
       const token = await resolveClerkToken(getToken);
       if (!token) return [];

@@ -225,7 +225,7 @@ export class TrackedLinksService {
   }
 
   private isBlockedRedirectHost(hostname: string): boolean {
-    const host = hostname.toLowerCase();
+    const host = hostname.toLowerCase().replace(/^\[|\]$/g, '');
 
     if (
       host === 'localhost' ||

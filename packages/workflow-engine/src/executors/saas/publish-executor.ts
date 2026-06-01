@@ -111,7 +111,7 @@ export class PublishExecutor extends BaseExecutor {
       'caption',
       '',
     );
-    const caption = captionFromInput ?? captionFromConfig;
+    const caption = (captionFromInput ?? captionFromConfig).trim();
 
     if (media === undefined && !caption) {
       throw new Error('Missing publish media or caption input');

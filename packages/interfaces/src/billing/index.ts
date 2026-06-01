@@ -1,5 +1,6 @@
 export * from './credits.interface';
 export * from './credits-utils.contract';
+export * from './managed-credits.interface';
 export * from './subscription.interface';
 export * from './subscriptions-service.contract';
 export type {
