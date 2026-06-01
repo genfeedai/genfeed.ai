@@ -16,33 +16,11 @@ import {
 import SkillCatalogCard from './SkillCatalogCard';
 import SkillDetailCard from './SkillDetailCard';
 import SkillsPageHeader from './SkillsPageHeader';
-
-const SOURCE_FILTERS = [
-  { label: 'All', value: 'all' },
-  { label: 'Built-in', value: 'built_in' },
-  { label: 'Imported', value: 'imported' },
-  { label: 'Custom', value: 'custom' },
-] as const;
-
-const MODALITY_FILTERS = [
-  { label: 'All', value: 'all' },
-  { label: 'Text', value: 'text' },
-  { label: 'Image', value: 'image' },
-  { label: 'Video', value: 'video' },
-  { label: 'Audio', value: 'audio' },
-] as const;
-
-const STAGE_FILTERS = [
-  { label: 'All', value: 'all' },
-  { label: 'Research', value: 'research' },
-  { label: 'Planning', value: 'planning' },
-  { label: 'Creation', value: 'creation' },
-  { label: 'Review', value: 'review' },
-  { label: 'Publishing', value: 'publishing' },
-  { label: 'Analysis', value: 'analysis' },
-] as const;
-
-type FilterValue<T extends readonly { value: string }[]> = T[number]['value'];
+import type {
+  ModalityFilterValue,
+  SourceFilterValue,
+  StageFilterValue,
+} from './skill-filter-options';
 
 type SkillDraft = {
   defaultInstructions: string;
@@ -63,12 +41,10 @@ export default function OrchestrationSkillsPage() {
   const { enabledSlugs, toggleSkill } = useBrandEnabledSkills();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [selectedSkillId, setSelectedSkillId] = useState<string>('');
-  const [sourceFilter, setSourceFilter] =
-    useState<FilterValue<typeof SOURCE_FILTERS>>('all');
+  const [sourceFilter, setSourceFilter] = useState<SourceFilterValue>('all');
   const [modalityFilter, setModalityFilter] =
-    useState<FilterValue<typeof MODALITY_FILTERS>>('all');
-  const [stageFilter, setStageFilter] =
-    useState<FilterValue<typeof STAGE_FILTERS>>('all');
+    useState<ModalityFilterValue>('all');
+  const [stageFilter, setStageFilter] = useState<StageFilterValue>('all');
   const [loading, setLoading] = useState(true);
   const [savingSkill, setSavingSkill] = useState(false);
   const [customizing, setCustomizing] = useState(false);

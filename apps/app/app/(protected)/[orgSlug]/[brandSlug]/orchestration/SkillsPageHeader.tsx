@@ -5,15 +5,7 @@ import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { HiOutlineArrowPath, HiOutlineSparkles } from 'react-icons/hi2';
-
-const SOURCE_FILTERS = [
-  { label: 'All', value: 'all' },
-  { label: 'Built-in', value: 'built_in' },
-  { label: 'Imported', value: 'imported' },
-  { label: 'Custom', value: 'custom' },
-] as const;
-
-type SourceFilterValue = (typeof SOURCE_FILTERS)[number]['value'];
+import { SOURCE_FILTERS, type SourceFilterValue } from './skill-filter-options';
 
 type Props = {
   brandLabel: string | undefined;
