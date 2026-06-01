@@ -44,7 +44,19 @@ export interface ReplyBotSchedule {
 }
 
 export interface ReplyBotFilters {
+  excludeAccountIds?: string[];
+  excludeAccounts?: string[];
+  excludeAuthorIds?: string[];
+  excludeAuthors?: string[];
   excludeKeywords?: string[];
+  excludeUrls?: string[];
+  excludedAccountIds?: string[];
+  excludedAccounts?: string[];
+  excludedAuthorIds?: string[];
+  excludedAuthors?: string[];
+  excludedAuthorUsernames?: string[];
+  excludedDomains?: string[];
+  excludedUrls?: string[];
   filters?: string[];
   hashtags?: {
     exclude?: string[];
@@ -57,14 +69,18 @@ export interface ReplyBotFilters {
     include?: string[];
     [key: string]: unknown;
   };
+  maxAgeHours?: number;
+  maxFollowers?: number;
   mediaType?: string;
   minEngagement?: {
     minLikes?: number;
     minReplies?: number;
     minRetweets?: number;
+    minViews?: number;
     [key: string]: unknown;
   };
   minFollowers?: number;
+  minTextLength?: number;
   [key: string]: unknown;
 }
 

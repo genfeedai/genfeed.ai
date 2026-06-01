@@ -46,6 +46,39 @@ export class ReplyBotFiltersDto {
   })
   excludeKeywords?: string[];
 
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    default: [],
+    description: 'Skip candidates from these author usernames',
+    required: false,
+    type: [String],
+  })
+  excludeAuthors?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    default: [],
+    description: 'Skip candidates from these platform author IDs',
+    required: false,
+    type: [String],
+  })
+  excludeAuthorIds?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    default: [],
+    description: 'Skip candidates whose canonical URL contains these values',
+    required: false,
+    type: [String],
+  })
+  excludeUrls?: string[];
+
   @IsNumber()
   @Min(0)
   @IsOptional()
@@ -56,6 +89,36 @@ export class ReplyBotFiltersDto {
     required: false,
   })
   minFollowers?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  @ApiProperty({
+    description: 'Maximum follower count for candidate author',
+    minimum: 0,
+    required: false,
+  })
+  maxFollowers?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  @ApiProperty({
+    description: 'Skip candidates older than this many hours',
+    minimum: 0,
+    required: false,
+  })
+  maxAgeHours?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  @ApiProperty({
+    description: 'Minimum candidate text length before drafting',
+    minimum: 0,
+    required: false,
+  })
+  minTextLength?: number;
 }
 
 export class CreateReplyBotConfigDto {
