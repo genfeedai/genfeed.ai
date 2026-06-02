@@ -26,6 +26,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./formatting/cn": {
+      "types": "./dist/formatting/cn/index.d.ts",
+      "import": "./dist/formatting/cn/index.js",
+      "default": "./dist/formatting/cn/index.js"
     }
   },
   "files": [
@@ -35,6 +40,7 @@
     "src/business/pricing/pricing.helper.ts",
     "src/business/tier-models/tier-models.helper.ts",
     "src/deserializer.helper.ts",
+    "src/formatting/cn",
     "src/model-capability.helper.ts",
     "src/quality-routing.helper.ts",
     "src/serializer.helper.ts",
