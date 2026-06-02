@@ -4,6 +4,7 @@ export * from './brand-completeness.helper';
 export * from './business/pricing/pricing.helper';
 export * from './business/tier-models/tier-models.helper';
 export * from './deserializer.helper';
+export * from './formatting/cn/cn.util';
 export * from './generation-controls.helper';
 export * from './generation-eta.helper';
 export * from './model-capability.helper';
