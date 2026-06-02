@@ -38,10 +38,8 @@ import {
   beehiivSchema,
   facebookSchema,
   fanvueSchema,
-  ghostSchema,
   instagramSchema,
   linkedinSchema,
-  mastodonSchema,
   mediumSchema,
   pinterestSchema,
   redditSchema,
@@ -940,46 +938,6 @@ describe('Config Schemas', () => {
     });
   });
 
-  describe('mastodonSchema', () => {
-    it('should be a non-empty object of Joi schemas', () => {
-      expect(typeof mastodonSchema).toBe('object');
-      const keys = Object.keys(mastodonSchema);
-      expect(keys.length).toBeGreaterThan(0);
-      for (const key of keys) {
-        expect(Joi.isSchema((mastodonSchema as any)[key])).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(mastodonSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
-  });
-
-  describe('ghostSchema', () => {
-    it('should be a non-empty object of Joi schemas', () => {
-      expect(typeof ghostSchema).toBe('object');
-      const keys = Object.keys(ghostSchema);
-      expect(keys.length).toBeGreaterThan(0);
-      for (const key of keys) {
-        expect(Joi.isSchema((ghostSchema as any)[key])).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(ghostSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
-  });
-
   describe('shopifySchema', () => {
     it('should be a non-empty object of Joi schemas', () => {
       expect(typeof shopifySchema).toBe('object');
@@ -1037,6 +995,16 @@ describe('Config Schemas', () => {
       if (error) {
         expect(error.message).toContain('required');
       }
+    });
+
+    // Regression guard for #90: Mastodon and Ghost are instance-/self-host
+    // specific, so their endpoint is resolved per stored credential, not from
+    // a single global env var. These stale config keys were removed and must
+    // not be reintroduced without a live service consumer.
+    it('should not declare unused per-credential default endpoint keys', () => {
+      const keys = Object.keys(allSocialSchema);
+      expect(keys).not.toContain('MASTODON_DEFAULT_INSTANCE_URL');
+      expect(keys).not.toContain('GHOST_DEFAULT_API_URL');
     });
   });
 

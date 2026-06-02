@@ -228,12 +228,6 @@ export interface IEnvConfig {
   WHATSAPP_TWILIO_AUTH_TOKEN?: string;
   WHATSAPP_TWILIO_PHONE_NUMBER?: string;
 
-  // === Mastodon ===
-  MASTODON_DEFAULT_INSTANCE_URL?: string;
-
-  // === Ghost ===
-  GHOST_DEFAULT_API_URL?: string;
-
   // === Shopify ===
   SHOPIFY_CLIENT_ID?: string;
   SHOPIFY_CLIENT_SECRET?: string;
