@@ -72,13 +72,13 @@ export const workflowCommand = new Command('workflow')
             const workflows = flattenCollection<Workflow>(response);
             spinner.stop();
 
-            if (workflows.length === 0) {
-              print(chalk.dim('No workflows found.'));
+            if (options.json) {
+              printJson(workflows);
               return;
             }
 
-            if (options.json) {
-              printJson(workflows);
+            if (workflows.length === 0) {
+              print(chalk.dim('No workflows found.'));
               return;
             }
 
