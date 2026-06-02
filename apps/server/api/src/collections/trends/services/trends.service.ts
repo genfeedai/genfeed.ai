@@ -103,6 +103,54 @@ export class TrendsService {
       topic: 'Clip remix systems',
       viralityScore: 69,
     },
+    {
+      growthRate: 61,
+      mentions: 38_500,
+      metadata: {
+        hashtags: ['#CarouselDesign', '#CreatorStrategy'],
+        sampleContent:
+          'Instagram teams are turning dense strategy notes into swipeable carousel lessons and remixable Reel hooks.',
+        source: 'curated',
+        sourcePreviewState: 'fallback',
+        trendType: 'post',
+        urls: ['https://genfeed.ai/studio'],
+      },
+      platform: 'instagram',
+      topic: 'Carousel-to-Reel content systems',
+      viralityScore: 74,
+    },
+    {
+      growthRate: 64,
+      mentions: 44_200,
+      metadata: {
+        hashtags: ['#TikTokTrends', '#AICreators'],
+        sampleContent:
+          'TikTok creators are testing fast before-and-after demos that show a manual content workflow becoming automated.',
+        source: 'curated',
+        sourcePreviewState: 'fallback',
+        trendType: 'video',
+        urls: ['https://genfeed.ai/workflows'],
+      },
+      platform: 'tiktok',
+      topic: 'Automation before-and-after demos',
+      viralityScore: 76,
+    },
+    {
+      growthRate: 42,
+      mentions: 18_700,
+      metadata: {
+        hashtags: ['#CreatorTools', '#SaaS'],
+        sampleContent:
+          'Reddit discussions are comparing lightweight creator stacks for briefs, assets, scheduling, and analytics.',
+        source: 'curated',
+        sourcePreviewState: 'fallback',
+        trendType: 'discussion',
+        urls: ['https://genfeed.ai/articles'],
+      },
+      platform: 'reddit',
+      topic: 'Lean creator stack comparisons',
+      viralityScore: 63,
+    },
   ] as const;
 
   constructor(

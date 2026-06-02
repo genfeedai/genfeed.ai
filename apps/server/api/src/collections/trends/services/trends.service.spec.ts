@@ -522,6 +522,28 @@ describe('TrendsService', () => {
         ),
       ).toBe(true);
     });
+
+    it.each([
+      'instagram',
+      'linkedin',
+      'reddit',
+      'tiktok',
+      'twitter',
+      'youtube',
+    ])('returns platform-scoped bootstrap content for %s when the corpus is empty', async (platform) => {
+      const result = await service.getTrendContent(undefined, undefined, {
+        limit: 10,
+        platform,
+      });
+
+      expect(result.items.length).toBeGreaterThan(0);
+      expect(result.items.every((item) => item.platform === platform)).toBe(
+        true,
+      );
+      expect(
+        result.items.every((item) => item.sourcePreviewState === 'fallback'),
+      ).toBe(true);
+    });
   });
 
   describe('getTrendsWithAccessControl', () => {
@@ -811,6 +833,29 @@ describe('TrendsService', () => {
       expect(result.length).toBeGreaterThan(0);
       expect(result[0]?.id).toMatch(/^bootstrap-trend-/);
       expect(fetchAndCacheTrendsSpy).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      'instagram',
+      'linkedin',
+      'reddit',
+      'tiktok',
+      'twitter',
+      'youtube',
+    ])('should return platform-scoped bootstrap trends for %s without live fetch', async (platform) => {
+      prisma.trend.findMany.mockResolvedValue([]);
+
+      const result = await service.getTrends(
+        mockOrganizationId,
+        mockBrandId,
+        platform,
+        {
+          allowFetchIfMissing: false,
+        },
+      );
+
+      expect(result.length).toBeGreaterThan(0);
+      expect(result.every((trend) => trend.platform === platform)).toBe(true);
     });
 
     it('should fall back to global cached trends when tenant-scoped trends are missing', async () => {
