@@ -35,6 +35,34 @@ async function apiPost<T>(
   return response.json() as Promise<T>;
 }
 
+function validationError(message: string) {
+  return {
+    errors: [{ message, nodeId: '', severity: 'error' as const }],
+    isValid: false,
+    warnings: [],
+  };
+}
+
+async function ensureSavedWorkflowId(): Promise<
+  { ok: true; workflowId: string } | { message: string; ok: false }
+> {
+  const workflowStore = useWorkflowStore.getState();
+
+  if (workflowStore.isDirty || !workflowStore.workflowId) {
+    try {
+      await workflowStore.saveWorkflow();
+    } catch {
+      return { message: 'Failed to save workflow', ok: false };
+    }
+  }
+
+  if (!workflowStore.workflowId) {
+    return { message: 'Workflow must be saved first', ok: false };
+  }
+
+  return { ok: true, workflowId: workflowStore.workflowId };
+}
+
 export interface ExecutionSlice {
   executeWorkflow: () => Promise<void>;
   executeSelectedNodes: () => Promise<void>;
@@ -154,44 +182,12 @@ export const createExecutionSlice: StateCreator<
     set({ validationErrors: null });
     resetExecution();
 
-    if (workflowStore.isDirty || !workflowStore.workflowId) {
-      try {
-        await workflowStore.saveWorkflow();
-      } catch {
-        set({
-          validationErrors: {
-            errors: [
-              {
-                message: 'Failed to save workflow',
-                nodeId: '',
-                severity: 'error',
-              },
-            ],
-            isValid: false,
-            warnings: [],
-          },
-        });
-        return;
-      }
-    }
-
-    const workflowId = workflowStore.workflowId;
-    if (!workflowId) {
-      set({
-        validationErrors: {
-          errors: [
-            {
-              message: 'Workflow must be saved first',
-              nodeId: '',
-              severity: 'error',
-            },
-          ],
-          isValid: false,
-          warnings: [],
-        },
-      });
+    const workflowReady = await ensureSavedWorkflowId();
+    if (!workflowReady.ok) {
+      set({ validationErrors: validationError(workflowReady.message) });
       return;
     }
+    const { workflowId } = workflowReady;
 
     // Track which nodes are being executed for edge highlighting
     set({ executingNodeIds: selectedNodeIds, isRunning: true });
@@ -263,44 +259,12 @@ export const createExecutionSlice: StateCreator<
       useUIStore.getState().setShowDebugPanel(true);
     }
 
-    if (workflowStore.isDirty || !workflowStore.workflowId) {
-      try {
-        await workflowStore.saveWorkflow();
-      } catch {
-        set({
-          validationErrors: {
-            errors: [
-              {
-                message: 'Failed to save workflow',
-                nodeId: '',
-                severity: 'error',
-              },
-            ],
-            isValid: false,
-            warnings: [],
-          },
-        });
-        return;
-      }
-    }
-
-    const workflowId = workflowStore.workflowId;
-    if (!workflowId) {
-      set({
-        validationErrors: {
-          errors: [
-            {
-              message: 'Workflow must be saved first',
-              nodeId: '',
-              severity: 'error',
-            },
-          ],
-          isValid: false,
-          warnings: [],
-        },
-      });
+    const workflowReady = await ensureSavedWorkflowId();
+    if (!workflowReady.ok) {
+      set({ validationErrors: validationError(workflowReady.message) });
       return;
     }
+    const { workflowId } = workflowReady;
 
     set({ isRunning: true });
 
