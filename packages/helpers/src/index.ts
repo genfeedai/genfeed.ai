@@ -1,4 +1,5 @@
 export * from './aspect-ratio.helper';
+export * from './async/sleep.helper';
 export * from './auth/clerk.helper';
 export * from './brand-completeness.helper';
 export * from './business/pricing/pricing.helper';

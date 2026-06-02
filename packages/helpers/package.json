@@ -31,11 +31,18 @@
       "types": "./dist/formatting/cn/index.d.ts",
       "import": "./dist/formatting/cn/index.js",
       "default": "./dist/formatting/cn/index.js"
+    },
+    "./async/sleep": {
+      "types": "./dist/async/sleep/index.d.ts",
+      "import": "./dist/async/sleep/index.js",
+      "default": "./dist/async/sleep/index.js"
     }
   },
   "files": [
     "dist",
     "src/index.ts",
+    "src/async/sleep",
+    "src/async/sleep.helper.ts",
     "src/aspect-ratio.helper.ts",
     "src/business/pricing/pricing.helper.ts",
     "src/business/tier-models/tier-models.helper.ts",
