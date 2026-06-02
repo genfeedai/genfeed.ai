@@ -16,6 +16,7 @@ import type {
   UpdateAdSetParams,
   UpdateCampaignParams,
 } from '@api/services/integrations/meta-ads/interfaces/meta-ads.interface';
+import { getIntegrationProviderDefinition } from '@genfeedai/integrations';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
@@ -25,7 +26,9 @@ import { firstValueFrom } from 'rxjs';
 @Injectable()
 export class MetaAdsService {
   private readonly API_VERSION = 'v24.0';
-  private readonly BASE_URL = 'https://graph.facebook.com';
+  private readonly provider = getIntegrationProviderDefinition('meta_ads');
+  private readonly BASE_URL =
+    this.provider?.endpoints.apiBaseUrl ?? 'https://graph.facebook.com';
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(

@@ -60,6 +60,25 @@ describe('MetaAdsService', () => {
     expect(service).toBeDefined();
   });
 
+  it('should use Meta Ads provider catalog metadata for Graph API URL', async () => {
+    httpService.get.mockReturnValue(
+      of({
+        config: {} as never,
+        data: { data: [] },
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+      }),
+    );
+
+    await service.getAdAccounts(mockAccessToken);
+
+    expect(httpService.get).toHaveBeenCalledWith(
+      'https://graph.facebook.com/v24.0/me/adaccounts',
+      expect.any(Object),
+    );
+  });
+
   describe('getAdAccounts', () => {
     it('should return mapped ad accounts', async () => {
       const apiResponse = {
