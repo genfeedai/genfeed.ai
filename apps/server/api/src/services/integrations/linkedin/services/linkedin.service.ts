@@ -157,7 +157,7 @@ export class LinkedInService {
     const options = {
       headers: init?.headers as Record<string, string> | undefined,
       params,
-      signal: init?.signal,
+      ...(init?.signal ? { signal: init.signal } : {}),
       timeout: 30000,
     };
     const method = init?.method ?? 'GET';
