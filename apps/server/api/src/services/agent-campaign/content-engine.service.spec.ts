@@ -2,6 +2,7 @@ import { AnalyticsMetric } from '@genfeedai/enums';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ContentEngineService } from './content-engine.service';
+import { ContentRotationService } from './content-rotation.service';
 
 describe('ContentEngineService', () => {
   const campaignId = 'test-object-id';
@@ -61,6 +62,7 @@ describe('ContentEngineService', () => {
     };
     const agentRunsService = {
       create: vi.fn(),
+      findRecentByOrganization: vi.fn(),
       mergeMetadata: vi.fn(),
       patch: vi.fn(),
     };
@@ -103,6 +105,7 @@ describe('ContentEngineService', () => {
         agentStrategiesService as never,
         agentGoalsService as never,
         agentRunsService as never,
+        new ContentRotationService(),
         agentRunQueueService as never,
         analyticsService as never,
         agentMemoryCaptureService as never,
@@ -240,6 +243,7 @@ describe('ContentEngineService', () => {
       _id: runId,
       metadata: { existing: true },
     });
+    agentRunsService.findRecentByOrganization.mockResolvedValue([]);
     agentRunsService.mergeMetadata.mockResolvedValue(undefined);
     agentRunsService.patch.mockResolvedValue(undefined);
     agentRunQueueService.queueRun.mockResolvedValue(undefined);
@@ -284,6 +288,107 @@ describe('ContentEngineService', () => {
         metadata: expect.objectContaining({
           campaignId,
           orchestrationSummary: expect.stringContaining('specialist run'),
+        }),
+      }),
+    );
+  });
+
+  it('runOrchestrationCycle favors the underrepresented weighted rotation target', async () => {
+    const {
+      agentCampaignsService,
+      agentGoalsService,
+      agentMemoryCaptureService,
+      agentRunQueueService,
+      agentRunsService,
+      agentStrategiesService,
+      analyticsService,
+      service,
+    } = createService();
+    const launchStrategy = createStrategy({
+      _id: 'launch-strategy',
+      label: 'Launch specialist',
+      platforms: ['linkedin'],
+      topics: ['launch'],
+    });
+    const educationStrategy = createStrategy({
+      _id: 'education-strategy',
+      label: 'Education specialist',
+      platforms: ['linkedin'],
+      topics: ['education'],
+    });
+    const campaign = createCampaign({
+      agents: [launchStrategy._id, educationStrategy._id],
+      contentRotation: {
+        enabled: true,
+        targets: [
+          { key: 'launch', topic: 'launch', weight: 60 },
+          { key: 'education', topic: 'education', weight: 40 },
+        ],
+      },
+    });
+
+    agentCampaignsService.findOne.mockResolvedValue(campaign);
+    agentCampaignsService.patch.mockResolvedValue(undefined);
+    agentStrategiesService.findOneById.mockImplementation((strategyId) =>
+      Promise.resolve(
+        strategyId === 'launch-strategy' ? launchStrategy : educationStrategy,
+      ),
+    );
+    agentGoalsService.getGoalSummary.mockResolvedValue('Increase engagement');
+    analyticsService.getOverview.mockResolvedValue({
+      avgEngagementRate: 7.2,
+      totalPosts: 4,
+      totalViews: 3200,
+    });
+    agentRunsService.findRecentByOrganization.mockResolvedValue([
+      {
+        _id: 'run-1',
+        metadata: { campaignId, contentRotationTargetKey: 'launch' },
+      },
+      {
+        _id: 'run-2',
+        metadata: { campaignId, contentRotationTargetKey: 'launch' },
+      },
+      {
+        _id: 'run-3',
+        metadata: { campaignId, contentRotationTargetKey: 'education' },
+      },
+    ]);
+    agentRunsService.create.mockResolvedValue({
+      _id: 'education-run',
+      metadata: {},
+    });
+    agentRunsService.mergeMetadata.mockResolvedValue(undefined);
+    agentRunsService.patch.mockResolvedValue(undefined);
+    agentRunQueueService.queueRun.mockResolvedValue(undefined);
+    agentMemoryCaptureService.capture.mockResolvedValue({
+      memory: { _id: 'test-object-id' },
+      wroteBrandInsight: false,
+      wroteContextMemory: true,
+    });
+
+    const result = await service.runOrchestrationCycle(
+      campaignId,
+      organizationId,
+    );
+
+    expect(result.dispatchCount).toBe(1);
+    expect(result.dispatchedRuns[0]).toMatchObject({
+      strategyId: 'education-strategy',
+    });
+    expect(result.summary).toContain('Weighted rotation: selected education');
+    expect(agentRunQueueService.queueRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runId: 'education-run',
+        strategyId: 'education-strategy',
+      }),
+    );
+    expect(agentRunsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          campaignId,
+          contentRotationTargetKey: 'education',
+          contentRotationTopic: 'education',
         }),
       }),
     );
@@ -542,6 +647,7 @@ describe('ContentEngineService', () => {
       { findOneById: vi.fn() } as never,
       agentGoalsService as never,
       agentRunsService as never,
+      new ContentRotationService(),
       agentRunQueueService as never,
       analyticsService as never,
       agentMemoryCaptureService as never,
