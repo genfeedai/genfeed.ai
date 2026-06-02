@@ -212,7 +212,10 @@ export class IntegrationHttpClient {
             },
           );
           await this.sleep(delayMs);
+          continue;
         }
+
+        throw error;
       } finally {
         if (timeout) {
           clearTimeout(timeout);

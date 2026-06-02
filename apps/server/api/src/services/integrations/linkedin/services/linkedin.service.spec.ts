@@ -162,7 +162,10 @@ describe('LinkedInService', () => {
       });
       expect(mockHttpService.get).toHaveBeenCalledWith(
         'https://api.linkedin.com/v2/userinfo',
-        { headers: { Authorization: 'Bearer access-token' } },
+        expect.objectContaining({
+          headers: { Authorization: 'Bearer access-token' },
+          timeout: 30000,
+        }),
       );
     });
 
@@ -247,6 +250,68 @@ describe('LinkedInService', () => {
       expect(mockCredentialsService.patch).toHaveBeenCalledWith(credId, {
         isConnected: false,
       });
+    });
+  });
+
+  describe('createTextPost', () => {
+    it('publishes text posts through the shared integration HTTP client transport', async () => {
+      mockCredentialsService.findOne.mockResolvedValue({
+        _id: 'credential-id',
+        accessToken: 'encrypted-access-token',
+        refreshToken: null,
+      });
+      mockHttpService.get.mockReturnValue(
+        of({
+          data: {
+            email: 'john@example.com',
+            family_name: 'Doe',
+            given_name: 'John',
+            sub: 'linkedin-user-123',
+          },
+          status: 200,
+        }),
+      );
+      mockHttpService.post.mockReturnValue(
+        of({
+          data: {
+            id: 'urn:li:activity:123',
+          },
+          status: 200,
+        }),
+      );
+
+      const result = await service.createTextPost(
+        'org-id',
+        'brand-id',
+        'Hello from Genfeed',
+      );
+
+      expect(result).toEqual({ id: 'urn:li:activity:123' });
+      expect(mockHttpService.post).toHaveBeenCalledWith(
+        'https://api.linkedin.com/v2/ugcPosts',
+        JSON.stringify({
+          author: 'urn:li:person:linkedin-user-123',
+          lifecycleState: 'PUBLISHED',
+          specificContent: {
+            'com.linkedin.ugc.ShareContent': {
+              shareCommentary: {
+                text: 'Hello from Genfeed',
+              },
+              shareMediaCategory: 'NONE',
+            },
+          },
+          visibility: {
+            'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
+          },
+        }),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer encrypted-access-token',
+            'content-type': 'application/json',
+          }),
+          timeout: 30000,
+        }),
+      );
     });
   });
 

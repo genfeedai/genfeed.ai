@@ -16,7 +16,10 @@ import type {
   UpdateAdSetParams,
   UpdateCampaignParams,
 } from '@api/services/integrations/meta-ads/interfaces/meta-ads.interface';
-import { getIntegrationProviderDefinition } from '@genfeedai/integrations';
+import {
+  getIntegrationProviderDefinition,
+  IntegrationHttpClient,
+} from '@genfeedai/integrations';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
@@ -30,15 +33,84 @@ export class MetaAdsService {
   private readonly BASE_URL =
     this.provider?.endpoints.apiBaseUrl ?? 'https://graph.facebook.com';
   private readonly constructorName: string = String(this.constructor.name);
+  private readonly integrationHttpClient: IntegrationHttpClient;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
-  ) {}
+  ) {
+    this.integrationHttpClient = new IntegrationHttpClient({
+      fetch: (input, init) => this.fetchViaHttpService(input, init),
+      logger: this.loggerService,
+    });
+  }
 
   private getApiUrl(path: string): string {
     return `${this.BASE_URL}/${this.API_VERSION}/${path}`;
+  }
+
+  private toHttpServiceParams(
+    searchParams: URLSearchParams,
+  ): Record<string, string | number> {
+    return Object.fromEntries(
+      [...searchParams.entries()].map(([key, value]) => {
+        const numericValue = Number(value);
+        return [
+          key,
+          value.trim() !== '' && Number.isFinite(numericValue)
+            ? numericValue
+            : value,
+        ];
+      }),
+    );
+  }
+
+  private async fetchViaHttpService(
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ): Promise<Response> {
+    const parsedUrl = new URL(String(input));
+    const url = `${parsedUrl.origin}${parsedUrl.pathname}`;
+    const params = this.toHttpServiceParams(parsedUrl.searchParams);
+    const options = {
+      headers: init?.headers as Record<string, string> | undefined,
+      params,
+      signal: init?.signal,
+      timeout: 30000,
+    };
+    const method = init?.method ?? 'GET';
+    const response = await firstValueFrom(
+      method === 'POST'
+        ? this.httpService.post(url, init?.body ?? null, options)
+        : method === 'DELETE'
+          ? this.httpService.delete(url, options)
+          : this.httpService.get(url, options),
+    );
+
+    return new Response(JSON.stringify(response.data), {
+      headers: { 'content-type': 'application/json' },
+      status: response.status ?? 200,
+    });
+  }
+
+  private buildIntegrationQuery(
+    accessToken: string,
+    params: Record<string, unknown> = {},
+  ): Record<string, string | number | boolean | undefined> {
+    return Object.fromEntries(
+      Object.entries({ access_token: accessToken, ...params }).map(
+        ([key, value]) => [
+          key,
+          typeof value === 'string' ||
+          typeof value === 'number' ||
+          typeof value === 'boolean' ||
+          value === undefined
+            ? value
+            : JSON.stringify(value),
+        ],
+      ),
+    );
   }
 
   private async makeRequest<T>(
@@ -47,13 +119,12 @@ export class MetaAdsService {
     params: Record<string, unknown> = {},
   ): Promise<T> {
     const url = this.getApiUrl(path);
-    const response = await firstValueFrom(
-      this.httpService.get<T>(url, {
-        params: { access_token: accessToken, ...params },
-        timeout: 30000,
-      }),
-    );
-    return response.data;
+    return await this.integrationHttpClient.request<T>({
+      provider: this.provider,
+      query: this.buildIntegrationQuery(accessToken, params),
+      timeoutMs: 30000,
+      url,
+    });
   }
 
   async getAdAccounts(accessToken: string): Promise<MetaAdAccount[]> {
@@ -338,13 +409,13 @@ export class MetaAdsService {
     data: Record<string, unknown>,
   ): Promise<T> {
     const url = this.getApiUrl(path);
-    const response = await firstValueFrom(
-      this.httpService.post<T>(url, null, {
-        params: { access_token: accessToken, ...data },
-        timeout: 30000,
-      }),
-    );
-    return response.data;
+    return await this.integrationHttpClient.request<T>({
+      method: 'POST',
+      provider: this.provider,
+      query: this.buildIntegrationQuery(accessToken, data),
+      timeoutMs: 30000,
+      url,
+    });
   }
 
   private async makeDeleteRequest<T>(
@@ -352,13 +423,13 @@ export class MetaAdsService {
     path: string,
   ): Promise<T> {
     const url = this.getApiUrl(path);
-    const response = await firstValueFrom(
-      this.httpService.delete<T>(url, {
-        params: { access_token: accessToken },
-        timeout: 30000,
-      }),
-    );
-    return response.data;
+    return await this.integrationHttpClient.request<T>({
+      method: 'DELETE',
+      provider: this.provider,
+      query: this.buildIntegrationQuery(accessToken),
+      timeoutMs: 30000,
+      url,
+    });
   }
 
   private buildTargetingSpec(targeting: MetaAdSetTargeting): string {
