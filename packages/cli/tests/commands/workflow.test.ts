@@ -63,6 +63,19 @@ describe('workflow command', () => {
     expect(mockPost).not.toHaveBeenCalled();
   });
 
+  it('rejects malformed --inputs JSON with a stable CLI error', async () => {
+    await expect(
+      workflowCommand.parseAsync(['run', 'workflow-1', '--inputs', '{bad'], { from: 'user' })
+    ).rejects.toThrow(GenfeedError);
+
+    expect(mockHandleError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: '--inputs must be a JSON object',
+      })
+    );
+    expect(mockPost).not.toHaveBeenCalled();
+  });
+
   it('posts object inputs for workflow execution', async () => {
     await workflowCommand.parseAsync(
       ['run', 'workflow-1', '--inputs', '{"topic":"launch"}', '--json'],
