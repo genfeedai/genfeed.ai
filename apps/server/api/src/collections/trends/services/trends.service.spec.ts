@@ -504,9 +504,48 @@ describe('TrendsService', () => {
 
       expect(result.items).toEqual([]);
     });
+
+    it('returns bootstrap content when the trend corpus is empty', async () => {
+      const result = await service.getTrendContent(undefined, undefined, {
+        limit: 10,
+      });
+
+      expect(result.items.length).toBeGreaterThan(0);
+      expect(result.totalTrends).toBeGreaterThan(0);
+      expect(result.items[0]).toMatchObject({
+        requiresAuth: false,
+        sourcePreviewState: 'fallback',
+      });
+      expect(
+        result.items.some((item) =>
+          item.trendId.startsWith('bootstrap-trend-'),
+        ),
+      ).toBe(true);
+    });
   });
 
   describe('getTrendsWithAccessControl', () => {
+    it('preserves the last-good dataset before using bootstrap trends', async () => {
+      prisma.trend.findMany.mockResolvedValue([
+        makePrismaTrendDoc({
+          expiresAt: new Date('2026-01-01T00:00:00.000Z').toISOString(),
+          isCurrent: false,
+          platform: 'twitter',
+          topic: '#LastGood',
+          viralityScore: 88,
+        }),
+      ]);
+
+      const result = await service.getTrendsWithAccessControl(
+        undefined,
+        undefined,
+        'twitter',
+      );
+
+      expect(result.trends).toHaveLength(1);
+      expect(result.trends[0]?.topic).toBe('#LastGood');
+    });
+
     it('applies brand-scoped preferences when the active brand has its own record', async () => {
       const trendPreferencesService = (
         service as unknown as {
@@ -755,7 +794,7 @@ describe('TrendsService', () => {
       expect(result[0].platform).toBe('tiktok');
     });
 
-    it('should return empty without live fetch when cache is missing and fetching is disabled', async () => {
+    it('should return bootstrap trends without live fetch when cache is missing and fetching is disabled', async () => {
       prisma.trend.findMany.mockResolvedValue([]);
 
       const fetchAndCacheTrendsSpy = vi.spyOn(service, 'fetchAndCacheTrends');
@@ -769,7 +808,8 @@ describe('TrendsService', () => {
         },
       );
 
-      expect(result).toEqual([]);
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]?.id).toMatch(/^bootstrap-trend-/);
       expect(fetchAndCacheTrendsSpy).not.toHaveBeenCalled();
     });
 
