@@ -54,6 +54,104 @@ export class TrendsService {
     'twitter',
     'youtube',
   ]);
+  private readonly BOOTSTRAP_TRENDS = [
+    {
+      growthRate: 68,
+      mentions: 42_000,
+      metadata: {
+        hashtags: ['#AIAgents', '#WorkflowAutomation'],
+        sampleContent:
+          'Creators are showing how AI agents turn recurring workflows into reusable content systems.',
+        source: 'curated',
+        sourcePreviewState: 'fallback',
+        trendType: 'topic',
+        urls: ['https://genfeed.ai/articles'],
+      },
+      platform: 'twitter',
+      topic: 'AI agent workflow demos',
+      viralityScore: 78,
+    },
+    {
+      growthRate: 55,
+      mentions: 31_000,
+      metadata: {
+        hashtags: ['#CreatorOps', '#ContentSystems'],
+        sampleContent:
+          'Teams are packaging trend research, briefs, reviews, and publishing into repeatable creator ops loops.',
+        source: 'curated',
+        sourcePreviewState: 'fallback',
+        trendType: 'topic',
+        urls: ['https://genfeed.ai/workflows'],
+      },
+      platform: 'linkedin',
+      topic: 'Creator ops playbooks',
+      viralityScore: 72,
+    },
+    {
+      growthRate: 49,
+      mentions: 27_500,
+      metadata: {
+        hashtags: ['#VideoRepurposing', '#ShortFormVideo'],
+        sampleContent:
+          'Short-form creators are remixing long-form clips into hooks, captions, and platform-native edits.',
+        source: 'curated',
+        sourcePreviewState: 'fallback',
+        trendType: 'video',
+        urls: ['https://genfeed.ai/studio'],
+      },
+      platform: 'youtube',
+      topic: 'Clip remix systems',
+      viralityScore: 69,
+    },
+    {
+      growthRate: 61,
+      mentions: 38_500,
+      metadata: {
+        hashtags: ['#CarouselDesign', '#CreatorStrategy'],
+        sampleContent:
+          'Instagram teams are turning dense strategy notes into swipeable carousel lessons and remixable Reel hooks.',
+        source: 'curated',
+        sourcePreviewState: 'fallback',
+        trendType: 'post',
+        urls: ['https://genfeed.ai/studio'],
+      },
+      platform: 'instagram',
+      topic: 'Carousel-to-Reel content systems',
+      viralityScore: 74,
+    },
+    {
+      growthRate: 64,
+      mentions: 44_200,
+      metadata: {
+        hashtags: ['#TikTokTrends', '#AICreators'],
+        sampleContent:
+          'TikTok creators are testing fast before-and-after demos that show a manual content workflow becoming automated.',
+        source: 'curated',
+        sourcePreviewState: 'fallback',
+        trendType: 'video',
+        urls: ['https://genfeed.ai/workflows'],
+      },
+      platform: 'tiktok',
+      topic: 'Automation before-and-after demos',
+      viralityScore: 76,
+    },
+    {
+      growthRate: 42,
+      mentions: 18_700,
+      metadata: {
+        hashtags: ['#CreatorTools', '#SaaS'],
+        sampleContent:
+          'Reddit discussions are comparing lightweight creator stacks for briefs, assets, scheduling, and analytics.',
+        source: 'curated',
+        sourcePreviewState: 'fallback',
+        trendType: 'discussion',
+        urls: ['https://genfeed.ai/articles'],
+      },
+      platform: 'reddit',
+      topic: 'Lean creator stack comparisons',
+      viralityScore: 63,
+    },
+  ] as const;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -213,16 +311,64 @@ export class TrendsService {
       }
     }
 
+    const lastGoodTrends = await this.findLastGoodTrends({
+      brandId: brandId ?? null,
+      organizationId: organizationId ?? null,
+      platform,
+    });
+    if (lastGoodTrends.length > 0) {
+      this.loggerService.log(
+        'No active trends found, falling back to last-good trend dataset',
+      );
+      return lastGoodTrends;
+    }
+
+    if (organizationId || brandId) {
+      const globalLastGoodTrends = await this.findLastGoodTrends({
+        brandId: null,
+        organizationId: null,
+        platform,
+      });
+      if (globalLastGoodTrends.length > 0) {
+        this.loggerService.log(
+          'No tenant-scoped last-good trends found, falling back to global last-good trend dataset',
+        );
+        return globalLastGoodTrends;
+      }
+    }
+
     if (options.allowFetchIfMissing === false) {
       this.loggerService.log(
-        'No cached trends found, returning empty result without live fetch',
+        'No cached trends found, returning bootstrap trend fallback without live fetch',
       );
-      return [];
+      return this.getBootstrapTrends(platform);
     }
 
     // No cached trends, fetch fresh
     this.loggerService.log('No cached trends found, fetching fresh data');
-    return await this.fetchAndCacheTrends(organizationId, brandId);
+    const fetchedTrends = await this.fetchAndCacheTrends(
+      organizationId,
+      brandId,
+    );
+    if (fetchedTrends.length > 0) {
+      return fetchedTrends;
+    }
+
+    this.loggerService.log(
+      'Fresh trend fetch returned no data, returning bootstrap trend fallback',
+    );
+    return this.getBootstrapTrends(platform);
+  }
+
+  private toTrendEntity(
+    doc: {
+      data: unknown;
+    } & Record<string, unknown>,
+  ): TrendEntity {
+    return new TrendEntity({
+      ...doc,
+      ...(doc.data as Record<string, unknown>),
+    } as unknown as TrendDocument);
   }
 
   private async findActiveTrends(filter: {
@@ -255,13 +401,96 @@ export class TrendsService {
         return (bd.viralityScore ?? 0) - (ad.viralityScore ?? 0);
       })
       .slice(0, 50)
-      .map(
-        (doc) =>
-          new TrendEntity({
-            ...doc,
-            ...(doc.data as Record<string, unknown>),
-          } as unknown as TrendDocument),
-      );
+      .map((doc) => this.toTrendEntity(doc));
+  }
+
+  private async findLastGoodTrends(filter: {
+    organizationId: string | null;
+    brandId: string | null;
+    platform?: string;
+  }): Promise<TrendEntity[]> {
+    const docs = await this.prisma.trend.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      where: {
+        brandId: filter.brandId,
+        isDeleted: false,
+        organizationId: filter.organizationId,
+      } as never,
+    });
+
+    return docs
+      .filter((doc) => {
+        const d = doc.data as unknown as Record<string, unknown>;
+        if (filter.platform && d.platform !== filter.platform) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const ad = a.data as unknown as Record<string, number>;
+        const bd = b.data as unknown as Record<string, number>;
+        return (
+          (bd.viralityScore ?? 0) - (ad.viralityScore ?? 0) ||
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      })
+      .slice(0, 50)
+      .map((doc) => this.toTrendEntity(doc));
+  }
+
+  private getBootstrapTrends(platform?: string): TrendEntity[] {
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 6 * 60 * 60 * 1000);
+
+    return this.BOOTSTRAP_TRENDS.filter(
+      (trend) => !platform || trend.platform === platform,
+    ).map((trend, index) => {
+      const id = `bootstrap-trend-${trend.platform}-${index + 1}`;
+      const metadata = {
+        ...trend.metadata,
+        sourcePreviewCache: [
+          {
+            contentType:
+              trend.platform === 'twitter'
+                ? 'tweet'
+                : trend.metadata.trendType === 'video'
+                  ? 'video'
+                  : 'post',
+            id: `${id}-fallback-1`,
+            platform: trend.platform,
+            sourceUrl: trend.metadata.urls[0],
+            text: trend.metadata.sampleContent,
+            title: trend.topic,
+          },
+        ],
+        sourcePreviewCachedAt: now.toISOString(),
+      };
+
+      return new TrendEntity({
+        brandId: null,
+        createdAt: now,
+        data: {
+          ...trend,
+          expiresAt,
+          isCurrent: true,
+          isDeleted: false,
+          metadata,
+          requiresAuth: false,
+        },
+        expiresAt,
+        growthRate: trend.growthRate,
+        id,
+        isCurrent: true,
+        isDeleted: false,
+        mentions: trend.mentions,
+        metadata,
+        organizationId: null,
+        platform: trend.platform,
+        requiresAuth: false,
+        topic: trend.topic,
+        updatedAt: now,
+        viralityScore: trend.viralityScore,
+      } as never);
+    });
   }
 
   /**
@@ -380,7 +609,9 @@ export class TrendsService {
     const enrichedTrends = trends.map((trend) => {
       return new TrendEntity({
         ...trend,
-        requiresAuth: !connectedPlatforms.includes(trend.platform),
+        requiresAuth:
+          (trend.requiresAuth || !!organizationId) &&
+          !connectedPlatforms.includes(trend.platform),
       });
     });
 
@@ -1123,7 +1354,7 @@ export class TrendsService {
       return 'empty';
     }
 
-    return items[0]?.id.endsWith('-fallback') ? 'fallback' : 'live';
+    return items[0]?.id.includes('-fallback') ? 'fallback' : 'live';
   }
 
   private isTrendSourceItem(value: unknown): value is TrendSourceItem {
