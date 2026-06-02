@@ -2,6 +2,8 @@
 
 This is the repository-level V1 boundary reference. The public docs version lives at `apps/docs/content/core/execution-boundaries.mdx`.
 
+Boundary spec version: v1.3.0.
+
 ## Runtime Modes
 
 | Mode                          | Runtime                            | Provider billing                      | Data owner                                                    | Cloud account |
@@ -33,6 +35,8 @@ Provider calls should persist the execution source so users can distinguish BYOK
 
 - Core remains useful without a Cloud account.
 - Local setup, workflow authoring, provider configuration, and BYOK execution are local Core responsibilities.
+- Skills, local routines, workflow-backed scheduling, and personal feedback memory are local Core responsibilities.
+- Shared review queues, org-shared memory, and skill promotion governance are Cloud or Enterprise responsibilities.
 - Cloud login does not mutate a self-hosted database unless an explicit import, export, or Cloud API action runs.
 - Without a dedicated sync feature, migration is export/import.
 
@@ -42,4 +46,4 @@ Provider calls should persist the execution source so users can distinguish BYOK
 - OSS onboarding: represent `server`, `byok`, and `cloud` access modes truthfully.
 - Managed inference: require an explicit Cloud API key and Cloud-credit authorization.
 - Analytics: Core v1 owns the self-hosted publish -> post analytics -> content-performance loop documented in `apps/docs/content/core-loop/analytics-backbone.mdx`; multi-tenant reporting, billing analytics, and governance remain Cloud/enterprise boundaries.
-- Scheduling, publishing governance, and collaboration: keep Cloud/enterprise boundaries explicit.
+- Scheduling, publishing governance, collaborative learning, and team review: keep Cloud/enterprise boundaries explicit.

@@ -1,6 +1,7 @@
 # Memory Index
 
 ## Project State
+
 - [Project Overview](project_overview.md) — Genfeed.ai monorepo structure and key context
 - [One API Epic](project_one_api_epic.md) — Epic #95: consolidate self-hosted + cloud into one NestJS API, 20 issues, 8 phases
 - [Fallow Health](project_fallow.md) — Fallow codebase health analysis (#83), weekly CI, score 72/100
@@ -10,6 +11,7 @@
 - [Desktop BYOK Generation](project_desktop_byok_generation.md) — desktop local/BYOK generation works without Clerk; Clerk is sync-only
 
 ## Feedback (user corrections — permanent)
+
 - [Never lose code](feedback_never_lose_code.md) — Always branch+push WIP before destructive git ops
 - [Never commit/push to master](feedback_never_commit_to_master.md) — Feature branches: commit freely. Master: always ask.
 - [proxy.ts is middleware](feedback_proxy_middleware.md) — Next.js 16 renamed middleware.ts → proxy.ts
@@ -24,9 +26,11 @@
 - [GenfeedAI managed provider](feedback_genfeedai_managed_provider.md) — Model Genfeed-managed inference as provider=genfeedai, enabled per customer from console
 
 ## References
+
 - [MongoDB Atlas URI](reference_mongodb_atlas.md) — Atlas connection string for `cloud` DB
 
 ## Context (loaded via CLAUDE.md @import)
+
 - [System Patterns](context/system-patterns.md) — architecture patterns, serializers, multi-tenancy
 - [Project Structure](context/project-structure.md) — directory layout, 12 backend services, 6 frontends
 - [Style Guide](context/project-style-guide.md) — TypeScript, git, formatting, naming conventions
@@ -39,9 +43,11 @@
 - [Tech Context](context/tech-context.md) — technology stack details
 
 ## Features
+
 - [Agent Architecture](features/agent/README.md) — orchestration, threading, collections, tools, frontend
 
 ## System
+
 - [Agent Runtime](system/AGENT-RUNTIME.md) — task loop, verification, completion gate
 - [Critical Never Do](system/CRITICAL-NEVER-DO.md) — production-breaking violations
 - [System Rules](system/SYSTEM-RULES.md) — coding standards
@@ -51,14 +57,18 @@
 - [Self-Hosted Guide](system/SELF-HOSTED-GUIDE.md) — Docker deployment guide
 
 ## Plans (UI design outputs)
+
 - **MergedSwitcher** (2026-05-17) — Merged AppSwitcher + ContentTypeSwitcher. Generate section: 4×2 colored icon grid (GenerationType enum). Navigate section: 2-col grid (Overview, Workflows, Library, Calendar, Analytics). Component: `packages/ui/src/components/shell/merged-switcher/MergedSwitcher.tsx`. HTML mockups gitignored under `.agents/plans/`.
 
 ## Architecture Decisions
+
 - [Dynamic Scheduling](architecture/ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL.md) — scheduling via workflow engine
 - [PLG Boundary](architecture/ADR-PLG-BOUNDARY-OSS-CLOUD.md) — OSS vs cloud feature split
 - [Workflow-Backed Agents](architecture/ADR-WORKFLOW-BACKED-RECURRING-AGENT-AUTOMATION.md) — recurring agent automation
+- [Skills, Routines, and Memory Boundary](architecture/ADR-SKILLS-ROUTINES-MEMORY-BOUNDARY.md) — OSS single-player loop vs cloud collaborative governance
 
 ## Rules (symlinked to .claude/rules/)
+
 - [Security](rules/00-security.md) — secret isolation, no outbound HTTP
 - [Backend Services](rules/10-backend-services.md) — soft deletes, service boundaries
 - [Web Apps](rules/20-web-apps.md) — semantic UI, async cancellation
