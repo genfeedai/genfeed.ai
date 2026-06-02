@@ -39,6 +39,46 @@ function getVoiceTooltip(isRecording: boolean, isProcessing: boolean): string {
   return 'Voice input (Speak to transcribe)';
 }
 
+type PromptOutputsButtonProps = Pick<
+  PromptBarEssentialsProps,
+  'form' | 'getMinFromAllModels' | 'getModelMaxOutputs' | 'triggerConfigChange'
+> & {
+  isDisabledState: boolean;
+};
+
+function PromptOutputsButton({
+  form,
+  getMinFromAllModels,
+  getModelMaxOutputs,
+  isDisabledState,
+  triggerConfigChange,
+}: PromptOutputsButtonProps) {
+  return (
+    <Button
+      label={`${form.watch('outputs') || 1}x`}
+      variant={ButtonVariant.GHOST}
+      className="h-9 px-2.5 gap-1"
+      tooltip="Number of outputs"
+      tooltipPosition="top"
+      icon={
+        <span className="size-4 flex items-center justify-center text-xs font-medium">
+          #
+        </span>
+      }
+      isDisabled={isDisabledState}
+      onClick={() => {
+        const current = form.watch('outputs') || 1;
+        const max = getMinFromAllModels(getModelMaxOutputs);
+        const next = current >= max ? 1 : current + 1;
+
+        form.setValue('outputs', next, { shouldValidate: true });
+        triggerConfigChange();
+      }}
+      data-testid="outputs-button"
+    />
+  );
+}
+
 const PromptBarEssentials = memo(function PromptBarEssentials({
   currentConfig,
   categoryType,
@@ -400,53 +440,23 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
 
           <div className="ml-auto flex items-center gap-1.5">
             {!isCollapsible && (
-              <Button
-                label={`${form.watch('outputs') || 1}x`}
-                variant={ButtonVariant.GHOST}
-                className="h-9 px-2.5 gap-1"
-                tooltip="Number of outputs"
-                tooltipPosition="top"
-                icon={
-                  <span className="size-4 flex items-center justify-center text-xs font-medium">
-                    #
-                  </span>
-                }
-                isDisabled={isDisabledState}
-                onClick={() => {
-                  const current = form.watch('outputs') || 1;
-                  const max = getMinFromAllModels(getModelMaxOutputs);
-                  const next = current >= max ? 1 : current + 1;
-
-                  form.setValue('outputs', next, { shouldValidate: true });
-                  triggerConfigChange();
-                }}
-                data-testid="outputs-button"
+              <PromptOutputsButton
+                form={form}
+                getMinFromAllModels={getMinFromAllModels}
+                getModelMaxOutputs={getModelMaxOutputs}
+                isDisabledState={isDisabledState}
+                triggerConfigChange={triggerConfigChange}
               />
             )}
 
             {isCollapsible && (
               <>
-                <Button
-                  label={`${form.watch('outputs') || 1}x`}
-                  variant={ButtonVariant.GHOST}
-                  className="h-9 px-2.5 gap-1"
-                  tooltip="Number of outputs"
-                  tooltipPosition="top"
-                  icon={
-                    <span className="size-4 flex items-center justify-center text-xs font-medium">
-                      #
-                    </span>
-                  }
-                  isDisabled={isDisabledState}
-                  onClick={() => {
-                    const current = form.watch('outputs') || 1;
-                    const max = getMinFromAllModels(getModelMaxOutputs);
-                    const next = current >= max ? 1 : current + 1;
-
-                    form.setValue('outputs', next, { shouldValidate: true });
-                    triggerConfigChange();
-                  }}
-                  data-testid="outputs-button"
+                <PromptOutputsButton
+                  form={form}
+                  getMinFromAllModels={getMinFromAllModels}
+                  getModelMaxOutputs={getModelMaxOutputs}
+                  isDisabledState={isDisabledState}
+                  triggerConfigChange={triggerConfigChange}
                 />
 
                 <PromptBarDivider className="h-5 bg-white/10" />
