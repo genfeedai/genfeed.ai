@@ -12,9 +12,7 @@ export class YtDlpService {
 
   public downloadAudio(url: string): Promise<string> {
     const outputDir = path.resolve('public', 'tmp', 'clips');
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
+    this.ensureOutputDir(outputDir);
 
     const timestamp = Date.now();
     const outputTemplate = path.join(outputDir, `${timestamp}.%(ext)s`);
@@ -22,28 +20,14 @@ export class YtDlpService {
 
     const args = ['-x', '--audio-format', 'mp3', '-o', outputTemplate, url];
 
-    this.logger.log(`yt-dlp ${args.join(' ')}`);
-
-    return new Promise((resolve, reject) => {
-      const proc = spawn('yt-dlp', args);
-      proc.on('close', (code) => {
-        if (code === 0) {
-          resolve(outputFile);
-        } else {
-          reject(new Error(`yt-dlp exited with code ${code}`));
-        }
-      });
-      proc.on('error', reject);
-    });
+    return this.runYtDlp(args, outputFile);
   }
 
   public downloadVideo(url: string, outputPath?: string): Promise<string> {
     const outputDir = outputPath
       ? path.dirname(outputPath)
       : path.resolve('public', 'tmp', 'clips');
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
+    this.ensureOutputDir(outputDir);
 
     const timestamp = Date.now();
     const outputTemplate =
@@ -61,19 +45,7 @@ export class YtDlpService {
       url,
     ];
 
-    this.logger.log(`yt-dlp ${args.join(' ')}`);
-
-    return new Promise((resolve, reject) => {
-      const proc = spawn('yt-dlp', args);
-      proc.on('close', (code) => {
-        if (code === 0) {
-          resolve(expectedOutput);
-        } else {
-          reject(new Error(`yt-dlp exited with code ${code}`));
-        }
-      });
-      proc.on('error', reject);
-    });
+    return this.runYtDlp(args, expectedOutput);
   }
 
   public downloadAudioLowestQuality(
@@ -81,26 +53,34 @@ export class YtDlpService {
     outputPath: string,
   ): Promise<string> {
     const outputDir = path.dirname(outputPath);
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
+    this.ensureOutputDir(outputDir);
 
     const args = [
-      '-x', // Extract audio
+      '-x',
       '--audio-format',
-      'mp3', // Convert to MP3
+      'mp3',
       '--audio-quality',
-      '9', // Lowest quality (0-9, 9 = worst)
+      '9',
       '-o',
       outputPath,
       url,
     ];
 
+    return this.runYtDlp(args, outputPath);
+  }
+
+  private ensureOutputDir(outputDir: string): void {
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+  }
+
+  private runYtDlp(args: string[], outputPath: string): Promise<string> {
     this.logger.log(`yt-dlp ${args.join(' ')}`);
 
     return new Promise((resolve, reject) => {
       const proc = spawn('yt-dlp', args);
-      proc.on('close', (code) => {
+      proc.on('close', (code: number | null) => {
         if (code === 0) {
           resolve(outputPath);
         } else {
