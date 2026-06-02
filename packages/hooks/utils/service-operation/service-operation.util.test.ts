@@ -157,6 +157,33 @@ describe('service-operation utilities', () => {
     expect(endUpdater({ isDeleting: true }).isDeleting).toBe(false);
   });
 
+  it('executeWithActionState resets the specified key after failure', async () => {
+    const operation = vi.fn().mockRejectedValue(new Error('boom'));
+    const setActionStates = vi.fn() as unknown as React.Dispatch<
+      React.SetStateAction<Record<string, boolean>>
+    >;
+
+    const result = await executeWithActionState({
+      errorMessage: 'Delete failed',
+      operation,
+      setActionStates,
+      stateKey: 'isDeleting',
+      successMessage: 'Deleted',
+      url: 'DELETE /items/1',
+    });
+
+    const startUpdater = setActionStates.mock.calls[0][0] as (
+      state: Record<string, boolean>,
+    ) => Record<string, boolean>;
+    const endUpdater = setActionStates.mock.calls[1][0] as (
+      state: Record<string, boolean>,
+    ) => Record<string, boolean>;
+
+    expect(result).toBeUndefined();
+    expect(startUpdater({ isDeleting: false }).isDeleting).toBe(true);
+    expect(endUpdater({ isDeleting: true }).isDeleting).toBe(false);
+  });
+
   it('executeSilentWithActionState toggles state without success notification', async () => {
     const operation = vi.fn().mockResolvedValue('ok');
     const setActionStates = vi.fn() as unknown as React.Dispatch<
