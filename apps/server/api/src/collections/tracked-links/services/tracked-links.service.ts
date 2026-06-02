@@ -225,7 +225,11 @@ export class TrackedLinksService {
   }
 
   private isBlockedRedirectHost(hostname: string): boolean {
-    const host = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    // Strip IPv6 brackets and any zone id before classifying the host.
+    const host = hostname
+      .toLowerCase()
+      .replace(/^\[|\]$/g, '')
+      .split('%')[0];
 
     if (
       host === 'localhost' ||
@@ -236,22 +240,95 @@ export class TrackedLinksService {
     }
 
     if (isIP(host) === 4) {
-      const [a = 0, b = 0] = host.split('.').map((part) => Number(part));
-      return (
-        a === 0 ||
-        a === 10 ||
-        a === 127 ||
-        a === 169 ||
-        (a === 172 && b >= 16 && b <= 31) ||
-        (a === 192 && b === 168)
-      );
+      return this.isBlockedIPv4(host);
     }
 
     if (isIP(host) === 6) {
-      return host === '::1' || host.startsWith('fc') || host.startsWith('fd');
+      // IPv4-mapped IPv6 in dotted form (e.g. ::ffff:127.0.0.1) — re-check the
+      // embedded IPv4 so loopback/private targets cannot slip through.
+      const dottedV4 = host.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+      if (dottedV4?.[1]) {
+        return this.isBlockedIPv4(dottedV4[1]);
+      }
+
+      const groups = this.expandIPv6(host);
+
+      // IPv4-mapped IPv6 in hex form (e.g. ::ffff:7f00:1).
+      if (
+        groups.slice(0, 5).every((group) => group === '0000') &&
+        groups[5] === 'ffff'
+      ) {
+        const octets = [
+          Number.parseInt(groups[6].slice(0, 2), 16),
+          Number.parseInt(groups[6].slice(2), 16),
+          Number.parseInt(groups[7].slice(0, 2), 16),
+          Number.parseInt(groups[7].slice(2), 16),
+        ];
+        return this.isBlockedIPv4(octets.join('.'));
+      }
+
+      // Unspecified (::) and loopback (::1, including fully expanded forms).
+      if (groups.every((group) => group === '0000')) {
+        return true;
+      }
+      if (
+        groups.slice(0, 7).every((group) => group === '0000') &&
+        groups[7] === '0001'
+      ) {
+        return true;
+      }
+
+      // Unique-local fc00::/7 and link-local fe80::/10.
+      const firstGroup = Number.parseInt(groups[0], 16);
+      if (firstGroup >= 0xfc00 && firstGroup <= 0xfdff) {
+        return true;
+      }
+      if (firstGroup >= 0xfe80 && firstGroup <= 0xfebf) {
+        return true;
+      }
+
+      return false;
     }
 
     return false;
+  }
+
+  private isBlockedIPv4(host: string): boolean {
+    const [a = 0, b = 0] = host.split('.').map((part) => Number(part));
+    return (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      a === 169 ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 198 && b >= 18 && b <= 19)
+    );
+  }
+
+  /**
+   * Expand an IPv6 literal (without an embedded dotted IPv4 tail) into eight
+   * zero-padded hextets so loopback/link-local/unique-local forms can be
+   * compared regardless of `::` compression.
+   */
+  private expandIPv6(host: string): string[] {
+    const [head, tail] = host.split('::');
+    const headGroups = head ? head.split(':') : [];
+    const tailGroups = tail === undefined ? null : tail ? tail.split(':') : [];
+
+    const groups =
+      tailGroups === null
+        ? headGroups
+        : [
+            ...headGroups,
+            ...Array<string>(
+              Math.max(0, 8 - headGroups.length - tailGroups.length),
+            ).fill('0'),
+            ...tailGroups,
+          ];
+
+    return groups.map((group) => group.padStart(4, '0'));
   }
 
   /**
@@ -648,14 +725,6 @@ export class TrackedLinksService {
     organizationId: string,
     updates: TrackedLinkUpdatePayload,
   ): Promise<TrackedLink> {
-    const existing = await this.prisma.trackedLink.findFirst({
-      where: { id: linkId, isDeleted: false, organizationId },
-    });
-
-    if (!existing) {
-      throw new NotFoundException(`Tracked link not found: ${linkId}`);
-    }
-
     // Allowlist: only safe, user-editable fields are forwarded to the DB.
     // shortCode, organizationId, stats, etc. must never be mutated via this path.
     const safeData: TrackedLinkUpdatePayload = {};
@@ -666,9 +735,20 @@ export class TrackedLinksService {
       ).toString();
     if (updates.title !== undefined) safeData.title = updates.title;
 
-    const result = await this.prisma.trackedLink.update({
+    // Scope the write itself by organizationId so ownership is enforced on the
+    // mutation, not just on a preceding read (defense-in-depth against
+    // cross-tenant writes if the read/write ever drift apart).
+    const { count } = await this.prisma.trackedLink.updateMany({
       data: safeData as never,
-      where: { id: linkId },
+      where: { id: linkId, isDeleted: false, organizationId },
+    });
+
+    if (count !== 1) {
+      throw new NotFoundException(`Tracked link not found: ${linkId}`);
+    }
+
+    const result = await this.prisma.trackedLink.findFirst({
+      where: { id: linkId, isDeleted: false, organizationId },
     });
 
     this.logger.log(`Tracked link updated: ${linkId}`);
@@ -679,18 +759,17 @@ export class TrackedLinksService {
    * Delete tracked link (soft delete)
    */
   async delete(linkId: string, organizationId: string): Promise<void> {
-    const existing = await this.prisma.trackedLink.findFirst({
-      where: { id: linkId, organizationId },
+    // Scope the soft-delete write by organizationId so a tracked link can only
+    // be deleted within its owning tenant (defense-in-depth: no read/write split
+    // that could be bypassed by a future caller or a cross-tenant id leak).
+    const { count } = await this.prisma.trackedLink.updateMany({
+      data: { isDeleted: true } as never,
+      where: { id: linkId, isDeleted: false, organizationId },
     });
 
-    if (!existing) {
+    if (count !== 1) {
       throw new NotFoundException(`Tracked link not found: ${linkId}`);
     }
-
-    await this.prisma.trackedLink.update({
-      data: { isDeleted: true } as never,
-      where: { id: linkId },
-    });
 
     this.logger.log(`Tracked link deleted: ${linkId}`);
   }
@@ -718,8 +797,14 @@ export class TrackedLinksService {
    */
   private async getCountryFromIP(ip?: string): Promise<string | undefined> {
     const normalizedIp = ip?.split(',')[0]?.trim();
+    // Only forward valid IP literals into the outbound geolocation URL. Without
+    // this guard an attacker-controlled X-Forwarded-For value (e.g.
+    // `1.1.1.1/../v1/admin?x=`) would be interpolated into the ipapi.co path
+    // and probe arbitrary endpoints on the third-party host.
+    if (!normalizedIp || isIP(normalizedIp) === 0) {
+      return undefined;
+    }
     if (
-      !normalizedIp ||
       normalizedIp === '::1' ||
       normalizedIp === '127.0.0.1' ||
       normalizedIp.startsWith('192.168.') ||
