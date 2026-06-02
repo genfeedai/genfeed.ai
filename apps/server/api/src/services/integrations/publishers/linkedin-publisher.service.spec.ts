@@ -190,6 +190,12 @@ describe('LinkedInPublisherService', () => {
     it('should support threads', () => {
       expect(service.supportsThreads).toBe(true);
     });
+
+    it('should build LinkedIn URLs from provider catalog metadata', () => {
+      expect(service.buildPostUrl('urn:li:activity:123', mockCredential)).toBe(
+        'https://www.linkedin.com/feed/update/urn:li:activity:123',
+      );
+    });
   });
 
   describe('publish', () => {

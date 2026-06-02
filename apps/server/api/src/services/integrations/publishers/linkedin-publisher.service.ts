@@ -9,18 +9,32 @@ import type {
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  getIntegrationProviderDefinition,
+  type IntegrationProviderCapability,
+  providerSupportsCapability,
+} from '@genfeedai/integrations';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
+const LINKEDIN_PROVIDER = getIntegrationProviderDefinition('linkedin');
+
+function linkedInSupports(capability: IntegrationProviderCapability): boolean {
+  return LINKEDIN_PROVIDER
+    ? providerSupportsCapability(LINKEDIN_PROVIDER, capability)
+    : false;
+}
+
 @Injectable()
 export class LinkedInPublisherService extends BasePublisherService {
-  readonly platform = CredentialPlatform.LINKEDIN;
-  readonly supportsTextOnly = true;
-  readonly supportsImages = true;
-  readonly supportsVideos = true;
+  readonly platform =
+    LINKEDIN_PROVIDER?.platform ?? CredentialPlatform.LINKEDIN;
+  readonly supportsTextOnly = linkedInSupports('publish_post');
+  readonly supportsImages = linkedInSupports('publish_post');
+  readonly supportsVideos = linkedInSupports('publish_post');
   readonly supportsCarousel = false;
-  readonly supportsThreads = true; // Supports TEXT children as first comments
+  readonly supportsThreads = linkedInSupports('publish_post'); // Supports TEXT children as first comments
 
   private getLinkedInPublishId(result: unknown): string | null {
     if (
@@ -119,7 +133,9 @@ export class LinkedInPublisherService extends BasePublisherService {
     _externalShortcode?: string,
   ): string {
     // LinkedIn post URLs use activity URN format
-    return `https://www.linkedin.com/feed/update/${externalId}`;
+    return `${
+      LINKEDIN_PROVIDER?.endpoints.appBaseUrl ?? 'https://www.linkedin.com'
+    }/feed/update/${externalId}`;
   }
 
   /**

@@ -13,6 +13,21 @@
       "import": "./dist/ads/index.js",
       "default": "./dist/ads/index.js"
     },
+    "./catalog": {
+      "types": "./dist/catalog/index.d.ts",
+      "import": "./dist/catalog/index.js",
+      "default": "./dist/catalog/index.js"
+    },
+    "./connections": {
+      "types": "./dist/connections/index.d.ts",
+      "import": "./dist/connections/index.js",
+      "default": "./dist/connections/index.js"
+    },
+    "./http": {
+      "types": "./dist/http/index.d.ts",
+      "import": "./dist/http/index.js",
+      "default": "./dist/http/index.js"
+    },
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
