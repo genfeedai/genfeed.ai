@@ -348,25 +348,28 @@ export abstract class BaseService<
     const result: PrismaFilter = {};
 
     for (const [key, value] of Object.entries(normalized)) {
-      if (key === 'OR') {
-        result.OR = Array.isArray(value)
-          ? value.map((entry) =>
-              this.normalizeWhere(
-                this.isPlainObject(entry) ? entry : ({} as PrismaFilter),
-              ),
-            )
-          : value;
-        continue;
-      }
+      if (key === 'OR' || key === 'AND') {
+        if (!Array.isArray(value)) {
+          result[key] = value;
+          continue;
+        }
 
-      if (key === 'AND') {
-        result.AND = Array.isArray(value)
-          ? value.map((entry) =>
-              this.normalizeWhere(
-                this.isPlainObject(entry) ? entry : ({} as PrismaFilter),
-              ),
-            )
-          : value;
+        const normalizedEntries = value
+          .map((entry) =>
+            this.normalizeWhere(
+              this.isPlainObject(entry) ? entry : ({} as PrismaFilter),
+            ),
+          )
+          // Drop entries that normalized to `{}` (every key was an unknown
+          // relation alias the model lacks). An empty object inside OR matches
+          // every row — a tenancy-broadening leak — so it must be removed.
+          .filter((entry) => Object.keys(entry).length > 0);
+
+        // Omit the operator entirely if nothing survives, rather than emit an
+        // empty `OR: []` (which Prisma treats as match-none).
+        if (normalizedEntries.length > 0) {
+          result[key] = normalizedEntries;
+        }
         continue;
       }
 
@@ -785,20 +788,31 @@ export abstract class BaseService<
         continue;
       }
 
-      if (key in legacyRelationFields && typeof value === 'string') {
+      if (
+        key in legacyRelationFields &&
+        (typeof value === 'string' || value === null)
+      ) {
         const relationKey = key as keyof typeof legacyRelationFields;
         const scalarKey = legacyRelationFields[relationKey];
 
+        // Map the legacy relation alias to its scalar FK for BOTH id strings and
+        // explicit nulls (global / unowned items use `{ organization: null }`).
+        // Null must be mapped too — otherwise the raw relation name reaches
+        // Prisma and throws "Unknown argument `organization`" for models that
+        // only expose the scalar FK (e.g. FontFamilyRecord, Tag.user).
         if (this.modelHasField(scalarKey)) {
           processed[scalarKey] = value;
           continue;
         }
 
         if (this.modelHasField(relationKey)) {
-          processed[relationKey] = { is: { id: value } };
+          processed[relationKey] =
+            typeof value === 'string' ? { is: { id: value } } : value;
           continue;
         }
 
+        // Model exposes neither the scalar FK nor the relation — drop the
+        // condition instead of emitting an unknown argument.
         continue;
       }
 

@@ -465,6 +465,29 @@ describe('BaseService', () => {
       expect(result).toEqual({ status: 'active', userId: 'user1' });
     });
 
+    it('remaps legacy organization null filters to organizationId null', () => {
+      setModelFields('id', 'organizationId', 'isDeleted');
+
+      const result = service.processSearchParams({
+        organization: null,
+        type: 'post',
+      });
+
+      expect(result).toEqual({ organizationId: null, type: 'post' });
+    });
+
+    it('drops a legacy relation filter when the model has neither the scalar FK nor the relation', () => {
+      setModelFields('id', 'organizationId', 'isDeleted');
+
+      const result = service.processSearchParams({
+        organization: null,
+        user: null,
+      });
+
+      // organizationId mapped; user dropped (model has no userId / user field)
+      expect(result).toEqual({ organizationId: null });
+    });
+
     it('preserves organization relation filters when they are objects', () => {
       const result = service.processSearchParams({
         organization: { is: { id: 'org1' } },
