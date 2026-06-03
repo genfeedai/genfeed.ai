@@ -159,7 +159,7 @@ export default function TopbarInbox() {
 
         <div className="max-h-80 overflow-y-auto">
           {reviewInbox.recentItems.length > 0 ? (
-            <div className="divide-y divide-white/[0.06] px-3 py-2">
+            <div className="divide-y divide-foreground/[0.06] px-3 py-2">
               {reviewInbox.recentItems.map((item) => {
                 const badge = getInboxItemBadge(item);
 
