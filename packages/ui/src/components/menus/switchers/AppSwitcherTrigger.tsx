@@ -35,9 +35,9 @@ export function AppSwitcherTrigger({
         onClick={onToggle}
         className={cn(
           'flex items-center justify-center p-2 transition-all relative',
-          !isLoading && 'hover:bg-white/10 cursor-pointer',
+          !isLoading && 'hover:bg-foreground/10 cursor-pointer',
           isLoading && 'cursor-wait',
-          isOpen && 'bg-white/10',
+          isOpen && 'bg-foreground/10',
         )}
       >
         {logoUrl && logoUrl !== '' && (

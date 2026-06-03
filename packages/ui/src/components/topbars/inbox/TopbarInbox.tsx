@@ -99,7 +99,7 @@ export default function TopbarInbox() {
       </PopoverTrigger>
 
       <PopoverPanelContent align="end" className="w-[22rem] p-0">
-        <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3">
+        <div className="flex items-center justify-between border-b border-foreground/[0.08] px-4 py-3">
           <div>
             <p className="text-sm font-semibold">Inbox</p>
             <p className="text-xs text-foreground/50">
@@ -122,7 +122,7 @@ export default function TopbarInbox() {
           </PrimitiveButton>
         </div>
 
-        <div className="grid grid-cols-2 gap-px bg-white/[0.06]">
+        <div className="grid grid-cols-2 gap-px bg-foreground/[0.06]">
           <div className="bg-background px-4 py-3">
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-foreground/35">
               Waiting
@@ -212,9 +212,9 @@ export default function TopbarInbox() {
           )}
         </div>
 
-        <div className="space-y-2 border-t border-white/[0.08] p-3">
+        <div className="space-y-2 border-t border-foreground/[0.08] p-3">
           {activeTaskCount > 0 ? (
-            <div className="border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs text-foreground/55">
+            <div className="border border-foreground/[0.08] bg-foreground/[0.03] px-3 py-2 text-xs text-foreground/55">
               {activeTaskCount} task{activeTaskCount === 1 ? '' : 's'} still
               processing. Track passive execution updates in Activity.
             </div>
@@ -224,14 +224,14 @@ export default function TopbarInbox() {
             <Link
               href="/workspace/inbox/unread"
               onClick={() => setIsOpen(false)}
-              className="inline-flex h-9 items-center justify-center bg-white px-3 py-2 text-sm font-semibold text-black transition-colors duration-150 hover:bg-white/90"
+              className="inline-flex h-9 items-center justify-center bg-foreground px-3 py-2 text-sm font-semibold text-background transition-colors duration-150 hover:bg-foreground/90"
             >
               Open Inbox
             </Link>
             <Link
               href="/workspace/activity"
               onClick={() => setIsOpen(false)}
-              className="inline-flex h-9 items-center justify-center gap-2 border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm font-semibold text-foreground transition-colors duration-150 hover:bg-white/[0.06]"
+              className="inline-flex h-9 items-center justify-center gap-2 border border-foreground/[0.08] bg-foreground/[0.03] px-3 py-2 text-sm font-semibold text-foreground transition-colors duration-150 hover:bg-foreground/[0.06]"
             >
               View Activity
               <HiArrowTopRightOnSquare className="size-4" />

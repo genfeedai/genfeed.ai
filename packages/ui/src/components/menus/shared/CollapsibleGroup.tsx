@@ -91,7 +91,7 @@ export default function CollapsibleGroup({
     <div className={cn('mt-2', className)}>
       <div
         className={cn(
-          'group/collapsible flex w-full items-center p-1 text-white/30',
+          'group/collapsible flex w-full items-center p-1 text-foreground/30',
           headerClassName,
         )}
       >
@@ -99,7 +99,7 @@ export default function CollapsibleGroup({
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           onClick={toggleMenuShared}
-          className="flex items-center gap-1.5 hover:text-white/50 transition-colors duration-150 cursor-pointer"
+          className="flex items-center gap-1.5 hover:text-foreground/50 transition-colors duration-150 cursor-pointer"
         >
           <HiChevronDown
             className={cn(

@@ -32,7 +32,7 @@ export function MetricCard({
   const inner = (
     <div
       className={cn(
-        'h-full px-4 py-4 sm:px-5 sm:py-5 transition-colors',
+        'h-full rounded-lg bg-card px-4 py-4 shadow-border transition-colors sm:px-5 sm:py-5',
         isClickable && 'hover:bg-accent/50 cursor-pointer',
       )}
     >

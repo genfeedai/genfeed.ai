@@ -151,7 +151,7 @@ export default function TopbarActivities() {
       <PopoverTrigger asChild>{triggerButton}</PopoverTrigger>
 
       <PopoverPanelContent align="end" className="w-80 p-0">
-        <div className="border-b border-white/[0.08] px-4 py-3 flex items-center justify-between">
+        <div className="border-b border-foreground/[0.08] px-4 py-3 flex items-center justify-between">
           <span className="text-sm font-semibold">Activities</span>
           <div className="flex items-center gap-2">
             {completedBackgroundTaskIds.length > 0 && (
@@ -215,7 +215,7 @@ export default function TopbarActivities() {
                       onClick={handleRealtimeTaskClick}
                     />
                   ))}
-                <div className="border-t border-white/[0.08] my-1" />
+                <div className="border-t border-foreground/[0.08] my-1" />
               </>
             )}
 
@@ -229,7 +229,7 @@ export default function TopbarActivities() {
           </div>
         </div>
 
-        <div className="border-t border-white/[0.08] p-2 space-y-2">
+        <div className="border-t border-foreground/[0.08] p-2 space-y-2">
           {hasActiveGenerations && (
             <Button
               withWrapper={false}
@@ -243,7 +243,7 @@ export default function TopbarActivities() {
 
           <Link
             href={href('/overview/activities')}
-            className="inline-flex items-center justify-center border border-white/[0.08] bg-white/[0.05] text-foreground/70 hover:text-foreground/90 hover:bg-white/[0.08] h-9 px-4 py-2 text-sm font-medium w-full no-underline transition-colors duration-150"
+            className="inline-flex items-center justify-center border border-foreground/[0.08] bg-foreground/[0.05] text-foreground/70 hover:text-foreground/90 hover:bg-foreground/[0.08] h-9 px-4 py-2 text-sm font-medium w-full no-underline transition-colors duration-150"
             onClick={() => setIsOpen(false)}
           >
             View all activities

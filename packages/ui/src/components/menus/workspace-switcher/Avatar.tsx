@@ -30,7 +30,9 @@ export function Avatar({ label, imageUrl, isActive }: AvatarProps) {
     <div
       className={cn(
         'flex size-5 flex-shrink-0 items-center justify-center rounded text-[10px] font-bold',
-        isActive ? 'bg-primary/30 text-primary' : 'bg-white/10 text-white/60',
+        isActive
+          ? 'bg-primary/30 text-primary'
+          : 'bg-foreground/10 text-foreground/60',
       )}
     >
       {label.charAt(0).toUpperCase()}

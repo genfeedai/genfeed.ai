@@ -33,8 +33,8 @@ export function SectionRow({
       className={cn(
         'flex w-full items-center gap-2.5 px-3 py-1.5 text-sm transition-colors duration-150',
         isActive
-          ? 'text-white cursor-default'
-          : 'text-white/70 hover:text-white hover:bg-white/[0.06] cursor-pointer',
+          ? 'text-foreground cursor-default'
+          : 'text-foreground/70 hover:text-foreground hover:bg-foreground/[0.06] cursor-pointer',
       )}
     >
       <Avatar label={label} imageUrl={imageUrl} isActive={isActive} />

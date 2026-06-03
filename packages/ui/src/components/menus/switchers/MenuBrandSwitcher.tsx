@@ -73,9 +73,9 @@ export default function MenuBrandSwitcher({
         <div
           className={cn(
             'flex items-center justify-center p-1 transition-all cursor-pointer',
-            'hover:bg-white/10 transition-colors duration-200',
+            'hover:bg-foreground/10 transition-colors duration-200',
             isUpdating && 'opacity-50 cursor-not-allowed',
-            isOpen && 'bg-white/10',
+            isOpen && 'bg-foreground/10',
           )}
           title={selectedBrand?.label || 'Select Brand'}
         >
@@ -92,7 +92,7 @@ export default function MenuBrandSwitcher({
               />
             </div>
           ) : (
-            <div className="size-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-semibold text-white">
+            <div className="size-8 rounded-full bg-foreground/20 flex items-center justify-center text-sm font-semibold text-foreground">
               {(selectedBrand?.label ?? '?').charAt(0).toUpperCase()}
             </div>
           )}

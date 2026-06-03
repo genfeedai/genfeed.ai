@@ -44,7 +44,7 @@ export function CreateOrgModal({
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="workspace-switcher-org-name"
-                className="text-xs font-medium text-white/70"
+                className="text-xs font-medium text-foreground/70"
               >
                 Name <span className="text-red-400">*</span>
               </label>
@@ -65,9 +65,10 @@ export function CreateOrgModal({
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="workspace-switcher-org-description"
-                className="text-xs font-medium text-white/70"
+                className="text-xs font-medium text-foreground/70"
               >
-                Description <span className="text-white/30">(optional)</span>
+                Description{' '}
+                <span className="text-foreground/30">(optional)</span>
               </label>
               <Textarea
                 id="workspace-switcher-org-description"
@@ -90,7 +91,7 @@ export function CreateOrgModal({
             <Button
               variant={ButtonVariant.GHOST}
               withWrapper={false}
-              className="px-4 py-2 text-sm text-white/60 transition-colors hover:text-white"
+              className="px-4 py-2 text-sm text-foreground/60 transition-colors hover:text-foreground"
             >
               Cancel
             </Button>

@@ -45,9 +45,9 @@ export function AppSwitcherPanel({
               {regularApps.map((app) => {
                 const isActive = currentApp === app.label;
                 const baseClasses = cn(
-                  'flex items-center transition-all text-white',
-                  'hover:bg-white/15 transition-colors duration-200',
-                  isActive && 'bg-white/15',
+                  'flex items-center transition-all text-foreground',
+                  'hover:bg-foreground/15 transition-colors duration-200',
+                  isActive && 'bg-foreground/15',
                 );
                 return (
                   <Link
@@ -64,7 +64,7 @@ export function AppSwitcherPanel({
                       <div className="font-medium text-sm truncate">
                         {app.label}
                       </div>
-                      <div className="text-xs text-white/60 truncate">
+                      <div className="text-xs text-foreground/60 truncate">
                         {app.description}
                       </div>
                     </div>
@@ -74,7 +74,7 @@ export function AppSwitcherPanel({
                           {app.shortcut.map((key) => (
                             <Kbd
                               key={key}
-                              className="bg-white/10 text-white/70 border border-white/20"
+                              className="bg-foreground/10 text-foreground/70 border border-foreground/20"
                             >
                               {key}
                             </Kbd>
@@ -82,7 +82,7 @@ export function AppSwitcherPanel({
                         </div>
                       )}
                       {isActive && (
-                        <Badge className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-white/20 border border-white/[0.08] text-white/90">
+                        <Badge className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-foreground/20 border border-foreground/[0.08] text-foreground/90">
                           Current
                         </Badge>
                       )}
@@ -96,15 +96,15 @@ export function AppSwitcherPanel({
           {adminApps.length > 0 && (
             <>
               {regularApps.length > 0 && (
-                <div className="my-2 border-t border-white/[0.08]" />
+                <div className="my-2 border-t border-foreground/[0.08]" />
               )}
               <div className="px-2">
                 {adminApps.map((app) => {
                   const isActive = currentApp === app.label;
                   const baseClasses = cn(
-                    'flex items-center transition-all text-white',
-                    'hover:bg-white/15 transition-colors duration-200',
-                    isActive && 'bg-white/15',
+                    'flex items-center transition-all text-foreground',
+                    'hover:bg-foreground/15 transition-colors duration-200',
+                    isActive && 'bg-foreground/15',
                   );
                   return (
                     <Link
@@ -121,7 +121,7 @@ export function AppSwitcherPanel({
                         <div className="font-medium text-sm truncate">
                           {app.label}
                         </div>
-                        <div className="text-xs text-white/60 truncate">
+                        <div className="text-xs text-foreground/60 truncate">
                           {app.description}
                         </div>
                       </div>
@@ -131,7 +131,7 @@ export function AppSwitcherPanel({
                             {app.shortcut.map((key) => (
                               <Kbd
                                 key={key}
-                                className="bg-white/10 text-white/70 border border-white/20"
+                                className="bg-foreground/10 text-foreground/70 border border-foreground/20"
                               >
                                 {key}
                               </Kbd>
@@ -139,7 +139,7 @@ export function AppSwitcherPanel({
                           </div>
                         )}
                         {isActive && (
-                          <Badge className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-white/20 border border-white/[0.08] text-white/90">
+                          <Badge className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-foreground/20 border border-foreground/[0.08] text-foreground/90">
                             Current
                           </Badge>
                         )}

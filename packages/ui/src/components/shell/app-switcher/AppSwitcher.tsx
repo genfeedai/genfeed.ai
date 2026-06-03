@@ -141,7 +141,7 @@ function AppDropdownItem({
         aria-current={isActive ? 'page' : undefined}
         className={cn(
           'flex items-center gap-2.5 px-3 py-1.5 text-[13px]',
-          isActive && 'bg-white/[0.06] font-medium',
+          isActive && 'bg-foreground/[0.06] font-medium',
         )}
       >
         <Icon

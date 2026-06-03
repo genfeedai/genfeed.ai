@@ -62,7 +62,7 @@ export function WorkspaceSwitcherPanel({
             {organizationsError}
           </p>
         ) : organizations.length === 0 ? (
-          <p className="px-3 py-1.5 text-xs text-white/40">Loading…</p>
+          <p className="px-3 py-1.5 text-xs text-foreground/40">Loading…</p>
         ) : (
           organizations
             .slice()
@@ -103,12 +103,12 @@ export function WorkspaceSwitcherPanel({
         ) : null}
       </div>
 
-      <div className="mt-1 border-t border-white/[0.08] pt-1">
+      <div className="mt-1 border-t border-foreground/[0.08] pt-1">
         <Button
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           onClick={onOpenOrgSettings}
-          className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors duration-150 cursor-pointer"
+          className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground/60 hover:text-foreground hover:bg-foreground/[0.06] transition-colors duration-150 cursor-pointer"
         >
           <HiOutlineCog6Tooth className="size-3.5 flex-shrink-0" />
           <span>Organization settings</span>
@@ -117,7 +117,7 @@ export function WorkspaceSwitcherPanel({
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           onClick={onOpenBrandSettings}
-          className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors duration-150 cursor-pointer"
+          className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground/60 hover:text-foreground hover:bg-foreground/[0.06] transition-colors duration-150 cursor-pointer"
         >
           <HiOutlineCog6Tooth className="size-3.5 flex-shrink-0" />
           <span>Brand settings</span>
@@ -126,7 +126,7 @@ export function WorkspaceSwitcherPanel({
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           onClick={onOpenCreateBrand}
-          className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors duration-150 cursor-pointer"
+          className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground/60 hover:text-foreground hover:bg-foreground/[0.06] transition-colors duration-150 cursor-pointer"
         >
           <HiPlus className="size-3.5 flex-shrink-0" />
           <span>New brand</span>
@@ -135,7 +135,7 @@ export function WorkspaceSwitcherPanel({
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           onClick={onOpenCreateOrg}
-          className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors duration-150 cursor-pointer"
+          className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground/60 hover:text-foreground hover:bg-foreground/[0.06] transition-colors duration-150 cursor-pointer"
         >
           <HiOutlineBuildingOffice2 className="size-3.5 flex-shrink-0" />
           <span>New organization</span>

@@ -63,7 +63,7 @@ export default function CreditsBarPanel({
                 {formatCompactNumber(planLimit)} used
               </span>
             </div>
-            <div className="flex h-2 w-full overflow-hidden rounded-full bg-white/[0.06]">
+            <div className="flex h-2 w-full overflow-hidden rounded-full bg-foreground/[0.06]">
               <div
                 className="relative transition-all duration-300"
                 style={{
@@ -95,7 +95,7 @@ export default function CreditsBarPanel({
             <div className="mt-2 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
-                  <div className="size-1.5 rounded-full bg-white/50" />
+                  <div className="size-1.5 rounded-full bg-foreground/50" />
                   <span className="text-[11px] text-foreground/40">Plan</span>
                 </div>
                 {extraBalance > 0 && (

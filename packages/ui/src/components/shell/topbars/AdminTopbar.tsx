@@ -15,7 +15,7 @@ export default function AdminTopbar({
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background">
+    <header className="sticky top-0 z-50 w-full border-b border-foreground/5 bg-background">
       <div className="flex h-16 items-center justify-between px-6">
         <div className="flex items-center gap-1">
           {onMenuToggle ? (
@@ -44,7 +44,7 @@ export default function AdminTopbar({
               className={`hidden size-8 lg:inline-flex ${
                 isAgentCollapsed
                   ? 'border-primary/30 text-primary hover:border-primary/40 hover:bg-primary/10'
-                  : 'border-white/[0.12] text-white/60 hover:border-white/30 hover:bg-white/[0.06]'
+                  : 'border-foreground/[0.12] text-foreground/60 hover:border-foreground/30 hover:bg-foreground/[0.06]'
               }`}
               aria-label={
                 isAgentCollapsed ? 'Open agent panel' : 'Close agent panel'

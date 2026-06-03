@@ -85,7 +85,9 @@ export default function TopbarWorkspaceSwitcher({
                   sizes="16px"
                 />
               ) : (
-                <span className="text-xs font-semibold text-white/90">G</span>
+                <span className="text-xs font-semibold text-foreground/90">
+                  G
+                </span>
               )}
             </div>
 
@@ -107,7 +109,7 @@ export default function TopbarWorkspaceSwitcher({
           className="w-[420px] rounded-md p-0"
           sideOffset={10}
         >
-          <div className="border-b border-white/[0.06] p-3">
+          <div className="border-b border-foreground/[0.06] p-3">
             <div className="relative">
               <Input
                 ref={searchInputRef}
@@ -115,7 +117,7 @@ export default function TopbarWorkspaceSwitcher({
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Find Project…"
-                className="gen-shell-control h-11 rounded-md border-white/[0.06] bg-background/44 pr-14 text-sm placeholder:text-foreground/28"
+                className="gen-shell-control h-11 rounded-md border-foreground/[0.06] bg-background/44 pr-14 text-sm placeholder:text-foreground/28"
                 onKeyDown={(event) => {
                   if (event.key === 'Escape') {
                     event.preventDefault();
@@ -141,7 +143,9 @@ export default function TopbarWorkspaceSwitcher({
                 organizationsError ?? 'No organizations available right now'
               }
               items={filteredOrganizations.map((organization) => ({
-                icon: <HiOutlineSquares2X2 className="size-4 text-white/35" />,
+                icon: (
+                  <HiOutlineSquares2X2 className="size-4 text-foreground/35" />
+                ),
                 id: organization.id,
                 isActive:
                   organization.isActive &&
@@ -172,7 +176,7 @@ export default function TopbarWorkspaceSwitcher({
             />
           </div>
 
-          <div className="border-t border-white/[0.06] p-2">
+          <div className="border-t border-foreground/[0.06] p-2">
             <WorkspaceActionButton
               label="Create Project"
               onClick={handleOpenCreateProject}

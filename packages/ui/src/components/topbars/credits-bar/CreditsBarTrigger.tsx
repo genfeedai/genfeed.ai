@@ -44,12 +44,12 @@ export default function CreditsBarTrigger({
         </span>
       </div>
       {visibleProviderSegments.length > 0 && (
-        <div className="hidden min-w-0 items-center gap-1 border-l border-white/[0.08] pl-2 lg:flex">
+        <div className="hidden min-w-0 items-center gap-1 border-l border-foreground/[0.08] pl-2 lg:flex">
           {visibleProviderSegments.map((segment) => (
             <span
               key={segment.provider}
               className={cn(
-                'inline-flex h-5 max-w-[5.5rem] items-center gap-1 rounded bg-white/[0.04] px-1.5 text-[11px] font-medium text-foreground/62',
+                'inline-flex h-5 max-w-[5.5rem] items-center gap-1 rounded bg-foreground/[0.04] px-1.5 text-[11px] font-medium text-foreground/62',
                 segment.status === 'unavailable' && 'text-amber-200/70',
               )}
               title={`${segment.label}: ${
@@ -71,7 +71,7 @@ export default function CreditsBarTrigger({
         </div>
       )}
       {planLimit > 0 && (
-        <div className="ml-1 h-1.5 w-14 overflow-hidden rounded-full bg-white/[0.08]">
+        <div className="ml-1 h-1.5 w-14 overflow-hidden rounded-full bg-foreground/[0.08]">
           <div
             className="h-full rounded-full bg-primary transition-all duration-500"
             style={{ width: `${remainingPercent}%` }}

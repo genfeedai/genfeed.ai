@@ -47,7 +47,7 @@ export default function MenuSharedConversations({
         <div className="pb-1">
           <Link
             href={newChatHref}
-            className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 cursor-pointer hover:bg-white/[0.035] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 cursor-pointer hover:bg-foreground/[0.035] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
             <HiPlus className="size-4 text-foreground/42 group-hover:text-foreground/78" />
             <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
@@ -55,7 +55,7 @@ export default function MenuSharedConversations({
             </span>
             <Kbd
               variant="ghost"
-              className="ml-auto rounded-md border border-border bg-white/[0.03] text-[10px] text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+              className="ml-auto rounded-md border border-border bg-foreground/[0.03] text-[10px] text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
             >
               ⌘⇧N
             </Kbd>

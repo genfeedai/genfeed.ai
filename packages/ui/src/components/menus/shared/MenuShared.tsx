@@ -120,7 +120,7 @@ export default function MenuShared({
             href={prefixHref({ href: backHref }) ?? backHref}
             className={cn(
               'group flex h-7 w-full items-center gap-2 rounded px-2.5 py-1 transition-colors duration-150',
-              'text-foreground/72 hover:bg-white/[0.035] hover:text-foreground',
+              'text-foreground/72 hover:bg-foreground/[0.035] hover:text-foreground',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
             )}
             aria-label={`Back to ${backLabel ?? 'previous page'}`}
@@ -162,7 +162,7 @@ export default function MenuShared({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={onToggleCollapse}
-      className="flex size-7 flex-shrink-0 items-center justify-center rounded-md bg-transparent text-foreground/72 cursor-pointer transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+      className="flex size-7 flex-shrink-0 items-center justify-center rounded-md bg-transparent text-foreground/72 cursor-pointer transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
       ariaLabel={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
     >
       <span className="relative flex size-4 items-center justify-center">
@@ -190,7 +190,7 @@ export default function MenuShared({
         'flex h-full min-h-0 flex-1 flex-shrink-0',
         shellChromeVariant === 'transparent'
           ? 'bg-transparent'
-          : 'bg-background',
+          : 'bg-background-secondary',
       )}
       style={{
         minWidth: SIDEBAR_WIDTH,
@@ -201,7 +201,7 @@ export default function MenuShared({
         <div
           data-testid="sidebar-header-shell"
           className={cn(
-            'flex h-12 flex-shrink-0 items-center gap-1.5 px-2',
+            'flex h-12 flex-shrink-0 items-center gap-1.5 px-3',
             shellChromeVariant === 'default' && 'border-b border-border',
           )}
         >

@@ -31,9 +31,9 @@ export function WorkspaceSwitcherTrigger({
       isDisabled={isSwitchingOrganization}
       className={cn(
         'flex h-7 min-w-0 flex-1 items-center gap-2 rounded-md px-2 transition-colors cursor-pointer',
-        'hover:bg-white/[0.06]',
+        'hover:bg-foreground/[0.06]',
         isSwitchingOrganization && 'opacity-50 cursor-not-allowed',
-        isOpen && 'bg-white/[0.06]',
+        isOpen && 'bg-foreground/[0.06]',
       )}
     >
       {triggerImage ? (
@@ -49,7 +49,7 @@ export function WorkspaceSwitcherTrigger({
           />
         </div>
       ) : (
-        <div className="flex size-5 flex-shrink-0 items-center justify-center rounded bg-white/10 text-[10px] font-bold text-white/70">
+        <div className="flex size-5 flex-shrink-0 items-center justify-center rounded bg-foreground/10 text-[10px] font-bold text-foreground/70">
           {triggerLabel.charAt(0).toUpperCase()}
         </div>
       )}
@@ -65,7 +65,7 @@ export function WorkspaceSwitcherTrigger({
       </div>
       <HiChevronDown
         className={cn(
-          'size-3.5 flex-shrink-0 text-white/40 transition-transform duration-200',
+          'size-3.5 flex-shrink-0 text-foreground/40 transition-transform duration-200',
           isOpen && 'rotate-180',
         )}
       />

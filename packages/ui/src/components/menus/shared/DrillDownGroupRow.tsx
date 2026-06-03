@@ -59,8 +59,8 @@ export default function DrillDownGroupRow({
     'flex w-full items-center gap-3 rounded px-3 py-1.5 transition-colors duration-150 group',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
     isActive
-      ? 'bg-white/[0.08] text-white'
-      : 'text-white/80 hover:bg-white/[0.04]',
+      ? 'bg-foreground/[0.08] text-foreground'
+      : 'text-foreground/80 hover:bg-foreground/[0.04]',
   );
 
   const content = (
@@ -69,19 +69,21 @@ export default function DrillDownGroupRow({
         <OutlineIcon
           className={cn(
             'size-4 transition-colors duration-200',
-            isActive ? 'text-primary' : 'text-white/80 group-hover:text-white',
+            isActive
+              ? 'text-primary'
+              : 'text-foreground/80 group-hover:text-foreground',
           )}
         />
       )}
       <span
         className={cn(
           'text-xs font-medium flex-1 text-left',
-          isActive ? 'text-white font-semibold' : 'text-white/90',
+          isActive ? 'text-foreground font-semibold' : 'text-foreground/90',
         )}
       >
         {group.group}
       </span>
-      <HiChevronRight className="size-4 text-white/30" />
+      <HiChevronRight className="size-4 text-foreground/30" />
     </>
   );
 
