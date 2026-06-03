@@ -41,8 +41,10 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
-vi.mock('@ui/topbars/breadcrumbs/TopbarBreadcrumbs', () => ({
-  default: () => <div data-testid="breadcrumbs">Breadcrumbs</div>,
+vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
+  AppSwitcher: ({ variant }: { variant?: string }) => (
+    <div data-testid="app-switcher">{variant}</div>
+  ),
 }));
 
 vi.mock('@ui/topbars/credits-bar/TopbarCreditsBar', () => ({
@@ -83,15 +85,15 @@ describe('AppProtectedTopbar', () => {
     mockSearchParams = new URLSearchParams();
   });
 
-  it('renders breadcrumbs before the right-side controls', () => {
-    render(<AppProtectedTopbar />);
+  it('renders the section switcher before the right-side controls', () => {
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="studio" />);
 
-    const breadcrumbs = screen.getByTestId('breadcrumbs');
+    const switcher = screen.getByTestId('app-switcher');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
 
-    expect(breadcrumbs).toBeInTheDocument();
+    expect(switcher).toBeInTheDocument();
     expect(
-      breadcrumbs.compareDocumentPosition(cloudSyncIndicator) &
+      switcher.compareDocumentPosition(cloudSyncIndicator) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });

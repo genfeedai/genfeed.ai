@@ -4,7 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import { Button } from '@ui/primitives/button';
-import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
+import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
@@ -22,6 +22,9 @@ function AppProtectedTopbarContent({
   onSidebarToggle,
   isAgentCollapsed,
   onAgentToggle,
+  currentApp,
+  orgSlug,
+  brandSlug,
 }: TopbarProps = {}) {
   const searchParams = useSearchParams();
   const { href } = useOrgUrl();
@@ -71,9 +74,16 @@ function AppProtectedTopbarContent({
             </Button>
           ) : null}
 
-          <div className="min-w-0">
-            <TopbarBreadcrumbs />
-          </div>
+          {orgSlug ? (
+            <div className="min-w-0">
+              <AppSwitcher
+                variant="labeled"
+                currentApp={currentApp ?? 'workspace'}
+                orgSlug={orgSlug}
+                brandSlug={brandSlug}
+              />
+            </div>
+          ) : null}
         </div>
 
         <div className="flex min-w-0 items-center gap-1.5">
