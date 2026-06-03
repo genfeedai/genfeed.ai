@@ -41,7 +41,7 @@ type PrismaOrderBy = Record<string, 'asc' | 'desc'>;
 
 export interface PrismaFindAllInput {
   where?: PrismaFilter;
-  orderBy?: PrismaOrderByInput;
+  orderBy?: PrismaOrderByInput | PrismaOrderByInput[];
   include?: Record<string, unknown>;
 }
 
@@ -290,15 +290,18 @@ export abstract class BaseService<
 
   private normalizeSort(
     sort: AggregationOptions['sort'] | PrismaOrderByInput | undefined,
-  ): PrismaOrderBy {
+  ): PrismaOrderBy[] {
     if (!sort || typeof sort !== 'object') {
-      return { createdAt: 'desc' };
+      return [{ createdAt: 'desc' }];
     }
 
-    return Object.entries(sort).reduce<PrismaOrderBy>((acc, [key, dir]) => {
-      acc[key] = dir === 1 || dir === 'asc' ? 'asc' : 'desc';
-      return acc;
-    }, {});
+    // Emit an ARRAY of single-key entries. Prisma rejects a multi-key orderBy
+    // object ("Expected ...OrderByWithRelationInput[], provided Object") since
+    // object key order is not guaranteed; the array form is required for
+    // deterministic multi-field sorting.
+    return Object.entries(sort).map(([key, dir]) => ({
+      [key]: dir === 1 || dir === 'asc' ? 'asc' : 'desc',
+    }));
   }
 
   private normalizeOperatorValue(value: unknown): unknown {
@@ -898,13 +901,9 @@ export abstract class BaseService<
     const query = this.processSearchParams(filterBuilder.build());
     const include = populateToInclude(populate);
 
-    const orderBy = Object.entries(sort).reduce<Record<string, string>>(
-      (acc, [key, dir]) => {
-        acc[key] = dir === 1 ? 'asc' : 'desc';
-        return acc;
-      },
-      {},
-    );
+    const orderBy = Object.entries(sort).map(([key, dir]) => ({
+      [key]: dir === 1 ? 'asc' : 'desc',
+    }));
 
     const docs = await this.delegate.findMany({
       where: query,

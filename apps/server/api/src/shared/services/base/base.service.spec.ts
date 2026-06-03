@@ -184,7 +184,7 @@ describe('BaseService', () => {
 
       expect(delegate.findMany).toHaveBeenCalledWith({
         where: {},
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }],
         skip: 0,
         take: 10,
       });
@@ -246,7 +246,7 @@ describe('BaseService', () => {
 
       expect(delegate.findMany).toHaveBeenCalledWith({
         include: { organization: true },
-        orderBy: { label: 'asc' },
+        orderBy: [{ label: 'asc' }],
         skip: 0,
         take: 10,
         where: {
