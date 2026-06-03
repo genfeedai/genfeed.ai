@@ -1,4 +1,4 @@
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn';
 import type { ComponentType, MouseEvent, ReactNode } from 'react';
 
 interface SidebarNavItemProps {

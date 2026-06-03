@@ -1,5 +1,5 @@
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn';
 import type { ComponentType, ReactNode } from 'react';
 import { Button } from '../primitives/button';
 

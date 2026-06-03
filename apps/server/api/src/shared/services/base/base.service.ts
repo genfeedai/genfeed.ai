@@ -317,19 +317,30 @@ export abstract class BaseService<
   }
 
   private normalizeSort(
-    sort: AggregationOptions['sort'] | PrismaOrderByInput | undefined,
+    sort:
+      | AggregationOptions['sort']
+      | PrismaOrderByInput
+      | PrismaOrderByInput[]
+      | undefined,
   ): PrismaOrderBy[] {
     if (!sort || typeof sort !== 'object') {
       return [{ createdAt: 'desc' }];
     }
 
+    const toEntry = ([key, dir]: [string, unknown]): PrismaOrderBy => ({
+      [key]: dir === 1 || dir === 'asc' ? 'asc' : 'desc',
+    });
+
     // Emit an ARRAY of single-key entries. Prisma rejects a multi-key orderBy
     // object ("Expected ...OrderByWithRelationInput[], provided Object") since
     // object key order is not guaranteed; the array form is required for
-    // deterministic multi-field sorting.
-    return Object.entries(sort).map(([key, dir]) => ({
-      [key]: dir === 1 || dir === 'asc' ? 'asc' : 'desc',
-    }));
+    // deterministic multi-field sorting. Already-array input (the multi-field
+    // sort path) is flattened to the same single-key entry shape.
+    if (Array.isArray(sort)) {
+      return sort.flatMap((entry) => Object.entries(entry).map(toEntry));
+    }
+
+    return Object.entries(sort).map(toEntry);
   }
 
   private normalizeOperatorValue(value: unknown): unknown {

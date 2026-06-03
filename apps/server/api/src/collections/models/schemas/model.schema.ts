@@ -7,7 +7,8 @@ export type ModelDimensions = {
   [key: string]: unknown;
 };
 
-export interface ModelDocument extends Omit<PrismaModel, 'config'> {
+export interface ModelDocument
+  extends Omit<PrismaModel, 'config' | 'category'> {
   _id: string;
   organization?: string | null;
   description?: string;

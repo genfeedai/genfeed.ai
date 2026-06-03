@@ -50,7 +50,10 @@ export interface AgentStrategyRunHistoryItem {
 }
 
 export interface AgentStrategyDocument
-  extends Omit<PrismaAgentStrategy, 'config' | 'policies'> {
+  extends Omit<
+    PrismaAgentStrategy,
+    'config' | 'policies' | 'agentType' | 'platforms'
+  > {
   _id: string;
   agentType?: string;
   autonomyMode?: AgentAutonomyMode | string;

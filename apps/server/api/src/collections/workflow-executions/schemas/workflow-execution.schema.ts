@@ -17,7 +17,7 @@ export type WorkflowNodeResult = {
 };
 
 export interface WorkflowExecutionDocument
-  extends Omit<PrismaWorkflowExecution, 'result'> {
+  extends Omit<PrismaWorkflowExecution, 'result' | 'trigger'> {
   _id: string;
   workflow?: string | Record<string, unknown>;
   user?: string | Record<string, unknown>;
