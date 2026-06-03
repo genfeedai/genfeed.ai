@@ -28,10 +28,10 @@ describe('ArticleFilterUtil', () => {
   });
 
   describe('buildTagFilter', () => {
-    it('returns ObjectId for valid tag', () => {
+    it('returns Prisma m2m relation filter for valid tag', () => {
       const tagId = '507f191e810c19729de860ee';
       const filter = ArticleFilterUtil.buildTagFilter(tagId);
-      expect(filter.tags).toBe(tagId);
+      expect(filter).toEqual({ tags: { some: { id: tagId } } });
     });
 
     it('returns empty object for invalid tag', () => {
@@ -44,7 +44,7 @@ describe('ArticleFilterUtil', () => {
       const filter = ArticleFilterUtil.buildContentSearchFilter(' marketing ');
       expect(filter.OR as unknown[]).toHaveLength(3);
       expect(
-        (filter.OR as Array<{ label?: { contains: string } }>)[0].label
+        (filter.OR as Array<{ title?: { contains: string } }>)[0].title
           ?.contains,
       ).toBe('marketing');
     });
@@ -85,7 +85,7 @@ describe('ArticleFilterUtil', () => {
           isDeleted: false,
           organization: '507f191e810c19729de860ee',
           scope: 'organization',
-          tags: tag,
+          tags: { some: { id: tag } },
         },
       });
       expect((query.where as { AND: unknown[] }).AND).toHaveLength(1);

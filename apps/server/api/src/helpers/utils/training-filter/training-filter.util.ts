@@ -20,7 +20,7 @@ export class TrainingFilterUtil {
     return {
       category: 'IMAGE',
       isDeleted: false,
-      metadata: { in: options.metadataIds },
+      metadataId: { in: options.metadataIds },
     };
   }
 }

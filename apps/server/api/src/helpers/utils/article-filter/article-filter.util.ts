@@ -32,7 +32,7 @@ export class ArticleFilterUtil {
   }
 
   static buildTagFilter(tagId?: string): Record<string, unknown> {
-    return tagId && isEntityId(tagId) ? { tags: tagId } : {};
+    return tagId && isEntityId(tagId) ? { tags: { some: { id: tagId } } } : {};
   }
 
   static buildContentSearchFilter(search?: string): Record<string, unknown> {
@@ -41,8 +41,8 @@ export class ArticleFilterUtil {
     const searchFilter = { contains: search.trim(), mode: 'insensitive' };
     return {
       OR: [
-        { label: searchFilter },
-        { summary: searchFilter },
+        { title: searchFilter },
+        { excerpt: searchFilter },
         { content: searchFilter },
       ],
     };

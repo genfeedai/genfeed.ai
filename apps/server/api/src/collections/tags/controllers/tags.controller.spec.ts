@@ -97,6 +97,25 @@ describe('TagsController', () => {
       expect(query.where.AND).toBeDefined();
     });
 
+    it('should not include category in search OR conditions (enum field does not support contains)', () => {
+      const inputQuery = {
+        isDeleted: false,
+        search: 'trending',
+      } as unknown as TagsQueryDto;
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
+
+      const andBlock = query.where.AND as Array<{
+        OR: Array<Record<string, unknown>>;
+      }>;
+      const searchOrFields = andBlock[0].OR.map(
+        (entry) => Object.keys(entry)[0],
+      );
+      expect(searchOrFields).not.toContain('category');
+      expect(searchOrFields).toEqual(
+        expect.arrayContaining(['label', 'key', 'description']),
+      );
+    });
+
     it('should use label filter when search is not provided but label is', () => {
       const inputQuery = {
         isDeleted: false,
