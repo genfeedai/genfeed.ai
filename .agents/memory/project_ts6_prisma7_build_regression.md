@@ -6,8 +6,24 @@ status: temporary
 last_verified: 2026-06-03
 ---
 
-**Status:** UNRESOLVED as of 2026-06-03. `status: temporary` — re-verify before
-citing; remove this file once the build migration lands.
+**Status:** BUILD REGRESSION RESOLVED 2026-06-03 — develop CI fully green @
+`2e66b0aa8` (all 15 jobs incl. Build/Typecheck/Test Packages).
+
+**Actual root cause (corrects the breakdown below):** the `~2020 errors` were
+mostly **stale turbo cache + `dist/src` nesting from the `mv dist/src` hack**, not
+real code. Under TS6.0 `tsc` emits flat to `dist/`, so the hack was a no-op that
+rewrote `dist/` after `.tsbuildinfo` was written → cached stale buildinfo → TS6305
+cascade on cache replay. Fix: clean rebuild + **removed the `mv` hack from the 9
+composite packages** (busts poisoned cache via new task hash). The only **real**
+code errors were ~7 Prisma-7 `*Document` interface mismatches (nullable columns
+generate as `string | null`, hand-written interfaces redeclared them optional →
+`undefined` conflict) + `normalizeSort` needing `PrismaOrderByInput[]` — fixed in
+`apps/server/api`. A latent jsdom gap (`elementFromPoint`/pointer-capture) in the
+agent overlay specs was unmasked by the cache bust and stubbed in test setup.
+
+**Still pending (separate, NOT build-health):** the migration *apply* (needs
+`DATABASE_URL`) and compile-time Stage 4 typed `Prisma.<Model>WhereInput` builders.
+Safe to remove this file once those land too.
 
 **What happened:** the concurrent deps-update automation committed `473613a00`
 (`chore(dependencies): update various package versions`), bumping TypeScript to
