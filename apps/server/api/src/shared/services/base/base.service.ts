@@ -179,6 +179,34 @@ export abstract class BaseService<
     return fields.some((field) => field.name === fieldName);
   }
 
+  /**
+   * Stage-4 runtime guard: warn (never throw) when a normalized `where`
+   * references a top-level field the Prisma model does not have. Catches the
+   * Mongo→Prisma field-mismatch class early (e.g. filtering `status` on a model
+   * whose column is `stage`) instead of letting it silently no-op or 500 in
+   * Prisma. Compile-time enforcement (typed `Prisma.<Model>WhereInput`) is the
+   * eventual end state and rides on the TS6.0 build migration; this is the
+   * verifiable runtime net until then. No-op when model metadata is unavailable.
+   */
+  protected auditUnknownFilterFields(where: PrismaFilter = {}): void {
+    if (!this.runtimeModel?.fields) {
+      return;
+    }
+
+    const structuralKeys = new Set(['OR', 'AND', 'NOT', 'isDeleted']);
+    for (const key of Object.keys(where)) {
+      if (structuralKeys.has(key)) {
+        continue;
+      }
+      if (!this.modelHasField(key)) {
+        this.logger?.warn(
+          `Filter references unknown field "${key}" on model "${this.modelName}" — it will not match in Prisma. Fix the controller's buildFindAllQuery (or add the column).`,
+          { field: key, model: this.modelName, operation: 'findAll' },
+        );
+      }
+    }
+  }
+
   private isPlainObject(value: unknown): value is Record<string, unknown> {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
   }
@@ -506,6 +534,7 @@ export abstract class BaseService<
       const where = this.withSoftDeleteFilter(
         this.normalizeWhere(findAllInput.where ?? {}),
       );
+      this.auditUnknownFilterFields(where);
       const include = findAllInput.include;
 
       const cacheKey =

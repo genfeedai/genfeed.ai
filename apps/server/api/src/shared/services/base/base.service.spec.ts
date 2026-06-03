@@ -508,6 +508,38 @@ describe('BaseService', () => {
         user: { is: { id: 'user1' } },
       });
     });
+  });
+
+  describe('auditUnknownFilterFields (stage-4 runtime guard)', () => {
+    it('warns when a filter references a field the model lacks', async () => {
+      setModelFields('id', 'organizationId', 'isDeleted');
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        { where: { status: 'active' } },
+        { page: 1, limit: 10 },
+      );
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('unknown field "status"'),
+        expect.objectContaining({ field: 'status', model: 'testModel' }),
+      );
+    });
+
+    it('does not warn when all filter fields exist on the model', async () => {
+      setModelFields('id', 'organizationId', 'isDeleted');
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+      (logger.warn as ReturnType<typeof vi.fn>).mockClear();
+
+      await service.findAll(
+        { where: { organizationId: 'org1' } },
+        { page: 1, limit: 10 },
+      );
+
+      expect(logger.warn).not.toHaveBeenCalled();
+    });
 
     it('drops isDeleted filters for models without soft-delete support', () => {
       setModelFields('id', 'organizationId');
