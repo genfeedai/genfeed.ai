@@ -1,7 +1,7 @@
 {
   "description": "Type definitions for Genfeed workflow engine",
   "devDependencies": {
-    "@xyflow/react": "12.10.2",
+    "@xyflow/react": "12.11.0",
     "tsup": "8.5.1",
     "typescript": "6.0.2"
   },

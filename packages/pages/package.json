@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@tanstack/react-query": "5.100.13"
+    "@tanstack/react-query": "5.101.0"
   },
   "description": "Shared page-level compositions for Genfeed applications",
   "exports": {
