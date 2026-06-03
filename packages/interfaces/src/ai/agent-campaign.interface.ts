@@ -1,3 +1,18 @@
+export interface IAgentCampaignRotationTarget {
+  key: string;
+  label?: string;
+  platform?: string;
+  strategyId?: string;
+  topic?: string;
+  weight: number;
+}
+
+export interface IAgentCampaignContentRotation {
+  enabled?: boolean;
+  lookbackDays?: number;
+  targets?: IAgentCampaignRotationTarget[];
+}
+
 export interface IAgentCampaign {
   id: string;
   organization: string;
@@ -9,6 +24,7 @@ export interface IAgentCampaign {
   startDate: string;
   endDate?: string;
   status: 'draft' | 'active' | 'paused' | 'completed';
+  contentRotation?: IAgentCampaignContentRotation;
   contentQuota?: { posts?: number; images?: number; videos?: number };
   creditsAllocated: number;
   creditsUsed: number;
@@ -24,6 +40,7 @@ export interface ICreateAgentCampaignDto {
   startDate: string;
   endDate?: string;
   status?: 'draft' | 'active' | 'paused' | 'completed';
+  contentRotation?: IAgentCampaignContentRotation;
   contentQuota?: { posts?: number; images?: number; videos?: number };
   creditsAllocated?: number;
 }

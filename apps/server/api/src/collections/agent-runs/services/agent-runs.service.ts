@@ -316,6 +316,25 @@ export class AgentRunsService extends BaseService<
     });
   }
 
+  @HandleErrors('list recent organization agent runs', 'agent-runs')
+  async findRecentByOrganization(
+    organizationId: string,
+    since: Date,
+    take = 200,
+  ): Promise<AgentRunDocument[]> {
+    const docs = await this.delegate.findMany({
+      orderBy: { createdAt: 'desc' },
+      take,
+      where: {
+        createdAt: { gte: since },
+        isDeleted: false,
+        organizationId,
+      },
+    });
+
+    return this.normalizeDocuments(docs) as AgentRunDocument[];
+  }
+
   @HandleErrors('complete agent run', 'agent-runs')
   async complete(
     id: string,

@@ -9,6 +9,7 @@ import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { CampaignMemoryQueueService } from '@api/services/agent-campaign/campaign-memory-queue.service';
 import { ContentEngineService } from '@api/services/agent-campaign/content-engine.service';
+import { ContentRotationService } from '@api/services/agent-campaign/content-rotation.service';
 import {
   CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
   ORCHESTRATOR_RUN_QUEUE,
@@ -25,6 +26,7 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [
     CampaignMemoryQueueService,
     ContentEngineService,
+    ContentRotationService,
     OrchestratorQueueService,
     TriggerEvaluatorQueueService,
     TriggerEvaluatorService,
@@ -71,6 +73,7 @@ import { forwardRef, Module } from '@nestjs/common';
   providers: [
     CampaignMemoryQueueService,
     ContentEngineService,
+    ContentRotationService,
     OrchestratorQueueService,
     TriggerEvaluatorQueueService,
     TriggerEvaluatorService,
