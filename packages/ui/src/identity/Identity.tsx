@@ -1,4 +1,4 @@
-import { cn } from '@genfeedai/ui/lib/utils';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 
 type IdentitySize = 'xs' | 'sm' | 'default' | 'lg';
 

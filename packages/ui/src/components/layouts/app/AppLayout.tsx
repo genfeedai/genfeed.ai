@@ -107,7 +107,7 @@ export default function AppLayout({
 
               <div
                 className={cn(
-                  'relative h-full max-w-[85vw] border-r border-border bg-background-secondary transition-transform duration-200',
+                  'relative h-full max-w-[85vw] border-r border-border bg-background transition-transform duration-200',
                   isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
                 )}
                 style={{ width: mobileSidebarWidth }}

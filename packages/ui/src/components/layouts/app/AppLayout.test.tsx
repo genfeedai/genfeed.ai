@@ -108,7 +108,7 @@ describe('AppLayout', () => {
     const rail = screen.getByTestId('desktop-sidebar-rail');
     expect(rail).toBeInTheDocument();
     expect(rail).toHaveClass('border-r', 'border-border');
-    expect(rail).toHaveClass('bg-background-secondary');
+    expect(rail).toHaveClass('bg-background');
     expect(rail).toHaveClass('fixed', 'bottom-0', 'left-0');
     expect(rail).toHaveStyle({ top: 'var(--desktop-titlebar-height)' });
     expect(screen.getAllByTestId('menu-component')).toHaveLength(2);

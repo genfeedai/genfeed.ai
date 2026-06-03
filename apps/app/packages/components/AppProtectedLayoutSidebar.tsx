@@ -9,6 +9,7 @@ import { SETTINGS_LOGO_HREF } from '@app-config/settings-menu-items.config';
 import { STUDIO_LOGO_HREF } from '@app-config/studio-menu-items.config';
 import { WORKFLOWS_LOGO_HREF } from '@app-config/workflows-menu-items.config';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
+import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarActionTrigger';
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
@@ -27,6 +28,7 @@ type TaskContextSearchParams = URLSearchParams;
 type Props = {
   shellChromeVariant: ShellChromeVariant;
   taskContextSearchParams: TaskContextSearchParams;
+  currentApp?: MenuSharedProps['currentApp'];
   isAdminRoute: boolean;
   isAnalyticsRoute: boolean;
   isComposeRoute: boolean;
@@ -54,6 +56,7 @@ type Props = {
 export default function AppProtectedLayoutSidebar({
   shellChromeVariant,
   taskContextSearchParams,
+  currentApp,
   isAdminRoute,
   isAnalyticsRoute,
   isComposeRoute,
@@ -96,6 +99,7 @@ export default function AppProtectedLayoutSidebar({
           buildHref(STUDIO_LOGO_HREF),
           taskContextSearchParams,
         )}
+        currentApp={currentApp}
         sectionLabel="Studio"
         shellChromeVariant={shellChromeVariant}
       />
@@ -119,6 +123,7 @@ export default function AppProtectedLayoutSidebar({
           buildHref(COMPOSE_LOGO_HREF),
           taskContextSearchParams,
         )}
+        currentApp={currentApp}
         sectionLabel="Compose"
         shellChromeVariant={shellChromeVariant}
       />
@@ -133,6 +138,7 @@ export default function AppProtectedLayoutSidebar({
           buildHref(WORKFLOWS_LOGO_HREF),
           taskContextSearchParams,
         )}
+        currentApp={currentApp}
         sectionLabel="Workflows"
         shellChromeVariant={shellChromeVariant}
       />
@@ -147,6 +153,7 @@ export default function AppProtectedLayoutSidebar({
           buildHref('/workspace/overview'),
           taskContextSearchParams,
         )}
+        currentApp={currentApp}
         sectionLabel="Editor"
         shellChromeVariant={shellChromeVariant}
       />
@@ -161,6 +168,7 @@ export default function AppProtectedLayoutSidebar({
           buildHref(ANALYTICS_LOGO_HREF),
           taskContextSearchParams,
         )}
+        currentApp={currentApp}
         sectionLabel="Analytics"
         shellChromeVariant={shellChromeVariant}
       />
@@ -175,6 +183,7 @@ export default function AppProtectedLayoutSidebar({
           orgHref(ORG_LOGO_HREF),
           taskContextSearchParams,
         )}
+        currentApp={currentApp}
         sectionLabel="Organization"
         shellChromeVariant={shellChromeVariant}
       />
@@ -189,6 +198,7 @@ export default function AppProtectedLayoutSidebar({
           buildHref(SETTINGS_LOGO_HREF),
           taskContextSearchParams,
         )}
+        currentApp={currentApp}
         sectionLabel="Settings"
         shellChromeVariant={shellChromeVariant}
       />
@@ -197,6 +207,7 @@ export default function AppProtectedLayoutSidebar({
 
   return (
     <AppSidebar
+      currentApp={currentApp}
       items={isConversationRoute ? [] : menuItems}
       logoHref={withTaskContextHref(
         buildHref(APP_LOGO_HREF),

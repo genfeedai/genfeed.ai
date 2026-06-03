@@ -33,7 +33,7 @@ export default function DesktopSidebar({
         'fixed bottom-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
         shellChromeVariant === 'transparent'
           ? 'bg-transparent'
-          : 'bg-background-secondary',
+          : 'bg-background',
         !isCollapsed &&
           shellChromeVariant !== 'transparent' &&
           'border-r border-border',

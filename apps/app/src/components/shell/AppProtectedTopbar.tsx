@@ -10,12 +10,7 @@ import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import {
-  HiBars3,
-  HiOutlineCog6Tooth,
-  HiOutlineCommandLine,
-  HiXMark,
-} from 'react-icons/hi2';
+import { HiBars3, HiOutlineCommandLine, HiXMark } from 'react-icons/hi2';
 import { PiSidebarSimple } from 'react-icons/pi';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
@@ -29,7 +24,7 @@ function AppProtectedTopbarContent({
   onAgentToggle,
 }: TopbarProps = {}) {
   const searchParams = useSearchParams();
-  const { href, orgHref } = useOrgUrl();
+  const { href } = useOrgUrl();
 
   const taskId = searchParams.get('taskId');
   const taskTitle = searchParams.get('taskTitle');
@@ -122,14 +117,6 @@ function AppProtectedTopbarContent({
           <CloudSyncIndicator />
 
           <TopbarCreditsBar />
-
-          <Link
-            href={orgHref('/settings')}
-            className="inline-flex size-7 items-center justify-center rounded-md bg-transparent text-foreground/56 transition-colors hover:bg-hover hover:text-foreground"
-            title="Settings"
-          >
-            <HiOutlineCog6Tooth className="size-4" />
-          </Link>
 
           <TopbarEnd />
         </div>

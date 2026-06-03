@@ -190,7 +190,7 @@ export default function MenuShared({
         'flex h-full min-h-0 flex-1 flex-shrink-0',
         shellChromeVariant === 'transparent'
           ? 'bg-transparent'
-          : 'bg-background-secondary',
+          : 'bg-background',
       )}
       style={{
         minWidth: SIDEBAR_WIDTH,

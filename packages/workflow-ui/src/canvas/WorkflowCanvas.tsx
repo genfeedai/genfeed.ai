@@ -528,14 +528,14 @@ function useWorkflowCanvasHandlers({
   }, []);
 
   const handleNodeDragStart = useCallback(
-    (_event: React.MouseEvent, node: Node) => {
+    (_event: MouseEvent | TouchEvent, node: Node) => {
       setDraggingNodeId(node.id);
     },
     [setDraggingNodeId],
   );
 
   const handleNodeDrag = useCallback(
-    (_event: React.MouseEvent, node: Node) => {
+    (_event: MouseEvent | TouchEvent, node: Node) => {
       setDraggingNodeId(node.id);
     },
     [setDraggingNodeId],

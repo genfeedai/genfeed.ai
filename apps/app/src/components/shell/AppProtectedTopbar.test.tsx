@@ -138,13 +138,10 @@ describe('AppProtectedTopbar', () => {
     );
   });
 
-  it('renders the settings cog as a navigation link', () => {
+  it('does not render a settings cog in the topbar (settings lives in the sidebar user menu)', () => {
     render(<AppProtectedTopbar />);
 
-    expect(screen.getByTitle('Settings')).toHaveAttribute(
-      'href',
-      '/acme/~settings',
-    );
+    expect(screen.queryByTitle('Settings')).not.toBeInTheDocument();
   });
 
   it('renders close and expand controls for open mobile menu and collapsed sidebar', () => {
