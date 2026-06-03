@@ -193,7 +193,7 @@ describe('TrainingsController', () => {
       expect(result).toBeDefined();
     });
 
-    it('should filter by status when provided', async () => {
+    it('should map status=completed to stage=READY in the filter', async () => {
       const mockTrainings = {
         docs: [],
         hasNextPage: false,
@@ -211,14 +211,14 @@ describe('TrainingsController', () => {
         mockTrainings as unknown as AggregatePaginateResult<TrainingDocument>,
       );
 
-      const query = createTrainingsQuery({
-        status: [IngredientStatus.GENERATED] as unknown as IngredientStatus[],
-      });
+      const query = createTrainingsQuery({ status: ['completed'] });
       await controller.findAll(mockRequest, mockUser, query);
 
       const pipeline = controller.buildFindAllPipeline(mockUser, query);
       const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.status).toEqual(IngredientStatus.GENERATED);
+      // Training has no `status` column — app-vocab is mapped to `stage`.
+      expect(matchStage.$match.status).toBeUndefined();
+      expect(matchStage.$match.stage).toEqual('READY');
     });
 
     it('should apply sorting when sort parameter is provided', () => {
@@ -416,14 +416,54 @@ describe('TrainingsController', () => {
       expect(matchStage.$match.isDeleted).toBe(false);
     });
 
-    it('should include status filter when provided', () => {
+    it('should map app-vocab status values to TrainingStage enum values', () => {
+      const query = createTrainingsQuery({ status: ['completed'] });
+      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+
+      const matchStage = asMatchStage(pipeline[0]);
+      // Training has no `status` column — app-vocab is mapped to `stage`.
+      expect(matchStage.$match.status).toBeUndefined();
+      expect(matchStage.$match.stage).toEqual('READY');
+    });
+
+    it('should map multiple status values to multiple TrainingStage values', () => {
       const query = createTrainingsQuery({
-        status: [IngredientStatus.GENERATED] as unknown as IngredientStatus[],
+        status: ['completed', 'failed'],
       });
       const pipeline = controller.buildFindAllPipeline(mockUser, query);
 
       const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.status).toEqual(IngredientStatus.GENERATED);
+      expect(matchStage.$match.status).toBeUndefined();
+      expect(matchStage.$match.stage).toEqual({ in: ['READY', 'FAILED'] });
+    });
+
+    it('should map processing to TRAINING stage', () => {
+      const query = createTrainingsQuery({ status: ['processing'] });
+      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+
+      const matchStage = asMatchStage(pipeline[0]);
+      expect(matchStage.$match.stage).toEqual('TRAINING');
+    });
+
+    it('should drop unknown status values silently', () => {
+      const query = createTrainingsQuery({ status: ['unknown-value'] });
+      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+
+      const matchStage = asMatchStage(pipeline[0]);
+      expect(matchStage.$match.status).toBeUndefined();
+      expect(matchStage.$match.stage).toBeUndefined();
+    });
+
+    it('should deduplicate stage values when multiple inputs map to the same stage', () => {
+      // completed and ready both map to READY
+      const query = createTrainingsQuery({
+        status: ['completed', 'ready'],
+      });
+      const pipeline = controller.buildFindAllPipeline(mockUser, query);
+
+      const matchStage = asMatchStage(pipeline[0]);
+      // Deduplication means single value, not { in: ['READY', 'READY'] }
+      expect(matchStage.$match.stage).toEqual('READY');
     });
 
     it('should handle isDeleted parameter', () => {

@@ -196,6 +196,28 @@ describe('MusicsController', () => {
       expect(musicsService.findAll).toHaveBeenCalled();
     });
 
+    it('should exclude training-associated musics using trainingId: null', async () => {
+      const user = createMockUser();
+      const request = createMockRequest();
+      musicsService.findAll.mockResolvedValue({
+        docs: [],
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: 10,
+        page: 1,
+        totalDocs: 0,
+        totalPages: 1,
+      });
+
+      await controller.findLatest(request as never, user as never, 10);
+
+      const callArgs = musicsService.findAll.mock.calls[0];
+      const aggregate = callArgs[0];
+      const userBranch = aggregate.where.OR[0];
+      expect(userBranch).toHaveProperty('trainingId', null);
+      expect(userBranch).not.toHaveProperty('training');
+    });
+
     it('should cap limit at 50', async () => {
       const user = createMockUser();
       const request = createMockRequest();

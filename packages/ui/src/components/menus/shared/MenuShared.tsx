@@ -8,7 +8,6 @@ import MenuItem from '@ui/menus/item/MenuItem';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
 import WorkspaceSwitcher from '@ui/menus/workspace-switcher/WorkspaceSwitcher';
 import { Button } from '@ui/primitives/button';
-import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -25,7 +24,6 @@ const SIDEBAR_WIDTH = 240;
 
 export default function MenuShared({
   config,
-  currentApp,
   onClose,
   renderTopSlot,
   renderBody,
@@ -46,8 +44,6 @@ export default function MenuShared({
     logoUrl,
     href,
     orgHref,
-    orgSlug,
-    brandSlug,
     isConversationsCollapsed,
     setIsConversationsCollapsed,
     nestedGroupId,
@@ -207,13 +203,6 @@ export default function MenuShared({
         >
           {sharedCollapseControl}
           <WorkspaceSwitcher />
-          {currentApp && orgSlug && (
-            <AppSwitcher
-              currentApp={currentApp}
-              orgSlug={orgSlug}
-              brandSlug={brandSlug}
-            />
-          )}
         </div>
 
         {/* Body — fades out when collapsed, pointer-events disabled */}

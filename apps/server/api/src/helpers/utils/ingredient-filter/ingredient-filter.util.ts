@@ -116,11 +116,11 @@ export class IngredientFilterUtil {
    */
   static buildBrandFilter(
     brand: string | undefined,
-  ): string | Record<string, boolean> {
+  ): string | Record<string, unknown> {
     if (isEntityId(brand)) {
       return brand;
     }
-    return { not: true };
+    return { not: null };
   }
 
   /**

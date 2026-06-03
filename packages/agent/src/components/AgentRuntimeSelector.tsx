@@ -89,7 +89,7 @@ export function AgentRuntimeSelector({
           </span>
           <HiChevronDown
             className={cn(
-              'size-3 text-foreground/42 transition-transform',
+              'size-3.5 text-foreground/42 transition-transform',
               open && 'rotate-180',
             )}
           />

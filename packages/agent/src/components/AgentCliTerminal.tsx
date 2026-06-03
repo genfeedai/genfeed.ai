@@ -869,7 +869,7 @@ export function AgentCliTerminalControls({
             >
               <Button
                 className={cn(
-                  'h-5 rounded-sm border border-border/60 px-2 text-[10px] text-foreground/50 transition-colors hover:border-emerald-300/40 hover:text-emerald-200',
+                  'h-6 rounded-sm border border-border/60 px-2 text-[10px] text-foreground/50 transition-colors hover:border-emerald-300/40 hover:text-emerald-200',
                   activeSessionId === session.id &&
                     'border-emerald-300/50 text-emerald-200',
                 )}
@@ -884,7 +884,7 @@ export function AgentCliTerminalControls({
               />
               <Button
                 aria-label={`Close ${session.kind} session`}
-                className="h-5 rounded-sm border border-border/60 px-1 text-[10px] text-foreground/35 transition-colors hover:border-red-400/50 hover:text-red-300"
+                className="h-6 rounded-sm border border-border/60 px-1 text-[10px] text-foreground/35 transition-colors hover:border-red-400/50 hover:text-red-300"
                 label="×"
                 onClick={(event) => {
                   event.stopPropagation();
@@ -898,7 +898,7 @@ export function AgentCliTerminalControls({
           ))}
           <Button
             aria-label="Open new terminal session"
-            className="h-5 rounded-sm border border-border/60 px-1.5 text-[10px] text-foreground/35 transition-colors hover:border-emerald-300/40 hover:text-emerald-200"
+            className="h-6 rounded-sm border border-border/60 px-1.5 text-[10px] text-foreground/35 transition-colors hover:border-emerald-300/40 hover:text-emerald-200"
             label="+"
             onClick={(event) => {
               event.stopPropagation();

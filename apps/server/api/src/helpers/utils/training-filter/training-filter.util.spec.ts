@@ -41,7 +41,7 @@ describe('TrainingFilterUtil', () => {
       expect(filter).toEqual({
         category: 'IMAGE',
         isDeleted: false,
-        metadata: { in: ['metadata-1', 'metadata-2'] },
+        metadataId: { in: ['metadata-1', 'metadata-2'] },
       });
     });
   });

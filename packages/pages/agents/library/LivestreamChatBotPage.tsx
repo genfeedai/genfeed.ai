@@ -2,6 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import Textarea from '@ui/inputs/textarea/Textarea';
+import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import LivestreamBotConfigCard from './LivestreamBotConfigCard';
@@ -59,140 +60,137 @@ export default function LivestreamChatBotPage({
   );
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold">Livestream Chat Bot</h1>
-        <p className="text-sm text-muted-foreground">
-          YouTube is treated as the primary platform. Save the bot, connect the
-          channel targets, then control the live session from the same screen.
-        </p>
-      </div>
+    <Container
+      label="Livestream Chat Bot"
+      description="YouTube is treated as the primary platform. Save the bot, connect the channel targets, then control the live session from the same screen."
+    >
+      <div className="space-y-6">
+        <LivestreamBotConfigCard
+          form={form}
+          isSaving={isSaving}
+          onFormChange={(patch) =>
+            setForm((current) => ({ ...current, ...patch }))
+          }
+          onSave={() => void handleSave()}
+        />
 
-      <LivestreamBotConfigCard
-        form={form}
-        isSaving={isSaving}
-        onFormChange={(patch) =>
-          setForm((current) => ({ ...current, ...patch }))
-        }
-        onSave={() => void handleSave()}
-      />
+        <LivestreamPlatformTargets
+          form={form}
+          onFormChange={(patch) =>
+            setForm((current) => ({ ...current, ...patch }))
+          }
+          youtubeLastPostedAt={youtubeFirstStatus?.lastPostedAt}
+          twitchLastPostedAt={twitchStatus?.lastPostedAt}
+        />
 
-      <LivestreamPlatformTargets
-        form={form}
-        onFormChange={(patch) =>
-          setForm((current) => ({ ...current, ...patch }))
-        }
-        youtubeLastPostedAt={youtubeFirstStatus?.lastPostedAt}
-        twitchLastPostedAt={twitchStatus?.lastPostedAt}
-      />
-
-      <div className="gen-glass rounded-xl p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">Runtime Controls</h2>
-            <p className="text-sm text-muted-foreground">
-              Session status: {session?.status || 'stopped'}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              label="Start"
-              variant={ButtonVariant.DEFAULT}
-              onClick={() => void handleSessionAction('start')}
-            />
-            <Button
-              label="Pause"
-              variant={ButtonVariant.SECONDARY}
-              onClick={() => void handleSessionAction('pause')}
-            />
-            <Button
-              label="Resume"
-              variant={ButtonVariant.SECONDARY}
-              onClick={() => void handleSessionAction('resume')}
-            />
-            <Button
-              label="Stop"
-              variant={ButtonVariant.DESTRUCTIVE}
-              onClick={() => void handleSessionAction('stop')}
-            />
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-6 lg:grid-cols-3">
-          <div className="space-y-4">
-            <h3 className="font-medium">Manual Override</h3>
-            <Input
-              label="Current Topic"
-              value={manualTopic}
-              onChange={(event) => setManualTopic(event.target.value)}
-            />
-            <Input
-              label="Promotion Angle"
-              value={promotionAngle}
-              onChange={(event) => setPromotionAngle(event.target.value)}
-            />
-            <Button
-              label="Apply Override"
-              variant={ButtonVariant.SECONDARY}
-              onClick={() => void handleApplyOverride()}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="font-medium">Transcript Ingestion</h3>
-            <Textarea
-              label="Transcript Chunk"
-              value={transcriptChunk}
-              onChange={(event) => setTranscriptChunk(event.target.value)}
-            />
-            <Button
-              label="Process Transcript"
-              variant={ButtonVariant.SECONDARY}
-              onClick={() => void handleIngestTranscript()}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="font-medium">Send One-Off Message</h3>
-            <div className="flex gap-2">
+        <div className="gen-glass rounded-xl p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">Runtime Controls</h2>
+              <p className="text-sm text-muted-foreground">
+                Session status: {session?.status || 'stopped'}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
               <Button
-                label="YouTube"
-                variant={
-                  selectedPlatform === 'youtube'
-                    ? ButtonVariant.DEFAULT
-                    : ButtonVariant.SECONDARY
-                }
-                onClick={() => setSelectedPlatform('youtube')}
+                label="Start"
+                variant={ButtonVariant.DEFAULT}
+                onClick={() => void handleSessionAction('start')}
               />
               <Button
-                label="Twitch"
-                variant={
-                  selectedPlatform === 'twitch'
-                    ? ButtonVariant.DEFAULT
-                    : ButtonVariant.SECONDARY
-                }
-                onClick={() => setSelectedPlatform('twitch')}
+                label="Pause"
+                variant={ButtonVariant.SECONDARY}
+                onClick={() => void handleSessionAction('pause')}
+              />
+              <Button
+                label="Resume"
+                variant={ButtonVariant.SECONDARY}
+                onClick={() => void handleSessionAction('resume')}
+              />
+              <Button
+                label="Stop"
+                variant={ButtonVariant.DESTRUCTIVE}
+                onClick={() => void handleSessionAction('stop')}
               />
             </div>
-            <Textarea
-              label="Message"
-              placeholder="Leave blank to let the bot generate the next prompt."
-              value={sendNowMessage}
-              onChange={(event) => setSendNowMessage(event.target.value)}
-            />
-            <Button
-              label="Send Now"
-              variant={ButtonVariant.DEFAULT}
-              onClick={() => void handleSendNow()}
-            />
+          </div>
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-3">
+            <div className="space-y-4">
+              <h3 className="font-medium">Manual Override</h3>
+              <Input
+                label="Current Topic"
+                value={manualTopic}
+                onChange={(event) => setManualTopic(event.target.value)}
+              />
+              <Input
+                label="Promotion Angle"
+                value={promotionAngle}
+                onChange={(event) => setPromotionAngle(event.target.value)}
+              />
+              <Button
+                label="Apply Override"
+                variant={ButtonVariant.SECONDARY}
+                onClick={() => void handleApplyOverride()}
+              />
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="font-medium">Transcript Ingestion</h3>
+              <Textarea
+                label="Transcript Chunk"
+                value={transcriptChunk}
+                onChange={(event) => setTranscriptChunk(event.target.value)}
+              />
+              <Button
+                label="Process Transcript"
+                variant={ButtonVariant.SECONDARY}
+                onClick={() => void handleIngestTranscript()}
+              />
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="font-medium">Send One-Off Message</h3>
+              <div className="flex gap-2">
+                <Button
+                  label="YouTube"
+                  variant={
+                    selectedPlatform === 'youtube'
+                      ? ButtonVariant.DEFAULT
+                      : ButtonVariant.SECONDARY
+                  }
+                  onClick={() => setSelectedPlatform('youtube')}
+                />
+                <Button
+                  label="Twitch"
+                  variant={
+                    selectedPlatform === 'twitch'
+                      ? ButtonVariant.DEFAULT
+                      : ButtonVariant.SECONDARY
+                  }
+                  onClick={() => setSelectedPlatform('twitch')}
+                />
+              </div>
+              <Textarea
+                label="Message"
+                placeholder="Leave blank to let the bot generate the next prompt."
+                value={sendNowMessage}
+                onChange={(event) => setSendNowMessage(event.target.value)}
+              />
+              <Button
+                label="Send Now"
+                variant={ButtonVariant.DEFAULT}
+                onClick={() => void handleSendNow()}
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <LivestreamSessionPanels
-        recentDeliveries={recentDeliveries}
-        session={session}
-      />
-    </div>
+        <LivestreamSessionPanels
+          recentDeliveries={recentDeliveries}
+          session={session}
+        />
+      </div>
+    </Container>
   );
 }
