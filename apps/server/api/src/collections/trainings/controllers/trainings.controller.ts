@@ -92,6 +92,27 @@ export class TrainingsController extends BaseCRUDController<
   }
 
   /**
+   * Maps studio/app-level status vocabulary to the Training `stage` enum.
+   *
+   * Training has NO `status` column — the schema uses `stage: TrainingStage`
+   * with values PENDING | UPLOADING | TRAINING | READY | FAILED | CANCELLED.
+   *
+   * The studio sends lowercase app-vocab values (e.g. ?status=completed).
+   * NOTE for review: `completed` → READY and `processing` → TRAINING are
+   * semantic assumptions — confirm with Vincent before shipping to production.
+   */
+  private static readonly STATUS_TO_STAGE: Record<string, string> = {
+    cancelled: 'CANCELLED',
+    completed: 'READY',
+    failed: 'FAILED',
+    pending: 'PENDING',
+    processing: 'TRAINING',
+    ready: 'READY',
+    training: 'TRAINING',
+    uploading: 'UPLOADING',
+  };
+
+  /**
    * Override buildFindAllQuery to support both user and organization filtering
    */
   public buildFindAllQuery(user: User, query: TrainingsQueryDto) {
@@ -116,9 +137,22 @@ export class TrainingsController extends BaseCRUDController<
       isDeleted: query.isDeleted ?? false,
     };
 
-    const statusFilter = CollectionFilterUtil.buildStatusFilter(query.status);
-    if (Object.keys(statusFilter).length > 0) {
-      Object.assign(where, statusFilter);
+    // Map app-vocab status values to the TrainingStage enum; drop unknowns.
+    if (query.status && query.status.length > 0) {
+      const mappedStages = [
+        ...new Set(
+          query.status
+            .map((s) => TrainingsController.STATUS_TO_STAGE[s.toLowerCase()])
+            .filter(Boolean),
+        ),
+      ];
+
+      if (mappedStages.length === 1) {
+        where.stage = mappedStages[0];
+      } else if (mappedStages.length > 1) {
+        where.stage = { in: mappedStages };
+      }
+      // If all values were unknown, no stage filter is applied.
     }
 
     return {
