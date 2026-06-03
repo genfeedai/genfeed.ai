@@ -121,6 +121,25 @@ Object.defineProperty(window, 'scrollTo', {
   writable: true,
 });
 
+// jsdom lacks several DOM APIs that floating-ui / radix dropdowns and
+// listbox overlays call when opened (hit-testing + pointer capture +
+// scroll). Stub them so component tests can render/interact.
+if (!Document.prototype.elementFromPoint) {
+  Document.prototype.elementFromPoint = () => null;
+}
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = vi.fn();
+}
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = () => false;
+}
+if (!Element.prototype.setPointerCapture) {
+  Element.prototype.setPointerCapture = vi.fn();
+}
+if (!Element.prototype.releasePointerCapture) {
+  Element.prototype.releasePointerCapture = vi.fn();
+}
+
 // Mock fetch
 global.fetch = vi.fn();
 
