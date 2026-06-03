@@ -1,8 +1,10 @@
 'use client';
 
 import type { LayoutProps } from '@props/layout/layout.props';
+import Container from '@ui/layout/container/Container';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { useParams } from 'next/navigation';
+import { HiOutlineCog6Tooth } from 'react-icons/hi2';
 
 export default function BrandSettingsLayout({ children }: LayoutProps) {
   const params = useParams<{ brandSlug?: string; orgSlug?: string }>();
@@ -45,9 +47,15 @@ export default function BrandSettingsLayout({ children }: LayoutProps) {
   ];
 
   return (
-    <div className="space-y-6">
-      <Tabs items={items} variant="underline" fullWidth={false} />
-      {children}
-    </div>
+    <Container
+      label="Brand Settings"
+      description="Manage voice, harness, publishing, and agent defaults for this brand"
+      icon={HiOutlineCog6Tooth}
+    >
+      <div className="space-y-6">
+        <Tabs items={items} variant="underline" fullWidth={false} />
+        {children}
+      </div>
+    </Container>
   );
 }
