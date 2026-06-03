@@ -13,6 +13,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { ContentPlanStatus } from '@genfeedai/enums';
 import type { ContentPlan as PrismaContentPlan } from '@genfeedai/prisma';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -43,7 +44,8 @@ interface ContentPlanConfigInput {
 export class ContentPlansService extends BaseService<
   ContentPlanDocument,
   CreateContentPlanDto,
-  UpdateContentPlanDto
+  UpdateContentPlanDto,
+  Prisma.ContentPlanWhereInput
 > {
   constructor(
     public readonly prisma: PrismaService,

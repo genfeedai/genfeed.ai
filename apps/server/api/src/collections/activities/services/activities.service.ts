@@ -7,6 +7,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { EventBusService } from '@api/shared/services/event-bus/event-bus.service';
 import { ActivityEntityModel } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   forwardRef,
@@ -31,7 +32,12 @@ type ActivityMutationInput = Partial<CreateActivityDto> &
 
 @Injectable()
 export class ActivitiesService
-  extends BaseService<ActivityDocument, CreateActivityDto, UpdateActivityDto>
+  extends BaseService<
+    ActivityDocument,
+    CreateActivityDto,
+    UpdateActivityDto,
+    Prisma.ActivityWhereInput
+  >
   implements OnModuleInit
 {
   constructor(

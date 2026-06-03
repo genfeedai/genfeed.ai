@@ -7,6 +7,7 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AgentExecutionStatus } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import type {
   AgentRunAnomaly,
   AgentRunModelCount,
@@ -158,7 +159,8 @@ function detectAgentRunAnomalies(
 export class AgentRunsService extends BaseService<
   AgentRunDocument,
   CreateAgentRunDto,
-  UpdateAgentRunDto
+  UpdateAgentRunDto,
+  Prisma.AgentRunWhereInput
 > {
   constructor(
     public readonly prisma: PrismaService,

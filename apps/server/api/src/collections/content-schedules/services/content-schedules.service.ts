@@ -4,6 +4,7 @@ import type { ContentScheduleDocument } from '@api/collections/content-schedules
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { CronJob } from 'cron';
@@ -12,7 +13,8 @@ import { CronJob } from 'cron';
 export class ContentSchedulesService extends BaseService<
   ContentScheduleDocument,
   CreateContentScheduleDto,
-  UpdateContentScheduleDto
+  UpdateContentScheduleDto,
+  Prisma.ContentScheduleWhereInput
 > {
   constructor(
     public readonly prisma: PrismaService,

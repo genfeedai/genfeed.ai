@@ -7,6 +7,7 @@ import { ContentDraftInput } from '@api/services/skill-executor/interfaces/skill
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { ContentDraftStatus } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -14,7 +15,8 @@ import { Injectable } from '@nestjs/common';
 export class ContentDraftsService extends BaseService<
   ContentDraftDocument,
   CreateContentDraftDto,
-  UpdateContentDraftDto
+  UpdateContentDraftDto,
+  Prisma.ContentDraftWhereInput
 > {
   constructor(
     public readonly prisma: PrismaService,

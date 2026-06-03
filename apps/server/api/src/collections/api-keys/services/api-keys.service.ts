@@ -5,6 +5,7 @@ import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.s
 import { ConfigService } from '@api/config/config.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable } from '@nestjs/common';
@@ -14,7 +15,8 @@ import * as bcrypt from 'bcrypt';
 export class ApiKeysService extends BaseService<
   ApiKeyDocument,
   CreateApiKeyDto,
-  UpdateApiKeyDto
+  UpdateApiKeyDto,
+  Prisma.ApiKeyWhereInput
 > {
   private static readonly RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute sliding window
 

@@ -58,6 +58,7 @@ import {
   SystemPromptKey,
 } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -72,7 +73,8 @@ import {
 export class ArticlesService extends BaseService<
   ArticleDocument,
   CreateArticleDto,
-  UpdateArticleDto
+  UpdateArticleDto,
+  Prisma.ArticleWhereInput
 > {
   private readonly constructorName = this.constructor.name;
   private static readonly TEXT_MAX_OVERDRAFT_CREDITS = 5;

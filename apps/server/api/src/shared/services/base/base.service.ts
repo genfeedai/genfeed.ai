@@ -58,28 +58,50 @@ const PAGINATION_OPTION_KEYS = new Set([
 ]);
 
 /**
- * Dynamic Prisma delegate type.
- * Covers the subset of Prisma client methods used by BaseService.
- * Using `any` here is intentional — Prisma generates concrete types per model,
- * but BaseService operates generically across all models via `prisma[modelName]`.
+ * Stage 4: argument shape whose `where` clause is compile-time typed to the
+ * model's `Prisma.<Model>WhereInput` (via the `TWhere` generic), while the
+ * remaining Prisma args (data/select/include/orderBy/skip/take…) stay permissive.
+ * A subclass that specializes `TWhere` gets its `this.internalDelegate.*({ where })`
+ * calls checked against the real columns — catching the Mongo→Prisma field
+ * mismatch class at compile time instead of via the runtime audit.
  */
-type PrismaDelegate = {
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
-  findMany: (args?: any) => Promise<any[]>;
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
-  findFirst: (args?: any) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
-  findUnique: (args?: any) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
-  create: (args: any) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
-  update: (args: any) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
-  updateMany: (args: any) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
-  delete: (args: any) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
-  count: (args?: any) => Promise<number>;
+type PrismaDelegateArgs<TWhere> = {
+  where?: TWhere;
+  data?: unknown;
+  orderBy?: unknown;
+  cursor?: unknown;
+  take?: number;
+  skip?: number;
+  limit?: number;
+  distinct?: unknown;
+  select?: unknown;
+  include?: unknown;
+  omit?: unknown;
+};
+
+/**
+ * Dynamic Prisma delegate type, generic over the model's where-input.
+ * Returns stay `any` — Prisma generates concrete return types per model, but
+ * BaseService operates generically across all models via `prisma[modelName]`.
+ * Default `TWhere = PrismaFilter` keeps the delegate loose for services that
+ * have not opted into the typed where yet.
+ */
+type PrismaDelegate<TWhere = PrismaFilter> = {
+  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
+  findMany: (args?: PrismaDelegateArgs<TWhere>) => Promise<any[]>;
+  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
+  findFirst: (args?: PrismaDelegateArgs<TWhere>) => Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
+  findUnique: (args?: PrismaDelegateArgs<TWhere>) => Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
+  create: (args: Record<string, unknown>) => Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
+  update: (args: PrismaDelegateArgs<TWhere>) => Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
+  updateMany: (args: PrismaDelegateArgs<TWhere>) => Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
+  delete: (args: PrismaDelegateArgs<TWhere>) => Promise<any>;
+  count: (args?: PrismaDelegateArgs<TWhere>) => Promise<number>;
 };
 
 /**
@@ -127,6 +149,7 @@ export abstract class BaseService<
   T,
   CreateDto = Partial<T>,
   UpdateDto = Partial<CreateDto>,
+  TWhere extends PrismaFilter = PrismaFilter,
 > {
   constructor(
     protected readonly prisma: PrismaService,
@@ -145,12 +168,26 @@ export abstract class BaseService<
   }
 
   /**
-   * Returns the typed Prisma delegate for this service's model.
+   * Subclass-facing Prisma delegate: its `where` args are typed to `TWhere`
+   * (`Prisma.<Model>WhereInput` once a subclass specializes it). Use this in
+   * service query code so filter fields are checked at compile time.
    */
-  protected get delegate(): PrismaDelegate {
-    return (this.prisma as unknown as Record<string, PrismaDelegate>)[
+  protected get delegate(): PrismaDelegate<TWhere> {
+    return (this.prisma as unknown as Record<string, PrismaDelegate<TWhere>>)[
       this.modelName
     ];
+  }
+
+  /**
+   * BaseService-internal delegate: `where` stays the loose `PrismaFilter`. The
+   * base builds dynamic where clauses from untyped HTTP input (the runtime audit
+   * covers field validity there), so narrowing `TWhere` in a subclass must not
+   * reject the base's own generic plumbing.
+   */
+  private get internalDelegate(): PrismaDelegate<PrismaFilter> {
+    return (
+      this.prisma as unknown as Record<string, PrismaDelegate<PrismaFilter>>
+    )[this.modelName];
   }
 
   private get runtimeModel(): { fields?: Array<{ name: string }> } | undefined {
@@ -497,7 +534,7 @@ export abstract class BaseService<
       });
 
       const include = populateToInclude(populate);
-      const doc = await this.delegate.create({
+      const doc = await this.internalDelegate.create({
         data: createDto,
         ...(include ? { include } : {}),
       });
@@ -567,7 +604,7 @@ export abstract class BaseService<
 
       if (!isPaginated) {
         const docs = this.normalizeDocuments(
-          await this.delegate.findMany({
+          await this.internalDelegate.findMany({
             where,
             orderBy,
             ...(include ? { include } : {}),
@@ -589,14 +626,14 @@ export abstract class BaseService<
       }
 
       const [docs, totalDocs] = await Promise.all([
-        this.delegate.findMany({
+        this.internalDelegate.findMany({
           where,
           orderBy,
           skip,
           take: limit,
           ...(include ? { include } : {}),
         }),
-        this.delegate.count({ where }),
+        this.internalDelegate.count({ where }),
       ]);
 
       const totalPages = Math.ceil(totalDocs / limit);
@@ -640,7 +677,7 @@ export abstract class BaseService<
   async find(params: PrismaFilter, populate: PopulateInput = []): Promise<T[]> {
     const where = this.processSearchParams(params);
     const include = populateToInclude(populate);
-    const docs = await this.delegate.findMany({
+    const docs = await this.internalDelegate.findMany({
       where,
       ...(include ? { include } : {}),
     });
@@ -662,7 +699,7 @@ export abstract class BaseService<
       const where = this.processSearchParams(params);
       const include = populateToInclude(populate);
 
-      const result = await this.delegate.findFirst({
+      const result = await this.internalDelegate.findFirst({
         where,
         ...(include ? { include } : {}),
       });
@@ -702,7 +739,7 @@ export abstract class BaseService<
       const data = updateDto as PrismaUpdate;
 
       const include = populateToInclude(populate);
-      const result = await this.delegate.update({
+      const result = await this.internalDelegate.update({
         where: { id },
         data,
         ...(include ? { include } : {}),
@@ -750,7 +787,7 @@ export abstract class BaseService<
 
       this.logger?.debug('Bulk updating documents', { filter, update });
 
-      const result = await this.delegate.updateMany({
+      const result = await this.internalDelegate.updateMany({
         where: filter,
         data: update,
       });
@@ -785,7 +822,7 @@ export abstract class BaseService<
 
       this.logger?.debug('Soft deleting document', { id });
 
-      const result = await this.delegate.update({
+      const result = await this.internalDelegate.update({
         where: { id },
         data: { isDeleted: true },
       });
@@ -902,7 +939,7 @@ export abstract class BaseService<
     populate: PopulateOption[] = [],
   ): Promise<T> {
     const include = populateToInclude(populate);
-    const item = await this.delegate.findFirst({
+    const item = await this.internalDelegate.findFirst({
       where: this.withSoftDeleteFilter({ id, organizationId }),
       ...(include ? { include } : {}),
     });
@@ -945,7 +982,7 @@ export abstract class BaseService<
       [key]: dir === 1 ? 'asc' : 'desc',
     }));
 
-    const docs = await this.delegate.findMany({
+    const docs = await this.internalDelegate.findMany({
       where: query,
       orderBy,
       ...(include ? { include } : {}),
@@ -980,7 +1017,7 @@ export abstract class BaseService<
       });
 
       // Verify ownership first, then update
-      const existing = await this.delegate.findFirst({
+      const existing = await this.internalDelegate.findFirst({
         where: this.withSoftDeleteFilter({ id, organizationId }),
         select: { id: true },
       });
@@ -990,7 +1027,7 @@ export abstract class BaseService<
         return null;
       }
 
-      const result = await this.delegate.update({
+      const result = await this.internalDelegate.update({
         where: { id },
         data: { [field]: value },
       });
@@ -1026,7 +1063,7 @@ export abstract class BaseService<
         value,
       });
 
-      const result = await this.delegate.updateMany({
+      const result = await this.internalDelegate.updateMany({
         where: this.withSoftDeleteFilter({
           id: { in: ids },
           organizationId,
