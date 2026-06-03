@@ -9,6 +9,7 @@
 - [Migration Status](project_migration.md) — cloud + core → genfeed.ai migration complete, all pages/tests present
 - [Settings Routing](project_settings_routing.md) — canonical personal/org/brand settings URL shapes
 - [Desktop BYOK Generation](project_desktop_byok_generation.md) — desktop local/BYOK generation works without Clerk; Clerk is sync-only
+- [TS6.0/Prisma-7 build regression](project_ts6_prisma7_build_regression.md) — **temporary** — deps bump 473613a00 broke repo-wide tsc build (~2020 errors); dev runtime OK; blocks type-check/CI/compile-time Stage 4
 
 ## Feedback (user corrections — permanent)
 
@@ -24,6 +25,7 @@
 - [GPU instances off by default](feedback_gpu_instances_off_by_default.md) — Keep Genfeed GPU/Fleet inference instances off unless explicitly needed
 - [Inference servers private boundary](feedback_inference_servers_private_boundary.md) — Keep Genfeed inference server implementations out of the public monorepo
 - [GenfeedAI managed provider](feedback_genfeedai_managed_provider.md) — Model Genfeed-managed inference as provider=genfeedai, enabled per customer from console
+- [Concurrent automation on develop](feedback_concurrent_automation_develop.md) — A background bot commits to HEAD + pushes develop in this shared checkout; path-scope git add, never blind add -u
 
 ## References
 
