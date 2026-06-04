@@ -400,8 +400,7 @@ describe('MetaAdsService - Write Operations', () => {
           params: expect.objectContaining({
             access_token: mockAccessToken,
             billing_event: 'IMPRESSIONS',
-            // integrationHttpClient query builder coerces numeric strings to numbers
-            campaign_id: 120001,
+            campaign_id: '120001',
             name: 'US Audience 25-45',
             optimization_goal: 'LINK_CLICKS',
             status: 'PAUSED',
