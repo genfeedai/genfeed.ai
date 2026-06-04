@@ -13,8 +13,8 @@ import type {
   IDesktopSyncOpAck,
   IDesktopSyncState,
 } from '@genfeedai/desktop-contracts';
-import type { PrismaClient } from '@genfeedai/desktop-prisma';
-import { type DesktopAssetRow, toDesktopAsset } from './desktop-asset.util';
+import type { DesktopAsset, PrismaClient } from '@genfeedai/desktop-prisma';
+import { toDesktopAsset } from './desktop-asset.util';
 import { toIso } from './time.util';
 
 const LOCAL_ORGANIZATION_ID = 'local-org';
@@ -92,7 +92,7 @@ export class DesktopSyncService {
     }
   }
 
-  private toAsset(row: DesktopAssetRow): IDesktopAsset {
+  private toAsset(row: DesktopAsset): IDesktopAsset {
     return toDesktopAsset(row);
   }
 

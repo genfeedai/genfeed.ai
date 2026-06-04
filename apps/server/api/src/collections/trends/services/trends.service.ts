@@ -339,9 +339,9 @@ export class TrendsService {
 
     if (options.allowFetchIfMissing === false) {
       this.loggerService.log(
-        'No cached trends found, returning bootstrap trend fallback without live fetch',
+        'No cached trends found and live fetch is disabled, returning empty result',
       );
-      return this.getBootstrapTrends(platform);
+      return [];
     }
 
     // No cached trends, fetch fresh
@@ -554,6 +554,15 @@ export class TrendsService {
     let trends = await this.getTrends(organizationId, brandId, platform, {
       allowFetchIfMissing: options.allowFetchIfMissing ?? false,
     });
+
+    // The raw getTrends probe returns [] on a cold cache so programmatic callers
+    // (e.g. the agent tool executor) can detect a true cache-miss and trigger a
+    // live fetch themselves. Access-control / display consumers reach trends
+    // through this wrapper and still need a curated set to render, so restore the
+    // bootstrap fallback here when nothing is cached.
+    if (trends.length === 0) {
+      trends = this.getBootstrapTrends(platform);
+    }
 
     // Filter by brand description if brandId provided
     if (brandId && organizationId) {

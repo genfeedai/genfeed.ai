@@ -816,7 +816,7 @@ describe('TrendsService', () => {
       expect(result[0].platform).toBe('tiktok');
     });
 
-    it('should return bootstrap trends without live fetch when cache is missing and fetching is disabled', async () => {
+    it('should return [] (not bootstrap) when cache is missing and fetching is disabled', async () => {
       prisma.trend.findMany.mockResolvedValue([]);
 
       const fetchAndCacheTrendsSpy = vi.spyOn(service, 'fetchAndCacheTrends');
@@ -830,8 +830,8 @@ describe('TrendsService', () => {
         },
       );
 
-      expect(result.length).toBeGreaterThan(0);
-      expect(result[0]?.id).toMatch(/^bootstrap-trend-/);
+      // Must be empty so callers can detect a real cache-miss and trigger live fetch
+      expect(result).toEqual([]);
       expect(fetchAndCacheTrendsSpy).not.toHaveBeenCalled();
     });
 
@@ -842,7 +842,7 @@ describe('TrendsService', () => {
       'tiktok',
       'twitter',
       'youtube',
-    ])('should return platform-scoped bootstrap trends for %s without live fetch', async (platform) => {
+    ])('should return [] for %s when cache is missing and fetching is disabled', async (platform) => {
       prisma.trend.findMany.mockResolvedValue([]);
 
       const result = await service.getTrends(
@@ -854,8 +854,27 @@ describe('TrendsService', () => {
         },
       );
 
+      // Empty signal allows callers to detect cache-miss and perform live fetch
+      expect(result).toEqual([]);
+    });
+
+    it('should return bootstrap trends when cache is missing and live fetch also returns nothing', async () => {
+      prisma.trend.findMany.mockResolvedValue([]);
+
+      vi.spyOn(service, 'fetchAndCacheTrends').mockResolvedValue([]);
+
+      const result = await service.getTrends(
+        mockOrganizationId,
+        mockBrandId,
+        undefined,
+        {
+          allowFetchIfMissing: true,
+        },
+      );
+
+      // Bootstrap is served only after a real live-fetch attempt also yields nothing
       expect(result.length).toBeGreaterThan(0);
-      expect(result.every((trend) => trend.platform === platform)).toBe(true);
+      expect(result[0]?.id).toMatch(/^bootstrap-trend-/);
     });
 
     it('should fall back to global cached trends when tenant-scoped trends are missing', async () => {

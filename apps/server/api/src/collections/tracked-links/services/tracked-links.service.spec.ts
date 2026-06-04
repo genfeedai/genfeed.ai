@@ -17,6 +17,17 @@ describe('TrackedLinksService', () => {
         update: vi.fn(),
         updateMany: vi.fn(),
       },
+      // Interactive-transaction stub: executes the callback with a tx object
+      // that shares the same mock handles as the top-level prisma mock so
+      // tests can assert on updateMany/findFirst calls without change.
+      $transaction: vi.fn().mockImplementation((fn: (tx: unknown) => unknown) =>
+        fn({
+          trackedLink: {
+            findFirst: vi.fn(),
+            updateMany: vi.fn(),
+          },
+        }),
+      ),
     };
 
     return {
@@ -173,19 +184,28 @@ describe('TrackedLinksService', () => {
 
   // Cross-tenant write hardening: update()/delete() must scope the mutation by
   // organizationId, not just a preceding read.
-  it('scopes update writes to the authenticated organization', async () => {
+  it('scopes update writes to the authenticated organization inside a transaction', async () => {
     const { prisma, service } = makeService();
-    prisma.trackedLink.updateMany.mockResolvedValue({ count: 1 });
-    prisma.trackedLink.findFirst.mockResolvedValue({
-      id: 'link-1',
-      isActive: false,
-      organizationId: 'org-1',
-    });
+    const txTrackedLink = {
+      findFirst: vi.fn().mockResolvedValue({
+        id: 'link-1',
+        isActive: false,
+        organizationId: 'org-1',
+      }),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    };
+    (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation(
+      (fn: (tx: unknown) => unknown) => fn({ trackedLink: txTrackedLink }),
+    );
 
     await service.update('link-1', 'org-1', { isActive: false });
 
-    expect(prisma.trackedLink.updateMany).toHaveBeenCalledWith({
+    expect(txTrackedLink.updateMany).toHaveBeenCalledWith({
       data: { isActive: false },
+      where: { id: 'link-1', isDeleted: false, organizationId: 'org-1' },
+    });
+    // findFirst must be called inside the same tx, not on the outer prisma stub.
+    expect(txTrackedLink.findFirst).toHaveBeenCalledWith({
       where: { id: 'link-1', isDeleted: false, organizationId: 'org-1' },
     });
     expect(prisma.trackedLink.update).not.toHaveBeenCalled();
@@ -193,7 +213,13 @@ describe('TrackedLinksService', () => {
 
   it('throws when an update matches no link in the organization', async () => {
     const { prisma, service } = makeService();
-    prisma.trackedLink.updateMany.mockResolvedValue({ count: 0 });
+    const txTrackedLink = {
+      findFirst: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    };
+    (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation(
+      (fn: (tx: unknown) => unknown) => fn({ trackedLink: txTrackedLink }),
+    );
 
     await expect(
       service.update('link-1', 'org-1', { isActive: false }),
@@ -222,8 +248,9 @@ describe('TrackedLinksService', () => {
     );
   });
 
-  // SSRF: getCountryFromIP must only interpolate validated IP literals into the
-  // outbound ipapi.co URL.
+  // SSRF: getCountryFromIP must only interpolate validated, globally-routable IP
+  // literals into the outbound ipapi.co URL. All private / reserved ranges must
+  // be rejected before any outbound fetch is made.
   it('does not call the geolocation API for non-IP X-Forwarded-For values', async () => {
     const { service } = makeService();
     const fetchSpy = vi
@@ -236,6 +263,28 @@ describe('TrackedLinksService', () => {
     await expect(
       probe.getCountryFromIP('1.1.1.1/../v1/admin?x='),
     ).resolves.toBeUndefined();
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    fetchSpy.mockRestore();
+  });
+
+  it.each([
+    '172.16.0.1',
+    '172.31.255.254',
+    '169.254.0.1',
+    '::ffff:172.16.0.1',
+    'fc00::1',
+    'fe80::1',
+  ])('does not call the geolocation API for private/reserved IP %s', async (ip) => {
+    const { service } = makeService();
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('US'));
+    const probe = service as unknown as {
+      getCountryFromIP(ip?: string): Promise<string | undefined>;
+    };
+
+    await expect(probe.getCountryFromIP(ip)).resolves.toBeUndefined();
     expect(fetchSpy).not.toHaveBeenCalled();
 
     fetchSpy.mockRestore();

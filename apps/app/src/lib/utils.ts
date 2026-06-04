@@ -1,1 +1,1 @@
-export { cn } from '@genfeedai/helpers';
+export { cn } from '@genfeedai/helpers/formatting/cn';
