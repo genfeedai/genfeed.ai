@@ -735,20 +735,25 @@ export class TrackedLinksService {
       ).toString();
     if (updates.title !== undefined) safeData.title = updates.title;
 
-    // Scope the write itself by organizationId so ownership is enforced on the
-    // mutation, not just on a preceding read (defense-in-depth against
-    // cross-tenant writes if the read/write ever drift apart).
-    const { count } = await this.prisma.trackedLink.updateMany({
-      data: safeData as never,
-      where: { id: linkId, isDeleted: false, organizationId },
-    });
+    // Wrap the update and the subsequent read in a single transaction so the
+    // returned document is always the row that was just mutated (no TOCTOU
+    // window between the updateMany count-check and the findFirst readback).
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Scope the write itself by organizationId so ownership is enforced on the
+      // mutation, not just on a preceding read (defense-in-depth against
+      // cross-tenant writes if the read/write ever drift apart).
+      const { count } = await tx.trackedLink.updateMany({
+        data: safeData as never,
+        where: { id: linkId, isDeleted: false, organizationId },
+      });
 
-    if (count !== 1) {
-      throw new NotFoundException(`Tracked link not found: ${linkId}`);
-    }
+      if (count !== 1) {
+        throw new NotFoundException(`Tracked link not found: ${linkId}`);
+      }
 
-    const result = await this.prisma.trackedLink.findFirst({
-      where: { id: linkId, isDeleted: false, organizationId },
+      return tx.trackedLink.findFirst({
+        where: { id: linkId, isDeleted: false, organizationId },
+      });
     });
 
     this.logger.log(`Tracked link updated: ${linkId}`);
@@ -797,19 +802,17 @@ export class TrackedLinksService {
    */
   private async getCountryFromIP(ip?: string): Promise<string | undefined> {
     const normalizedIp = ip?.split(',')[0]?.trim();
-    // Only forward valid IP literals into the outbound geolocation URL. Without
-    // this guard an attacker-controlled X-Forwarded-For value (e.g.
-    // `1.1.1.1/../v1/admin?x=`) would be interpolated into the ipapi.co path
-    // and probe arbitrary endpoints on the third-party host.
+    // Only forward valid, globally-routable IP literals into the outbound
+    // geolocation URL. Without this guard an attacker-controlled
+    // X-Forwarded-For value (e.g. `1.1.1.1/../v1/admin?x=`) would be
+    // interpolated into the ipapi.co path and probe arbitrary endpoints on the
+    // third-party host. isBlockedRedirectHost() already covers all private /
+    // reserved ranges (loopback, RFC-1918, link-local, unique-local, IPv4-mapped
+    // IPv6, etc.) so we reuse it here instead of maintaining a separate list.
     if (!normalizedIp || isIP(normalizedIp) === 0) {
       return undefined;
     }
-    if (
-      normalizedIp === '::1' ||
-      normalizedIp === '127.0.0.1' ||
-      normalizedIp.startsWith('192.168.') ||
-      normalizedIp.startsWith('10.')
-    ) {
+    if (this.isBlockedRedirectHost(normalizedIp)) {
       return undefined;
     }
 

@@ -197,6 +197,17 @@ describe('PromptBarEssentials', () => {
     expect(modelIndex).toBeLessThan(formatIndex);
   });
 
+  it('renders outputs-button when collapsible is true (default path)', () => {
+    render(
+      <PromptBarEssentials
+        {...defaultProps}
+        features={{ collapsible: true, dragDrop: false }}
+      />,
+    );
+
+    expect(screen.getByTestId('outputs-button')).toBeInTheDocument();
+  });
+
   it('renders outputs beside the generate button in unified shell', () => {
     const { container } = render(
       <PromptBarEssentials
