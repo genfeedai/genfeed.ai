@@ -135,19 +135,17 @@ setup('authenticate clerk sessions', async ({ browser }) => {
     const page = await context.newPage();
 
     await setupClerkTestingToken({ page });
-    await page.goto('/playwright-ready');
-    await clerk.signIn({
-      page,
-      signInParams: {
-        identifier: seed.email,
-        password: testUserPassword,
-        strategy: 'password',
-      },
-    });
+    // Sign in from a real app page so window.Clerk (ClerkProvider) is loaded —
+    // /playwright-ready is a bare readiness route without the provider.
+    await page.goto('/login');
+    // emailAddress mode: @clerk/testing mints a backend sign-in token (ticket
+    // strategy) with the secret key — bypasses password/bot-detection and waits
+    // for window.Clerk.user. Far more reliable than the client password path.
+    await clerk.signIn({ emailAddress: seed.email, page });
 
     // Confirm the session lands somewhere authenticated (not bounced to /login).
     await page.goto('/');
-    await expect(page).not.toHaveURL(/\/login/, { timeout: 30_000 });
+    await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 });
 
     await context.storageState({ path: seed.authFile });
     await context.close();
