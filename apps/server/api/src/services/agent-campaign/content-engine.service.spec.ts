@@ -394,6 +394,94 @@ describe('ContentEngineService', () => {
     );
   });
 
+  it('passes the full candidate pool to weighted rotation and widens the run-history lookback', async () => {
+    const {
+      agentCampaignsService,
+      agentGoalsService,
+      agentMemoryCaptureService,
+      agentRunQueueService,
+      agentRunsService,
+      agentStrategiesService,
+      analyticsService,
+      service,
+    } = createService();
+
+    // More strategies than MAX_ORCHESTRATED_STRATEGIES_PER_RUN (5) so the old
+    // pre-select `.slice(0, MAX)` would have hidden the tail from rotation.
+    const strategies = Array.from({ length: 7 }, (_, i) =>
+      createStrategy({
+        _id: `strategy-${i}`,
+        label: `Specialist ${i}`,
+        platforms: ['linkedin'],
+        topics: [`topic-${i}`],
+      }),
+    );
+    const campaign = createCampaign({
+      agents: strategies.map((s) => s._id),
+      contentRotation: {
+        enabled: true,
+        targets: strategies.map((s, i) => ({
+          key: `topic-${i}`,
+          topic: `topic-${i}`,
+          weight: 10,
+        })),
+      },
+    });
+
+    agentCampaignsService.findOne.mockResolvedValue(campaign);
+    agentCampaignsService.patch.mockResolvedValue(undefined);
+    agentStrategiesService.findOneById.mockImplementation((strategyId) =>
+      Promise.resolve(strategies.find((s) => s._id === strategyId)),
+    );
+    agentGoalsService.getGoalSummary.mockResolvedValue('Increase engagement');
+    analyticsService.getOverview.mockResolvedValue({
+      avgEngagementRate: 7.2,
+      totalPosts: 4,
+      totalViews: 3200,
+    });
+    // Empty history: every target is equally underrepresented, so rotation is
+    // free to pick any candidate — what matters is that it SEES all 7.
+    agentRunsService.findRecentByOrganization.mockResolvedValue([]);
+    agentRunsService.create.mockResolvedValue({ _id: 'run', metadata: {} });
+    agentRunsService.mergeMetadata.mockResolvedValue(undefined);
+    agentRunsService.patch.mockResolvedValue(undefined);
+    agentRunQueueService.queueRun.mockResolvedValue(undefined);
+    agentMemoryCaptureService.capture.mockResolvedValue({
+      memory: { _id: 'test-object-id' },
+      wroteBrandInsight: false,
+      wroteContextMemory: true,
+    });
+
+    const selectSpy = vi.spyOn(
+      ContentRotationService.prototype,
+      'selectStrategies',
+    );
+
+    const result = await service.runOrchestrationCycle(
+      campaignId,
+      organizationId,
+    );
+
+    // Finding 1: rotation must receive every eligible strategy, not a pre-capped
+    // slice of the first 5.
+    expect(selectSpy).toHaveBeenCalledTimes(1);
+    expect(selectSpy.mock.calls[0][0].strategies).toHaveLength(7);
+
+    // Finding 2: the run-history window is widened past the org-wide default of
+    // 200 so a busy org cannot starve a single campaign's rotation history.
+    expect(agentRunsService.findRecentByOrganization).toHaveBeenCalledWith(
+      organizationId,
+      expect.any(Date),
+      1000,
+    );
+
+    // Dispatch still happens and is capped at MAX (5) by the post-select slice.
+    expect(result.dispatchCount).toBeGreaterThanOrEqual(1);
+    expect(result.dispatchCount).toBeLessThanOrEqual(5);
+
+    selectSpy.mockRestore();
+  });
+
   it('extractWinnerPatterns stores a campaign-scoped winner memory', async () => {
     const {
       agentCampaignsService,

@@ -195,8 +195,7 @@ export class ContentEngineService {
     );
     const dispatchableStrategies = strategies
       .filter((strategy) => strategy.isEnabled !== false)
-      .filter((strategy) => !isOrchestratorAgentType(strategy.agentType))
-      .slice(0, MAX_ORCHESTRATED_STRATEGIES_PER_RUN);
+      .filter((strategy) => !isOrchestratorAgentType(strategy.agentType));
 
     if (dispatchableStrategies.length === 0) {
       return await this.finalizeCycle(campaign, {
@@ -590,9 +589,15 @@ export class ContentEngineService {
     const lookbackDays =
       this.contentRotationService.getLookbackDays(contentRotation);
     const since = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
+    // Widen the lookback window beyond the org-wide default (200) so a busy
+    // organization's run volume cannot starve a single campaign's rotation
+    // history. campaignId lives in run metadata (filtered in-memory below), so a
+    // DB-level campaign filter would require a schema migration — widening the
+    // window is the correct in-place fix.
     const recentRuns = await this.agentRunsService.findRecentByOrganization(
       organizationId,
       since,
+      1000,
     );
     const campaignId = String(campaign._id);
 

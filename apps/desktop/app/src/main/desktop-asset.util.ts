@@ -1,28 +1,7 @@
 import type { IDesktopAsset } from '@genfeedai/desktop-contracts';
+import type { DesktopAsset } from '@genfeedai/desktop-prisma';
 
-export type DesktopAssetRow = {
-  brandId: string | null;
-  cloudId: string | null;
-  cloudObjectKey: string | null;
-  createdAt: string;
-  deletedAt: string | null;
-  displayName: string;
-  id: string;
-  kind: string;
-  localPath: string | null;
-  mimeType: string;
-  organizationId: string;
-  origin: string;
-  originalFileName: string;
-  residency: string;
-  sha256: string;
-  sizeBytes: number;
-  updatedAt: string;
-  uploadPolicy: string;
-  workspaceId: string | null;
-};
-
-export const toDesktopAsset = (row: DesktopAssetRow): IDesktopAsset => ({
+export const toDesktopAsset = (row: DesktopAsset): IDesktopAsset => ({
   brandId: row.brandId ?? undefined,
   cloudId: row.cloudId ?? undefined,
   cloudObjectKey: row.cloudObjectKey ?? undefined,

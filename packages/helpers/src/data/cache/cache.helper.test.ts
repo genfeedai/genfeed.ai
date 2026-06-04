@@ -309,6 +309,22 @@ describe('browser storage caches', () => {
     expect(storage.getItem('cache:one')).toBeNull();
     expect(storage.getItem('other:two')).toBe('2');
   });
+
+  // Regression: createLocalStorageCache/createSessionStorageCache are sometimes
+  // invoked at module scope (e.g. useAnalyticsTrends.ts), which runs during
+  // Next.js SSR/prerender where `localStorage` is not defined. The factory must
+  // defer the storage lookup to the method calls so construction never throws.
+  it('does not touch localStorage at construction time (SSR-safe)', () => {
+    restoreBrowserStorage('localStorage', undefined); // simulate server: no global
+    expect(() => createLocalStorageCache({ prefix: 'trends:' })).not.toThrow();
+  });
+
+  it('does not touch sessionStorage at construction time (SSR-safe)', () => {
+    restoreBrowserStorage('sessionStorage', undefined);
+    expect(() =>
+      createSessionStorageCache({ prefix: 'trends:' }),
+    ).not.toThrow();
+  });
 });
 
 // ─── RateLimiter ─────────────────────────────────────────────────────────────

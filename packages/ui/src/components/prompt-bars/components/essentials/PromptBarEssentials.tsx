@@ -46,7 +46,7 @@ type PromptOutputsButtonProps = Pick<
   isDisabledState: boolean;
 };
 
-function PromptOutputsButton({
+const PromptOutputsButton = memo(function PromptOutputsButton({
   form,
   getMinFromAllModels,
   getModelMaxOutputs,
@@ -67,7 +67,7 @@ function PromptOutputsButton({
       }
       isDisabled={isDisabledState}
       onClick={() => {
-        const current = form.watch('outputs') || 1;
+        const current = form.getValues('outputs') ?? 1;
         const max = getMinFromAllModels(getModelMaxOutputs);
         const next = current >= max ? 1 : current + 1;
 
@@ -77,7 +77,7 @@ function PromptOutputsButton({
       data-testid="outputs-button"
     />
   );
-}
+});
 
 const PromptBarEssentials = memo(function PromptBarEssentials({
   currentConfig,

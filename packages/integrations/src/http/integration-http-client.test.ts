@@ -72,4 +72,56 @@ describe('integration HTTP client', () => {
       }),
     ).toBe(500);
   });
+
+  it('resolves to undefined for a 204 No Content response without throwing', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    const client = new IntegrationHttpClient({ fetch: fetchImpl });
+
+    await expect(
+      client.request({ url: 'https://example.com/revoke' }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('resolves to undefined for an empty body advertised via Content-Length: 0', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        new Response(null, { headers: { 'content-length': '0' }, status: 200 }),
+      );
+    const client = new IntegrationHttpClient({ fetch: fetchImpl });
+
+    await expect(
+      client.request({ url: 'https://example.com/ok' }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('treats x-rate-limit-reset as an absolute Unix epoch, not relative seconds', () => {
+    const now = new Date(1_717_000_000_000);
+    // 10 seconds in the future, expressed as a Unix epoch in seconds.
+    expect(
+      parseIntegrationRetryAfterMs('1717000010', now, 'x-rate-limit-reset'),
+    ).toBe(10_000);
+    // Retry-After stays relative seconds.
+    expect(parseIntegrationRetryAfterMs('30', now, 'retry-after')).toBe(30_000);
+  });
+
+  it('routes x-rate-limit-reset through the epoch path in getIntegrationRetryDelayMs', () => {
+    const resetEpochSeconds = Math.floor(Date.now() / 1000) + 5;
+    const delay = getIntegrationRetryDelayMs({
+      attempt: 1,
+      config: {
+        baseDelayMs: 250,
+        maxAttempts: 3,
+        retryAfterHeaders: ['x-rate-limit-reset'],
+        retryableStatusCodes: [429],
+      },
+      headers: new Headers({ 'x-rate-limit-reset': String(resetEpochSeconds) }),
+    });
+
+    // ~5 s, not tens of years. Allow a generous window for clock drift.
+    expect(delay).toBeGreaterThanOrEqual(3000);
+    expect(delay).toBeLessThanOrEqual(6000);
+  });
 });

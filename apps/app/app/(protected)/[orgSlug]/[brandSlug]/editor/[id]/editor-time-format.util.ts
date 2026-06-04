@@ -28,7 +28,7 @@ export function formatPlaybackFrameTime(frames: number, fps: number): string {
 
 export function formatPreciseFrameTime(frames: number, fps: number): string {
   const { minutes, seconds, totalSeconds } = getFrameTimeParts(frames, fps);
-  const ms = Math.round((totalSeconds % 1) * 1000);
+  const ms = Math.min(999, Math.round((totalSeconds % 1) * 1000));
 
   return `${padTimePart(minutes, 2)}:${padTimePart(seconds, 2)}.${padTimePart(ms, 3)}`;
 }

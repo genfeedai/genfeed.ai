@@ -221,8 +221,15 @@ function clearStorageByPrefix(storage: Storage, prefix: string): void {
   });
 }
 
+/**
+ * Accepts a lazy `getStorage` factory so that `localStorage` / `sessionStorage`
+ * are only dereferenced inside method calls (browser runtime), never at module
+ * evaluation time. This prevents Next.js SSR / prerender from throwing
+ * `ReferenceError: localStorage is not defined` when a cache is created at
+ * module scope.
+ */
 function createBrowserStorageCache<T = unknown>(
-  storage: Storage,
+  getStorage: () => Storage,
   config?: CacheConfig,
   clearDefaultPrefix = false,
 ): BrowserStorageCache<T> {
@@ -230,6 +237,7 @@ function createBrowserStorageCache<T = unknown>(
 
   return {
     clear: () => {
+      const storage = getStorage();
       if (clearDefaultPrefix && prefix === 'cache:') {
         storage.clear();
         return;
@@ -239,6 +247,7 @@ function createBrowserStorageCache<T = unknown>(
     },
     get: (key: string) => {
       try {
+        const storage = getStorage();
         const stored = storage.getItem(`${prefix}${key}`);
         if (!stored) {
           config?.onGet?.(key, null);
@@ -259,11 +268,13 @@ function createBrowserStorageCache<T = unknown>(
       }
     },
     remove: (key: string) => {
+      const storage = getStorage();
       storage.removeItem(`${prefix}${key}`);
       config?.onRemove?.(key);
     },
     set: (key: string, value: T, ttlMs: number = 300000) => {
       try {
+        const storage = getStorage();
         const entry: CacheEntry<T> = {
           data: value,
           expires: Date.now() + ttlMs,
@@ -280,13 +291,13 @@ function createBrowserStorageCache<T = unknown>(
 export function createLocalStorageCache<T = unknown>(
   config?: CacheConfig,
 ): BrowserStorageCache<T> {
-  return createBrowserStorageCache<T>(localStorage, config, true);
+  return createBrowserStorageCache<T>(() => localStorage, config, true);
 }
 
 export function createSessionStorageCache<T = unknown>(
   config?: CacheConfig,
 ): BrowserStorageCache<T> {
-  return createBrowserStorageCache<T>(sessionStorage, config);
+  return createBrowserStorageCache<T>(() => sessionStorage, config);
 }
 
 export class RateLimiter {
