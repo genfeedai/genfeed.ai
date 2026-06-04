@@ -55,6 +55,15 @@ export class MetaAdsService {
   ): Record<string, string | number> {
     return Object.fromEntries(
       [...searchParams.entries()].map(([key, value]) => {
+        // Meta object IDs (id, campaign_id, adset_id, account_id, …) are opaque
+        // string handles that frequently exceed Number.MAX_SAFE_INTEGER.
+        // Coercing them to numbers silently corrupts large IDs and breaks the
+        // Graph API, so ID-typed keys must always stay strings. Genuinely
+        // numeric fields (budgets, ages, etc.) are still coerced for axios.
+        if (key === 'id' || key.endsWith('_id')) {
+          return [key, value];
+        }
+
         const numericValue = Number(value);
         return [
           key,
