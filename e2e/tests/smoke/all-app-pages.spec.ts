@@ -387,7 +387,10 @@ async function startMockApiServer(): Promise<Server | null> {
       reject(error);
     });
 
-    server.listen(3010, '127.0.0.1', () => {
+    // Bind dual-stack (::) so the app's SSR fetch to `localhost:3010` (which
+    // resolves to IPv6 ::1 first) reaches the mock; IPv4-only binding made
+    // API-dependent pages 500 with ECONNREFUSED ::1:3010.
+    server.listen(3010, '::', () => {
       resolve(server);
     });
   });

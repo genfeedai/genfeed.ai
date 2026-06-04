@@ -37,14 +37,17 @@ const appPlaywrightWebServerEnv = {
     process.env.NEXT_PUBLIC_WS_ENDPOINT || 'http://local.genfeed.ai:3013',
   PLAYWRIGHT_TEST: 'true',
 };
+// Bind the web server dual-stack (IPv6 `::`, which also serves IPv4 127.0.0.1).
+// proxy.ts self-proxies to `localhost`, which resolves to ::1 first; binding
+// IPv4-only (127.0.0.1) made every SSR page 500 with ECONNREFUSED ::1:3000.
 const appCiWebServerCommand =
   process.env.PLAYWRIGHT_APP_COMMAND_CI ||
   process.env.PLAYWRIGHT_WEB_SERVER_COMMAND_CI ||
-  `bun run --cwd ${appWebAppPath} start -- --hostname 127.0.0.1`;
+  `bun run --cwd ${appWebAppPath} start -- --hostname ::`;
 const appDevWebServerCommand =
   process.env.PLAYWRIGHT_APP_COMMAND ||
   process.env.PLAYWRIGHT_WEB_SERVER_COMMAND ||
-  `bun run --cwd ${appWebAppPath} dev -- --hostname 127.0.0.1`;
+  `bun run --cwd ${appWebAppPath} dev -- --hostname ::`;
 const cliArgs = process.argv.slice(2);
 
 export default defineConfig({
