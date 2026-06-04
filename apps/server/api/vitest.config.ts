@@ -301,7 +301,21 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
       reportsDirectory: coverageDirectory,
-      thresholds: { branches: 50, functions: 50, lines: 50, statements: 50 },
+      thresholds: {
+        branches: 50,
+        functions: 50,
+        lines: 50,
+        // Ratchet floor for integration code (current actual ~67.5% lines /
+        // ~56% branches). Raise these toward 100 as integration test gaps fill.
+        'src/{services/integrations,endpoints/integrations,marketplace-integration}/**':
+          {
+            branches: 55,
+            functions: 65,
+            lines: 65,
+            statements: 65,
+          },
+        statements: 50,
+      },
     },
     environment: 'node',
     exclude: ['**/node_modules/**', '**/dist/**'],

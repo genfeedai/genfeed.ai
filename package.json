@@ -116,6 +116,8 @@
     "test:workspace": "TZ=UTC scripts/sh/sanitize-node-color-env.sh vitest run --config vitest.config.ts",
     "test:workspace:watch": "TZ=UTC scripts/sh/sanitize-node-color-env.sh vitest --config vitest.config.ts",
     "test:e2e": "bunx playwright test",
+    "test:e2e:core": "bunx playwright test e2e/tests/smoke e2e/tests/core --project=app-core",
+    "test:e2e:smoke": "bunx playwright test e2e/tests/smoke/all-app-pages.spec.ts --project=app-core",
     "test:e2e:full": "bunx playwright test --config=playwright-full.config.ts",
     "type-check": "bunx turbo run type-check",
     "type-check:cli": "bunx turbo run type-check --filter=@genfeedai/cli",

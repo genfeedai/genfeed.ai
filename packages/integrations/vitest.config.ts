@@ -32,11 +32,25 @@ export default defineConfig({
   },
   test: {
     coverage: {
-      exclude: ['src/**/*.d.ts', 'src/**/__tests__/**', 'src/index.ts'],
+      exclude: [
+        'src/**/*.d.ts',
+        'src/**/__tests__/**',
+        'src/**/index.ts',
+        'src/**/types.ts',
+        'src/**/*.types.ts',
+      ],
       include: ['src/**/*.ts'],
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],
       reportsDirectory: './coverage',
+      // Ratchet floor at current actual (~87.7% lines / ~77% branches).
+      // Raise toward 100 as http-client + provider.schema gaps fill.
+      thresholds: {
+        branches: 75,
+        functions: 90,
+        lines: 85,
+        statements: 85,
+      },
     },
     environment: 'node',
     globals: true,
