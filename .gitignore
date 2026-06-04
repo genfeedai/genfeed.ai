@@ -52,3 +52,6 @@ apps/desktop/app/release/
 # Agent scratch dirs at any depth (apps/<name>/.agents/, apps/<surface>/<name>/.agents/)
 # Covers apps/app/.agents, apps/mobile/app/.agents, apps/extensions/browser/app/.agents, etc.
 **/apps/**/.agents/
+
+# Clerk E2E storageState (contains real session tokens — never commit)
+playwright/.clerk/
