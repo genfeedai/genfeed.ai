@@ -75,6 +75,13 @@ jobs:
       - name: Build packages
         run: bunx turbo run build --filter="./packages/*"
 
+      # Provision the schema on the ephemeral Postgres service container.
+      # The E2E suite assumes a migrated DB (it truncates + reseeds per test,
+      # it does not create the schema itself).
+      - name: Apply Prisma migrations to test DB
+        run: bunx prisma migrate deploy
+        working-directory: packages/prisma
+
       - name: Run API E2E smoke tests
         run: bun run --cwd apps/server/api test:e2e:ci
         env:
