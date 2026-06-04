@@ -76,6 +76,7 @@ export default defineConfig({
     // Requires the real test-instance secret (see e2e/clerk.setup.ts).
     {
       name: 'clerk-setup',
+      testDir: './e2e',
       testMatch: /clerk\.setup\.ts/,
       use: {
         ...devices['Desktop Chrome'],
