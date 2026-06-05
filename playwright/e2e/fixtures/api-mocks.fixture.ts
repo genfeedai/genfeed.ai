@@ -297,6 +297,18 @@ function buildTemplateSteps(count: number, templateId: string) {
   }));
 }
 
+function buildPostAttributes(
+  post: Record<string, unknown>,
+): Record<string, unknown> {
+  const attributes = { ...post };
+  delete attributes.platformUrl;
+
+  return {
+    ...attributes,
+    _id: String(post.id),
+  };
+}
+
 // ----------------------------------------------------------------------------
 // Video Generation Mocks
 // ----------------------------------------------------------------------------
@@ -350,7 +362,6 @@ export async function mockVideoGenerationSuccess(
               ...generateMockIngredient('video'),
               progress: 100,
               status: finalStatus,
-              thumbnailUrl: 'https://cdn.genfeed.ai/mock/video/thumb.jpg',
               url: 'https://cdn.genfeed.ai/mock/video/completed.mp4',
             },
             id: 'mock-video-generated',
@@ -475,7 +486,7 @@ export async function mockImageGenerationSuccess(
 ): Promise<void> {
   const { delay = 100, finalStatus = 'completed' } = options;
 
-  await page.route('**/api.genfeed.ai/v1/images', async (route) => {
+  await routeApiPattern(page, '/images**', async (route) => {
     const method = route.request().method();
 
     if (method === 'POST') {
@@ -489,7 +500,6 @@ export async function mockImageGenerationSuccess(
             attributes: {
               ...generateMockIngredient('image'),
               status: finalStatus,
-              thumbnailUrl: 'https://cdn.genfeed.ai/mock/image/thumb.jpg',
               url: 'https://cdn.genfeed.ai/mock/image/generated.png',
             },
             id: 'mock-image-generated',
@@ -502,7 +512,22 @@ export async function mockImageGenerationSuccess(
       return;
     }
 
-    await route.continue();
+    await route.fulfill({
+      body: JSON.stringify(
+        buildJsonApiCollection('images', [
+          {
+            attributes: {
+              ...generateMockIngredient('image'),
+              status: finalStatus,
+              url: 'https://cdn.genfeed.ai/mock/image/generated.png',
+            },
+            id: 'mock-image-generated',
+          },
+        ]),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
   });
 }
 
@@ -1484,7 +1509,15 @@ export async function mockWorkspaceTasks(
             }
           : task,
       );
-      const task = tasks.find((item) => item.id === taskId)!;
+      const task = tasks.find((item) => item.id === taskId);
+      if (!task) {
+        await route.fulfill({
+          body: JSON.stringify({ message: `Task ${taskId} not found.` }),
+          contentType: 'application/json',
+          status: 404,
+        });
+        return;
+      }
 
       await route.fulfill({
         body: JSON.stringify(
@@ -1517,7 +1550,15 @@ export async function mockWorkspaceTasks(
             }
           : task,
       );
-      const task = tasks.find((item) => item.id === taskId)!;
+      const task = tasks.find((item) => item.id === taskId);
+      if (!task) {
+        await route.fulfill({
+          body: JSON.stringify({ message: `Task ${taskId} not found.` }),
+          contentType: 'application/json',
+          status: 404,
+        });
+        return;
+      }
 
       await route.fulfill({
         body: JSON.stringify(
@@ -1550,7 +1591,15 @@ export async function mockWorkspaceTasks(
             }
           : task,
       );
-      const task = tasks.find((item) => item.id === taskId)!;
+      const task = tasks.find((item) => item.id === taskId);
+      if (!task) {
+        await route.fulfill({
+          body: JSON.stringify({ message: `Task ${taskId} not found.` }),
+          contentType: 'application/json',
+          status: 404,
+        });
+        return;
+      }
 
       await route.fulfill({
         body: JSON.stringify(
@@ -2035,17 +2084,11 @@ export async function mockWorkflowExecutions(
   await routeApiPattern(page, '/workflow-executions**', async (route) => {
     const method = route.request().method();
     if (method === 'GET') {
-      const resources = executions.map((execution) => ({
-        attributes: normalizeExecution(
-          execution,
-          workflowLabels.get(execution.workflowId),
-        ),
-        id: execution.id,
-      }));
+      const resources = executions.map((execution) =>
+        normalizeExecution(execution, workflowLabels.get(execution.workflowId)),
+      );
       await route.fulfill({
-        body: JSON.stringify(
-          buildJsonApiCollection('workflow-executions', resources),
-        ),
+        body: JSON.stringify(resources),
         contentType: 'application/json',
         status: 200,
       });
@@ -2065,9 +2108,7 @@ export async function mockWorkflowExecutions(
         'Social Media Pipeline',
       );
       await route.fulfill({
-        body: JSON.stringify(
-          buildJsonApiDocument('workflow-executions', 'exec-new', execution),
-        ),
+        body: JSON.stringify(execution),
         contentType: 'application/json',
         status: 201,
       });
@@ -2093,9 +2134,7 @@ export async function mockWorkflowExecutions(
     const normalized = normalizeExecution(execution, execution.workflowId);
 
     await route.fulfill({
-      body: JSON.stringify(
-        buildJsonApiDocument('workflow-executions', execution.id, normalized),
-      ),
+      body: JSON.stringify(normalized),
       contentType: 'application/json',
       status: 200,
     });
@@ -2116,23 +2155,27 @@ export async function mockWorkflowTemplates(
     thumbnailUrl: string;
   }> = [],
 ): Promise<void> {
-  await routeApiPattern(page, '/workflows/templates**', async (route) => {
-    const resources = templates.map((template) => ({
-      attributes: {
-        category: template.category,
-        description: template.description,
-        icon: 'Sparkles',
-        id: template.id,
-        name: template.name,
-        steps: buildTemplateSteps(template.nodeCount, template.id),
-        thumbnailUrl: template.thumbnailUrl,
-      },
-      id: template.id,
-    }));
+  const workflowTemplates = templates.map((template) => ({
+    category: template.category,
+    description: template.description,
+    icon: 'Sparkles',
+    id: template.id,
+    name: template.name,
+    steps: buildTemplateSteps(template.nodeCount, template.id),
+    thumbnailUrl: template.thumbnailUrl,
+  }));
+
+  await routeApiPattern(page, '/templates**', async (route) => {
     await route.fulfill({
-      body: JSON.stringify(
-        buildJsonApiCollection('workflow-templates', resources),
-      ),
+      body: JSON.stringify({ data: workflowTemplates }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  await routeApiPattern(page, '/workflows/templates**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ data: workflowTemplates }),
       contentType: 'application/json',
       status: 200,
     });
@@ -3678,10 +3721,7 @@ export async function mockPostsList(
         buildJsonApiCollection(
           'posts',
           filtered.map((post) => ({
-            attributes: {
-              ...post,
-              _id: String(post.id),
-            },
+            attributes: buildPostAttributes(post),
             id: String(post.id),
           })),
         ),
@@ -3715,10 +3755,7 @@ export async function mockPostDetail(
   await routeApiPattern(page, '/posts/*', async (route) => {
     const method = route.request().method();
     if (method === 'GET') {
-      const payload = {
-        ...mockPost,
-        _id: String(mockPost.id),
-      };
+      const payload = buildPostAttributes(mockPost);
       await route.fulfill({
         body: JSON.stringify(
           buildJsonApiDocument('posts', String(mockPost.id), payload),
@@ -3730,8 +3767,7 @@ export async function mockPostDetail(
     }
     if (method === 'PATCH' || method === 'PUT') {
       const payload = {
-        ...mockPost,
-        _id: String(mockPost.id),
+        ...buildPostAttributes(mockPost),
         updatedAt: new Date().toISOString(),
       };
       await route.fulfill({
@@ -3830,10 +3866,7 @@ export async function mockCalendarPosts(
           buildJsonApiCollection(
             'posts',
             mockPosts.map((post) => ({
-              attributes: {
-                ...post,
-                _id: String(post.id),
-              },
+              attributes: buildPostAttributes(post),
               id: String(post.id),
             })),
           ),

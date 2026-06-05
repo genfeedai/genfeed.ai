@@ -1,8 +1,14 @@
+import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
+
+const playwrightRoot = path.resolve(process.cwd(), 'playwright');
+const artifactsRoot = path.join(playwrightRoot, 'artifacts');
+const e2eRoot = path.join(playwrightRoot, 'e2e');
 
 export default defineConfig({
   fullyParallel: true,
-  globalSetup: './e2e/global-setup.ts',
+  globalSetup: path.join(e2eRoot, 'global-setup.ts'),
+  outputDir: path.join(artifactsRoot, 'results', 'smoke'),
   projects: [
     {
       name: 'chromium',
@@ -11,7 +17,7 @@ export default defineConfig({
   ],
   reporter: [['list']],
   retries: 0,
-  testDir: './e2e/tests/smoke',
+  testDir: path.join(e2eRoot, 'tests', 'smoke'),
   timeout: 30000,
   use: {
     actionTimeout: 10000,

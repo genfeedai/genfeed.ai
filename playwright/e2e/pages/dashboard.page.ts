@@ -401,7 +401,7 @@ export class DashboardPage {
   async takeScreenshot(name = 'dashboard'): Promise<void> {
     await this.page.screenshot({
       fullPage: true,
-      path: `playwright-report/screenshots/${name}-${Date.now()}.png`,
+      path: `playwright/artifacts/screenshots/${name}-${Date.now()}.png`,
     });
   }
 

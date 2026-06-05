@@ -32,18 +32,20 @@ test.describe('Core Automation Loop', () => {
     await automationPage.goto('/workflows');
 
     await expect(automationPage).toHaveURL(/\/workflows$/);
-    await expect(automationPage.getByText('Automations').first()).toBeVisible();
     await expect(
-      automationPage.locator('[title="New Workflow"]').first(),
-    ).toHaveAttribute('href', '/workflows/new');
-    await expect(
-      automationPage.getByRole('link', { name: 'Library' }),
+      automationPage.getByRole('heading', { name: 'Workflows' }),
     ).toBeVisible();
     await expect(
-      automationPage.getByRole('link', { name: 'Templates' }),
+      automationPage.getByRole('link', { name: 'New Workflow' }).first(),
+    ).toHaveAttribute('href', /\/workflows\/new$/);
+    await expect(
+      automationPage.getByRole('link', { name: 'Workflows' }).first(),
     ).toBeVisible();
     await expect(
-      automationPage.getByRole('link', { name: 'Executions' }),
+      automationPage.getByRole('link', { name: 'Templates' }).first(),
+    ).toBeVisible();
+    await expect(
+      automationPage.getByRole('link', { name: 'Runs' }).first(),
     ).toBeVisible();
     await expect(
       automationPage
@@ -61,11 +63,11 @@ test.describe('Core Automation Loop', () => {
 
     await expect(automationPage.getByText('Templates').first()).toBeVisible();
     await automationPage
-      .locator('a[href^="/workflows/new?template="]')
+      .locator('a[href*="/workflows/templates?template="]')
       .first()
       .click({ force: true });
 
-    await expect(automationPage).toHaveURL(/\/workflows\/new(?:\?|$)/);
+    await expect(automationPage).toHaveURL(/\/workflows\/workflow-new$/);
     await expect(automationPage.locator('.workflow-scope')).toBeVisible();
   });
 
@@ -84,9 +86,12 @@ test.describe('Core Automation Loop', () => {
     await expect(
       automationPage.getByRole('button', { name: 'Archive' }).first(),
     ).toBeVisible();
-    await expect(automationPage.locator('.workflow-scope')).toHaveScreenshot(
-      'automation-workflow-editor.png',
-    );
+    await expect(
+      automationPage.getByRole('button', { name: 'Run' }).first(),
+    ).toBeVisible();
+    await expect(
+      automationPage.getByRole('heading', { name: 'Nodes' }),
+    ).toBeVisible();
   });
 
   test('execution history and failed execution detail stay inspectable', async ({

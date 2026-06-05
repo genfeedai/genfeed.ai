@@ -160,6 +160,20 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/libs'),
       },
       {
+        find: /^@genfeedai\/ee-billing\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../ee/packages/billing/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/ee-billing',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../ee/packages/billing/src',
+        ),
+      },
+      {
         find: '@test',
         replacement: path.resolve(serviceDir, './test'),
       },

@@ -21,7 +21,7 @@ import { expect, test as setup } from '@playwright/test';
  *   2. @clerk/backend createUser     -> idempotently provisions a `+clerk_test`
  *      user with the publicMetadata the app's OnboardingGuard expects
  *   3. clerk.signIn()                -> establishes a real session in the browser
- *   4. storageState()                -> persisted under playwright/.clerk for reuse
+ *   4. storageState()                -> persisted under playwright/artifacts/.clerk for reuse
  *
  * REQUIRES (no mock fallback):
  *   - CLERK_SECRET_KEY              real test-instance secret (sk_test_...)
@@ -30,7 +30,7 @@ import { expect, test as setup } from '@playwright/test';
  * The instance must have email + password sign-in enabled.
  */
 
-const AUTH_DIR = path.join(process.cwd(), 'playwright', '.clerk');
+const AUTH_DIR = path.join(process.cwd(), 'playwright', 'artifacts', '.clerk');
 const USER_AUTH_FILE = path.join(AUTH_DIR, 'user.json');
 const ADMIN_AUTH_FILE = path.join(AUTH_DIR, 'admin.json');
 
@@ -50,7 +50,7 @@ function assertRealClerkEnv(): void {
       'CLERK_SECRET_KEY is missing or the mock placeholder — a real test-instance secret (sk_test_...) is required.',
     );
   }
-  if (!publishableKey || !publishableKey.startsWith('pk_')) {
+  if (!publishableKey?.startsWith('pk_')) {
     problems.push(
       'CLERK_PUBLISHABLE_KEY / NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is missing or not a pk_ key.',
     );
@@ -107,8 +107,9 @@ async function ensureClerkUser(seed: SeedUser): Promise<void> {
     user: 'mock-user-id-e2e-test',
   };
 
-  if (existing.data.length > 0) {
-    await client.users.updateUser(existing.data[0]!.id, { publicMetadata });
+  const existingUser = existing.data[0];
+  if (existingUser) {
+    await client.users.updateUser(existingUser.id, { publicMetadata });
     return;
   }
 

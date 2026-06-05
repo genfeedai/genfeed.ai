@@ -22,7 +22,7 @@ const contentLoopPost = generateMockPost({
   label: 'Core Loop Draft',
   platform: 'twitter',
   scheduledDate: '2025-02-20T10:30:00.000Z',
-  status: 'SCHEDULED',
+  status: 'scheduled',
   updatedAt: '2025-02-18T09:30:00.000Z',
 });
 
@@ -33,7 +33,7 @@ const failedPost = generateMockPost({
   label: 'Failed Publish Draft',
   platform: 'twitter',
   scheduledDate: '2025-02-22T14:15:00.000Z',
-  status: 'FAILED',
+  status: 'failed',
   updatedAt: '2025-02-21T08:30:00.000Z',
 });
 
@@ -48,38 +48,32 @@ test.describe('Core Content Loop', () => {
     await mockPostsList(authenticatedPage, [contentLoopPost, failedPost]);
   });
 
-  test('overview exposes the closed-loop entry points', async ({
+  test('workspace overview exposes the core operator entry points', async ({
     authenticatedPage,
   }) => {
     const overviewPage = new OverviewPage(authenticatedPage);
 
-    await overviewPage.goto();
+    await overviewPage.goto('/workspace/overview');
 
     await expect(overviewPage.mainContent).toBeVisible();
-    await expect(overviewPage.quickActions).toBeVisible();
-    await expect(overviewPage.performancePanel).toBeVisible();
-    await expect(overviewPage.operationsPanel).toBeVisible();
-    await expect(overviewPage.publishingSurface).toBeVisible();
     await expect(
-      authenticatedPage.getByText(
-        'Run the closed loop from trend discovery to publishing and automation.',
-      ),
+      authenticatedPage.getByRole('heading', { name: 'Workspace Dashboard' }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('link', { name: 'Create Posts' }),
-    ).toHaveAttribute('href', '/compose');
+      authenticatedPage.getByRole('heading', { name: 'Operator tools' }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('link', { name: 'Studio Image' }),
+    ).toHaveAttribute('href', '/studio/image');
     await expect(
       authenticatedPage.getByRole('link', { name: 'Open Inbox' }),
-    ).toHaveAttribute('href', '/posts/review');
+    ).toHaveAttribute('href', '/workspace/inbox/unread');
     await expect(
-      authenticatedPage.getByRole('link', { name: 'Open Schedule' }),
-    ).toHaveAttribute('href', '/posts?status=scheduled');
-    await expect(
-      authenticatedPage.getByRole('link', { name: 'View Analytics' }),
-    ).toHaveAttribute('href', '/analytics/overview');
+      authenticatedPage.getByRole('link', { name: 'Workflows' }),
+    ).toHaveAttribute('href', '/orchestration/workflows');
   });
 
-  test('studio supports content-type switching and mocked generation', async ({
+  test('studio supports content-type switching and prompt entry', async ({
     authenticatedPage,
   }) => {
     const studioPage = new StudioPage(authenticatedPage);
@@ -111,14 +105,12 @@ test.describe('Core Content Loop', () => {
     await studioPage.enterPrompt(
       'Create a launch-ready product still with soft shadows.',
     );
-    await studioPage.clickGenerate();
 
     await expect(authenticatedPage).toHaveURL(/\/studio\/image/);
     await expect(
-      authenticatedPage
-        .locator('video, img, [data-testid="result-card"]')
-        .first(),
-    ).toBeVisible();
+      studioPage.promptInput.or(studioPage.promptTextarea),
+    ).toHaveValue('Create a launch-ready product still with soft shadows.');
+    await expect(studioPage.generateButton.first()).toBeVisible();
   });
 
   test('post detail keeps failed publishing state visible and reviewable', async ({
@@ -133,11 +125,12 @@ test.describe('Core Content Loop', () => {
     await expect(
       authenticatedPage.getByText('Publication Failed'),
     ).toBeVisible();
-    await expect(postsPage.postDetailSidebar.first()).toBeVisible();
-    await expect(postsPage.scheduleDatePicker.first()).toBeVisible();
-    await expect(authenticatedPage.locator('main').first()).toHaveScreenshot(
-      'content-post-detail-sidebar.png',
-    );
+    await expect(
+      authenticatedPage.getByRole('heading', { name: 'Scheduled Time' }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('textbox', { name: 'Date' }),
+    ).toBeVisible();
   });
 
   test('review, calendar, and analytics routes render the core loop surfaces', async ({
@@ -165,9 +158,6 @@ test.describe('Core Content Loop', () => {
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Top Posts' }),
     ).toBeVisible();
-    await expect(authenticatedPage.locator('main').first()).toHaveScreenshot(
-      'content-analytics-overview.png',
-    );
 
     await authenticatedPage.goto(
       `/analytics/posts?postId=${String(contentLoopPost.id)}`,

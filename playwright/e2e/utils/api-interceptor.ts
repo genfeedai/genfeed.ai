@@ -37,7 +37,6 @@ interface MockIngredient {
   type: string;
   status: string;
   url: string;
-  thumbnailUrl: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -220,7 +219,6 @@ export function generateMockIngredient(
     createdAt: new Date().toISOString(),
     id: baseId,
     status: 'completed',
-    thumbnailUrl: `https://cdn.genfeed.ai/mock/${type}/${baseId}-thumb.jpg`,
     type,
     updatedAt: new Date().toISOString(),
     url: `https://cdn.genfeed.ai/mock/${type}/${baseId}.${type === 'video' ? 'mp4' : 'png'}`,
@@ -430,6 +428,26 @@ function buildMockTrend(overrides: Record<string, unknown> = {}) {
 // Route Handlers
 // ----------------------------------------------------------------------------
 
+function isCollectionResourceRequest(url: string, resource: string): boolean {
+  try {
+    const { pathname } = new URL(url);
+    return pathname === `/v1/${resource}` || pathname.endsWith(`/${resource}`);
+  } catch {
+    return false;
+  }
+}
+
+function isV1ResourceRequest(url: string, resource: string): boolean {
+  try {
+    const { pathname } = new URL(url);
+    return (
+      pathname === `/v1/${resource}` || pathname.startsWith(`/v1/${resource}/`)
+    );
+  } catch {
+    return false;
+  }
+}
+
 async function _handleAuthRoutes(route: Route): Promise<void> {
   const url = route.request().url();
 
@@ -592,7 +610,7 @@ async function handleVideoRoutes(route: Route): Promise<void> {
   const method = route.request().method();
 
   // Video generation - CRITICAL: Never call real AI
-  if (method === 'POST' && !url.includes('/')) {
+  if (method === 'POST' && isCollectionResourceRequest(url, 'videos')) {
     await route.fulfill({
       body: JSON.stringify(
         wrapInJsonApi(
@@ -666,7 +684,7 @@ async function handleImageRoutes(route: Route): Promise<void> {
   const method = route.request().method();
 
   // Image generation - CRITICAL: Never call real AI
-  if (method === 'POST' && !url.includes('/')) {
+  if (method === 'POST' && isCollectionResourceRequest(url, 'images')) {
     await route.fulfill({
       body: JSON.stringify(
         wrapInJsonApi(
@@ -1550,6 +1568,14 @@ export async function setupApiMocks(
 
   await routeApi('/trainings/**', handleTrainingRoutes);
 
+  await routeApi('/folders**', async (r) => {
+    await r.fulfill({
+      body: JSON.stringify(wrapCollectionInJsonApi([], 'folders', 'folder')),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
   await routeApi('/organizations/**', handleOrganizationRoutes);
 
   await routeApi('/billing/**', handleBillingRoutes);
@@ -1695,33 +1721,42 @@ export async function setupApiMocks(
       return;
     }
 
-    if (url.includes('/v1/videos/')) {
+    if (isV1ResourceRequest(url, 'videos')) {
       await handleVideoRoutes(r);
       return;
     }
 
-    if (url.includes('/v1/images/')) {
+    if (isV1ResourceRequest(url, 'images')) {
       await handleImageRoutes(r);
       return;
     }
 
-    if (url.includes('/v1/musics/')) {
+    if (isV1ResourceRequest(url, 'musics')) {
       await handleMusicRoutes(r);
       return;
     }
 
-    if (url.includes('/v1/avatars/')) {
+    if (isV1ResourceRequest(url, 'avatars')) {
       await handleAvatarRoutes(r);
       return;
     }
 
-    if (url.includes('/v1/prompts/')) {
+    if (isV1ResourceRequest(url, 'prompts')) {
       await handlePromptRoutes(r);
       return;
     }
 
-    if (url.includes('/v1/trainings/')) {
+    if (isV1ResourceRequest(url, 'trainings')) {
       await handleTrainingRoutes(r);
+      return;
+    }
+
+    if (isV1ResourceRequest(url, 'folders')) {
+      await r.fulfill({
+        body: JSON.stringify(wrapCollectionInJsonApi([], 'folders', 'folder')),
+        contentType: 'application/json',
+        status: 200,
+      });
       return;
     }
 

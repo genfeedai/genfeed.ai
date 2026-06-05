@@ -64,7 +64,8 @@ async function setupGlobalState(): Promise<void> {
 
   const screenshotsDir = path.join(
     process.cwd(),
-    'playwright-report',
+    'playwright',
+    'artifacts',
     'screenshots',
   );
 
@@ -76,7 +77,7 @@ async function setupGlobalState(): Promise<void> {
 
   // Clean up old test artifacts (optional)
   if (process.env.CLEAN_ARTIFACTS === 'true') {
-    const resultsDir = path.join(process.cwd(), 'playwright-results');
+    const resultsDir = path.join(process.cwd(), 'playwright', 'artifacts');
     try {
       await fs.rm(resultsDir, { force: true, recursive: true });
       console.log('Cleaned up old test artifacts.');

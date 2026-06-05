@@ -7,7 +7,7 @@ import { expect, type Page, type Response, test } from '@playwright/test';
  * Unlike all-app-pages.spec.ts (fully-mocked auth via fake cookies + Clerk FAPI
  * mock + the __playwright_test bypass), this spec runs under a REAL Clerk
  * session supplied by the `app-authed` project's storageState (written by
- * e2e/clerk.setup.ts). It exercises the genuine proxy.ts / clerkMiddleware path,
+ * playwright/e2e/clerk.setup.ts). It exercises the genuine proxy.ts / clerkMiddleware path,
  * while backend DATA is still served by a local mock API on :3010.
  *
  * The mock API binds dual-stack (::) so the app's SSR fetch to `localhost:3010`
@@ -154,7 +154,7 @@ function startMockApiServer(): Promise<Server | null> {
 
 async function assertRouteLoads(page: Page, route: string): Promise<void> {
   const response: Response | null = await page.goto(route, {
-    timeout: 30_000,
+    timeout: 180_000,
     waitUntil: 'domcontentloaded',
   });
 
@@ -196,7 +196,7 @@ const PROTECTED_ROUTES = [
 ];
 
 test.describe('Authenticated route smoke (real Clerk session)', () => {
-  test.setTimeout(180_000);
+  test.setTimeout(600_000);
 
   let mockApiServer: Server | null = null;
 

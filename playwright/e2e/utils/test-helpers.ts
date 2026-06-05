@@ -496,7 +496,7 @@ export async function takeScreenshot(page: Page, name: string): Promise<void> {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   await page.screenshot({
     fullPage: true,
-    path: `playwright-report/screenshots/${name}-${timestamp}.png`,
+    path: `playwright/artifacts/screenshots/${name}-${timestamp}.png`,
   });
 }
 

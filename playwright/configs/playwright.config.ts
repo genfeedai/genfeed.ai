@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 
 /**
@@ -23,7 +24,13 @@ const appBaseURL =
   process.env.APP_BASE_URL || process.env.BASE_URL || 'http://127.0.0.1:3000';
 const appWebServerUrl =
   process.env.PLAYWRIGHT_WEB_SERVER_URL || `${appBaseURL}/playwright-ready`;
-const appWebAppPath = process.env.PLAYWRIGHT_WEB_APP_PATH || 'apps/app';
+const playwrightRoot = path.resolve(process.cwd(), 'playwright');
+const artifactsRoot = path.join(playwrightRoot, 'artifacts');
+const e2eRoot = path.join(playwrightRoot, 'e2e');
+const appWebAppPath = path.resolve(
+  process.cwd(),
+  process.env.PLAYWRIGHT_WEB_APP_PATH || 'apps/app',
+);
 const testApiEndpoint =
   process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://local.genfeed.ai:3010/v1';
 const appPlaywrightWebServerEnv = {
@@ -48,7 +55,6 @@ const appDevWebServerCommand =
   process.env.PLAYWRIGHT_APP_COMMAND ||
   process.env.PLAYWRIGHT_WEB_SERVER_COMMAND ||
   `bun run --cwd ${appWebAppPath} dev -- --hostname ::`;
-const cliArgs = process.argv.slice(2);
 
 export default defineConfig({
   expect: {
@@ -64,19 +70,19 @@ export default defineConfig({
   fullyParallel: true,
 
   // Global setup - runs once before all tests
-  globalSetup: './e2e/global-setup.ts',
+  globalSetup: path.join(e2eRoot, 'global-setup.ts'),
 
   // Output directories
-  outputDir: 'playwright-results',
+  outputDir: path.join(artifactsRoot, 'results'),
 
   // Test project configurations
   projects: [
     // Real-Clerk auth bootstrap: provisions +clerk_test users and writes
-    // storageState under playwright/.clerk for the authenticated projects.
-    // Requires the real test-instance secret (see e2e/clerk.setup.ts).
+    // storageState under playwright/artifacts/.clerk for the authenticated projects.
+    // Requires the real test-instance secret (see playwright/e2e/clerk.setup.ts).
     {
       name: 'clerk-setup',
-      testDir: './e2e',
+      testDir: e2eRoot,
       testMatch: /clerk\.setup\.ts/,
       use: {
         ...devices['Desktop Chrome'],
@@ -96,7 +102,7 @@ export default defineConfig({
     },
     // Real-Clerk authenticated smoke: reuses the storageState from clerk-setup
     // so protected routes hit the genuine clerkMiddleware path (no mock bypass).
-    // Enable once the real secret is wired; see e2e/clerk.setup.ts.
+    // Enable once the real secret is wired; see playwright/e2e/clerk.setup.ts.
     {
       name: 'app-authed',
       dependencies: ['clerk-setup'],
@@ -104,24 +110,36 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: appBaseURL,
-        storageState: 'playwright/.clerk/user.json',
+        storageState: path.join(artifactsRoot, '.clerk', 'user.json'),
       },
     },
   ],
 
   // Reporter configuration
   reporter: [
-    ['html', { open: 'never', outputFolder: 'playwright-report' }],
-    ['json', { outputFile: 'playwright-report/results.json' }],
-    ['junit', { outputFile: 'playwright-report/junit.xml' }],
+    [
+      'html',
+      { open: 'never', outputFolder: path.join(artifactsRoot, 'report') },
+    ],
+    [
+      'json',
+      { outputFile: path.join(artifactsRoot, 'report', 'results.json') },
+    ],
+    ['junit', { outputFile: path.join(artifactsRoot, 'report', 'junit.xml') }],
     isCI ? ['github'] : ['list'],
   ],
   retries: isCI ? 2 : 0,
 
   // Snapshot configuration
-  snapshotPathTemplate: '{testDir}/__screenshots__/{testFilePath}/{arg}{ext}',
+  snapshotPathTemplate: path.join(
+    e2eRoot,
+    'tests',
+    '__screenshots__',
+    '{testFilePath}',
+    '{arg}{ext}',
+  ),
   // Test directory structure
-  testDir: './e2e/tests',
+  testDir: path.join(e2eRoot, 'tests'),
   testMatch: /e2e\/tests\/.+\.spec\.ts/,
   timeout: 120000, // Give slow dev-route compiles room to settle
 

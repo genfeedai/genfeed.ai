@@ -14,10 +14,10 @@ import { expect, test } from '../../fixtures/auth.fixture';
  * - Full-page screenshots of main application pages
  * - Mobile viewport testing (375x667)
  * - Uses mocked authentication and API data for consistency
- * - Baseline images stored in e2e/__screenshots__/
+ * - Baseline images stored in playwright/e2e/tests/__screenshots__/
  *
  * To update baseline images:
- * bunx playwright test --project=chromium e2e/tests/visual/ --update-snapshots
+ * bunx playwright test --config=playwright/configs/playwright.config.ts --project=chromium playwright/e2e/tests/visual/ --update-snapshots
  *
  * @module visual-regression.spec
  */

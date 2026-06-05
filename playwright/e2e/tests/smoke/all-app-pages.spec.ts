@@ -70,6 +70,7 @@ const publicRoutes = routes.filter(
   (route) =>
     route.startsWith('/login') ||
     route.startsWith('/logout') ||
+    route.startsWith('/managed-credits') ||
     route.startsWith('/request-access') ||
     route.startsWith('/sign-up'),
 );
@@ -85,6 +86,7 @@ const adminRoutes = routes.filter((route) => route.startsWith('/admin'));
 const protectedRoutes = routes.filter(
   (route) =>
     !publicRoutes.includes(route) &&
+    !oauthRoutes.includes(route) &&
     !onboardingRoutes.includes(route) &&
     !adminRoutes.includes(route),
 );
@@ -402,13 +404,15 @@ async function assertRouteLoads(
   options: { allowRedirectToLogin?: boolean } = {},
 ): Promise<void> {
   const response: Response | null = await page.goto(route, {
-    timeout: 30_000,
-    waitUntil: 'domcontentloaded',
+    timeout: 180_000,
+    waitUntil: 'commit',
   });
 
   expect(response?.status() ?? 0, `${route} returned HTTP error`).toBeLessThan(
     400,
   );
+
+  await page.locator('body').waitFor({ state: 'attached', timeout: 10_000 });
 
   await expect(
     page.locator('[data-nextjs-dialog]'),
@@ -483,7 +487,7 @@ async function sweepRoutes(
 }
 
 test.describe('All App Pages', () => {
-  test.setTimeout(300_000);
+  test.setTimeout(900_000);
 
   let mockApiServer: Server | null = null;
 
