@@ -71,6 +71,18 @@ export default defineConfig({
 
   // Test project configurations
   projects: [
+    // Real-Clerk auth bootstrap: provisions +clerk_test users and writes
+    // storageState under playwright/.clerk for the authenticated projects.
+    // Requires the real test-instance secret (see e2e/clerk.setup.ts).
+    {
+      name: 'clerk-setup',
+      testDir: './e2e',
+      testMatch: /clerk\.setup\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: appBaseURL,
+      },
+    },
     {
       name: 'app-core',
       testIgnore: [/marketplace\/.+\.spec\.ts/, /website\/.+\.spec\.ts/],
@@ -80,6 +92,19 @@ export default defineConfig({
         launchOptions: {
           args: ['--disable-web-security'], // For API mocking
         },
+      },
+    },
+    // Real-Clerk authenticated smoke: reuses the storageState from clerk-setup
+    // so protected routes hit the genuine clerkMiddleware path (no mock bypass).
+    // Enable once the real secret is wired; see e2e/clerk.setup.ts.
+    {
+      name: 'app-authed',
+      dependencies: ['clerk-setup'],
+      testMatch: /smoke\/.+\.authed\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: appBaseURL,
+        storageState: 'playwright/.clerk/user.json',
       },
     },
   ],
