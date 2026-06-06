@@ -76,7 +76,7 @@ export class PresetsController extends BaseCRUDController<
       where: matchStage,
       orderBy: query.sort
         ? handleQuerySort(query.sort)
-        : ({ createdAt: -1, key: 1, label: 1, type: 1 } as SortObject),
+        : ({ createdAt: -1 } as SortObject),
     };
   }
 

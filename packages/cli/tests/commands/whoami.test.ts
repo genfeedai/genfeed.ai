@@ -8,6 +8,8 @@ const {
   mockHandleError,
   mockPrintJson,
   mockRequireAuth,
+  mockSpinnerFail,
+  mockSpinnerStop,
   mockWhoami,
 } = vi.hoisted(() => ({
   mockGetActiveBrand: vi.fn(),
@@ -17,8 +19,19 @@ const {
   }),
   mockPrintJson: vi.fn(),
   mockRequireAuth: vi.fn(),
+  mockSpinnerFail: vi.fn(),
+  mockSpinnerStop: vi.fn(),
   mockWhoami: vi.fn(),
 }));
+
+vi.mock('ora', () => {
+  const spinner = {
+    fail: (...args: unknown[]) => mockSpinnerFail(...args),
+    start: () => spinner,
+    stop: (...args: unknown[]) => mockSpinnerStop(...args),
+  };
+  return { default: () => spinner };
+});
 
 vi.mock('../../src/api/auth', () => ({
   whoami: () => mockWhoami(),
@@ -62,6 +75,18 @@ describe('whoami command', () => {
     });
     mockGetActiveBrand.mockResolvedValue('brand-1');
     mockGetBrand.mockResolvedValue({ id: 'brand-1', label: 'Brand' });
+  });
+
+  it('fails the spinner when the whoami request rejects', async () => {
+    const error = new Error('whoami request failed');
+    mockWhoami.mockRejectedValue(error);
+
+    await expect(whoamiCommand.parseAsync(['--json'], { from: 'user' })).rejects.toThrow(error);
+
+    expect(mockSpinnerFail).toHaveBeenCalled();
+    expect(mockSpinnerStop).not.toHaveBeenCalled();
+    expect(mockHandleError).toHaveBeenCalledWith(error);
+    expect(mockPrintJson).not.toHaveBeenCalled();
   });
 
   it('does not hide non-404 active brand lookup failures', async () => {

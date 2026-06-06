@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ContentCalendarPage from './content-calendar-page';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 const findPostsMock = vi.fn();
 const findArticlesMock = vi.fn();

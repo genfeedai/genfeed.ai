@@ -101,7 +101,7 @@ function AgentPanelShell({
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
               onClick={onExpand}
-              className="gen-shell-control size-7 rounded-md"
+              className="gen-shell-control flex items-center justify-center size-7 rounded-md"
               ariaLabel="Open full chat workspace"
             >
               <HiArrowsPointingOut className="size-3.5" />
@@ -112,7 +112,7 @@ function AgentPanelShell({
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
             onClick={onToggle}
-            className="gen-shell-control size-7 rounded-md"
+            className="gen-shell-control flex items-center justify-center size-7 rounded-md"
             data-active={isOpen ? 'true' : 'false'}
             ariaLabel={isOpen ? 'Collapse terminal' : 'Expand terminal'}
           >

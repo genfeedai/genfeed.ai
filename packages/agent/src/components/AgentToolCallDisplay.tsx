@@ -4,6 +4,7 @@ import { formatDuration } from '@genfeedai/agent/utils/format-duration';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { type ReactElement, useState } from 'react';
+import { TOOL_LABELS } from './agent-tool-call-display.helpers';
 
 interface AgentToolCallDisplayProps {
   toolCall: AgentToolCall & {
@@ -11,55 +12,6 @@ interface AgentToolCallDisplayProps {
     durationMs?: number;
   };
 }
-
-export const TOOL_LABELS: Record<string, string> = {
-  ai_action: 'AI Action',
-  batch_approve_reject: 'Batch Approve/Reject',
-  check_onboarding_status: 'Check Onboarding',
-  complete_campaign: 'Complete Campaign',
-  complete_onboarding: 'Complete Onboarding',
-  connect_social_account: 'Connect Account',
-  create_brand: 'Create Brand',
-  create_campaign: 'Create Campaign',
-  create_post: 'Create Post',
-  create_workflow: 'Create Workflow',
-  discover_engagements: 'Discover Engagements',
-  draft_brand_voice_profile: 'Draft Brand Voice',
-  draft_engagement_reply: 'Draft Reply',
-  execute_workflow: 'Execute Workflow',
-  generate_content: 'Generate Content',
-  generate_content_batch: 'Batch Generate',
-  generate_image: 'Generate Image',
-  generate_monthly_content: 'Monthly Content',
-  generate_onboarding_content: 'Generate Sample Content',
-  generate_video: 'Generate Video',
-  generate_voice: 'Generate Voice',
-  get_analytics: 'Analytics',
-  get_campaign_analytics: 'Campaign Analytics',
-  get_connection_status: 'Connection Status',
-  get_credits_balance: 'Credit Balance',
-  get_current_brand: 'Current Brand',
-  get_trends: 'Trends',
-  initiate_oauth_connect: 'Connect Account',
-  list_brands: 'List Brands',
-  list_posts: 'List Posts',
-  list_review_queue: 'Review Queue',
-  list_workflows: 'List Workflows',
-  open_studio_handoff: 'Open in Studio',
-  pause_campaign: 'Pause Campaign',
-  prepare_clip_workflow_run: 'Prepare Clip Run',
-  prepare_generation: 'Prepare Generation',
-  prepare_workflow_trigger: 'Prepare Workflow Trigger',
-  present_payment_options: 'Payment Options',
-  rate_content: 'Rate Content',
-  rate_ingredient: 'Rate Ingredient',
-  reframe_image: 'Reframe Image',
-  resolve_handle: 'Resolve Handle',
-  save_brand_voice_profile: 'Save Brand Voice',
-  schedule_post: 'Schedule Post',
-  start_campaign: 'Start Campaign',
-  upscale_image: 'Upscale Image',
-};
 
 export function AgentToolCallDisplay({
   toolCall,

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,6 +10,7 @@ import PostSignupPage from './page';
 const {
   createCheckoutSessionMock,
   currentUserState,
+  getTokenMock,
   getMyOrganizationsMock,
   isEEEnabledMock,
   isSelfHostedMock,
@@ -28,6 +29,7 @@ const {
     },
     isLoading: false,
   },
+  getTokenMock: vi.fn(),
   getMyOrganizationsMock: vi.fn(),
   isEEEnabledMock: vi.fn(),
   isSelfHostedMock: vi.fn(),
@@ -40,7 +42,7 @@ const {
 
 vi.mock('@clerk/nextjs', () => ({
   useAuth: () => ({
-    getToken: vi.fn(),
+    getToken: getTokenMock,
   }),
   useUser: () => ({
     user: {
@@ -148,6 +150,7 @@ describe('PostSignupPage behavior', () => {
   beforeEach(() => {
     createCheckoutSessionMock.mockReset();
     managedCreateCheckoutSessionMock.mockReset();
+    getTokenMock.mockReset();
     getMyOrganizationsMock.mockReset();
     isEEEnabledMock.mockReset();
     isSelfHostedMock.mockReset();
@@ -258,15 +261,18 @@ describe('PostSignupPage behavior', () => {
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(managedCreateCheckoutSessionMock).toHaveBeenCalledWith({
-        cancelUrl: 'http://localhost/onboarding/providers',
-        email: 'local@example.com',
-        firstName: 'Local',
-        lastName: 'User',
-        quantity: 1000,
-        successUrl:
-          'http://localhost/managed-credits/success?session_id={CHECKOUT_SESSION_ID}',
-      });
+      expect(managedCreateCheckoutSessionMock).toHaveBeenCalledWith(
+        {
+          cancelUrl: 'http://localhost/onboarding/providers',
+          email: 'local@example.com',
+          firstName: 'Local',
+          lastName: 'User',
+          quantity: 1000,
+          successUrl:
+            'http://localhost/managed-credits/success?session_id={CHECKOUT_SESSION_ID}',
+        },
+        expect.any(AbortSignal),
+      );
     });
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
     expect(locationState.href).toBe(

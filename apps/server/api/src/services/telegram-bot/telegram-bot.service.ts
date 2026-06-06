@@ -10,8 +10,9 @@
 
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { RunsService } from '@api/collections/runs/services/runs.service';
 import { ConfigService } from '@api/config/config.service';
@@ -687,7 +688,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
   }
 
   private resolveWorkflowFallbackPath(name: string): string | null {
-    const starts = [process.cwd(), __dirname];
+    const starts = [process.cwd(), dirname(fileURLToPath(import.meta.url))];
 
     for (const start of starts) {
       for (let depth = 0; depth <= 10; depth += 1) {

@@ -13,12 +13,13 @@ export {
 } from './accordion';
 export { Alert, AlertDescription, AlertTitle } from './alert';
 export { Avatar, AvatarFallback, AvatarImage } from './avatar';
-export { Badge, type BadgeProps, badgeVariants } from './badge';
+export { Badge, type BadgeProps } from './badge';
+export { badgeVariants } from './badge.variants';
 export {
   Blockquote,
   type BlockquoteProps,
-  blockquoteVariants,
 } from './blockquote';
+export { blockquoteVariants } from './blockquote.variants';
 export {
   Breadcrumb,
   BreadcrumbEllipsis,
@@ -31,10 +32,11 @@ export {
 export {
   Button,
   type ButtonProps,
-  buttonVariants,
 } from './button';
+export { buttonVariants } from './button.variants';
 export { Checkbox } from './checkbox';
-export { Code, type CodeProps, codeVariants } from './code';
+export { Code, type CodeProps } from './code';
+export { codeVariants } from './code.variants';
 export { ColorInput, type ColorInputProps } from './color-input';
 export {
   type ColorPickerProps,
@@ -70,10 +72,8 @@ export {
   type DefinitionListProps,
   DefinitionTerm,
   type DefinitionTermProps,
-  ddVariants,
-  dlVariants,
-  dtVariants,
 } from './definition-list';
+export { ddVariants, dlVariants, dtVariants } from './definition-list.variants';
 export {
   Dialog,
   DialogClose,
@@ -125,7 +125,8 @@ export {
   fieldControlTriggerClassName,
 } from './field-control';
 export { Input, type InputProps } from './input';
-export { Kbd, type KbdProps, kbdVariants } from './kbd';
+export { Kbd, type KbdProps } from './kbd';
+export { kbdVariants } from './kbd.variants';
 export { Label } from './label';
 export {
   Pagination,
@@ -145,7 +146,8 @@ export {
   PopoverContent,
   PopoverTrigger,
 } from './popover';
-export { Pre, type PreProps, preVariants } from './pre';
+export { Pre, type PreProps } from './pre';
+export { preVariants } from './pre.variants';
 export { Progress } from './progress';
 export { RadioGroup, RadioGroupItem } from './radio-group';
 export { default as RangeField, type RangeFieldProps } from './range-field';
@@ -191,11 +193,16 @@ export {
 } from './table';
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 export {
+  getTabsListClassName,
+  getTabsTriggerClassName,
+} from './tabs.styles';
+export {
   default as TagsEditable,
   type TagsEditableProps,
 } from './tags-editable';
 export { Textarea, type TextareaProps } from './textarea';
-export { Toggle, toggleVariants } from './toggle';
+export { Toggle } from './toggle';
+export { toggleVariants } from './toggle.variants';
 export { ToggleGroup, ToggleGroupItem } from './toggle-group';
 export {
   Tooltip,

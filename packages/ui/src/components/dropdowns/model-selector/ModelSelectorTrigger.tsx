@@ -5,7 +5,8 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ModelSelectorTriggerProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
-import { Button, buttonVariants } from '@ui/primitives/button';
+import { Button } from '@ui/primitives/button';
+import { buttonVariants } from '@ui/primitives/button.variants';
 import type { ButtonHTMLAttributes, Ref } from 'react';
 import {
   HiChevronDown,

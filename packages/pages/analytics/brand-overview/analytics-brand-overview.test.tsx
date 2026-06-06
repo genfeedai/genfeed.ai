@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { PostStatus } from '@genfeedai/enums';
 import type { IAnalytics } from '@genfeedai/interfaces';
 import type { Post } from '@models/content/post.model';

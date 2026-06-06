@@ -393,7 +393,7 @@ export class PostsController extends BaseCRUDController<
       ...dateFilter,
       // Only show parent posts (not children/replies)
       // Handle both null and undefined (undefined fields aren't stored in MongoDB)
-      OR: [{ parent: null }, { parent: { not: false } }],
+      OR: [{ parentId: null }, { parentId: { not: null } }],
     };
 
     if (query.platform) {

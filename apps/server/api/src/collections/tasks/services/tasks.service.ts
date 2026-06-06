@@ -20,6 +20,7 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -104,7 +105,8 @@ type CreateTaskDtoExtended = CreateTaskDto & {
 export class TasksService extends BaseService<
   TaskDocument,
   CreateTaskDto,
-  UpdateTaskDto
+  UpdateTaskDto,
+  Prisma.TaskWhereInput
 > {
   constructor(
     public readonly prisma: PrismaService,

@@ -6,6 +6,7 @@ import {
   createVitestWarningLogger,
   installVitestWarningFilter,
 } from '../configs/vitest-warning-filter';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 const appRoot = process.cwd();

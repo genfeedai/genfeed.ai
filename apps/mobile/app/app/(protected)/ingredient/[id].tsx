@@ -1,5 +1,6 @@
+import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ErrorScreen, LoadingScreen } from '@/components/ScreenStates';
 import { colors } from '@/constants';
 import { useIngredient } from '@/hooks/use-ingredients';
@@ -38,7 +39,7 @@ export default function IngredientDetail() {
           <Image
             source={{ uri: thumbnail }}
             style={styles.image}
-            resizeMode="contain"
+            contentFit="contain"
           />
         </View>
       )}
@@ -69,7 +70,7 @@ export default function IngredientDetail() {
               </Text>
             </View>
           )}
-          {metadata.width && metadata.height && (
+          {Number(metadata.width) > 0 && Number(metadata.height) > 0 && (
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Dimensions:</Text>
               <Text style={styles.metaValue}>
@@ -77,7 +78,7 @@ export default function IngredientDetail() {
               </Text>
             </View>
           )}
-          {metadata.duration && (
+          {Number(metadata.duration) > 0 && (
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Duration:</Text>
               <Text style={styles.metaValue}>{metadata.duration}s</Text>

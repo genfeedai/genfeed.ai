@@ -5,27 +5,13 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { AdminDarkroomService } from '@services/admin/darkroom.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
-import Image from 'next/image';
 import { useCallback, useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import {
-  HiOutlineCheckCircle,
-  HiOutlineCloudArrowUp,
-  HiOutlineDocumentText,
-  HiOutlineExclamationCircle,
-  HiOutlinePhoto,
-  HiOutlineTrash,
-} from 'react-icons/hi2';
-
-interface PairedFile {
-  image: File;
-  caption?: string;
-  filenameStem: string;
-}
+import DatasetDropZone from './dataset-drop-zone';
+import DatasetFileList from './dataset-file-list';
+import DatasetUploadResult from './dataset-upload-result';
+import type { PairedFile, UploadResult } from './dataset-uploader.types';
 
 interface DatasetUploaderProps {
   slug: string;
@@ -51,11 +37,7 @@ export default function DatasetUploader({
   const [pairedFiles, setPairedFiles] = useState<PairedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadResult, setUploadResult] = useState<{
-    uploadedCount: number;
-    failedCount: number;
-    failed: { filename: string; error: string }[];
-  } | null>(null);
+  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
 
   const imageFiles = useMemo(
     () => pairedFiles.map((p) => p.image),
@@ -194,122 +176,21 @@ export default function DatasetUploader({
   return (
     <div className="space-y-4">
       {/* Drop Zone */}
-      <div
-        {...getRootProps({
-          className: `border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-            isDragActive
-              ? 'border-primary bg-primary/5'
-              : 'border-foreground/15 hover:border-foreground/30 bg-foreground/[0.02]'
-          }`,
-        })}
-      >
-        <Input {...getInputProps()} />
-        <HiOutlineCloudArrowUp className="size-10 mx-auto mb-3 text-foreground/40" />
-        <p className="text-sm font-medium text-foreground/70">
-          {isDragActive
-            ? 'Drop files here...'
-            : 'Drop training images + caption .txt files here'}
-        </p>
-        <p className="text-xs text-foreground/40 mt-1">
-          Pair images with captions by matching filenames (e.g. photo1.png +
-          photo1.txt)
-        </p>
-        <div className="flex items-center justify-center gap-2 mt-3">
-          <Badge variant="ghost">JPG, PNG, WEBP</Badge>
-          <Badge variant="ghost">+ .txt captions</Badge>
-          <Badge variant="ghost">50MB max per file</Badge>
-        </div>
-      </div>
+      <DatasetDropZone
+        getRootProps={getRootProps}
+        getInputProps={getInputProps}
+        isDragActive={isDragActive}
+      />
 
       {/* File List */}
       {pairedFiles.length > 0 && (
-        <Card>
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium">
-                  {pairedFiles.length} image
-                  {pairedFiles.length !== 1 ? 's' : ''}
-                </span>
-                {pairedCount > 0 && (
-                  <Badge variant="success">{pairedCount} with captions</Badge>
-                )}
-                {unpairedCount > 0 && (
-                  <Badge variant="ghost">
-                    {unpairedCount} without captions
-                  </Badge>
-                )}
-              </div>
-
-              <Button
-                variant={ButtonVariant.GHOST}
-                className="text-xs text-foreground/50 hover:text-error"
-                onClick={handleClearAll}
-              >
-                Clear all
-              </Button>
-            </div>
-
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {pairedFiles.map((pair, index) => (
-                <div
-                  key={`${pair.filenameStem}-${pair.image.name}-${pair.image.lastModified}`}
-                  className="flex items-center gap-3 p-2 rounded bg-foreground/[0.03] group"
-                >
-                  {/* Thumbnail */}
-                  <div className="size-10 rounded overflow-hidden bg-foreground/5 flex-shrink-0">
-                    <Image
-                      unoptimized
-                      alt={pair.image.name}
-                      className="w-full h-full object-cover"
-                      src={URL.createObjectURL(pair.image)}
-                      width={800}
-                      height={600}
-                    />
-                  </div>
-
-                  {/* File info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <HiOutlinePhoto className="size-3.5 text-foreground/40 flex-shrink-0" />
-                      <span
-                        className="text-sm truncate"
-                        title={pair.image.name}
-                      >
-                        {pair.image.name}
-                      </span>
-                    </div>
-                    {pair.caption && (
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <HiOutlineDocumentText className="size-3.5 text-success/60 flex-shrink-0" />
-                        <span
-                          className="text-xs text-foreground/50 truncate"
-                          title={pair.caption}
-                        >
-                          {pair.caption}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Status badge */}
-                  <Badge variant={pair.caption ? 'success' : 'ghost'}>
-                    {pair.caption ? 'Paired' : 'No caption'}
-                  </Badge>
-
-                  {/* Remove button */}
-                  <Button
-                    variant={ButtonVariant.GHOST}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                    onClick={() => handleRemoveFile(index)}
-                  >
-                    <HiOutlineTrash className="size-4 text-foreground/40 hover:text-error" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
+        <DatasetFileList
+          pairedFiles={pairedFiles}
+          pairedCount={pairedCount}
+          unpairedCount={unpairedCount}
+          onClearAll={handleClearAll}
+          onRemoveFile={handleRemoveFile}
+        />
       )}
 
       {/* Upload Progress */}
@@ -329,34 +210,7 @@ export default function DatasetUploader({
       )}
 
       {/* Upload Results */}
-      {uploadResult && (
-        <Card>
-          <div className="p-4 space-y-2">
-            {uploadResult.uploadedCount > 0 && (
-              <div className="flex items-center gap-2 text-sm text-success">
-                <HiOutlineCheckCircle className="size-4" />
-                {uploadResult.uploadedCount} image(s) uploaded successfully
-              </div>
-            )}
-            {uploadResult.failedCount > 0 && (
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm text-error">
-                  <HiOutlineExclamationCircle className="size-4" />
-                  {uploadResult.failedCount} image(s) failed
-                </div>
-                {uploadResult.failed.map((f) => (
-                  <div
-                    key={`${f.filename}-${f.error}`}
-                    className="text-xs text-error/70 ml-6"
-                  >
-                    {f.filename}: {f.error}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
+      {uploadResult && <DatasetUploadResult uploadResult={uploadResult} />}
 
       {/* Upload Button */}
       {pairedFiles.length > 0 && (

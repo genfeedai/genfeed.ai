@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/brand-memory/schemas/brand-memory.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -36,7 +37,12 @@ export interface BrandMemoryDateRange {
 }
 
 @Injectable()
-export class BrandMemoryService extends BaseService<BrandMemoryDocument> {
+export class BrandMemoryService extends BaseService<
+  BrandMemoryDocument,
+  Partial<BrandMemoryDocument>,
+  Partial<BrandMemoryDocument>,
+  Prisma.BrandMemoryWhereInput
+> {
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,

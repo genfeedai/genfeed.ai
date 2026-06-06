@@ -127,7 +127,7 @@ export default function PostDetailHeader({
                     isExpandingToThread ? 'Expanding...' : 'Expand to Thread'
                   }
                   variant={ButtonVariant.SECONDARY}
-                  icon={<HiQueueList className="h-4 w-4" />}
+                  icon={<HiQueueList className="size-4" />}
                   isDisabled={isExpandingToThread}
                 />
               }
@@ -161,14 +161,14 @@ export default function PostDetailHeader({
               tooltipPosition="left"
               variant={ButtonVariant.SECONDARY}
               onClick={onCreateRemix}
-              icon={<HiDocumentDuplicate className="h-4 w-4" />}
+              icon={<HiDocumentDuplicate className="size-4" />}
             />
           )}
 
           {canCreateRemix && (
             <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
               <Link href={buildPostAnalyticsHref(post.id)}>
-                <HiChartBar className="h-4 w-4" />
+                <HiChartBar className="size-4" />
                 Performance
               </Link>
             </PrimitiveButton>
@@ -177,7 +177,7 @@ export default function PostDetailHeader({
           {canCreateRemix && (
             <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
               <Link href={buildPostAgentHref(getPostLabel(post))}>
-                <HiSparkles className="h-4 w-4" />
+                <HiSparkles className="size-4" />
                 Ask Agent
               </Link>
             </PrimitiveButton>
@@ -194,9 +194,9 @@ export default function PostDetailHeader({
                 }
                 icon={
                   viewMode === 'edit' ? (
-                    <HiEye className="h-4 w-4" />
+                    <HiEye className="size-4" />
                   ) : (
-                    <HiPencil className="h-4 w-4" />
+                    <HiPencil className="size-4" />
                   )
                 }
               />
@@ -206,7 +206,7 @@ export default function PostDetailHeader({
                 label="Delete"
                 variant={ButtonVariant.DESTRUCTIVE}
                 onClick={onDelete}
-                icon={<HiTrash className="h-4 w-4" />}
+                icon={<HiTrash className="size-4" />}
               />
             </>
           )}

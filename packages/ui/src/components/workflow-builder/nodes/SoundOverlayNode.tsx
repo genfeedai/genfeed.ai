@@ -223,7 +223,12 @@ function SoundOverlayNodeComponent({
           <div className="text-xs text-green-400 font-medium mb-1">
             Processing Complete
           </div>
-          <video src={data.outputVideoUrl} controls className="w-full" />
+          <video
+            aria-label="Output video"
+            src={data.outputVideoUrl}
+            controls
+            className="w-full"
+          />
         </div>
       )}
 

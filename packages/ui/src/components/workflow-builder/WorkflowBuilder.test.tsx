@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import * as workflowBuilderHook from '@genfeedai/hooks/automation/use-workflow-builder/use-workflow-builder';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import WorkflowBuilder from '@ui/workflow-builder/WorkflowBuilder';

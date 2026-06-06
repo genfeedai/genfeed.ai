@@ -2,8 +2,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, '../../..');
+const desktopDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(desktopDir, '../../..');
 
 const packagePath = (packageName: string, subpath = '') =>
   path.resolve(repoRoot, 'packages', packageName, subpath);
@@ -41,7 +41,7 @@ export default defineConfig({
       },
       {
         find: '@renderer',
-        replacement: path.resolve(__dirname, 'src/renderer'),
+        replacement: path.resolve(desktopDir, 'src/renderer'),
       },
       {
         find: '@serializers',

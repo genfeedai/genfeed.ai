@@ -8,6 +8,7 @@ import {
 } from '@api/collections/articles/utils/virality-analysis.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
@@ -15,7 +16,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 export class ArticleAnalyticsService extends BaseService<
   ArticleAnalyticsDocument,
   CreateArticleAnalyticsDto,
-  UpdateArticleAnalyticsDto
+  UpdateArticleAnalyticsDto,
+  Prisma.ArticleAnalyticsWhereInput
 > {
   constructor(
     public readonly prisma: PrismaService,

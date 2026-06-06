@@ -20,7 +20,9 @@ const IGNORED_PATH_SEGMENTS = new Set([
   'coverage',
   'dist',
   'node_modules',
+  'artifacts',
   'playwright-report',
+  'playwright-results',
   'storybook-static',
   'test-results',
 ]);

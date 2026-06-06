@@ -161,6 +161,7 @@ export default function VideoPlayer({
       )}
 
       <video
+        aria-label="Video player"
         controls={config?.controls}
         muted={config?.muted}
         loop={config?.loop}

@@ -246,11 +246,12 @@ export function BottomBar() {
           {dropdownOpen && (
             <>
               {/* Backdrop */}
-              <button
+              <Button
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 aria-label="Close execution menu"
                 className="fixed inset-0 z-40"
                 onClick={() => setDropdownOpen(false)}
-                type="button"
               />
               <div
                 ref={dropdownRef}
@@ -259,6 +260,7 @@ export function BottomBar() {
                 onPointerDown={(e) => e.stopPropagation()}
                 className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] rounded-md border border-neutral-700 bg-neutral-800 py-0.5 shadow-xl"
                 role="menu"
+                tabIndex={-1}
               >
                 <Button
                   variant={ButtonVariant.UNSTYLED}

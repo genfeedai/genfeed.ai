@@ -1,23 +1,15 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  IngredientCategory,
-  IngredientStatus,
-} from '@genfeedai/enums';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import type { IngredientParentsManagerProps } from '@genfeedai/props/content/ingredient.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
-import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Loading from '@ui/loading/default/Loading';
-import { Button } from '@ui/primitives/button';
-import Image from 'next/image';
-import { type KeyboardEvent, useCallback, useEffect, useState } from 'react';
-import { HiPhoto, HiVideoCamera, HiXMark } from 'react-icons/hi2';
+import { useCallback, useEffect, useState } from 'react';
+import ParentsList from './ParentsList';
+import ParentsPickerDropdown from './ParentsPickerDropdown';
 
 export default function ParentsManager({
   ingredient,
@@ -166,163 +158,24 @@ export default function ParentsManager({
 
   return (
     <div className="space-y-3">
-      {/* Dropdown with image/video previews */}
-      <div className="relative parents-dropdown-container">
-        <Button
-          label={`Select parent ${ingredient.category}s`}
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          isDisabled={isDisabled || isSearching}
-          icon={isVideo ? <HiVideoCamera /> : <HiPhoto />}
-          variant={ButtonVariant.SECONDARY}
-          size={ButtonSize.SM}
-        />
+      <ParentsPickerDropdown
+        ingredientCategory={ingredient.category}
+        isVideo={isVideo}
+        isDisabled={isDisabled}
+        isSearching={isSearching}
+        isDropdownOpen={isDropdownOpen}
+        availableIngredients={availableIngredients}
+        onToggleDropdown={() => setIsDropdownOpen(!isDropdownOpen)}
+        onAddParent={handleAddParent}
+      />
 
-        {isDropdownOpen && (
-          <div className="absolute top-full mt-2 left-0 z-50 bg-card shadow-lg border border-white/[0.08] p-3 min-w-96 max-w-2xl">
-            <div className="text-xs text-foreground/70 mb-2 font-medium">
-              Select Parent {ingredient.category}s
-            </div>
-
-            {isSearching ? (
-              <div className="flex items-center justify-center py-4">
-                <span className="animate-spin size-4 border-2 border-primary border-t-transparent rounded-full" />
-              </div>
-            ) : availableIngredients.length === 0 ? (
-              <div className="text-sm text-foreground/60 py-4 text-center">
-                No available {ingredient.category}s
-              </div>
-            ) : (
-              <div className="grid grid-cols-6 gap-2 max-h-72 overflow-y-auto">
-                {availableIngredients.map((ing: IIngredient) => (
-                  <div
-                    key={ing.id}
-                    role="button"
-                    tabIndex={0}
-                    className="relative group cursor-pointer transition-all"
-                    onClick={() => handleAddParent(ing.id)}
-                    onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
-                      if (event.key !== 'Enter' && event.key !== ' ') {
-                        return;
-                      }
-
-                      event.preventDefault();
-                      handleAddParent(ing.id);
-                    }}
-                    title={
-                      (ing.metadata as IMetadata)?.label ||
-                      `${ing.category} - ${ing.id.slice(0, 8)}`
-                    }
-                  >
-                    <div className="relative size-16 overflow-hidden border-2 border-transparent hover:border-primary transition-all hover:scale-105">
-                      {isVideo ? (
-                        <div className="size-full bg-background">
-                          <VideoPlayer
-                            src={ing.ingredientUrl}
-                            thumbnail={ing.thumbnailUrl}
-                            config={{
-                              autoPlay: false,
-                              controls: false,
-                              loop: true,
-                              muted: true,
-                              playsInline: true,
-                              preload: 'metadata',
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <Image
-                          src={
-                            ing.ingredientUrl ||
-                            `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`
-                          }
-                          alt={(ing.metadata as IMetadata)?.label}
-                          className="size-full object-cover"
-                          width={64}
-                          height={64}
-                          sizes="64px"
-                        />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-1">
-                        <span className="text-white text-[9px] font-medium truncate px-1">
-                          {(ing.metadata as IMetadata)?.label ||
-                            ing.id.slice(0, 8)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Selected parents display */}
-      {parents.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {parents.map((parent) => (
-            <div key={parent.id} className="relative group">
-              <div className="relative size-20 overflow-hidden border-2 border-primary/30">
-                {isVideo ? (
-                  <div className="size-full bg-background">
-                    <VideoPlayer
-                      src={parent.ingredientUrl}
-                      thumbnail={parent.thumbnailUrl}
-                      config={{
-                        autoPlay: false,
-                        controls: false,
-                        loop: true,
-                        muted: true,
-                        playsInline: true,
-                        preload: 'metadata',
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <Image
-                    src={
-                      parent.ingredientUrl ||
-                      `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`
-                    }
-                    alt={(parent.metadata as IMetadata)?.label}
-                    className="size-full object-cover"
-                    width={80}
-                    height={80}
-                    sizes="80px"
-                  />
-                )}
-
-                {/* Label overlay */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1">
-                  <span className="text-white text-[10px] font-medium truncate block">
-                    {(parent.metadata as IMetadata)?.label ||
-                      parent.id.slice(0, 8)}
-                  </span>
-                </div>
-
-                {/* Remove button */}
-                {!isDisabled && (
-                  <Button
-                    withWrapper={false}
-                    variant={ButtonVariant.UNSTYLED}
-                    onClick={() => handleRemoveParent(parent.id)}
-                    className="absolute top-1 right-1 bg-error text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-error-focus"
-                    ariaLabel="Remove parent"
-                  >
-                    <HiXMark className="size-3" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {parents.length === 0 && (
-        <p className="text-sm text-foreground/60">
-          No parent {ingredient.category}s selected
-        </p>
-      )}
+      <ParentsList
+        items={parents}
+        ingredientCategory={ingredient.category}
+        isVideo={isVideo}
+        isDisabled={isDisabled}
+        onRemoveParent={handleRemoveParent}
+      />
     </div>
   );
 }

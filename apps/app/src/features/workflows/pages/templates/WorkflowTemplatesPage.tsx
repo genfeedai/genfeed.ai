@@ -46,12 +46,11 @@ function WorkflowTemplatesPageContent() {
     setError(null);
 
     try {
-      const service = await getService();
-
       if (!mountedRef.current) {
         return;
       }
 
+      const service = await getService();
       const data = await service.listTemplates();
 
       if (mountedRef.current) {

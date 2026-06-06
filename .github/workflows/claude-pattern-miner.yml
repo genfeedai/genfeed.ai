@@ -1,0 +1,73 @@
+name: Claude Pattern Miner
+
+on:
+  schedule:
+    - cron: '30 6 * * *'
+  workflow_dispatch:
+    inputs:
+      days:
+        description: Number of trailing days to analyze
+        required: false
+        default: '1'
+      include_subagents:
+        description: Include subagent transcripts
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: claude-pattern-miner-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mine-patterns:
+    name: Mine Claude Session Patterns
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CLAUDE_ROOTS: ${{ vars.CLAUDE_ROOTS || '' }}
+      DAYS: ${{ inputs.days || '1' }}
+      INCLUDE_SUBAGENTS: ${{ inputs.include_subagents || 'false' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          install-command: bun install --frozen-lockfile
+
+      - name: Analyze recent sessions
+        shell: bash
+        run: |
+          args=(
+            --days "$DAYS"
+            --out docs/claude-session-analysis-daily.md
+            --json-out docs/claude-session-analysis-daily.json
+          )
+          if [ "$INCLUDE_SUBAGENTS" = "true" ]; then
+            args+=(--include-subagents)
+          fi
+          if [ -n "$CLAUDE_ROOTS" ]; then
+            IFS=':' read -r -a roots <<< "$CLAUDE_ROOTS"
+            for root in "${roots[@]}"; do
+              args+=(--root "$root")
+            done
+          fi
+          bun run scripts/analyze-claude-sessions.ts -- "${args[@]}"
+
+      - name: Generate pattern report
+        run: |
+          bun run scripts/daily-pattern-miner.ts -- \
+            --input docs/claude-session-analysis-daily.json \
+            --out docs/claude-pattern-miner-report.md
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-pattern-miner-report
+          path: |
+            docs/claude-session-analysis-daily.md
+            docs/claude-session-analysis-daily.json
+            docs/claude-pattern-miner-report.md
+          retention-days: 14

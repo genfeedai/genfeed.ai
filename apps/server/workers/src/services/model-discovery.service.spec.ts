@@ -24,6 +24,16 @@ vi.mock('@api/collections/models/schemas/model.schema', () => ({
   Model: { name: 'Model' },
 }));
 
+vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
+
+vi.mock('@genfeedai/helpers', () => ({
+  applyMargin: vi.fn((providerCostUsd: number) =>
+    Math.max(2, Math.ceil(providerCostUsd / 0.3 / 0.01)),
+  ),
+}));
+
 import { ModelCategory } from '@genfeedai/enums';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 
@@ -42,6 +52,7 @@ describe('ModelDiscoveryService', () => {
   };
   let mockModelPricingService: {
     estimateCost: ReturnType<typeof vi.fn>;
+    estimateFromProviderCost: ReturnType<typeof vi.fn>;
   };
   let mockConfigService: {
     get: ReturnType<typeof vi.fn>;
@@ -70,6 +81,10 @@ describe('ModelDiscoveryService', () => {
 
     mockModelPricingService = {
       estimateCost: vi.fn().mockReturnValue(mockPricing),
+      estimateFromProviderCost: vi.fn().mockReturnValue({
+        ...mockPricing,
+        cost: 34,
+      }),
     };
 
     mockConfigService = {
@@ -113,7 +128,30 @@ describe('ModelDiscoveryService', () => {
         expect.objectContaining({
           isActive: false,
           isDefault: false,
+          isDiscovered: true,
           key: 'acme-labs/test-model',
+          reviewStatus: 'pending',
+        }),
+      );
+    });
+
+    it('uses provider cost pricing when a provider cost is available', async () => {
+      const draftDoc = { _id: 'draft-id' };
+      mockModelsService.create.mockResolvedValue(draftDoc);
+
+      await service.createDraftModel({
+        ...modelInfo,
+        providerCostUsd: 0.1,
+      } as any);
+
+      expect(
+        mockModelPricingService.estimateFromProviderCost,
+      ).toHaveBeenCalledWith(0.1, ModelCategory.IMAGE);
+      expect(mockModelsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cost: 34,
+          margin: 0.7,
+          providerCostUsd: 0.1,
         }),
       );
     });

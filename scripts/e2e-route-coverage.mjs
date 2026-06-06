@@ -32,8 +32,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 const appRoot = path.join(repoRoot, 'apps/app/app');
 const e2eRoots = [
-  path.join(repoRoot, 'e2e/tests'),
-  path.join(repoRoot, 'e2e/pages'),
+  path.join(repoRoot, 'playwright/e2e/tests'),
+  path.join(repoRoot, 'playwright/e2e/pages'),
 ];
 
 const THRESHOLD = Number(process.env.E2E_ROUTE_COVERAGE_THRESHOLD ?? '80');

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import TrendContentCard from '@pages/trends/shared/trend-content-card';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

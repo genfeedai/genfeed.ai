@@ -1,7 +1,9 @@
 import {
   clearCache,
   createCacheKey,
+  createLocalStorageCache,
   createMemoryCache,
+  createSessionStorageCache,
   getCacheItem,
   getCacheStats,
   isCacheExpired,
@@ -11,6 +13,44 @@ import {
   setCacheItem,
 } from '@helpers/data/cache/cache.helper';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+function createStorage(): Storage {
+  const entries = new Map<string, string>();
+
+  return {
+    get length() {
+      return entries.size;
+    },
+    clear: () => entries.clear(),
+    getItem: (key: string) => entries.get(key) ?? null,
+    key: (index: number) => [...entries.keys()][index] ?? null,
+    removeItem: (key: string) => entries.delete(key),
+    setItem: (key: string, value: string) => entries.set(key, value),
+  } as Storage;
+}
+
+function setBrowserStorage(
+  name: 'localStorage' | 'sessionStorage',
+  storage: Storage,
+): void {
+  Object.defineProperty(globalThis, name, {
+    configurable: true,
+    value: storage,
+    writable: true,
+  });
+}
+
+function restoreBrowserStorage(
+  name: 'localStorage' | 'sessionStorage',
+  descriptor: PropertyDescriptor | undefined,
+): void {
+  if (descriptor) {
+    Object.defineProperty(globalThis, name, descriptor);
+    return;
+  }
+
+  Reflect.deleteProperty(globalThis, name);
+}
 
 // ─── MemoryCache ─────────────────────────────────────────────────────────────
 
@@ -198,6 +238,92 @@ describe('createMemoryCache', () => {
     c.clear();
     expect(c.get('a')).toBeNull();
     expect(c.get('b')).toBeNull();
+  });
+});
+
+// ─── browser storage caches ─────────────────────────────────────────────────
+
+describe('browser storage caches', () => {
+  const originalLocalStorage = Object.getOwnPropertyDescriptor(
+    globalThis,
+    'localStorage',
+  );
+  const originalSessionStorage = Object.getOwnPropertyDescriptor(
+    globalThis,
+    'sessionStorage',
+  );
+
+  afterEach(() => {
+    restoreBrowserStorage('localStorage', originalLocalStorage);
+    restoreBrowserStorage('sessionStorage', originalSessionStorage);
+  });
+
+  it('stores, reads, expires, and removes localStorage entries with callbacks', () => {
+    const storage = createStorage();
+    const onGet = vi.fn();
+    const onRemove = vi.fn();
+    const onSet = vi.fn();
+    setBrowserStorage('localStorage', storage);
+
+    const cache = createLocalStorageCache<string>({ onGet, onRemove, onSet });
+
+    cache.set('key', 'value');
+    expect(cache.get('key')).toBe('value');
+    expect(onSet).toHaveBeenCalledWith('key', 'value');
+    expect(onGet).toHaveBeenCalledWith('key', 'value');
+
+    cache.set('expired', 'stale', -1);
+    expect(cache.get('expired')).toBeNull();
+    expect(storage.getItem('cache:expired')).toBeNull();
+
+    cache.remove('key');
+    expect(onRemove).toHaveBeenCalledWith('key');
+    expect(cache.get('key')).toBeNull();
+  });
+
+  it('clears all localStorage entries only for the default prefix', () => {
+    const storage = createStorage();
+    setBrowserStorage('localStorage', storage);
+    storage.setItem('cache:one', '1');
+    storage.setItem('other:two', '2');
+
+    createLocalStorageCache().clear();
+    expect(storage.length).toBe(0);
+
+    storage.setItem('custom:one', '1');
+    storage.setItem('other:two', '2');
+    createLocalStorageCache({ prefix: 'custom:' }).clear();
+
+    expect(storage.getItem('custom:one')).toBeNull();
+    expect(storage.getItem('other:two')).toBe('2');
+  });
+
+  it('clears only prefixed sessionStorage entries', () => {
+    const storage = createStorage();
+    setBrowserStorage('sessionStorage', storage);
+    storage.setItem('cache:one', '1');
+    storage.setItem('other:two', '2');
+
+    createSessionStorageCache().clear();
+
+    expect(storage.getItem('cache:one')).toBeNull();
+    expect(storage.getItem('other:two')).toBe('2');
+  });
+
+  // Regression: createLocalStorageCache/createSessionStorageCache are sometimes
+  // invoked at module scope (e.g. useAnalyticsTrends.ts), which runs during
+  // Next.js SSR/prerender where `localStorage` is not defined. The factory must
+  // defer the storage lookup to the method calls so construction never throws.
+  it('does not touch localStorage at construction time (SSR-safe)', () => {
+    restoreBrowserStorage('localStorage', undefined); // simulate server: no global
+    expect(() => createLocalStorageCache({ prefix: 'trends:' })).not.toThrow();
+  });
+
+  it('does not touch sessionStorage at construction time (SSR-safe)', () => {
+    restoreBrowserStorage('sessionStorage', undefined);
+    expect(() =>
+      createSessionStorageCache({ prefix: 'trends:' }),
+    ).not.toThrow();
   });
 });
 

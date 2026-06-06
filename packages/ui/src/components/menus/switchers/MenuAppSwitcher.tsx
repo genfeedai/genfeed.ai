@@ -2,27 +2,12 @@
 
 import { useUser } from '@clerk/nextjs';
 import type { UserResource } from '@clerk/types';
-import { ButtonVariant } from '@genfeedai/enums';
 import { getClerkPublicData } from '@genfeedai/helpers/auth/clerk.helper';
 import { getPublisherPostsHref } from '@genfeedai/helpers/content/posts.helper';
-import {
-  BG_BLUR,
-  BORDER_WHITE_30,
-  cn,
-} from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
 import type { AppLink } from '@genfeedai/interfaces/ui/navigation.interface';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import { Kbd } from '@genfeedai/ui';
-import Badge from '@ui/display/badge/Badge';
-import Portal from '@ui/layout/portal/Portal';
-import { Button } from '@ui/primitives/button';
-import Image from 'next/image';
-import Link from 'next/link';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-
-const useIsomorphicLayoutEffect =
-  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 import {
   HiOutlineChartBar,
@@ -32,6 +17,12 @@ import {
   HiOutlinePaperAirplane,
   HiOutlineSquares2X2,
 } from 'react-icons/hi2';
+
+import { AppSwitcherPanel } from './AppSwitcherPanel';
+import { AppSwitcherTrigger } from './AppSwitcherTrigger';
+
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export default function MenuAppSwitcher() {
   const [isOpen, setIsOpen] = useState(false);
@@ -190,182 +181,34 @@ export default function MenuAppSwitcher() {
   const adminApps = apps.filter((app) => app.category === 'admin');
   const regularApps = [...mainApps, ...creativeApps];
 
-  const dropdownContent = (
-    <div className="w-full">
-      {regularApps.length > 0 && (
-        <div className="grid grid-cols-2 gap-2 px-2 mb-2">
-          {regularApps.map((app) => {
-            const isActive = currentApp === app.label;
-            const baseClasses = cn(
-              'flex items-center transition-all text-white',
-              'hover:bg-white/15 transition-colors duration-200',
-              isActive && 'bg-white/15',
-            );
-            return (
-              <Link
-                key={app.href}
-                href={app.href}
-                className={cn(baseClasses, 'gap-2.5 px-2.5 py-2')}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsOpen(false);
-                }}
-              >
-                <div className="flex-shrink-0">{app.icon}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm truncate">
-                    {app.label}
-                  </div>
-                  <div className="text-xs text-white/60 truncate">
-                    {app.description}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {app.shortcut && currentApp !== app.label && (
-                    <div className="flex gap-2">
-                      {app.shortcut.map((key) => (
-                        <Kbd
-                          key={key}
-                          className="bg-white/10 text-white/70 border border-white/20"
-                        >
-                          {key}
-                        </Kbd>
-                      ))}
-                    </div>
-                  )}
-                  {isActive && (
-                    <Badge className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-white/20 border border-white/[0.08] text-white/90">
-                      Current
-                    </Badge>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-
-      {adminApps.length > 0 && (
-        <>
-          {regularApps.length > 0 && (
-            <div className="my-2 border-t border-white/[0.08]" />
-          )}
-          <div className="px-2">
-            {adminApps.map((app) => {
-              const isActive = currentApp === app.label;
-              const baseClasses = cn(
-                'flex items-center transition-all text-white',
-                'hover:bg-white/15 transition-colors duration-200',
-                isActive && 'bg-white/15',
-              );
-              return (
-                <Link
-                  key={app.href}
-                  href={app.href}
-                  className={cn(baseClasses, 'gap-3 px-3 py-2.5 w-full')}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsOpen(false);
-                  }}
-                >
-                  <div className="flex-shrink-0">{app.icon}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">
-                      {app.label}
-                    </div>
-                    <div className="text-xs text-white/60 truncate">
-                      {app.description}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {app.shortcut && currentApp !== app.label && (
-                      <div className="flex gap-2">
-                        {app.shortcut.map((key) => (
-                          <Kbd
-                            key={key}
-                            className="bg-white/10 text-white/70 border border-white/20"
-                          >
-                            {key}
-                          </Kbd>
-                        ))}
-                      </div>
-                    )}
-                    {isActive && (
-                      <Badge className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-white/20 border border-white/[0.08] text-white/90">
-                        Current
-                      </Badge>
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
-  );
+  const handleToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isLoading) {
+      setIsOpen(!isOpen);
+    }
+  };
 
   return (
-    <div className="flex items-center" ref={buttonRef}>
-      <Button
-        withWrapper={false}
-        variant={ButtonVariant.UNSTYLED}
-        ariaLabel={currentApp || 'Apps'}
-        title={currentApp || 'Apps'}
-        isDisabled={isLoading}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (!isLoading) {
-            setIsOpen(!isOpen);
-          }
-        }}
-        className={cn(
-          'flex items-center justify-center p-2 transition-all relative',
-          !isLoading && 'hover:bg-white/10 cursor-pointer',
-          isLoading && 'cursor-wait',
-          isOpen && 'bg-white/10',
-        )}
-      >
-        {logoUrl && logoUrl !== '' && (
-          <Image
-            src={logoUrl}
-            alt={EnvironmentService.LOGO_ALT}
-            className={cn(
-              'size-6 object-contain dark:invert',
-              isLoading && 'opacity-50',
-            )}
-            width={24}
-            height={24}
-            sizes="24px"
-            priority
-            style={{ height: 'auto', width: 'auto' }}
-          />
-        )}
-
-        {isLoading && (
-          <span className="absolute inset-0 flex items-center justify-center">
-            <span className="animate-spin size-3 border-2 border-primary border-t-transparent rounded-full opacity-50" />
-          </span>
-        )}
-      </Button>
+    <>
+      <AppSwitcherTrigger
+        buttonRef={buttonRef}
+        currentApp={currentApp}
+        isLoading={isLoading}
+        isOpen={isOpen}
+        logoUrl={logoUrl}
+        onToggle={handleToggle}
+      />
 
       {isOpen && (
-        <Portal>
-          <ul
-            ref={dropdownRef}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-            className={cn(
-              BG_BLUR,
-              BORDER_WHITE_30,
-              'app-switcher-dropdown z-50 w-[480px] fixed p-2 list-none',
-            )}
-          >
-            {dropdownContent}
-          </ul>
-        </Portal>
+        <AppSwitcherPanel
+          adminApps={adminApps}
+          currentApp={currentApp}
+          dropdownRef={dropdownRef}
+          regularApps={regularApps}
+          onClose={() => setIsOpen(false)}
+        />
       )}
-    </div>
+    </>
   );
 }

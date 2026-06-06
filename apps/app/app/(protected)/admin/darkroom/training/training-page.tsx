@@ -1,7 +1,6 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type {
   IDarkroomCharacter,
   IDarkroomTraining,
@@ -17,18 +16,11 @@ import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiOutlineCpuChip } from 'react-icons/hi2';
+import TrainingConfigForm from './training-config-form';
+import TrainingProgressPanel from './training-progress-panel';
+import TrainingResultPanel from './training-result-panel';
 
 const TRAINING_STATUS_COLORS = {
   completed: 'bg-success/10 text-success',
@@ -37,19 +29,6 @@ const TRAINING_STATUS_COLORS = {
   processing: 'bg-info/10 text-info',
   queued: 'bg-foreground/5 text-foreground/60',
 } as const;
-
-const STAGE_EMOJIS: Record<string, string> = {
-  completed: '✅',
-  downloading: '📥',
-  failed: '❌',
-  preparing: '📦',
-  processing: '⚡',
-  queued: '🕐',
-  training: '🧠',
-  uploading: '📤',
-};
-
-const ALL_CHARACTERS_VALUE = '__all-characters__';
 
 export default function TrainingPage() {
   const notificationsService = NotificationsService.getInstance();
@@ -249,204 +228,35 @@ export default function TrainingPage() {
       }
     >
       {/* Training Configuration */}
-      <WorkspaceSurface
-        title="Start New Training"
-        tone="muted"
-        data-testid="darkroom-training-config-surface"
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            {/* Character Selector */}
-            <div>
-              <span className="block text-sm font-medium text-foreground/70 mb-1">
-                Character
-              </span>
-              <Select
-                onValueChange={(value) =>
-                  setSelectedCharacter(
-                    value === ALL_CHARACTERS_VALUE ? '' : value,
-                  )
-                }
-                value={selectedCharacter || ALL_CHARACTERS_VALUE}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL_CHARACTERS_VALUE}>
-                    Select a character…
-                  </SelectItem>
-                  {(characters || []).map((c) => (
-                    <SelectItem key={c.id} value={c.slug}>
-                      {c.emoji ? `${c.emoji} ` : ''}
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Base Model */}
-            <div>
-              <span className="block text-sm font-medium text-foreground/70 mb-1">
-                Base Model
-              </span>
-              <Select onValueChange={setBaseModel} value={baseModel}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="genfeed-ai/z-image-turbo">
-                    Z-Image Turbo (Recommended)
-                  </SelectItem>
-                  <SelectItem value="genfeed-ai/z-image-turbo-lora">
-                    Z-Image Turbo LoRA
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Steps */}
-            <div>
-              <span className="block text-sm font-medium text-foreground/70 mb-1">
-                Steps
-              </span>
-              <Input
-                className="w-full"
-                min={100}
-                onChange={(e) => setSteps(Number(e.target.value))}
-                type="number"
-                value={steps}
-              />
-            </div>
-
-            {/* LoRA Rank */}
-            <div>
-              <span className="block text-sm font-medium text-foreground/70 mb-1">
-                LoRA Rank
-              </span>
-              <Input
-                className="w-full"
-                min={1}
-                onChange={(e) => setLoraRank(Number(e.target.value))}
-                type="number"
-                value={loraRank}
-              />
-            </div>
-
-            {/* Learning Rate */}
-            <div>
-              <span className="block text-sm font-medium text-foreground/70 mb-1">
-                Learning Rate
-              </span>
-              <Input
-                className="w-full"
-                onChange={(e) => setLearningRate(Number(e.target.value))}
-                step={0.0001}
-                type="number"
-                value={learningRate}
-              />
-            </div>
-          </div>
-
-          {/* Warning for insufficient images */}
-          {selectedCharacter && !hasMinImages && (
-            <div className="mb-4 px-4 py-3 rounded bg-warning/10 text-warning text-sm">
-              This character has fewer than 8 selected images. Training may
-              produce poor results.
-            </div>
-          )}
-
-          <Button
-            withWrapper={false}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-            isDisabled={!selectedCharacter || isStarting}
-            onClick={handleStartTraining}
-          >
-            {isStarting ? 'Starting…' : 'Start Training'}
-          </Button>
-        </div>
-      </WorkspaceSurface>
+      <TrainingConfigForm
+        characters={characters}
+        selectedCharacter={selectedCharacter}
+        baseModel={baseModel}
+        steps={steps}
+        loraRank={loraRank}
+        learningRate={learningRate}
+        hasMinImages={hasMinImages}
+        isStarting={isStarting}
+        onCharacterChange={setSelectedCharacter}
+        onBaseModelChange={setBaseModel}
+        onStepsChange={(e) => setSteps(Number(e.target.value))}
+        onLoraRankChange={(e) => setLoraRank(Number(e.target.value))}
+        onLearningRateChange={(e) => setLearningRate(Number(e.target.value))}
+        onStartTraining={handleStartTraining}
+      />
 
       {/* Active Training Progress */}
       {activeTraining &&
         activeTraining.status !== 'completed' &&
         activeTraining.status !== 'failed' && (
-          <WorkspaceSurface
-            title="Training In Progress"
-            tone="muted"
-            className="mt-6"
-            data-testid="darkroom-training-progress-surface"
-          >
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-2xl">
-                  {STAGE_EMOJIS[activeTraining.stage || 'processing'] || '⚡'}
-                </span>
-
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">
-                      {activeTraining.stage || activeTraining.status}
-                    </span>
-
-                    <span className="text-sm text-foreground/60">
-                      {activeTraining.progress != null
-                        ? `${Math.round(activeTraining.progress)}%`
-                        : activeTraining.currentStep &&
-                            activeTraining.totalSteps
-                          ? `${activeTraining.currentStep}/${activeTraining.totalSteps}`
-                          : '...'}
-                    </span>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="h-2 rounded-full bg-foreground/10 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all duration-300"
-                      style={{
-                        width: `${activeTraining.progress ?? 0}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-sm text-foreground/50">
-                {activeTraining.label} - {activeTraining.personaSlug}
-              </p>
-            </div>
-          </WorkspaceSurface>
+          <TrainingProgressPanel training={activeTraining} />
         )}
 
-      {/* Completed/Failed Training Link */}
+      {/* Completed/Failed Training Result */}
       {activeTraining &&
         (activeTraining.status === 'completed' ||
           activeTraining.status === 'failed') && (
-          <WorkspaceSurface
-            title={`Training ${activeTraining.status}`}
-            tone="muted"
-            className="mt-6"
-            data-testid="darkroom-training-result-surface"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">
-                {activeTraining.status === 'completed' ? '✅' : '❌'}
-              </span>
-
-              <div>
-                {activeTraining.status === 'completed' && (
-                  <Link
-                    href={`/darkroom/characters/${activeTraining.personaSlug}`}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    View character
-                  </Link>
-                )}
-              </div>
-            </div>
-          </WorkspaceSurface>
+          <TrainingResultPanel training={activeTraining} />
         )}
 
       {/* Recent Trainings Table */}

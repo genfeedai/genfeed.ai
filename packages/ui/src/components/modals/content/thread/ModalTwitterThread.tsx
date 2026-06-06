@@ -3,7 +3,7 @@
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import type { ModalTwitterThreadProps } from '@genfeedai/props/modals/modal-twitter-thread.props';
 import Badge from '@ui/display/badge/Badge';
-import { Modal } from '@ui/modals/compound/Modal';
+import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
 import { HiXMark } from 'react-icons/hi2';
 

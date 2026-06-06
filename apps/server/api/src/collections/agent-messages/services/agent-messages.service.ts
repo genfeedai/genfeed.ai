@@ -2,6 +2,7 @@ import type { AgentMessageDocument } from '@api/collections/agent-messages/schem
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AgentMessageRole } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -26,7 +27,12 @@ export interface AddMessageDto {
 }
 
 @Injectable()
-export class AgentMessagesService extends BaseService<AgentMessageDocument> {
+export class AgentMessagesService extends BaseService<
+  AgentMessageDocument,
+  Partial<AgentMessageDocument>,
+  Partial<AgentMessageDocument>,
+  Prisma.AgentMessageWhereInput
+> {
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,

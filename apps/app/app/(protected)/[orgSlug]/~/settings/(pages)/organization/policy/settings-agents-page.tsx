@@ -8,21 +8,15 @@ import { useOrganization } from '@hooks/data/organization/use-organization/use-o
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
-import { Switch } from '@ui/primitives/switch';
 import { useCallback, useEffect, useState } from 'react';
+
+import AdvancedRoutingCard from './advanced-routing-card';
+import AgentPolicyCard from './agent-policy-card';
+import CreditGovernanceCard from './credit-governance-card';
 
 type AgentPolicyState = NonNullable<IOrganizationSetting['agentPolicy']>;
 
-const AUTO_MODEL_SELECT_VALUE = '__auto__';
 const QUALITY_TIER_OPTIONS: Array<{
   description: string;
   label: string;
@@ -149,213 +143,34 @@ export default function SettingsAgentsPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Autonomous Agent Policy</h2>
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm font-medium">Default Quality Tier</p>
-            <Select
-              value={qualityTierDefault}
-              disabled={isSaving}
-              onValueChange={(value) =>
-                setQualityTierDefault(
-                  value as NonNullable<AgentPolicyState['qualityTierDefault']>,
-                )
-              }
-            >
-              <SelectTrigger className="w-full mt-2 rounded">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {QUALITY_TIER_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="mt-2 text-xs text-muted-foreground">
-              {
-                QUALITY_TIER_OPTIONS.find(
-                  (option) => option.value === qualityTierDefault,
-                )?.description
-              }
-            </p>
-          </div>
+      <AgentPolicyCard
+        autonomyDefault={autonomyDefault}
+        isSaving={isSaving}
+        onAutonomyDefaultChange={setAutonomyDefault}
+        onQualityTierDefaultChange={setQualityTierDefault}
+        qualityTierDefault={qualityTierDefault}
+        qualityTierOptions={QUALITY_TIER_OPTIONS}
+      />
 
-          <div>
-            <p className="text-sm font-medium">Default Autonomy Mode</p>
-            <Select
-              value={autonomyDefault}
-              disabled={isSaving}
-              onValueChange={(value) =>
-                setAutonomyDefault(value as AgentAutonomyMode)
-              }
-            >
-              <SelectTrigger className="w-full mt-2 rounded">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={AgentAutonomyMode.SUPERVISED}>
-                  Generate then Review
-                </SelectItem>
-                <SelectItem value={AgentAutonomyMode.AUTO_PUBLISH}>
-                  Auto-Publish
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </Card>
+      <CreditGovernanceCard
+        agentDailyCreditCap={agentDailyCreditCap}
+        brandDailyCreditCap={brandDailyCreditCap}
+        onAgentDailyCreditCapChange={setAgentDailyCreditCap}
+        onBrandDailyCreditCapChange={setBrandDailyCreditCap}
+      />
 
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Credit Governance</h2>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label
-              htmlFor="brand-daily-credit-cap"
-              className="text-sm font-medium"
-            >
-              Brand Daily Cap
-            </label>
-            <Input
-              id="brand-daily-credit-cap"
-              className="mt-2"
-              type="number"
-              min={0}
-              placeholder="Optional"
-              value={brandDailyCreditCap}
-              onChange={(event) => setBrandDailyCreditCap(event.target.value)}
-            />
-            <p className="mt-2 text-xs text-muted-foreground">
-              Optional pooled-credit cap applied per brand across all agents.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="agent-daily-credit-cap"
-              className="text-sm font-medium"
-            >
-              Agent Daily Cap
-            </label>
-            <Input
-              id="agent-daily-credit-cap"
-              className="mt-2"
-              type="number"
-              min={0}
-              placeholder="Optional"
-              value={agentDailyCreditCap}
-              onChange={(event) => setAgentDailyCreditCap(event.target.value)}
-            />
-            <p className="mt-2 text-xs text-muted-foreground">
-              Hard ceiling enforced per strategy against the org pool.
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Advanced Routing</h2>
-        <div className="space-y-4">
-          <Switch
-            label="Expose Raw Model Overrides"
-            description="Enable explicit planner, generation, and review model routing controls for advanced operators."
-            isChecked={allowAdvancedOverrides}
-            isDisabled={isSaving}
-            onChange={(event) =>
-              setAllowAdvancedOverrides(event.target.checked)
-            }
-          />
-
-          {allowAdvancedOverrides ? (
-            <div className="grid gap-4 md:grid-cols-3">
-              <div>
-                <p className="text-sm font-medium">Thinking Model</p>
-                <Select
-                  value={thinkingModelOverride || AUTO_MODEL_SELECT_VALUE}
-                  onValueChange={(value) =>
-                    setThinkingModelOverride(
-                      value === AUTO_MODEL_SELECT_VALUE ? '' : value,
-                    )
-                  }
-                >
-                  <SelectTrigger className="w-full mt-2 rounded">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={AUTO_MODEL_SELECT_VALUE}>
-                      Auto
-                    </SelectItem>
-                    {enabledModels.map((model) => (
-                      <SelectItem key={model} value={model}>
-                        {model}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <p className="text-sm font-medium">Generation Model</p>
-                <Select
-                  value={generationModelOverride || AUTO_MODEL_SELECT_VALUE}
-                  onValueChange={(value) =>
-                    setGenerationModelOverride(
-                      value === AUTO_MODEL_SELECT_VALUE ? '' : value,
-                    )
-                  }
-                >
-                  <SelectTrigger className="w-full mt-2 rounded">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={AUTO_MODEL_SELECT_VALUE}>
-                      Auto
-                    </SelectItem>
-                    {enabledModels.map((model) => (
-                      <SelectItem key={model} value={model}>
-                        {model}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <p className="text-sm font-medium">Review Model</p>
-                <Select
-                  value={reviewModelOverride || AUTO_MODEL_SELECT_VALUE}
-                  onValueChange={(value) =>
-                    setReviewModelOverride(
-                      value === AUTO_MODEL_SELECT_VALUE ? '' : value,
-                    )
-                  }
-                >
-                  <SelectTrigger className="w-full mt-2 rounded">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={AUTO_MODEL_SELECT_VALUE}>
-                      Auto
-                    </SelectItem>
-                    {enabledModels.map((model) => (
-                      <SelectItem key={model} value={model}>
-                        {model}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Keep this off for most teams. Budget / Balanced / High Quality is
-              the default control surface.
-            </p>
-          )}
-        </div>
-      </Card>
+      <AdvancedRoutingCard
+        allowAdvancedOverrides={allowAdvancedOverrides}
+        enabledModels={enabledModels}
+        generationModelOverride={generationModelOverride}
+        isSaving={isSaving}
+        onAllowAdvancedOverridesChange={setAllowAdvancedOverrides}
+        onGenerationModelOverrideChange={setGenerationModelOverride}
+        onReviewModelOverrideChange={setReviewModelOverride}
+        onThinkingModelOverrideChange={setThinkingModelOverride}
+        reviewModelOverride={reviewModelOverride}
+        thinkingModelOverride={thinkingModelOverride}
+      />
 
       <Card className="p-6">
         <div className="space-y-2">

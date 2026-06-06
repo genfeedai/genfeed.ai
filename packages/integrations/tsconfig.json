@@ -1,14 +1,24 @@
 {
   "compilerOptions": {
     "declaration": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "outDir": "dist",
     "paths": {
+      "@genfeedai/enums": ["../enums/src/index.ts"],
+      "@genfeedai/enums/*": ["../enums/src/*"],
       "@genfeedai/integrations/*": ["./src/*"],
       "@integrations/*": ["./src/*"]
     },
-    "rootDir": "src"
+    "rootDir": "src",
+    "target": "es2022"
   },
   "exclude": ["dist", "node_modules", "**/*.spec.ts", "**/*.test.ts"],
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "references": [
+    {
+      "path": "../enums"
+    }
+  ]
 }

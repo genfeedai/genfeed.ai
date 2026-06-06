@@ -1,7 +1,7 @@
 import AssetDisplayGrid from '@pages/studio/generate/components/AssetDisplayGrid';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 vi.mock('next/image', () => ({
   default: ({ src, alt, ...props }: Record<string, unknown>) => (

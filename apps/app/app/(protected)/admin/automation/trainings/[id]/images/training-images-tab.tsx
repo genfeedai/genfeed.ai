@@ -8,8 +8,10 @@ import type { Image } from '@models/ingredients/image.model';
 import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import MasonryGrid from '@ui/masonry/grid/MasonryGrid';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { FaImage } from 'react-icons/fa6';
 
 export default function TrainingImagesTab({
@@ -20,55 +22,56 @@ export default function TrainingImagesTab({
   const { training } = useTraining();
 
   const notificationsService = NotificationsService.getInstance();
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  const [generatedAssets, setGeneratedAssets] = useState<Image[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   const getTrainingsService = useAuthedService((token: string) =>
     TrainingsService.getInstance(token),
   );
+  const hasTrainingModel = Boolean(training?.model);
+
+  const {
+    data: generatedAssets = [],
+    isLoading,
+    error,
+  } = useQuery<Image[]>({
+    queryKey: ['training-images', training?.id, scope, training?.brand],
+    queryFn: async () => {
+      const url = `GET /trainings/${training.id}/images`;
+      const service = await getTrainingsService();
+      const data = await service.getTrainingImages(training.id, {
+        brand: scope === PageScope.BRAND ? training.brand : undefined,
+      });
+      logger.info(`${url} success`, data);
+      return data;
+    },
+    enabled: hasTrainingModel,
+  });
 
   useEffect(() => {
-    const findAllImages = async () => {
-      if (!training?.model) {
-        return;
-      }
+    if (error) {
+      logger.error('GET /trainings/:id/images failed', error);
+      notificationsService.error('Failed to fetch generated assets');
+    }
+  }, [error, notificationsService]);
 
-      const url = `GET /trainings/${training.id}/images`;
+  if (error) {
+    return (
+      <CardEmptyContent
+        icon={FaImage}
+        label="Generated assets failed to load"
+        description="Refresh the page or try again in a moment."
+      />
+    );
+  }
 
-      try {
-        setIsLoading(true);
-        const service = await getTrainingsService();
-
-        const data = await service.getTrainingImages(training.id, {
-          brand: scope === PageScope.BRAND ? training.brand : undefined,
-        });
-
-        if (!abortControllerRef.current?.signal.aborted) {
-          setGeneratedAssets(data);
-        }
-
-        logger.info(`${url} success`, data);
-      } catch (error) {
-        logger.error(`${url} failed`, error);
-        if (error instanceof Error && error.name === 'AbortError') {
-          return;
-        }
-        notificationsService.error('Failed to fetch generated assets');
-      } finally {
-        if (!abortControllerRef.current?.signal.aborted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void findAllImages();
-
-    return () => {
-      abortControllerRef.current?.abort();
-    };
-  }, [getTrainingsService, notificationsService, scope, training]);
+  if (!hasTrainingModel) {
+    return (
+      <CardEmptyContent
+        icon={FaImage}
+        label="Training model unavailable"
+        description="Generated assets can load once this training has a model."
+      />
+    );
+  }
 
   return isLoading && generatedAssets.length === 0 ? (
     <MasonryGrid

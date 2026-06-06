@@ -1,5 +1,5 @@
 import { PlatformTimeSeriesChart } from '@ui/analytics/charts/platform-time-series/platform-time-series-chart';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

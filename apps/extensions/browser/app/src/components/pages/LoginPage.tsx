@@ -54,7 +54,7 @@ export default function LoginPage() {
           href="https://genfeed.ai/waitinglist"
           target="_blank"
           className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-          rel="noopener"
+          rel="noopener noreferrer"
         >
           Request access
         </a>

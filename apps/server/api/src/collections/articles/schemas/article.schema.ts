@@ -9,7 +9,8 @@ export interface ArticleViralityAnalysis {
   analyzedAt?: Date | string;
 }
 
-export interface ArticleDocument extends PrismaArticle {
+export interface ArticleDocument
+  extends Omit<PrismaArticle, 'category' | 'scope' | 'tags'> {
   _id: string;
   brand?: string | null;
   organization?: string | null;

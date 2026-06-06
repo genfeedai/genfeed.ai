@@ -84,6 +84,12 @@ describe('PresetsController', () => {
       expect(Array.isArray(query)).toBe(false);
     });
 
+    it('should default orderBy to { createdAt: -1 } when no sort provided', () => {
+      const query = controller.buildFindAllQuery(mockUser, {}, false);
+
+      expect(query.orderBy).toEqual({ createdAt: -1 });
+    });
+
     it('should filter by category', () => {
       const inputQuery = { category: 'image' };
       const query = controller.buildFindAllQuery(mockUser, inputQuery, false);

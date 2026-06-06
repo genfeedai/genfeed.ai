@@ -10,13 +10,14 @@
   },
   "description": "Shared client-facing services and orchestration helpers for Genfeed applications",
   "devDependencies": {
-    "vitest": "4.1.7"
+    "vitest": "4.1.8"
   },
   "exports": {
     "./*": "./*"
   },
   "name": "@genfeedai/services",
   "private": true,
+  "type": "module",
   "scripts": {
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",

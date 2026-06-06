@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { AdOptimizationConfigsService } from '@api/collections/ad-optimization-configs/services/ad-optimization-configs.service';
-import type { AdOptimizationJobData } from '@api/queues/ad-optimization/ad-optimization.processor';
+import type { AdOptimizationJobData } from '@api/queues/ad-optimization/ad-optimization-job.interface';
 import { QueueService } from '@api/queues/core/queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { LoggerService } from '@libs/logger/logger.service';

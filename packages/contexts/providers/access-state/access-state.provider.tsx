@@ -12,7 +12,7 @@ import {
 } from '@genfeedai/services/auth/auth.service';
 import { loadClientProtectedBootstrap } from '@providers/protected-bootstrap/client-protected-bootstrap';
 import { useQuery } from '@tanstack/react-query';
-import { createContext, useCallback, useContext, useMemo } from 'react';
+import { createContext, use, useCallback, useMemo } from 'react';
 
 export interface AccessStateContextValue {
   accessState: AccessBootstrapState | null;
@@ -141,7 +141,7 @@ export function AccessStateProvider({
 }
 
 export function useAccessState(): AccessStateContextValue {
-  const context = useContext(AccessStateContext);
+  const context = use(AccessStateContext);
 
   if (!context) {
     throw new Error(

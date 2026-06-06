@@ -35,7 +35,7 @@ const TERMINAL_PATHS = [
   '/sbin',
 ];
 
-const nodeRequire = createRequire(__filename);
+const nodeRequire = createRequire(import.meta.url);
 
 export class DesktopTerminalService {
   private readonly sessions = new Map<string, DesktopTerminalProcess>();

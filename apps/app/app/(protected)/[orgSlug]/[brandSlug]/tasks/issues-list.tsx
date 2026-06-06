@@ -37,7 +37,8 @@ import {
   HiOutlinePlusCircle,
   HiOutlineViewColumns,
 } from 'react-icons/hi2';
-import IssueOverlay, { openIssueOverlay } from './issue-overlay';
+import IssueOverlay from './issue-overlay';
+import { openIssueOverlay } from './issue-overlay-controls';
 
 type ViewMode = 'kanban' | 'list';
 
@@ -272,6 +273,9 @@ export default function IssuesList() {
     loadIssues();
 
     return () => {
+      // loadIssues() is also invoked outside this effect (handleCreateIssue),
+      // replacing the ref, so cleanup must abort the current controller rather
+      // than one captured at setup time.
       controllerRef.current?.abort();
     };
   }, [loadIssues]);

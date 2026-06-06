@@ -62,6 +62,7 @@ export default function SocialLinks({
           target="_blank"
           rel="noopener noreferrer"
           className="text-foreground/50 transition-colors hover:text-foreground"
+          aria-label={`${link.label}: @${link.handle}`}
           title={`${link.label}: @${link.handle}`}
         >
           <link.icon className="size-4" />

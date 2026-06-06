@@ -1,25 +1,13 @@
-import type {
-  EdgeStyle,
-  NodeGroup,
-  WorkflowEdge,
-  WorkflowNode,
-} from '@genfeedai/types';
+import type { WorkflowEdge, WorkflowNode } from '@genfeedai/types';
 import type { StateCreator } from 'zustand';
 import type { WorkflowStore } from '../types';
+import type { EditOperation, SnapshotSlice, WorkflowSnapshot } from './types';
 
 /**
  * EditOperation type inlined from @/lib/chat/editOperations.
  * The consuming app provides the actual applyEditOperations implementation.
  */
-export interface EditOperation {
-  type: 'add_node' | 'remove_node' | 'update_node' | 'add_edge' | 'remove_edge';
-  [key: string]: unknown;
-}
-
-/**
- * Stub applyEditOperations - consuming app should override via the store creator.
- * Returns unchanged nodes/edges by default.
- */
+// Stub applyEditOperations - consuming app should override via the store creator.
 function defaultApplyEditOperations(
   _operations: EditOperation[],
   state: { nodes: WorkflowNode[]; edges: WorkflowEdge[] },
@@ -30,26 +18,6 @@ function defaultApplyEditOperations(
   skipped: string[];
 } {
   return { applied: 0, edges: state.edges, nodes: state.nodes, skipped: [] };
-}
-
-export interface WorkflowSnapshot {
-  nodes: WorkflowNode[];
-  edges: WorkflowEdge[];
-  groups: NodeGroup[];
-  edgeStyle: EdgeStyle;
-}
-
-export interface SnapshotSlice {
-  previousWorkflowSnapshot: WorkflowSnapshot | null;
-  manualChangeCount: number;
-  captureSnapshot: () => void;
-  revertToSnapshot: () => void;
-  clearSnapshot: () => void;
-  incrementManualChangeCount: () => void;
-  applyEditOperations: (operations: EditOperation[]) => {
-    applied: number;
-    skipped: string[];
-  };
 }
 
 export const createSnapshotSlice: StateCreator<

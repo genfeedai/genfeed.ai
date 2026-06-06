@@ -136,6 +136,7 @@ function VideoInputNodeComponent(props: NodeProps) {
         accept="video/*"
         onChange={handleFileSelect}
         className="hidden"
+        aria-label="Upload video file"
       />
 
       {/* URL Input (shown when link button clicked) */}
@@ -147,6 +148,7 @@ function VideoInputNodeComponent(props: NodeProps) {
             onChange={(e) => setUrlValue(e.target.value)}
             onKeyDown={handleUrlKeyDown}
             placeholder="https://..."
+            aria-label="Video URL"
             className="nodrag nopan flex-1 h-7 px-2 text-xs border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <Button
@@ -166,6 +168,7 @@ function VideoInputNodeComponent(props: NodeProps) {
         <div className="relative max-h-32 overflow-hidden rounded-md bg-black/20">
           <video
             src={nodeData.video}
+            aria-label={nodeData.filename || 'Video preview'}
             className="w-full h-auto max-h-32 object-contain cursor-pointer"
             muted
           />

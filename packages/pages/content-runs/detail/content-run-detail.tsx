@@ -38,6 +38,24 @@ type TimelineStep = {
   state: 'complete' | 'current' | 'pending' | 'error';
 };
 
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  month: 'short',
+  year: 'numeric',
+});
+
+const METRIC_FORMATTER_COMPACT = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 1,
+  notation: 'compact',
+});
+
+const METRIC_FORMATTER_STANDARD = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 1,
+  notation: 'standard',
+});
+
 function getRunId(run: ContentRunRecord): string {
   return run.id ?? run._id ?? '';
 }
@@ -52,13 +70,7 @@ function formatDateTime(value?: Date | string): string {
     return String(value);
   }
 
-  return new Intl.DateTimeFormat('en-US', {
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(date);
+  return DATE_TIME_FORMATTER.format(date);
 }
 
 function formatMetric(value: number | undefined): string {
@@ -66,10 +78,9 @@ function formatMetric(value: number | undefined): string {
     return '-';
   }
 
-  return new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: 1,
-    notation: value >= 1000 ? 'compact' : 'standard',
-  }).format(value);
+  return (
+    value >= 1000 ? METRIC_FORMATTER_COMPACT : METRIC_FORMATTER_STANDARD
+  ).format(value);
 }
 
 function formatPercent(value: number | undefined): string {
@@ -170,7 +181,7 @@ function Section({
   return (
     <section className="rounded-lg border border-white/10 bg-white/[0.03] p-5">
       <div className="mb-4 flex items-center gap-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/[0.05] text-foreground/75">
+        <span className="flex size-8 items-center justify-center rounded-md border border-white/10 bg-white/[0.05] text-foreground/75">
           {icon}
         </span>
         <h2 className="text-sm font-semibold">{title}</h2>
@@ -434,11 +445,11 @@ function TimelinePanel({ run }: { run: ContentRunRecord }) {
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium">{step.label}</span>
               {step.state === 'complete' ? (
-                <HiCheckCircle className="h-4 w-4" />
+                <HiCheckCircle className="size-4" />
               ) : step.state === 'error' ? (
-                <HiExclamationTriangle className="h-4 w-4" />
+                <HiExclamationTriangle className="size-4" />
               ) : (
-                <HiClock className="h-4 w-4" />
+                <HiClock className="size-4" />
               )}
             </div>
             <p className="mt-1 text-xs opacity-75">{step.description}</p>
@@ -470,7 +481,7 @@ function NavigationPanel() {
               className="flex min-h-11 items-center justify-between rounded-md border border-white/10 bg-white/[0.04] px-3 text-sm text-foreground/82 transition hover:border-white/18 hover:bg-white/[0.07]"
             >
               <span className="flex items-center gap-2">
-                <Icon className="h-4 w-4" />
+                <Icon className="size-4" />
                 {item.label}
               </span>
               <span aria-hidden="true">&gt;</span>
@@ -521,7 +532,7 @@ export default function ContentRunDetailPage({
     return (
       <Container>
         <div className="rounded-lg border border-white/10 bg-white/[0.03] p-8 text-sm text-foreground/60">
-          Loading content run...
+          Loading content run…
         </div>
       </Container>
     );
@@ -588,35 +599,35 @@ export default function ContentRunDetailPage({
           <main className="grid gap-5">
             <Section
               title="Source Brief"
-              icon={<HiDocumentText className="h-4 w-4" />}
+              icon={<HiDocumentText className="size-4" />}
             >
               <BriefSection brief={run.brief} />
             </Section>
 
             <Section
               title="Remix Variants"
-              icon={<HiSparkles className="h-4 w-4" />}
+              icon={<HiSparkles className="size-4" />}
             >
               <VariantsSection variants={run.variants} />
             </Section>
 
             <Section
               title="Publish Events"
-              icon={<HiPaperAirplane className="h-4 w-4" />}
+              icon={<HiPaperAirplane className="size-4" />}
             >
               <PublishSection publish={run.publish} />
             </Section>
 
             <Section
               title="Analytics Summary"
-              icon={<HiChartBar className="h-4 w-4" />}
+              icon={<HiChartBar className="size-4" />}
             >
               <AnalyticsSection analytics={run.analyticsSummary} />
             </Section>
 
             <Section
               title="Recommended Next Actions"
-              icon={<HiArrowPath className="h-4 w-4" />}
+              icon={<HiArrowPath className="size-4" />}
             >
               <RecommendationsSection recommendations={run.recommendations} />
             </Section>

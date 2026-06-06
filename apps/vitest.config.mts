@@ -638,6 +638,7 @@ export default defineConfig({
         replacement: `${appRoot}/src/`,
       },
     ],
+    extensions: ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],
   },
   test: {
     environment: 'jsdom',

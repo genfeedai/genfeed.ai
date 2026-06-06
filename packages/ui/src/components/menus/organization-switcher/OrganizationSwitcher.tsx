@@ -6,7 +6,7 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
-import { Modal } from '@ui/modals/compound/Modal';
+import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
@@ -122,25 +122,25 @@ export default function OrganizationSwitcher() {
           <div
             className={cn(
               'flex h-9 w-full items-center gap-2 rounded-lg px-3 py-2 transition-all cursor-pointer',
-              'hover:bg-white/[0.06]',
+              'hover:bg-foreground/[0.06]',
               isSwitching && 'opacity-50 cursor-not-allowed',
-              isOpen && 'bg-white/[0.06]',
+              isOpen && 'bg-foreground/[0.06]',
             )}
           >
-            <div className="size-6 rounded bg-white/20 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">
+            <div className="size-6 rounded bg-foreground/20 flex items-center justify-center text-xs font-semibold text-foreground flex-shrink-0">
               {displayLabel.charAt(0).toUpperCase()}
             </div>
             <span
               className={cn(
                 'flex-1 text-left truncate text-sm font-medium',
-                error ? 'text-red-400' : 'text-white/90',
+                error ? 'text-red-400' : 'text-foreground/90',
               )}
             >
               {isSwitching ? 'Switching\u2026' : displayLabel}
             </span>
             <HiChevronDown
               className={cn(
-                'size-3.5 text-white/40 transition-transform duration-200 flex-shrink-0',
+                'size-3.5 text-foreground/40 transition-transform duration-200 flex-shrink-0',
                 isOpen && 'rotate-180',
               )}
             />
@@ -177,7 +177,7 @@ export default function OrganizationSwitcher() {
               <div className="flex flex-col gap-1.5">
                 <label
                   htmlFor="org-switcher-name"
-                  className="text-xs font-medium text-white/70"
+                  className="text-xs font-medium text-foreground/70"
                 >
                   Name <span className="text-red-400">*</span>
                 </label>
@@ -197,9 +197,10 @@ export default function OrganizationSwitcher() {
               <div className="flex flex-col gap-1.5">
                 <label
                   htmlFor="org-switcher-description"
-                  className="text-xs font-medium text-white/70"
+                  className="text-xs font-medium text-foreground/70"
                 >
-                  Description <span className="text-white/30">(optional)</span>
+                  Description{' '}
+                  <span className="text-foreground/30">(optional)</span>
                 </label>
                 <Textarea
                   id="org-switcher-description"
@@ -221,7 +222,7 @@ export default function OrganizationSwitcher() {
               <Button
                 variant={ButtonVariant.GHOST}
                 withWrapper={false}
-                className="px-4 py-2 text-sm text-white/60 hover:text-white transition-colors"
+                className="px-4 py-2 text-sm text-foreground/60 hover:text-foreground transition-colors"
               >
                 Cancel
               </Button>

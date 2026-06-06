@@ -27,7 +27,9 @@ export const viewport: Viewport = pwaConfig.viewport;
 export default async function RootLayout({ children }: LayoutProps) {
   const initialTheme = await resolveRequestTheme();
   const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
-  const bodyClassName = isDesktopShell ? 'gf-app gf-desktop-shell' : 'gf-app';
+  const bodyClassName = isDesktopShell
+    ? 'gf-app gf-desktop-shell gf-studio-app'
+    : 'gf-app gf-studio-app';
   const googleAnalyticsId = isDesktopShell
     ? undefined
     : EnvironmentService.GA_ID;

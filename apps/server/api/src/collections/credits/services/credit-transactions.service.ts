@@ -6,11 +6,17 @@ import { BusinessLogicException } from '@api/helpers/exceptions/business/busines
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { CreditTransactionCategory } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
-export class CreditTransactionsService extends BaseService<CreditTransactionsDocument> {
+export class CreditTransactionsService extends BaseService<
+  CreditTransactionsDocument,
+  Partial<CreditTransactionsDocument>,
+  Partial<CreditTransactionsDocument>,
+  Prisma.CreditTransactionWhereInput
+> {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
@@ -218,7 +224,9 @@ export class CreditTransactionsService extends BaseService<CreditTransactionsDoc
         where: {
           isDeleted: { not: true },
           organizationId,
-          type,
+          // Stage 4: the transaction-type column is `source` (Prisma); `type`
+          // was a Mongo-era name that silently matched nothing.
+          source: type,
         },
       })) as unknown as CreditTransactionsDocument[];
     } catch (error: unknown) {

@@ -80,11 +80,11 @@ export function WorkflowCreatedCard({
 
         {(action.ctas?.length ?? 0) > 0 ? (
           <div className="flex flex-wrap gap-2">
-            {action.ctas?.map((cta, index) => {
+            {action.ctas?.map((cta) => {
               if (cta.href) {
                 return (
                   <Link
-                    key={`${action.id}-workflow-created-cta-${index}`}
+                    key={`${action.id}-workflow-created-cta-${cta.label}`}
                     href={cta.href}
                     className="inline-flex items-center gap-1.5 border border-border px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent"
                   >
@@ -115,7 +115,7 @@ export function WorkflowCreatedCard({
 
               return (
                 <Button
-                  key={`${action.id}-workflow-created-action-${index}`}
+                  key={`${action.id}-workflow-created-action-${cta.label}`}
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
                   isDisabled={isPending || isCompleted}

@@ -1,0 +1,38 @@
+{
+  "counts": {
+    "categories": {},
+    "cwds": {},
+    "models": {},
+    "projects": {},
+    "tools": {}
+  },
+  "events": {
+    "assistantMessages": 0,
+    "otherEvents": 0,
+    "progressEvents": 0,
+    "userMessages": 0
+  },
+  "generatedAt": "2026-06-01T10:19:53.950Z",
+  "options": {
+    "claudeRoots": [],
+    "includeSubagents": false,
+    "jsonOut": "<home>/.codex/automations/feature-implementation-genfeed/worktrees/codex-feature-20260601-112918-issue-10-daily-claude-session-pattern-miner/artifacts/verification/issue-10/claude-session-analysis-daily.json",
+    "markdownOut": "<home>/.codex/automations/feature-implementation-genfeed/worktrees/codex-feature-20260601-112918-issue-10-daily-claude-session-pattern-miner/artifacts/verification/issue-10/claude-session-analysis-daily.md",
+    "since": "2026-05-31T10:19:49.633Z",
+    "until": null
+  },
+  "scope": {
+    "firstTimestamp": null,
+    "jsonlFiles": 1118,
+    "lastTimestamp": null,
+    "roots": ["<home>/.claude"],
+    "uniqueSessions": 0
+  },
+  "top": {
+    "categories": [],
+    "cwds": [],
+    "models": [],
+    "projects": [],
+    "tools": []
+  }
+}

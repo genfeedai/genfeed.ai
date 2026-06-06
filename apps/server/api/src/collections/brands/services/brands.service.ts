@@ -17,6 +17,7 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -24,7 +25,8 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 export class BrandsService extends BaseService<
   BrandDocument,
   CreateBrandDto,
-  UpdateBrandDto
+  UpdateBrandDto,
+  Prisma.BrandWhereInput
 > {
   private readonly constructorName = this.constructor.name;
 

@@ -107,11 +107,18 @@ export class ModelDiscoveryService {
       const existingModels = await this.modelsService.findAllActive();
 
       // Estimate pricing based on category and creator patterns
-      const pricing = this.modelPricingService.estimateCost(
-        modelInfo.category,
-        modelInfo.owner,
-        existingModels,
-      );
+      const pricing =
+        typeof modelInfo.providerCostUsd === 'number' &&
+        modelInfo.providerCostUsd > 0
+          ? this.modelPricingService.estimateFromProviderCost(
+              modelInfo.providerCostUsd,
+              modelInfo.category,
+            )
+          : this.modelPricingService.estimateCost(
+              modelInfo.category,
+              modelInfo.owner,
+              existingModels,
+            );
 
       // Build the display label from owner/name
       const label = this.buildDisplayLabel(modelInfo.owner, modelInfo.name);
@@ -125,10 +132,21 @@ export class ModelDiscoveryService {
           `Auto-discovered model from ${modelInfo.owner}. Pending manual review.`,
         isActive: false,
         isDefault: false,
+        isDiscovered: true,
         isHighlighted: false,
         key: modelKey as string,
         label,
+        margin: 0.7,
         provider: modelInfo.provider,
+        providerConfig: {
+          discoverySource: 'provider-sync',
+          name: modelInfo.name,
+          owner: modelInfo.owner,
+          replicateUrl: modelInfo.replicateUrl,
+          versionId: modelInfo.versionId,
+        },
+        providerCostUsd: modelInfo.providerCostUsd,
+        reviewStatus: 'pending',
       };
 
       const draftModel = await this.modelsService.create(createData);

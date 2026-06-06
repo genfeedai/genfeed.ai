@@ -161,6 +161,7 @@ export function ShortcutHelpModal() {
               <input
                 type="text"
                 placeholder="Search shortcuts..."
+                aria-label="Search shortcuts"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-sm bg-[var(--secondary)] border border-[var(--border)] outline-none focus:ring-1 focus:ring-[var(--ring)]"

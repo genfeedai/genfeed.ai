@@ -3,42 +3,17 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import type {
   ModelCapability,
-  ModelUseCase,
   ProviderModel,
   ProviderType,
 } from '@genfeedai/types';
-import {
-  ModelCapabilityEnum,
-  ModelUseCaseEnum,
-  ProviderTypeEnum,
-} from '@genfeedai/types';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import {
-  AlertTriangle,
-  Clock,
-  ExternalLink,
-  Layers,
-  Palette,
-  Repeat,
-  Search,
-  Sparkles,
-  User,
-  X,
-  ZoomIn,
-} from 'lucide-react';
-import Image from 'next/image';
-import {
-  type JSX,
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { AlertTriangle, ExternalLink, Search, Sparkles, X } from 'lucide-react';
+import { memo } from 'react';
 import { createPortal } from 'react-dom';
-import { logger } from '@/lib/logger';
-import { useSettingsStore } from '@/store/settingsStore';
+import { ModelCard } from './ModelCard';
+import { USE_CASE_CONFIG } from './model-browser-badges.constants';
+import { useModelBrowserModal } from './useModelBrowserModal';
 
 // =============================================================================
 // TYPES
@@ -53,180 +28,6 @@ interface ModelBrowserModalProps {
 }
 
 // =============================================================================
-// PROVIDER BADGE
-// =============================================================================
-
-const PROVIDER_COLORS: Record<ProviderType, string> = {
-  [ProviderTypeEnum.REPLICATE]:
-    'bg-blue-500/10 text-blue-500 border-blue-500/20',
-  [ProviderTypeEnum.FAL]:
-    'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-  [ProviderTypeEnum.HUGGINGFACE]:
-    'bg-orange-500/10 text-orange-500 border-orange-500/20',
-  [ProviderTypeEnum.GENFEED_AI]:
-    'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-};
-
-function ProviderBadge({ provider }: { provider: ProviderType }) {
-  const labels: Record<ProviderType, string> = {
-    [ProviderTypeEnum.REPLICATE]: 'Replicate',
-    [ProviderTypeEnum.FAL]: 'fal.ai',
-    [ProviderTypeEnum.HUGGINGFACE]: 'Hugging Face',
-    [ProviderTypeEnum.GENFEED_AI]: 'Genfeed AI',
-  };
-
-  return (
-    <span
-      className={`rounded border px-1.5 py-0.5 text-[10px] font-medium ${PROVIDER_COLORS[provider]}`}
-    >
-      {labels[provider]}
-    </span>
-  );
-}
-
-// =============================================================================
-// CAPABILITY BADGE
-// =============================================================================
-
-function CapabilityBadge({ capability }: { capability: ModelCapability }) {
-  const labels: Record<ModelCapability, string> = {
-    [ModelCapabilityEnum.TEXT_TO_IMAGE]: 'txt->img',
-    [ModelCapabilityEnum.IMAGE_TO_IMAGE]: 'img->img',
-    [ModelCapabilityEnum.TEXT_TO_VIDEO]: 'txt->vid',
-    [ModelCapabilityEnum.IMAGE_TO_VIDEO]: 'img->vid',
-    [ModelCapabilityEnum.TEXT_GENERATION]: 'txt->txt',
-  };
-
-  return (
-    <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">
-      {labels[capability]}
-    </span>
-  );
-}
-
-// =============================================================================
-// USE CASE CONFIG
-// =============================================================================
-
-const USE_CASE_CONFIG: Record<
-  ModelUseCase,
-  { label: string; icon: typeof Sparkles }
-> = {
-  [ModelUseCaseEnum.STYLE_TRANSFER]: { icon: Palette, label: 'Style Transfer' },
-  [ModelUseCaseEnum.CHARACTER_CONSISTENT]: {
-    icon: User,
-    label: 'Character Consistent',
-  },
-  [ModelUseCaseEnum.IMAGE_VARIATION]: {
-    icon: Repeat,
-    label: 'Image Variation',
-  },
-  [ModelUseCaseEnum.INPAINTING]: { icon: Layers, label: 'Inpainting' },
-  [ModelUseCaseEnum.UPSCALE]: { icon: ZoomIn, label: 'Upscale' },
-  [ModelUseCaseEnum.GENERAL]: { icon: Sparkles, label: 'General' },
-};
-
-function UseCaseBadge({ useCase }: { useCase: ModelUseCase }) {
-  const config = USE_CASE_CONFIG[useCase];
-  if (!config || useCase === 'general') return null;
-  const Icon = config.icon;
-
-  return (
-    <span className="inline-flex items-center gap-1 rounded bg-purple-500/10 px-1.5 py-0.5 text-[10px] font-medium text-purple-400 border border-purple-500/20">
-      <Icon className="size-2.5" />
-      {config.label}
-    </span>
-  );
-}
-
-// =============================================================================
-// MODEL CARD
-// =============================================================================
-
-interface ModelCardProps {
-  model: ProviderModel;
-  onSelect: (model: ProviderModel) => void;
-  isRecent?: boolean;
-}
-
-function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
-  const [imgError, setImgError] = useState(false);
-
-  return (
-    <Button
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-      onClick={() => onSelect(model)}
-      className="group w-full rounded-xl border border-border bg-card text-left transition hover:border-primary overflow-hidden"
-    >
-      <div className="flex items-stretch">
-        {/* Thumbnail or placeholder - full height */}
-        {model.thumbnail && !imgError ? (
-          <Image
-            unoptimized
-            src={model.thumbnail}
-            alt={model.displayName}
-            className="w-20 shrink-0 object-cover bg-secondary"
-            onError={() => setImgError(true)}
-            width={800}
-            height={600}
-          />
-        ) : (
-          <div className="flex w-20 shrink-0 items-center justify-center bg-secondary">
-            <Sparkles className="size-6 text-muted-foreground" />
-          </div>
-        )}
-
-        <div className="min-w-0 flex-1 p-4">
-          {/* Name and provider */}
-          <div className="flex items-center gap-2">
-            <h3 className="truncate text-sm font-medium text-foreground">
-              {model.displayName}
-            </h3>
-            {isRecent && <Clock className="size-3 text-muted-foreground" />}
-          </div>
-
-          {/* Model ID */}
-          <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
-            {model.id}
-          </p>
-
-          {/* Badges */}
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <ProviderBadge provider={model.provider} />
-            {model.capabilities.map((cap) => (
-              <CapabilityBadge key={cap} capability={cap} />
-            ))}
-            {model.useCases?.reduce<JSX.Element[]>((badges, uc) => {
-              if (uc !== 'general') {
-                badges.push(<UseCaseBadge key={uc} useCase={uc} />);
-              }
-              return badges;
-            }, [])}
-          </div>
-
-          {/* Description and pricing */}
-          {(model.description || model.pricing) && (
-            <div className="mt-2 flex items-center justify-between gap-2">
-              {model.description && (
-                <p className="line-clamp-1 text-xs text-muted-foreground">
-                  {model.description}
-                </p>
-              )}
-              {model.pricing && (
-                <span className="shrink-0 text-xs font-medium text-chart-2">
-                  {model.pricing}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </Button>
-  );
-}
-
-// =============================================================================
 // MAIN MODAL
 // =============================================================================
 
@@ -237,167 +38,33 @@ function ModelBrowserModalComponent({
   capabilities,
   title = 'Browse Models',
 }: ModelBrowserModalProps) {
-  const recentModels = useSettingsStore((s) => s.recentModels);
-  const addRecentModel = useSettingsStore((s) => s.addRecentModel);
-  // Select individual API keys to avoid reference changes triggering re-renders
-  const replicateKey = useSettingsStore((s) => s.providers.replicate.apiKey);
-  const falKey = useSettingsStore((s) => s.providers.fal.apiKey);
-  const hfKey = useSettingsStore((s) => s.providers.huggingface.apiKey);
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [providerFilter, setProviderFilter] = useState<ProviderType | 'all'>(
-    'all',
-  );
-  const [useCaseFilter, setUseCaseFilter] = useState<ModelUseCase | 'all'>(
-    'all',
-  );
-  const [models, setModels] = useState<ProviderModel[]>([]);
-  const [configuredProviders, setConfiguredProviders] = useState<
-    ProviderType[]
-  >([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasFetched, setHasFetched] = useState(false);
-
-  const fetchModels = useCallback(
-    async (signal: AbortSignal) => {
-      setIsLoading(true);
-      try {
-        const params = new URLSearchParams();
-
-        if (providerFilter !== 'all') {
-          params.set('provider', providerFilter);
-        }
-
-        if (capabilities?.length) {
-          params.set('capabilities', capabilities.join(','));
-        }
-
-        if (useCaseFilter !== 'all') {
-          params.set('useCase', useCaseFilter);
-        }
-
-        if (searchQuery) {
-          params.set('query', searchQuery);
-        }
-
-        // Build headers with API keys
-        const headers: Record<string, string> = {};
-        if (replicateKey) {
-          headers['X-Replicate-Key'] = replicateKey;
-        }
-        if (falKey) {
-          headers['X-Fal-Key'] = falKey;
-        }
-        if (hfKey) {
-          headers['X-HF-Key'] = hfKey;
-        }
-
-        const response = await fetch(
-          `/v1/core/providers/models?${params.toString()}`,
-          {
-            headers,
-            signal,
-          },
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          setModels(data.models);
-          setConfiguredProviders(data.configuredProviders);
-        }
-      } catch (error) {
-        if (error instanceof Error && error.name !== 'AbortError') {
-          logger.error('Failed to fetch models', error, {
-            context: 'ModelBrowserModal',
-          });
-        }
-      } finally {
-        setIsLoading(false);
-        setHasFetched(true);
-      }
-    },
-    [
-      searchQuery,
-      providerFilter,
-      useCaseFilter,
-      capabilities,
-      replicateKey,
-      falKey,
-      hfKey,
-    ],
-  );
-
-  // Debounced search
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      fetchModels(controller.signal);
-    }, 300);
-
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [isOpen, fetchModels]);
-
-  // Reset state when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setHasFetched(false);
-    }
-  }, [isOpen]);
-
-  // Filter recent models by capabilities
-  const filteredRecentModels = useMemo(() => {
-    if (!capabilities?.length) return recentModels.slice(0, 4);
-
-    return recentModels
-      .filter((recent) => {
-        const model = models.find(
-          (m) => m.id === recent.id && m.provider === recent.provider,
-        );
-        if (!model) return true; // Keep if not in current list
-        return model.capabilities.some((c) => capabilities.includes(c));
-      })
-      .slice(0, 4);
-  }, [recentModels, models, capabilities]);
-
-  // Derive available use cases from loaded models (only show chips with matching models)
-  const availableUseCases = useMemo(() => {
-    const useCaseSet = new Set<ModelUseCase>();
-    for (const model of models) {
-      model.useCases?.forEach((uc) => {
-        if (uc !== 'general') useCaseSet.add(uc);
-      });
-    }
-    return Array.from(useCaseSet).sort();
-  }, [models]);
-
-  const handleSelect = useCallback(
-    (model: ProviderModel) => {
-      addRecentModel({
-        displayName: model.displayName,
-        id: model.id,
-        provider: model.provider,
-      });
-      onSelect(model);
-      onClose();
-    },
-    [addRecentModel, onSelect, onClose],
-  );
+  const {
+    searchQuery,
+    setSearchQuery,
+    providerFilter,
+    setProviderFilter,
+    useCaseFilter,
+    setUseCaseFilter,
+    models,
+    configuredProviders,
+    isLoading,
+    hasFetched,
+    filteredRecentModels,
+    availableUseCases,
+    handleSelect,
+  } = useModelBrowserModal({ isOpen, onClose, onSelect, capabilities });
 
   if (!isOpen) return null;
 
   return createPortal(
     <>
       {/* Backdrop */}
-      <button
+      <Button
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         aria-label="Close model browser"
         className="fixed inset-0 z-50 bg-black/50"
         onClick={onClose}
-        type="button"
       />
 
       {/* Modal */}
@@ -435,7 +102,9 @@ function ModelBrowserModalComponent({
             {/* Provider filter - only show configured providers */}
             {configuredProviders.length > 0 && (
               <div className="flex items-center gap-2">
-                {(['all', ...configuredProviders] as const).map((provider) => (
+                {(
+                  ['all', ...configuredProviders] as (ProviderType | 'all')[]
+                ).map((provider) => (
                   <Button
                     key={provider}
                     variant={ButtonVariant.UNSTYLED}

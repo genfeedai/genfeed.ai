@@ -182,6 +182,7 @@ export default function MediaLightbox({
               >
                 {/* biome-ignore lint/a11y/useMediaCaption: user-generated video content */}
                 <video
+                  aria-label="Media lightbox video"
                   src={videoSlide.sources?.[0]?.src}
                   poster={thumbnailSrc}
                   controls

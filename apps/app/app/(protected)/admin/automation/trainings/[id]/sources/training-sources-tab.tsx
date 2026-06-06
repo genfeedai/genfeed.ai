@@ -6,57 +6,42 @@ import type { Image } from '@models/ingredients/image.model';
 import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery } from '@tanstack/react-query';
 import MasonryGrid from '@ui/masonry/grid/MasonryGrid';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { FaDatabase } from 'react-icons/fa6';
 
 export default function TrainingSourcesTab() {
   const { training } = useTraining();
 
   const notificationsService = NotificationsService.getInstance();
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  const [sourceImages, setSourceImages] = useState<Image[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   const getTrainingsService = useAuthedService((token: string) =>
     TrainingsService.getInstance(token),
   );
 
-  useEffect(() => {
-    const findAllSources = async () => {
+  const {
+    data: sourceImages = [],
+    isLoading,
+    error,
+  } = useQuery<Image[]>({
+    queryKey: ['training-sources', training.id],
+    queryFn: async () => {
       const url = `GET /trainings/${training.id}/sources`;
+      const service = await getTrainingsService();
+      const data = await service.getTrainingSources(training.id);
+      logger.info(`${url} success`, data);
+      return data;
+    },
+    enabled: Boolean(training.id),
+  });
 
-      try {
-        setIsLoading(true);
-        const service = await getTrainingsService();
-
-        const data = await service.getTrainingSources(training.id);
-
-        if (!abortControllerRef.current?.signal.aborted) {
-          setSourceImages(data);
-        }
-
-        logger.info(`${url} success`, data);
-      } catch (error) {
-        logger.error(`${url} failed`, error);
-        if (error instanceof Error && error.name === 'AbortError') {
-          return;
-        }
-        notificationsService.error('Failed to fetch training sources');
-      } finally {
-        if (!abortControllerRef.current?.signal.aborted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void findAllSources();
-
-    return () => {
-      abortControllerRef.current?.abort();
-    };
-  }, [getTrainingsService, notificationsService, training]);
+  useEffect(() => {
+    if (error) {
+      logger.error('GET /trainings/:id/sources failed', error);
+      notificationsService.error('Failed to fetch training sources');
+    }
+  }, [error, notificationsService]);
 
   return isLoading && sourceImages.length === 0 ? (
     <MasonryGrid

@@ -1,8 +1,11 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { Logger } from '@nestjs/common';
 
-const logger = new Logger('CheckAppUiBoundaries');
+const logger = {
+  error: (message: string) =>
+    console.error(`[CheckAppUiBoundaries] ${message}`),
+  log: (message: string) => console.log(`[CheckAppUiBoundaries] ${message}`),
+};
 
 const EXCLUDE_GLOBS = [
   '**/*.test.*',

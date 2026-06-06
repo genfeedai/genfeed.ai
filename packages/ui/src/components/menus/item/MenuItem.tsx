@@ -52,9 +52,9 @@ export default function MenuItem({
           ]
         : [
             'size-8 rounded border border-border bg-background-secondary text-foreground/78',
-            'group-hover:border-white/[0.14] group-hover:bg-white/[0.07] group-hover:text-foreground',
+            'group-hover:border-foreground/[0.14] group-hover:bg-foreground/[0.07] group-hover:text-foreground',
             isActive &&
-              'border-white/[0.14] bg-white text-background shadow-[0_18px_42px_-30px_rgba(0,0,0,0.88)]',
+              'border-foreground/[0.14] bg-foreground text-background shadow-[0_18px_42px_-30px_rgba(0,0,0,0.88)]',
           ]
       : isActive
         ? 'text-foreground'
@@ -80,12 +80,12 @@ export default function MenuItem({
   const activeClasses = isIconVariant
     ? isHorizontalLayout
       ? isActive
-        ? 'bg-white/[0.06] text-foreground'
-        : 'hover:bg-white/[0.035] hover:text-foreground'
+        ? 'bg-foreground/[0.06] text-foreground'
+        : 'hover:bg-foreground/[0.035] hover:text-foreground'
       : '' // No outer wrapper styling for vertical card variant - highlighting is on the icon itself
     : isActive
-      ? 'bg-white/[0.06] text-foreground font-semibold'
-      : 'text-foreground/72 hover:bg-white/[0.035] hover:text-foreground';
+      ? 'bg-foreground/[0.06] text-foreground font-semibold'
+      : 'text-foreground/72 hover:bg-foreground/[0.035] hover:text-foreground';
 
   const listItemClass = cn(
     'list-none overflow-visible',

@@ -1,25 +1,29 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
+
+const extensionAppDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   oxc: false,
   plugins: [react()],
   resolve: {
     alias: {
-      '@hooks': path.resolve(__dirname, './src/hooks'),
-      '@ui': path.resolve(__dirname, '../../../../packages/ui/src'),
-      '~': path.resolve(__dirname, './src'),
-      '~components': path.resolve(__dirname, './src/components'),
-      '~hooks': path.resolve(__dirname, './src/hooks'),
-      '~models': path.resolve(__dirname, './src/models'),
-      '~platforms': path.resolve(__dirname, './src/platforms'),
-      '~popup': path.resolve(__dirname, './src/popup.tsx'),
-      '~services': path.resolve(__dirname, './src/services'),
-      '~store': path.resolve(__dirname, './src/store'),
-      '~style.css': path.resolve(__dirname, './src/style.css'),
-      '~utils': path.resolve(__dirname, './src/utils'),
+      '@hooks': path.resolve(extensionAppDir, './src/hooks'),
+      '@ui': path.resolve(extensionAppDir, '../../../../packages/ui/src'),
+      '~': path.resolve(extensionAppDir, './src'),
+      '~components': path.resolve(extensionAppDir, './src/components'),
+      '~hooks': path.resolve(extensionAppDir, './src/hooks'),
+      '~models': path.resolve(extensionAppDir, './src/models'),
+      '~platforms': path.resolve(extensionAppDir, './src/platforms'),
+      '~popup': path.resolve(extensionAppDir, './src/popup.tsx'),
+      '~services': path.resolve(extensionAppDir, './src/services'),
+      '~store': path.resolve(extensionAppDir, './src/store'),
+      '~style.css': path.resolve(extensionAppDir, './src/style.css'),
+      '~utils': path.resolve(extensionAppDir, './src/utils'),
     },
+    extensions: ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],
   },
   test: {
     coverage: {

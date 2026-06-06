@@ -20,7 +20,7 @@ function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
   return (
     <Link
       href={cardHref}
-      className="group flex flex-col gap-4 rounded-lg border border-white/[0.08] bg-white/[0.02] p-5 transition hover:border-white/15 hover:bg-white/[0.04]"
+      className="group flex flex-col gap-4 rounded-lg border border-border bg-card p-5 transition hover:border-border-strong hover:bg-foreground/[0.04]"
     >
       <div className="flex items-center gap-3">
         {brand.logoUrl ? (
@@ -33,21 +33,23 @@ function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
             width={40}
           />
         ) : (
-          <div className="flex size-10 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04]">
-            <HiOutlineBuildingOffice2 className="size-5 text-white/40" />
+          <div className="flex size-10 items-center justify-center rounded-lg border border-border bg-foreground/[0.04]">
+            <HiOutlineBuildingOffice2 className="size-5 text-muted-foreground" />
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-medium text-white">
+          <h3 className="truncate text-sm font-medium text-foreground">
             {brand.label}
           </h3>
           {brand.slug ? (
-            <p className="truncate text-xs text-white/40">@{brand.slug}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              @{brand.slug}
+            </p>
           ) : null}
         </div>
       </div>
 
-      <div className="flex items-center gap-4 text-xs text-white/30">
+      <div className="flex items-center gap-4 text-xs text-muted-foreground">
         {brand.totalCredentials > 0 ? (
           <span className="flex items-center gap-1">
             <HiOutlineGlobeAlt className="size-3.5" />
@@ -84,7 +86,7 @@ export default function OrgLandingContent() {
       <div className="flex min-h-[60vh] items-center justify-center">
         <div
           aria-hidden="true"
-          className="size-6 animate-spin rounded-full border-2 border-white/20 border-t-white"
+          className="size-6 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground"
         />
       </div>
     );
@@ -94,15 +96,15 @@ export default function OrgLandingContent() {
     <div className="mx-auto max-w-5xl px-6 py-12">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Projects</h1>
-          <p className="mt-1 text-sm text-white/40">
+          <h1 className="text-2xl font-semibold text-foreground">Projects</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             {brands.length} brand{brands.length === 1 ? '' : 's'} in this
             workspace
           </p>
         </div>
         <Link
           href={orgHref('/settings/brands')}
-          className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3.5 py-2 text-sm font-medium text-white/70 transition hover:border-white/15 hover:bg-white/[0.06] hover:text-white"
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-foreground/[0.03] px-3.5 py-2 text-sm font-medium text-foreground/70 transition hover:border-border-strong hover:bg-foreground/[0.06] hover:text-foreground"
         >
           <HiPlus className="size-4" />
           New Brand

@@ -31,11 +31,11 @@ export function AgentUiActionCard({
       )}
       {action.ctas && action.ctas.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
-          {action.ctas.map((cta, idx) => {
+          {action.ctas.map((cta) => {
             if (cta.href) {
               return (
                 <a
-                  key={`${action.id}-cta-${idx}`}
+                  key={`${action.id}-cta-${cta.label}`}
                   href={cta.href}
                   className="inline-flex items-center border border-border px-2 py-1 text-xs hover:bg-accent"
                 >
@@ -46,7 +46,7 @@ export function AgentUiActionCard({
 
             return (
               <Button
-                key={`${action.id}-cta-${idx}`}
+                key={`${action.id}-cta-${cta.label}`}
                 variant={ButtonVariant.SECONDARY}
                 className="h-auto px-2 py-1 text-xs"
                 isDisabled

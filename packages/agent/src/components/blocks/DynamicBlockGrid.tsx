@@ -423,8 +423,8 @@ function ImageGrid({ block }: { block: ImageGridBlock }): ReactElement {
       className="grid gap-3"
       style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
     >
-      {block.images.map((image, index) => (
-        <div key={index} className="overflow-hidden rounded-lg">
+      {block.images.map((image) => (
+        <div key={image.url} className="overflow-hidden rounded-lg">
           <img
             src={image.url}
             alt={image.alt ?? ''}

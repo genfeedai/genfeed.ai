@@ -13,5 +13,6 @@
     "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start discord --watch",
     "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/discord/main"
   },
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "type": "module"
 }

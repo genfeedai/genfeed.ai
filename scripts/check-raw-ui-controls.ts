@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { Logger } from '@nestjs/common';
 import { globSync } from 'glob';
 
-const logger = new Logger('CheckRawUiControls');
+const logger = {
+  error: (message: string) => console.error(`[CheckRawUiControls] ${message}`),
+  log: (message: string) => console.log(`[CheckRawUiControls] ${message}`),
+};
 
 const INCLUDE_GLOBS = [
   'apps/app/**/*.{tsx,jsx}',

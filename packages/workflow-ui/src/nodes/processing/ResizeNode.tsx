@@ -135,8 +135,11 @@ function ResizeNodeComponent(props: NodeProps) {
 
         {/* Optional Prompt */}
         <div className="space-y-1.5">
-          <Label className="text-xs">Prompt (optional)</Label>
+          <Label htmlFor={`resize-prompt-${id}`} className="text-xs">
+            Prompt (optional)
+          </Label>
           <input
+            id={`resize-prompt-${id}`}
             type="text"
             value={nodeData.prompt}
             onChange={handlePromptChange}
@@ -151,6 +154,7 @@ function ResizeNodeComponent(props: NodeProps) {
             {mediaType === 'video' ? (
               <video
                 src={nodeData.outputMedia}
+                aria-label="Resized video output"
                 className="h-32 w-full rounded-md object-cover"
                 controls
               >

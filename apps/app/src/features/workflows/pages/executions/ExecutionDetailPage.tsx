@@ -8,17 +8,15 @@ import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type {
   ExecutionNodeResult,
   ExecutionResult,
 } from '@/features/workflows/services/workflow-api';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import { getExecutionEtaDisplayState } from '@/features/workflows/utils/eta-display';
-import {
-  getStatusBorderColor,
-  getStatusIcon,
-} from '@/features/workflows/utils/status-helpers';
+import ExecutionDetailHeader from './ExecutionDetailHeader';
+import ExecutionNodeResultItem from './ExecutionNodeResultItem';
+import ExecutionSummaryBar from './ExecutionSummaryBar';
 
 interface ExecutionLogsProps {
   executionId: string;
@@ -119,14 +117,14 @@ export default function ExecutionDetailPage({
       setError(null);
 
       try {
+        if (controller.signal.aborted) {
+          return;
+        }
         const service = await getService();
         if (controller.signal.aborted) {
           return;
         }
         const result = await service.getExecution(runId);
-        if (controller.signal.aborted) {
-          return;
-        }
         setExecution(mapExecution(result));
       } catch (err) {
         if (controller.signal.aborted) {
@@ -218,95 +216,23 @@ export default function ExecutionDetailPage({
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-white/[0.08] bg-card px-6 py-4">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
-            <Link
-              href={href('/workflows/executions')}
-              className="hover:text-foreground"
-            >
-              Executions
-            </Link>
-            <span>/</span>
-            <span>{runId.slice(0, 8)}...</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold">
-                {execution.workflowLabel}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Run ID: {execution.runId}
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link
-                href={href(
-                  `/workflows/${execution.workflowId}?execution=${execution.runId}`,
-                )}
-                className=" border border-white/[0.08] px-4 py-2 hover:bg-accent"
-              >
-                View Workflow
-              </Link>
-              {execution.status === WorkflowExecutionStatus.FAILED && (
-                <Button variant={ButtonVariant.DEFAULT}>
-                  Resume Execution
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <ExecutionDetailHeader
+        runId={execution.runId}
+        workflowLabel={execution.workflowLabel}
+        status={execution.status}
+        executionsHref={href('/workflows/executions')}
+        workflowHref={href(
+          `/workflows/${execution.workflowId}?execution=${execution.runId}`,
+        )}
+      />
 
-      {/* Summary */}
-      <div className="border-b border-white/[0.08] bg-card/50 px-6 py-4">
-        <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-2 xl:grid-cols-5">
-          <div>
-            <div className="text-sm text-muted-foreground">Status</div>
-            <div className="flex items-center gap-1 font-semibold">
-              {getStatusIcon(execution.status)} {execution.status}
-            </div>
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground">Phase</div>
-            <div className="font-semibold">
-              {etaDisplay.phaseLabel ?? 'Queued'}
-            </div>
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground">Started</div>
-            <div className="font-semibold">
-              <ClientFormattedDate value={startedAt} />
-            </div>
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground">Timing</div>
-            <div className="font-semibold">
-              {etaDisplay.actualDurationLabel ??
-                (duration !== null ? `${duration}s` : 'In progress')}
-            </div>
-            {etaDisplay.elapsedLabel && execution.status !== 'completed' && (
-              <div className="text-xs text-muted-foreground">
-                Elapsed {etaDisplay.elapsedLabel}
-              </div>
-            )}
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground">ETA</div>
-            <div className="font-semibold">{etaDisplay.etaLabel ?? ':'}</div>
-            {etaDisplay.reassuranceLabel && (
-              <div className="text-xs text-muted-foreground">
-                {etaDisplay.reassuranceLabel}
-              </div>
-            )}
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground">Credits Used</div>
-            <div className="font-semibold">{execution.totalCreditsUsed}</div>
-          </div>
-        </div>
-      </div>
+      <ExecutionSummaryBar
+        status={execution.status}
+        startedAt={startedAt}
+        duration={duration}
+        totalCreditsUsed={execution.totalCreditsUsed}
+        etaDisplay={etaDisplay}
+      />
 
       {/* Node Results */}
       <main className="mx-auto max-w-5xl px-6 py-8">
@@ -317,81 +243,12 @@ export default function ExecutionDetailPage({
         ) : (
           <div className="space-y-3">
             {execution.nodeResults.map((result) => (
-              <div
+              <ExecutionNodeResultItem
                 key={result.nodeId}
-                className={`overflow-hidden border ${getStatusBorderColor(
-                  result.status,
-                )}`}
-              >
-                <Button
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                  onClick={() => toggleNodeExpand(result.nodeId)}
-                  className="flex w-full items-center justify-between px-4 py-3 text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <span>{getStatusIcon(result.status)}</span>
-                    <span className="font-medium">{result.nodeLabel}</span>
-                    <span className="text-sm text-muted-foreground">
-                      ({result.nodeId})
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm">
-                    <span className="text-muted-foreground">
-                      {result.creditsUsed} credits
-                    </span>
-                    {result.retryCount > 0 && (
-                      <span className="text-yellow-600">
-                        {result.retryCount} retries
-                      </span>
-                    )}
-                    <span>{expandedNodes.has(result.nodeId) ? '▼' : '▶'}</span>
-                  </div>
-                </Button>
-
-                {expandedNodes.has(result.nodeId) && (
-                  <div className="border-t border-white/[0.08] bg-background/50 px-4 py-3">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Started:</span>{' '}
-                        <ClientFormattedDate value={result.startedAt} />
-                      </div>
-                      {result.completedAt && (
-                        <div>
-                          <span className="text-muted-foreground">
-                            Completed:
-                          </span>{' '}
-                          <ClientFormattedDate value={result.completedAt} />
-                        </div>
-                      )}
-                    </div>
-                    {result.error && (
-                      <div className="mt-3 border border-red-200 bg-red-100 p-3 dark:border-red-800 dark:bg-red-900">
-                        <div className="mb-1 text-sm font-medium text-red-800 dark:text-red-200">
-                          Error
-                        </div>
-                        <Pre
-                          variant="ghost"
-                          size="md"
-                          className="text-red-700 dark:text-red-300"
-                        >
-                          {result.error}
-                        </Pre>
-                      </div>
-                    )}
-                    {result.output && (
-                      <div className="mt-3">
-                        <div className="mb-1 text-sm font-medium text-muted-foreground">
-                          Output
-                        </div>
-                        <Pre size="md" className="text-sm">
-                          {JSON.stringify(result.output, null, 2)}
-                        </Pre>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                result={result}
+                isExpanded={expandedNodes.has(result.nodeId)}
+                onToggle={toggleNodeExpand}
+              />
             ))}
           </div>
         )}

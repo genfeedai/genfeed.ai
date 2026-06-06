@@ -27,36 +27,9 @@ import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { useMemo } from 'react';
-import {
-  HiHashtag,
-  HiMusicalNote,
-  HiOutlineArrowTrendingUp,
-  HiOutlineFilm,
-} from 'react-icons/hi2';
-
-function RelatedMetricCard({
-  badgeValue,
-  detail,
-  title,
-}: {
-  badgeValue: number;
-  detail?: string | null;
-  title: string;
-}) {
-  return (
-    <div className="rounded-xl border border-white/[0.08] bg-background/80 p-4">
-      <div className="space-y-2">
-        <div className="truncate text-sm font-medium text-foreground">
-          {title}
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-foreground/55">
-          <Badge variant="ghost">{Math.round(badgeValue)}</Badge>
-          {detail ? <span>{detail}</span> : null}
-        </div>
-      </div>
-    </div>
-  );
-}
+import { HiOutlineArrowTrendingUp } from 'react-icons/hi2';
+import TrendsPlatformRelatedSections from './components/trends-platform-related-sections';
+import TrendsPlatformStatBar from './components/trends-platform-stat-bar';
 
 export default function TrendsPlatformDetail({
   platform,
@@ -185,34 +158,11 @@ export default function TrendsPlatformDetail({
         <SocialsNavigation active={platform} basePath={basePath} />
       </div>
 
-      <div className="mb-5 flex flex-wrap items-baseline gap-x-6 gap-y-2">
-        <div className="flex items-baseline gap-2">
-          <span className="text-[11px] uppercase tracking-[0.18em] text-foreground/40">
-            Feed Type
-          </span>
-          <span className="text-lg font-semibold text-foreground">
-            {feedModeLabel}
-          </span>
-        </div>
-        <div className="hidden h-4 w-px bg-white/[0.08] sm:block" />
-        <div className="flex items-baseline gap-2">
-          <span className="text-[11px] uppercase tracking-[0.18em] text-foreground/40">
-            Trend Topics
-          </span>
-          <span className="text-lg font-semibold text-foreground">
-            {summary.totalTrends}
-          </span>
-        </div>
-        <div className="hidden h-4 w-px bg-white/[0.08] sm:block" />
-        <div className="flex items-baseline gap-2">
-          <span className="text-[11px] uppercase tracking-[0.18em] text-foreground/40">
-            Source Items
-          </span>
-          <span className="text-lg font-semibold text-foreground">
-            {summary.totalItems ?? items.length}
-          </span>
-        </div>
-      </div>
+      <TrendsPlatformStatBar
+        feedModeLabel={feedModeLabel}
+        totalItems={summary.totalItems ?? items.length}
+        totalTrends={summary.totalTrends}
+      />
 
       {platform === Platform.LINKEDIN ? (
         <div className="mb-5 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 text-sm text-foreground/65">
@@ -254,7 +204,7 @@ export default function TrendsPlatformDetail({
         <div className="space-y-6">
           <section className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <HiOutlineArrowTrendingUp className="h-5 w-5 text-foreground/70" />
+              <HiOutlineArrowTrendingUp className="size-5 text-foreground/70" />
               <h2 className="text-lg font-semibold text-foreground">
                 {label} content feed
               </h2>
@@ -267,7 +217,7 @@ export default function TrendsPlatformDetail({
               </div>
             ) : isLoading ? (
               <div className="py-3 text-sm text-foreground/40">
-                Loading content feed...
+                Loading content feed…
               </div>
             ) : items.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -283,104 +233,17 @@ export default function TrendsPlatformDetail({
             )}
           </section>
 
-          {relatedContent.videos ? (
-            <section className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <HiOutlineFilm className="h-5 w-5 text-foreground/70" />
-                <h2 className="text-lg font-semibold text-foreground">
-                  Related viral videos
-                </h2>
-              </div>
-              {isLoadingVideos ? (
-                <div className="py-3 text-sm text-foreground/40">
-                  Loading viral videos...
-                </div>
-              ) : viralVideos.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                  {viralVideos.map((video: ITrendVideo) => (
-                    <RelatedMetricCard
-                      badgeValue={video.viralScore}
-                      detail={
-                        video.creatorHandle ? `@${video.creatorHandle}` : null
-                      }
-                      key={video.id}
-                      title={video.title || video.hook || 'Untitled'}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="py-3 text-sm text-foreground/40">
-                  No viral videos available right now.
-                </div>
-              )}
-            </section>
-          ) : null}
-
-          {relatedContent.hashtags ? (
-            <section className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <HiHashtag className="h-5 w-5 text-foreground/70" />
-                <h2 className="text-lg font-semibold text-foreground">
-                  Trending hashtags
-                </h2>
-              </div>
-              {isLoadingHashtags ? (
-                <div className="py-3 text-sm text-foreground/40">
-                  Loading hashtags...
-                </div>
-              ) : hashtags.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                  {hashtags.map((hashtag: ITrendHashtag) => (
-                    <RelatedMetricCard
-                      badgeValue={hashtag.viralityScore}
-                      detail={
-                        hashtag.platform ? hashtag.platform.toLowerCase() : null
-                      }
-                      key={hashtag.id || hashtag.hashtag}
-                      title={hashtag.hashtag}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="py-3 text-sm text-foreground/40">
-                  No trending hashtags available right now.
-                </div>
-              )}
-            </section>
-          ) : null}
-
-          {relatedContent.sounds ? (
-            <section className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <HiMusicalNote className="h-5 w-5 text-foreground/70" />
-                <h2 className="text-lg font-semibold text-foreground">
-                  Trending sounds
-                </h2>
-              </div>
-              {isLoadingSounds ? (
-                <div className="py-3 text-sm text-foreground/40">
-                  Loading sounds...
-                </div>
-              ) : sounds.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                  {sounds.map((sound: ITrendSound) => (
-                    <RelatedMetricCard
-                      badgeValue={sound.viralityScore}
-                      detail={
-                        sound.platform ? sound.platform.toLowerCase() : null
-                      }
-                      key={sound.soundId}
-                      title={sound.soundName || 'Untitled sound'}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="py-3 text-sm text-foreground/40">
-                  No trending sounds available right now.
-                </div>
-              )}
-            </section>
-          ) : null}
+          <TrendsPlatformRelatedSections
+            hashtags={hashtags}
+            isLoadingHashtags={isLoadingHashtags}
+            isLoadingSounds={isLoadingSounds}
+            isLoadingVideos={isLoadingVideos}
+            showHashtags={relatedContent.hashtags}
+            showSounds={relatedContent.sounds}
+            showVideos={relatedContent.videos}
+            sounds={sounds}
+            viralVideos={viralVideos}
+          />
         </div>
       ) : null}
     </Container>

@@ -108,6 +108,7 @@ export function ExecutionPanel({
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
 
     const poll = async () => {
       const data = await fetchExecution(signal);
@@ -116,7 +117,8 @@ export function ExecutionPanel({
       }
 
       if (data && !TERMINAL_STATUSES.has(data.status)) {
-        pollTimerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
+        timerId = setTimeout(poll, POLL_INTERVAL_MS);
+        pollTimerRef.current = timerId;
       }
     };
 
@@ -125,10 +127,11 @@ export function ExecutionPanel({
 
     return () => {
       controller.abort();
-      if (pollTimerRef.current) {
-        clearTimeout(pollTimerRef.current);
-        pollTimerRef.current = null;
+      if (timerId) {
+        clearTimeout(timerId);
+        timerId = null;
       }
+      pollTimerRef.current = null;
     };
   }, [fetchExecution]);
 

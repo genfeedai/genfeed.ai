@@ -1,0 +1,25 @@
+{
+  "diff": false,
+  "ignore": {
+    "files": [
+      "**/dist/**",
+      "**/.next/**",
+      "**/*.d.ts",
+      "**/*.stories.tsx",
+      "apps/server/**",
+      "packages/cli/**",
+      "packages/workflow-engine/**",
+      "packages/services/**",
+      "packages/storage/**",
+      "packages/libs/**",
+      "packages/tools/**",
+      "packages/harness/**",
+      "packages/create/**",
+      "packages/db/**",
+      "packages/api-types/**",
+      "packages/constants/**",
+      "packages/utils/**",
+      "ee/packages/billing/**"
+    ]
+  }
+}

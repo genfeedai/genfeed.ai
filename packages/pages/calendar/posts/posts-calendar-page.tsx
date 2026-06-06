@@ -120,7 +120,7 @@ export default function PostsCalendarPage({
   const filterControls = (
     <Link
       href={getPublisherPostsHref()}
-      className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 w-9 transition-colors"
+      className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9 transition-colors"
     >
       <HiListBullet />
     </Link>

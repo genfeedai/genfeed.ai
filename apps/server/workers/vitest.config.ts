@@ -1,6 +1,9 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
+
+const serviceDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   oxc: false, // Disable OXC transformer — SWC required for NestJS decorator metadata
@@ -16,78 +19,178 @@ export default defineConfig({
   ],
   resolve: {
     alias: [
-      { find: '@', replacement: path.resolve(__dirname, './src') },
-      { find: '@api', replacement: path.resolve(__dirname, '../api/src') },
+      { find: '@', replacement: path.resolve(serviceDir, './src') },
+      { find: '@api', replacement: path.resolve(serviceDir, '../api/src') },
       {
         find: '@genfeedai/constants',
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/constants/src/index.ts',
         ),
       },
       {
         find: '@genfeedai/enums',
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/enums/src/index.ts',
         ),
       },
-      { find: '@config', replacement: path.resolve(__dirname, './src/config') },
-      { find: '@files', replacement: path.resolve(__dirname, '../files/src') },
+      {
+        find: '@config',
+        replacement: path.resolve(serviceDir, './src/config'),
+      },
+      { find: '@files', replacement: path.resolve(serviceDir, '../files/src') },
       {
         find: '@genfeedai/config',
-        replacement: path.resolve(__dirname, '../../../packages/config/src'),
+        replacement: path.resolve(serviceDir, '../../../packages/config/src'),
       },
       {
         find: /^@genfeedai\/config\/(.*)$/,
-        replacement: path.resolve(__dirname, '../../../packages/config/src/$1'),
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/config/src/$1',
+        ),
       },
       {
         find: '@helpers',
-        replacement: path.resolve(__dirname, '../../../packages/helpers/src'),
+        replacement: path.resolve(serviceDir, '../../../packages/helpers/src'),
       },
       {
         find: '@genfeedai/helpers',
-        replacement: path.resolve(__dirname, '../../../packages/helpers/src'),
+        replacement: path.resolve(serviceDir, '../../../packages/helpers/src'),
+      },
+      {
+        find: '@genfeedai/harness',
+        replacement: path.resolve(serviceDir, '../../../packages/harness/src'),
+      },
+      {
+        find: /^@genfeedai\/harness\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/harness/src/$1',
+        ),
       },
       {
         find: /^@genfeedai\/helpers\/(.*)$/,
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/helpers/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/workflow-engine',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/workflow-engine/src/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-engine\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/workflow-engine/src/$1',
+        ),
+      },
+      {
+        find: /^@workflow-engine\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/workflow-engine/src/$1',
         ),
       },
       {
         find: '@genfeedai/integrations',
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/integrations/src',
         ),
       },
       {
         find: /^@helpers\/(.*)$/,
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/helpers/src/$1',
         ),
       },
       {
         find: /^@integrations\/(.*)$/,
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/integrations/src/$1',
         ),
       },
       {
         find: '@libs',
-        replacement: path.resolve(__dirname, '../../../packages/libs'),
+        replacement: path.resolve(serviceDir, '../../../packages/libs'),
       },
       {
         find: '@services',
-        replacement: path.resolve(__dirname, './src/services'),
+        replacement: path.resolve(serviceDir, './src/services'),
       },
-      { find: '@shared', replacement: path.resolve(__dirname, './src/shared') },
-      { find: '@workers', replacement: path.resolve(__dirname, './src') },
+      {
+        find: '@shared',
+        replacement: path.resolve(serviceDir, './src/shared'),
+      },
+      { find: '@workers', replacement: path.resolve(serviceDir, './src') },
+      {
+        find: '@genfeedai/types',
+        replacement: path.resolve(serviceDir, '../../../packages/types/src'),
+      },
+      {
+        find: /^@genfeedai\/types\/(.*)$/,
+        replacement: path.resolve(serviceDir, '../../../packages/types/src/$1'),
+      },
+      {
+        find: '@genfeedai/interfaces',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/interfaces/src',
+        ),
+      },
+      {
+        find: /^@genfeedai\/interfaces\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/interfaces/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/tools',
+        replacement: path.resolve(serviceDir, '../../../packages/tools/src'),
+      },
+      {
+        find: /^@genfeedai\/tools\/(.*)$/,
+        replacement: path.resolve(serviceDir, '../../../packages/tools/src/$1'),
+      },
+      {
+        find: '@genfeedai/serializers',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/serializers/src',
+        ),
+      },
+      {
+        find: /^@genfeedai\/serializers\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/serializers/src/$1',
+        ),
+      },
+      {
+        find: /^@serializers\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/serializers/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/utils',
+        replacement: path.resolve(serviceDir, '../../../packages/utils'),
+      },
+      {
+        find: /^@genfeedai\/utils\/(.*)$/,
+        replacement: path.resolve(serviceDir, '../../../packages/utils/$1'),
+      },
     ],
   },
   test: {

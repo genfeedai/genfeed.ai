@@ -265,7 +265,12 @@ function TextToSpeechNodeComponent(props: NodeProps) {
 
         {/* Output Audio Player */}
         {nodeData.outputAudio && (
-          <audio src={nodeData.outputAudio} controls className="w-full" />
+          <audio
+            src={nodeData.outputAudio}
+            aria-label="Generated speech audio"
+            controls
+            className="w-full"
+          />
         )}
 
         {/* Generate Button */}

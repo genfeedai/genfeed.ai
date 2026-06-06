@@ -92,6 +92,7 @@ export default function Searchbar({
       )}
 
       <input
+        aria-label="Search"
         ref={inputRef}
         type="text"
         value={value}

@@ -148,20 +148,6 @@ export const whatsappSchema = {
 };
 
 /**
- * Mastodon API (optional integration — instance-specific)
- */
-export const mastodonSchema = {
-  MASTODON_DEFAULT_INSTANCE_URL: Joi.string().uri().optional().allow(''),
-};
-
-/**
- * Ghost Admin API (optional integration — self-hosted)
- */
-export const ghostSchema = {
-  GHOST_DEFAULT_API_URL: Joi.string().uri().optional().allow(''),
-};
-
-/**
  * Shopify API (optional integration — GraphQL)
  */
 export const shopifySchema = {
@@ -196,8 +182,6 @@ export const allSocialSchema = {
   ...wordpressSchema,
   ...snapchatSchema,
   ...whatsappSchema,
-  ...mastodonSchema,
-  ...ghostSchema,
   ...shopifySchema,
   ...beehiivSchema,
 };

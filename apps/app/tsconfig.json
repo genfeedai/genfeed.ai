@@ -12,7 +12,7 @@
         "./packages/components/admin/cards/KpiCard.tsx"
       ],
       "@components/lazy/LazyModal": [
-        "./packages/components/admin/lazy/LazyModal.tsx"
+        "./packages/components/admin/lazy/LazyModal.ts"
       ],
       "@components/lazy/modal/LazyModal": [
         "../../packages/ui/src/components/lazy/modal/LazyModal.tsx"

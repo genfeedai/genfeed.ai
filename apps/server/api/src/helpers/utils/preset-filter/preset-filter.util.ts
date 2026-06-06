@@ -50,7 +50,7 @@ export class PresetFilterUtil {
     user?: string;
   }): Array<Record<string, unknown>> {
     const orConditions: Array<Record<string, unknown>> = [
-      { organization: { not: false }, user: { not: false } }, // global items
+      { organization: null, user: null }, // global items (no owner)
     ];
 
     if (publicMetadata.organization) {

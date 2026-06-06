@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import EditorTextPanel from './EditorTextPanel';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 describe('EditorTextPanel', () => {
   beforeEach(() => {

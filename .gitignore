@@ -47,6 +47,13 @@ apps/desktop/app/release/
 .clawpatch/
 .genfeed/
 
+# Playwright generated artifacts: reports, traces, videos, screenshots, and Clerk storageState
+playwright/artifacts/
+playwright/.clerk/
+playwright-report/
+playwright-results/
+test-results/
+
 # Claude Code skill runtime (should never be committed)
 .superpowers/
 # Agent scratch dirs at any depth (apps/<name>/.agents/, apps/<surface>/<name>/.agents/)

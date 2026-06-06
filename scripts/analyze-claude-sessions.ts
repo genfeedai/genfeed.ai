@@ -21,9 +21,12 @@ type CategoryName =
   | 'presentation_media';
 
 interface AnalysisOptions {
+  claudeRoots: string[];
   includeSubagents: boolean;
   jsonOutFile: string | null;
   outFile: string;
+  since: string | null;
+  until: string | null;
 }
 
 interface AnalysisResult {
@@ -197,14 +200,58 @@ const FILTERED_USER_PREFIXES = [
 ];
 
 function parseArgs(argv: string[]): AnalysisOptions {
+  const claudeRoots: string[] = [];
   let includeSubagents = false;
   let jsonOutFile: string | null = DEFAULT_JSON_OUTPUT;
   let outFile = DEFAULT_OUTPUT;
+  let since: string | null = null;
+  let until: string | null = null;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--include-subagents') {
       includeSubagents = true;
+      continue;
+    }
+
+    if (arg === '--root' && argv[i + 1]) {
+      claudeRoots.push(path.resolve(argv[i + 1]));
+      i += 1;
+      continue;
+    }
+
+    if (arg === '--since' && argv[i + 1]) {
+      since = normalizeDateArg(argv[i + 1], 'since');
+      i += 1;
+      continue;
+    }
+
+    if (arg === '--until' && argv[i + 1]) {
+      until = normalizeDateArg(argv[i + 1], 'until');
+      i += 1;
+      continue;
+    }
+
+    if (arg === '--days' && argv[i + 1]) {
+      const days = Number(argv[i + 1]);
+      if (!Number.isFinite(days) || days <= 0) {
+        throw new Error('--days must be a positive number');
+      }
+
+      since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+      i += 1;
+      continue;
+    }
+
+    if (arg === '--previous-day') {
+      const now = new Date();
+      const todayUtc = Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+      );
+      since = new Date(todayUtc - 24 * 60 * 60 * 1000).toISOString();
+      until = new Date(todayUtc).toISOString();
       continue;
     }
 
@@ -228,7 +275,21 @@ function parseArgs(argv: string[]): AnalysisOptions {
     }
   }
 
-  return { includeSubagents, jsonOutFile, outFile };
+  return { claudeRoots, includeSubagents, jsonOutFile, outFile, since, until };
+}
+
+function normalizeDateArg(value: string, mode: 'since' | 'until'): string {
+  if (/^\d{4}-\d{2}-\d{2}$/u.test(value)) {
+    const suffix = mode === 'since' ? 'T00:00:00.000Z' : 'T23:59:59.999Z';
+    return `${value}${suffix}`;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`Invalid date for --${mode}: ${value}`);
+  }
+
+  return parsed.toISOString();
 }
 
 function increment(map: CounterMap, key: string, value = 1): void {
@@ -360,6 +421,29 @@ async function walkJsonlFiles(
   return results;
 }
 
+function isRecordInWindow(
+  timestamp: string | undefined,
+  options: AnalysisOptions,
+): boolean {
+  if (!options.since && !options.until) {
+    return true;
+  }
+
+  if (!timestamp) {
+    return false;
+  }
+
+  if (options.since && timestamp < options.since) {
+    return false;
+  }
+
+  if (options.until && timestamp > options.until) {
+    return false;
+  }
+
+  return true;
+}
+
 function parseProjectName(claudeRoot: string, filePath: string): string {
   const projectsPrefix = `${path.join(claudeRoot, 'projects')}${path.sep}`;
   if (!filePath.startsWith(projectsPrefix)) {
@@ -374,11 +458,12 @@ function parseProjectName(claudeRoot: string, filePath: string): string {
 async function analyzeFile(
   filePath: string,
   claudeRoot: string,
+  options: AnalysisOptions,
   result: AnalysisResult,
   sessionIds: Set<string>,
 ): Promise<void> {
   const projectName = parseProjectName(claudeRoot, filePath);
-  increment(result.projectCounts, projectName);
+  let matchedWindow = false;
 
   const rl = createInterface({
     crlfDelay: Number.POSITIVE_INFINITY,
@@ -390,6 +475,12 @@ async function analyzeFile(
     if (!record) {
       continue;
     }
+
+    if (!isRecordInWindow(record.timestamp, options)) {
+      continue;
+    }
+
+    matchedWindow = true;
 
     if (typeof record.sessionId === 'string') {
       sessionIds.add(record.sessionId);
@@ -458,10 +549,17 @@ async function analyzeFile(
       }
     }
   }
+
+  if (matchedWindow) {
+    increment(result.projectCounts, projectName);
+  }
 }
 
 async function runAnalysis(options: AnalysisOptions): Promise<AnalysisResult> {
-  const roots = await discoverClaudeRoots();
+  const roots =
+    options.claudeRoots.length > 0
+      ? options.claudeRoots
+      : await discoverClaudeRoots();
   const result: AnalysisResult = {
     assistantMessages: 0,
     categoryCounts: new Map<CategoryName, number>(),
@@ -486,7 +584,7 @@ async function runAnalysis(options: AnalysisOptions): Promise<AnalysisResult> {
     result.jsonlFiles += files.length;
 
     for (const filePath of files) {
-      await analyzeFile(filePath, root, result, sessionIds);
+      await analyzeFile(filePath, root, options, result, sessionIds);
     }
   }
 
@@ -533,13 +631,17 @@ function buildReportMarkdown(
 ): string {
   const now = new Date().toISOString();
   const includeSubagentsLabel = options.includeSubagents ? 'yes' : 'no';
+  const windowLabel =
+    options.since || options.until
+      ? `${options.since ?? 'beginning'} -> ${options.until ?? 'now'}`
+      : 'all available history';
 
   const categoryRows = Array.from(result.categoryCounts.entries())
     .sort((a, b) => b[1] - a[1])
     .map(([label, count]) => `| ${label} | ${count.toLocaleString()} |`)
     .join('\n');
 
-  return `# Claude Session Analysis\n\nGenerated: ${now}\n\n## Scope\n- Claude roots scanned: ${result.roots.length}\n- Roots:\n${result.roots.map((root) => `  - ${root}`).join('\n')}\n- Included subagent transcripts: ${includeSubagentsLabel}\n- JSONL files scanned: ${result.jsonlFiles.toLocaleString()}\n- Unique sessions: ${result.uniqueSessions.toLocaleString()}\n- Time range: ${result.firstTimestamp ?? 'n/a'} -> ${result.lastTimestamp ?? 'n/a'}\n\n## Event Volume\n- User messages: ${result.userMessages.toLocaleString()}\n- Assistant messages: ${result.assistantMessages.toLocaleString()}\n- Progress events: ${result.progressEvents.toLocaleString()}\n- Other events: ${result.otherEvents.toLocaleString()}\n\n## Top Categories (User Prompt Intent)\n| Category | Count |\n|---|---:|\n${categoryRows || '| (none) | 0 |'}\n\n## Top Models\n| Model | Count |\n|---|---:|\n${formatTopRows(result.modelCounts, 10)}\n\n## Top Tool Uses\n| Tool | Count |\n|---|---:|\n${formatTopRows(result.toolCounts, 15)}\n\n## Top Projects\n| Project | File Count |\n|---|---:|\n${formatTopRows(result.projectCounts, 12)}\n\n## Top Working Directories\n| CWD | Event Count |\n|---|---:|\n${formatTopRows(result.cwdCounts, 12)}\n\n${buildRecommendationsMarkdown(result)}\n\n## How to Run\n\`\`\`bash\nbun run analyze:claude-sessions\nbun run analyze:claude-sessions -- --include-subagents\nbun run analyze:claude-sessions -- --out docs/custom-claude-analysis.md\nbun run analyze:claude-sessions -- --json-out docs/custom-claude-analysis.json\nbun run analyze:claude-sessions -- --no-json\n\`\`\`\n`;
+  return `# Claude Session Analysis\n\nGenerated: ${now}\n\n## Scope\n- Claude roots scanned: ${result.roots.length}\n- Roots:\n${result.roots.map((root) => `  - ${root}`).join('\n')}\n- Included subagent transcripts: ${includeSubagentsLabel}\n- Requested time window: ${windowLabel}\n- JSONL files scanned: ${result.jsonlFiles.toLocaleString()}\n- Unique sessions: ${result.uniqueSessions.toLocaleString()}\n- Time range: ${result.firstTimestamp ?? 'n/a'} -> ${result.lastTimestamp ?? 'n/a'}\n\n## Event Volume\n- User messages: ${result.userMessages.toLocaleString()}\n- Assistant messages: ${result.assistantMessages.toLocaleString()}\n- Progress events: ${result.progressEvents.toLocaleString()}\n- Other events: ${result.otherEvents.toLocaleString()}\n\n## Top Categories (User Prompt Intent)\n| Category | Count |\n|---|---:|\n${categoryRows || '| (none) | 0 |'}\n\n## Top Models\n| Model | Count |\n|---|---:|\n${formatTopRows(result.modelCounts, 10)}\n\n## Top Tool Uses\n| Tool | Count |\n|---|---:|\n${formatTopRows(result.toolCounts, 15)}\n\n## Top Projects\n| Project | File Count |\n|---|---:|\n${formatTopRows(result.projectCounts, 12)}\n\n## Top Working Directories\n| CWD | Event Count |\n|---|---:|\n${formatTopRows(result.cwdCounts, 12)}\n\n${buildRecommendationsMarkdown(result)}\n\n## How to Run\n\`\`\`bash\nbun run analyze:claude-sessions\nbun run analyze:claude-sessions -- --include-subagents\nbun run analyze:claude-sessions -- --previous-day\nbun run analyze:claude-sessions -- --days 7\nbun run analyze:claude-sessions -- --root ~/.claude --since 2026-06-01\nbun run analyze:claude-sessions -- --out docs/custom-claude-analysis.md\nbun run analyze:claude-sessions -- --json-out docs/custom-claude-analysis.json\nbun run analyze:claude-sessions -- --no-json\n\`\`\`\n`;
 }
 
 function topEntries(
@@ -578,9 +680,12 @@ function buildJsonPayload(
     },
     generatedAt: new Date().toISOString(),
     options: {
+      claudeRoots: options.claudeRoots,
       includeSubagents: options.includeSubagents,
       jsonOut: options.jsonOutFile,
       markdownOut: options.outFile,
+      since: options.since,
+      until: options.until,
     },
     scope: {
       firstTimestamp: result.firstTimestamp,

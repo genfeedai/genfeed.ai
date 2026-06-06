@@ -2,45 +2,26 @@
 
 import type { IEvaluation } from '@genfeedai/client/models';
 import {
-  ButtonSize,
-  ButtonVariant,
   IngredientCategory,
-  IngredientStatus,
   TransformationCategory,
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useEvaluation } from '@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation';
 import { useIngredientMetadata } from '@genfeedai/hooks/ui/ingredient/use-ingredient-metadata/use-ingredient-metadata';
 import { useIngredientSharing } from '@genfeedai/hooks/ui/ingredient/use-ingredient-sharing/use-ingredient-sharing';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
-import type { ITag, IVideo } from '@genfeedai/interfaces';
+import type { IVideo } from '@genfeedai/interfaces';
 import type { IngredientDetailVideoProps } from '@genfeedai/props/content/ingredient.props';
 import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
-import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
-import IngredientWorkspacePanel from '@ui/ingredients/detail/shared/IngredientWorkspacePanel';
-import IngredientTabsCaptions from '@ui/ingredients/tabs/captions/IngredientTabsCaptions';
-import IngredientTabsChildren from '@ui/ingredients/tabs/children/IngredientTabsChildren';
-import IngredientTabsInfo from '@ui/ingredients/tabs/info/IngredientTabsInfo';
-import IngredientTabsMetadata from '@ui/ingredients/tabs/metadata/IngredientTabsMetadata';
-import IngredientTabsPosts from '@ui/ingredients/tabs/posts/IngredientTabsPosts';
-import IngredientTabsPrompts from '@ui/ingredients/tabs/prompts/IngredientTabsPrompts';
-import IngredientTabsSharing from '@ui/ingredients/tabs/sharing/IngredientTabsSharing';
-import IngredientTabsTags from '@ui/ingredients/tabs/tags/IngredientTabsTags';
-import LoadingOverlay from '@ui/loading/overlay/LoadingOverlay';
-import { Button } from '@ui/primitives/button';
-import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
-import Link from 'next/link';
-import type { ReactNode } from 'react';
 import { useCallback, useEffect, useState } from 'react';
-import { HiOutlineFilm } from 'react-icons/hi2';
+import VideoDetailFirstColumn from './VideoDetailFirstColumn';
+import VideoDetailWorkspacePanel from './VideoDetailWorkspacePanel';
 
 const EMPTY_ARRAY: never[] = [];
 
@@ -261,227 +242,60 @@ export default function IngredientDetailVideo({
   return (
     <>
       {/* Video Display - First Column */}
-      <div className="space-y-4">
-        <div
-          className={cn(
-            'relative overflow-hidden shadow-lg group opacity-80 hover:opacity-100',
-            'transition-opacity duration-300 max-h-[70vh] flex items-center justify-center w-fit mx-auto',
-            isPortrait ? 'max-w-2xl' : 'max-w-4xl',
-          )}
-        >
-          <VideoPlayer
-            videoRef={videoRef}
-            src={currentVideo.ingredientUrl}
-            thumbnail={currentVideo.thumbnailUrl}
-          />
-
-          {currentVideo.status === IngredientStatus.PROCESSING && (
-            <LoadingOverlay message="Processing video…" />
-          )}
-        </div>
-
-        {/* Captioned Versions Quick Access */}
-        {childIngredients && childIngredients.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-foreground/80">
-              Available Versions:
-            </h4>
-
-            <div className="flex flex-wrap gap-2">
-              {childIngredients.reduce<ReactNode[]>((acc, child) => {
-                if (
-                  child.transformations?.includes(
-                    TransformationCategory.CAPTIONED,
-                  )
-                ) {
-                  acc.push(
-                    <Button
-                      key={child.id}
-                      withWrapper={false}
-                      onClick={() => onSeeDetails?.(child)}
-                      variant={ButtonVariant.OUTLINE}
-                      size={ButtonSize.SM}
-                      ariaLabel={child.metadataLabel || 'Captioned Version'}
-                    >
-                      <span className="text-xs">
-                        📝 {child.metadataLabel || 'Captioned Version'}
-                      </span>
-                    </Button>,
-                  );
-                }
-                return acc;
-              }, [])}
-
-              {childIngredients
-                .filter(
-                  (child) =>
-                    !child.transformations?.includes(
-                      TransformationCategory.CAPTIONED,
-                    ),
-                )
-                .slice(0, 3)
-                .map((child) => (
-                  <Button
-                    key={child.id}
-                    withWrapper={false}
-                    onClick={() => onSeeDetails?.(child)}
-                    variant={ButtonVariant.OUTLINE}
-                    size={ButtonSize.SM}
-                    ariaLabel={
-                      child.metadataLabel || `${child.category} Version`
-                    }
-                  >
-                    <span className="text-xs">
-                      {child.metadataLabel || `${child.category} Version`}
-                    </span>
-                  </Button>
-                ))}
-
-              {childIngredients.length > 4 && (
-                <Button
-                  withWrapper={false}
-                  onClick={() => setTab('children')}
-                  variant={ButtonVariant.GHOST}
-                  size={ButtonSize.SM}
-                  ariaLabel="View more versions"
-                >
-                  <span className="text-xs">
-                    +{childIngredients.length - 4} more
-                  </span>
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Edit in Video Editor */}
-        <Link
-          href={`/editor/new?video=${currentVideo.id}`}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
-        >
-          <HiOutlineFilm className="size-4" />
-          Edit in Video Editor
-        </Link>
-
-        {/* Quick Actions */}
-        <IngredientQuickActions
-          isAddingTextOverlay={isAddingTextOverlay}
-          isCloning={isCloning}
-          isConverting={isConverting}
-          isDownloading={isDownloading}
-          isGeneratingCaptions={isGeneratingCaptions}
-          isMirroring={isMirroring}
-          isPortraiting={isPortraiting}
-          isPublishing={isPublishing}
-          isReversing={isReversing}
-          isTrimming={isTrimming}
-          isUpscaling={isUpscaling}
-          isVoting={isVoting}
-          onAddTextOverlay={onAddTextOverlay}
-          onClone={onCloneVideo}
-          onConvertToGif={onConvertToGif}
-          onDownload={onDownloadVideo}
-          onGenerateCaptions={onGenerateCaptions}
-          onMirror={onMirrorVideo}
-          onPortrait={onPortraitVideo}
-          onPublish={onPublishVideo}
-          onReverse={onReverseVideo}
-          onCopy={onCopyPrompt}
-          onReprompt={onReprompt}
-          onUsePrompt={onUsePrompt}
-          onSeeDetails={onSeeDetails}
-          onShare={onShareVideo}
-          onTrim={onTrimVideo}
-          onUpscale={onUpscaleVideo}
-          // onVote={onVoteIngredient} // not needed right now
-          selectedIngredient={currentVideo}
-        />
-      </div>
+      <VideoDetailFirstColumn
+        currentVideo={currentVideo}
+        videoRef={videoRef}
+        isPortrait={isPortrait}
+        childIngredients={childIngredients}
+        onSeeDetails={onSeeDetails}
+        onShowChildren={() => setTab('children')}
+        onConvertToGif={onConvertToGif}
+        onReverseVideo={onReverseVideo}
+        onPortraitVideo={onPortraitVideo}
+        onMirrorVideo={onMirrorVideo}
+        onTrimVideo={onTrimVideo}
+        onCloneVideo={onCloneVideo}
+        onUpscaleVideo={onUpscaleVideo}
+        onPublishVideo={onPublishVideo}
+        onGenerateCaptions={onGenerateCaptions}
+        onAddTextOverlay={onAddTextOverlay}
+        onShareVideo={onShareVideo}
+        onDownloadVideo={onDownloadVideo}
+        onCopyPrompt={onCopyPrompt}
+        onReprompt={onReprompt}
+        onUsePrompt={onUsePrompt}
+        isConverting={isConverting}
+        isReversing={isReversing}
+        isPortraiting={isPortraiting}
+        isMirroring={isMirroring}
+        isTrimming={isTrimming}
+        isCloning={isCloning}
+        isVoting={isVoting}
+        isDownloading={isDownloading}
+        isUpscaling={isUpscaling}
+        isPublishing={isPublishing}
+        isGeneratingCaptions={isGeneratingCaptions}
+        isAddingTextOverlay={isAddingTextOverlay}
+      />
 
       {/* Details Panel - Second and Third Columns */}
-      <div className="col-span-2 space-y-4">
-        <IngredientWorkspacePanel
-          title="Review video details"
-          tabs={tabs}
-          activeTab={tab}
-          onTabChange={(nextTab) => setTab(nextTab as VideoDetailTab)}
-        >
-          {tab === 'info' && (
-            <IngredientTabsInfo
-              ingredient={currentVideo}
-              isUpdating={isUpdating}
-              onUpdateMetadata={updateMetadataHook}
-            />
-          )}
-
-          {tab === 'evaluation' && (
-            <EvaluationCard
-              contentId={currentVideo.id}
-              contentType={IngredientCategory.VIDEO}
-              evaluation={evaluation ?? undefined}
-              onEvaluate={async () => {
-                await evaluate();
-              }}
-              isEvaluating={isEvaluating}
-            />
-          )}
-
-          {tab === 'posts' && <IngredientTabsPosts ingredient={currentVideo} />}
-
-          {tab === 'metadata' && (
-            <IngredientTabsMetadata
-              ingredient={currentVideo}
-              onRefresh={async () => {
-                await handleRefreshMetadata();
-              }}
-            />
-          )}
-
-          {tab === 'prompts' && (
-            <IngredientTabsPrompts ingredient={currentVideo} />
-          )}
-
-          {tab === 'children' && (
-            <IngredientTabsChildren
-              ingredient={currentVideo}
-              onViewChild={(child) => {
-                logger.info('View child', { childId: child.id });
-                if (onSeeDetails) {
-                  onSeeDetails(child);
-                }
-              }}
-            />
-          )}
-
-          {tab === 'captions' && (
-            <IngredientTabsCaptions
-              ingredient={currentVideo}
-              onReload={onReload}
-            />
-          )}
-
-          {tab === 'tags' && (
-            <IngredientTabsTags
-              ingredient={currentVideo}
-              onTagsUpdate={(tags: ITag[]) => {
-                logger.info('Tags updated', { tags });
-                onReload?.(true);
-              }}
-            />
-          )}
-
-          {tab === 'sharing' && (
-            <IngredientTabsSharing
-              ingredient={currentVideo}
-              onUpdateSharing={updateSharingHook}
-              isUpdating={isUpdating}
-            />
-          )}
-        </IngredientWorkspacePanel>
-
-        {/* TO DO : ADD ADS CAMPAIGN LATER */}
-        {/* <AdsCampaign contentType="video" /> */}
-      </div>
+      <VideoDetailWorkspacePanel
+        currentVideo={currentVideo}
+        tabs={tabs}
+        tab={tab}
+        onTabChange={setTab}
+        isUpdating={isUpdating}
+        evaluation={evaluation}
+        isEvaluating={isEvaluating}
+        onEvaluate={async () => {
+          await evaluate();
+        }}
+        onReload={onReload}
+        updateMetadataHook={updateMetadataHook}
+        updateSharingHook={updateSharingHook}
+        handleRefreshMetadata={handleRefreshMetadata}
+        onSeeDetails={onSeeDetails}
+      />
     </>
   );
 }

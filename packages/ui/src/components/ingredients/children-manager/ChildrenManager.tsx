@@ -1,24 +1,16 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  IngredientCategory,
-  IngredientStatus,
-} from '@genfeedai/enums';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import type { IngredientChildrenManagerProps } from '@genfeedai/props/content/ingredient.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
-import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Loading from '@ui/loading/default/Loading';
-import { Button } from '@ui/primitives/button';
-import Image from 'next/image';
-import { type KeyboardEvent, useCallback, useEffect, useState } from 'react';
-import { HiPhoto, HiVideoCamera, HiXMark } from 'react-icons/hi2';
+import { useCallback, useEffect, useState } from 'react';
+import ChildrenList from './ChildrenList';
+import ChildrenPickerDropdown from './ChildrenPickerDropdown';
 
 export default function ChildrenManager({
   ingredient,
@@ -213,167 +205,26 @@ export default function ChildrenManager({
 
   return (
     <div className="space-y-3">
-      {/* Dropdown with image/video previews */}
-      <div className="relative children-dropdown-container">
-        <Button
-          label={`Add child ${parentIngredientCategory}s`}
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          isDisabled={isDisabled || isSearching || isSaving}
-          icon={isVideo ? <HiVideoCamera /> : <HiPhoto />}
-          variant={ButtonVariant.SECONDARY}
-          size={ButtonSize.SM}
-        />
+      <ChildrenPickerDropdown
+        parentIngredientCategory={parentIngredientCategory}
+        isVideo={isVideo}
+        isDisabled={isDisabled}
+        isSearching={isSearching}
+        isSaving={isSaving}
+        isDropdownOpen={isDropdownOpen}
+        availableIngredients={availableIngredients}
+        onToggleDropdown={() => setIsDropdownOpen(!isDropdownOpen)}
+        onAddChild={handleAddChild}
+      />
 
-        {isDropdownOpen && (
-          <div className="absolute top-full mt-2 left-0 z-50 bg-card shadow-lg border border-white/[0.08] p-3 min-w-96 max-w-2xl">
-            <div className="text-xs text-foreground/70 mb-2 font-medium">
-              Select {parentIngredientCategory}s to add as children
-            </div>
-
-            {isSearching ? (
-              <div className="flex items-center justify-center py-4">
-                <span className="animate-spin size-4 border-2 border-primary border-t-transparent rounded-full" />
-              </div>
-            ) : availableIngredients.length === 0 ? (
-              <div className="text-sm text-foreground/60 py-4 text-center">
-                No available {parentIngredientCategory}s to add
-              </div>
-            ) : (
-              <div className="grid grid-cols-6 gap-2 max-h-72 overflow-y-auto">
-                {availableIngredients.map((ingredient: IIngredient) => {
-                  const metadata = ingredient.metadata as IMetadata;
-
-                  return (
-                    <div
-                      key={ingredient.id}
-                      role="button"
-                      tabIndex={0}
-                      className="relative group cursor-pointer transition-all"
-                      onClick={() => handleAddChild(ingredient.id)}
-                      onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
-                        if (event.key !== 'Enter' && event.key !== ' ') {
-                          return;
-                        }
-
-                        event.preventDefault();
-                        handleAddChild(ingredient.id);
-                      }}
-                      title={
-                        metadata.label ||
-                        `${ingredient.category} - ${ingredient.id.slice(0, 8)}`
-                      }
-                    >
-                      <div className="relative size-16 overflow-hidden border-2 border-transparent hover:border-primary transition-all hover:scale-105">
-                        {isVideo ? (
-                          <div className="size-full bg-background">
-                            <VideoPlayer
-                              src={ingredient.ingredientUrl}
-                              thumbnail={ingredient.thumbnailUrl}
-                              config={{
-                                autoPlay: false,
-                                controls: false,
-                                loop: true,
-                                muted: true,
-                                playsInline: true,
-                                preload: 'metadata',
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <Image
-                            src={
-                              ingredient.ingredientUrl ||
-                              `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`
-                            }
-                            alt={metadata.label}
-                            className="size-full object-cover"
-                            width={64}
-                            height={64}
-                            sizes="64px"
-                          />
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-1">
-                          <span className="text-white text-[9px] font-medium truncate px-1">
-                            {metadata.label || ingredient.id.slice(0, 8)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Selected children display */}
-      {children.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {children.map((child: IIngredient) => {
-            const metadata = child.metadata as IMetadata;
-            return (
-              <div key={child.id} className="relative group">
-                <div className="relative size-20 overflow-hidden border-2 border-primary/30">
-                  {isVideo ? (
-                    <div className="size-full bg-background">
-                      <VideoPlayer
-                        src={child.ingredientUrl}
-                        config={{
-                          controls: false,
-                          loop: true,
-                          muted: true,
-                          playsInline: true,
-                          preload: 'metadata',
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <Image
-                      src={
-                        child.ingredientUrl ||
-                        `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`
-                      }
-                      alt={metadata.label}
-                      className="size-full object-cover"
-                      width={80}
-                      height={80}
-                      sizes="80px"
-                    />
-                  )}
-
-                  {/* Label overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1">
-                    <span className="text-white text-[10px] font-medium truncate block">
-                      {metadata.label || child.id.slice(0, 8)}
-                    </span>
-                  </div>
-
-                  {/* Remove button */}
-                  {!isDisabled && (
-                    <Button
-                      withWrapper={false}
-                      variant={ButtonVariant.UNSTYLED}
-                      onClick={() => handleRemoveChild(child.id)}
-                      isDisabled={isSaving}
-                      className="absolute top-1 right-1 bg-error text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-error-focus disabled:opacity-50"
-                      ariaLabel="Remove child"
-                    >
-                      <HiXMark className="size-3" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {children.length === 0 && (
-        <p className="text-sm text-foreground/60">
-          No child {parentIngredientCategory}s selected
-        </p>
-      )}
+      <ChildrenList
+        items={children}
+        parentIngredientCategory={parentIngredientCategory}
+        isVideo={isVideo}
+        isDisabled={isDisabled}
+        isSaving={isSaving}
+        onRemoveChild={handleRemoveChild}
+      />
     </div>
   );
 }

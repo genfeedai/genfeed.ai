@@ -9,6 +9,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ScenesService } from '@services/elements/scenes.service';
 import AppTable from '@ui/display/table/Table';
+import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useState } from 'react';
@@ -61,7 +62,10 @@ function ScenesListContent() {
   }, [findAllScenes]);
 
   return (
-    <>
+    <Container
+      label="Scenes"
+      description="Reusable scene elements for generation"
+    >
       <AppTable<ElementScene>
         items={scenes}
         columns={columns}
@@ -74,7 +78,7 @@ function ScenesListContent() {
       <div className="mt-4">
         <AutoPagination showTotal totalLabel="scenes" />
       </div>
-    </>
+    </Container>
   );
 }
 

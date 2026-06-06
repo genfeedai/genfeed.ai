@@ -1,6 +1,9 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
+
+const serviceDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   oxc: false, // Disable OXC transformer — SWC required for NestJS decorator metadata
@@ -20,38 +23,44 @@ export default defineConfig({
     alias: [
       {
         find: '@slack/bolt',
-        replacement: path.resolve(__dirname, './test/__mocks__/slack-bolt.ts'),
+        replacement: path.resolve(serviceDir, './test/__mocks__/slack-bolt.ts'),
       },
-      { find: '@slack', replacement: path.resolve(__dirname, './src') },
+      { find: '@slack', replacement: path.resolve(serviceDir, './src') },
       {
         find: '@genfeedai/integrations',
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/integrations/src',
         ),
       },
       {
         find: /^@integrations\/(.*)$/,
         replacement: path.resolve(
-          __dirname,
+          serviceDir,
           '../../../packages/integrations/src/$1',
         ),
       },
       {
         find: '@controllers',
-        replacement: path.resolve(__dirname, './src/controllers'),
+        replacement: path.resolve(serviceDir, './src/controllers'),
       },
       {
         find: '@services',
-        replacement: path.resolve(__dirname, './src/services'),
+        replacement: path.resolve(serviceDir, './src/services'),
       },
-      { find: '@shared', replacement: path.resolve(__dirname, './src/shared') },
-      { find: '@config', replacement: path.resolve(__dirname, './src/config') },
+      {
+        find: '@shared',
+        replacement: path.resolve(serviceDir, './src/shared'),
+      },
+      {
+        find: '@config',
+        replacement: path.resolve(serviceDir, './src/config'),
+      },
       {
         find: '@libs',
-        replacement: path.resolve(__dirname, '../../../packages/libs'),
+        replacement: path.resolve(serviceDir, '../../../packages/libs'),
       },
-      { find: '@', replacement: path.resolve(__dirname, './src') },
+      { find: '@', replacement: path.resolve(serviceDir, './src') },
     ],
   },
   test: {

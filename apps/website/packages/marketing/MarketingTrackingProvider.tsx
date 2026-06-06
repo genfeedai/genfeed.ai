@@ -4,7 +4,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { usePathname, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import {
   loadMarketingTags,
   type MarketingTrackingConfig,
@@ -34,6 +34,12 @@ interface ButtonTrackedMarketingEventDetail {
   trackingName: string;
 }
 
+interface MarketingPageTrackerProps {
+  config: MarketingTrackingConfig;
+  consent: MarketingConsentState | null;
+  pathname: string;
+}
+
 const hasConfiguredMarketingTag = (config: MarketingTrackingConfig): boolean =>
   Boolean(
     config.gaId ||
@@ -43,18 +49,18 @@ const hasConfiguredMarketingTag = (config: MarketingTrackingConfig): boolean =>
       config.xPixelId,
   );
 
-export default function MarketingTrackingProvider({
-  children,
+/**
+ * Renders no UI — owns the page-view and CTA tracking effects that depend on
+ * `useSearchParams`. Isolated behind a <Suspense> boundary so calling
+ * `useSearchParams` does not opt the whole route into client-side rendering.
+ */
+function MarketingPageTracker({
   config,
-  consentDefault = 'denied',
-}: MarketingTrackingProviderProps) {
-  const pathname = usePathname();
+  consent,
+  pathname,
+}: MarketingPageTrackerProps) {
   const searchParams = useSearchParams();
-  const [consent, setConsent] = useState<MarketingConsentState | null>(null);
-  const [hasConsentChoice, setHasConsentChoice] = useState(false);
   const search = searchParams.toString();
-  const shouldShowBanner =
-    !hasConsentChoice && hasConfiguredMarketingTag(config);
 
   const currentUrl = useMemo(() => {
     const pathWithSearch = search ? `${pathname}?${search}` : pathname;
@@ -65,26 +71,6 @@ export default function MarketingTrackingProvider({
 
     return `${window.location.origin}${pathWithSearch}${window.location.hash}`;
   }, [pathname, search]);
-
-  useEffect(() => {
-    const stored = parseMarketingConsent(
-      window.localStorage.getItem(MARKETING_CONSENT_STORAGE_KEY),
-    );
-    const initialConsent = stored ?? createConsentState(consentDefault);
-    setHasConsentChoice(Boolean(stored) || consentDefault === 'granted');
-    setConsent(initialConsent);
-    setGoogleConsent({
-      adStorage: initialConsent.adStorage,
-      analyticsStorage: initialConsent.analyticsStorage,
-    });
-
-    if (
-      initialConsent.adStorage === 'granted' ||
-      initialConsent.analyticsStorage === 'granted'
-    ) {
-      loadMarketingTags(config);
-    }
-  }, [config, consentDefault]);
 
   useEffect(() => {
     if (
@@ -164,6 +150,40 @@ export default function MarketingTrackingProvider({
     };
   }, [config, consent, currentUrl]);
 
+  return null;
+}
+
+export default function MarketingTrackingProvider({
+  children,
+  config,
+  consentDefault = 'denied',
+}: MarketingTrackingProviderProps) {
+  const pathname = usePathname();
+  const [consent, setConsent] = useState<MarketingConsentState | null>(null);
+  const [hasConsentChoice, setHasConsentChoice] = useState(false);
+  const shouldShowBanner =
+    !hasConsentChoice && hasConfiguredMarketingTag(config);
+
+  useEffect(() => {
+    const stored = parseMarketingConsent(
+      window.localStorage.getItem(MARKETING_CONSENT_STORAGE_KEY),
+    );
+    const initialConsent = stored ?? createConsentState(consentDefault);
+    setHasConsentChoice(Boolean(stored) || consentDefault === 'granted');
+    setConsent(initialConsent);
+    setGoogleConsent({
+      adStorage: initialConsent.adStorage,
+      analyticsStorage: initialConsent.analyticsStorage,
+    });
+
+    if (
+      initialConsent.adStorage === 'granted' ||
+      initialConsent.analyticsStorage === 'granted'
+    ) {
+      loadMarketingTags(config);
+    }
+  }, [config, consentDefault]);
+
   const persistConsent = (nextConsent: MarketingConsentState) => {
     setHasConsentChoice(true);
     setConsent(nextConsent);
@@ -187,6 +207,13 @@ export default function MarketingTrackingProvider({
   return (
     <>
       {children}
+      <Suspense fallback={null}>
+        <MarketingPageTracker
+          config={config}
+          consent={consent}
+          pathname={pathname}
+        />
+      </Suspense>
       {shouldShowBanner ? (
         <div className="fixed right-4 bottom-4 z-50 max-w-sm rounded-lg border border-border bg-background p-4 text-sm text-foreground shadow-xl">
           <p className="mb-3 text-sm leading-6 text-muted-foreground">

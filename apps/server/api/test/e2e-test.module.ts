@@ -50,7 +50,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
-import { DynamicModule, Module, Type } from '@nestjs/common';
+import { DynamicModule, ExecutionContext, Module, Type } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -58,7 +58,25 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
  * Mock Guard that always allows access (bypasses auth for E2E tests)
  */
 export class MockClerkGuard {
-  canActivate(): boolean {
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest<{
+      params?: Record<string, string | undefined>;
+      user?: {
+        id: string;
+        publicMetadata: {
+          organization?: string;
+          user?: string;
+        };
+      };
+    }>();
+    const organizationId = request.params?.['organizationId'];
+    request.user = {
+      id: 'clerk_e2e_test_user',
+      publicMetadata: {
+        organization: organizationId,
+        user: 'e2e-test-user',
+      },
+    };
     return true;
   }
 }
@@ -128,6 +146,17 @@ export const GUARD_OVERRIDE_PROVIDERS = [
   },
 ];
 
+type PrismaDelegate = {
+  count: () => Promise<number>;
+  create: (args: { data: Record<string, unknown> }) => Promise<unknown>;
+  deleteMany: () => Promise<unknown>;
+  upsert?: (args: {
+    create: Record<string, unknown>;
+    update: Record<string, unknown>;
+    where: Record<string, unknown>;
+  }) => Promise<unknown>;
+};
+
 /**
  * E2E Test Module Configuration Options
  */
@@ -136,6 +165,8 @@ export interface E2ETestModuleOptions {
   controllers?: Type<unknown>[];
   /** Additional providers to include */
   providers?: unknown[];
+  /** Legacy Mongoose-era schema registrations. Prisma e2e ignores these. */
+  schemas?: unknown[];
   /** Custom config overrides */
   configOverrides?: Record<string, unknown>;
   /** Whether to use mock guards (default: true) */
@@ -149,42 +180,59 @@ export interface E2ETestModuleOptions {
 export class TestDatabaseHelper {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly collectionToDelegate: Record<string, string> = {
+    activities: 'activity',
+    assets: 'asset',
+    brands: 'brand',
+    credentials: 'credential',
+    'credit-balances': 'creditBalance',
+    credit_balances: 'creditBalance',
+    'credit-transactions': 'creditTransaction',
+    credit_transactions: 'creditTransaction',
+    ingredients: 'ingredient',
+    links: 'link',
+    members: 'member',
+    organizations: 'organization',
+    'organization-settings': 'organizationSetting',
+    organization_settings: 'organizationSetting',
+    org_integrations: 'orgIntegration',
+    orgintegrations: 'orgIntegration',
+    posts: 'post',
+    roles: 'role',
+    settings: 'setting',
+    tags: 'tag',
+    tasks: 'task',
+    trainings: 'training',
+    users: 'user',
+  };
+
+  private readonly clearOrder = [
+    'orgIntegration',
+    'task',
+    'creditTransaction',
+    'creditBalance',
+    'activity',
+    'link',
+    'asset',
+    'post',
+    'ingredient',
+    'credential',
+    'tag',
+    'brand',
+    'organizationSetting',
+    'member',
+    'organization',
+    'setting',
+    'user',
+    'role',
+  ];
+
   /**
    * Clear all known tables in the test database.
    */
   async clearDatabase(): Promise<void> {
-    const tableNames = [
-      'organizations',
-      'brands',
-      'users',
-      'members',
-      'credentials',
-      'videos',
-      'posts',
-      'roles',
-      'ingredients',
-      'assets',
-      'tags',
-      'activities',
-      'settings',
-      'organization_settings',
-      'credit_balances',
-      'credit_transactions',
-      'links',
-      'org_integrations',
-    ];
-
-    for (const table of tableNames) {
-      try {
-        await (
-          this.prisma as unknown as Record<
-            string,
-            { deleteMany: () => Promise<unknown> }
-          >
-        )[table]?.deleteMany();
-      } catch {
-        // Table may not exist in this Prisma schema yet — ignore
-      }
+    for (const delegateName of this.clearOrder) {
+      await this.deleteFromDelegate(delegateName);
     }
   }
 
@@ -192,16 +240,153 @@ export class TestDatabaseHelper {
    * Clear a specific table
    */
   async clearCollection(tableName: string): Promise<void> {
-    try {
-      await (
-        this.prisma as unknown as Record<
-          string,
-          { deleteMany: () => Promise<unknown> }
-        >
-      )[tableName]?.deleteMany();
-    } catch {
-      // Ignore missing tables
+    const delegateName = this.getDelegateName(tableName);
+    if (delegateName) {
+      await this.deleteFromDelegate(delegateName);
     }
+  }
+
+  async seedCollection<T extends Record<string, unknown>>(
+    collectionName: string,
+    documents: T[],
+  ): Promise<void> {
+    const delegateName = this.getDelegateName(collectionName);
+    if (!delegateName) {
+      return;
+    }
+
+    for (const document of documents) {
+      const data = await this.normalizeDocument(delegateName, document);
+      await this.delegate(delegateName).create({ data });
+    }
+  }
+
+  async getDocumentCount(collectionName: string): Promise<number> {
+    const delegateName = this.getDelegateName(collectionName);
+    if (!delegateName) {
+      return 0;
+    }
+
+    return this.delegate(delegateName).count();
+  }
+
+  private async deleteFromDelegate(delegateName: string): Promise<void> {
+    try {
+      await this.delegate(delegateName).deleteMany();
+    } catch {
+      // Ignore missing tables or FK-protected cleanup in non-targeted e2e specs.
+    }
+  }
+
+  private getDelegateName(collectionName: string): string | undefined {
+    return this.collectionToDelegate[collectionName] ?? collectionName;
+  }
+
+  private delegate(delegateName: string): PrismaDelegate {
+    return (this.prisma as unknown as Record<string, PrismaDelegate>)[
+      delegateName
+    ];
+  }
+
+  private async normalizeDocument(
+    delegateName: string,
+    document: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const data = { ...document };
+
+    this.rename(data, '_id', 'id');
+    this.rename(data, 'organization', 'organizationId');
+    this.rename(data, 'user', 'userId');
+    this.rename(data, 'brand', 'brandId');
+    this.rename(data, 'credential', 'credentialId');
+
+    if (delegateName === 'organization') {
+      data['slug'] ??= this.slugify(String(data['label'] ?? data['id']));
+      data['userId'] ??= 'e2e-test-user';
+      data['category'] = this.upper(data['category'] ?? 'BUSINESS');
+      await this.ensureUser(String(data['userId']));
+    }
+
+    if (delegateName === 'orgIntegration') {
+      data['platform'] = this.upper(data['platform']);
+      data['status'] = this.upper(data['status'] ?? 'ACTIVE');
+    }
+
+    if (delegateName === 'member') {
+      data['roleId'] ??= this.lower(data['role'] ?? 'member');
+      delete data['role'];
+      await this.ensureRole(String(data['roleId']));
+    }
+
+    if (delegateName === 'brand') {
+      data['slug'] ??= this.slugify(String(data['label'] ?? data['id']));
+      data['scope'] = this.upper(data['scope'] ?? 'USER');
+      data['fontFamily'] = this.upper(data['fontFamily'] ?? 'MONTSERRAT_BLACK');
+      data['isSelected'] ??= false;
+    }
+
+    if (delegateName === 'organizationSetting') {
+      this.rename(data, 'enabledModels', 'enabledModelIds');
+      delete data['isDeleted'];
+      delete data['isNotificationsTelegramEnabled'];
+    }
+
+    if (delegateName === 'creditBalance') {
+      data['balance'] = Number(data['balance'] ?? 0);
+    }
+
+    return data;
+  }
+
+  private rename(
+    data: Record<string, unknown>,
+    from: string,
+    to: string,
+  ): void {
+    if (data[from] !== undefined && data[to] === undefined) {
+      data[to] = data[from];
+    }
+    delete data[from];
+  }
+
+  private upper(value: unknown): string {
+    return String(value).toUpperCase();
+  }
+
+  private lower(value: unknown): string {
+    return String(value).toLowerCase();
+  }
+
+  private slugify(value: string): string {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 64);
+  }
+
+  private async ensureUser(userId: string): Promise<void> {
+    await this.delegate('user').upsert?.({
+      create: {
+        email: `${userId}@example.com`,
+        handle: userId,
+        id: userId,
+      },
+      update: {},
+      where: { id: userId },
+    });
+  }
+
+  private async ensureRole(roleId: string): Promise<void> {
+    await this.delegate('role').upsert?.({
+      create: {
+        id: roleId,
+        key: roleId,
+        label: roleId,
+      },
+      update: {},
+      where: { id: roleId },
+    });
   }
 }
 

@@ -58,7 +58,7 @@ export default function UserDropdown({
         <Button
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
-          className="size-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.06] transition-colors flex-shrink-0 cursor-pointer"
+          className="size-8 rounded-lg flex items-center justify-center text-foreground/30 hover:text-foreground/60 hover:bg-foreground/[0.06] transition-colors flex-shrink-0 cursor-pointer"
           ariaLabel="Settings"
         >
           <HiOutlineCog6Tooth className="size-4" />

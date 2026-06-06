@@ -184,7 +184,7 @@ describe('BaseService', () => {
 
       expect(delegate.findMany).toHaveBeenCalledWith({
         where: {},
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }],
         skip: 0,
         take: 10,
       });
@@ -246,7 +246,7 @@ describe('BaseService', () => {
 
       expect(delegate.findMany).toHaveBeenCalledWith({
         include: { organization: true },
-        orderBy: { label: 'asc' },
+        orderBy: [{ label: 'asc' }],
         skip: 0,
         take: 10,
         where: {
@@ -465,6 +465,29 @@ describe('BaseService', () => {
       expect(result).toEqual({ status: 'active', userId: 'user1' });
     });
 
+    it('remaps legacy organization null filters to organizationId null', () => {
+      setModelFields('id', 'organizationId', 'isDeleted');
+
+      const result = service.processSearchParams({
+        organization: null,
+        type: 'post',
+      });
+
+      expect(result).toEqual({ organizationId: null, type: 'post' });
+    });
+
+    it('drops a legacy relation filter when the model has neither the scalar FK nor the relation', () => {
+      setModelFields('id', 'organizationId', 'isDeleted');
+
+      const result = service.processSearchParams({
+        organization: null,
+        user: null,
+      });
+
+      // organizationId mapped; user dropped (model has no userId / user field)
+      expect(result).toEqual({ organizationId: null });
+    });
+
     it('preserves organization relation filters when they are objects', () => {
       const result = service.processSearchParams({
         organization: { is: { id: 'org1' } },
@@ -484,6 +507,38 @@ describe('BaseService', () => {
       expect(result).toEqual({
         user: { is: { id: 'user1' } },
       });
+    });
+  });
+
+  describe('auditUnknownFilterFields (stage-4 runtime guard)', () => {
+    it('warns when a filter references a field the model lacks', async () => {
+      setModelFields('id', 'organizationId', 'isDeleted');
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        { where: { status: 'active' } },
+        { page: 1, limit: 10 },
+      );
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('unknown field "status"'),
+        expect.objectContaining({ field: 'status', model: 'testModel' }),
+      );
+    });
+
+    it('does not warn when all filter fields exist on the model', async () => {
+      setModelFields('id', 'organizationId', 'isDeleted');
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+      (logger.warn as ReturnType<typeof vi.fn>).mockClear();
+
+      await service.findAll(
+        { where: { organizationId: 'org1' } },
+        { page: 1, limit: 10 },
+      );
+
+      expect(logger.warn).not.toHaveBeenCalled();
     });
 
     it('drops isDeleted filters for models without soft-delete support', () => {

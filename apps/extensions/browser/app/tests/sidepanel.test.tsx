@@ -1,7 +1,10 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it, vi } from 'vitest';
+
+const testDir = path.dirname(fileURLToPath(import.meta.url));
 
 vi.mock('@clerk/chrome-extension', () => ({
   ClerkProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -43,7 +46,7 @@ vi.mock('~utils/logger.util', () => ({
 }));
 describe('SidePanel', () => {
   it('uses ThreadList for the history tab', () => {
-    const sidepanelPath = path.resolve(__dirname, '../src/sidepanel.tsx');
+    const sidepanelPath = path.resolve(testDir, '../src/sidepanel.tsx');
     const source = readFileSync(sidepanelPath, 'utf8');
 
     expect(source).toContain(

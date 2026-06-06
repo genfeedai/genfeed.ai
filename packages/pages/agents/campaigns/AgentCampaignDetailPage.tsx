@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/enums';
 import type { IAgentCampaignStatusResponse } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
@@ -9,8 +9,6 @@ import { AgentCampaignsService } from '@services/automation/agent-campaigns.serv
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import Badge from '@ui/display/badge/Badge';
-import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { useParams, useRouter } from 'next/navigation';
@@ -22,18 +20,9 @@ import {
   HiPause,
   HiPlay,
 } from 'react-icons/hi2';
-
-type CampaignStatus = 'draft' | 'active' | 'paused' | 'completed';
-
-const STATUS_BADGE_VARIANTS: Record<
-  CampaignStatus,
-  'secondary' | 'success' | 'warning' | 'default'
-> = {
-  active: 'success',
-  completed: 'default',
-  draft: 'secondary',
-  paused: 'warning',
-};
+import AgentCampaignAgentsList from './AgentCampaignAgentsList';
+import AgentCampaignContentQuota from './AgentCampaignContentQuota';
+import AgentCampaignDetailHeader from './AgentCampaignDetailHeader';
 
 export default function AgentCampaignDetailPage() {
   const router = useRouter();
@@ -157,7 +146,7 @@ export default function AgentCampaignDetailPage() {
         icon={HiOutlineRectangleGroup}
       >
         <div className="flex items-center justify-center py-20">
-          <div className="animate-pulse text-foreground/50">Loading...</div>
+          <div className="animate-pulse text-foreground/50">Loading…</div>
         </div>
       </Container>
     );
@@ -238,100 +227,18 @@ export default function AgentCampaignDetailPage() {
       }
     >
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            label={<HiArrowLeft />}
-            variant={ButtonVariant.SECONDARY}
-            onClick={() => router.push('/orchestration/campaigns')}
-            size={ButtonSize.SM}
-          />
-          <Badge variant={STATUS_BADGE_VARIANTS[campaign.status]}>
-            {campaign.status}
-          </Badge>
-        </div>
-
-        <KPISection
-          title="Campaign Overview"
-          gridCols={{ desktop: 4, mobile: 2, tablet: 2 }}
-          items={[
-            {
-              description: 'Active agent strategies',
-              label: 'Agents Running',
-              value: status?.agentsRunning ?? 0,
-            },
-            {
-              description: 'Total content items produced',
-              label: 'Content Produced',
-              value: status?.contentProduced ?? 0,
-            },
-            {
-              description: `${creditsPercent}% of allocated`,
-              label: 'Credits Used',
-              value: campaign.creditsUsed.toLocaleString(),
-            },
-            {
-              description: 'Budget cap',
-              label: 'Credits Allocated',
-              value: campaign.creditsAllocated.toLocaleString(),
-            },
-          ]}
+        <AgentCampaignDetailHeader
+          campaign={campaign}
+          creditsPercent={creditsPercent}
+          onBack={() => router.push('/orchestration/campaigns')}
+          status={status}
         />
 
         {campaign.contentQuota && (
-          <div className="border border-white/[0.08] bg-background p-4">
-            <h3 className="mb-4 text-lg font-semibold">Content Quota</h3>
-            <div className="grid grid-cols-3 gap-4">
-              {campaign.contentQuota.posts !== undefined && (
-                <div className="flex flex-col">
-                  <span className="text-sm text-foreground/50">Posts</span>
-                  <span className="text-lg font-medium">
-                    {campaign.contentQuota.posts}
-                  </span>
-                </div>
-              )}
-              {campaign.contentQuota.images !== undefined && (
-                <div className="flex flex-col">
-                  <span className="text-sm text-foreground/50">Images</span>
-                  <span className="text-lg font-medium">
-                    {campaign.contentQuota.images}
-                  </span>
-                </div>
-              )}
-              {campaign.contentQuota.videos !== undefined && (
-                <div className="flex flex-col">
-                  <span className="text-sm text-foreground/50">Videos</span>
-                  <span className="text-lg font-medium">
-                    {campaign.contentQuota.videos}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
+          <AgentCampaignContentQuota contentQuota={campaign.contentQuota} />
         )}
 
-        <div className="border border-white/[0.08] bg-background p-4">
-          <h3 className="mb-4 text-lg font-semibold">
-            Agent Strategies ({campaign.agents.length})
-          </h3>
-          {campaign.agents.length === 0 ? (
-            <p className="text-foreground/50">
-              No agent strategies assigned to this campaign yet.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {campaign.agents.map((agentId) => (
-                <div
-                  key={agentId}
-                  className="flex items-center justify-between border border-white/[0.04] p-3"
-                >
-                  <span className="text-sm font-mono text-foreground/70">
-                    {agentId}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <AgentCampaignAgentsList agents={campaign.agents} />
       </div>
     </Container>
   );

@@ -190,6 +190,7 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
           <div className="space-y-2">
             <div className="overflow-hidden rounded bg-black/20">
               <video
+                aria-label="Cloud video preview"
                 src={mediaConfig.resolvedUrl}
                 className="h-28 w-full object-contain"
                 controls

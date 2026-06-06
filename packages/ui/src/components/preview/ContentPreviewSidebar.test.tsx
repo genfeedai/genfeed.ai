@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import ContentPreviewSidebar from '@ui/preview/ContentPreviewSidebar';
 
 describe('ContentPreviewSidebar', () => {

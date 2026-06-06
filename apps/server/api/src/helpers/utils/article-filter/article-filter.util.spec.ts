@@ -3,35 +3,72 @@ import { ArticleStatus } from '@genfeedai/enums';
 
 describe('ArticleFilterUtil', () => {
   describe('buildArticleStatusFilter', () => {
-    it('expands draft to include processing', () => {
+    it('maps draft to Prisma DRAFT', () => {
       const filter = ArticleFilterUtil.buildArticleStatusFilter(
         ArticleStatus.DRAFT,
       );
-      expect(filter).toEqual({
-        status: { in: [ArticleStatus.DRAFT, ArticleStatus.PROCESSING] },
-      });
+      expect(filter).toEqual({ status: 'DRAFT' });
     });
 
-    it('accepts multiple statuses', () => {
+    it('maps public to Prisma PUBLISHED', () => {
+      const filter = ArticleFilterUtil.buildArticleStatusFilter(
+        ArticleStatus.PUBLIC,
+      );
+      expect(filter).toEqual({ status: 'PUBLISHED' });
+    });
+
+    it('maps archived to Prisma ARCHIVED', () => {
+      const filter = ArticleFilterUtil.buildArticleStatusFilter(
+        ArticleStatus.ARCHIVED,
+      );
+      expect(filter).toEqual({ status: 'ARCHIVED' });
+    });
+
+    it('drops processing (no Prisma equivalent)', () => {
+      const filter = ArticleFilterUtil.buildArticleStatusFilter(
+        ArticleStatus.PROCESSING,
+      );
+      expect(filter).toEqual({});
+    });
+
+    it('drops failed (no Prisma equivalent)', () => {
+      const filter = ArticleFilterUtil.buildArticleStatusFilter(
+        ArticleStatus.FAILED,
+      );
+      expect(filter).toEqual({});
+    });
+
+    it('accepts multiple statuses and maps each', () => {
       const filter = ArticleFilterUtil.buildArticleStatusFilter([
         ArticleStatus.PUBLIC,
         ArticleStatus.DRAFT,
       ]);
-      expect((filter.status as { in: ArticleStatus[] }).in).toEqual(
-        expect.arrayContaining([
-          ArticleStatus.DRAFT,
-          ArticleStatus.PROCESSING,
-          ArticleStatus.PUBLIC,
-        ]),
-      );
+      expect(filter).toEqual({ status: { in: ['PUBLISHED', 'DRAFT'] } });
+    });
+
+    it('excludes unmappable values when mixed with valid ones', () => {
+      const filter = ArticleFilterUtil.buildArticleStatusFilter([
+        ArticleStatus.DRAFT,
+        ArticleStatus.PROCESSING,
+      ]);
+      // processing has no Prisma equivalent — only DRAFT survives
+      expect(filter).toEqual({ status: 'DRAFT' });
+    });
+
+    it('returns empty object when all statuses are unmappable', () => {
+      const filter = ArticleFilterUtil.buildArticleStatusFilter([
+        ArticleStatus.PROCESSING,
+        ArticleStatus.FAILED,
+      ]);
+      expect(filter).toEqual({});
     });
   });
 
   describe('buildTagFilter', () => {
-    it('returns ObjectId for valid tag', () => {
+    it('returns Prisma m2m relation filter for valid tag', () => {
       const tagId = '507f191e810c19729de860ee';
       const filter = ArticleFilterUtil.buildTagFilter(tagId);
-      expect(filter.tags).toBe(tagId);
+      expect(filter).toEqual({ tags: { some: { id: tagId } } });
     });
 
     it('returns empty object for invalid tag', () => {
@@ -44,7 +81,7 @@ describe('ArticleFilterUtil', () => {
       const filter = ArticleFilterUtil.buildContentSearchFilter(' marketing ');
       expect(filter.OR as unknown[]).toHaveLength(3);
       expect(
-        (filter.OR as Array<{ label?: { contains: string } }>)[0].label
+        (filter.OR as Array<{ title?: { contains: string } }>)[0].title
           ?.contains,
       ).toBe('marketing');
     });
@@ -85,10 +122,19 @@ describe('ArticleFilterUtil', () => {
           isDeleted: false,
           organization: '507f191e810c19729de860ee',
           scope: 'organization',
-          tags: tag,
+          status: 'DRAFT',
+          tags: { some: { id: tag } },
         },
       });
       expect((query.where as { AND: unknown[] }).AND).toHaveLength(1);
+    });
+
+    it('omits status filter when all provided statuses are unmappable', () => {
+      const query = ArticleFilterUtil.buildArticlequery(
+        { status: ArticleStatus.PROCESSING },
+        { isDeleted: false },
+      );
+      expect((query.where as Record<string, unknown>).status).toBeUndefined();
     });
   });
 });

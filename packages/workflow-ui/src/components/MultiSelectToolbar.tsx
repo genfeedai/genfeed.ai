@@ -11,7 +11,11 @@ import {
   Ungroup,
 } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
-import { createIdLookup, filterItemsByIdLookup, hasEveryId } from '../lib';
+import {
+  createIdLookup,
+  filterItemsByIdLookup,
+  hasEveryId,
+} from '../lib/selection';
 import { useWorkflowStore } from '../stores/workflowStore';
 import { Button } from '../ui/button';
 

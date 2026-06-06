@@ -20,41 +20,17 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { FontFamiliesService } from '@genfeedai/services/elements/font-families.service';
 import { PresetsService } from '@genfeedai/services/elements/presets.service';
 import {
-  createContext,
   type ReactNode,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
-
-export interface PromptBarContextValue {
-  models: IModel[];
-  presets: IPreset[];
-  fontFamilies: IFontFamily[];
-  tags: ITag[];
-  trainings: ITraining[];
-  isLoading: boolean;
-  error: Error | null;
-  refetch: () => Promise<void>;
-  onRefresh?: (callback: () => void) => void;
-}
-
-export const PromptBarContext = createContext<
-  PromptBarContextValue | undefined
->(undefined);
-
-export function usePromptBarContext(): PromptBarContextValue {
-  const context = useContext(PromptBarContext);
-  if (context === undefined) {
-    throw new Error(
-      'usePromptBarContext must be used within a PromptBarProvider',
-    );
-  }
-  return context;
-}
+import {
+  PromptBarContext,
+  type PromptBarContextValue,
+} from './promptbar.context';
 
 function PromptBarProviderContent({
   children,
@@ -150,14 +126,6 @@ function PromptBarProviderContent({
         }),
       ];
 
-      const results = await Promise.all(dataPromises);
-
-      const fontFamiliesData = results[0] as IFontFamily[];
-      const presetsData = results[1] as IPreset[];
-      const modelsData = results[2] as IModel[];
-      const trainingsData = results[3] as ITraining[];
-      const tagsData = results[4] as ITag[];
-
       if (currentFetchId !== fetchIdRef.current) {
         logger.info('PromptBar fetch superseded, discarding stale results', {
           currentFetchId: fetchIdRef.current,
@@ -165,6 +133,14 @@ function PromptBarProviderContent({
         });
         return;
       }
+
+      const results = await Promise.all(dataPromises);
+
+      const fontFamiliesData = results[0] as IFontFamily[];
+      const presetsData = results[1] as IPreset[];
+      const modelsData = results[2] as IModel[];
+      const trainingsData = results[3] as ITraining[];
+      const tagsData = results[4] as ITag[];
 
       logger.info('PromptBar data loaded', {
         enabledModels: orgSettings?.enabledModels?.length ?? 'N/A',

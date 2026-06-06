@@ -21,7 +21,7 @@ describe('SidebarActionTrigger', () => {
     expect(screen.getByText('New Task')).toHaveClass('min-w-0', 'flex-1');
     expect(button).toHaveClass(
       'rounded',
-      'hover:bg-white/[0.035]',
+      'hover:bg-foreground/[0.035]',
       'focus-visible:ring-offset-background',
     );
   });

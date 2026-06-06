@@ -218,7 +218,28 @@ RUN mkdir -p apps/server/api \
              apps/server/clips \
              apps/server/images \
              apps/server/voices \
-             apps/server/videos
+             apps/server/videos \
+             packages/client \
+             packages/config \
+             packages/constants \
+             packages/enums \
+             packages/harness \
+             packages/helpers \
+             packages/integrations \
+             packages/interfaces \
+             packages/models \
+             packages/prisma \
+             packages/props \
+             packages/serializers \
+             packages/services \
+             packages/storage \
+             packages/tools \
+             packages/types \
+             packages/utils \
+             packages/workflow-engine \
+             packages/workflow-saas \
+             packages/workflows \
+             ee/packages/billing
 
 # Copy built artifacts and production dependencies from builder
 COPY --from=builder /usr/src/app/apps/server/dist ./apps/server/dist
@@ -238,6 +259,27 @@ COPY --from=builder /usr/src/app/apps/server/clips/package.json ./apps/server/cl
 COPY --from=builder /usr/src/app/apps/server/images/package.json ./apps/server/images/package.json
 COPY --from=builder /usr/src/app/apps/server/voices/package.json ./apps/server/voices/package.json
 COPY --from=builder /usr/src/app/apps/server/videos/package.json ./apps/server/videos/package.json
+COPY --from=builder /usr/src/app/packages/client/package.json ./packages/client/package.json
+COPY --from=builder /usr/src/app/packages/config/package.json ./packages/config/package.json
+COPY --from=builder /usr/src/app/packages/constants/package.json ./packages/constants/package.json
+COPY --from=builder /usr/src/app/packages/enums/package.json ./packages/enums/package.json
+COPY --from=builder /usr/src/app/packages/harness/package.json ./packages/harness/package.json
+COPY --from=builder /usr/src/app/packages/helpers/package.json ./packages/helpers/package.json
+COPY --from=builder /usr/src/app/packages/integrations/package.json ./packages/integrations/package.json
+COPY --from=builder /usr/src/app/packages/interfaces/package.json ./packages/interfaces/package.json
+COPY --from=builder /usr/src/app/packages/models/package.json ./packages/models/package.json
+COPY --from=builder /usr/src/app/packages/prisma/package.json ./packages/prisma/package.json
+COPY --from=builder /usr/src/app/packages/props/package.json ./packages/props/package.json
+COPY --from=builder /usr/src/app/packages/serializers/package.json ./packages/serializers/package.json
+COPY --from=builder /usr/src/app/packages/services/package.json ./packages/services/package.json
+COPY --from=builder /usr/src/app/packages/storage/package.json ./packages/storage/package.json
+COPY --from=builder /usr/src/app/packages/tools/package.json ./packages/tools/package.json
+COPY --from=builder /usr/src/app/packages/types/package.json ./packages/types/package.json
+COPY --from=builder /usr/src/app/packages/utils/package.json ./packages/utils/package.json
+COPY --from=builder /usr/src/app/packages/workflow-engine/package.json ./packages/workflow-engine/package.json
+COPY --from=builder /usr/src/app/packages/workflow-saas/package.json ./packages/workflow-saas/package.json
+COPY --from=builder /usr/src/app/packages/workflows/package.json ./packages/workflows/package.json
+COPY --from=builder /usr/src/app/ee/packages/billing/package.json ./ee/packages/billing/package.json
 
 # Create non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser -u 1001 appuser

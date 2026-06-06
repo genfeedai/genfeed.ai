@@ -7,9 +7,10 @@ import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { subDays } from 'date-fns';
 import {
   createContext,
+  use,
   useCallback,
-  useContext,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 
@@ -49,25 +50,29 @@ export function AnalyticsProvider({
     setTimeout(() => setIsRefreshing(false), 1000);
   }, []);
 
+  const contextValue = useMemo(
+    () => ({
+      brandId,
+      dateRange,
+      isRefreshing,
+      refreshTrigger,
+      setBrandId,
+      setDateRange,
+      triggerRefresh,
+    }),
+    // setBrandId, setDateRange are stable useState setters — omitted from deps
+    [brandId, dateRange, isRefreshing, refreshTrigger, triggerRefresh],
+  );
+
   return (
-    <AnalyticsContext.Provider
-      value={{
-        brandId,
-        dateRange,
-        isRefreshing,
-        refreshTrigger,
-        setBrandId,
-        setDateRange,
-        triggerRefresh,
-      }}
-    >
+    <AnalyticsContext.Provider value={contextValue}>
       {children}
     </AnalyticsContext.Provider>
   );
 }
 
 export function useAnalyticsContext() {
-  const context = useContext(AnalyticsContext);
+  const context = use(AnalyticsContext);
   if (!context) {
     throw new Error(
       'useAnalyticsContext must be used within AnalyticsProvider',

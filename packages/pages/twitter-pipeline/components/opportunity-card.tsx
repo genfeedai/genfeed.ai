@@ -90,7 +90,7 @@ export default function OpportunityCard({
               target="_blank"
               rel="noopener noreferrer"
             >
-              <HiArrowTopRightOnSquare className="w-4 h-4" />
+              <HiArrowTopRightOnSquare className="size-4" />
               View tweet
             </a>
           </PrimitiveButton>
@@ -109,13 +109,13 @@ export default function OpportunityCard({
         </span>
         {opportunity.type === 'reply' && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <HiChatBubbleLeft className="w-3 h-3" />
+            <HiChatBubbleLeft className="size-3" />
             Reply
           </span>
         )}
         {opportunity.type === 'quote' && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <HiArrowPath className="w-3 h-3" />
+            <HiArrowPath className="size-3" />
             Quote
           </span>
         )}
@@ -137,7 +137,7 @@ export default function OpportunityCard({
         />
         <div className="flex items-center justify-between mt-1">
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <HiPencilSquare className="w-3 h-3" />
+            <HiPencilSquare className="size-3" />
             Edit before publishing
           </span>
           <span

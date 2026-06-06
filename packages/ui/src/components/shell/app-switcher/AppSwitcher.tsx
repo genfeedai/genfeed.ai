@@ -6,6 +6,7 @@ import type { AppSwitcherItemConfig } from '@genfeedai/interfaces';
 import type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
 import Link from 'next/link';
 import {
+  HiChevronDown,
   HiOutlineChartBar,
   HiOutlineChartBarSquare,
   HiOutlineChatBubbleLeftRight,
@@ -97,6 +98,8 @@ const PLATFORM_APPS: AppSwitcherItemConfig[] = [
   },
 ];
 
+const ALL_APPS: AppSwitcherItemConfig[] = [...PLATFORM_APPS, ...CONTENT_APPS];
+
 function withPreservedSearch(path: string, preservedSearch?: string): string {
   if (!preservedSearch) {
     return path;
@@ -141,7 +144,7 @@ function AppDropdownItem({
         aria-current={isActive ? 'page' : undefined}
         className={cn(
           'flex items-center gap-2.5 px-3 py-1.5 text-[13px]',
-          isActive && 'bg-white/[0.06] font-medium',
+          isActive && 'bg-foreground/[0.06] font-medium',
         )}
       >
         <Icon
@@ -165,23 +168,43 @@ export function AppSwitcher({
   currentApp,
   orgSlug,
   preservedSearch,
+  variant = 'icon',
 }: AppSwitcherProps) {
   function getAppHref(app: AppSwitcherItemConfig) {
     return withPreservedSearch(app.route(orgSlug, brandSlug), preservedSearch);
   }
 
+  const activeApp = ALL_APPS.find((app) => app.id === currentApp);
+  const ActiveIcon = activeApp?.icon ?? HiOutlineSquares2X2;
+  const activeLabel = activeApp?.label ?? 'Workspace';
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.ICON}
-          className="size-7"
-          ariaLabel="Switch app"
-        >
-          <TbGridDots className="size-4" />
-        </Button>
+        {variant === 'labeled' ? (
+          <Button
+            type="button"
+            variant={ButtonVariant.GHOST}
+            className="flex h-7 items-center gap-2 rounded-md px-2"
+            ariaLabel="Switch section"
+          >
+            <ActiveIcon className="size-4 shrink-0 text-foreground/70" />
+            <span className="max-w-[12rem] truncate text-[13px] font-semibold text-foreground">
+              {activeLabel}
+            </span>
+            <HiChevronDown className="size-3.5 shrink-0 text-foreground/45" />
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
+            className="size-7"
+            ariaLabel="Switch app"
+          >
+            <TbGridDots className="size-4" />
+          </Button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" sideOffset={8} className="w-48">
         <DropdownMenuLabel>Content</DropdownMenuLabel>

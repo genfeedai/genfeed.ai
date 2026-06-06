@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import WorkflowToolbar from '@ui/workflow-builder/WorkflowToolbar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

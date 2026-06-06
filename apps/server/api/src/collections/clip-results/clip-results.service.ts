@@ -3,6 +3,7 @@ import { UpdateClipResultDto } from '@api/collections/clip-results/dto/update-cl
 import type { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -10,7 +11,8 @@ import { Injectable } from '@nestjs/common';
 export class ClipResultsService extends BaseService<
   ClipResultDocument,
   CreateClipResultDto,
-  UpdateClipResultDto
+  UpdateClipResultDto,
+  Prisma.ClipResultWhereInput
 > {
   constructor(
     public readonly prisma: PrismaService,

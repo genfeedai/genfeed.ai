@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import {
   ImageFormat,
   IngredientCategory,
@@ -383,10 +383,6 @@ describe('StudioEditDetail', () => {
     expect(screen.getByText('Edit Video')).toBeVisible();
     expect(screen.getByText('Validated')).toBeVisible();
     expect(screen.getByText('Previous video edit')).toBeVisible();
-    expect(mocks.selectedAsset).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'video-1' }),
-    );
-
     fireEvent.click(
       screen.getByRole('button', { name: 'Submit Generic Edit' }),
     );

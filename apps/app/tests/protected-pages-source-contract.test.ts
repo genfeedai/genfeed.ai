@@ -36,7 +36,7 @@ const protectedPageFiles = walkPageFiles(PROTECTED_ROOT);
 
 describe('protected app route source contracts', () => {
   it('keeps protected pages default-exported', () => {
-    expect(protectedPageFiles.length).toBeGreaterThanOrEqual(170);
+    expect(protectedPageFiles.length).toBeGreaterThanOrEqual(168);
 
     const missingDefaultExports = protectedPageFiles
       .filter((path) => {

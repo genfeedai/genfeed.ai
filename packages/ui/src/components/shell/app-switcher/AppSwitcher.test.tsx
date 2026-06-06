@@ -145,14 +145,14 @@ describe('AppSwitcher', () => {
     const btn = screen.getByRole('link', { name: 'Write' });
     expect(btn).toBeDefined();
     expect(btn).toHaveAttribute('aria-current', 'page');
-    expect(btn).toHaveClass('bg-white/[0.06]');
+    expect(btn).toHaveClass('bg-foreground/[0.06]');
   });
 
   it('inactive app button does not have active-state classes', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="compose" />);
     const btn = screen.getByRole('link', { name: 'Editor' });
     expect(btn).not.toHaveAttribute('aria-current');
-    expect(btn).not.toHaveClass('bg-white/[0.06]');
+    expect(btn).not.toHaveClass('bg-foreground/[0.06]');
   });
 
   describe('route generation', () => {

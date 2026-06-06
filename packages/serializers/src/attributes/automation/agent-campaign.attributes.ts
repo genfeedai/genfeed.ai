@@ -5,6 +5,7 @@ export const agentCampaignAttributes = createEntityAttributes([
   'brand',
   'brief',
   'campaignLeadStrategyId',
+  'contentRotation',
   'contentQuota',
   'creditsAllocated',
   'creditsUsed',

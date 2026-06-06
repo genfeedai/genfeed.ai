@@ -429,6 +429,7 @@ function UpscaleVideoOutput({
           <video
             ref={videoRef}
             src={nodeData.outputVideo}
+            aria-label="Upscaled video output"
             className="h-32 w-full rounded-md object-cover cursor-pointer"
             onClick={togglePlayback}
             onEnded={() => setIsPlaying(false)}

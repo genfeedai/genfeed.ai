@@ -89,7 +89,7 @@ function createRuntimeRequireContext(): RuntimeRequireContext {
   const packageJsonPath = findApiPackageJsonPath();
 
   return {
-    require: createRequire(packageJsonPath ?? __filename),
+    require: createRequire(packageJsonPath ?? import.meta.url),
     workspaceRoot: packageJsonPath
       ? resolve(dirname(packageJsonPath), '../../..')
       : null,

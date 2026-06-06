@@ -2,7 +2,7 @@ import type { Caption } from '@models/content/caption.model';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CaptionsList from './captions-list';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 const findAllMock = vi.fn<() => Promise<Caption[]>>();
 

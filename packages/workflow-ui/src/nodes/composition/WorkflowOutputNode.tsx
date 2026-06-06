@@ -80,8 +80,11 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
 
         {/* Output Name */}
         <div className="space-y-1.5">
-          <Label className="text-xs">Output Name</Label>
+          <Label htmlFor={`output-name-${id}`} className="text-xs">
+            Output Name
+          </Label>
           <input
+            id={`output-name-${id}`}
             type="text"
             value={nodeData.outputName || 'output'}
             onChange={handleNameChange}
@@ -109,8 +112,11 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
 
         {/* Description */}
         <div className="space-y-1.5">
-          <Label className="text-xs">Description (optional)</Label>
+          <Label htmlFor={`output-description-${id}`} className="text-xs">
+            Description (optional)
+          </Label>
           <input
+            id={`output-description-${id}`}
             type="text"
             value={nodeData.description || ''}
             onChange={handleDescriptionChange}
@@ -139,6 +145,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
               <video
                 ref={videoRef}
                 src={nodeData.inputValue as string}
+                aria-label="Connected video output preview"
                 className="mt-1 h-24 w-full rounded-md object-cover cursor-pointer"
                 onClick={togglePlayback}
                 onEnded={() => setIsPlaying(false)}
@@ -155,6 +162,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
             {outputType === 'audio' && (
               <audio
                 src={nodeData.inputValue as string}
+                aria-label="Connected audio output preview"
                 controls
                 className="mt-1 w-full h-8"
               >

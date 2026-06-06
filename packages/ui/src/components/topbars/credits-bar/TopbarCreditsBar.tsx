@@ -1,8 +1,6 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   formatCompactNumber,
   formatNumberWithCommas,
@@ -17,18 +15,12 @@ import type {
   ITopbarBalanceSegment,
 } from '@genfeedai/interfaces';
 import { CreditsService } from '@genfeedai/services/billing/credits.service';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
-import { Button } from '@ui/primitives/button';
-import {
-  Popover,
-  PopoverPanelContent,
-  PopoverTrigger,
-} from '@ui/primitives/popover';
-import Link from 'next/link';
+import { Popover, PopoverTrigger } from '@ui/primitives/popover';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { HiArrowPath, HiPlus } from 'react-icons/hi2';
+import CreditsBarPanel from './CreditsBarPanel';
+import CreditsBarTrigger from './CreditsBarTrigger';
 
 export default function TopbarCreditsBar() {
   const { organizationId } = useBrand();
@@ -199,225 +191,29 @@ export default function TopbarCreditsBar() {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.UNSTYLED}
-          className={cn(
-            'hidden h-8 max-w-[20rem] items-center gap-2 rounded-md bg-transparent px-2.5 text-left transition-colors hover:bg-hover sm:flex',
-          )}
-          data-active={isOpen ? 'true' : 'false'}
-          title={`${fullBalance} ${EnvironmentService.CREDITS_LABEL}`}
-          ariaLabel={`${fullBalance} ${EnvironmentService.CREDITS_LABEL}`}
-        >
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span className="text-[11px] font-medium text-foreground/50">
-              Credits
-            </span>
-            <span className="text-[13px] font-semibold tracking-[-0.02em] text-foreground">
-              {compactBalance}
-            </span>
-          </div>
-          {visibleProviderSegments.length > 0 && (
-            <div className="hidden min-w-0 items-center gap-1 border-l border-white/[0.08] pl-2 lg:flex">
-              {visibleProviderSegments.map((segment) => (
-                <span
-                  key={segment.provider}
-                  className={cn(
-                    'inline-flex h-5 max-w-[5.5rem] items-center gap-1 rounded bg-white/[0.04] px-1.5 text-[11px] font-medium text-foreground/62',
-                    segment.status === 'unavailable' && 'text-amber-200/70',
-                  )}
-                  title={`${segment.label}: ${
-                    segment.status === 'available' &&
-                    typeof segment.balance === 'number'
-                      ? `${formatCompactNumber(segment.balance)} ${segment.currencyOrUnit}`
-                      : 'Unavailable'
-                  }`}
-                >
-                  <span className="truncate">{segment.label}</span>
-                  <span className="shrink-0 text-foreground/42">
-                    {segment.status === 'available' &&
-                    typeof segment.balance === 'number'
-                      ? formatCompactNumber(segment.balance)
-                      : '--'}
-                  </span>
-                </span>
-              ))}
-            </div>
-          )}
-          {planLimit > 0 && (
-            <div className="ml-1 h-1.5 w-14 overflow-hidden rounded-full bg-white/[0.08]">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: `${remainingPercent}%` }}
-              />
-            </div>
-          )}
-        </Button>
+        <CreditsBarTrigger
+          isOpen={isOpen}
+          fullBalance={fullBalance}
+          compactBalance={compactBalance}
+          visibleProviderSegments={visibleProviderSegments}
+          planLimit={planLimit}
+          remainingPercent={remainingPercent}
+        />
       </PopoverTrigger>
 
-      <PopoverPanelContent align="end" className="w-80 rounded-md p-4">
-        <div role="dialog" className="space-y-4">
-          <div className="rounded-md bg-background-secondary p-4 text-center">
-            <div className="flex items-baseline justify-center gap-2">
-              <span className="text-4xl font-semibold tracking-[-0.05em] text-foreground">
-                {fullBalance}
-              </span>
-              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/42">
-                {EnvironmentService.CREDITS_LABEL}
-              </span>
-            </div>
-          </div>
-
-          {planLimit > 0 && (
-            <div className="rounded-md bg-background-secondary p-3">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/36">
-                  Plan usage
-                </span>
-                <span className="text-[11px] text-foreground/42">
-                  {formatCompactNumber(planLimit - planBalance)} /{' '}
-                  {formatCompactNumber(planLimit)} used
-                </span>
-              </div>
-              <div className="flex h-2 w-full overflow-hidden rounded-full bg-white/[0.06]">
-                <div
-                  className="relative transition-all duration-300"
-                  style={{
-                    background: 'rgba(255,255,255,0.12)',
-                    width:
-                      extraBalance > 0
-                        ? `${(planLimit / (planLimit + extraBalance)) * 100}%`
-                        : '100%',
-                  }}
-                >
-                  <div
-                    className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
-                    style={{
-                      background: 'rgba(255,255,255,0.55)',
-                      width: `${planUsagePercent}%`,
-                    }}
-                  />
-                </div>
-                {extraBalance > 0 && (
-                  <div
-                    className="ml-[2px] rounded-r-full bg-primary/32 transition-all duration-300"
-                    style={{
-                      width: `${(extraBalance / (planLimit + extraBalance)) * 100}%`,
-                    }}
-                  />
-                )}
-              </div>
-
-              <div className="mt-2 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5">
-                    <div className="size-1.5 rounded-full bg-white/50" />
-                    <span className="text-[11px] text-foreground/40">Plan</span>
-                  </div>
-                  {extraBalance > 0 && (
-                    <div className="flex items-center gap-1.5">
-                      <div className="size-1.5 rounded-full bg-primary/60" />
-                      <span className="text-[11px] text-foreground/40">
-                        Extra
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <span className="text-[11px] text-foreground/32">
-                  {Math.round(remainingPercent)}% left
-                </span>
-              </div>
-            </div>
-          )}
-
-          {providerSegments.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/36">
-                  Providers
-                </span>
-                <span className="text-[11px] text-foreground/32">
-                  BYOK balances
-                </span>
-              </div>
-              <div className="space-y-1.5">
-                {providerSegments.map((segment) => (
-                  <div
-                    key={segment.provider}
-                    className="flex items-center justify-between gap-3 rounded-md bg-background-secondary px-3 py-2"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-foreground/86">
-                        {segment.label}
-                      </div>
-                      <div className="text-[11px] text-foreground/38">
-                        {segment.status === 'available'
-                          ? 'Connected'
-                          : (segment.error ?? 'Balance unavailable')}
-                      </div>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <div
-                        className={cn(
-                          'text-sm font-semibold text-foreground',
-                          segment.status === 'unavailable' &&
-                            'text-amber-200/80',
-                        )}
-                      >
-                        {segment.status === 'available' &&
-                        typeof segment.balance === 'number'
-                          ? formatCompactNumber(segment.balance)
-                          : '--'}
-                      </div>
-                      <div className="text-[10px] uppercase tracking-[0.14em] text-foreground/32">
-                        {segment.currencyOrUnit}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <Button
-              withWrapper={false}
-              variant={ButtonVariant.UNSTYLED}
-              onClick={(e) => {
-                handleRefreshBalance(e);
-              }}
-              isDisabled={isLoading}
-              className={cn(
-                'flex flex-1 items-center justify-center gap-2 rounded-md bg-background-secondary px-3 py-2.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-background-tertiary',
-                isLoading && 'opacity-50 cursor-not-allowed',
-              )}
-              title="Refresh Balance"
-              ariaLabel="Refresh balance"
-            >
-              <HiArrowPath
-                className={cn(
-                  'size-4 flex-shrink-0',
-                  isLoading && 'animate-spin',
-                )}
-              />
-              <span className="text-sm">Refresh</span>
-            </Button>
-
-            <Link
-              href={orgHref('/settings')}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex flex-1 items-center justify-center gap-2 rounded-md bg-background-secondary px-3 py-2.5 text-sm font-semibold text-foreground/80 transition-colors hover:bg-background-tertiary"
-              data-tone="accent"
-              onClick={() => setIsOpen(false)}
-              title="Top Up Credits"
-            >
-              <HiPlus className="size-4 flex-shrink-0" />
-              <span className="text-sm font-medium">Top Up</span>
-            </Link>
-          </div>
-        </div>
-      </PopoverPanelContent>
+      <CreditsBarPanel
+        fullBalance={fullBalance}
+        planLimit={planLimit}
+        planBalance={planBalance}
+        extraBalance={extraBalance}
+        planUsagePercent={planUsagePercent}
+        remainingPercent={remainingPercent}
+        providerSegments={providerSegments}
+        isLoading={isLoading}
+        settingsHref={orgHref('/settings')}
+        onRefreshBalance={handleRefreshBalance}
+        onClose={() => setIsOpen(false)}
+      />
     </Popover>
   );
 }
