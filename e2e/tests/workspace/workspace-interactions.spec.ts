@@ -67,7 +67,10 @@ test.describe('Workspace — deep interactions', () => {
 
     const tabs = authenticatedPage.getByTestId('workspace-inbox-tabs');
     if (await tabs.isVisible().catch(() => false)) {
-      await tryClick(authenticatedPage, '[data-testid="workspace-inbox-tab-all"]');
+      await tryClick(
+        authenticatedPage,
+        '[data-testid="workspace-inbox-tab-all"]',
+      );
       await tryClick(
         authenticatedPage,
         '[data-testid="workspace-inbox-tab-recent"]',
