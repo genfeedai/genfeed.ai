@@ -14,6 +14,23 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
 jobs:
+  # Static route-coverage gate — fast, deterministic, no app build required.
+  # Fails if dedicated route coverage drops below threshold (default 80%).
+  e2e-route-coverage:
+    name: E2E Route Coverage Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22.x"
+
+      - name: Check route coverage
+        run: node scripts/e2e-route-coverage.mjs
+
   # API E2E Tests — test infrastructure incomplete, non-blocking until ready
   e2e-api:
     name: API E2E Tests
@@ -172,3 +189,79 @@ jobs:
             e2e/__screenshots__/
             playwright-results/
           retention-days: 7
+
+  # Frontend E2E CODE coverage (V8 → monocart). Non-blocking: the suite is still
+  # being hardened, so this reports coverage without gating CI. Run on demand or
+  # on the weekly schedule alongside the other e2e jobs.
+  e2e-frontend-coverage:
+    name: Frontend E2E Code Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22.x"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.13"
+
+      - name: Cache bun modules
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build app (with browser source maps)
+        run: bunx turbo run build --filter=@genfeedai/app
+        env:
+          E2E_COVERAGE: "1"
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
+          NEXT_PUBLIC_API_URL: http://localhost:3010
+
+      - name: Run E2E with coverage
+        run: bun run test:e2e:coverage
+        env:
+          CI: true
+          APP_BASE_URL: http://localhost:3000
+          # Report coverage without failing the run while the suite hardens.
+          E2E_COVERAGE_THRESHOLD: "0"
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-coverage-report
+          path: playwright-report/coverage/
+          retention-days: 7
+
+      - name: Report E2E coverage to Codecov
+        uses: codecov/codecov-action@v6
+        if: always()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: playwright-report/coverage
+          flags: app-e2e
+          fail_ci_if_error: false
