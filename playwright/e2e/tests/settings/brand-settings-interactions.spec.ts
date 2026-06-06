@@ -1,4 +1,6 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { assertHealthy } from '../../utils/interaction-helpers';
 import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
 
 /**
@@ -15,9 +17,7 @@ import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
 const BRAND_SETTINGS = '/test-org/brand-1/settings';
 
 /** Toggle the first visible Radix switch on the page (best-effort). */
-async function toggleFirstSwitch(
-  page: import('@playwright/test').Page,
-): Promise<void> {
+async function toggleFirstSwitch(page: Page): Promise<void> {
   const toggle = page
     .locator('[role="switch"], input[type="checkbox"]')
     .first();
@@ -27,10 +27,7 @@ async function toggleFirstSwitch(
 }
 
 /** Fill the first visible text input/textarea with a value (best-effort). */
-async function fillFirstTextField(
-  page: import('@playwright/test').Page,
-  value: string,
-): Promise<void> {
+async function fillFirstTextField(page: Page, value: string): Promise<void> {
   const field = page
     .locator(
       'input[type="text"]:visible, input:not([type]):visible, textarea:visible',
@@ -42,19 +39,11 @@ async function fillFirstTextField(
 }
 
 /** Click the first visible save/update button (mocked to succeed). */
-async function clickSave(page: import('@playwright/test').Page): Promise<void> {
+async function clickSave(page: Page): Promise<void> {
   await tryClick(
     page,
     'button:has-text("Save"), button:has-text("Update"), button[type="submit"]',
   ).catch(() => {});
-}
-
-/** Standard end-of-test health assertions. */
-async function assertHealthy(
-  page: import('@playwright/test').Page,
-): Promise<void> {
-  await expect(page.locator('body')).toBeVisible();
-  await expectNoErrorOverlay(page);
 }
 
 test.describe('Brand Settings — Interactions', () => {

@@ -5,6 +5,7 @@ import {
   mockServerError,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { settle } from '../../utils/interaction-helpers';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
 /**
@@ -22,11 +23,6 @@ import { expectNoErrorOverlay } from '../../utils/route-assertions';
 const ORG_BRAND = '/test-org/brand-1';
 
 type Page = Parameters<typeof mockEmptyContentLibrary>[0];
-
-async function settle(page: Page): Promise<void> {
-  await page.waitForLoadState('domcontentloaded').catch(() => {});
-  await page.waitForTimeout(400);
-}
 
 async function assertHealthy(page: Page, route: string): Promise<void> {
   await expect(page.locator('body')).toBeVisible();

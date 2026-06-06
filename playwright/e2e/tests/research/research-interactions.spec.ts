@@ -1,5 +1,6 @@
 import { expect, test } from '../../fixtures/auth.fixture';
-import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
+import { assertHealthy, settle } from '../../utils/interaction-helpers';
+import { tryClick } from '../../utils/route-assertions';
 
 /**
  * Deep interaction E2E coverage for the Research surface.
@@ -14,18 +15,6 @@ import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
  */
 
 const BASE = '/test-org/brand-1/research';
-
-async function settle(page: Parameters<typeof tryClick>[0]): Promise<void> {
-  await page.waitForLoadState('domcontentloaded').catch(() => {});
-  await page.waitForTimeout(400);
-}
-
-async function assertHealthy(
-  page: Parameters<typeof tryClick>[0],
-): Promise<void> {
-  await expect(page.locator('body')).toBeVisible();
-  await expectNoErrorOverlay(page);
-}
 
 test.describe('Research — deep interactions', () => {
   test.setTimeout(90_000);

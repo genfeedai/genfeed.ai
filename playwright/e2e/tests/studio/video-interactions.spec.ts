@@ -1,4 +1,5 @@
 import { expect, test } from '../../fixtures/auth.fixture';
+import { fillPrompt } from '../../utils/interaction-helpers';
 import {
   assertRouteRenders,
   expectNoErrorOverlay,
@@ -17,26 +18,6 @@ import {
  */
 
 const VIDEO_ROUTE = '/test-org/brand-1/studio/video';
-
-const PROMPT_SELECTORS = [
-  '[data-testid="prompt-textarea"]',
-  '[data-testid="prompt-input"]',
-  'textarea',
-];
-
-async function fillPrompt(
-  page: import('@playwright/test').Page,
-  text: string,
-): Promise<void> {
-  for (const selector of PROMPT_SELECTORS) {
-    const field = page.locator(selector).first();
-    const visible = await field.isVisible().catch(() => false);
-    if (visible) {
-      await field.fill(text).catch(() => {});
-      return;
-    }
-  }
-}
 
 test.describe('Studio video generation — deep interactions', () => {
   test.setTimeout(90_000);

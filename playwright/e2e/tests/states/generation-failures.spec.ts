@@ -2,8 +2,13 @@ import {
   mockImageGenerationFailure,
   mockVideoGenerationFailure,
 } from '../../fixtures/api-mocks.fixture';
-import { expect, test } from '../../fixtures/auth.fixture';
-import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
+import { test } from '../../fixtures/auth.fixture';
+import {
+  assertHealthy,
+  fillPrompt,
+  settle,
+} from '../../utils/interaction-helpers';
+import { tryClick } from '../../utils/route-assertions';
 
 /**
  * Generation-failure coverage for the Studio surfaces.
@@ -23,35 +28,7 @@ const IMAGE_ROUTE = `${ORG_BRAND}/studio/image`;
 const VIDEO_ROUTE = `${ORG_BRAND}/studio/video`;
 const BATCH_ROUTE = `${ORG_BRAND}/studio/batch`;
 
-const PROMPT_SELECTORS = [
-  '[data-testid="prompt-textarea"]',
-  '[data-testid="prompt-input"]',
-  'textarea',
-];
-
 type Page = Parameters<typeof mockImageGenerationFailure>[0];
-
-async function settle(page: Page): Promise<void> {
-  await page.waitForLoadState('domcontentloaded').catch(() => {});
-  await page.waitForTimeout(400);
-}
-
-async function assertHealthy(page: Page): Promise<void> {
-  await expect(page.locator('body')).toBeVisible();
-  await expectNoErrorOverlay(page);
-  expect(page.url()).not.toMatch(/\/login/);
-}
-
-async function fillPrompt(page: Page, text: string): Promise<void> {
-  for (const selector of PROMPT_SELECTORS) {
-    const field = page.locator(selector).first();
-    const visible = await field.isVisible().catch(() => false);
-    if (visible) {
-      await field.fill(text).catch(() => {});
-      return;
-    }
-  }
-}
 
 async function submitGeneration(page: Page): Promise<void> {
   await tryClick(page, '[data-testid="generate-button"]');

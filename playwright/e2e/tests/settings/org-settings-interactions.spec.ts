@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { assertHealthy } from '../../utils/interaction-helpers';
 import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
 
 /**
@@ -59,12 +60,6 @@ async function closeOverlay(page: Page): Promise<void> {
     'button:has-text("Cancel"), button:has-text("Close"), [aria-label="Close"]',
   ).catch(() => {});
   await page.keyboard.press('Escape').catch(() => {});
-}
-
-/** Standard end-of-test health assertions. */
-async function assertHealthy(page: Page): Promise<void> {
-  await expect(page.locator('body')).toBeVisible();
-  await expectNoErrorOverlay(page);
 }
 
 test.describe('Organization & Personal Settings — Interactions', () => {

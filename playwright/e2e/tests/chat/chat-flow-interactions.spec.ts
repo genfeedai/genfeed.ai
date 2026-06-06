@@ -18,11 +18,11 @@ const CHAT_INPUT =
  */
 async function typeInComposer(page: Page, prompt: string): Promise<boolean> {
   const composer = page.locator(CHAT_INPUT).first();
-  const visible = await composer
+  const isVisible = await composer
     .isVisible({ timeout: 8_000 })
     .catch(() => false);
 
-  if (!visible) {
+  if (!isVisible) {
     return false;
   }
 
@@ -33,12 +33,12 @@ async function typeInComposer(page: Page, prompt: string): Promise<boolean> {
 
 /** Best-effort: submit whatever is in the composer (mocked endpoints). */
 async function submitComposer(page: Page): Promise<void> {
-  const sent = await tryClick(
+  const wasSent = await tryClick(
     page,
     '[data-testid="agent-chat-input-shell"] button',
   );
 
-  if (!sent) {
+  if (!wasSent) {
     await page
       .locator(CHAT_INPUT)
       .first()
@@ -67,8 +67,8 @@ test.describe('Chat flow interactions', () => {
     authenticatedPage,
   }) => {
     await assertRouteRenders(authenticatedPage, `${ORG}/chat/new`);
-    const typed = await typeInComposer(authenticatedPage, 'Hello agent');
-    if (typed) {
+    const wasTyped = await typeInComposer(authenticatedPage, 'Hello agent');
+    if (wasTyped) {
       await submitComposer(authenticatedPage);
     }
     await assertHealthy(authenticatedPage);
@@ -94,8 +94,8 @@ test.describe('Chat flow interactions', () => {
 
   test('thread view replies via send button', async ({ authenticatedPage }) => {
     await assertRouteRenders(authenticatedPage, `${ORG}/chat/thread-1`);
-    const typed = await typeInComposer(authenticatedPage, 'Reply please');
-    if (typed) {
+    const wasTyped = await typeInComposer(authenticatedPage, 'Reply please');
+    if (wasTyped) {
       await submitComposer(authenticatedPage);
     }
     await assertHealthy(authenticatedPage);
@@ -134,11 +134,11 @@ test.describe('Chat flow interactions', () => {
     authenticatedPage,
   }) => {
     await assertRouteRenders(authenticatedPage, `${ORG}/chat/onboarding`);
-    const typed = await typeInComposer(
+    const wasTyped = await typeInComposer(
       authenticatedPage,
       'My brand is about cooking',
     );
-    if (typed) {
+    if (wasTyped) {
       await submitComposer(authenticatedPage);
     }
     await assertHealthy(authenticatedPage);

@@ -1,5 +1,5 @@
-import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { fillField, fillPrompt } from '../../utils/interaction-helpers';
 import {
   assertRouteRenders,
   expectNoErrorOverlay,
@@ -24,35 +24,6 @@ import {
 const MUSIC_ROUTE = '/test-org/brand-1/studio/music';
 const BATCH_ROUTE = '/test-org/brand-1/studio/batch';
 const CLIPS_ROUTE = '/test-org/brand-1/studio/clips';
-
-const PROMPT_SELECTORS = [
-  '[data-testid="prompt-textarea"]',
-  '[data-testid="prompt-input"]',
-  'textarea',
-];
-
-async function fillPrompt(page: Page, text: string): Promise<void> {
-  for (const selector of PROMPT_SELECTORS) {
-    const field = page.locator(selector).first();
-    const visible = await field.isVisible().catch(() => false);
-    if (visible) {
-      await field.fill(text).catch(() => {});
-      return;
-    }
-  }
-}
-
-async function fillField(
-  page: Page,
-  selector: string,
-  value: string,
-): Promise<void> {
-  const field = page.locator(selector).first();
-  const visible = await field.isVisible().catch(() => false);
-  if (visible) {
-    await field.fill(value).catch(() => {});
-  }
-}
 
 test.describe('Studio music generation — deep interactions', () => {
   test.setTimeout(90_000);

@@ -69,11 +69,11 @@ test.describe('Analytics — Trends (deep interactions)', () => {
     await exerciseRefresh(authenticatedPage);
 
     // Open a trend → detail by following the first trend link or table row.
-    const opened = await tryClick(
+    const isOpened = await tryClick(
       authenticatedPage,
       'a[href*="/analytics/trends/detail/"]',
     );
-    if (!opened) {
+    if (!isOpened) {
       await tryClick(authenticatedPage, 'tbody tr');
     }
 

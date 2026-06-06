@@ -16,6 +16,14 @@ export {
   setupApiMocks,
 } from './api-interceptor';
 
+// Interaction helpers
+export {
+  assertHealthy,
+  fillField,
+  fillPrompt,
+  settle,
+} from './interaction-helpers';
+
 export { setupStrictNetworkGuard } from './network-guard';
 
 // Route render assertions
