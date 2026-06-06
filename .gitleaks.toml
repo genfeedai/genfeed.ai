@@ -20,3 +20,8 @@ paths = [
   '''\.spec\.ts$''',
   '''\.test\.ts$''',
 ]
+regexes = [
+  # Clerk PUBLISHABLE test key (pk_test_*) — public by design, used as the CI
+  # fallback for the e2e Playwright builds in .github/workflows/e2e.yml.
+  '''pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ''',
+]
