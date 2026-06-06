@@ -112,6 +112,8 @@
     "test:workspace:watch": "TZ=UTC scripts/sh/sanitize-node-color-env.sh vitest --config vitest.config.ts",
     "test:e2e": "bunx playwright test",
     "test:e2e:full": "bunx playwright test --config=playwright-full.config.ts",
+    "test:e2e:coverage": "E2E_COVERAGE=1 bunx playwright test --config=playwright-coverage.config.ts",
+    "test:e2e:routes": "node scripts/e2e-route-coverage.mjs",
     "type-check": "bunx turbo run type-check",
     "type-check:cli": "bunx turbo run type-check --filter=@genfeedai/cli",
     "secretlint": "secretlint '**/*'"
@@ -142,6 +144,7 @@
     "clsx": "2.1.1",
     "lint-staged": "17.0.5",
     "mongodb": "7.2.0",
+    "monocart-reporter": "2.11.2",
     "next": "16.2.6",
     "portless": "0.13.0",
     "react": "19.2.6",

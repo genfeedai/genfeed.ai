@@ -18,6 +18,13 @@ export {
 
 export { setupStrictNetworkGuard } from './network-guard';
 
+// Route render assertions
+export {
+  assertRouteRenders,
+  expectNoErrorOverlay,
+  tryClick,
+} from './route-assertions';
+
 // Test helper utilities
 export {
   assertElementText,

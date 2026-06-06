@@ -1,4 +1,4 @@
-import { type BrowserContext, test as base, type Page } from '@playwright/test';
+import type { BrowserContext, Page } from '@playwright/test';
 import {
   generateMockOrganization,
   generateMockUser,
@@ -10,6 +10,9 @@ import {
   mockWorkflowExecutions,
   mockWorkflowTemplates,
 } from './api-mocks.fixture';
+// Coverage-instrumented base: under E2E_COVERAGE=1 every spec that imports
+// `test` from the fixtures is automatically wrapped in V8 coverage collection.
+import { test as base } from './coverage.fixture';
 
 /**
  * Authentication Fixtures for Playwright E2E Tests
