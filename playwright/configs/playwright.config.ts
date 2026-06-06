@@ -72,6 +72,9 @@ export default defineConfig({
   // Global setup - runs once before all tests
   globalSetup: path.join(e2eRoot, 'global-setup.ts'),
 
+  // Global teardown - clears the Turbopack dev cache so it never stockpiles
+  globalTeardown: path.join(e2eRoot, 'global-teardown.ts'),
+
   // Output directories
   outputDir: path.join(artifactsRoot, 'results'),
 
