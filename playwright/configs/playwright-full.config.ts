@@ -23,6 +23,7 @@ const devWebServerCommand =
 export default defineConfig({
   fullyParallel: true,
   globalSetup: path.join(e2eRoot, 'global-setup.ts'),
+  globalTeardown: path.join(e2eRoot, 'global-teardown.ts'),
   outputDir: path.join(artifactsRoot, 'results', 'full'),
   projects: [
     {

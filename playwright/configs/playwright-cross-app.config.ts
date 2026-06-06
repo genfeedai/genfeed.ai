@@ -13,6 +13,7 @@ export default defineConfig({
   forbidOnly: isCI,
   fullyParallel: true,
   globalSetup: path.join(e2eRoot, 'global-setup.ts'),
+  globalTeardown: path.join(e2eRoot, 'global-teardown.ts'),
   outputDir: path.join(artifactsRoot, 'results', 'cross-app'),
   projects: [
     {

@@ -8,6 +8,7 @@ const e2eRoot = path.join(playwrightRoot, 'e2e');
 export default defineConfig({
   fullyParallel: true,
   globalSetup: path.join(e2eRoot, 'global-setup.ts'),
+  globalTeardown: path.join(e2eRoot, 'global-teardown.ts'),
   outputDir: path.join(artifactsRoot, 'results', 'smoke'),
   projects: [
     {
