@@ -12,8 +12,13 @@ import { defineConfig, devices } from '@playwright/test';
  * - Tests run in parallel for faster execution
  * - Multiple browser and device configurations supported
  *
- * CRITICAL: Tests use API interceptors to mock all responses.
- * No real AI generation, billing, or external service calls occur during tests.
+ * CRITICAL: The default `app-core` project uses API interceptors to mock all
+ * responses — no real AI generation, billing, or external service calls occur.
+ * The opt-in `app-authed` project is the one exception: it provisions and signs
+ * in real `+clerk_test` users against a Clerk TEST instance (see
+ * playwright/e2e/clerk.setup.ts) so protected routes exercise the genuine
+ * clerkMiddleware path. That project is flag-gated in CI (E2E_AUTHED_ENABLED)
+ * and never runs as part of the default mocked suite.
  *
  * @see https://playwright.dev/docs/test-configuration
  */
