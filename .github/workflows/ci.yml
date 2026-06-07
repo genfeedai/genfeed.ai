@@ -5,6 +5,9 @@ on:
     branches: [master, develop, staging]
   pull_request:
     branches: [master, develop, staging]
+  # Allow this gate to be run as a reusable workflow (e.g. by full-suite.yml,
+  # which chains CI → E2E on demand). No inputs needed; secrets are inherited.
+  workflow_call:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

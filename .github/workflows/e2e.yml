@@ -2,6 +2,9 @@ name: E2E Tests
 
 on:
   workflow_dispatch:
+  # Allow the suite to be run as a reusable workflow (e.g. by full-suite.yml,
+  # which runs it after the CI gate passes). Secrets are inherited from caller.
+  workflow_call:
   schedule:
     - cron: "0 6 * * 1" # Weekly Monday 6am UTC
 

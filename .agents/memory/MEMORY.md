@@ -43,6 +43,7 @@
 - [Project Brief](context/project-brief.md) — project brief
 - [Project Vision](context/project-vision.md) — long-term vision
 - [Tech Context](context/tech-context.md) — technology stack details
+- [E2E Architecture](context/e2e-architecture.md) — GitHub Actions e2e pipeline (4 jobs), Playwright + API E2E layers, triggers, DB provisioning, known debt
 
 ## Features
 
