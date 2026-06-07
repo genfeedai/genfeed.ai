@@ -27,6 +27,7 @@ interface DesktopPackageJson {
   };
   main?: string;
   productName?: string;
+  scripts?: Record<string, string>;
 }
 
 const desktopRoot = path.resolve(
@@ -58,6 +59,17 @@ describe('desktop release config', () => {
     expect(build?.files).toContain('package.json');
     expect(build?.asarUnpack).toContain('dist/app-shell/**/*');
     expect(build?.protocols?.[0]?.schemes).toContain('genfeedai-desktop');
+    expect(packageJson.scripts?.['release:manifest']).toBe(
+      'node ./scripts/write-release-manifest.cjs',
+    );
+    expect(packageJson.scripts?.['release:mac']).toContain(
+      'bun run release:manifest',
+    );
+    expect(
+      fs.existsSync(
+        path.join(desktopRoot, 'scripts/write-release-manifest.cjs'),
+      ),
+    ).toBe(true);
 
     expect(mac?.hardenedRuntime).toBe(true);
     expect(mac?.target).toContain('dmg');

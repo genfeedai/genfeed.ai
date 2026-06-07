@@ -111,6 +111,12 @@ bun run smoke
 bun run release:mac
 ```
 
+`bun run release:mac` writes macOS artifacts into `apps/desktop/app/release/`
+and creates `genfeed-desktop-release.json` beside them. The manifest records the
+package version, commit, release channel, artifact names, file sizes, SHA-256
+digests, signing inputs, and notarization hook so downloaded artifacts can be
+audited back to the desktop release workflow.
+
 Optional signing and notarization environment variables:
 
 - `APPLE_ID`
