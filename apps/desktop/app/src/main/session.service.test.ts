@@ -67,6 +67,12 @@ describe('DesktopSessionService', () => {
 
   it('hydrates a session from the server-minted key', async () => {
     const service = createSessionService(kvService);
+    const loginUrl = new URL(service.getLoginUrl());
+    const state = loginUrl.searchParams.get('state');
+
+    if (!state) {
+      throw new Error('Expected login URL state');
+    }
 
     globalThis.fetch = (async (
       input: RequestInfo | URL,
@@ -97,7 +103,7 @@ describe('DesktopSessionService', () => {
     }) as typeof fetch;
 
     const session = await service.handleCallback(
-      'genfeedai-desktop://auth?key=gf_desktop_key',
+      `genfeedai-desktop://auth?key=gf_desktop_key&state=${state}`,
     );
 
     expect(session).toEqual({
@@ -165,6 +171,111 @@ describe('DesktopSessionService', () => {
     expect(kvService.values.get('desktop.session')).toContain('gf_desktop_key');
   });
 
+  it('rejects browser auth code replays after the pending PKCE state is consumed', async () => {
+    const service = createSessionService(kvService);
+    const loginUrl = new URL(service.getLoginUrl());
+    const state = loginUrl.searchParams.get('state');
+    let exchangeCalls = 0;
+
+    if (!state) {
+      throw new Error('Expected login URL state');
+    }
+
+    globalThis.fetch = (async () => {
+      exchangeCalls += 1;
+      return new Response(
+        JSON.stringify({
+          issuedAt: '2026-05-01T10:00:00.000Z',
+          token: 'gf_desktop_key',
+          userEmail: 'desktop@example.com',
+          userId: 'user-123',
+          userName: 'Desktop User',
+        }),
+        {
+          headers: {
+            'content-type': 'application/json',
+          },
+          status: 200,
+        },
+      );
+    }) as typeof fetch;
+
+    const callbackUrl = `genfeedai-desktop://auth?code=desktop-code&state=${state}`;
+
+    await expect(service.handleCallback(callbackUrl)).resolves.toMatchObject({
+      token: 'gf_desktop_key',
+    });
+    await expect(service.handleCallback(callbackUrl)).resolves.toBeNull();
+    expect(exchangeCalls).toBe(1);
+  });
+
+  it('rejects auth callbacks outside the registered desktop callback target', async () => {
+    const service = createSessionService(kvService);
+
+    globalThis.fetch = (async () => {
+      throw new Error('Unexpected network request');
+    }) as typeof fetch;
+
+    await expect(
+      service.handleCallback('https://evil.example/auth?key=gf_desktop_key'),
+    ).resolves.toBeNull();
+    await expect(
+      service.handleCallback(
+        'genfeedai-desktop://settings?key=gf_desktop_key',
+      ),
+    ).resolves.toBeNull();
+    await expect(
+      service.handleCallback(
+        'genfeedai-desktop://auth/extra?key=gf_desktop_key',
+      ),
+    ).resolves.toBeNull();
+  });
+
+  it('rejects OAuth error callbacks and consumes the matching pending auth state', async () => {
+    const service = createSessionService(kvService);
+    const loginUrl = new URL(service.getLoginUrl());
+    const state = loginUrl.searchParams.get('state');
+
+    if (!state) {
+      throw new Error('Expected login URL state');
+    }
+
+    globalThis.fetch = (async () => {
+      throw new Error('Unexpected network request');
+    }) as typeof fetch;
+
+    await expect(
+      service.handleCallback(
+        `genfeedai-desktop://auth?error=access_denied&state=${state}`,
+      ),
+    ).resolves.toBeNull();
+    await expect(
+      service.handleCallback(
+        `genfeedai-desktop://auth?code=desktop-code&state=${state}`,
+      ),
+    ).resolves.toBeNull();
+  });
+
+  it('rejects ambiguous callbacks without calling either exchange path', async () => {
+    const service = createSessionService(kvService);
+    const loginUrl = new URL(service.getLoginUrl());
+    const state = loginUrl.searchParams.get('state');
+
+    if (!state) {
+      throw new Error('Expected login URL state');
+    }
+
+    globalThis.fetch = (async () => {
+      throw new Error('Unexpected network request');
+    }) as typeof fetch;
+
+    await expect(
+      service.handleCallback(
+        `genfeedai-desktop://auth?code=desktop-code&key=gf_desktop_key&state=${state}`,
+      ),
+    ).resolves.toBeNull();
+  });
+
   it('validates and refreshes an existing desktop session on startup', async () => {
     const service = createSessionService(kvService);
 
@@ -226,6 +337,47 @@ describe('DesktopSessionService', () => {
     await expect(
       service.handleCallback('genfeedai-desktop://auth?token=missing'),
     ).resolves.toBeNull();
+  });
+
+  it('rejects server-minted key callbacks without pending auth state', async () => {
+    const service = createSessionService(kvService);
+
+    globalThis.fetch = (async () => {
+      throw new Error('Unexpected network request');
+    }) as typeof fetch;
+
+    await expect(
+      service.handleCallback('genfeedai-desktop://auth?key=gf_desktop_key'),
+    ).resolves.toBeNull();
+  });
+
+  it('keeps an existing session when a desktop callback exchange fails', async () => {
+    const service = createSessionService(kvService);
+    const loginUrl = new URL(service.getLoginUrl());
+    const state = loginUrl.searchParams.get('state');
+
+    if (!state) {
+      throw new Error('Expected login URL state');
+    }
+
+    await service.setSession({
+      issuedAt: '2026-04-01T09:00:00.000Z',
+      token: 'persisted_desktop_key',
+      userEmail: 'desktop@example.com',
+      userId: 'user-123',
+      userName: 'Desktop User',
+    });
+
+    globalThis.fetch = (async () => {
+      return new Response('invalid code', { status: 400 });
+    }) as typeof fetch;
+
+    await expect(
+      service.handleCallback(
+        `genfeedai-desktop://auth?code=expired-code&state=${state}`,
+      ),
+    ).resolves.toBeNull();
+    expect(service.getSession()?.token).toBe('persisted_desktop_key');
   });
 
   it('clears a stale stored desktop session during startup validation', async () => {
