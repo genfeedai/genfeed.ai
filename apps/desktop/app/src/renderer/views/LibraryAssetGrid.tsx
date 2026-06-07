@@ -1,12 +1,17 @@
 import type { IDesktopAsset } from '@genfeedai/desktop-contracts';
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
+import { HiOutlineFolderOpen } from 'react-icons/hi2';
 
 type LibraryAssetGridProps = {
   assets: IDesktopAsset[];
+  onRevealAsset: (assetId: string) => void;
 };
 
 export function LibraryAssetGrid({
   assets,
+  onRevealAsset,
 }: LibraryAssetGridProps): ReactElement | null {
   if (assets.length === 0) return null;
 
@@ -25,6 +30,17 @@ export function LibraryAssetGrid({
             <span className="vote-count">
               {Math.round(asset.sizeBytes / 1024)} KB
             </span>
+            {asset.localPath && (
+              <Button
+                ariaLabel={`Show ${asset.displayName} in Finder`}
+                className="asset-card-action"
+                onClick={() => onRevealAsset(asset.id)}
+                type="button"
+                variant={ButtonVariant.GHOST}
+              >
+                <HiOutlineFolderOpen className="nav-icon-svg" />
+              </Button>
+            )}
           </div>
         </div>
       ))}
