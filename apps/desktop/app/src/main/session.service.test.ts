@@ -220,9 +220,7 @@ describe('DesktopSessionService', () => {
       service.handleCallback('https://evil.example/auth?key=gf_desktop_key'),
     ).resolves.toBeNull();
     await expect(
-      service.handleCallback(
-        'genfeedai-desktop://settings?key=gf_desktop_key',
-      ),
+      service.handleCallback('genfeedai-desktop://settings?key=gf_desktop_key'),
     ).resolves.toBeNull();
     await expect(
       service.handleCallback(
