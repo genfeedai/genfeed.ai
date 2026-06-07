@@ -15,7 +15,7 @@ export interface UseVoiceCommandsOptions {
   language?: string;
 }
 
-type SpeechRecognitionConstructor = new () => {
+type SpeechRecognitionInstance = {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
@@ -29,6 +29,24 @@ type SpeechRecognitionConstructor = new () => {
   start: () => void;
   stop: () => void;
 };
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
+
+interface SpeechRecognitionWindow extends Window {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+}
+
+function getSpeechRecognitionConstructor():
+  | SpeechRecognitionConstructor
+  | undefined {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  const speechWindow = window as SpeechRecognitionWindow;
+  return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+}
 
 /**
  * Enhanced voice recognition hook with support for voice commands
@@ -54,7 +72,7 @@ export function useVoiceCommands({
   interimResults = false,
   language = 'en-US',
 }: UseVoiceCommandsOptions = {}) {
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const onTranscriptRef = useRef(onTranscript);
   const commandsRef = useRef(commands);
   const [isListening, setIsListening] = useState(false);
@@ -75,10 +93,7 @@ export function useVoiceCommands({
   }, [commands]);
 
   useEffect(() => {
-    const SR =
-      (window as unknown as Record<string, unknown>).SpeechRecognition ||
-      (window as unknown as Record<string, unknown>).webkitSpeechRecognition;
-    setIsSupported(!!SR);
+    setIsSupported(Boolean(getSpeechRecognitionConstructor()));
   }, []);
 
   useEffect(() => {
@@ -86,9 +101,7 @@ export function useVoiceCommands({
       return;
     }
 
-    const SpeechRecognition =
-      (window as unknown as Record<string, unknown>).SpeechRecognition ||
-      (window as unknown as Record<string, unknown>).webkitSpeechRecognition;
+    const SpeechRecognition = getSpeechRecognitionConstructor();
 
     if (!SpeechRecognition) {
       logger.error('Speech recognition not supported in this browser');
@@ -98,9 +111,7 @@ export function useVoiceCommands({
 
     queueMicrotask(() => setIsSupported(true));
 
-    const recognition = new (
-      SpeechRecognition as SpeechRecognitionConstructor
-    )();
+    const recognition = new SpeechRecognition();
     recognition.continuous = continuous;
     recognition.interimResults = interimResults;
     recognition.lang = language;
