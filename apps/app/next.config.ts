@@ -388,4 +388,11 @@ config.webpack = ((webpackConfig, options) => {
   return nextConfig;
 }) as NextConfig['webpack'];
 
+// E2E code-coverage runs against a production build need browser source maps so
+// monocart can map executed bytes back to TypeScript. Gated on E2E_COVERAGE so
+// normal builds are unaffected. (Dev mode already emits source maps.)
+if (process.env.E2E_COVERAGE === '1') {
+  config.productionBrowserSourceMaps = true;
+}
+
 export default withBundleAnalyzer(config);

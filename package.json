@@ -119,6 +119,8 @@
     "test:e2e:core": "bunx playwright test --config=playwright/configs/playwright.config.ts playwright/e2e/tests/smoke playwright/e2e/tests/core --project=app-core",
     "test:e2e:smoke": "bunx playwright test --config=playwright/configs/playwright.config.ts playwright/e2e/tests/smoke/all-app-pages.spec.ts --project=app-core",
     "test:e2e:full": "bunx playwright test --config=playwright/configs/playwright-full.config.ts",
+    "test:e2e:coverage": "E2E_COVERAGE=1 bunx playwright test --config=playwright/configs/playwright-coverage.config.ts",
+    "test:e2e:routes": "node scripts/e2e-route-coverage.mjs",
     "type-check": "bunx turbo run type-check",
     "type-check:cli": "bunx turbo run type-check --filter=@genfeedai/cli",
     "secretlint": "secretlint '**/*'"
@@ -151,6 +153,7 @@
     "glob": "13.0.6",
     "lint-staged": "17.0.7",
     "mongodb": "7.2.0",
+    "monocart-reporter": "2.11.2",
     "next": "16.2.7",
     "portless": "0.13.1",
     "react": "19.2.7",
