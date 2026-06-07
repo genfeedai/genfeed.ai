@@ -94,7 +94,17 @@ export default defineConfig({
     },
     {
       name: 'app-core',
-      testIgnore: [/marketplace\/.+\.spec\.ts/, /website\/.+\.spec\.ts/],
+      // app-core mocks auth (fake cookies + Clerk FAPI mock + the
+      // __playwright_test bypass) and never establishes a real session. The
+      // *.authed.spec.ts smoke runs ONLY under `app-authed`, which supplies a
+      // genuine Clerk storageState from clerk-setup. If app-core picked them up
+      // it would hit the real clerkMiddleware path with no session and every
+      // protected route would bounce to /login. Keep them out of this project.
+      testIgnore: [
+        /marketplace\/.+\.spec\.ts/,
+        /website\/.+\.spec\.ts/,
+        /\.authed\.spec\.ts/,
+      ],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: appBaseURL,
