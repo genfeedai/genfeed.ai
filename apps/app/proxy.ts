@@ -702,12 +702,32 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
     return NextResponse.next();
   }
 
+  // E2E auth bypass.
+  //
+  // Master switch: the Playwright harness builds + serves the app with
+  // NEXT_PUBLIC_PLAYWRIGHT_TEST=true (playwright.config webServer.env, plus the
+  // CI build step). Because it is a NEXT_PUBLIC_* flag it is inlined into the
+  // middleware bundle at build time, so it is readable here regardless of the
+  // middleware runtime (edge or node) — unlike a plain server env, which an edge
+  // middleware cannot read at request time. A real production build never sets
+  // it, so this branch is dead code in production. `PLAYWRIGHT_TEST` is also
+  // honored for the `next dev` path, where runtime env is available.
+  //
+  // Per-request opt-in: the __playwright_test cookie. It is only trusted while
+  // the master switch is on, so a forged cookie can never bypass auth in a real
+  // deployment. Requiring the cookie (rather than bypassing every request on the
+  // test server) also keeps the real-Clerk `app-authed` project meaningful — it
+  // sends no cookie, so it still exercises the genuine clerkMiddleware path.
+  //
+  // This replaces the previous `NODE_ENV !== 'production'` guard, which silently
+  // disabled the bypass under `next start` (NODE_ENV=production) in CI and made
+  // every protected route redirect to /login, timing out the suite.
+  const isPlaywrightTestBuild =
+    process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true' ||
+    process.env.PLAYWRIGHT_TEST === 'true';
   const hasPlaywrightBypassCookie =
     req.cookies.get('__playwright_test')?.value === 'true';
-  const hasPlaywrightBypassEnv = process.env.PLAYWRIGHT_TEST === 'true';
-  const isE2ETest =
-    process.env.NODE_ENV !== 'production' &&
-    (hasPlaywrightBypassEnv || hasPlaywrightBypassCookie);
+  const isE2ETest = isPlaywrightTestBuild && hasPlaywrightBypassCookie;
 
   if (isE2ETest) {
     return NextResponse.next();

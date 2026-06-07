@@ -162,6 +162,12 @@ jobs:
       - name: Build app
         run: bunx turbo run build --filter=@genfeedai/app
         env:
+          # Build the app in Playwright test mode. This NEXT_PUBLIC_* flag is
+          # inlined at build time and is the master switch for the proxy.ts auth
+          # bypass (middleware can't read a plain server env at request time on
+          # edge), disables live sockets (use-socket-manager), and bypasses the
+          # Clerk publishable-key requirement client-side (AppProviders).
+          NEXT_PUBLIC_PLAYWRIGHT_TEST: "true"
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
           NEXT_PUBLIC_API_URL: http://localhost:3010
@@ -246,6 +252,10 @@ jobs:
         run: bunx turbo run build --filter=@genfeedai/app
         env:
           E2E_COVERAGE: "1"
+          # See the e2e-frontend build step: builds the app in Playwright test
+          # mode so the proxy.ts auth bypass, socket-disable, and Clerk key
+          # bypass are active in the bundle under test.
+          NEXT_PUBLIC_PLAYWRIGHT_TEST: "true"
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
           NEXT_PUBLIC_API_URL: http://localhost:3010
