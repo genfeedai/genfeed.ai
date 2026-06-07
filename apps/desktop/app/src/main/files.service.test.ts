@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import type { DesktopWorkspaceService } from './workspace.service';
 import {
   electronMockState,
   resetElectronMockState,
 } from './test-support/electron.mock';
+import type { DesktopWorkspaceService } from './workspace.service';
 
 const createPrismaMock = () => {
   const assets = new Map<string, Record<string, unknown>>();
