@@ -355,22 +355,33 @@ export const App = () => {
       case 'terminal':
         return <TerminalView workspaceId={selectedWorkspaceId} />;
       case 'workflows':
-        return <WorkflowsView />;
+        return <WorkflowsView isOnline={isOnline} />;
       case 'agents':
-        return <AgentsView />;
+        return <AgentsView isOnline={isOnline} />;
       case 'mission-control':
         return <MissionControlView onStartNewThread={handleNewThread} />;
       case 'analytics':
-        return <AnalyticsView workspaceId={selectedWorkspaceId} />;
+        return (
+          <AnalyticsView
+            isOnline={isOnline}
+            workspaceId={selectedWorkspaceId}
+          />
+        );
       case 'library':
         return (
           <LibraryView
+            isOnline={isOnline}
             workspace={selectedWorkspace}
             workspaceId={selectedWorkspaceId}
           />
         );
       case 'trends':
-        return <TrendsView onGenerateFromTrend={handleGenerateFromTrend} />;
+        return (
+          <TrendsView
+            isOnline={isOnline}
+            onGenerateFromTrend={handleGenerateFromTrend}
+          />
+        );
       default:
         return (
           <ConversationView
