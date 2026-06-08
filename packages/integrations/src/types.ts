@@ -10,8 +10,11 @@ export interface OrgIntegration {
   platform: `${IntegrationPlatform}`;
   botToken: string; // encrypted at rest
   config: {
+    allowedAccountIds?: string[];
     allowedUserIds?: string[];
     appToken?: string;
+    apiBaseUrl?: string;
+    defaultAccountId?: string;
     defaultWorkflow?: string;
     webhookMode?: boolean;
   };

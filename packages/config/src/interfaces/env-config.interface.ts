@@ -242,6 +242,11 @@ export interface IEnvConfig {
   // === Beehiiv ===
   BEEHIIV_API_URL?: string;
 
+  // === Unipile ===
+  UNIPILE_API_BASE_URL?: string;
+  UNIPILE_API_KEY?: string;
+  UNIPILE_WEBHOOK_SECRET?: string;
+
   // === Giphy ===
   GIPHY_API_KEY?: string;
 
