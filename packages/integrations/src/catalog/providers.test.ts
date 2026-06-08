@@ -1,8 +1,10 @@
 import {
   assertValidIntegrationProviderCatalog,
   getIntegrationProviderDefinition,
+  listIntegrationProvidersByCapability,
   listIntegrationProviderDefinitions,
   providerSupportsCapability,
+  resolveIntegrationProviderForCapability,
   validateIntegrationProviderDefinition,
 } from './index';
 
@@ -10,8 +12,9 @@ describe('integration provider catalog', () => {
   it('defines at least three current providers', () => {
     const providers = listIntegrationProviderDefinitions();
 
-    expect(providers.length).toBeGreaterThanOrEqual(3);
+    expect(providers.length).toBeGreaterThanOrEqual(5);
     expect(providers.map((provider) => provider.key)).toEqual([
+      'unipile',
       'linkedin',
       'twitter',
       'google_ads',
@@ -36,5 +39,25 @@ describe('integration provider catalog', () => {
     expect(
       linkedIn ? providerSupportsCapability(linkedIn, 'publish_post') : false,
     ).toBe(true);
+
+    const unipile = getIntegrationProviderDefinition('unipile');
+    expect(unipile?.authMode).toBe('api_key');
+    expect(unipile?.credentialFields.some((field) => field.secret)).toBe(true);
+    expect(
+      unipile ? providerSupportsCapability(unipile, 'send_email') : false,
+    ).toBe(true);
+  });
+
+  it('routes providers by capability with optional preference', () => {
+    expect(
+      listIntegrationProvidersByCapability('send_email').map(
+        (provider) => provider.key,
+      ),
+    ).toEqual(['unipile']);
+
+    expect(
+      resolveIntegrationProviderForCapability('publish_post', ['unipile'])
+        ?.key,
+    ).toBe('linkedin');
   });
 });
