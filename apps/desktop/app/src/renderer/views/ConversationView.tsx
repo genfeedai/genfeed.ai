@@ -3,8 +3,8 @@ import type {
   DesktopContentType,
   DesktopPublishIntent,
   IDesktopMessage,
-  IDesktopTrendHandoff,
   IDesktopThread,
+  IDesktopTrendHandoff,
 } from '@genfeedai/desktop-contracts';
 import { DropZone } from '@renderer/components/DropZone';
 

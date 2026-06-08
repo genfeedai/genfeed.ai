@@ -98,9 +98,7 @@ export function buildTrendBriefPrompt(
     'Return a ready-to-edit draft with a clear hook, concrete angle, and no copied source wording.',
   ];
 
-  return lines
-    .filter((line): line is string => line !== undefined)
-    .join('\n');
+  return lines.filter((line): line is string => line !== undefined).join('\n');
 }
 
 export function buildTrendContentRunDraft(params: {

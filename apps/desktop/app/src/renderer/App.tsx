@@ -111,8 +111,9 @@ export const App = () => {
   const [isOnline, setIsOnline] = useState(
     typeof navigator === 'undefined' ? true : navigator.onLine,
   );
-  const [pendingTrend, setPendingTrend] =
-    useState<IDesktopTrendHandoff | null>(null);
+  const [pendingTrend, setPendingTrend] = useState<IDesktopTrendHandoff | null>(
+    null,
+  );
   const [onboardingState, setOnboardingState] = useState<OnboardingState>({
     completed: false,
     loaded: false,
