@@ -1,15 +1,17 @@
 import type { IDesktopAnalytics } from '@genfeedai/desktop-contracts';
 import { ButtonVariant } from '@genfeedai/enums';
+import { DesktopResilienceState } from '@renderer/components/DesktopResilienceState';
 import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
 
 type DaysRange = 7 | 30 | 90;
 
 interface AnalyticsViewProps {
+  isOnline: boolean;
   workspaceId: string | null;
 }
 
-export const AnalyticsView = ({ workspaceId }: AnalyticsViewProps) => {
+export const AnalyticsView = ({ isOnline, workspaceId }: AnalyticsViewProps) => {
   const [analytics, setAnalytics] = useState<IDesktopAnalytics | null>(null);
   const [draftStats, setDraftStats] = useState({
     generatedCount: 0,
@@ -25,13 +27,10 @@ export const AnalyticsView = ({ workspaceId }: AnalyticsViewProps) => {
     setError(null);
 
     try {
-      const [result, drafts] = await Promise.all([
-        window.genfeedDesktop.cloud.getAnalytics({ days }),
-        workspaceId
-          ? window.genfeedDesktop.drafts.list(workspaceId)
-          : Promise.resolve([]),
-      ]);
-      setAnalytics(result);
+      const drafts = workspaceId
+        ? await window.genfeedDesktop.drafts.list(workspaceId)
+        : [];
+
       setDraftStats({
         generatedCount: drafts.filter((draft) => draft.status === 'generated')
           .length,
@@ -40,12 +39,20 @@ export const AnalyticsView = ({ workspaceId }: AnalyticsViewProps) => {
         reviewCount: drafts.filter((draft) => draft.publishIntent === 'review')
           .length,
       });
+
+      if (!isOnline) {
+        setAnalytics(null);
+        return;
+      }
+
+      const result = await window.genfeedDesktop.cloud.getAnalytics({ days });
+      setAnalytics(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load analytics');
     } finally {
       setLoading(false);
     }
-  }, [days, workspaceId]);
+  }, [days, isOnline, workspaceId]);
 
   useEffect(() => {
     void loadAnalytics();
@@ -70,10 +77,30 @@ export const AnalyticsView = ({ workspaceId }: AnalyticsViewProps) => {
         </div>
       </div>
 
-      {loading && <p className="muted-text">Loading analytics…</p>}
-      {error && <div className="error-banner">{error}</div>}
+      {loading && <p className="muted-text">Loading analytics...</p>}
+      {!loading && !isOnline && (
+        <>
+          <DesktopResilienceState
+            actionLabel="Retry"
+            details="Cloud analytics are unavailable while the desktop app is offline. Local content-run counts are still shown below."
+            kind="offline"
+            onAction={() => void loadAnalytics()}
+            title="Analytics are offline"
+          />
+          <DesktopDraftStatsGrid draftStats={draftStats} />
+        </>
+      )}
+      {!loading && isOnline && error && (
+        <DesktopResilienceState
+          actionLabel="Retry"
+          details={error}
+          kind="error"
+          onAction={() => void loadAnalytics()}
+          title="Unable to load analytics"
+        />
+      )}
 
-      {!loading && analytics && (
+      {!loading && isOnline && !error && analytics && (
         <>
           <div className="stats-grid">
             <div className="stat-card">
@@ -128,6 +155,41 @@ export const AnalyticsView = ({ workspaceId }: AnalyticsViewProps) => {
           )}
         </>
       )}
+
+      {!loading && isOnline && !error && !analytics && (
+        <DesktopResilienceState
+          details="No cloud analytics are available yet. Publish content or sync recent posts, then refresh this view."
+          kind="empty"
+          title="No analytics yet"
+        />
+      )}
     </div>
   );
 };
+
+function DesktopDraftStatsGrid({
+  draftStats,
+}: {
+  draftStats: {
+    generatedCount: number;
+    publishedCount: number;
+    reviewCount: number;
+  };
+}) {
+  return (
+    <div className="stats-grid desktop-local-stats">
+      <div className="stat-card">
+        <span className="stat-value">{draftStats.generatedCount}</span>
+        <span className="stat-label">Generated Runs</span>
+      </div>
+      <div className="stat-card">
+        <span className="stat-value">{draftStats.publishedCount}</span>
+        <span className="stat-label">Published Runs</span>
+      </div>
+      <div className="stat-card">
+        <span className="stat-value">{draftStats.reviewCount}</span>
+        <span className="stat-label">Review Queue</span>
+      </div>
+    </div>
+  );
+}
