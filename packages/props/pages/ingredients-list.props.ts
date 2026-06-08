@@ -1,3 +1,4 @@
+import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import type {
   AssetScope,
   IngredientCategory,
@@ -19,6 +20,14 @@ import type {
 } from '@genfeedai/interfaces';
 import type { IngredientsTypeProps } from '@props/content/ingredient.props';
 import type { Dispatch, SetStateAction } from 'react';
+
+export type ImageToVideoPromptDraft = Partial<PromptTextareaSchema> & {
+  isValid: boolean;
+};
+
+export type ImageToVideoPromptSubmit = PromptTextareaSchema & {
+  isValid: boolean;
+};
 
 export interface IngredientsListProps extends IngredientsTypeProps {
   scope?: PageScope.SUPERADMIN | PageScope.ORGANIZATION | PageScope.BRAND;
@@ -158,10 +167,10 @@ export interface UseIngredientsListReturn {
   closeLightbox: () => void;
   handleConvertToVideo?: (ingredient: IIngredient) => void;
   imageToVideoTarget?: IIngredient | null;
-  imageToVideoPromptData?: any;
+  imageToVideoPromptData?: ImageToVideoPromptDraft;
   isImageToVideoGenerating?: boolean;
-  handleImageToVideoPromptChange?: (data: any) => void;
-  handleImageToVideoSubmit?: (data: any) => void;
+  handleImageToVideoPromptChange?: (data: ImageToVideoPromptDraft) => void;
+  handleImageToVideoSubmit?: (data: ImageToVideoPromptSubmit) => void;
   handleCloseImageToVideoModal?: () => void;
   videoModels?: IModel[];
   presets?: IPreset[];
