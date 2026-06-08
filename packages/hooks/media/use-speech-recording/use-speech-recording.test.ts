@@ -1,5 +1,5 @@
 import { useSpeechRecording } from '@hooks/media/use-speech-recording/use-speech-recording';
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@clerk/nextjs', () => ({
@@ -21,8 +21,14 @@ vi.mock('@genfeedai/services/ai/speech.service', () => ({
 }));
 
 describe('useSpeechRecording', () => {
+  const originalMediaDevices = globalThis.navigator.mediaDevices;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(globalThis.navigator, 'mediaDevices', {
+      configurable: true,
+      value: originalMediaDevices,
+    });
   });
 
   it('returns recording controls', () => {
@@ -82,6 +88,33 @@ describe('useSpeechRecording', () => {
     // In jsdom MediaRecorder isn't available so it should handle gracefully
     const retVal = await result.current.startRecording();
     expect(typeof retVal).toBe('boolean');
+  });
+
+  it('reports microphone permission errors from the browser boundary', async () => {
+    const onError = vi.fn();
+    const errorMessage =
+      'Microphone access denied. Please allow microphone access.';
+    Object.defineProperty(globalThis.navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        getUserMedia: vi
+          .fn()
+          .mockRejectedValue(
+            new DOMException('Permission denied', 'NotAllowedError'),
+          ),
+      },
+    });
+
+    const { result } = renderHook(() => useSpeechRecording({ onError }));
+
+    let didStart = true;
+    await act(async () => {
+      didStart = await result.current.startRecording();
+    });
+
+    expect(didStart).toBe(false);
+    expect(result.current.error).toBe(errorMessage);
+    expect(onError).toHaveBeenCalledWith(errorMessage);
   });
 
   it('stopRecording does not throw', () => {

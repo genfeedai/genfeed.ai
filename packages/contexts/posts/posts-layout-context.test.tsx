@@ -1,6 +1,6 @@
 import { PostsLayoutContext } from '@genfeedai/contexts/posts/posts-layout-context';
 import { render } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('PostsLayoutContext', () => {

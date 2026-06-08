@@ -4,8 +4,8 @@ import type { ITrainingsContextType } from '@genfeedai/interfaces/models/trainin
 import {
   createContext,
   type ReactNode,
+  use,
   useCallback,
-  useContext,
   useMemo,
   useRef,
   useState,
@@ -55,5 +55,5 @@ export function TrainingsProvider({ children }: { children: ReactNode }) {
 }
 
 export function useTrainingsContext() {
-  return useContext(TrainingsContext);
+  return use(TrainingsContext);
 }

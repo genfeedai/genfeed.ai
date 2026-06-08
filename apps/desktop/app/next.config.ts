@@ -1,7 +1,9 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { NextConfig } from 'next';
 
-const repoRoot = path.resolve(__dirname, '../../..');
+const desktopDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(desktopDir, '../../..');
 const packagesRoot = path.join(repoRoot, 'packages');
 
 const nextConfig: NextConfig = {

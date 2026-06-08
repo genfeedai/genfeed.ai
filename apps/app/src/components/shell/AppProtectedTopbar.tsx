@@ -4,18 +4,13 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import { Button } from '@ui/primitives/button';
-import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
+import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import {
-  HiBars3,
-  HiOutlineCog6Tooth,
-  HiOutlineCommandLine,
-  HiXMark,
-} from 'react-icons/hi2';
+import { HiBars3, HiOutlineCommandLine, HiXMark } from 'react-icons/hi2';
 import { PiSidebarSimple } from 'react-icons/pi';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
@@ -27,9 +22,12 @@ function AppProtectedTopbarContent({
   onSidebarToggle,
   isAgentCollapsed,
   onAgentToggle,
+  currentApp,
+  orgSlug,
+  brandSlug,
 }: TopbarProps = {}) {
   const searchParams = useSearchParams();
-  const { href, orgHref } = useOrgUrl();
+  const { href } = useOrgUrl();
 
   const taskId = searchParams.get('taskId');
   const taskTitle = searchParams.get('taskTitle');
@@ -76,9 +74,16 @@ function AppProtectedTopbarContent({
             </Button>
           ) : null}
 
-          <div className="min-w-0">
-            <TopbarBreadcrumbs />
-          </div>
+          {orgSlug ? (
+            <div className="min-w-0">
+              <AppSwitcher
+                variant="labeled"
+                currentApp={currentApp ?? 'workspace'}
+                orgSlug={orgSlug}
+                brandSlug={brandSlug}
+              />
+            </div>
+          ) : null}
         </div>
 
         <div className="flex min-w-0 items-center gap-1.5">
@@ -122,14 +127,6 @@ function AppProtectedTopbarContent({
           <CloudSyncIndicator />
 
           <TopbarCreditsBar />
-
-          <Link
-            href={orgHref('/settings')}
-            className="inline-flex size-7 items-center justify-center rounded-md bg-transparent text-foreground/56 transition-colors hover:bg-hover hover:text-foreground"
-            title="Settings"
-          >
-            <HiOutlineCog6Tooth className="size-4" />
-          </Link>
 
           <TopbarEnd />
         </div>

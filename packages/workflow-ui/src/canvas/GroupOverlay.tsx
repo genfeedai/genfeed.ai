@@ -287,6 +287,7 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
             onChange={(e) => setDraftName(e.target.value)}
             onBlur={handleNameSubmit}
             onKeyDown={handleKeyDown}
+            aria-label="Group name"
             className={clsx(
               'flex-1 bg-transparent border-none outline-none text-sm font-medium px-0 py-0',
               colors.text,

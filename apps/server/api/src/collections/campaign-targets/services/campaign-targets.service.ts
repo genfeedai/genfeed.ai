@@ -4,6 +4,7 @@ import type { CampaignTargetDocument } from '@api/collections/campaign-targets/s
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { CampaignSkipReason, CampaignTargetStatus } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -11,7 +12,8 @@ import { Injectable } from '@nestjs/common';
 export class CampaignTargetsService extends BaseService<
   CampaignTargetDocument,
   CreateCampaignTargetDto,
-  UpdateCampaignTargetDto
+  UpdateCampaignTargetDto,
+  Prisma.CampaignTargetWhereInput
 > {
   constructor(
     public readonly prisma: PrismaService,

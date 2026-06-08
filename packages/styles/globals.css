@@ -119,6 +119,58 @@
   --ship-done: #7c3aed;
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+   Studio app token unification.
+   Clone the ShipCode palette onto the shadcn HSL semantic vars, scoped to the
+   studio app body (apps/app sets `gf-studio-app`). This collapses the two
+   drifting colour systems (ship-* hex vs shadcn HSL) into one ShipCode-sourced
+   set, so in-tree surfaces (Card, gen-shell, bg-background) AND body-level
+   portals (Radix Dialog/Dropdown/Select/Tooltip render to document.body) match.
+   The marketing site shares the `gf-app` class but never carries
+   `gf-studio-app`, so it is unaffected. Unlayered → wins over web-tokens.css
+   @layer base regardless of specificity.
+   ────────────────────────────────────────────────────────────────────────── */
+body.gf-studio-app {
+  --background: 210 17% 2%; /* #050607 bg-primary */
+  --background-secondary: 225 14% 5%; /* #0c0d10 bg-secondary (sidebar plane) */
+  --background-tertiary: 216 12% 8%; /* #131518 bg-tertiary */
+  --foreground: 240 6% 96%; /* #f4f4f5 text-primary */
+  --card: 216 12% 8%; /* #131518 — one elevation step above the sidebar plane */
+  --card-foreground: 240 6% 96%;
+  --popover: 223 12% 12%; /* #1a1c21 bg-elevated */
+  --popover-foreground: 240 6% 96%;
+  --secondary: 216 12% 8%; /* #131518 */
+  --secondary-foreground: 240 6% 96%;
+  --muted: 216 12% 8%; /* #131518 */
+  --muted-foreground: 240 6% 45%; /* #6b6b78 text-muted */
+  --accent: 222 14% 15%; /* #20232a bg-hover (shadcn hover/selected surface) */
+  --accent-foreground: 240 6% 96%;
+  --border: 210 3% 12%; /* #1e1f20 ≈ rgba(255,255,255,0.1) on #050607 */
+  --border-strong: 225 4% 19%; /* #2f3033 */
+  --input: 210 3% 12%;
+  letter-spacing: -0.01em;
+}
+
+[data-theme="light"] body.gf-studio-app {
+  --background: 41 28% 95%; /* #f6f4ef parchment */
+  --background-secondary: 39 30% 91%; /* #efeae1 */
+  --background-tertiary: 38 28% 87%; /* #e6dfd3 */
+  --foreground: 240 6% 10%; /* #18181b */
+  --card: 45 44% 98%; /* #fbfaf7 bg-elevated (lightest layer in parchment) */
+  --card-foreground: 240 6% 10%;
+  --popover: 45 44% 98%; /* #fbfaf7 */
+  --popover-foreground: 240 6% 10%;
+  --secondary: 38 28% 87%; /* #e6dfd3 */
+  --secondary-foreground: 240 6% 10%;
+  --muted: 38 28% 87%;
+  --muted-foreground: 33 10% 38%; /* darker than ShipCode #8a8175 → WCAG AA on parchment */
+  --accent: 38 28% 81%; /* #ddd3c2 bg-hover */
+  --accent-foreground: 240 6% 10%;
+  --border: 39 20% 81%; /* ≈ rgba(28,25,23,0.1) on parchment */
+  --border-strong: 41 20% 72%;
+  --input: 39 20% 81%;
+}
+
 /* Shadow utilities — inset containment borders matching ShipCode/Linear */
 @utility shadow-border {
   box-shadow: inset 0 0 0 1px hsl(var(--border));

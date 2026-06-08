@@ -7,7 +7,8 @@ import {
   createContext,
   type HTMLAttributes,
   type ReactNode,
-  useContext,
+  use,
+  useMemo,
 } from 'react';
 import { cn } from '../../lib/utils';
 
@@ -57,7 +58,7 @@ interface ModalContextValue {
 
 const ModalContext = createContext<ModalContextValue>({ size: 'md' });
 
-const useModalContext = () => useContext(ModalContext);
+const useModalContext = () => use(ModalContext);
 
 // Root
 const ModalRoot = DialogPrimitive.Root;
@@ -104,10 +105,12 @@ function ModalContent({
   showCloseButton = true,
   ...props
 }: ModalContentProps) {
+  const modalContextValue = useMemo(() => ({ size }), [size]);
+
   return (
     <ModalPortal>
       <ModalOverlay />
-      <ModalContext.Provider value={{ size }}>
+      <ModalContext.Provider value={modalContextValue}>
         <DialogPrimitive.Content
           ref={ref}
           aria-describedby={props['aria-describedby'] ?? undefined}
@@ -256,23 +259,17 @@ ModalFooter.displayName = 'Modal.Footer';
 const ModalCloseButton = DialogPrimitive.Close;
 ModalCloseButton.displayName = 'Modal.CloseButton';
 
-/**
- * Compound Modal export
- *
- * Usage: Modal.Root, Modal.Content, Modal.Header, etc.
- */
-export const Modal = {
-  Body: ModalBody,
-  CloseButton: ModalCloseButton,
-  Content: ModalContent,
-  Description: ModalDescription,
-  Footer: ModalFooter,
-  Header: ModalHeader,
-  Overlay: ModalOverlay,
-  Portal: ModalPortal,
-  Root: ModalRoot,
-  Title: ModalTitle,
-  Trigger: ModalTrigger,
-};
-
 export type { ModalBodyProps, ModalContentProps, ModalSize };
+export {
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalDescription,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+  ModalPortal,
+  ModalRoot,
+  ModalTitle,
+  ModalTrigger,
+};

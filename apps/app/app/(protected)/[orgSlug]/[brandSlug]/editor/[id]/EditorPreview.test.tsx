@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { EditorTrackType } from '@genfeedai/enums';
 import { act, render, screen } from '@testing-library/react';
 import { createRef, type ReactNode } from 'react';

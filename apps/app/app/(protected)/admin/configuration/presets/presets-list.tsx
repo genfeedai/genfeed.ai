@@ -3,7 +3,6 @@
 import { useAuth } from '@clerk/nextjs';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/enums';
-import type { IOrganization } from '@genfeedai/interfaces';
 import type { IElementContentProps } from '@genfeedai/interfaces/ui/elements-content.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -16,10 +15,8 @@ import { PresetsService } from '@services/elements/presets.service';
 import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
-import { LazyModalPreset } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
@@ -33,6 +30,14 @@ import {
   useState,
 } from 'react';
 import { HiPencil, HiPlus, HiTrash } from 'react-icons/hi2';
+import {
+  PresetCategoryCell,
+  PresetDefaultsCell,
+  PresetDescriptionCell,
+  PresetLabelCell,
+  PresetOrganizationCell,
+} from './presets-list-columns';
+import PresetsListModals from './presets-list-modals';
 
 function PresetsListContent({
   scope = PageScope.BRAND,
@@ -169,130 +174,6 @@ function PresetsListContent({
     onRefreshingChangeRef.current?.(isRefreshing);
   }, [isRefreshing]);
 
-  const columns: TableColumn<Preset>[] = [
-    {
-      header: 'Label',
-      key: 'label',
-      render: (preset: Preset) => (
-        <div className="max-w-40 overflow-hidden break-words whitespace-pre-line line-clamp-1">
-          {preset.label || '-'}
-        </div>
-      ),
-    },
-    {
-      header: 'Description',
-      key: 'description',
-      render: (preset: Preset) => (
-        <div className="max-w-40 overflow-hidden break-words whitespace-pre-line line-clamp-2">
-          {preset.description || '-'}
-        </div>
-      ),
-    },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
-    {
-      header: 'Organization',
-      key: 'organization',
-      render: (preset: Preset) => {
-        const organization = preset.organization as IOrganization;
-        const orgLabel = organization.label || 'Genfeed.ai';
-        const isOrgPreset = !!organization.label;
-
-        return (
-          <Badge
-            className={`text-xs border border-white/[0.08] bg-transparent uppercase ${
-              isOrgPreset ? 'text-primary' : 'text-warning'
-            }`}
-          >
-            {orgLabel}
-          </Badge>
-        );
-      },
-    },
-    {
-      header: 'Category',
-      key: 'category',
-      render: (preset: Preset) => (
-        <Badge className="text-xs border border-white/[0.08] bg-transparent uppercase">
-          {preset.category}
-        </Badge>
-      ),
-    },
-    {
-      header: 'Default Values',
-      key: 'defaults',
-      render: (preset: Preset) => {
-        const defaults = [];
-        if (preset.defaultCamera) {
-          defaults.push(`Camera: ${preset.defaultCamera}`);
-        }
-        if (preset.defaultScene) {
-          defaults.push(`Scene: ${preset.defaultScene}`);
-        }
-        if (preset.defaultStyle) {
-          defaults.push(`Style: ${preset.defaultStyle}`);
-        }
-        if (preset.defaultMoods?.length) {
-          defaults.push(`Moods: ${preset.defaultMoods.join(', ')}`);
-        }
-        if (preset.defaultBlacklists?.length) {
-          defaults.push(`Blacklists: ${preset.defaultBlacklists.join(', ')}`);
-        }
-
-        return defaults.length > 0 ? (
-          <div className="flex flex-col gap-2 text-xs">
-            {defaults.map((def) => (
-              <Badge
-                key={def}
-                className="text-[10px] border border-white/[0.08] bg-transparent font-mono"
-              >
-                {def}
-              </Badge>
-            ))}
-          </div>
-        ) : (
-          '-'
-        );
-      },
-    },
-    {
-      header: 'Active',
-      key: 'isActive',
-      render: (preset: Preset) => (
-        <Switch
-          isChecked={preset.isActive}
-          onChange={() => handleToggleActive(preset)}
-          isDisabled={scope !== PageScope.SUPERADMIN}
-        />
-      ),
-    },
-  ];
-
-  const actions =
-    scope === PageScope.SUPERADMIN
-      ? [
-          {
-            icon: <HiPencil />,
-            onClick: (preset: Preset) =>
-              openPresetModal(ModalEnum.PRESET, preset),
-            tooltip: 'Edit',
-          },
-          {
-            icon: <HiTrash />,
-            onClick: (preset: Preset) => {
-              setSelectedPreset(preset);
-              openConfirm({
-                confirmLabel: 'Delete',
-                isError: true,
-                label: 'Delete Preset',
-                message: `Are you sure you want to delete "${preset.label}"? This action cannot be undone.`,
-                onConfirm: () => handleDelete(preset),
-              });
-            },
-            tooltip: 'Delete',
-          },
-        ]
-      : [];
-
   const openPresetModal = (modalId: ModalEnum, preset?: Preset) => {
     setSelectedPreset(preset || null);
     openModal(modalId);
@@ -334,6 +215,72 @@ function PresetsListContent({
     }
   };
 
+  const columns: TableColumn<Preset>[] = [
+    {
+      header: 'Label',
+      key: 'label',
+      render: (preset: Preset) => <PresetLabelCell preset={preset} />,
+    },
+    {
+      header: 'Description',
+      key: 'description',
+      render: (preset: Preset) => <PresetDescriptionCell preset={preset} />,
+    },
+    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      header: 'Organization',
+      key: 'organization',
+      render: (preset: Preset) => <PresetOrganizationCell preset={preset} />,
+    },
+    {
+      header: 'Category',
+      key: 'category',
+      render: (preset: Preset) => <PresetCategoryCell preset={preset} />,
+    },
+    {
+      header: 'Default Values',
+      key: 'defaults',
+      render: (preset: Preset) => <PresetDefaultsCell preset={preset} />,
+    },
+    {
+      header: 'Active',
+      key: 'isActive',
+      render: (preset: Preset) => (
+        <Switch
+          isChecked={preset.isActive}
+          onChange={() => handleToggleActive(preset)}
+          isDisabled={scope !== PageScope.SUPERADMIN}
+        />
+      ),
+    },
+  ];
+
+  const actions =
+    scope === PageScope.SUPERADMIN
+      ? [
+          {
+            icon: <HiPencil />,
+            onClick: (preset: Preset) =>
+              openPresetModal(ModalEnum.PRESET, preset),
+            tooltip: 'Edit',
+          },
+          {
+            icon: <HiTrash />,
+            onClick: (preset: Preset) => {
+              setSelectedPreset(preset);
+              openConfirm({
+                confirmLabel: 'Delete',
+                isError: true,
+                label: 'Delete Preset',
+                message: `Are you sure you want to delete "${preset.label}"? This action cannot be undone.`,
+                onConfirm: () => handleDelete(preset),
+              });
+            },
+            tooltip: 'Delete',
+          },
+        ]
+      : [];
+
   return (
     <Container
       right={
@@ -374,16 +321,15 @@ function PresetsListContent({
         emptyLabel="No presets found"
       />
 
-      {scope === PageScope.SUPERADMIN && (
-        <LazyModalPreset
-          item={selectedPreset}
-          onClose={() => setSelectedPreset(null)}
-          onConfirm={() => {
-            setSelectedPreset(null);
-            refreshPresets();
-          }}
-        />
-      )}
+      <PresetsListModals
+        scope={scope}
+        selectedPreset={selectedPreset}
+        onClose={() => setSelectedPreset(null)}
+        onConfirm={() => {
+          setSelectedPreset(null);
+          refreshPresets();
+        }}
+      />
 
       <div className="mt-4">
         <AutoPagination showTotal totalLabel="presets" />

@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { AgentExecutionStatus } from '@genfeedai/enums';
 import type { IAgentRun } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';

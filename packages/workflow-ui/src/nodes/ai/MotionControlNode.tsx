@@ -307,6 +307,7 @@ function MotionOutputPreview({
     <div className="relative">
       <video
         src={outputVideo}
+        aria-label="Motion-controlled video output"
         className="w-full h-20 object-cover rounded cursor-pointer"
         controls
       >

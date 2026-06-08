@@ -3,8 +3,8 @@
 import { ChevronRight } from 'lucide-react';
 import { type ReactNode, useCallback, useRef, useState } from 'react';
 import { Button } from '../../ui/button';
-import type { ContextMenuItemConfig } from './ContextMenu';
 import { ContextMenuSeparator } from './ContextMenuSeparator';
+import type { ContextMenuItemConfig } from './context-menu-config';
 
 export interface ContextMenuItemProps {
   id: string;

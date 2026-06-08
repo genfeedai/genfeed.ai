@@ -1,18 +1,10 @@
 'use client';
 
 import { AgentType, ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import {
-  DefinitionDetail,
-  DefinitionList,
-  DefinitionTerm,
-} from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentRuns } from '@hooks/data/agent-runs/use-agent-runs';
 import { useAgentStrategy } from '@hooks/data/agent-strategies/use-agent-strategy';
-import type {
-  AgentDetailPageProps,
-  AgentRunRowProps,
-} from '@props/automation/agent-strategy.props';
+import type { AgentDetailPageProps } from '@props/automation/agent-strategy.props';
 import {
   AgentStrategiesService,
   type AgentStrategyOpportunity,
@@ -21,27 +13,15 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import Badge from '@ui/display/badge/Badge';
-import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ui/primitives/table';
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useMemo, useState } from 'react';
 import { FaLinkedin, FaXTwitter, FaYoutube } from 'react-icons/fa6';
 import {
   HiArrowLeft,
-  HiChevronDown,
-  HiChevronRight,
   HiOutlineBolt,
   HiOutlineCpuChip,
   HiOutlineDocumentText,
@@ -52,11 +32,8 @@ import {
   HiOutlineUser,
   HiOutlineVideoCamera,
 } from 'react-icons/hi2';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-
-const AgentRunContentGrid = dynamic(() => import('./AgentRunContentGrid'), {
-  ssr: false,
-});
+import AgentOpportunityPanel from './AgentOpportunityPanel';
+import AgentRunHistorySection from './AgentRunHistorySection';
 
 const AGENT_TYPE_LABELS: Record<AgentType, string> = {
   [AgentType.GENERAL]: 'General',
@@ -85,38 +62,6 @@ const AGENT_TYPE_ICONS: Record<AgentType, React.ReactNode> = {
   [AgentType.CTA_CONTENT]: <HiOutlineSparkles className="size-5" />,
   [AgentType.YOUTUBE_SCRIPT]: <FaYoutube className="size-4" />,
 };
-
-const RUN_STATUS_VARIANTS: Record<
-  string,
-  'success' | 'warning' | 'error' | 'secondary'
-> = {
-  budget_exhausted: 'warning',
-  completed: 'success',
-  failed: 'error',
-  pending: 'secondary',
-  running: 'warning',
-};
-
-function getRunMetadataString(
-  metadata: Record<string, unknown> | undefined,
-  key: string,
-): string | undefined {
-  const value = metadata?.[key];
-  return typeof value === 'string' && value.trim().length > 0
-    ? value
-    : undefined;
-}
-
-function getRunModelLabel(run: AgentRunRowProps['run']): string {
-  const actualModel = getRunMetadataString(run.metadata, 'actualModel');
-  const requestedModel = getRunMetadataString(run.metadata, 'requestedModel');
-
-  if (actualModel && requestedModel && actualModel !== requestedModel) {
-    return `${actualModel} via ${requestedModel}`;
-  }
-
-  return actualModel ?? requestedModel ?? 'Untracked';
-}
 
 function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   const notificationsService = NotificationsService.getInstance();
@@ -306,204 +251,21 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
         />
 
         {requestedOpportunityId && (
-          <InsetSurface className="p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-sm font-medium text-foreground">
-                  Review context
-                </h3>
-                <p className="mt-1 text-sm text-foreground/55">
-                  Opened from the publishing inbox with autopilot opportunity
-                  context.
-                </p>
-              </div>
-              <Badge variant="secondary">
-                {selectedOpportunity?.sourceType ?? 'Loading'}
-              </Badge>
-            </div>
-
-            <DefinitionList
-              variant="grid"
-              className="mt-4 gap-3 text-sm md:grid-cols-2"
-            >
-              <InsetSurface className="p-3" density="compact" tone="contrast">
-                <DefinitionTerm>Opportunity</DefinitionTerm>
-                <DefinitionDetail
-                  variant="inline"
-                  className="mt-1 text-foreground/85"
-                >
-                  {selectedOpportunity?.topic ??
-                    (isOpportunitiesLoading
-                      ? 'Loading opportunity...'
-                      : requestedOpportunityId)}
-                </DefinitionDetail>
-              </InsetSurface>
-              <InsetSurface className="p-3" density="compact" tone="contrast">
-                <DefinitionTerm>Status</DefinitionTerm>
-                <DefinitionDetail
-                  variant="inline"
-                  className="mt-1 capitalize text-foreground/85"
-                >
-                  {selectedOpportunity?.status ??
-                    (isOpportunitiesLoading ? 'Loading' : 'Unavailable')}
-                </DefinitionDetail>
-              </InsetSurface>
-              <InsetSurface className="p-3" density="compact" tone="contrast">
-                <DefinitionTerm>Reason</DefinitionTerm>
-                <DefinitionDetail
-                  variant="inline"
-                  className="mt-1 text-foreground/85"
-                >
-                  {selectedOpportunity?.decisionReason ?? 'Not recorded'}
-                </DefinitionDetail>
-              </InsetSurface>
-              <InsetSurface className="p-3" density="compact" tone="contrast">
-                <DefinitionTerm>Expected traffic</DefinitionTerm>
-                <DefinitionDetail
-                  variant="inline"
-                  className="mt-1 text-foreground/85"
-                >
-                  {selectedOpportunity?.expectedTrafficScore ?? 'Not recorded'}
-                </DefinitionDetail>
-              </InsetSurface>
-            </DefinitionList>
-          </InsetSurface>
+          <AgentOpportunityPanel
+            requestedOpportunityId={requestedOpportunityId}
+            selectedOpportunity={selectedOpportunity}
+            isOpportunitiesLoading={isOpportunitiesLoading}
+          />
         )}
 
-        <div>
-          <h3 className="mb-3 text-sm font-medium text-foreground/70">
-            Run History (last 20)
-          </h3>
-          {isRunsLoading ? (
-            <div className="space-y-2">
-              {[
-                'run-history-skeleton-1',
-                'run-history-skeleton-2',
-                'run-history-skeleton-3',
-              ].map((skeletonId) => (
-                <div
-                  key={skeletonId}
-                  className="h-12 animate-pulse rounded bg-foreground/5"
-                />
-              ))}
-            </div>
-          ) : recentRuns.length === 0 ? (
-            <p className="py-8 text-center text-sm text-foreground/40">
-              No runs yet
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table className="w-full caption-bottom text-sm">
-                <TableHeader>
-                  <TableRow className="border-b border-white/5">
-                    <TableHead className="h-12 w-10 px-2 text-left" />
-                    <TableHead className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
-                      Status
-                    </TableHead>
-                    <TableHead className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
-                      Credits
-                    </TableHead>
-                    <TableHead className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
-                      Model
-                    </TableHead>
-                    <TableHead className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
-                      Duration
-                    </TableHead>
-                    <TableHead className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
-                      Started
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentRuns.map((run) => {
-                    const isExpanded = expandedRunId === run.id;
-                    return (
-                      <RunRow
-                        key={run.id}
-                        run={run}
-                        isExpanded={isExpanded}
-                        onToggle={handleToggleExpand}
-                      />
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </div>
+        <AgentRunHistorySection
+          isRunsLoading={isRunsLoading}
+          recentRuns={recentRuns}
+          expandedRunId={expandedRunId}
+          onToggleExpand={handleToggleExpand}
+        />
       </div>
     </Container>
-  );
-}
-
-function RunRow({ run, isExpanded, onToggle }: AgentRunRowProps) {
-  return (
-    <>
-      <TableRow
-        className="cursor-pointer border-b border-white/5 transition-all duration-200 hover:bg-white/[0.02]"
-        onClick={() => onToggle(run.id)}
-      >
-        <TableCell className="px-2 py-4 align-middle">
-          {isExpanded ? (
-            <HiChevronDown className="size-4 text-foreground/40" />
-          ) : (
-            <HiChevronRight className="size-4 text-foreground/40" />
-          )}
-        </TableCell>
-        <TableCell className="p-4 align-middle">
-          <Badge variant={RUN_STATUS_VARIANTS[run.status] ?? 'secondary'}>
-            {run.status}
-          </Badge>
-        </TableCell>
-        <TableCell className="p-4 align-middle text-sm">
-          {run.creditsUsed ?? 0}
-        </TableCell>
-        <TableCell
-          className="max-w-[18rem] p-4 align-middle text-sm text-foreground/60"
-          title={getRunModelLabel(run)}
-        >
-          <span className="block truncate">{getRunModelLabel(run)}</span>
-        </TableCell>
-        <TableCell className="p-4 align-middle text-sm text-foreground/60">
-          {run.durationMs ? `${Math.round(run.durationMs / 1000)}s` : '\u2014'}
-        </TableCell>
-        <TableCell className="p-4 align-middle text-sm text-foreground/60">
-          {run.startedAt ? (
-            <ClientFormattedDate format="relative" value={run.startedAt} />
-          ) : (
-            '\u2014'
-          )}
-        </TableCell>
-      </TableRow>
-      {isExpanded && (
-        <TableRow>
-          <TableCell
-            colSpan={6}
-            className="border-b border-white/5 bg-foreground/[0.02]"
-          >
-            <div className="space-y-4 p-4">
-              <div className="flex flex-wrap gap-2 text-xs text-foreground/65">
-                <span className="rounded border border-white/10 bg-black/20 px-2 py-1">
-                  Model: {getRunModelLabel(run)}
-                </span>
-                {getRunMetadataString(run.metadata, 'routingPolicy') && (
-                  <span className="rounded border border-white/10 bg-black/20 px-2 py-1">
-                    Routing:{' '}
-                    {getRunMetadataString(run.metadata, 'routingPolicy')}
-                  </span>
-                )}
-                {run.metadata?.webSearchEnabled === true && (
-                  <span className="rounded border border-white/10 bg-black/20 px-2 py-1">
-                    Web enabled
-                  </span>
-                )}
-              </div>
-              <AgentRunContentGrid runId={run.id} />
-            </div>
-          </TableCell>
-        </TableRow>
-      )}
-    </>
   );
 }
 

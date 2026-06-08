@@ -1,6 +1,6 @@
 import type { PromptBarInternalContextValue } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { render } from '@testing-library/react';
 import PromptBarExpandedView from '@ui/prompt-bars/components/expanded-view/PromptBarExpandedView';
 import type { ReactElement } from 'react';

@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { render } from '@testing-library/react';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import { describe, expect, it } from 'vitest';

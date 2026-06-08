@@ -22,7 +22,7 @@ import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { type ChangeEvent, useEffect, useState } from 'react';
+import { type ChangeEvent, useState } from 'react';
 
 const AVAILABLE_TASKS = [
   { label: 'Publish to Instagram', value: 'publish:instagram' },
@@ -69,10 +69,6 @@ export default function ModalWorkflow({
     item?.tasks || [],
   );
 
-  useEffect(() => {
-    form.setValue('tasks', selectedTasks, { shouldValidate: true });
-  }, [selectedTasks, form]);
-
   const updateModalWorkflow = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
@@ -90,15 +86,21 @@ export default function ModalWorkflow({
   };
 
   const handleTaskToggle = (taskValue: string) => {
-    setSelectedTasks((prev) =>
-      prev.includes(taskValue)
+    setSelectedTasks((prev) => {
+      const next = prev.includes(taskValue)
         ? prev.filter((t) => t !== taskValue)
-        : [...prev, taskValue],
-    );
+        : [...prev, taskValue];
+      form.setValue('tasks', next, { shouldValidate: true });
+      return next;
+    });
   };
 
   const handleRemoveTask = (taskValue: string) => {
-    setSelectedTasks((prev) => prev.filter((t) => t !== taskValue));
+    setSelectedTasks((prev) => {
+      const next = prev.filter((t) => t !== taskValue);
+      form.setValue('tasks', next, { shouldValidate: true });
+      return next;
+    });
   };
 
   return (

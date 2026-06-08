@@ -59,6 +59,28 @@ vi.mock('@genfeedai/models/ingredients/asset.model', () => ({
 describe('AssetsService', () => {
   let service: AssetsService;
   const mockToken = 'test-token-123';
+  const buildUploadResponse = (
+    attributes: Record<string, unknown> = { name: 'test.jpg' },
+    id = 'asset-123',
+  ) => ({
+    data: {
+      data: {
+        attributes,
+        id,
+        type: 'assets',
+      },
+    },
+  });
+
+  const mockUploadPost = (
+    post: AxiosInstance['post'],
+  ): ReturnType<typeof vi.fn> => {
+    const mockPost = vi.fn(post);
+    service.instance = {
+      post: mockPost,
+    } as Partial<AxiosInstance> as AxiosInstance;
+    return mockPost;
+  };
 
   beforeEach(() => {
     service = new AssetsService(mockToken);
@@ -118,27 +140,14 @@ describe('AssetsService', () => {
     });
 
     it('should track upload progress', async () => {
-      const mockResponse = {
-        data: {
-          data: {
-            attributes: { name: 'test.jpg' },
-            id: 'asset-123',
-            type: 'assets',
-          },
-        },
-      };
       const progressCallback = vi.fn();
 
-      const mockPost = vi.fn((_url, _data, config) => {
+      mockUploadPost((_url, _data, config) => {
         // Simulate progress events
         config.onUploadProgress({ loaded: 50, total: 100 });
         config.onUploadProgress({ loaded: 100, total: 100 });
-        return Promise.resolve(mockResponse);
+        return Promise.resolve(buildUploadResponse());
       });
-
-      service.instance = {
-        post: mockPost,
-      } as Partial<AxiosInstance> as AxiosInstance;
 
       const formData = new FormData();
       await service.postUpload(formData, progressCallback);
@@ -149,25 +158,11 @@ describe('AssetsService', () => {
     });
 
     it('should handle upload without progress callback', async () => {
-      const mockResponse = {
-        data: {
-          data: {
-            attributes: { name: 'test.jpg' },
-            id: 'asset-123',
-            type: 'assets',
-          },
-        },
-      };
-
-      const mockPost = vi.fn((_url, _data, config) => {
+      const mockPost = mockUploadPost((_url, _data, config) => {
         // Call onUploadProgress without callback
         config.onUploadProgress({ loaded: 50, total: 100 });
-        return Promise.resolve(mockResponse);
+        return Promise.resolve(buildUploadResponse());
       });
-
-      service.instance = {
-        post: mockPost,
-      } as Partial<AxiosInstance> as AxiosInstance;
 
       const formData = new FormData();
       const result = await service.postUpload(formData);
@@ -177,26 +172,13 @@ describe('AssetsService', () => {
     });
 
     it('should handle progress with undefined total', async () => {
-      const mockResponse = {
-        data: {
-          data: {
-            attributes: { name: 'test.jpg' },
-            id: 'asset-123',
-            type: 'assets',
-          },
-        },
-      };
       const progressCallback = vi.fn();
 
-      const mockPost = vi.fn((_url, _data, config) => {
+      mockUploadPost((_url, _data, config) => {
         // Simulate progress event with undefined total
         config.onUploadProgress({ loaded: 50, total: undefined });
-        return Promise.resolve(mockResponse);
+        return Promise.resolve(buildUploadResponse());
       });
-
-      service.instance = {
-        post: mockPost,
-      } as Partial<AxiosInstance> as AxiosInstance;
 
       const formData = new FormData();
       await service.postUpload(formData, progressCallback);
@@ -206,25 +188,12 @@ describe('AssetsService', () => {
     });
 
     it('should handle progress with zero total', async () => {
-      const mockResponse = {
-        data: {
-          data: {
-            attributes: { name: 'test.jpg' },
-            id: 'asset-123',
-            type: 'assets',
-          },
-        },
-      };
       const progressCallback = vi.fn();
 
-      const mockPost = vi.fn((_url, _data, config) => {
+      mockUploadPost((_url, _data, config) => {
         config.onUploadProgress({ loaded: 50, total: 0 });
-        return Promise.resolve(mockResponse);
+        return Promise.resolve(buildUploadResponse());
       });
-
-      service.instance = {
-        post: mockPost,
-      } as Partial<AxiosInstance> as AxiosInstance;
 
       const formData = new FormData();
       await service.postUpload(formData, progressCallback);
@@ -249,20 +218,9 @@ describe('AssetsService', () => {
     });
 
     it('should use correct timeout for uploads', async () => {
-      const mockResponse = {
-        data: {
-          data: {
-            attributes: { name: 'test.jpg' },
-            id: 'asset-123',
-            type: 'assets',
-          },
-        },
-      };
-      const mockPost = vi.fn().mockResolvedValue(mockResponse);
-
-      service.instance = {
-        post: mockPost,
-      } as Partial<AxiosInstance> as AxiosInstance;
+      const mockPost = mockUploadPost(() =>
+        Promise.resolve(buildUploadResponse()),
+      );
 
       const formData = new FormData();
       await service.postUpload(formData);
@@ -277,24 +235,14 @@ describe('AssetsService', () => {
     });
 
     it('should deserialize response correctly', async () => {
-      const mockResponse = {
-        data: {
-          data: {
-            attributes: {
-              fileName: 'test.jpg',
-              fileUrl: 'https://cdn.test.com/test.jpg',
-            },
-            id: 'asset-123',
-            type: 'assets',
-          },
-        },
-      };
-
-      const mockPost = vi.fn().mockResolvedValue(mockResponse);
-
-      service.instance = {
-        post: mockPost,
-      } as Partial<AxiosInstance> as AxiosInstance;
+      mockUploadPost(() =>
+        Promise.resolve(
+          buildUploadResponse({
+            fileName: 'test.jpg',
+            fileUrl: 'https://cdn.test.com/test.jpg',
+          }),
+        ),
+      );
 
       const formData = new FormData();
       const result = await service.postUpload(formData);
@@ -305,28 +253,17 @@ describe('AssetsService', () => {
     });
 
     it('should handle large file uploads', async () => {
-      const mockResponse = {
-        data: {
-          data: {
-            attributes: { name: 'large.jpg' },
-            id: 'asset-large',
-            type: 'assets',
-          },
-        },
-      };
       const progressCallback = vi.fn();
 
-      const mockPost = vi.fn((_url, _data, config) => {
+      mockUploadPost((_url, _data, config) => {
         // Simulate large file upload progress
         config.onUploadProgress({ loaded: 1000000, total: 10000000 }); // 10%
         config.onUploadProgress({ loaded: 5000000, total: 10000000 }); // 50%
         config.onUploadProgress({ loaded: 10000000, total: 10000000 }); // 100%
-        return Promise.resolve(mockResponse);
+        return Promise.resolve(
+          buildUploadResponse({ name: 'large.jpg' }, 'asset-large'),
+        );
       });
-
-      service.instance = {
-        post: mockPost,
-      } as Partial<AxiosInstance> as AxiosInstance;
 
       const formData = new FormData();
       const largeBlob = new Blob([new ArrayBuffer(10000000)]);
@@ -340,20 +277,11 @@ describe('AssetsService', () => {
     });
 
     it('should handle multiple file uploads', async () => {
-      const mockResponse = {
-        data: {
-          data: {
-            attributes: { name: 'multi.jpg' },
-            id: 'multi-asset',
-            type: 'assets',
-          },
-        },
-      };
-      const mockPost = vi.fn().mockResolvedValue(mockResponse);
-
-      service.instance = {
-        post: mockPost,
-      } as Partial<AxiosInstance> as AxiosInstance;
+      const mockPost = mockUploadPost(() =>
+        Promise.resolve(
+          buildUploadResponse({ name: 'multi.jpg' }, 'multi-asset'),
+        ),
+      );
 
       const formData = new FormData();
       formData.append('files', new Blob(['file1']), 'file1.jpg');

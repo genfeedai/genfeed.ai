@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { fireEvent, render } from '@testing-library/react';
 import AINode from '@ui/workflow-builder/nodes/AINode';
 import type { ComponentProps, ComponentPropsWithoutRef } from 'react';

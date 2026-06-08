@@ -29,7 +29,7 @@ import type {
 } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 import { CostModal } from '../components/CostModal';
-import { ContextMenu } from '../components/context-menu';
+import { ContextMenu } from '../components/context-menu/ContextMenu';
 import { GlobalImageHistory } from '../components/GlobalImageHistory';
 import { MultiSelectToolbar } from '../components/MultiSelectToolbar';
 import { NotificationToast } from '../components/NotificationToast';
@@ -528,14 +528,14 @@ function useWorkflowCanvasHandlers({
   }, []);
 
   const handleNodeDragStart = useCallback(
-    (_event: React.MouseEvent, node: Node) => {
+    (_event: MouseEvent | TouchEvent, node: Node) => {
       setDraggingNodeId(node.id);
     },
     [setDraggingNodeId],
   );
 
   const handleNodeDrag = useCallback(
-    (_event: React.MouseEvent, node: Node) => {
+    (_event: MouseEvent | TouchEvent, node: Node) => {
       setDraggingNodeId(node.id);
     },
     [setDraggingNodeId],

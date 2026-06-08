@@ -37,7 +37,7 @@ export interface UseOverviewBootstrapReturn {
 export function useOverviewBootstrap(
   options: UseOverviewBootstrapOptions = {},
 ): UseOverviewBootstrapReturn {
-  const { isLoaded: isAuthLoaded, isSignedIn, userId } = useAuth();
+  const { isLoaded: isAuthLoaded, isSignedIn, orgId, userId } = useAuth();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =
     isAuthLoaded || playwrightAuth?.isLoaded === true;
@@ -92,7 +92,7 @@ export function useOverviewBootstrap(
     !!initialData;
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['overview-bootstrap'],
+    queryKey: ['overview-bootstrap', effectiveUserId, orgId ?? 'no-org'],
     queryFn: async () => {
       const service = await getAuthService();
       return await service.getOverviewBootstrap();

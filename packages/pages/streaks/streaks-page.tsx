@@ -63,7 +63,7 @@ export default function StreaksPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+        <div className="size-6 animate-spin rounded-full border-2 border-white/20 border-t-white" />
       </div>
     );
   }
@@ -112,7 +112,7 @@ export default function StreaksPage() {
             href="/studio/image"
             className="inline-flex items-center gap-2 rounded-full border border-orange-300/30 bg-orange-400/10 px-4 py-2 text-sm font-medium text-orange-100 transition-colors hover:bg-orange-400/15"
           >
-            <HiOutlineSparkles className="h-4 w-4" />
+            <HiOutlineSparkles className="size-4" />
             Create content now
           </Link>
         </div>
@@ -191,7 +191,7 @@ export default function StreaksPage() {
                   key={milestone}
                   variant="success"
                 >
-                  <HiOutlineGift className="h-3.5 w-3.5" />
+                  <HiOutlineGift className="size-3.5" />
                   {milestone}-day badge
                 </Badge>
               ))
@@ -222,11 +222,11 @@ export default function StreaksPage() {
                         {milestone.days} days
                       </span>
                       {milestone.days === 7 ? (
-                        <HiOutlineShieldCheck className="h-4 w-4 text-sky-300" />
+                        <HiOutlineShieldCheck className="size-4 text-sky-300" />
                       ) : milestone.rewardCredits > 0 ? (
-                        <HiOutlineGift className="h-4 w-4 text-emerald-300" />
+                        <HiOutlineGift className="size-4 text-emerald-300" />
                       ) : (
-                        <HiOutlineFire className="h-4 w-4 text-orange-300" />
+                        <HiOutlineFire className="size-4 text-orange-300" />
                       )}
                     </div>
                     <p className="mt-1 text-sm text-foreground/65">

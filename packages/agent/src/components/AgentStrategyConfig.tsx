@@ -2,17 +2,8 @@ import type { AgentStrategy } from '@genfeedai/agent/models/agent-strategy.model
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
 import {
   type ReactElement,
   useCallback,
@@ -20,46 +11,15 @@ import {
   useRef,
   useState,
 } from 'react';
+import { AgentStrategyBudgetSection } from './AgentStrategyBudgetSection';
+import { AgentStrategyContentSection } from './AgentStrategyContentSection';
+import { AgentStrategyEngagementSection } from './AgentStrategyEngagementSection';
+import { AgentStrategyHeader } from './AgentStrategyHeader';
+import { AgentStrategyScheduleSection } from './AgentStrategyScheduleSection';
 
 interface AgentStrategyConfigProps {
   apiService: AgentStrategyApiService;
 }
-
-const PLATFORM_OPTIONS = [
-  'instagram',
-  'twitter',
-  'linkedin',
-  'tiktok',
-  'facebook',
-  'youtube',
-];
-
-const RUN_FREQUENCY_OPTIONS = [
-  { label: 'Every 6 hours', value: 'every_6_hours' },
-  { label: 'Twice daily', value: 'twice_daily' },
-  { label: 'Daily', value: 'daily' },
-];
-
-const TONE_OPTIONS = [
-  'friendly',
-  'professional',
-  'witty',
-  'supportive',
-  'informative',
-];
-
-const TIMEZONE_OPTIONS = [
-  'America/New_York',
-  'America/Chicago',
-  'America/Denver',
-  'America/Los_Angeles',
-  'Europe/London',
-  'Europe/Paris',
-  'Asia/Tokyo',
-  'Asia/Shanghai',
-  'Australia/Sydney',
-  'UTC',
-];
 
 export function AgentStrategyConfig({
   apiService,
@@ -246,381 +206,59 @@ export function AgentStrategyConfig({
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">
-            Autopilot Configuration
-          </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Configure how the AI agent creates and manages content
-            automatically.
-          </p>
-        </div>
-        {strategy && (
-          <Button
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-            onClick={async () => {
-              abortRef.current?.abort();
-              abortRef.current = new AbortController();
-              try {
-                const updated = await runAgentApiEffect(
-                  apiService.toggleStrategyEffect(
-                    strategy.id,
-                    abortRef.current.signal,
-                  ),
-                );
-                setStrategy(updated);
-              } catch {
-                // Silently ignore toggle errors
-              }
-            }}
-            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-              strategy.isActive ? 'bg-primary' : 'bg-muted'
-            }`}
-          >
-            <span
-              className={`pointer-events-none inline-block size-4 rounded-full bg-background shadow-sm transition-transform ${
-                strategy.isActive ? 'translate-x-4' : 'translate-x-0'
-              }`}
-            />
-          </Button>
-        )}
-      </div>
+      <AgentStrategyHeader
+        strategy={strategy}
+        abortRef={abortRef}
+        apiService={apiService}
+        setStrategy={setStrategy}
+      />
 
-      {/* Content Strategy */}
-      <section className="space-y-4 border border-border p-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Content Strategy
-        </h3>
+      <AgentStrategyContentSection
+        label={label}
+        setLabel={setLabel}
+        topicInput={topicInput}
+        setTopicInput={setTopicInput}
+        handleAddTopic={handleAddTopic}
+        handleRemoveTopic={handleRemoveTopic}
+        topics={topics}
+        voice={voice}
+        setVoice={setVoice}
+        platforms={platforms}
+        handleTogglePlatform={handleTogglePlatform}
+      />
 
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-foreground">Label</label>
-          <Input
-            type="text"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="e.g. Weekly lifestyle content"
-          />
-        </div>
+      <AgentStrategyScheduleSection
+        runFrequency={runFrequency}
+        setRunFrequency={setRunFrequency}
+        timezone={timezone}
+        setTimezone={setTimezone}
+        postsPerWeek={postsPerWeek}
+        setPostsPerWeek={setPostsPerWeek}
+      />
 
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-foreground">Topics</label>
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              value={topicInput}
-              onChange={(e) => setTopicInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddTopic();
-                }
-              }}
-              placeholder="Add a topic..."
-              className="flex-1"
-            />
-            <Button
-              variant={ButtonVariant.DEFAULT}
-              size={ButtonSize.SM}
-              onClick={handleAddTopic}
-            >
-              Add
-            </Button>
-          </div>
-          {topics.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {topics.map((topic) => (
-                <span
-                  key={topic}
-                  className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs text-foreground"
-                >
-                  {topic}
-                  <Button
-                    variant={ButtonVariant.GHOST}
-                    size={ButtonSize.XS}
-                    onClick={() => handleRemoveTopic(topic)}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    x
-                  </Button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
+      <AgentStrategyBudgetSection
+        dailyCreditBudget={dailyCreditBudget}
+        setDailyCreditBudget={setDailyCreditBudget}
+        weeklyCreditBudget={weeklyCreditBudget}
+        setWeeklyCreditBudget={setWeeklyCreditBudget}
+      />
 
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-foreground">Voice</label>
-          <Textarea
-            value={voice}
-            onChange={(e) => setVoice(e.target.value)}
-            placeholder="Describe your brand voice..."
-            rows={3}
-          />
-        </div>
+      <AgentStrategyEngagementSection
+        isEngagementOpen={isEngagementOpen}
+        setIsEngagementOpen={setIsEngagementOpen}
+        isEngagementEnabled={isEngagementEnabled}
+        setIsEngagementEnabled={setIsEngagementEnabled}
+        keywordInput={keywordInput}
+        setKeywordInput={setKeywordInput}
+        handleAddKeyword={handleAddKeyword}
+        handleRemoveKeyword={handleRemoveKeyword}
+        engagementKeywords={engagementKeywords}
+        engagementTone={engagementTone}
+        setEngagementTone={setEngagementTone}
+        maxEngagementsPerDay={maxEngagementsPerDay}
+        setMaxEngagementsPerDay={setMaxEngagementsPerDay}
+      />
 
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-foreground">
-            Platforms
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {PLATFORM_OPTIONS.map((platform) => (
-              <Button
-                key={platform}
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={() => handleTogglePlatform(platform)}
-                className={`border px-3 py-1 text-xs font-medium capitalize transition-colors ${
-                  platforms.includes(platform)
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border text-muted-foreground hover:border-primary/30'
-                }`}
-              >
-                {platform}
-              </Button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Schedule */}
-      <section className="space-y-4 border border-border p-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Schedule
-        </h3>
-
-        <div className="grid grid-cols-3 gap-4">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
-              Run Frequency
-            </label>
-            <Select value={runFrequency} onValueChange={setRunFrequency}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {RUN_FREQUENCY_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
-              Timezone
-            </label>
-            <Select value={timezone} onValueChange={setTimezone}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TIMEZONE_OPTIONS.map((tz) => (
-                  <SelectItem key={tz} value={tz}>
-                    {tz}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
-              Posts / Week
-            </label>
-            <Input
-              type="number"
-              value={postsPerWeek}
-              onChange={(e) => setPostsPerWeek(Number(e.target.value))}
-              min={1}
-              max={100}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Budget */}
-      <section className="space-y-4 border border-border p-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Budget
-        </h3>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
-              Daily Credit Budget
-            </label>
-            <Input
-              type="number"
-              value={dailyCreditBudget}
-              onChange={(e) => setDailyCreditBudget(Number(e.target.value))}
-              min={0}
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
-              Weekly Credit Budget
-            </label>
-            <Input
-              type="number"
-              value={weeklyCreditBudget}
-              onChange={(e) => setWeeklyCreditBudget(Number(e.target.value))}
-              min={0}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Engagement (collapsible) */}
-      <section className="border border-border">
-        <Button
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          onClick={() => setIsEngagementOpen(!isEngagementOpen)}
-          className="flex w-full items-center justify-between p-4"
-        >
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Engagement
-          </h3>
-          <svg
-            aria-hidden="true"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={`text-muted-foreground transition-transform ${
-              isEngagementOpen ? 'rotate-180' : ''
-            }`}
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </Button>
-
-        {isEngagementOpen && (
-          <div className="space-y-4 border-t border-border px-4 pb-4 pt-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-foreground">
-                Enable Engagement
-              </label>
-              <Button
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={() => setIsEngagementEnabled(!isEngagementEnabled)}
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                  isEngagementEnabled ? 'bg-primary' : 'bg-muted'
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block size-4 rounded-full bg-background shadow-sm transition-transform ${
-                    isEngagementEnabled ? 'translate-x-4' : 'translate-x-0'
-                  }`}
-                />
-              </Button>
-            </div>
-
-            {isEngagementEnabled && (
-              <>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground">
-                    Keywords
-                  </label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="text"
-                      value={keywordInput}
-                      onChange={(e) => setKeywordInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddKeyword();
-                        }
-                      }}
-                      placeholder="Add a keyword..."
-                      className="flex-1"
-                    />
-                    <Button
-                      variant={ButtonVariant.DEFAULT}
-                      size={ButtonSize.SM}
-                      onClick={handleAddKeyword}
-                    >
-                      Add
-                    </Button>
-                  </div>
-                  {engagementKeywords.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {engagementKeywords.map((keyword) => (
-                        <span
-                          key={keyword}
-                          className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs text-foreground"
-                        >
-                          {keyword}
-                          <Button
-                            variant={ButtonVariant.GHOST}
-                            size={ButtonSize.XS}
-                            onClick={() => handleRemoveKeyword(keyword)}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            x
-                          </Button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-foreground">
-                      Tone
-                    </label>
-                    <Select
-                      value={engagementTone}
-                      onValueChange={setEngagementTone}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TONE_OPTIONS.map((tone) => (
-                          <SelectItem key={tone} value={tone}>
-                            {tone.charAt(0).toUpperCase() + tone.slice(1)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-foreground">
-                      Max / Day
-                    </label>
-                    <Input
-                      type="number"
-                      value={maxEngagementsPerDay}
-                      onChange={(e) =>
-                        setMaxEngagementsPerDay(Number(e.target.value))
-                      }
-                      min={0}
-                      max={100}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </section>
-
-      {/* Save */}
       <Button
         variant={ButtonVariant.DEFAULT}
         onClick={handleSave}

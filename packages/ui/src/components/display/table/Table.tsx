@@ -162,7 +162,10 @@ export default function AppTable<T>({
               ))}
 
               {actions.length > 0 && (
-                <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground"></th>
+                <th
+                  aria-label="Actions"
+                  className="h-12 px-4 text-right align-middle font-medium text-muted-foreground"
+                ></th>
               )}
             </tr>
           </thead>

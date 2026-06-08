@@ -1,7 +1,7 @@
 import { IngredientCategory } from '@genfeedai/enums';
 import { StudioComposer } from '@pages/studio/generate/components/StudioComposer';
 import { fireEvent, render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
 
 const promptBarSpy = vi.fn();

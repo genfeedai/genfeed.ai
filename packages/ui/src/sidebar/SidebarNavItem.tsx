@@ -1,5 +1,5 @@
+import { cn } from '@genfeedai/helpers/formatting/cn';
 import type { ComponentType, MouseEvent, ReactNode } from 'react';
-import { cn } from '../lib/utils';
 
 interface SidebarNavItemProps {
   href: string;

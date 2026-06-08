@@ -1,20 +1,17 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant } from '@genfeedai/enums';
 import type { IByokProviderStatus } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
-import Card from '@ui/card/Card';
-import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
 import { useCallback, useEffect, useState } from 'react';
-import { HiTrash } from 'react-icons/hi2';
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
 import { isSelfHosted } from '@/lib/config/edition';
 import { isDesktopShell } from '@/lib/desktop/runtime';
+import ApiKeysHeader from './api-keys-header';
+import ByokProviderCard from './byok-provider-card';
 import ManagedCreditsCheckoutCard from './managed-credits-checkout-card';
 
 export default function SettingsApiKeysPage() {
@@ -66,12 +63,6 @@ export default function SettingsApiKeysPage() {
     fetchStatuses();
     return () => controller.abort();
   }, [organizationId, isReady, getOrganizationsService]);
-
-  const _getProviderStatus = (
-    provider: string,
-  ): IByokProviderStatus | undefined => {
-    return providerStatuses.find((s) => s.provider === provider);
-  };
 
   const handleValidateAndSave = async (
     provider: string,
@@ -166,173 +157,47 @@ export default function SettingsApiKeysPage() {
       {desktop ? <DesktopLocalProviderSettings variant="card" /> : null}
       {isSelfHosted() ? <ManagedCreditsCheckoutCard /> : null}
 
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold">API Keys</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Genfeed uses the server-configured providers by default. Add your own
-          API keys only if you want to override hosted access. When using your
-          own key, no credits are deducted.
-        </p>
-      </div>
+      <ApiKeysHeader />
 
       {isReady && !isLoading
-        ? providerStatuses.map((providerStatus) => {
-            const isExpanded = expandedProvider === providerStatus.provider;
-            const isConnected =
-              providerStatus.hasKey && providerStatus.isEnabled;
-
-            return (
-              <Card key={providerStatus.provider} className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-medium">
-                      {providerStatus.label}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {providerStatus.description}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {isConnected ? (
-                      <>
-                        <span className="flex items-center gap-1.5 text-xs text-green-500">
-                          <span className="size-2 rounded-full bg-green-500" />
-                          Connected
-                        </span>
-                        <Button
-                          variant={ButtonVariant.SECONDARY}
-                          onClick={() =>
-                            setExpandedProvider(
-                              isExpanded ? null : providerStatus.provider,
-                            )
-                          }
-                        >
-                          {isExpanded ? 'Cancel' : 'Replace Key'}
-                        </Button>
-                        <Button
-                          variant={ButtonVariant.SECONDARY}
-                          onClick={() =>
-                            handleRemoveKey(providerStatus.provider)
-                          }
-                          isDisabled={
-                            removingProvider === providerStatus.provider
-                          }
-                        >
-                          <HiTrash className="size-4" />
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <span className="size-2 rounded-full bg-muted-foreground/30" />
-                          Not configured
-                        </span>
-                        <Button
-                          variant={ButtonVariant.SECONDARY}
-                          onClick={() =>
-                            setExpandedProvider(
-                              isExpanded ? null : providerStatus.provider,
-                            )
-                          }
-                        >
-                          Add Key
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {isConnected && !isExpanded && providerStatus.maskedKey && (
-                  <p className="text-xs text-muted-foreground font-mono mt-2">
-                    {providerStatus.maskedKey}
-                  </p>
-                )}
-
-                {isExpanded && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <div className="space-y-3">
-                      <div>
-                        <span className="text-xs text-muted-foreground mb-1 block">
-                          API Key
-                        </span>
-                        <Input
-                          type="password"
-                          value={apiKeyInputs[providerStatus.provider] || ''}
-                          onChange={(e) =>
-                            setApiKeyInputs((prev) => ({
-                              ...prev,
-                              [providerStatus.provider]: e.target.value,
-                            }))
-                          }
-                          placeholder="Enter API key..."
-                          className="w-full"
-                        />
-                      </div>
-                      {providerStatus.requiresSecret && (
-                        <div>
-                          <span className="text-xs text-muted-foreground mb-1 block">
-                            API Secret
-                          </span>
-                          <Input
-                            type="password"
-                            value={
-                              apiSecretInputs[providerStatus.provider] || ''
-                            }
-                            onChange={(e) =>
-                              setApiSecretInputs((prev) => ({
-                                ...prev,
-                                [providerStatus.provider]: e.target.value,
-                              }))
-                            }
-                            placeholder="Enter API secret..."
-                            className="w-full"
-                          />
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between">
-                        <PrimitiveButton
-                          asChild
-                          variant={ButtonVariant.LINK}
-                          className="text-xs"
-                        >
-                          <a
-                            href={providerStatus.docsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Get API key
-                          </a>
-                        </PrimitiveButton>
-                        <Button
-                          onClick={() =>
-                            handleValidateAndSave(
-                              providerStatus.provider,
-                              providerStatus.requiresSecret || false,
-                            )
-                          }
-                          isDisabled={
-                            !apiKeyInputs[providerStatus.provider]?.trim() ||
-                            (providerStatus.requiresSecret &&
-                              !apiSecretInputs[
-                                providerStatus.provider
-                              ]?.trim()) ||
-                            validatingProvider === providerStatus.provider ||
-                            savingProvider === providerStatus.provider
-                          }
-                        >
-                          {validatingProvider === providerStatus.provider
-                            ? 'Validating...'
-                            : savingProvider === providerStatus.provider
-                              ? 'Saving...'
-                              : 'Validate & Save'}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </Card>
-            );
-          })
+        ? providerStatuses.map((providerStatus) => (
+            <ByokProviderCard
+              key={providerStatus.provider}
+              providerStatus={providerStatus}
+              isExpanded={expandedProvider === providerStatus.provider}
+              apiKeyValue={apiKeyInputs[providerStatus.provider] ?? ''}
+              apiSecretValue={apiSecretInputs[providerStatus.provider] ?? ''}
+              isRemoving={removingProvider === providerStatus.provider}
+              isValidating={validatingProvider === providerStatus.provider}
+              isSaving={savingProvider === providerStatus.provider}
+              onToggleExpand={() =>
+                setExpandedProvider(
+                  expandedProvider === providerStatus.provider
+                    ? null
+                    : providerStatus.provider,
+                )
+              }
+              onApiKeyChange={(value) =>
+                setApiKeyInputs((prev) => ({
+                  ...prev,
+                  [providerStatus.provider]: value,
+                }))
+              }
+              onApiSecretChange={(value) =>
+                setApiSecretInputs((prev) => ({
+                  ...prev,
+                  [providerStatus.provider]: value,
+                }))
+              }
+              onValidateAndSave={() =>
+                handleValidateAndSave(
+                  providerStatus.provider,
+                  providerStatus.requiresSecret || false,
+                )
+              }
+              onRemoveKey={() => handleRemoveKey(providerStatus.provider)}
+            />
+          ))
         : null}
     </div>
   );

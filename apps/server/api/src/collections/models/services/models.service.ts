@@ -56,6 +56,10 @@ const MODEL_CONFIG_FIELDS = new Set([
   'providerCostUsd',
   'qualityTier',
   'recommendedFor',
+  'rejectionReason',
+  'reviewedAt',
+  'reviewedBy',
+  'reviewStatus',
   'speedTier',
   'succeededBy',
   'supportsFeatures',
@@ -104,6 +108,16 @@ type FindAvailableModelsParams = {
   enabledModelIds?: string[];
   isActive?: boolean;
   organizationId?: string;
+};
+
+type RegistryReviewPatch = Partial<UpdateModelDto> & {
+  deprecatedAt?: Date;
+  lastSyncedAt?: Date;
+  rejectionReason?: string;
+  reviewedAt?: Date;
+  reviewedBy?: string;
+  reviewStatus?: 'approved' | 'legacy' | 'pending' | 'rejected';
+  succeededBy?: string;
 };
 
 @Injectable()
@@ -620,6 +634,76 @@ export class ModelsService extends BaseService<
 
     return models.filter((model) => this.matchesConfigWhere(model, configWhere))
       .length;
+  }
+
+  async approveRegistryModel(
+    modelId: string,
+    updateDto: Partial<UpdateModelDto> = {},
+    reviewedBy?: string,
+  ): Promise<ModelDocument | null> {
+    const existing = await this.findOne({ _id: modelId, isDeleted: false });
+    if (!existing) {
+      return null;
+    }
+
+    const now = new Date();
+    const patch: RegistryReviewPatch = {
+      ...updateDto,
+      isActive: true,
+      isLegacy: false,
+      reviewStatus: 'approved',
+      reviewedAt: now,
+      reviewedBy,
+    };
+
+    if (!existing.lastSyncedAt) {
+      patch.lastSyncedAt = now;
+    }
+
+    return this.patch(modelId, patch);
+  }
+
+  async rejectRegistryModel(
+    modelId: string,
+    params: { reason?: string; reviewedBy?: string } = {},
+  ): Promise<ModelDocument | null> {
+    const existing = await this.findOne({ _id: modelId, isDeleted: false });
+    if (!existing) {
+      return null;
+    }
+
+    return this.patch(modelId, {
+      isActive: false,
+      isDefault: false,
+      rejectionReason: params.reason,
+      reviewStatus: 'rejected',
+      reviewedAt: new Date(),
+      reviewedBy: params.reviewedBy,
+    } satisfies RegistryReviewPatch);
+  }
+
+  async markRegistryModelLegacy(
+    modelId: string,
+    params: {
+      reviewedBy?: string;
+      succeededBy?: string;
+    } = {},
+  ): Promise<ModelDocument | null> {
+    const existing = await this.findOne({ _id: modelId, isDeleted: false });
+    if (!existing) {
+      return null;
+    }
+
+    return this.patch(modelId, {
+      deprecatedAt: new Date(),
+      isActive: false,
+      isDefault: false,
+      isLegacy: true,
+      reviewStatus: 'legacy',
+      reviewedAt: new Date(),
+      reviewedBy: params.reviewedBy,
+      succeededBy: params.succeededBy,
+    } satisfies RegistryReviewPatch);
   }
 
   async createFromTraining(training: TrainingDocument): Promise<ModelDocument> {

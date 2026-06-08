@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { createContext, useContext } from 'react';
+import { createContext, use } from 'react';
 
 interface IngredientsHeaderContextValue {
   headerMeta?: ReactNode;
@@ -27,7 +27,7 @@ export function IngredientsHeaderProvider({
 }
 
 export function useIngredientsHeaderContext() {
-  const context = useContext(IngredientsHeaderContext);
+  const context = use(IngredientsHeaderContext);
 
   if (context === undefined) {
     throw new Error(

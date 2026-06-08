@@ -1,11 +1,18 @@
 declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toBeValidObjectId(): R;
-      toBeWithinTimeRange(start: Date, end: Date): R;
-      toContainObjectId(objectId: string): R;
-      toHaveValidPaginationStructure(): R;
-      toBeValidHttpResponse(): R;
+  namespace Vi {
+    interface Assertion {
+      toBeValidObjectId(): void;
+      toBeWithinTimeRange(start: Date, end: Date): void;
+      toContainObjectId(objectId: string): void;
+      toHaveValidPaginationStructure(): void;
+      toBeValidHttpResponse(): void;
+    }
+    interface AsymmetricMatchersContaining {
+      toBeValidObjectId(): void;
+      toBeWithinTimeRange(start: Date, end: Date): void;
+      toContainObjectId(objectId: string): void;
+      toHaveValidPaginationStructure(): void;
+      toBeValidHttpResponse(): void;
     }
   }
 }

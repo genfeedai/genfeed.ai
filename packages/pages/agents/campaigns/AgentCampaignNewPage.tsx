@@ -155,7 +155,7 @@ export default function AgentCampaignNewPage() {
               handleChange('status', value as 'draft' | 'active')
             }
           >
-            <SelectTrigger>
+            <SelectTrigger aria-label="Status">
               <SelectValue placeholder="Select a status" />
             </SelectTrigger>
             <SelectContent>

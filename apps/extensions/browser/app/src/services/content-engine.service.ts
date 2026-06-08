@@ -1,3 +1,4 @@
+import { sleep } from '@genfeedai/helpers';
 import {
   isTerminalRunStatus,
   type RunActionType,
@@ -38,12 +39,6 @@ function getRunId(run: RunRecord): string {
     throw new Error('Run id missing from response.');
   }
   return runId;
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
 }
 
 export class ContentEngineService {
@@ -88,7 +83,7 @@ export class ContentEngineService {
       }
 
       pollCount += 1;
-      await delay(pollIntervalMs);
+      await sleep(pollIntervalMs);
 
       const [nextRun, nextEvents] = await Promise.all([
         this.runsService.getRun(runId),

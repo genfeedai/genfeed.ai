@@ -8,13 +8,11 @@ import type {
   TabsEnhancedProps,
   TabsItem,
 } from '@genfeedai/props/ui/navigation/tabs.props';
+import { TabsList, Tabs as TabsRoot, TabsTrigger } from '@ui/primitives/tabs';
 import {
   getTabsListClassName,
   getTabsTriggerClassName,
-  TabsList,
-  Tabs as TabsRoot,
-  TabsTrigger,
-} from '@ui/primitives/tabs';
+} from '@ui/primitives/tabs.styles';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';

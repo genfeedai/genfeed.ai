@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import ContentTeamPage from './ContentTeamPage';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseAgentStrategies = vi.fn();

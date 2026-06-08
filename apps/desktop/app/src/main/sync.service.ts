@@ -13,7 +13,8 @@ import type {
   IDesktopSyncOpAck,
   IDesktopSyncState,
 } from '@genfeedai/desktop-contracts';
-import type { PrismaClient } from '@genfeedai/desktop-prisma';
+import type { DesktopAsset, PrismaClient } from '@genfeedai/desktop-prisma';
+import { toDesktopAsset } from './desktop-asset.util';
 import { toIso } from './time.util';
 
 const LOCAL_ORGANIZATION_ID = 'local-org';
@@ -91,48 +92,8 @@ export class DesktopSyncService {
     }
   }
 
-  private toAsset(row: {
-    brandId: string | null;
-    cloudId: string | null;
-    cloudObjectKey: string | null;
-    createdAt: string;
-    deletedAt: string | null;
-    displayName: string;
-    id: string;
-    kind: string;
-    localPath: string | null;
-    mimeType: string;
-    organizationId: string;
-    origin: string;
-    originalFileName: string;
-    residency: string;
-    sha256: string;
-    sizeBytes: number;
-    updatedAt: string;
-    uploadPolicy: string;
-    workspaceId: string | null;
-  }): IDesktopAsset {
-    return {
-      brandId: row.brandId ?? undefined,
-      cloudId: row.cloudId ?? undefined,
-      cloudObjectKey: row.cloudObjectKey ?? undefined,
-      createdAt: row.createdAt,
-      deletedAt: row.deletedAt ?? undefined,
-      displayName: row.displayName,
-      id: row.id,
-      kind: row.kind as DesktopAssetKind,
-      localPath: row.localPath ?? undefined,
-      mimeType: row.mimeType,
-      organizationId: row.organizationId,
-      origin: row.origin as DesktopAssetOrigin,
-      originalFileName: row.originalFileName,
-      residency: row.residency as DesktopAssetResidency,
-      sha256: row.sha256,
-      sizeBytes: row.sizeBytes,
-      updatedAt: row.updatedAt,
-      uploadPolicy: row.uploadPolicy as DesktopAssetUploadPolicy,
-      workspaceId: row.workspaceId ?? undefined,
-    };
+  private toAsset(row: DesktopAsset): IDesktopAsset {
+    return toDesktopAsset(row);
   }
 
   private toBrand(row: {

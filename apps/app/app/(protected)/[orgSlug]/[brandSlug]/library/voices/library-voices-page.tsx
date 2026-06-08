@@ -23,7 +23,8 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import VoiceCatalogList from './voice-catalog-list';
-import VoiceCatalogRow from './voice-catalog-row';
+import VoiceLibraryRowItem from './voice-library-row-item';
+import VoiceLibrarySkeleton from './voice-library-skeleton';
 
 type SelectedBrandState = {
   agentConfig?: {
@@ -37,19 +38,6 @@ const PAGE_SIZE = 12;
 
 function isVoiceRemovable(voice: Voice): boolean {
   return voice.isCloned === true || voice.voiceSource === 'cloned';
-}
-
-function VoiceLibrarySkeleton() {
-  return (
-    <div className="space-y-3" data-testid="voice-row-skeleton">
-      {Array.from({ length: 6 }, (_, index) => index + 1).map((slot) => (
-        <div
-          key={`voice-row-skeleton-${slot}`}
-          className="h-20 animate-pulse rounded-2xl border border-white/[0.08] bg-white/[0.03]"
-        />
-      ))}
-    </div>
-  );
 }
 
 function LibraryVoicesContent() {
@@ -285,6 +273,25 @@ function LibraryVoicesContent() {
     ],
   );
 
+  const orgDefaultContext = useMemo(
+    () => ({
+      defaultVoiceId: settings?.defaultVoiceId,
+      defaultVoiceRef: orgDefaultVoiceRef,
+    }),
+    [settings?.defaultVoiceId, orgDefaultVoiceRef],
+  );
+
+  const brandDefaultContext = useMemo(
+    () => ({
+      defaultVoiceId: selectedBrandState?.agentConfig?.defaultVoiceId,
+      defaultVoiceRef: selectedBrandState?.agentConfig?.defaultVoiceRef,
+    }),
+    [
+      selectedBrandState?.agentConfig?.defaultVoiceId,
+      selectedBrandState?.agentConfig?.defaultVoiceRef,
+    ],
+  );
+
   return (
     <div className="space-y-4">
       {!isLoadingVoices ? (
@@ -302,64 +309,22 @@ function LibraryVoicesContent() {
           onCloneVoice={handleOpenCloneModal}
           voices={voices}
         >
-          {voices.map((voice) => {
-            const isOrgDefault = matchesDefaultVoice(
-              {
-                defaultVoiceId: settings?.defaultVoiceId,
-                defaultVoiceRef: orgDefaultVoiceRef,
-              },
-              voice,
-            );
-            const isBrandDefault = matchesDefaultVoice(
-              {
-                defaultVoiceId: selectedBrandState?.agentConfig?.defaultVoiceId,
-                defaultVoiceRef:
-                  selectedBrandState?.agentConfig?.defaultVoiceRef,
-              },
-              voice,
-            );
-
-            return (
-              <VoiceCatalogRow
-                key={voice.id}
-                isBrandDefault={isBrandDefault}
-                isOrgDefault={isOrgDefault}
-                isSavingBrandDefault={isSavingBrandDefault}
-                isSavingOrgDefault={isSavingOrgDefault}
-                onDelete={
-                  isVoiceRemovable(voice)
-                    ? () => {
-                        handleDeleteVoice(voice).catch((error) => {
-                          logger.error('Failed to delete voice', error);
-                        });
-                      }
-                    : null
-                }
-                onSaveBrandDefault={
-                  selectedBrandState
-                    ? () => {
-                        saveBrandDefault(voice).catch((error) => {
-                          logger.error(
-                            'Failed to save brand default voice',
-                            error,
-                          );
-                        });
-                      }
-                    : null
-                }
-                onSaveOrganizationDefault={() => {
-                  saveOrganizationDefault(voice).catch((error) => {
-                    logger.error(
-                      'Failed to save organization default voice',
-                      error,
-                    );
-                  });
-                }}
-                selectedBrandLabel={selectedBrandState?.label}
-                voice={voice}
-              />
-            );
-          })}
+          {voices.map((voice) => (
+            <VoiceLibraryRowItem
+              key={voice.id}
+              brandDefaultContext={brandDefaultContext}
+              hasBrandContext={Boolean(selectedBrandState)}
+              isSavingBrandDefault={isSavingBrandDefault}
+              isSavingOrgDefault={isSavingOrgDefault}
+              isVoiceRemovable={isVoiceRemovable}
+              onDeleteVoice={handleDeleteVoice}
+              onSaveBrandDefault={saveBrandDefault}
+              onSaveOrganizationDefault={saveOrganizationDefault}
+              orgDefaultContext={orgDefaultContext}
+              selectedBrandLabel={selectedBrandState?.label}
+              voice={voice}
+            />
+          ))}
         </VoiceCatalogList>
       )}
 

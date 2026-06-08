@@ -1,4 +1,4 @@
-import { TOOL_LABELS } from '@genfeedai/agent/components/AgentToolCallDisplay';
+import { TOOL_LABELS } from '@genfeedai/agent/components/agent-tool-call-display.helpers';
 import { ToolCallDetailPanel } from '@genfeedai/agent/components/ToolCallDetailPanel';
 import {
   AgentWorkEventStatus,

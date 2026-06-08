@@ -19,6 +19,7 @@ export type ManagedInferenceAuthenticatedRequest = Omit<Request, 'user'> & {
 export interface ManagedInferenceResponse {
   creditsDebited: number;
   model: string;
+  operation?: string;
   output: unknown;
   provider: string;
 }

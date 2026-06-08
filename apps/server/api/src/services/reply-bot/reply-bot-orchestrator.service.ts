@@ -17,6 +17,10 @@ import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/servi
 import { ConfigService } from '@api/config/config.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
+import {
+  type ReplyCandidate,
+  ReplyCandidatePrefilterService,
+} from '@api/services/reply-bot/reply-candidate-prefilter.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import {
   type SocialContentData,
@@ -60,6 +64,7 @@ export class ReplyBotOrchestratorService {
     private readonly replyGenerationService: ReplyGenerationService,
     private readonly botActionExecutorService: BotActionExecutorService,
     private readonly rateLimitService: RateLimitService,
+    private readonly replyCandidatePrefilterService: ReplyCandidatePrefilterService,
     private readonly replyBotConfigsService: ReplyBotConfigsService,
     private readonly monitoredAccountsService: MonitoredAccountsService,
     private readonly botActivitiesService: BotActivitiesService,
@@ -170,6 +175,28 @@ export class ReplyBotOrchestratorService {
         botType: botConfig.type,
         contentCount: content.length,
         platform,
+      });
+
+      const prefilterResult = this.replyCandidatePrefilterService.prefilter(
+        content,
+        {
+          botConfig,
+          botType: (botConfig.type ?? ReplyBotType.REPLY_GUY) as ReplyBotType,
+          credential,
+          organizationId,
+          platform,
+        },
+      );
+      content = prefilterResult.candidates;
+      result.skipped += prefilterResult.skipped;
+
+      this.loggerService.log(`${url} prefiltered candidates`, {
+        acceptedCount: content.length,
+        botConfigId,
+        fetchedCount: content.length + prefilterResult.skipped,
+        platform,
+        skippedCount: prefilterResult.skipped,
+        skipCounts: prefilterResult.skipCounts,
       });
 
       // Process each content item
@@ -393,7 +420,7 @@ export class ReplyBotOrchestratorService {
    */
   private async processContent(
     botConfig: ReplyBotConfigDocument,
-    content: SocialContentData,
+    content: ReplyCandidate,
     organizationId: string,
     credential: IReplyBotCredentialData,
   ): Promise<{
@@ -451,7 +478,10 @@ export class ReplyBotOrchestratorService {
     try {
       // Generate AI reply
       const replyText = await this.replyGenerationService.generateReply({
-        context: botConfig.context,
+        context: this.mergeReplyContext(
+          botConfig.context,
+          content.replyContext,
+        ),
         customInstructions: botConfig.customInstructions,
         length: (botConfig.replyLength as ReplyLength) || ReplyLength.MEDIUM,
         organizationId,
@@ -616,6 +646,14 @@ export class ReplyBotOrchestratorService {
    */
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private mergeReplyContext(
+    botContext: string | undefined,
+    candidateContext: string | undefined,
+  ): string | undefined {
+    const context = [botContext, candidateContext].filter(Boolean).join('\n\n');
+    return context || undefined;
   }
 
   /**

@@ -328,7 +328,7 @@ describe('proxy', () => {
     );
   });
 
-  it('redirects signed-in legacy brand settings routes to the canonical brand settings path', async () => {
+  it('does not preserve legacy brand settings detail routes as a compatibility layer', async () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
@@ -345,7 +345,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/settings/voice',
+      'http://localhost:3000/acme/~/settings/brands/moonrise-studio/voice',
     );
   });
 

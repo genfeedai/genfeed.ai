@@ -11,13 +11,14 @@
   },
   "description": "Shared prop and view-model contracts for Genfeed UI surfaces",
   "devDependencies": {
-    "vitest": "4.1.7"
+    "vitest": "4.1.8"
   },
   "exports": {
     "./*": "./*"
   },
   "name": "@genfeedai/props",
   "private": true,
+  "type": "module",
   "scripts": {
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",

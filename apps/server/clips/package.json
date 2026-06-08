@@ -23,5 +23,6 @@
     "test": "vitest run --config vitest.config.ts",
     "test:cov": "vitest run --config vitest.config.ts --coverage"
   },
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "type": "module"
 }

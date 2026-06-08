@@ -16,8 +16,14 @@ export const whoamiCommand = new Command('whoami')
       await requireAuth();
 
       const spinner = ora('Fetching user info...').start();
-      const info = await whoami();
-      spinner.stop();
+      let info: Awaited<ReturnType<typeof whoami>>;
+      try {
+        info = await whoami();
+        spinner.stop();
+      } catch (error) {
+        spinner.fail('Failed to fetch user info');
+        throw error;
+      }
 
       const activeBrandId = await getActiveBrand();
       let activeBrand = null;

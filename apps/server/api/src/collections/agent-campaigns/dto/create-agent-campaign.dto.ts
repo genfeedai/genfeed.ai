@@ -33,6 +33,67 @@ export class ContentQuotaConfigDto {
   videos?: number;
 }
 
+export class ContentRotationTargetDto {
+  @IsString()
+  @ApiProperty({ description: 'Stable target key', required: true })
+  key!: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ description: 'Human-readable target label', required: false })
+  label?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ description: 'Optional platform scope', required: false })
+  platform?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ description: 'Optional strategy scope', required: false })
+  strategyId?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ description: 'Optional topic bucket scope', required: false })
+  topic?: string;
+
+  @IsNumber()
+  @Min(0)
+  @ApiProperty({ description: 'Target share weight', required: true })
+  weight!: number;
+}
+
+export class ContentRotationConfigDto {
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Whether weighted content rotation is enabled',
+    required: false,
+  })
+  enabled?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  @ApiProperty({
+    description: 'Recent run lookback window in days',
+    required: false,
+  })
+  lookbackDays?: number;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ContentRotationTargetDto)
+  @IsOptional()
+  @ApiProperty({
+    description: 'Campaign/topic/platform target weights',
+    required: false,
+    type: [ContentRotationTargetDto],
+  })
+  targets?: ContentRotationTargetDto[];
+}
+
 export class CreateAgentCampaignDto {
   @IsString()
   @ApiProperty({ description: 'Campaign label', required: true })
@@ -94,6 +155,16 @@ export class CreateAgentCampaignDto {
     type: ContentQuotaConfigDto,
   })
   contentQuota?: ContentQuotaConfigDto;
+
+  @ValidateNested()
+  @Type(() => ContentRotationConfigDto)
+  @IsOptional()
+  @ApiProperty({
+    description: 'Weighted campaign/topic rotation rules',
+    required: false,
+    type: ContentRotationConfigDto,
+  })
+  contentRotation?: ContentRotationConfigDto;
 
   @IsNumber()
   @IsOptional()

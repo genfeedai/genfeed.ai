@@ -1,15 +1,12 @@
 'use client';
 
 import { IngredientFormat } from '@genfeedai/enums';
-import type { IngredientListProps } from '@genfeedai/props/content/ingredient.props';
 import type {
   MasonryImageProps,
   MasonryVideoProps,
 } from '@genfeedai/props/content/masonry.props';
-import { SkeletonMasonryGrid } from '@ui/display/skeleton/skeleton';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import dynamic from 'next/dynamic';
-import type { ComponentType } from 'react';
 
 // Code-split the heavy masonry components
 const MasonryImageComponent = dynamic(
@@ -51,11 +48,4 @@ export function LazyMasonryVideo(props: MasonryVideoProps) {
   return <MasonryVideoComponent {...props} />;
 }
 
-// Grid doesn't need viewport detection (it's the container)
-export const LazyMasonryGrid = dynamic(
-  () => import('@ui/masonry/grid/MasonryGrid'),
-  {
-    loading: () => <SkeletonMasonryGrid count={8} />,
-    ssr: false,
-  },
-) as ComponentType<IngredientListProps>;
+export { LazyMasonryGrid } from './lazy-masonry.helpers';

@@ -96,6 +96,28 @@ describe('ClerkService', () => {
     expect(service).toBeDefined();
   });
 
+  it('throws a service-unavailable error when Clerk is not configured', async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ClerkService,
+        {
+          provide: CacheService,
+          useValue: mockCacheService,
+        },
+        {
+          provide: 'ClerkClient',
+          useValue: null,
+        },
+      ],
+    }).compile();
+
+    const localModeService = module.get<ClerkService>(ClerkService);
+
+    await expect(localModeService.getUser(mockUserId)).rejects.toMatchObject({
+      status: 503,
+    });
+  });
+
   describe('getUser', () => {
     it('should get user by ID successfully', async () => {
       const result = await service.getUser(mockUserId);

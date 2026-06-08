@@ -6,7 +6,7 @@ import {
   setErrorDebugInfo,
 } from '@genfeedai/services/core/error-debug-store';
 import ModalErrorDebug from '@ui/modals/system/error-debug/ModalErrorDebug';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

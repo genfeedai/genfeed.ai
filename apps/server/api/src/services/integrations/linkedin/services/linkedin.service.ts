@@ -3,6 +3,10 @@ import { ConfigService } from '@api/config/config.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  getIntegrationProviderDefinition,
+  IntegrationHttpClient,
+} from '@genfeedai/integrations';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
@@ -59,6 +63,7 @@ const DEFAULT_LINKEDIN_TREND_SOURCE_URLS = [
 ] as const;
 
 const LINKEDIN_TREND_MAX_TOPICS = 20;
+const LINKEDIN_PROVIDER = getIntegrationProviderDefinition('linkedin');
 const LINKEDIN_TREND_STOP_WORDS = new Set([
   'about',
   'after',
@@ -99,7 +104,10 @@ const LINKEDIN_TREND_STOP_WORDS = new Set([
 @Injectable()
 export class LinkedInService {
   private readonly constructorName: string = String(this.constructor.name);
+  private readonly apiBaseUrl =
+    LINKEDIN_PROVIDER?.endpoints.apiBaseUrl ?? 'https://api.linkedin.com/v2';
   private authClient: AuthClient;
+  private readonly integrationHttpClient: IntegrationHttpClient;
 
   constructor(
     private readonly configService: ConfigService,
@@ -108,10 +116,62 @@ export class LinkedInService {
     private readonly httpService: HttpService,
     private readonly brandScraperService: BrandScraperService,
   ) {
+    this.integrationHttpClient = new IntegrationHttpClient({
+      fetch: (input, init) => this.fetchViaHttpService(input, init),
+      logger: this.loggerService,
+    });
     this.authClient = new AuthClient({
       clientId: this.configService.get('LINKEDIN_CLIENT_ID') as string,
       clientSecret: this.configService.get('LINKEDIN_CLIENT_SECRET') as string,
       redirectUrl: this.configService.get('LINKEDIN_REDIRECT_URI') as string,
+    });
+  }
+
+  private getApiUrl(path: string): string {
+    return `${this.apiBaseUrl}/${path}`;
+  }
+
+  private toHttpServiceParams(
+    searchParams: URLSearchParams,
+  ): Record<string, string | number> {
+    return Object.fromEntries(
+      [...searchParams.entries()].map(([key, value]) => {
+        const numericValue = Number(value);
+        return [
+          key,
+          value.trim() !== '' && Number.isFinite(numericValue)
+            ? numericValue
+            : value,
+        ];
+      }),
+    );
+  }
+
+  private async fetchViaHttpService(
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ): Promise<Response> {
+    const parsedUrl = new URL(String(input));
+    const url = `${parsedUrl.origin}${parsedUrl.pathname}`;
+    const params = this.toHttpServiceParams(parsedUrl.searchParams);
+    const options = {
+      headers: init?.headers as Record<string, string> | undefined,
+      params,
+      ...(init?.signal ? { signal: init.signal } : {}),
+      timeout: 30000,
+    };
+    const method = init?.method ?? 'GET';
+    const response = await firstValueFrom(
+      method === 'POST'
+        ? this.httpService.post(url, init?.body ?? null, options)
+        : method === 'PUT'
+          ? this.httpService.put(url, init?.body, options)
+          : this.httpService.get(url, options),
+    );
+
+    return new Response(JSON.stringify(response.data), {
+      headers: { 'content-type': 'application/json' },
+      status: response.status ?? 200,
     });
   }
 
@@ -207,19 +267,25 @@ export class LinkedInService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const response = await firstValueFrom(
-        this.httpService.get('https://api.linkedin.com/v2/userinfo', {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }),
-      );
+      const response = await this.integrationHttpClient.request<{
+        email: string;
+        family_name: string;
+        given_name: string;
+        sub: string;
+      }>({
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        provider: LINKEDIN_PROVIDER,
+        timeoutMs: 30000,
+        url: this.getApiUrl('userinfo'),
+      });
 
       return {
-        email: response.data.email,
-        firstName: response.data.given_name,
-        id: response.data.sub,
-        lastName: response.data.family_name,
+        email: response.email,
+        firstName: response.given_name,
+        id: response.sub,
+        lastName: response.family_name,
       };
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
@@ -364,35 +430,33 @@ export class LinkedInService {
       const userInfo = await this.getUserProfile(decryptedAccessToken);
       const personURN = `urn:li:person:${userInfo.id}`;
 
-      const shareResponse = await firstValueFrom(
-        this.httpService.post(
-          'https://api.linkedin.com/v2/ugcPosts',
-          {
-            author: personURN,
-            lifecycleState: 'PUBLISHED',
-            specificContent: {
-              'com.linkedin.ugc.ShareContent': {
-                shareCommentary: {
-                  text,
-                },
-                shareMediaCategory: 'NONE',
+      const shareResponse = await this.integrationHttpClient.request<unknown>({
+        body: {
+          author: personURN,
+          lifecycleState: 'PUBLISHED',
+          specificContent: {
+            'com.linkedin.ugc.ShareContent': {
+              shareCommentary: {
+                text,
               },
-            },
-            visibility: {
-              'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
+              shareMediaCategory: 'NONE',
             },
           },
-          {
-            headers: {
-              Authorization: `Bearer ${decryptedAccessToken}`,
-              'Content-Type': 'application/json',
-            },
+          visibility: {
+            'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
           },
-        ),
-      );
+        },
+        headers: {
+          Authorization: `Bearer ${decryptedAccessToken}`,
+        },
+        method: 'POST',
+        provider: LINKEDIN_PROVIDER,
+        timeoutMs: 30000,
+        url: this.getApiUrl('ugcPosts'),
+      });
 
-      this.loggerService.log(`${url} success`, shareResponse.data);
-      return shareResponse.data;
+      this.loggerService.log(`${url} success`, shareResponse);
+      return shareResponse;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;

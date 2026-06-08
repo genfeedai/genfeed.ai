@@ -14,6 +14,33 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import { logger } from '@services/core/logger.service';
 
+type GoogleTag = {
+  (
+    command: 'event',
+    eventName: string,
+    eventParams: IGoogleAnalyticsEvent['eventParams'],
+  ): void;
+  (
+    command: 'get',
+    measurementId: string,
+    fieldName: 'client_id',
+    callback: (id: string) => void,
+  ): void;
+};
+
+type WindowWithGoogleTag = Window & {
+  gtag?: GoogleTag;
+};
+
+function getGoogleTag(): GoogleTag | undefined {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  const gtag = (window as WindowWithGoogleTag).gtag;
+  return typeof gtag === 'function' ? gtag : undefined;
+}
+
 export class LinkTrackingService extends HTTPBaseService {
   constructor(token: string) {
     super(`${EnvironmentService.apiEndpoint}/analytics/link-tracking`, token);
@@ -176,24 +203,18 @@ export class LinkTrackingService extends HTTPBaseService {
       return;
     }
 
-    // Check if gtag is available
-    if (
-      'gtag' in window &&
-      typeof (window as unknown as { gtag?: (...args: unknown[]) => void })
-        .gtag === 'function'
-    ) {
-      const gtag = (window as unknown as { gtag: (...args: unknown[]) => void })
-        .gtag;
-
-      gtag('event', event.eventName, event.eventParams);
-
-      logger.info('GA4 event sent', {
-        contentId: event.eventParams.content_id,
-        eventName: event.eventName,
-      });
-    } else {
+    const gtag = getGoogleTag();
+    if (!gtag) {
       logger.error('Google Analytics not available');
+      return;
     }
+
+    gtag('event', event.eventName, event.eventParams);
+
+    logger.info('GA4 event sent', {
+      contentId: event.eventParams.content_id,
+      eventName: event.eventName,
+    });
   }
 
   /**
@@ -294,16 +315,13 @@ export class LinkTrackingService extends HTTPBaseService {
       return undefined;
     }
 
-    // Try to get from gtag
-    if ('gtag' in window) {
-      const gtag = (window as { gtag?: (...args: unknown[]) => void }).gtag;
-      if (typeof gtag === 'function') {
-        let clientId: string | undefined;
-        gtag('get', 'GA_MEASUREMENT_ID', 'client_id', (id: string) => {
-          clientId = id;
-        });
-        return clientId;
-      }
+    const gtag = getGoogleTag();
+    if (gtag) {
+      let clientId: string | undefined;
+      gtag('get', 'GA_MEASUREMENT_ID', 'client_id', (id: string) => {
+        clientId = id;
+      });
+      return clientId;
     }
 
     return undefined;

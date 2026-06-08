@@ -8,17 +8,21 @@ vi.mock(
   }),
 );
 
+import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
+import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
+
 describe('WebhookClientModule', () => {
-  it('registers the webhook processor provider', async () => {
-    const { WebhookClientModule } = await import(
-      '@api/services/webhook-client/webhook-client.module'
-    );
-    const { WebhookClientProcessor } = await import(
-      '@api/services/webhook-client/webhook-client.processor'
-    );
+  it('does not register the webhook processor provider in the API module', () => {
     const providers =
       Reflect.getMetadata(MODULE_METADATA.PROVIDERS, WebhookClientModule) ?? [];
 
-    expect(providers).toContain(WebhookClientProcessor);
+    expect(providers).toContain(WebhookClientService);
+    expect(
+      providers.some(
+        (provider: unknown) =>
+          typeof provider === 'function' &&
+          provider.name === 'WebhookClientProcessor',
+      ),
+    ).toBe(false);
   });
 });

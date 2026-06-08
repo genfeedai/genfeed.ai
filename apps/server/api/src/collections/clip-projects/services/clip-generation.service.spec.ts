@@ -2,6 +2,7 @@ import type { ClipResultsService } from '@api/collections/clip-results/clip-resu
 import type { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
 import type { AvatarVideoProvider } from '@api/services/avatar-video/avatar-video-provider.interface';
 import type { LoggerService } from '@libs/logger/logger.service';
+import type { Mocked } from 'vitest';
 import {
   type ClipGenerationInput,
   ClipGenerationService,
@@ -18,7 +19,7 @@ function createMockLogger(): LoggerService {
   } as unknown as LoggerService;
 }
 
-function createMockClipResultsService(): jest.Mocked<
+function createMockClipResultsService(): Mocked<
   Pick<ClipResultsService, 'create' | 'patch'>
 > {
   return {
@@ -27,7 +28,7 @@ function createMockClipResultsService(): jest.Mocked<
   };
 }
 
-function createMockProvider(): jest.Mocked<AvatarVideoProvider> {
+function createMockProvider(): Mocked<AvatarVideoProvider> {
   return {
     generateVideo: vi.fn().mockResolvedValue({
       jobId: 'heygen-job-1',
@@ -45,7 +46,7 @@ function createMockProvider(): jest.Mocked<AvatarVideoProvider> {
 
 function createMockAvatarVideoService(
   provider: AvatarVideoProvider,
-): jest.Mocked<Pick<AvatarVideoService, 'getProvider'>> {
+): Mocked<Pick<AvatarVideoService, 'getProvider'>> {
   return {
     getProvider: vi.fn().mockReturnValue(provider),
   };

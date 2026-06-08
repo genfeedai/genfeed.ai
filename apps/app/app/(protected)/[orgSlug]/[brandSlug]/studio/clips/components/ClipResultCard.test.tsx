@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ClipResultCard, { type ClipResult } from './ClipResultCard';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 const pushSpy = vi.fn();
 

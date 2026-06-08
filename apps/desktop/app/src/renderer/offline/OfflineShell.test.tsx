@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 import OfflineShell from './OfflineShell';
 
 const bootstrap: IDesktopBootstrap = {
+  activeWorkspaceId: 'workspace-1',
+  brands: [],
   clerkId: null,
   environment: {
     apiEndpoint: '',
@@ -46,6 +48,7 @@ const bootstrap: IDesktopBootstrap = {
       name: 'Workspace One',
       path: '/tmp/workspace-one',
       pendingSyncCount: 0,
+      syncPolicy: 'local-only',
       updatedAt: '2026-04-01T09:00:00.000Z',
     },
   ],

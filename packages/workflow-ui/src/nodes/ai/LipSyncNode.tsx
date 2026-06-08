@@ -188,6 +188,7 @@ function LipSyncNodeComponent(props: NodeProps) {
           <div className="relative">
             <video
               src={nodeData.outputVideo}
+              aria-label="Lip-synced video output"
               controls
               className="w-full rounded border border-[var(--border)]"
             />

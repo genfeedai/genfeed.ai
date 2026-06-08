@@ -28,6 +28,12 @@ import {
   HiVideoCamera,
 } from 'react-icons/hi2';
 
+const PLATFORM_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+
 export interface AnalyticsPlatformDetailProps {
   brandId: string;
   platform: string;
@@ -114,11 +120,7 @@ export default function AnalyticsPlatformDetail({
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return new Intl.DateTimeFormat('en-US', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    }).format(date);
+    return PLATFORM_DATE_FORMATTER.format(date);
   };
 
   const platformLabel =
@@ -135,7 +137,7 @@ export default function AnalyticsPlatformDetail({
           variant={ButtonVariant.GHOST}
           size={ButtonSize.SM}
           className="gap-2"
-          icon={<HiArrowLeft className="w-4 h-4" />}
+          icon={<HiArrowLeft className="size-4" />}
           label="Back to Brand"
         />
       }
@@ -219,11 +221,11 @@ export default function AnalyticsPlatformDetail({
                         alt="Post thumbnail"
                         width={64}
                         height={64}
-                        className="w-16 h-16 object-cover"
+                        className="size-16 object-cover"
                       />
                     ) : (
-                      <div className="w-16 h-16 bg-muted flex items-center justify-center">
-                        <HiVideoCamera className="w-6 h-6 text-foreground/30" />
+                      <div className="size-16 bg-muted flex items-center justify-center">
+                        <HiVideoCamera className="size-6 text-foreground/30" />
                       </div>
                     )}
                     <div className="max-w-xs">
@@ -291,7 +293,7 @@ export default function AnalyticsPlatformDetail({
             ]}
             actions={[
               {
-                icon: <HiArrowRight className="w-4 h-4" />,
+                icon: <HiArrowRight className="size-4" />,
                 onClick: (post) => setSelectedPostId(post.id),
                 tooltip: 'View Post Details',
               },

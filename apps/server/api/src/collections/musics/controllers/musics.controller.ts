@@ -118,7 +118,7 @@ export class MusicsController extends BaseCRUDController<
             category: IngredientCategory.MUSIC,
             isDeleted,
             // Exclude training source musics by default
-            training: { not: false },
+            trainingId: null,
             user: publicMetadata.user,
           },
           {

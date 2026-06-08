@@ -20,56 +20,20 @@ import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivide
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import {
-  HiArrowsPointingIn,
   HiArrowUp,
   HiCheck,
   HiChevronDown,
   HiExclamationCircle,
-  HiLanguage,
   HiPhoto,
   HiPlus,
-  HiRocketLaunch,
   HiSparkles,
   HiTrash,
 } from 'react-icons/hi2';
+import { QUICK_ACTIONS, TONE_OPTIONS } from './post-enhancement-bar.helpers';
 
 const EMPTY_ARRAY: never[] = [];
 
 const _DEFAULT_TEXT_MODEL_COST = EnvironmentService.TEXT_MODEL_DEFAULT_COST;
-
-export const QUICK_ACTIONS = [
-  {
-    icon: HiArrowsPointingIn,
-    key: 'shorten' as const,
-    label: 'Shorten',
-    prompt:
-      'Make this content shorter and more concise while keeping the key message',
-    tooltip: 'Shorten content (1 credit)',
-  },
-  {
-    icon: HiLanguage,
-    key: 'simplify' as const,
-    label: 'Simplify',
-    prompt: 'Simplify the language to make it easier to understand',
-    tooltip: 'Simplify language (1 credit)',
-  },
-  {
-    icon: HiRocketLaunch,
-    key: 'boost' as const,
-    label: 'Boost',
-    prompt:
-      'Make this post more engaging and optimized for social media. Add compelling hooks, clear value proposition, and strong call-to-action. Keep it concise and shareable.',
-    tooltip: 'Boost post for social media (1 credit)',
-  },
-] as const;
-
-export const TONE_OPTIONS: { key: TweetTone; label: string }[] = [
-  { key: 'professional', label: 'Professional' },
-  { key: 'casual', label: 'Casual' },
-  { key: 'viral', label: 'Viral' },
-  { key: 'educational', label: 'Educational' },
-  { key: 'humorous', label: 'Humorous' },
-];
 
 // Consistent button sizing
 const BTN_ICON_CLASS = 'size-9 min-h-0 p-0';

@@ -31,7 +31,7 @@ export default function SidebarActionTrigger({
       ariaLabel={ariaLabel ?? label}
       className={cn(
         'group relative flex h-7 w-full flex-row items-center gap-2 rounded px-2.5 py-1 text-left text-foreground/72 transition-[background-color,color] duration-200',
-        'hover:bg-white/[0.035] hover:text-foreground',
+        'hover:bg-foreground/[0.035] hover:text-foreground',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         className,
       )}
@@ -44,7 +44,7 @@ export default function SidebarActionTrigger({
       </span>
       <Kbd
         variant="ghost"
-        className="ml-auto rounded-md border border-white/[0.08] bg-white/[0.03] text-[10px] text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        className="ml-auto rounded-md border border-foreground/[0.08] bg-foreground/[0.03] text-[10px] text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
       >
         {shortcut}
       </Kbd>

@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { createContext, useContext } from 'react';
+import { createContext, use } from 'react';
 
 export type RefreshFunction = () => void | Promise<void>;
 
@@ -26,5 +26,5 @@ export const PostsLayoutContext = createContext<{
 });
 
 export function usePostsLayout() {
-  return useContext(PostsLayoutContext);
+  return use(PostsLayoutContext);
 }

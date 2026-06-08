@@ -115,9 +115,9 @@ function DynamicChart({ block }: DynamicChartProps): ReactElement {
             outerRadius={80}
             label
           >
-            {data.map((_, index) => (
+            {data.map((item, index) => (
               <Cell
-                key={`cell-${index}`}
+                key={`cell-${String(item[xKey] ?? index)}`}
                 fill={DEFAULT_COLORS[index % DEFAULT_COLORS.length]}
               />
             ))}

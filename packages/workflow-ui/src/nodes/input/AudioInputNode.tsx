@@ -148,6 +148,7 @@ function AudioInputNodeComponent(props: NodeProps) {
         accept="audio/*"
         onChange={handleFileSelect}
         className="hidden"
+        aria-label="Upload audio file"
       />
 
       {/* URL Input (shown when link button clicked) */}
@@ -159,6 +160,7 @@ function AudioInputNodeComponent(props: NodeProps) {
             onChange={(e) => setUrlValue(e.target.value)}
             onKeyDown={handleUrlKeyDown}
             placeholder="https://..."
+            aria-label="Audio URL"
             className="nodrag nopan flex-1 h-7 px-2 text-xs border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <Button
@@ -177,7 +179,12 @@ function AudioInputNodeComponent(props: NodeProps) {
       {nodeData.audio ? (
         <div className="space-y-2">
           <div className="relative">
-            <audio src={nodeData.audio} controls className="w-full h-8">
+            <audio
+              src={nodeData.audio}
+              aria-label={nodeData.filename || 'Audio preview'}
+              controls
+              className="w-full h-8"
+            >
               <track kind="captions" />
             </audio>
             <Button

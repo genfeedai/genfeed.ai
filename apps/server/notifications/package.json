@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@clerk/backend": "3.4.13",
+    "@clerk/backend": "3.4.14",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@slack/web-api": "7.16.0",
@@ -33,5 +33,6 @@
     "test:e2e": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts"
   },
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "type": "module"
 }

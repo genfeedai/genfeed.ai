@@ -1,40 +1,7 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { cva, type VariantProps } from 'class-variance-authority';
+import type { VariantProps } from 'class-variance-authority';
 import type { ElementType, HTMLAttributes, Ref } from 'react';
-
-const textVariants = cva('', {
-  defaultVariants: {
-    color: 'default',
-    size: 'base',
-    weight: 'normal',
-  },
-  variants: {
-    color: {
-      default: 'text-foreground',
-      destructive: 'text-destructive',
-      muted: 'text-muted-foreground',
-      primary: 'text-primary',
-      'subtle-50': 'text-foreground/50',
-      'subtle-60': 'text-foreground/60',
-      'subtle-70': 'text-foreground/70',
-    },
-    size: {
-      '2xs': 'text-[10px]',
-      base: 'text-base',
-      lg: 'text-lg',
-      sm: 'text-sm',
-      xl: 'text-xl',
-      xs: 'text-xs',
-    },
-    weight: {
-      black: 'font-black',
-      bold: 'font-bold',
-      medium: 'font-medium',
-      normal: 'font-normal',
-      semibold: 'font-semibold',
-    },
-  },
-});
+import { textVariants } from './text.variants';
 
 export interface TextProps
   extends Omit<HTMLAttributes<HTMLElement>, 'color'>,
@@ -63,4 +30,4 @@ function Text({
 }
 Text.displayName = 'Text';
 
-export { Text, textVariants };
+export { Text };

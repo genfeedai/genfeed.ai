@@ -1,5 +1,5 @@
 import TopPostsSection from '@ui/analytics/top-posts/TopPostsSection';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import type { ImgHTMLAttributes } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

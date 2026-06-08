@@ -9,6 +9,7 @@ import {
 } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -45,7 +46,12 @@ interface MemoryQueryOptions {
 }
 
 @Injectable()
-export class AgentMemoriesService extends BaseService<AgentMemoryDocument> {
+export class AgentMemoriesService extends BaseService<
+  AgentMemoryDocument,
+  Partial<AgentMemoryDocument>,
+  Partial<AgentMemoryDocument>,
+  Prisma.AgentMemoryWhereInput
+> {
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,

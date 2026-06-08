@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, type ReactNode, useContext, useMemo } from 'react';
+import { createContext, type ReactNode, use, useMemo } from 'react';
 
 interface FeatureFlagContextValue {
   flags: Record<string, unknown>;
@@ -58,7 +58,7 @@ export function FeatureFlagProvider({
 }
 
 export function useFeatureFlagContext(): FeatureFlagContextValue {
-  return useContext(FeatureFlagContext);
+  return use(FeatureFlagContext);
 }
 
 function parseFeatureFlagDefaults(

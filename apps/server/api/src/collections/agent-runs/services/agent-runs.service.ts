@@ -7,6 +7,7 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AgentExecutionStatus } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import type {
   AgentRunAnomaly,
   AgentRunModelCount,
@@ -158,7 +159,8 @@ function detectAgentRunAnomalies(
 export class AgentRunsService extends BaseService<
   AgentRunDocument,
   CreateAgentRunDto,
-  UpdateAgentRunDto
+  UpdateAgentRunDto,
+  Prisma.AgentRunWhereInput
 > {
   constructor(
     public readonly prisma: PrismaService,
@@ -314,6 +316,25 @@ export class AgentRunsService extends BaseService<
         metadata: { ...existingMetadata, ...metadata },
       },
     });
+  }
+
+  @HandleErrors('list recent organization agent runs', 'agent-runs')
+  async findRecentByOrganization(
+    organizationId: string,
+    since: Date,
+    take = 200,
+  ): Promise<AgentRunDocument[]> {
+    const docs = await this.delegate.findMany({
+      orderBy: { createdAt: 'desc' },
+      take,
+      where: {
+        createdAt: { gte: since },
+        isDeleted: false,
+        organizationId,
+      },
+    });
+
+    return this.normalizeDocuments(docs) as AgentRunDocument[];
   }
 
   @HandleErrors('complete agent run', 'agent-runs')

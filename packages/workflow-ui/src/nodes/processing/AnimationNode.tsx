@@ -222,6 +222,7 @@ function AnimationNodeComponent(props: NodeProps) {
           <div className="relative">
             <video
               src={nodeData.outputVideo}
+              aria-label="Animated video output"
               className="w-full h-20 object-cover rounded"
               controls
             />

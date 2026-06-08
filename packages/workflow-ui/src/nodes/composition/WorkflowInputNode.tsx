@@ -76,8 +76,11 @@ function WorkflowInputNodeComponent(props: NodeProps) {
 
         {/* Input Name */}
         <div className="space-y-1.5">
-          <Label className="text-xs">Input Name</Label>
+          <Label htmlFor={`input-name-${id}`} className="text-xs">
+            Input Name
+          </Label>
           <input
+            id={`input-name-${id}`}
             type="text"
             value={nodeData.inputName || 'input'}
             onChange={handleNameChange}
@@ -120,8 +123,11 @@ function WorkflowInputNodeComponent(props: NodeProps) {
 
         {/* Description */}
         <div className="space-y-1.5">
-          <Label className="text-xs">Description (optional)</Label>
+          <Label htmlFor={`input-description-${id}`} className="text-xs">
+            Description (optional)
+          </Label>
           <input
+            id={`input-description-${id}`}
             type="text"
             value={nodeData.description || ''}
             onChange={handleDescriptionChange}

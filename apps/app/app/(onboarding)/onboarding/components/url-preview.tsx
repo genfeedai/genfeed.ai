@@ -1,11 +1,26 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { HiGlobeAlt } from 'react-icons/hi2';
 
 interface UrlPreviewProps {
   url: string;
+}
+
+function parseDomain(url: string): string | null {
+  if (!url || url.length < 4) {
+    return null;
+  }
+  try {
+    const normalized = url.includes('://') ? url : `https://${url}`;
+    const parsed = new URL(normalized);
+    return parsed.hostname?.includes('.') ? parsed.hostname : null;
+  } catch {
+    // Try simple domain extraction
+    const cleaned = url.replace(/^https?:\/\//, '').split('/')[0];
+    return cleaned.includes('.') && cleaned.length > 3 ? cleaned : null;
+  }
 }
 
 /**
@@ -13,34 +28,14 @@ interface UrlPreviewProps {
  * Uses Google's favicon service for reliable favicon fetching.
  */
 export default function UrlPreview({ url }: UrlPreviewProps) {
-  const [domain, setDomain] = useState<string | null>(null);
   const [faviconError, setFaviconError] = useState(false);
-
-  useEffect(() => {
+  const [prevUrl, setPrevUrl] = useState(url);
+  if (url !== prevUrl) {
+    setPrevUrl(url);
     setFaviconError(false);
-    if (!url || url.length < 4) {
-      setDomain(null);
-      return;
-    }
+  }
 
-    try {
-      const normalized = url.includes('://') ? url : `https://${url}`;
-      const parsed = new URL(normalized);
-      if (parsed.hostname?.includes('.')) {
-        setDomain(parsed.hostname);
-      } else {
-        setDomain(null);
-      }
-    } catch {
-      // Try simple domain extraction
-      const cleaned = url.replace(/^https?:\/\//, '').split('/')[0];
-      if (cleaned.includes('.') && cleaned.length > 3) {
-        setDomain(cleaned);
-      } else {
-        setDomain(null);
-      }
-    }
-  }, [url]);
+  const domain = parseDomain(url);
 
   if (!domain) {
     return null;

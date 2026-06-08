@@ -11,6 +11,15 @@ import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useState } from 'react';
 import { HiOutlineNewspaper } from 'react-icons/hi2';
 
+const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
+  setExportNode: () => {},
+  setFiltersNode: () => {},
+  setIsRefreshing: () => {},
+  setRefresh: () => {},
+  setScheduleActionsNode: () => {},
+  setViewToggleNode: () => {},
+};
+
 function PostsLayoutContent({ children }: { children: ReactNode }) {
   const { push, refresh } = useRouter();
   const pathname = usePathname();
@@ -65,34 +74,29 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
     }
   }, [refreshFn, refresh]);
 
+  const mainContextValue = useMemo(
+    () => ({
+      setExportNode,
+      setFiltersNode,
+      setIsRefreshing,
+      setRefresh: setRefreshFn,
+      setScheduleActionsNode,
+      setViewToggleNode,
+    }),
+    // useState setters are stable references — no deps needed
+    [],
+  );
+
   if (isDetailRoute) {
     return (
-      <PostsLayoutContext.Provider
-        value={{
-          setExportNode: () => {},
-          setFiltersNode: () => {},
-          setIsRefreshing: () => {},
-          setRefresh: () => {},
-          setScheduleActionsNode: () => {},
-          setViewToggleNode: () => {},
-        }}
-      >
+      <PostsLayoutContext.Provider value={NOOP_POSTS_LAYOUT_CONTEXT_VALUE}>
         {children}
       </PostsLayoutContext.Provider>
     );
   }
 
   return (
-    <PostsLayoutContext.Provider
-      value={{
-        setExportNode,
-        setFiltersNode,
-        setIsRefreshing,
-        setRefresh: setRefreshFn,
-        setScheduleActionsNode,
-        setViewToggleNode,
-      }}
-    >
+    <PostsLayoutContext.Provider value={mainContextValue}>
       <Container
         label="Posts"
         description="View and manage published content across all connected accounts"

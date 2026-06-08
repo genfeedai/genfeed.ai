@@ -1,5 +1,5 @@
-import type { AdInsightsAggregationJobData } from '@api/queues/ad-insights-aggregation/ad-insights-aggregation.processor';
 import { QueueService } from '@api/queues/core/queue.service';
+import type { AdInsightsAggregationJobData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

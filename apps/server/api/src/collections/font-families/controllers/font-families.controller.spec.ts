@@ -145,29 +145,44 @@ describe('FontFamiliesController', () => {
   });
 
   describe('buildFindAllQuery', () => {
-    it('should build query with organization filter', () => {
+    it('should build query with organization filter and include global items', () => {
       const inputQuery = {};
-      const query = controller.buildFindAllQuery(mockUser, inputQuery, false);
+      const query = controller.buildFindAllQuery(mockUser, inputQuery as never);
 
       expect(query).toBeDefined();
       expect(Array.isArray(query)).toBe(false);
+      // global condition must be organization: null only (no user field)
+      expect(query.where.OR).toContainEqual({ organization: null });
+      // user's org condition must be present
+      expect(query.where.OR).toContainEqual({
+        organization: '507f1f77bcf86cd799439012',
+      });
+      // no { user: ... } condition — FontFamilyRecord has no user column
+      expect(
+        query.where.OR.some((c: Record<string, unknown>) => 'user' in c),
+      ).toBe(false);
     });
 
-    it('should load defaults when no organization', () => {
+    it('should return only global items when no organization', () => {
       const userWithoutOrg: User = {
-        publicMetadata: {
-          user: '507f1f77bcf86cd799439011',
-        },
+        publicMetadata: {},
       } as unknown as User;
 
       const inputQuery = {};
       const query = controller.buildFindAllQuery(
         userWithoutOrg,
-        inputQuery,
-        false,
+        inputQuery as never,
       );
 
       expect(query).toBeDefined();
+      expect(query.where.OR).toEqual([{ organization: null }]);
+    });
+
+    it('should use default orderBy with label when no sort provided', () => {
+      const inputQuery = {};
+      const query = controller.buildFindAllQuery(mockUser, inputQuery as never);
+
+      expect(query.orderBy).toEqual({ createdAt: -1, label: 1 });
     });
   });
 });

@@ -5,9 +5,9 @@ import {
   createCacheKey,
   createLocalStorageCache,
 } from '@helpers/data/cache/cache.helper';
+import { getDateRangeKeys } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 export interface TopPostData {
@@ -71,12 +71,10 @@ export function useTopPosts(options: UseTopPostsOptions = {}) {
     };
   }, []);
 
-  const startDateKey = dateRange.startDate
-    ? format(dateRange.startDate, 'yyyy-MM-dd')
-    : null;
-  const endDateKey = dateRange.endDate
-    ? format(dateRange.endDate, 'yyyy-MM-dd')
-    : null;
+  const { endDateKey, startDateKey } = useMemo(
+    () => getDateRangeKeys(dateRange),
+    [dateRange],
+  );
 
   const cacheKey = useMemo(
     () =>
@@ -125,13 +123,17 @@ export function useTopPosts(options: UseTopPostsOptions = {}) {
       refreshTrigger,
     ],
     queryFn: async () => {
+      if (!startDateKey || !endDateKey) {
+        return [];
+      }
+
       try {
         const service = await getAnalyticsService();
         const fetchedData = (await service.getTopContent({
-          endDate: endDateKey!,
+          endDate: endDateKey,
           limit,
           metric,
-          startDate: startDateKey!,
+          startDate: startDateKey,
           ...(brandId && { brand: brandId }),
           ...(platform && { platform }),
         })) as TopPostData[];

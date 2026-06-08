@@ -112,34 +112,55 @@ export class AgentRunsController extends BaseCRUDController<
       match.trigger = query.trigger;
     }
 
+    const metadataFilters: Record<string, unknown>[] = [];
+
     if (query.routingPolicy) {
-      match['metadata.routingPolicy'] = query.routingPolicy;
+      metadataFilters.push({
+        metadata: { path: ['routingPolicy'], equals: query.routingPolicy },
+      });
     }
 
     if (query.webSearchEnabled !== undefined) {
-      match['metadata.webSearchEnabled'] = query.webSearchEnabled;
+      metadataFilters.push({
+        metadata: {
+          path: ['webSearchEnabled'],
+          equals: query.webSearchEnabled,
+        },
+      });
+    }
+
+    if (metadataFilters.length === 1) {
+      Object.assign(match, metadataFilters[0]);
+    } else if (metadataFilters.length > 1) {
+      const existingAnd = Array.isArray(match.AND) ? match.AND : [];
+      match.AND = [...existingAnd, ...metadataFilters];
     }
 
     if (query.model) {
       match.OR = [
-        { 'metadata.actualModel': query.model },
-        { 'metadata.requestedModel': query.model },
+        { metadata: { path: ['actualModel'], string_contains: query.model } },
+        {
+          metadata: { path: ['requestedModel'], string_contains: query.model },
+        },
       ];
     }
 
     if (query.q) {
-      const escapedQuery = query.q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const searchRegex = new RegExp(escapedQuery, 'i');
       const searchConditions = [
-        { label: searchRegex },
-        { objective: searchRegex },
-        { 'metadata.actualModel': searchRegex },
-        { 'metadata.requestedModel': searchRegex },
-        { 'metadata.routingPolicy': searchRegex },
+        { label: { contains: query.q, mode: 'insensitive' } },
+        { objective: { contains: query.q, mode: 'insensitive' } },
+        { metadata: { path: ['actualModel'], string_contains: query.q } },
+        { metadata: { path: ['requestedModel'], string_contains: query.q } },
+        { metadata: { path: ['routingPolicy'], string_contains: query.q } },
       ];
 
       if (Array.isArray(match.OR)) {
-        match.AND = [{ OR: [...match.OR] }, { OR: searchConditions }];
+        const existingAnd = Array.isArray(match.AND) ? match.AND : [];
+        match.AND = [
+          ...existingAnd,
+          { OR: [...(match.OR as unknown[])] },
+          { OR: searchConditions },
+        ];
         delete match.OR;
       } else {
         match.OR = searchConditions;

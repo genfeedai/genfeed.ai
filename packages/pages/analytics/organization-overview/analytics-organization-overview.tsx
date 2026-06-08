@@ -269,10 +269,10 @@ export default function AnalyticsOrganizationOverview({
                         alt={brand.name}
                         width={32}
                         height={32}
-                        className="w-8 h-8 rounded-full object-cover"
+                        className="size-8 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
+                      <div className="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
                         {brand.name.charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -335,7 +335,7 @@ export default function AnalyticsOrganizationOverview({
             ]}
             actions={[
               {
-                icon: <HiArrowRight className="w-4 h-4" />,
+                icon: <HiArrowRight className="size-4" />,
                 onClick: (brand) =>
                   router.push(`${basePath}/brands/${brand.id}`),
                 tooltip: 'View Details',

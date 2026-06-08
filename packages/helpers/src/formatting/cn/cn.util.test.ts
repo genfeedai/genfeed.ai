@@ -94,15 +94,15 @@ describe('cn.util', () => {
   });
 
   describe('constants', () => {
-    it('BG_BLUR should contain translucent gradient and blur classes', () => {
-      expect(BG_BLUR).toContain('bg-gradient-to-t');
-      expect(BG_BLUR).toContain('from-black/80');
+    it('BG_BLUR should contain translucent surface and blur classes', () => {
+      expect(BG_BLUR).toContain('bg-popover/80');
       expect(BG_BLUR).toContain('backdrop-blur-xl');
+      expect(BG_BLUR).toContain('supports-[backdrop-filter]');
     });
 
     it('BORDER_WHITE_30 should contain border and shadow classes', () => {
       expect(BORDER_WHITE_30).toContain('border');
-      expect(BORDER_WHITE_30).toContain('border-white/[0.16]');
+      expect(BORDER_WHITE_30).toContain('border-border');
       expect(BORDER_WHITE_30).toContain(
         'shadow-[0_-8px_32px_rgba(0,0,0,0.45)]',
       );

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import LibraryCaptionsPage from './library-captions-page';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, expect, it } from 'vitest';
 
 describe('LibraryCaptionsPage', () => {

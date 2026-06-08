@@ -5,19 +5,7 @@ import type {
   WorkflowInterfaceSchema,
 } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
-import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
-import { Input } from '@ui/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
 import {
   type ChangeEvent,
   type ReactElement,
@@ -27,12 +15,10 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  HiCheckCircle,
-  HiCurrencyDollar,
-  HiExclamationCircle,
-  HiOutlineBolt,
-} from 'react-icons/hi2';
+import { WorkflowExecuteCardHeader } from './WorkflowExecuteCardHeader';
+import { WorkflowExecuteCardInputsForm } from './WorkflowExecuteCardInputsForm';
+import { WorkflowExecuteCardStatusPanel } from './WorkflowExecuteCardStatusPanel';
+import { WorkflowExecuteCardWorkflowInfo } from './WorkflowExecuteCardWorkflowInfo';
 
 interface WorkflowExecuteCardProps {
   action: AgentUiAction;
@@ -201,37 +187,19 @@ export function WorkflowExecuteCard({
     setExecutionId(null);
   }, []);
 
+  const executionHref = executionId
+    ? href(`/workflows/executions/${executionId}`)
+    : null;
+
   return (
     <div className="my-2 overflow-hidden border border-border bg-background">
-      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <HiOutlineBolt className="size-4 text-primary" />
-        <span className="text-sm font-medium text-foreground">
-          {action.title || 'Execute Workflow'}
-        </span>
-      </div>
+      <WorkflowExecuteCardHeader title={action.title || 'Execute Workflow'} />
 
       <div className="space-y-3 p-3">
-        <div className="border border-border p-2.5">
-          <span className="text-sm font-medium text-foreground">
-            {workflowName}
-          </span>
-          {action.workflowDescription && (
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {action.workflowDescription}
-            </p>
-          )}
-        </div>
-
-        {action.description && (
-          <p className="text-xs text-muted-foreground">{action.description}</p>
-        )}
-
-        {action.creditEstimate != null && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <HiCurrencyDollar className="size-3.5" />
-            <span>Estimated cost: {action.creditEstimate} credits</span>
-          </div>
-        )}
+        <WorkflowExecuteCardWorkflowInfo
+          action={action}
+          workflowName={workflowName}
+        />
 
         {isLoadingInterface && (
           <div className="border border-border px-3 py-2 text-xs text-muted-foreground">
@@ -240,153 +208,24 @@ export function WorkflowExecuteCard({
         )}
 
         {status === 'idle' && hasInputs && !isLoadingInterface && (
-          <div className="space-y-3 border border-border p-3">
-            {inputEntries.map(([key, field]) => {
-              const label = field.label ?? key;
-              const value = formValues[key];
-
-              return (
-                <div key={key}>
-                  <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                    {label}
-                    {field.required ? ' *' : ''}
-                  </label>
-                  {field.description && (
-                    <p className="mb-1 text-xs text-muted-foreground">
-                      {field.description}
-                    </p>
-                  )}
-                  {field.type === 'boolean' ? (
-                    <label className="flex items-center gap-2 border border-border px-2.5 py-2 text-sm text-foreground">
-                      <Checkbox
-                        isChecked={Boolean(value)}
-                        onChange={(event) =>
-                          handleChange(key, event.target.checked)
-                        }
-                      />
-                      <span>{label}</span>
-                    </label>
-                  ) : field.type === 'select' &&
-                    Array.isArray(field.validation?.options) ? (
-                    <Select
-                      value={typeof value === 'string' ? value : ''}
-                      onValueChange={(val) => handleChange(key, val)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={
-                            !field.required ? 'Optional' : `Select ${label}`
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {!field.required && (
-                          <SelectItem value="">Optional</SelectItem>
-                        )}
-                        {field.validation.options.map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : field.type === 'number' ? (
-                    <Input
-                      type="number"
-                      value={
-                        typeof value === 'number' || typeof value === 'string'
-                          ? value
-                          : ''
-                      }
-                      onChange={(event) =>
-                        handleChange(key, event.target.value)
-                      }
-                    />
-                  ) : field.type === 'text' &&
-                    key.toLowerCase().includes('script') ? (
-                    <Textarea
-                      rows={3}
-                      value={typeof value === 'string' ? value : ''}
-                      onChange={handleTextChange(key)}
-                      className="resize-none"
-                    />
-                  ) : (
-                    <Input
-                      type="text"
-                      value={typeof value === 'string' ? value : ''}
-                      onChange={handleTextChange(key)}
-                      placeholder={
-                        field.type === 'image' || field.type === 'audio'
-                          ? 'https://...'
-                          : undefined
-                      }
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <WorkflowExecuteCardInputsForm
+            inputEntries={inputEntries as [string, WorkflowInterfaceField][]}
+            formValues={formValues}
+            onTextChange={handleTextChange}
+            onChange={handleChange}
+          />
         )}
 
-        {status === 'idle' && (
-          <Button
-            variant={ButtonVariant.DEFAULT}
-            withWrapper={false}
-            onClick={handleExecute}
-            isDisabled={!workflowId || isLoadingInterface}
-            className="flex w-full items-center justify-center gap-2 px-4 py-2 text-sm font-black"
-          >
-            <HiOutlineBolt className="size-4" />
-            Execute
-          </Button>
-        )}
-
-        {status === 'executing' && (
-          <div className="flex items-center justify-center gap-2 border border-border px-4 py-3">
-            <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            <span className="text-sm text-muted-foreground">
-              Executing workflow…
-            </span>
-          </div>
-        )}
-
-        {status === 'done' && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 dark:border-green-800 dark:bg-green-950">
-              <HiCheckCircle className="size-4 text-green-600 dark:text-green-400" />
-              <span className="text-sm text-green-700 dark:text-green-300">
-                Workflow executed successfully
-              </span>
-            </div>
-            {executionId && (
-              <a
-                href={href(`/workflows/executions/${executionId}`)}
-                className="flex w-full items-center justify-center gap-1 border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
-              >
-                View Execution
-              </a>
-            )}
-          </div>
-        )}
-
-        {status === 'error' && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950">
-              <HiExclamationCircle className="size-4 text-red-600 dark:text-red-400" />
-              <span className="text-sm text-red-700 dark:text-red-300">
-                {error}
-              </span>
-            </div>
-            <Button
-              variant={ButtonVariant.OUTLINE}
-              withWrapper={false}
-              onClick={handleRetry}
-              className="flex w-full items-center justify-center px-4 py-2 text-sm font-black"
-            >
-              Try Again
-            </Button>
-          </div>
-        )}
+        <WorkflowExecuteCardStatusPanel
+          status={status}
+          error={error}
+          executionId={executionId}
+          workflowId={workflowId}
+          isLoadingInterface={isLoadingInterface}
+          executionHref={executionHref}
+          onExecute={handleExecute}
+          onRetry={handleRetry}
+        />
       </div>
     </div>
   );

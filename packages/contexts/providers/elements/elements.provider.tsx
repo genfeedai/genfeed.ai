@@ -13,60 +13,19 @@ import type {
   IElementStyle,
   ISound,
 } from '@genfeedai/interfaces';
-import type {
-  IFilters,
-  IFiltersState,
-} from '@genfeedai/interfaces/utils/filters.interface';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { ElementsService } from '@genfeedai/services/elements/elements.service';
+import { useElementsFilters } from '@providers/elements-filters/elements-filters.context';
+import { ElementsFiltersProvider } from '@providers/elements-filters/elements-filters.provider';
 import {
-  ElementsFiltersProvider,
-  useElementsFilters,
-} from '@providers/elements-filters/elements-filters.provider';
-import {
-  createContext,
   type ReactNode,
   useCallback,
-  useContext,
   useEffect,
   useRef,
   useState,
 } from 'react';
-
-export interface ElementsContextValue {
-  moods: IElementMood[];
-  styles: IElementStyle[];
-  cameras: IElementCamera[];
-  blacklists: IElementBlacklist[];
-  sounds: ISound[];
-  scenes: IElementScene[];
-  lightings: IElementLighting[];
-  lenses: IElementLens[];
-  cameraMovements: IElementCameraMovement[];
-  isLoading: boolean;
-  error: Error | null;
-  filters: IFiltersState;
-  query: IFilters;
-  isRefreshing: boolean;
-  setFilters: (filters: IFiltersState) => void;
-  setQuery: (query: IFilters) => void;
-  setIsRefreshing: (isRefreshing: boolean) => void;
-  refetch: () => Promise<void>;
-  onRefresh?: (callback: () => Promise<void> | void) => void;
-}
-export const ElementsContext = createContext<ElementsContextValue | undefined>(
-  undefined,
-);
-export function useElementsContext(): ElementsContextValue {
-  const context = useContext(ElementsContext);
-  if (context === undefined) {
-    throw new Error(
-      'useElementsContext must be used within an ElementsProvider',
-    );
-  }
-  return context;
-}
+import { ElementsContext, type ElementsContextValue } from './elements.context';
 
 function ElementsProviderContent({
   children,
@@ -173,6 +132,7 @@ function ElementsProviderContent({
       setIsLoading(false);
     }
   }, [isSignedIn, enabled, findAllElementsService, userId, orgId, sessionId]);
+
   useEffect(() => {
     if (!isAuthLoaded || !enabled) {
       return;
@@ -214,6 +174,7 @@ function ElementsProviderContent({
     sessionId,
     findAllElements,
   ]);
+
   const refetch = useCallback(async () => {
     setIsRefreshing(true);
 
@@ -235,6 +196,7 @@ function ElementsProviderContent({
       setIsRefreshing(false);
     }
   }, [findAllElements, setIsRefreshing]);
+
   const onRefresh = useCallback((callback: () => Promise<void> | void) => {
     refreshCallbacksRef.current.push(callback);
     return () => {

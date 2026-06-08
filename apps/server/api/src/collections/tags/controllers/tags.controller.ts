@@ -64,8 +64,9 @@ export class TagsController extends BaseCRUDController<
       OR: orConditions,
     };
 
-    // Add search condition (searches across label, key, description, category)
+    // Add search condition (searches across label, key, description)
     // If both search and label are provided, search takes precedence
+    // Note: category is a TagCategory enum — Prisma does not support `contains` on enum fields
     if (query.search) {
       // Add search OR condition - MongoDB will AND it with the organization OR
       matchConditions.AND = [
@@ -74,7 +75,6 @@ export class TagsController extends BaseCRUDController<
             { label: { mode: 'insensitive', contains: query.search } },
             { key: { mode: 'insensitive', contains: query.search } },
             { description: { mode: 'insensitive', contains: query.search } },
-            { category: { mode: 'insensitive', contains: query.search } },
           ],
         },
       ];

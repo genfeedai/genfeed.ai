@@ -1,7 +1,7 @@
 import OpportunityCard from '@pages/twitter-pipeline/components/opportunity-card';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 const mockOpportunity = {
   author: {

@@ -2,7 +2,8 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import type { ComponentProps } from 'react';
 import { cn } from '../lib/utils';
-import { type ButtonProps, buttonVariants } from './button';
+import type { ButtonProps } from './button';
+import { buttonVariants } from './button.variants';
 
 const Pagination = ({ className, ...props }: ComponentProps<'nav'>) => (
   <nav

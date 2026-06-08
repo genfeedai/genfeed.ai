@@ -1,5 +1,5 @@
-import { TOOL_LABELS } from '@genfeedai/agent/components/AgentToolCallDisplay';
 import { AnimatedStatusText } from '@genfeedai/agent/components/AnimatedStatusText';
+import { TOOL_LABELS } from '@genfeedai/agent/components/agent-tool-call-display.helpers';
 import { TimelineWorkEntry } from '@genfeedai/agent/components/TimelineWorkEntry';
 import { useAnimatedText } from '@genfeedai/agent/hooks/use-animated-text';
 import {

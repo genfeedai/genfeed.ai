@@ -8,8 +8,8 @@ import type {
 import {
   createContext,
   type ReactNode,
+  use,
   useCallback,
-  useContext,
   useMemo,
   useRef,
   useState,
@@ -78,5 +78,5 @@ export function ModelsProvider({ children }: { children: ReactNode }) {
 }
 
 export function useModelsContext() {
-  return useContext(ModelsContext);
+  return use(ModelsContext);
 }

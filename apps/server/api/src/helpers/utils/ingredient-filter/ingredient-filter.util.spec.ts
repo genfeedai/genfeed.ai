@@ -67,9 +67,9 @@ describe('IngredientFilterUtil', () => {
       expect(result).toEqual(brandId);
     });
 
-    it('should filter for any existing brand when no ID provided', () => {
+    it('should assert brandId is set (not null) when no ID provided', () => {
       const result = IngredientFilterUtil.buildBrandFilter(undefined);
-      expect(result).toEqual({ not: true });
+      expect(result).toEqual({ not: null });
     });
   });
 

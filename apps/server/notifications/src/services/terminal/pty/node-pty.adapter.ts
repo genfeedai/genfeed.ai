@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import { Injectable, Logger } from '@nestjs/common';
 import { spawn } from 'node-pty';
 import type {
@@ -11,7 +12,8 @@ import type {
   PtySpawnOptions,
 } from './pty-adapter.interface';
 
-const nodeRequire = createRequire(__filename);
+const nodeRequire = createRequire(import.meta.url);
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 
 @Injectable()
 export class NodePtyAdapter implements IPtyAdapter {
@@ -93,7 +95,7 @@ export class NodePtyAdapter implements IPtyAdapter {
     }
 
     const fallbackBases = [
-      path.resolve(__dirname, '../../../notifications/node_modules'),
+      path.resolve(moduleDir, '../../../notifications/node_modules'),
       path.resolve(process.cwd(), 'notifications/node_modules'),
       path.resolve(process.cwd(), 'apps/server/notifications/node_modules'),
       path.resolve(process.cwd(), 'node_modules'),

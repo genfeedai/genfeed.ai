@@ -1,38 +1,13 @@
 'use client';
 
-import { BatchItemStatus, ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/enums';
 import type { IBatchItem, IBatchSummary } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { HiCheck, HiOutlineSparkles, HiXMark } from 'react-icons/hi2';
 import ReviewDetailPanel from './ReviewDetailPanel';
 import ReviewItemCard from './ReviewItemCard';
-import {
-  isApproved,
-  isChangesRequested,
-  isPendingReview,
-  isReadyToReview,
-  isRejected,
-} from './review-state';
-
-export type ReviewFilter =
-  | 'ready'
-  | 'approved'
-  | 'changes_requested'
-  | 'failed'
-  | 'pending'
-  | 'skipped'
-  | 'all';
-
-interface ReviewFilterCounts {
-  all: number;
-  approved: number;
-  changes_requested: number;
-  failed: number;
-  pending: number;
-  ready: number;
-  skipped: number;
-}
+import type { ReviewFilter, ReviewFilterCounts } from './review-grid.helpers';
 
 interface ReviewGridProps {
   activeFilter: ReviewFilter;
@@ -73,82 +48,6 @@ const REVIEW_FILTERS: Array<{
   { filter: 'skipped', helper: 'Rejected items', label: 'Skipped' },
   { filter: 'all', helper: 'Everything in this batch', label: 'All' },
 ];
-
-export function getReviewFilterCounts(items: IBatchItem[]): ReviewFilterCounts {
-  return items.reduce<ReviewFilterCounts>(
-    (counts, item) => {
-      counts.all += 1;
-
-      if (isApproved(item)) {
-        counts.approved += 1;
-        return counts;
-      }
-
-      if (isChangesRequested(item)) {
-        counts.changes_requested += 1;
-        return counts;
-      }
-
-      if (isReadyToReview(item)) {
-        counts.ready += 1;
-        return counts;
-      }
-
-      if (item.status === BatchItemStatus.FAILED) {
-        counts.failed += 1;
-        return counts;
-      }
-
-      if (isRejected(item)) {
-        counts.skipped += 1;
-        return counts;
-      }
-
-      if (isPendingReview(item)) {
-        counts.pending += 1;
-      }
-
-      return counts;
-    },
-    {
-      all: 0,
-      approved: 0,
-      changes_requested: 0,
-      failed: 0,
-      pending: 0,
-      ready: 0,
-      skipped: 0,
-    },
-  );
-}
-
-export function getVisibleReviewItems(
-  items: IBatchItem[],
-  activeFilter: ReviewFilter,
-): IBatchItem[] {
-  if (activeFilter === 'all') {
-    return items;
-  }
-
-  return items.filter((item) => {
-    switch (activeFilter) {
-      case 'approved':
-        return isApproved(item);
-      case 'changes_requested':
-        return isChangesRequested(item);
-      case 'failed':
-        return item.status === BatchItemStatus.FAILED;
-      case 'pending':
-        return isPendingReview(item);
-      case 'ready':
-        return isReadyToReview(item);
-      case 'skipped':
-        return isRejected(item);
-      default:
-        return true;
-    }
-  });
-}
 
 export default function ReviewGrid({
   activeFilter,

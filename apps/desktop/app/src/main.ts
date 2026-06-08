@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type {
   DesktopSyncCursorScope,
   IDesktopAssetGenerationRequest,
@@ -50,6 +51,7 @@ import { DesktopWorkspaceService } from './main/workspace.service';
 
 const configService = new DesktopConfigService();
 const environment = configService.getEnvironment();
+const mainDir = path.dirname(fileURLToPath(import.meta.url));
 
 let mainWindow: BrowserWindow | null = null;
 let bootstrapCache: IDesktopBootstrap | null = null;
@@ -102,6 +104,7 @@ const OFFLINE_MODE_KEY = 'desktop.offline.mode';
 const ONBOARDING_COMPLETED_KEY = 'onboarding.completed';
 const SYNC_THREADS_CURSOR_KEY = 'sync.threads.cursor';
 const LOCAL_CLERK_ID_KEY = 'local.user.clerkId';
+const ACTIVE_WORKSPACE_ID_KEY = 'desktop.workspace.activeId';
 
 function getSyncCursorKey(scope: DesktopSyncCursorScope = 'threads'): string {
   return scope === 'threads' ? SYNC_THREADS_CURSOR_KEY : `sync.${scope}.cursor`;
@@ -110,6 +113,26 @@ function getSyncCursorKey(scope: DesktopSyncCursorScope = 'threads'): string {
 function getClerkId(): string | null {
   return kvService.getValueSync(LOCAL_CLERK_ID_KEY);
 }
+
+const getActiveWorkspaceId = (
+  workspaces = workspaceService.listRecentWorkspaces(),
+): string | null => {
+  const storedWorkspaceId = kvService.getValueSync(ACTIVE_WORKSPACE_ID_KEY);
+
+  if (
+    storedWorkspaceId &&
+    workspaces.some((workspace) => workspace.id === storedWorkspaceId)
+  ) {
+    return storedWorkspaceId;
+  }
+
+  return workspaces[0]?.id ?? null;
+};
+
+const setActiveWorkspaceId = async (workspaceId: string): Promise<void> => {
+  workspaceService.getWorkspace(workspaceId);
+  await kvService.setValue(ACTIVE_WORKSPACE_ID_KEY, workspaceId);
+};
 
 function getDataService(): IDesktopDataService {
   return sessionService.getSession() ? cloudService : localService;
@@ -138,7 +161,9 @@ const getBootstrap = (): IDesktopBootstrap => {
     return bootstrapCache;
   }
 
+  const workspaces = workspaceService.listRecentWorkspaces();
   const bootstrap: IDesktopBootstrap = {
+    activeWorkspaceId: getActiveWorkspaceId(workspaces),
     clerkId: getClerkId(),
     environment: sessionService.getEnvironment(),
     isOfflineMode,
@@ -155,7 +180,7 @@ const getBootstrap = (): IDesktopBootstrap => {
     recents: workspaceService.listRecents(),
     session: sessionService.getSession(),
     syncState: syncService.getState(),
-    workspaces: workspaceService.listRecentWorkspaces(),
+    workspaces,
   };
 
   bootstrapCache = bootstrap;
@@ -194,7 +219,7 @@ const createWindow = async (): Promise<void> => {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(mainDir, 'preload.js'),
       sandbox: false,
     },
     width: 1560,
@@ -289,7 +314,7 @@ const createWindow = async (): Promise<void> => {
   }
 
   buildDesktopMenu(mainWindow, () => {
-    void workspaceService.openWorkspace().then(async (workspace) => {
+    void openAndActivateWorkspace().then(async (workspace) => {
       if (!workspace) {
         return;
       }
@@ -298,6 +323,16 @@ const createWindow = async (): Promise<void> => {
       mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.toggleSidebar);
     });
   });
+};
+
+const openAndActivateWorkspace = async () => {
+  const workspace = await workspaceService.openWorkspace();
+
+  if (workspace) {
+    await kvService.setValue(ACTIVE_WORKSPACE_ID_KEY, workspace.id);
+  }
+
+  return workspace;
 };
 
 const handleAuthCallback = async (rawUrl: string): Promise<void> => {
@@ -432,7 +467,7 @@ const registerIpcHandlers = (): void => {
       runDataService((service) => service.runWorkflow(params)),
   );
   ipcMain.handle(DESKTOP_IPC_CHANNELS.workspaceOpen, async () => {
-    const workspace = await workspaceService.openWorkspace();
+    const workspace = await openAndActivateWorkspace();
     await emitBootstrap();
     return workspace;
   });
@@ -459,6 +494,14 @@ const registerIpcHandlers = (): void => {
     DESKTOP_IPC_CHANNELS.workspaceReveal,
     async (_event: unknown, workspaceId: string) => {
       await workspaceService.revealInFinder(workspaceId);
+    },
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.workspaceSelect,
+    async (_event: unknown, workspaceId: string) => {
+      await setActiveWorkspaceId(workspaceId);
+      await emitBootstrap();
+      return workspaceService.getWorkspace(workspaceId);
     },
   );
   ipcMain.handle(
@@ -523,6 +566,12 @@ const registerIpcHandlers = (): void => {
     DESKTOP_IPC_CHANNELS.filesGetAssetUrl,
     async (_event: unknown, assetId: string) =>
       filesService.getAssetUrl(assetId),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.filesRevealAsset,
+    async (_event: unknown, assetId: string) => {
+      await filesService.revealAsset(assetId);
+    },
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.generationEnqueueAssetGeneration,

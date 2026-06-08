@@ -40,4 +40,15 @@ describe('SpeechService', () => {
     expect(typeof service.transcribeAudio).toBe('function');
     expect(typeof service.transcribeFromUrl).toBe('function');
   });
+
+  it('validates Blob-backed audio sizes', () => {
+    const maxSize = SpeechService.getMaxFileSize();
+    const validAudio = new Blob([new Uint8Array(1)], { type: 'audio/webm' });
+    const oversizedAudio = new Blob([new Uint8Array(maxSize + 1)], {
+      type: 'audio/webm',
+    });
+
+    expect(SpeechService.isFileSizeValid(validAudio)).toBe(true);
+    expect(SpeechService.isFileSizeValid(oversizedAudio)).toBe(false);
+  });
 });

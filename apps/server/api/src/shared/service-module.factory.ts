@@ -1,6 +1,7 @@
 import { ConfigModule } from '@api/config/config.module';
 import type { ServiceModuleOptions } from '@api/shared/interfaces/shared/shared.interfaces';
 import { LoggerModule } from '@libs/logger/logger.module';
+import { CacheModule } from '@nestjs/cache-manager';
 import {
   DynamicModule,
   ForwardReference,
@@ -111,8 +112,6 @@ export function createCachedServiceModule(
   ServiceClass: Type<unknown>,
   options: ServiceModuleOptions = {},
 ): DynamicModule {
-  const CacheModule = require('@nestjs/cache-manager').CacheModule;
-
   if (!CacheModule) {
     throw new Error(
       `createCachedServiceModule: CacheModule from @nestjs/cache-manager is undefined. Check if the package is installed.`,

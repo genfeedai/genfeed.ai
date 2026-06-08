@@ -1,4 +1,5 @@
 import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
+import { ModelRegistryReviewDto } from '@api/collections/models/dto/model-registry-review.dto';
 import { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
 import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import { type ModelDocument } from '@api/collections/models/schemas/model.schema';
@@ -13,7 +14,10 @@ import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/colle
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
-import { serializeCollection } from '@api/helpers/utils/response/response.util';
+import {
+  serializeCollection,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { User } from '@clerk/backend';
@@ -36,6 +40,7 @@ import {
 } from '@nestjs/common';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ModuleRef } from '@nestjs/core';
+import type { Request } from 'express';
 
 type MatchConditions = Record<string, unknown>;
 
@@ -102,6 +107,13 @@ export class ModelsController extends BaseCRUDController<
       matchConditions.isActive = query.isActive;
     }
 
+    if (query.registryStatus) {
+      matchConditions = {
+        ...matchConditions,
+        ...this.buildRegistryStatusFilter(query.registryStatus),
+      };
+    }
+
     // Add category filter if provided
     if (query.category) {
       // Handle "other" category as a special case - match multiple categories
@@ -144,6 +156,64 @@ export class ModelsController extends BaseCRUDController<
         : ({ createdAt: -1, key: 1, label: 1, type: 1 } as SortObject),
       where: matchConditions,
     };
+  }
+
+  private buildRegistryStatusFilter(
+    status: NonNullable<ModelsQueryDto['registryStatus']>,
+  ): MatchConditions {
+    switch (status) {
+      case 'approved':
+        return { isActive: true, isDiscovered: true, reviewStatus: 'approved' };
+      case 'discovered':
+        return { isDiscovered: true };
+      case 'legacy':
+        return { isLegacy: true };
+      case 'pending':
+        return { isActive: false, isDiscovered: true, reviewStatus: 'pending' };
+      case 'rejected':
+        return { reviewStatus: 'rejected' };
+    }
+  }
+
+  private assertCanManageRegistry(user: User, request: Request): void {
+    if (!getIsSuperAdmin(user, request)) {
+      ErrorResponse.forbidden(
+        'Only superadmins can manage model registry review',
+      );
+    }
+  }
+
+  private getReviewerId(user: User): string {
+    return user.id;
+  }
+
+  private async assertCanDisableModel(modelId: string): Promise<void> {
+    const model = await this.modelsService.findOne({ _id: modelId });
+    if (!model) {
+      ErrorResponse.notFound(this.entityName, modelId);
+    }
+
+    if (!model.isDefault) {
+      return;
+    }
+
+    const otherDefaults = await this.modelsService.count({
+      _id: { not: modelId },
+      category: model.category,
+      isDefault: true,
+      isDeleted: false,
+    });
+
+    if (otherDefaults === 0) {
+      ErrorResponse.validationFailed([
+        {
+          code: 'CANNOT_DISABLE_LAST_DEFAULT',
+          field: 'isDefault',
+          message:
+            'Cannot disable the only default model in this category. Set another model as default first.',
+        },
+      ]);
+    }
   }
 
   /**
@@ -268,5 +338,91 @@ export class ModelsController extends BaseCRUDController<
 
     // Call parent patch method
     return super.patch(request, user, modelId, updateDto);
+  }
+
+  @Patch(':modelId/approve')
+  async approveRegistryModel(
+    @Req() request: RequestWithContext,
+    @CurrentUser() user: User,
+    @Param('modelId') modelId: string,
+    @Body() reviewDto: ModelRegistryReviewDto,
+  ): Promise<JsonApiSingleResponse> {
+    this.assertCanManageRegistry(user, request as unknown as Request);
+
+    reviewDto ??= {};
+    const {
+      reason: _reason,
+      succeededBy: _succeededBy,
+      ...updates
+    } = reviewDto;
+    const data = await this.modelsService.approveRegistryModel(
+      modelId,
+      updates,
+      this.getReviewerId(user),
+    );
+
+    if (!data) {
+      ErrorResponse.notFound(this.entityName, modelId);
+    }
+
+    return serializeSingle(
+      request as unknown as Request,
+      ModelSerializer,
+      data,
+    );
+  }
+
+  @Patch(':modelId/reject')
+  async rejectRegistryModel(
+    @Req() request: RequestWithContext,
+    @CurrentUser() user: User,
+    @Param('modelId') modelId: string,
+    @Body() reviewDto: ModelRegistryReviewDto,
+  ): Promise<JsonApiSingleResponse> {
+    this.assertCanManageRegistry(user, request as unknown as Request);
+
+    reviewDto ??= {};
+    await this.assertCanDisableModel(modelId);
+    const data = await this.modelsService.rejectRegistryModel(modelId, {
+      reason: reviewDto.reason,
+      reviewedBy: this.getReviewerId(user),
+    });
+
+    if (!data) {
+      ErrorResponse.notFound(this.entityName, modelId);
+    }
+
+    return serializeSingle(
+      request as unknown as Request,
+      ModelSerializer,
+      data,
+    );
+  }
+
+  @Patch(':modelId/legacy')
+  async markRegistryModelLegacy(
+    @Req() request: RequestWithContext,
+    @CurrentUser() user: User,
+    @Param('modelId') modelId: string,
+    @Body() reviewDto: ModelRegistryReviewDto,
+  ): Promise<JsonApiSingleResponse> {
+    this.assertCanManageRegistry(user, request as unknown as Request);
+
+    reviewDto ??= {};
+    await this.assertCanDisableModel(modelId);
+    const data = await this.modelsService.markRegistryModelLegacy(modelId, {
+      reviewedBy: this.getReviewerId(user),
+      succeededBy: reviewDto.succeededBy,
+    });
+
+    if (!data) {
+      ErrorResponse.notFound(this.entityName, modelId);
+    }
+
+    return serializeSingle(
+      request as unknown as Request,
+      ModelSerializer,
+      data,
+    );
   }
 }

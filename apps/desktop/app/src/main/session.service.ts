@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type {
   IDesktopEnvironment,
   IDesktopSession,
@@ -9,6 +9,8 @@ import type { DesktopKvService } from './kv.service';
 const SESSION_STORAGE_KEY = 'desktop.session';
 const DESKTOP_AUTH_SCHEME = 'genfeedai-desktop';
 const DESKTOP_AUTH_PATH = 'auth';
+const DESKTOP_AUTH_PROTOCOL = `${DESKTOP_AUTH_SCHEME}:`;
+const DESKTOP_AUTH_ALLOWED_PATHS = new Set(['', '/']);
 
 interface AuthWhoamiResponse {
   data?: {
@@ -50,6 +52,20 @@ const createCodeVerifier = (): string => toBase64Url(randomBytes(32));
 const createState = (): string => toBase64Url(randomBytes(24));
 const createCodeChallenge = (verifier: string): string =>
   toBase64Url(createHash('sha256').update(verifier).digest());
+const safeEqual = (left: string, right: string): boolean => {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+
+  return (
+    leftBuffer.length === rightBuffer.length &&
+    timingSafeEqual(leftBuffer, rightBuffer)
+  );
+};
+
+const isExpectedDesktopCallbackUrl = (url: URL): boolean =>
+  url.protocol === DESKTOP_AUTH_PROTOCOL &&
+  url.hostname === DESKTOP_AUTH_PATH &&
+  DESKTOP_AUTH_ALLOWED_PATHS.has(url.pathname);
 
 export class DesktopSessionService {
   private pendingAuth: PendingDesktopAuth | null = null;
@@ -156,7 +172,7 @@ export class DesktopSessionService {
   ): Promise<IDesktopSession | null> {
     const pendingAuth = this.pendingAuth;
 
-    if (!pendingAuth || pendingAuth.state !== state) {
+    if (!pendingAuth || !safeEqual(pendingAuth.state, state)) {
       return null;
     }
 
@@ -200,6 +216,21 @@ export class DesktopSessionService {
     }
   }
 
+  private async exchangeDesktopKey(
+    key: string,
+    state: string,
+  ): Promise<IDesktopSession | null> {
+    const pendingAuth = this.pendingAuth;
+
+    if (!pendingAuth || !safeEqual(pendingAuth.state, state)) {
+      return null;
+    }
+
+    this.pendingAuth = null;
+
+    return this.resolveSessionFromToken(key);
+  }
+
   async validateStoredSession(): Promise<IDesktopSession | null> {
     const session = this.getSession();
 
@@ -222,32 +253,44 @@ export class DesktopSessionService {
   async handleCallback(rawUrl: string): Promise<IDesktopSession | null> {
     try {
       const url = new URL(rawUrl);
-      const code = url.searchParams.get('code');
+
+      if (!isExpectedDesktopCallbackUrl(url)) {
+        return null;
+      }
+
+      const error = url.searchParams.get('error');
       const state = url.searchParams.get('state');
+
+      if (error) {
+        if (
+          state &&
+          this.pendingAuth &&
+          safeEqual(this.pendingAuth.state, state)
+        ) {
+          this.pendingAuth = null;
+        }
+
+        return null;
+      }
+
+      const code = url.searchParams.get('code');
+      const key = url.searchParams.get('key');
+
+      if (code && key) {
+        return null;
+      }
 
       if (code && state) {
         const session = await this.exchangeDesktopCode(code, state);
 
-        if (!session) {
-          await this.clearSession();
-        }
-
         return session;
       }
 
-      const key = url.searchParams.get('key');
-
-      if (!key) {
+      if (!key || !state) {
         return null;
       }
 
-      const session = await this.resolveSessionFromToken(key);
-
-      if (!session) {
-        await this.clearSession();
-      }
-
-      return session;
+      return this.exchangeDesktopKey(key, state);
     } catch {
       return null;
     }

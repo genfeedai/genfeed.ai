@@ -19,7 +19,7 @@ import ElementsProvider from '@providers/elements/elements.provider';
 import { GlobalModalsProvider } from '@providers/global-modals/global-modals.provider';
 import PromptBarProvider from '@providers/promptbar/promptbar.provider';
 import type { ReactNode } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export interface ProtectedProvidersProps extends LayoutProps {
   includeBrandProvider?: boolean;
@@ -40,10 +40,7 @@ export function ProtectedAuthGate({ children }: LayoutProps): ReactNode {
   const effectiveUserId = userId ?? playwrightAuth?.userId ?? null;
   const [hasJwtToken, setHasJwtToken] = useState(false);
 
-  const sessionKey = useMemo(
-    () => `${effectiveUserId ?? 'none'}:${effectiveIsSignedIn ? 'in' : 'out'}`,
-    [effectiveIsSignedIn, effectiveUserId],
-  );
+  const sessionKey = `${effectiveUserId ?? 'none'}:${effectiveIsSignedIn ? 'in' : 'out'}`;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional trigger — sessionKey changes drive cache clear
   useEffect(() => {

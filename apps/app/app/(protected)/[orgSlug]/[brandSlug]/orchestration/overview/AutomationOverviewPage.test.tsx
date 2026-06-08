@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import AutomationOverviewPage from './AutomationOverviewPage';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({

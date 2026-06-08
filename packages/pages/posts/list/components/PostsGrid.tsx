@@ -20,11 +20,8 @@ import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluatio
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import EvaluationBadge from '@ui/evaluation/badge/EvaluationBadge';
-import {
-  Button,
-  buttonVariants,
-  Button as PrimitiveButton,
-} from '@ui/primitives/button';
+import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
+import { buttonVariants } from '@ui/primitives/button.variants';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,13 +32,9 @@ import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { memo, useMemo } from 'react';
 import {
-  HiArrowTopRightOnSquare,
   HiArrowUp,
   HiDocumentDuplicate,
   HiEllipsisHorizontal,
-  HiEye,
-  HiPencil,
-  HiTrash,
 } from 'react-icons/hi2';
 
 export interface PostCardAction {
@@ -219,8 +212,8 @@ const PostsGrid = memo(
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-white/70">
-                    <PlatformIcon className="h-4 w-4" />
+                  <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-white/70">
+                    <PlatformIcon className="size-4" />
                   </div>
 
                   <div className="min-w-0">
@@ -249,7 +242,7 @@ const PostsGrid = memo(
                         aria-label="More post actions"
                         onClick={(event) => event.stopPropagation()}
                       >
-                        <HiEllipsisHorizontal className="h-4 w-4" />
+                        <HiEllipsisHorizontal className="size-4" />
                       </PrimitiveButton>
                     </DropdownMenuTrigger>
 
@@ -373,13 +366,5 @@ const PostsGrid = memo(
     return true;
   },
 );
-
-export const postCardIcons = {
-  delete: <HiTrash className="h-4 w-4" />,
-  edit: <HiPencil className="h-4 w-4" />,
-  remix: <HiDocumentDuplicate className="h-4 w-4" />,
-  viewIngredient: <HiEye className="h-4 w-4" />,
-  viewPlatform: <HiArrowTopRightOnSquare className="h-4 w-4" />,
-};
 
 export default PostsGrid;

@@ -13,6 +13,45 @@ export interface UseSpeechRecordingOptions {
   prompt?: string;
 }
 
+const DEFAULT_START_RECORDING_ERROR_MESSAGE = 'Failed to start recording';
+const DEFAULT_TRANSCRIPTION_ERROR_MESSAGE = 'Transcription failed';
+const START_RECORDING_ERROR_MESSAGES: Record<string, string> = {
+  NotAllowedError: 'Microphone access denied. Please allow microphone access.',
+  NotFoundError: 'No microphone found. Please connect a microphone.',
+  NotSupportedError: 'Audio recording not supported in this browser.',
+};
+
+function getErrorName(error: unknown): string | undefined {
+  if (error instanceof Error) {
+    return error.name;
+  }
+
+  if (error && typeof error === 'object' && 'name' in error) {
+    const { name } = error;
+    return typeof name === 'string' ? name : undefined;
+  }
+
+  return undefined;
+}
+
+function getStartRecordingErrorMessage(error: unknown): string {
+  const errorName = getErrorName(error);
+  if (!errorName) {
+    return DEFAULT_START_RECORDING_ERROR_MESSAGE;
+  }
+
+  return (
+    START_RECORDING_ERROR_MESSAGES[errorName] ??
+    DEFAULT_START_RECORDING_ERROR_MESSAGE
+  );
+}
+
+function getTranscriptionErrorMessage(error: unknown): string {
+  return error instanceof Error && error.message
+    ? error.message
+    : DEFAULT_TRANSCRIPTION_ERROR_MESSAGE;
+}
+
 /**
  * Backend-based speech recording hook
  * Records audio in browser and sends to backend for Whisper transcription
@@ -95,20 +134,10 @@ export function useSpeechRecording({
 
       logger.info(`${url} recording started`);
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`${url} failed`, error);
 
-      let errorMessage = 'Failed to start recording';
-
-      if (error.name === 'NotAllowedError') {
-        errorMessage =
-          'Microphone access denied. Please allow microphone access.';
-      } else if (error.name === 'NotFoundError') {
-        errorMessage = 'No microphone found. Please connect a microphone.';
-      } else if (error.name === 'NotSupportedError') {
-        errorMessage = 'Audio recording not supported in this browser.';
-      }
-
+      const errorMessage = getStartRecordingErrorMessage(error);
       setError(errorMessage);
       onError?.(errorMessage);
       return false;
@@ -131,7 +160,7 @@ export function useSpeechRecording({
 
       const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
 
-      if (!SpeechService.isFileSizeValid(audioBlob as unknown as File)) {
+      if (!SpeechService.isFileSizeValid(audioBlob)) {
         throw new Error('Recording too long. Maximum 25MB allowed.');
       }
 
@@ -159,10 +188,10 @@ export function useSpeechRecording({
 
       onTranscription?.(result);
       setError(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`${url} failed`, error);
 
-      const errorMessage = error.message || 'Transcription failed';
+      const errorMessage = getTranscriptionErrorMessage(error);
       setError(errorMessage);
       onError?.(errorMessage);
     } finally {

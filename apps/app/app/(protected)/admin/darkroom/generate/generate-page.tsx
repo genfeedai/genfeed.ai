@@ -1,7 +1,6 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IDarkroomCharacter } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -11,23 +10,11 @@ import {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
-import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
-import { Input } from '@ui/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
-import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiOutlinePhoto } from 'react-icons/hi2';
+import GeneratedImagesGrid from './generated-images-grid';
+import GenerationForm from './generation-form';
 
 interface GeneratedImage {
   id: string;
@@ -233,200 +220,29 @@ export default function GeneratePage() {
         />
       }
     >
-      {/* Generation Configuration */}
-      <WorkspaceSurface
-        title="Generate Image"
-        tone="muted"
-        data-testid="darkroom-generate-surface"
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            {/* Character Selector */}
-            <div>
-              <span className="block text-sm font-medium text-foreground/70 mb-1">
-                Character
-              </span>
-              <Select
-                onValueChange={setSelectedCharacter}
-                value={selectedCharacter}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a character…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(characters || []).map((c) => (
-                    <SelectItem key={c.id} value={c.slug}>
-                      {c.emoji ? `${c.emoji} ` : ''}
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <GenerationForm
+        characters={characters || []}
+        selectedCharacter={selectedCharacter}
+        onSelectedCharacterChange={setSelectedCharacter}
+        model={model}
+        onModelChange={setModel}
+        modelOptions={MODEL_OPTIONS}
+        aspectRatio={aspectRatio}
+        onAspectRatioChange={setAspectRatio}
+        aspectRatioOptions={ASPECT_RATIO_OPTIONS}
+        steps={steps}
+        onStepsChange={setSteps}
+        prompt={prompt}
+        onPromptChange={setPrompt}
+        negativePrompt={negativePrompt}
+        onNegativePromptChange={setNegativePrompt}
+        isUseLora={isUseLora}
+        onIsUseLoraChange={setIsUseLora}
+        isGenerating={isGenerating}
+        onGenerate={handleGenerate}
+      />
 
-            {/* Model Selector */}
-            <div>
-              <span className="block text-sm font-medium text-foreground/70 mb-1">
-                Model
-              </span>
-              <Select onValueChange={setModel} value={model}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MODEL_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Aspect Ratio */}
-            <div>
-              <span className="block text-sm font-medium text-foreground/70 mb-1">
-                Aspect Ratio
-              </span>
-              <Select onValueChange={setAspectRatio} value={aspectRatio}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ASPECT_RATIO_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Steps */}
-            <div>
-              <span className="block text-sm font-medium text-foreground/70 mb-1">
-                Steps
-              </span>
-              <Input
-                className="w-full"
-                min={1}
-                max={100}
-                onChange={(e) => setSteps(Number(e.target.value))}
-                type="number"
-                value={steps}
-              />
-            </div>
-          </div>
-
-          {/* Prompt */}
-          <div className="mb-4">
-            <span className="block text-sm font-medium text-foreground/70 mb-1">
-              Prompt
-            </span>
-            <Textarea
-              className="w-full min-h-[80px]"
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe the image you want to generate..."
-              rows={3}
-              value={prompt}
-            />
-          </div>
-
-          {/* Negative Prompt */}
-          <div className="mb-4">
-            <span className="block text-sm font-medium text-foreground/70 mb-1">
-              Negative Prompt
-            </span>
-            <Input
-              className="w-full"
-              onChange={(e) => setNegativePrompt(e.target.value)}
-              placeholder="What to avoid in the image..."
-              value={negativePrompt}
-            />
-          </div>
-
-          {/* LoRA Toggle */}
-          <div className="mb-4 flex items-center gap-2">
-            <Checkbox
-              checked={isUseLora}
-              id="use-lora"
-              onCheckedChange={(checked) => setIsUseLora(checked === true)}
-            />
-            <label
-              className="text-sm font-medium text-foreground/70"
-              htmlFor="use-lora"
-            >
-              Apply character LoRA (if trained)
-            </label>
-          </div>
-
-          <Button
-            withWrapper={false}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-            isDisabled={!selectedCharacter || !prompt.trim() || isGenerating}
-            onClick={handleGenerate}
-          >
-            {isGenerating ? 'Generating…' : 'Generate Image'}
-          </Button>
-        </div>
-      </WorkspaceSurface>
-
-      {/* Generated Images Grid */}
-      {generatedImages.length > 0 && (
-        <WorkspaceSurface
-          className="mt-6"
-          title="Generated Images"
-          tone="muted"
-          data-testid="darkroom-generated-images-surface"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {generatedImages.map((img) => (
-              <Card key={img.id}>
-                <div className="p-4">
-                  {img.cdnUrl ? (
-                    <Image
-                      unoptimized
-                      alt={img.prompt}
-                      className="w-full rounded mb-3 aspect-square object-cover"
-                      src={img.cdnUrl}
-                      width={800}
-                      height={600}
-                    />
-                  ) : (
-                    <div className="w-full rounded mb-3 aspect-square bg-foreground/5 flex items-center justify-center text-foreground/30">
-                      Processing…
-                    </div>
-                  )}
-                  <p className="text-sm text-foreground/70 line-clamp-2">
-                    {img.prompt}
-                  </p>
-                  <p className="text-xs text-foreground/40 mt-1">
-                    {img.model.replace('genfeed-ai/', '')}
-                  </p>
-                  {img.status && img.status !== 'completed' && (
-                    <div className="mt-3 space-y-1">
-                      <div className="flex items-center justify-between text-xs text-foreground/50">
-                        <span>{img.stage || img.status}</span>
-                        <span>{img.progress ?? 0}%</span>
-                      </div>
-                      <div className="h-1.5 rounded-full bg-foreground/10 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-primary transition-all duration-300"
-                          style={{ width: `${img.progress ?? 0}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  {img.error && (
-                    <p className="text-xs text-error mt-2">{img.error}</p>
-                  )}
-                </div>
-              </Card>
-            ))}
-          </div>
-        </WorkspaceSurface>
-      )}
+      <GeneratedImagesGrid images={generatedImages} />
     </Container>
   );
 }

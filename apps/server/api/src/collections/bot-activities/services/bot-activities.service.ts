@@ -6,6 +6,7 @@ import type {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { BotActivityStatus } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
@@ -23,7 +24,8 @@ export interface BotActivityStats {
 export class BotActivitiesService extends BaseService<
   BotActivityDocument,
   Partial<BotActivity>,
-  Partial<BotActivity>
+  Partial<BotActivity>,
+  Prisma.BotActivityWhereInput
 > {
   constructor(
     public readonly prisma: PrismaService,

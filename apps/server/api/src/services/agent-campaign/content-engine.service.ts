@@ -13,6 +13,10 @@ import {
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { CampaignMemoryQueueService } from '@api/services/agent-campaign/campaign-memory-queue.service';
 import {
+  type ContentRotationSelection,
+  ContentRotationService,
+} from '@api/services/agent-campaign/content-rotation.service';
+import {
   DEFAULT_ORCHESTRATION_INTERVAL_HOURS,
   MAX_ORCHESTRATED_STRATEGIES_PER_RUN,
 } from '@api/services/agent-campaign/orchestrator.constants';
@@ -23,6 +27,7 @@ import {
   type AgentType,
   AnalyticsMetric,
 } from '@genfeedai/enums';
+import type { IAgentCampaignContentRotation } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
@@ -102,6 +107,7 @@ export class ContentEngineService {
     private readonly agentStrategiesService: AgentStrategiesService,
     private readonly agentGoalsService: AgentGoalsService,
     private readonly agentRunsService: AgentRunsService,
+    private readonly contentRotationService: ContentRotationService,
     private readonly agentRunQueueService: AgentRunQueueService,
     private readonly analyticsService: AnalyticsService,
     private readonly agentMemoryCaptureService: AgentMemoryCaptureService,
@@ -189,8 +195,7 @@ export class ContentEngineService {
     );
     const dispatchableStrategies = strategies
       .filter((strategy) => strategy.isEnabled !== false)
-      .filter((strategy) => !isOrchestratorAgentType(strategy.agentType))
-      .slice(0, MAX_ORCHESTRATED_STRATEGIES_PER_RUN);
+      .filter((strategy) => !isOrchestratorAgentType(strategy.agentType));
 
     if (dispatchableStrategies.length === 0) {
       return await this.finalizeCycle(campaign, {
@@ -203,8 +208,25 @@ export class ContentEngineService {
       });
     }
 
+    const contentRotation = this.getCampaignContentRotation(campaign);
+    const recentRotationRuns = contentRotation
+      ? await this.loadRecentRotationRuns(
+          campaign,
+          organizationId,
+          contentRotation,
+        )
+      : [];
+    const rotationResult = this.contentRotationService.selectStrategies({
+      config: contentRotation,
+      recentRuns: recentRotationRuns,
+      strategies: dispatchableStrategies,
+    });
+    const selectedStrategies = rotationResult.selectedStrategies.slice(
+      0,
+      MAX_ORCHESTRATED_STRATEGIES_PER_RUN,
+    );
     const goalSummaries = await this.loadGoalSummaries(
-      dispatchableStrategies,
+      selectedStrategies,
       organizationId,
     );
     const analyticsOverview = await this.loadAnalyticsOverview(campaign);
@@ -231,20 +253,25 @@ export class ContentEngineService {
       remainingCampaignBudget !== null
         ? Math.max(
             1,
-            Math.floor(remainingCampaignBudget / dispatchableStrategies.length),
+            Math.floor(remainingCampaignBudget / selectedStrategies.length),
           )
         : null;
 
     const dispatchedRuns: OrchestrationDispatchPlan[] = [];
     const runRecords: AgentRunDocument[] = [];
 
-    for (const strategy of dispatchableStrategies) {
-      const reason = this.buildDispatchReason(strategy, analyticsOverview);
+    for (const strategy of selectedStrategies) {
+      const reason = this.buildDispatchReason(
+        strategy,
+        analyticsOverview,
+        rotationResult.selection,
+      );
       const objective = this.buildDispatchObjective(
         campaign,
         strategy,
         goalSummaries,
         analyticsOverview,
+        rotationResult.selection,
       );
       const creditBudget =
         perStrategyBudget !== null
@@ -259,6 +286,7 @@ export class ContentEngineService {
         label: `Campaign orchestrator: ${campaign.label} -> ${strategy.label}`,
         metadata: {
           campaignId,
+          ...this.buildRotationMetadata(rotationResult.selection),
           dispatchedBy: 'campaign_orchestrator',
           dispatchedStrategyId: String(strategy._id),
           reason,
@@ -297,6 +325,7 @@ export class ContentEngineService {
     for (const plan of dispatchedRuns) {
       await this.agentRunsService.mergeMetadata(plan.runId, organizationId, {
         campaignId,
+        ...this.buildRotationMetadata(rotationResult.selection),
         orchestrationDispatchReason: plan.reason,
       });
     }
@@ -307,6 +336,7 @@ export class ContentEngineService {
       dispatchedRuns,
       analyticsOverview,
       goalSummaries,
+      rotationResult.selection,
     );
 
     await this.captureDecisionMemory(
@@ -322,6 +352,7 @@ export class ContentEngineService {
         metadata: {
           ...(run.metadata ?? {}),
           campaignId,
+          ...this.buildRotationMetadata(rotationResult.selection),
           orchestrationSummary: summary,
         },
       } as Record<string, unknown>);
@@ -331,6 +362,7 @@ export class ContentEngineService {
       await this.agentRunsService.patch(plan.runId, {
         metadata: {
           campaignId,
+          ...this.buildRotationMetadata(rotationResult.selection),
           orchestrationDispatchReason: plan.reason,
           orchestrationSummary: summary,
         },
@@ -549,6 +581,32 @@ export class ContentEngineService {
       .map((result) => result.value);
   }
 
+  private async loadRecentRotationRuns(
+    campaign: AgentCampaignDocument,
+    organizationId: string,
+    contentRotation: IAgentCampaignContentRotation,
+  ): Promise<AgentRunDocument[]> {
+    const lookbackDays =
+      this.contentRotationService.getLookbackDays(contentRotation);
+    const since = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
+    // Widen the lookback window beyond the org-wide default (200) so a busy
+    // organization's run volume cannot starve a single campaign's rotation
+    // history. campaignId lives in run metadata (filtered in-memory below), so a
+    // DB-level campaign filter would require a schema migration — widening the
+    // window is the correct in-place fix.
+    const recentRuns = await this.agentRunsService.findRecentByOrganization(
+      organizationId,
+      since,
+      1000,
+    );
+    const campaignId = String(campaign._id);
+
+    return recentRuns.filter((run) => {
+      const metadata = this.readRunMetadata(run);
+      return metadata?.campaignId === campaignId;
+    });
+  }
+
   private async loadAnalyticsOverview(
     campaign: AgentCampaignDocument,
   ): Promise<AnalyticsOverview> {
@@ -578,6 +636,7 @@ export class ContentEngineService {
   private buildDispatchReason(
     strategy: AgentStrategyDocument,
     analyticsOverview: AnalyticsOverview,
+    rotationSelection?: ContentRotationSelection,
   ): string {
     const engagementRate = Number(
       analyticsOverview.avgEngagementRate ?? 0,
@@ -587,7 +646,13 @@ export class ContentEngineService {
     const topics =
       topicsList.length > 0 ? topicsList.join(', ') : 'campaign priorities';
 
-    return `${strategy.label} is aligned to ${topics} with recent campaign engagement at ${engagementRate}% and ${totalViews} views over the last 7 days.`;
+    const baseReason = `${strategy.label} is aligned to ${topics} with recent campaign engagement at ${engagementRate}% and ${totalViews} views over the last 7 days.`;
+
+    if (!rotationSelection) {
+      return baseReason;
+    }
+
+    return `${baseReason} Weighted content rotation selected ${rotationSelection.label ?? rotationSelection.key} because its recent share is ${(rotationSelection.actualShare * 100).toFixed(1)}% against a ${(rotationSelection.targetShare * 100).toFixed(1)}% target.`;
   }
 
   private buildDispatchObjective(
@@ -595,6 +660,7 @@ export class ContentEngineService {
     strategy: AgentStrategyDocument,
     goalSummaries: string[],
     analyticsOverview: AnalyticsOverview,
+    rotationSelection?: ContentRotationSelection,
   ): string {
     const topics = this.getStrategyTopics(strategy);
     const lines = [
@@ -605,6 +671,12 @@ export class ContentEngineService {
       `Topics: ${topics.join(', ') || 'No topics configured.'}`,
       `Recent 7-day analytics: ${Math.round(analyticsOverview.totalViews ?? 0)} views, ${Math.round(analyticsOverview.totalPosts ?? 0)} tracked posts, ${(analyticsOverview.avgEngagementRate ?? 0).toFixed(2)}% average engagement.`,
     ];
+
+    if (rotationSelection) {
+      lines.push(
+        `Weighted rotation target: ${rotationSelection.label ?? rotationSelection.key}${rotationSelection.topic ? ` topic=${rotationSelection.topic}` : ''}${rotationSelection.platform ? ` platform=${rotationSelection.platform}` : ''}. Recent share ${(rotationSelection.actualShare * 100).toFixed(1)}%; target share ${(rotationSelection.targetShare * 100).toFixed(1)}%.`,
+      );
+    }
 
     if (goalSummaries.length > 0) {
       lines.push(`Goals:\n- ${goalSummaries.join('\n- ')}`);
@@ -669,6 +741,7 @@ export class ContentEngineService {
     dispatchedRuns: OrchestrationDispatchPlan[],
     analyticsOverview: AnalyticsOverview,
     goalSummaries: string[],
+    rotationSelection?: ContentRotationSelection,
   ): string {
     const dispatchLines = dispatchedRuns.map(
       (dispatch) =>
@@ -680,10 +753,18 @@ export class ContentEngineService {
         ? `Goals:\n- ${goalSummaries.join('\n- ')}\n\n`
         : '';
 
+    const rotationSection = rotationSelection
+      ? [
+          '',
+          `Weighted rotation: selected ${rotationSelection.label ?? rotationSelection.key} (${(rotationSelection.actualShare * 100).toFixed(1)}% recent share vs ${(rotationSelection.targetShare * 100).toFixed(1)}% target).`,
+        ]
+      : [];
+
     return [
       `Campaign ${campaign.label} dispatched ${dispatchedRuns.length} specialist run(s).`,
       '',
       `Recent analytics: ${Math.round(analyticsOverview.totalViews ?? 0)} views, ${Math.round(analyticsOverview.totalPosts ?? 0)} posts, ${(analyticsOverview.avgEngagementRate ?? 0).toFixed(2)}% average engagement.`,
+      ...rotationSection,
       '',
       goalSection,
       'Dispatch decisions:',
@@ -724,6 +805,62 @@ export class ContentEngineService {
         tags: [`campaign:${String(campaign._id)}`, 'orchestrator', 'campaign'],
       },
     );
+  }
+
+  private buildRotationMetadata(
+    selection?: ContentRotationSelection,
+  ): Record<string, unknown> {
+    if (!selection) {
+      return {};
+    }
+
+    return {
+      contentRotationActualShare: selection.actualShare,
+      contentRotationPlatform: selection.platform,
+      contentRotationTargetKey: selection.key,
+      contentRotationTargetLabel: selection.label,
+      contentRotationTargetShare: selection.targetShare,
+      contentRotationTopic: selection.topic,
+    };
+  }
+
+  private getCampaignContentRotation(
+    campaign: AgentCampaignDocument,
+  ): IAgentCampaignContentRotation | undefined {
+    if (this.isContentRotation(campaign.contentRotation)) {
+      return campaign.contentRotation;
+    }
+
+    const config = this.readRecord(
+      (campaign as Record<string, unknown>).config,
+    );
+    const contentRotation = config?.contentRotation;
+    return this.isContentRotation(contentRotation)
+      ? contentRotation
+      : undefined;
+  }
+
+  private isContentRotation(
+    value: unknown,
+  ): value is IAgentCampaignContentRotation {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> | null {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
+  }
+
+  private readRunMetadata(run: AgentRunDocument): Record<string, unknown> {
+    const record = run as Record<string, unknown>;
+    const metadata = this.readRecord(record.metadata);
+    if (metadata) {
+      return metadata;
+    }
+
+    const config = this.readRecord(record.config);
+    return this.readRecord(config?.metadata) ?? {};
   }
 
   private computeNextRunAt(campaign: AgentCampaignDocument, from: Date): Date {

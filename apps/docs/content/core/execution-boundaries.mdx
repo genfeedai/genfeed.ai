@@ -6,7 +6,7 @@ Genfeed Core is a self-hosted, single-tenant runtime. Genfeed Cloud is the manag
 
 <Callout type="info">
   This page is the V1 boundary contract for self-hosted Core, BYOK execution, managed Cloud execution, and account
-  handoff.
+  handoff. Boundary spec version: v1.3.0.
 </Callout>
 
 ## Execution Modes
@@ -27,6 +27,8 @@ Core owns the self-hosted runtime:
 - Local object storage or S3-compatible storage owns generated files when configured for the self-hosted deployment.
 - Workflows, brands, prompts, provider settings, generated assets, and content run records are stored in the self-hosted deployment by default.
 - BYOK provider calls are made by the self-hosted API using keys configured on that install or on the active organization.
+- Skills, local routines, workflow-backed scheduling, and personal feedback memory are part of the Core single-player loop.
+- Personal feedback memory stays local unless the user explicitly promotes it into a governed Cloud or Enterprise surface.
 
 ## What Runs in Cloud
 
@@ -35,6 +37,7 @@ Genfeed Cloud owns managed services:
 - Hosted app/API/workers for Cloud workspaces.
 - Managed inference credits and provider billing.
 - Team collaboration, multi-tenant organizations, roles, approvals, quotas, and billing.
+- Shared review queues, reviewer assignment, comments, approvals, org-shared memory, and skill promotion governance.
 - Managed social publishing connectors.
 - Cross-workflow analytics, optimization loops, and managed scheduling.
 - Marketplace and hosted distribution surfaces.

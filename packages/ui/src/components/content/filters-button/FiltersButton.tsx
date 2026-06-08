@@ -1,115 +1,26 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-  IngredientFormat,
-  IngredientStatus,
-} from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/enums';
 import type { IFilters } from '@genfeedai/interfaces/utils/filters.interface';
 import type { FiltersBarProps } from '@genfeedai/props/ui/forms/filters.props';
-import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
-import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import { Button } from '@ui/primitives/button';
-import FormSearchbar from '@ui/primitives/searchbar';
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { HiOutlineFunnel, HiXMark } from 'react-icons/hi2';
+import { HiOutlineFunnel } from 'react-icons/hi2';
+import FiltersPanel from './FiltersPanel';
 import {
-  MdOutlineCropLandscape,
-  MdOutlineCropPortrait,
-  MdOutlineCropSquare,
-} from 'react-icons/md';
-
-// Default filter options
-const DEFAULT_STATUS_OPTIONS = [
-  { label: 'Uploaded', value: IngredientStatus.UPLOADED },
-  { label: 'Completed', value: IngredientStatus.GENERATED },
-  { label: 'Validated', value: IngredientStatus.VALIDATED },
-  { label: 'Archived', value: IngredientStatus.ARCHIVED },
-  { label: 'Draft', value: IngredientStatus.DRAFT },
-  { label: 'Processing', value: IngredientStatus.PROCESSING },
-  { label: 'Failed', value: IngredientStatus.FAILED },
-];
-
-const DEFAULT_FORMAT_OPTIONS = [
-  { label: 'All', value: '' },
-  {
-    icon: <MdOutlineCropSquare size={16} />,
-    label: '1:1',
-    value: IngredientFormat.SQUARE,
-  },
-  {
-    icon: <MdOutlineCropLandscape size={16} />,
-    label: '16:9',
-    value: IngredientFormat.LANDSCAPE,
-  },
-  {
-    icon: <MdOutlineCropPortrait size={16} />,
-    label: '9:16',
-    value: IngredientFormat.PORTRAIT,
-  },
-];
-
-const DEFAULT_TYPE_OPTIONS = [
-  { label: 'All', value: '' },
-  { label: 'Video', value: 'video' },
-  { label: 'Image', value: 'image' },
-  { label: 'Audio', value: 'audio' },
-  { label: 'Clip', value: 'clip' },
-  { label: 'Avatar', value: 'avatar' },
-  { label: 'Voice', value: 'voice' },
-  { label: 'Music', value: 'music' },
-  { label: 'GIF', value: 'gif' },
-  { label: 'Image to Video', value: 'image-to-video' },
-];
-
-const DEFAULT_SORT_OPTIONS = [
-  { label: 'Latest (Default)', value: '' },
-  { label: 'Newest First', value: 'createdAt: -1' },
-  { label: 'Oldest First', value: 'createdAt: 1' },
-  { label: 'Name (A-Z)', value: 'label: 1' },
-  { label: 'Name (Z-A)', value: 'label: -1' },
-  { label: 'Recently Updated', value: 'updatedAt: -1' },
-];
-
-const DEFAULT_FAVORITE_OPTIONS = [
-  { label: 'All Items', value: '' },
-  { label: 'Favorites Only', value: 'true' },
-  { label: 'Non-Favorites', value: 'false' },
-];
-
-const DEFAULT_PROVIDER_OPTIONS = [
-  { label: 'All Providers', value: '' },
-  { label: 'Runway', value: 'runway' },
-  { label: 'Leonardo', value: 'leonardo' },
-  { label: 'ElevenLabs', value: 'elevenlabs' },
-  { label: 'OpenAI', value: 'openai' },
-  { label: 'Anthropic', value: 'anthropic' },
-  { label: 'Google', value: 'google' },
-  { label: 'Stability AI', value: 'stability' },
-  { label: 'Midjourney', value: 'midjourney' },
-  { label: 'Replicate', value: 'replicate' },
-];
-
-const DEFAULT_MODEL_OPTIONS = [{ label: 'All Models', value: '' }];
-
-const DEFAULT_ACCOUNT_OPTIONS = [{ label: 'All Brands', value: '' }];
-
-const DEFAULT_FILTER_OPTIONS = {};
-
-const DEFAULT_VISIBLE_FILTERS = {
-  favorite: false,
-  format: true,
-  model: false,
-  provider: true,
-  search: true,
-  sort: true,
-  status: true,
-  type: true,
-};
+  DEFAULT_ACCOUNT_OPTIONS,
+  DEFAULT_FAVORITE_OPTIONS,
+  DEFAULT_FILTER_OPTIONS,
+  DEFAULT_FORMAT_OPTIONS,
+  DEFAULT_MODEL_OPTIONS,
+  DEFAULT_PROVIDER_OPTIONS,
+  DEFAULT_SORT_OPTIONS,
+  DEFAULT_STATUS_OPTIONS,
+  DEFAULT_TYPE_OPTIONS,
+  DEFAULT_VISIBLE_FILTERS,
+} from './filters-button-options.constants';
 
 export default function FiltersButton({
   filters,
@@ -296,135 +207,24 @@ export default function FiltersButton({
               width: portalCoords.width,
             }}
           >
-            <div className="flex flex-col gap-4 w-full">
-              {/* Line 1: Search */}
-              {visibleFilters.search && (
-                <div className="w-full">
-                  <FormSearchbar
-                    value={searchValue}
-                    onChange={updateFiltersButton}
-                    placeholder="Search label, description, or tags"
-                    size={ComponentSize.SM}
-                  />
-                </div>
-              )}
-
-              {/* Line 2: All dropdowns */}
-              <div className="flex flex-wrap items-center gap-2 w-full">
-                {visibleFilters.status && (
-                  <DropdownMultiSelect
-                    name="status"
-                    placeholder="All Statuses"
-                    options={STATUS_OPTIONS}
-                    values={
-                      typeof filters.status === 'string'
-                        ? filters.status
-                          ? [filters.status]
-                          : []
-                        : filters.status || []
-                    }
-                    onChange={(name, values) =>
-                      handleDropdownChange(name, values)
-                    }
-                  />
-                )}
-
-                {visibleFilters.format && (
-                  <ButtonDropdown
-                    name="format"
-                    value={filters.format}
-                    options={FORMAT_OPTIONS}
-                    onChange={handleDropdownChange}
-                    placeholder="All Formats"
-                  />
-                )}
-
-                {visibleFilters.type && (
-                  <ButtonDropdown
-                    name="type"
-                    value={filters.type}
-                    options={TYPE_OPTIONS}
-                    onChange={handleDropdownChange}
-                    placeholder="All Types"
-                  />
-                )}
-
-                {visibleFilters.provider && (
-                  <ButtonDropdown
-                    name="provider"
-                    value={filters.provider}
-                    options={PROVIDER_OPTIONS}
-                    onChange={handleDropdownChange}
-                    placeholder="All Providers"
-                  />
-                )}
-
-                {visibleFilters.model && (
-                  <ButtonDropdown
-                    name="model"
-                    value={filters.model ?? ''}
-                    options={MODEL_OPTIONS}
-                    onChange={handleDropdownChange}
-                    placeholder="All Models"
-                  />
-                )}
-
-                {visibleFilters.sort && (
-                  <ButtonDropdown
-                    name="sort"
-                    value={filters.sort ?? ''}
-                    options={SORT_OPTIONS}
-                    onChange={handleDropdownChange}
-                    placeholder="Sort By"
-                  />
-                )}
-
-                {visibleFilters.favorite && (
-                  <ButtonDropdown
-                    name="favorite"
-                    value={filters.favorite ?? ''}
-                    options={FAVORITE_OPTIONS}
-                    onChange={handleDropdownChange}
-                    placeholder="All Items"
-                  />
-                )}
-
-                {visibleFilters.brand && (
-                  <ButtonDropdown
-                    name="brand"
-                    value={filters.brand ?? ''}
-                    options={ACCOUNT_OPTIONS}
-                    onChange={handleDropdownChange}
-                    placeholder="All Brands"
-                  />
-                )}
-
-                {visibleFilters.category && (
-                  <ButtonDropdown
-                    name="category"
-                    value={filters.category ?? ''}
-                    options={CATEGORY_OPTIONS}
-                    onChange={handleDropdownChange}
-                    placeholder="All Categories"
-                  />
-                )}
-
-                {/* Clear Filters Button */}
-                {hasActiveFilters && (
-                  <Button
-                    label={
-                      <>
-                        <HiXMark className="text-lg" /> Clear
-                      </>
-                    }
-                    onClick={handleClearFilters}
-                    variant={ButtonVariant.GHOST}
-                    size={ButtonSize.SM}
-                    className="w-full"
-                  />
-                )}
-              </div>
-            </div>
+            <FiltersPanel
+              filters={filters}
+              searchValue={searchValue}
+              hasActiveFilters={!!hasActiveFilters}
+              visibleFilters={visibleFilters}
+              statusOptions={STATUS_OPTIONS}
+              formatOptions={FORMAT_OPTIONS}
+              typeOptions={TYPE_OPTIONS}
+              providerOptions={PROVIDER_OPTIONS}
+              modelOptions={MODEL_OPTIONS}
+              sortOptions={SORT_OPTIONS}
+              favoriteOptions={FAVORITE_OPTIONS}
+              accountOptions={ACCOUNT_OPTIONS}
+              categoryOptions={CATEGORY_OPTIONS}
+              onSearchChange={updateFiltersButton}
+              onDropdownChange={handleDropdownChange}
+              onClearFilters={handleClearFilters}
+            />
           </div>,
           document.body,
         )}

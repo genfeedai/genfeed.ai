@@ -1,39 +1,7 @@
-import { cva, type VariantProps } from 'class-variance-authority';
+import type { VariantProps } from 'class-variance-authority';
 import type { HTMLAttributes } from 'react';
 import { cn } from '../lib/utils';
-
-const dlVariants = cva('', {
-  defaultVariants: { variant: 'default' },
-  variants: {
-    variant: {
-      compact: 'space-y-2',
-      default: 'space-y-3',
-      grid: 'grid grid-cols-2 gap-y-2',
-    },
-  },
-});
-
-const dtVariants = cva('', {
-  defaultVariants: { variant: 'default' },
-  variants: {
-    variant: {
-      default: 'text-sm text-foreground/45',
-      label: 'text-[10px] uppercase tracking-wider text-white/30',
-      muted: 'text-xs text-muted-foreground',
-    },
-  },
-});
-
-const ddVariants = cva('', {
-  defaultVariants: { variant: 'default' },
-  variants: {
-    variant: {
-      default: 'text-sm text-foreground/80',
-      inline: 'mt-0.5',
-      value: 'text-right text-foreground/80',
-    },
-  },
-});
+import { ddVariants, dlVariants, dtVariants } from './definition-list.variants';
 
 export interface DefinitionListProps
   extends HTMLAttributes<HTMLDListElement>,
@@ -101,11 +69,4 @@ function DefinitionDetail({
 }
 DefinitionDetail.displayName = 'DefinitionDetail';
 
-export {
-  DefinitionDetail,
-  DefinitionList,
-  DefinitionTerm,
-  ddVariants,
-  dlVariants,
-  dtVariants,
-};
+export { DefinitionDetail, DefinitionList, DefinitionTerm };

@@ -13,8 +13,8 @@ import {
   createCacheKey,
   createLocalStorageCache,
 } from '@helpers/data/cache/cache.helper';
+import { getDateRangeKeys } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const LEADERBOARD_CACHE_TTL_MS = 15 * 60 * 1000;
@@ -89,14 +89,9 @@ export function useLeaderboards(
   );
   const [isLeaderboardUsingCache, setIsLeaderboardUsingCache] = useState(false);
 
-  const startDateKey = useMemo(
-    () =>
-      dateRange.startDate ? format(dateRange.startDate, 'yyyy-MM-dd') : null,
-    [dateRange.startDate],
-  );
-  const endDateKey = useMemo(
-    () => (dateRange.endDate ? format(dateRange.endDate, 'yyyy-MM-dd') : null),
-    [dateRange.endDate],
+  const { endDateKey, startDateKey } = useMemo(
+    () => getDateRangeKeys(dateRange),
+    [dateRange],
   );
 
   const orgsCacheKey = useMemo(
@@ -122,7 +117,7 @@ export function useLeaderboards(
   );
 
   const fetchLeaderboards = useCallback(async () => {
-    if (!dateRange.startDate || !dateRange.endDate) {
+    if (!startDateKey || !endDateKey) {
       return;
     }
 
@@ -131,10 +126,10 @@ export function useLeaderboards(
 
       const service = await getAnalyticsService();
       const query: ILeaderboardQueryParams = {
-        endDate: format(dateRange.endDate, 'yyyy-MM-dd'),
+        endDate: endDateKey,
         limit: 5,
         sort: AnalyticsMetric.ENGAGEMENT,
-        startDate: format(dateRange.startDate, 'yyyy-MM-dd'),
+        startDate: startDateKey,
       };
 
       const [orgsData, brandsData] = await Promise.all([
@@ -197,7 +192,14 @@ export function useLeaderboards(
     } finally {
       setIsLeaderboardLoading(false);
     }
-  }, [brandsCacheKey, dateRange, getAnalyticsService, orgsCacheKey, scope]);
+  }, [
+    brandsCacheKey,
+    endDateKey,
+    getAnalyticsService,
+    orgsCacheKey,
+    scope,
+    startDateKey,
+  ]);
 
   useEffect(() => {
     if (

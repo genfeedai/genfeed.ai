@@ -15,8 +15,7 @@ import type {
   NodeChange,
   XYPosition,
 } from '@xyflow/react';
-import type { ChatSlice } from './slices/chatSlice';
-import type { SnapshotSlice } from './slices/snapshotSlice';
+import type { ChatSlice, SnapshotSlice } from './slices/types';
 
 // =============================================================================
 // IMAGE HISTORY

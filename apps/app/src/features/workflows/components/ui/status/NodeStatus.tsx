@@ -58,19 +58,3 @@ export function StatusIcon({
       return null;
   }
 }
-
-/**
- * Get status color class based on node status
- */
-export function getStatusColor(status: WorkflowNodeStatus): string {
-  switch (status) {
-    case 'complete':
-      return 'text-green-500';
-    case 'error':
-      return 'text-red-500';
-    case 'processing':
-      return 'text-blue-500';
-    default:
-      return 'text-muted-foreground';
-  }
-}

@@ -28,6 +28,7 @@ function IngredientThumbnail({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={() => onPick(ingredient)}
+      aria-label={ingredient.title ?? 'Select ingredient'}
       className={`group relative aspect-square overflow-hidden border transition-all duration-150 ${
         isSelected
           ? 'border-primary ring-2 ring-primary ring-offset-1 ring-offset-background'

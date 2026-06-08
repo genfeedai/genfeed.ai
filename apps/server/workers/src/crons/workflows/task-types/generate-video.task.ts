@@ -1,4 +1,7 @@
+import { ManagedInferenceProvider } from '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
+import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { ByokService } from '@api/services/byok/byok.service';
+import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
@@ -53,6 +56,8 @@ export class GenerateVideoTask {
     private readonly higgsFieldService: HiggsFieldService,
     private readonly fleetService: FleetService,
     private readonly byokService: ByokService,
+    private readonly byokProviderFactoryService: ByokProviderFactoryService,
+    private readonly managedInferenceClientService: ManagedInferenceClientService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -108,7 +113,7 @@ export class GenerateVideoTask {
           break;
 
         case VideoTaskModel.COMFYUI:
-          externalId = await this.generateWithComfyUI(config);
+          externalId = await this.generateWithComfyUI(config, organizationId);
           generatedUrl = externalId;
           break;
 
@@ -191,7 +196,7 @@ export class GenerateVideoTask {
     config: GenerateVideoConfig,
     organizationId: string,
   ): Promise<string> {
-    const byokKey = await this.byokService.resolveApiKey(
+    const provider = await this.byokProviderFactoryService.resolveProvider(
       organizationId,
       ByokProvider.REPLICATE,
     );
@@ -217,10 +222,18 @@ export class GenerateVideoTask {
       input.seed = config.seed;
     }
 
+    if (provider.source === 'managed') {
+      return await this.generateManagedVideo(provider, {
+        input,
+        model: 'google/veo-3:latest',
+        provider: ManagedInferenceProvider.REPLICATE,
+      });
+    }
+
     const result = await this.replicateService.runModel(
       'google/veo-3:latest', // Veo3 model
       input,
-      byokKey?.apiKey,
+      provider.apiKey,
     );
 
     return result;
@@ -233,7 +246,7 @@ export class GenerateVideoTask {
     config: GenerateVideoConfig,
     organizationId: string,
   ): Promise<string> {
-    const byokKey = await this.byokService.resolveApiKey(
+    const provider = await this.byokProviderFactoryService.resolveProvider(
       organizationId,
       ByokProvider.REPLICATE,
     );
@@ -255,10 +268,18 @@ export class GenerateVideoTask {
       input.image = config.imageUrl;
     }
 
+    if (provider.source === 'managed') {
+      return await this.generateManagedVideo(provider, {
+        input,
+        model: modelVersion,
+        provider: ManagedInferenceProvider.REPLICATE,
+      });
+    }
+
     const result = await this.replicateService.runModel(
       modelVersion,
       input,
-      byokKey?.apiKey,
+      provider.apiKey,
     );
 
     return result;
@@ -271,7 +292,7 @@ export class GenerateVideoTask {
     config: GenerateVideoConfig,
     organizationId: string,
   ): Promise<string> {
-    const byokKey = await this.byokService.resolveApiKey(
+    const provider = await this.byokProviderFactoryService.resolveProvider(
       organizationId,
       ByokProvider.FAL,
     );
@@ -299,10 +320,18 @@ export class GenerateVideoTask {
       input.seed = config.seed;
     }
 
+    if (provider.source === 'managed') {
+      return await this.generateManagedVideo(provider, {
+        input,
+        model: modelId,
+        provider: ManagedInferenceProvider.FAL,
+      });
+    }
+
     const result = await this.falService.generateVideo(
       modelId,
       input,
-      byokKey?.apiKey,
+      provider.apiKey,
     );
     return result.url;
   }
@@ -340,6 +369,7 @@ export class GenerateVideoTask {
    */
   private async generateWithComfyUI(
     config: GenerateVideoConfig,
+    organizationId?: string,
   ): Promise<string> {
     if (!config.imageUrl) {
       throw new Error('ComfyUI I2V requires an imageUrl');
@@ -349,11 +379,19 @@ export class GenerateVideoTask {
       fps: config.fps ?? 16,
       imageUrl: config.imageUrl,
       negativePrompt: config.negativePrompt,
+      organizationId,
       prompt: config.prompt,
       seed: config.seed,
     });
 
     if (!result) {
+      const managed = organizationId
+        ? await this.tryGenerateManagedGenfeedVideo(config, organizationId)
+        : null;
+      if (managed) {
+        return managed;
+      }
+
       throw new Error('Fleet videos instance not available');
     }
 
@@ -363,7 +401,11 @@ export class GenerateVideoTask {
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeout) {
-      const status = await this.fleetService.pollJob('videos', result.jobId);
+      const status = await this.fleetService.pollJob(
+        'videos',
+        result.jobId,
+        organizationId,
+      );
 
       if (
         status &&
@@ -387,6 +429,75 @@ export class GenerateVideoTask {
     }
 
     throw new Error(`ComfyUI job ${result.jobId} timed out after ${timeout}ms`);
+  }
+
+  private async tryGenerateManagedGenfeedVideo(
+    config: GenerateVideoConfig,
+    organizationId: string,
+  ): Promise<string | null> {
+    const provider = await this.byokProviderFactoryService.resolveProvider(
+      organizationId,
+      ByokProvider.FAL,
+      false,
+    );
+
+    if (provider.source !== 'managed' || !provider.apiKey) {
+      return null;
+    }
+
+    return await this.generateManagedVideo(provider, {
+      input: this.buildGenfeedVideoInput(config),
+      model: config.higgsFieldModelId ?? config.model,
+      provider: ManagedInferenceProvider.GENFEEDAI,
+    });
+  }
+
+  private async generateManagedVideo(
+    resolution: {
+      apiKey?: string;
+      managedInferenceUrl?: string;
+    },
+    params: {
+      input: Record<string, unknown>;
+      model: string;
+      provider: ManagedInferenceProvider;
+    },
+  ): Promise<string> {
+    if (!resolution.apiKey) {
+      throw new Error('Managed inference API key is not configured');
+    }
+
+    return await this.managedInferenceClientService.generateVideo({
+      apiKey: resolution.apiKey,
+      endpointUrl: resolution.managedInferenceUrl,
+      input: params.input,
+      model: params.model,
+      provider: params.provider,
+    });
+  }
+
+  private buildGenfeedVideoInput(
+    config: GenerateVideoConfig,
+  ): Record<string, unknown> {
+    return {
+      fps: config.fps,
+      height:
+        config.resolution === '1080p'
+          ? 1080
+          : config.resolution === '4k'
+            ? 2160
+            : undefined,
+      imageUrl: config.imageUrl,
+      negativePrompt: config.negativePrompt,
+      prompt: config.prompt,
+      seed: config.seed,
+      width:
+        config.resolution === '1080p'
+          ? 1920
+          : config.resolution === '4k'
+            ? 3840
+            : undefined,
+    };
   }
 
   /**

@@ -92,6 +92,28 @@ describe('resolveEffectiveBrandAgentConfig', () => {
       result.identityDefaults.organization.defaultAvatarIngredientId,
     ).toBeDefined();
   });
+
+  it('resolves effective identity defaults from brand first, then organization', () => {
+    const result = resolveEffectiveBrandAgentConfig({
+      brand: {
+        agentConfig: {
+          defaultAvatarPhotoUrl: 'https://cdn.example.com/brand-avatar.png',
+          defaultVoiceId: '507f191e810c19729de860aa',
+        },
+      } as never,
+      organizationSettings: {
+        defaultAvatarIngredientId: '507f191e810c19729de860ee',
+        defaultAvatarPhotoUrl: 'https://cdn.example.com/org-avatar.png',
+        defaultVoiceId: '507f191e810c19729de860bb',
+      } as never,
+    });
+
+    expect(result.identityDefaults.effective).toMatchObject({
+      defaultAvatarIngredientId: '507f191e810c19729de860ee',
+      defaultAvatarPhotoUrl: 'https://cdn.example.com/brand-avatar.png',
+      defaultVoiceId: '507f191e810c19729de860aa',
+    });
+  });
 });
 
 describe('resolveEffectiveAgentExecutionConfig', () => {

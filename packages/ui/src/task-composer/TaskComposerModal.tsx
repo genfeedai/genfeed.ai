@@ -3,7 +3,7 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Modal } from '../modals/compound/Modal';
+import { Modal } from '../modals/compound/modal.compound';
 import { Textarea } from '../primitives/textarea';
 import { type ContentType, ContentTypePresets } from './ContentTypePresets';
 

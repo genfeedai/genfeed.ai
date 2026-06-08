@@ -1,6 +1,9 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
+
+const serviceDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   oxc: false, // Disable OXC transformer — SWC required for NestJS decorator metadata
@@ -15,17 +18,17 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(serviceDir, './src'),
       '@genfeedai/integrations': path.resolve(
-        __dirname,
+        serviceDir,
         '../../../packages/integrations/src/index.ts',
       ),
-      '@config': path.resolve(__dirname, './src/config'),
-      '@controllers': path.resolve(__dirname, './src/controllers'),
-      '@discord': path.resolve(__dirname, './src'),
-      '@libs': path.resolve(__dirname, '../../../packages/libs'),
-      '@services': path.resolve(__dirname, './src/services'),
-      '@shared': path.resolve(__dirname, './src/shared'),
+      '@config': path.resolve(serviceDir, './src/config'),
+      '@controllers': path.resolve(serviceDir, './src/controllers'),
+      '@discord': path.resolve(serviceDir, './src'),
+      '@libs': path.resolve(serviceDir, '../../../packages/libs'),
+      '@services': path.resolve(serviceDir, './src/services'),
+      '@shared': path.resolve(serviceDir, './src/shared'),
     },
   },
   test: {

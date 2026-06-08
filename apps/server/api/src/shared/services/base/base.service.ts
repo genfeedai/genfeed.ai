@@ -41,7 +41,7 @@ type PrismaOrderBy = Record<string, 'asc' | 'desc'>;
 
 export interface PrismaFindAllInput {
   where?: PrismaFilter;
-  orderBy?: PrismaOrderByInput;
+  orderBy?: PrismaOrderByInput | PrismaOrderByInput[];
   include?: Record<string, unknown>;
 }
 
@@ -58,28 +58,50 @@ const PAGINATION_OPTION_KEYS = new Set([
 ]);
 
 /**
- * Dynamic Prisma delegate type.
- * Covers the subset of Prisma client methods used by BaseService.
- * Using `any` here is intentional — Prisma generates concrete types per model,
- * but BaseService operates generically across all models via `prisma[modelName]`.
+ * Stage 4: argument shape whose `where` clause is compile-time typed to the
+ * model's `Prisma.<Model>WhereInput` (via the `TWhere` generic), while the
+ * remaining Prisma args (data/select/include/orderBy/skip/take…) stay permissive.
+ * A subclass that specializes `TWhere` gets its `this.internalDelegate.*({ where })`
+ * calls checked against the real columns — catching the Mongo→Prisma field
+ * mismatch class at compile time instead of via the runtime audit.
  */
-type PrismaDelegate = {
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
-  findMany: (args?: any) => Promise<any[]>;
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
-  findFirst: (args?: any) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
-  findUnique: (args?: any) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
-  create: (args: any) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
-  update: (args: any) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
-  updateMany: (args: any) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
-  delete: (args: any) => Promise<any>;
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
-  count: (args?: any) => Promise<number>;
+type PrismaDelegateArgs<TWhere> = {
+  where?: TWhere;
+  data?: unknown;
+  orderBy?: unknown;
+  cursor?: unknown;
+  take?: number;
+  skip?: number;
+  limit?: number;
+  distinct?: unknown;
+  select?: unknown;
+  include?: unknown;
+  omit?: unknown;
+};
+
+/**
+ * Dynamic Prisma delegate type, generic over the model's where-input.
+ * Returns stay `any` — Prisma generates concrete return types per model, but
+ * BaseService operates generically across all models via `prisma[modelName]`.
+ * Default `TWhere = PrismaFilter` keeps the delegate loose for services that
+ * have not opted into the typed where yet.
+ */
+type PrismaDelegate<TWhere = PrismaFilter> = {
+  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
+  findMany: (args?: PrismaDelegateArgs<TWhere>) => Promise<any[]>;
+  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
+  findFirst: (args?: PrismaDelegateArgs<TWhere>) => Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
+  findUnique: (args?: PrismaDelegateArgs<TWhere>) => Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
+  create: (args: Record<string, unknown>) => Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
+  update: (args: PrismaDelegateArgs<TWhere>) => Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
+  updateMany: (args: PrismaDelegateArgs<TWhere>) => Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: concrete return types per model
+  delete: (args: PrismaDelegateArgs<TWhere>) => Promise<any>;
+  count: (args?: PrismaDelegateArgs<TWhere>) => Promise<number>;
 };
 
 /**
@@ -127,6 +149,7 @@ export abstract class BaseService<
   T,
   CreateDto = Partial<T>,
   UpdateDto = Partial<CreateDto>,
+  TWhere extends PrismaFilter = PrismaFilter,
 > {
   constructor(
     protected readonly prisma: PrismaService,
@@ -145,12 +168,26 @@ export abstract class BaseService<
   }
 
   /**
-   * Returns the typed Prisma delegate for this service's model.
+   * Subclass-facing Prisma delegate: its `where` args are typed to `TWhere`
+   * (`Prisma.<Model>WhereInput` once a subclass specializes it). Use this in
+   * service query code so filter fields are checked at compile time.
    */
-  protected get delegate(): PrismaDelegate {
-    return (this.prisma as unknown as Record<string, PrismaDelegate>)[
+  protected get delegate(): PrismaDelegate<TWhere> {
+    return (this.prisma as unknown as Record<string, PrismaDelegate<TWhere>>)[
       this.modelName
     ];
+  }
+
+  /**
+   * BaseService-internal delegate: `where` stays the loose `PrismaFilter`. The
+   * base builds dynamic where clauses from untyped HTTP input (the runtime audit
+   * covers field validity there), so narrowing `TWhere` in a subclass must not
+   * reject the base's own generic plumbing.
+   */
+  private get internalDelegate(): PrismaDelegate<PrismaFilter> {
+    return (
+      this.prisma as unknown as Record<string, PrismaDelegate<PrismaFilter>>
+    )[this.modelName];
   }
 
   private get runtimeModel(): { fields?: Array<{ name: string }> } | undefined {
@@ -177,6 +214,34 @@ export abstract class BaseService<
     }
 
     return fields.some((field) => field.name === fieldName);
+  }
+
+  /**
+   * Stage-4 runtime guard: warn (never throw) when a normalized `where`
+   * references a top-level field the Prisma model does not have. Catches the
+   * Mongo→Prisma field-mismatch class early (e.g. filtering `status` on a model
+   * whose column is `stage`) instead of letting it silently no-op or 500 in
+   * Prisma. Compile-time enforcement (typed `Prisma.<Model>WhereInput`) is the
+   * eventual end state and rides on the TS6.0 build migration; this is the
+   * verifiable runtime net until then. No-op when model metadata is unavailable.
+   */
+  protected auditUnknownFilterFields(where: PrismaFilter = {}): void {
+    if (!this.runtimeModel?.fields) {
+      return;
+    }
+
+    const structuralKeys = new Set(['OR', 'AND', 'NOT', 'isDeleted']);
+    for (const key of Object.keys(where)) {
+      if (structuralKeys.has(key)) {
+        continue;
+      }
+      if (!this.modelHasField(key)) {
+        this.logger?.warn(
+          `Filter references unknown field "${key}" on model "${this.modelName}" — it will not match in Prisma. Fix the controller's buildFindAllQuery (or add the column).`,
+          { field: key, model: this.modelName, operation: 'findAll' },
+        );
+      }
+    }
   }
 
   private isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -289,16 +354,30 @@ export abstract class BaseService<
   }
 
   private normalizeSort(
-    sort: AggregationOptions['sort'] | PrismaOrderByInput | undefined,
-  ): PrismaOrderBy {
+    sort:
+      | AggregationOptions['sort']
+      | PrismaOrderByInput
+      | PrismaOrderByInput[]
+      | undefined,
+  ): PrismaOrderBy[] {
     if (!sort || typeof sort !== 'object') {
-      return { createdAt: 'desc' };
+      return [{ createdAt: 'desc' }];
     }
 
-    return Object.entries(sort).reduce<PrismaOrderBy>((acc, [key, dir]) => {
-      acc[key] = dir === 1 || dir === 'asc' ? 'asc' : 'desc';
-      return acc;
-    }, {});
+    const toEntry = ([key, dir]: [string, unknown]): PrismaOrderBy => ({
+      [key]: dir === 1 || dir === 'asc' ? 'asc' : 'desc',
+    });
+
+    // Emit an ARRAY of single-key entries. Prisma rejects a multi-key orderBy
+    // object ("Expected ...OrderByWithRelationInput[], provided Object") since
+    // object key order is not guaranteed; the array form is required for
+    // deterministic multi-field sorting. Already-array input (the multi-field
+    // sort path) is flattened to the same single-key entry shape.
+    if (Array.isArray(sort)) {
+      return sort.flatMap((entry) => Object.entries(entry).map(toEntry));
+    }
+
+    return Object.entries(sort).map(toEntry);
   }
 
   private normalizeOperatorValue(value: unknown): unknown {
@@ -348,25 +427,28 @@ export abstract class BaseService<
     const result: PrismaFilter = {};
 
     for (const [key, value] of Object.entries(normalized)) {
-      if (key === 'OR') {
-        result.OR = Array.isArray(value)
-          ? value.map((entry) =>
-              this.normalizeWhere(
-                this.isPlainObject(entry) ? entry : ({} as PrismaFilter),
-              ),
-            )
-          : value;
-        continue;
-      }
+      if (key === 'OR' || key === 'AND') {
+        if (!Array.isArray(value)) {
+          result[key] = value;
+          continue;
+        }
 
-      if (key === 'AND') {
-        result.AND = Array.isArray(value)
-          ? value.map((entry) =>
-              this.normalizeWhere(
-                this.isPlainObject(entry) ? entry : ({} as PrismaFilter),
-              ),
-            )
-          : value;
+        const normalizedEntries = value
+          .map((entry) =>
+            this.normalizeWhere(
+              this.isPlainObject(entry) ? entry : ({} as PrismaFilter),
+            ),
+          )
+          // Drop entries that normalized to `{}` (every key was an unknown
+          // relation alias the model lacks). An empty object inside OR matches
+          // every row — a tenancy-broadening leak — so it must be removed.
+          .filter((entry) => Object.keys(entry).length > 0);
+
+        // Omit the operator entirely if nothing survives, rather than emit an
+        // empty `OR: []` (which Prisma treats as match-none).
+        if (normalizedEntries.length > 0) {
+          result[key] = normalizedEntries;
+        }
         continue;
       }
 
@@ -452,7 +534,7 @@ export abstract class BaseService<
       });
 
       const include = populateToInclude(populate);
-      const doc = await this.delegate.create({
+      const doc = await this.internalDelegate.create({
         data: createDto,
         ...(include ? { include } : {}),
       });
@@ -500,6 +582,7 @@ export abstract class BaseService<
       const where = this.withSoftDeleteFilter(
         this.normalizeWhere(findAllInput.where ?? {}),
       );
+      this.auditUnknownFilterFields(where);
       const include = findAllInput.include;
 
       const cacheKey =
@@ -521,7 +604,7 @@ export abstract class BaseService<
 
       if (!isPaginated) {
         const docs = this.normalizeDocuments(
-          await this.delegate.findMany({
+          await this.internalDelegate.findMany({
             where,
             orderBy,
             ...(include ? { include } : {}),
@@ -543,14 +626,14 @@ export abstract class BaseService<
       }
 
       const [docs, totalDocs] = await Promise.all([
-        this.delegate.findMany({
+        this.internalDelegate.findMany({
           where,
           orderBy,
           skip,
           take: limit,
           ...(include ? { include } : {}),
         }),
-        this.delegate.count({ where }),
+        this.internalDelegate.count({ where }),
       ]);
 
       const totalPages = Math.ceil(totalDocs / limit);
@@ -594,7 +677,7 @@ export abstract class BaseService<
   async find(params: PrismaFilter, populate: PopulateInput = []): Promise<T[]> {
     const where = this.processSearchParams(params);
     const include = populateToInclude(populate);
-    const docs = await this.delegate.findMany({
+    const docs = await this.internalDelegate.findMany({
       where,
       ...(include ? { include } : {}),
     });
@@ -616,7 +699,7 @@ export abstract class BaseService<
       const where = this.processSearchParams(params);
       const include = populateToInclude(populate);
 
-      const result = await this.delegate.findFirst({
+      const result = await this.internalDelegate.findFirst({
         where,
         ...(include ? { include } : {}),
       });
@@ -656,7 +739,7 @@ export abstract class BaseService<
       const data = updateDto as PrismaUpdate;
 
       const include = populateToInclude(populate);
-      const result = await this.delegate.update({
+      const result = await this.internalDelegate.update({
         where: { id },
         data,
         ...(include ? { include } : {}),
@@ -704,7 +787,7 @@ export abstract class BaseService<
 
       this.logger?.debug('Bulk updating documents', { filter, update });
 
-      const result = await this.delegate.updateMany({
+      const result = await this.internalDelegate.updateMany({
         where: filter,
         data: update,
       });
@@ -739,7 +822,7 @@ export abstract class BaseService<
 
       this.logger?.debug('Soft deleting document', { id });
 
-      const result = await this.delegate.update({
+      const result = await this.internalDelegate.update({
         where: { id },
         data: { isDeleted: true },
       });
@@ -785,20 +868,31 @@ export abstract class BaseService<
         continue;
       }
 
-      if (key in legacyRelationFields && typeof value === 'string') {
+      if (
+        key in legacyRelationFields &&
+        (typeof value === 'string' || value === null)
+      ) {
         const relationKey = key as keyof typeof legacyRelationFields;
         const scalarKey = legacyRelationFields[relationKey];
 
+        // Map the legacy relation alias to its scalar FK for BOTH id strings and
+        // explicit nulls (global / unowned items use `{ organization: null }`).
+        // Null must be mapped too — otherwise the raw relation name reaches
+        // Prisma and throws "Unknown argument `organization`" for models that
+        // only expose the scalar FK (e.g. FontFamilyRecord, Tag.user).
         if (this.modelHasField(scalarKey)) {
           processed[scalarKey] = value;
           continue;
         }
 
         if (this.modelHasField(relationKey)) {
-          processed[relationKey] = { is: { id: value } };
+          processed[relationKey] =
+            typeof value === 'string' ? { is: { id: value } } : value;
           continue;
         }
 
+        // Model exposes neither the scalar FK nor the relation — drop the
+        // condition instead of emitting an unknown argument.
         continue;
       }
 
@@ -845,7 +939,7 @@ export abstract class BaseService<
     populate: PopulateOption[] = [],
   ): Promise<T> {
     const include = populateToInclude(populate);
-    const item = await this.delegate.findFirst({
+    const item = await this.internalDelegate.findFirst({
       where: this.withSoftDeleteFilter({ id, organizationId }),
       ...(include ? { include } : {}),
     });
@@ -884,15 +978,11 @@ export abstract class BaseService<
     const query = this.processSearchParams(filterBuilder.build());
     const include = populateToInclude(populate);
 
-    const orderBy = Object.entries(sort).reduce<Record<string, string>>(
-      (acc, [key, dir]) => {
-        acc[key] = dir === 1 ? 'asc' : 'desc';
-        return acc;
-      },
-      {},
-    );
+    const orderBy = Object.entries(sort).map(([key, dir]) => ({
+      [key]: dir === 1 ? 'asc' : 'desc',
+    }));
 
-    const docs = await this.delegate.findMany({
+    const docs = await this.internalDelegate.findMany({
       where: query,
       orderBy,
       ...(include ? { include } : {}),
@@ -927,7 +1017,7 @@ export abstract class BaseService<
       });
 
       // Verify ownership first, then update
-      const existing = await this.delegate.findFirst({
+      const existing = await this.internalDelegate.findFirst({
         where: this.withSoftDeleteFilter({ id, organizationId }),
         select: { id: true },
       });
@@ -937,7 +1027,7 @@ export abstract class BaseService<
         return null;
       }
 
-      const result = await this.delegate.update({
+      const result = await this.internalDelegate.update({
         where: { id },
         data: { [field]: value },
       });
@@ -973,7 +1063,7 @@ export abstract class BaseService<
         value,
       });
 
-      const result = await this.delegate.updateMany({
+      const result = await this.internalDelegate.updateMany({
         where: this.withSoftDeleteFilter({
           id: { in: ids },
           organizationId,

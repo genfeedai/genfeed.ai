@@ -1,37 +1,12 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  ButtonVariant,
-  ModalEnum,
-  PageScope,
-  TrainingStatus,
-} from '@genfeedai/enums';
-import type {
-  IBrand,
-  IOrganization,
-  ITraining,
-  IUser,
-} from '@genfeedai/interfaces';
-import { Code } from '@genfeedai/ui';
-import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
+import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/enums';
+import type { ITraining } from '@genfeedai/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { Training } from '@models/ai/training.model';
 import type { ContentProps } from '@props/layout/content.props';
-import type { TableAction, TableColumn } from '@props/ui/display/table.props';
-import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
-import { TrainingsService } from '@services/ai/trainings.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import {
@@ -39,17 +14,13 @@ import {
   LazyModalTrainingNew,
 } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
-import { Switch } from '@ui/primitives/switch';
-import { getErrorMessage } from '@utils/error/error-handler.util';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  HiEye,
-  HiOutlineCpuChip,
-  HiPencil,
-  HiPlus,
-  HiTrash,
-} from 'react-icons/hi2';
+import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
+import { HiOutlineCpuChip, HiPlus } from 'react-icons/hi2';
+import TrainingsErrorState from './components/TrainingsErrorState';
+import { buildTrainingsTableActions } from './components/TrainingsTableActions';
+import { buildTrainingsTableColumns } from './components/TrainingsTableColumns';
+import { useTrainingsList } from './useTrainingsList';
 
 export default function TrainingsList({
   scope = PageScope.ORGANIZATION,
@@ -59,425 +30,49 @@ export default function TrainingsList({
   hideContainer?: boolean;
   onRefreshRegister?: (fn: (() => Promise<void>) | null) => void;
 }) {
-  type TrainingStatusUpdate = {
-    status: Training['status'];
-    trainingId: string;
-    progress?: Partial<Training>;
-  };
-
-  const { isSignedIn } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
-  const parsedSearchParams = useMemo(
-    () => new URLSearchParams(searchParamsString),
-    [searchParamsString],
-  );
-  const { brandId } = useBrand();
-  const notificationsService = NotificationsService.getInstance();
-  const { openConfirm } = useConfirmModal();
-  const { subscribe } = useSocketManager();
-
-  const getTrainingsService = useAuthedService((token: string) =>
-    TrainingsService.getInstance(token),
-  );
-
-  const [selectedTraining, setSelectedTraining] = useState<Training | null>(
-    null,
-  );
-
-  // Admin org/brand filter state (superadmin only)
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
-  );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
-
-  // Admin filter URL sync handlers
-  const handleAdminOrgChange = useCallback(
-    (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
-      const params = new URLSearchParams(searchParamsString);
-      if (orgId) {
-        params.set('organization', orgId);
-      } else {
-        params.delete('organization');
-      }
-      params.delete('brand');
-      params.delete('page');
-      const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, router, searchParamsString],
-  );
-
-  const handleAdminBrandChange = useCallback(
-    (brandId: string) => {
-      setAdminBrand(brandId);
-      const params = new URLSearchParams(searchParamsString);
-      if (brandId) {
-        params.set('brand', brandId);
-      } else {
-        params.delete('brand');
-      }
-      params.delete('page');
-      const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, router, searchParamsString],
-  );
-
-  // Track if component is mounted to avoid calling callbacks during initial render
-  const isMountedRef = useRef(false);
-
-  const queryClient = useQueryClient();
-
-  const trainingsQueryKey = [
-    'trainings-list',
-    scope,
-    brandId,
-    adminOrg,
-    adminBrand,
-  ] as const;
 
   const {
-    data: trainings = [] as Training[],
+    trainings,
     isLoading,
-    isFetching,
-    refetch: refetchTrainings,
-    error: fetchError,
-  } = useQuery<Training[]>({
-    enabled: !!isSignedIn,
-    queryFn: async () => {
-      const service = await getTrainingsService();
-
-      const query: Record<string, unknown> = {
-        pagination: false,
-      };
-
-      if (scope === PageScope.BRAND) {
-        query.brand = brandId;
-      }
-
-      if (scope === PageScope.SUPERADMIN) {
-        if (adminOrg) {
-          query.organization = adminOrg;
-        }
-        if (adminBrand) {
-          query.brand = adminBrand;
-        }
-      }
-
-      const data = await service.findAll(query);
-      logger.info('GET /trainings success', data);
-      return data;
-    },
-    queryKey: trainingsQueryKey,
-  });
-
-  const isRefreshing = isFetching && !isLoading;
-
-  useEffect(() => {
-    if (fetchError instanceof Error) {
-      logger.error('GET /trainings failed', fetchError);
-      notificationsService.error('Failed to load trainings');
-    }
-  }, [fetchError, notificationsService]);
-
-  const refreshTrainings = async () => {
-    await refetchTrainings();
-  };
-
-  const setTrainings = (updatedTrainings: Training[]) => {
-    queryClient.setQueryData(trainingsQueryKey, updatedTrainings);
-  };
-
-  const error = fetchError
-    ? getErrorMessage(fetchError, 'Failed to load trainings')
-    : null;
-
-  // Mark component as mounted after first render
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  const handleRefresh = useCallback(async () => {
-    await refreshTrainings();
-  }, [refreshTrainings]);
-
-  // Register refresh function with context
-  useEffect(() => {
-    if (!onRefreshRegister) {
-      return;
-    }
-
-    // Register the async refresh function
-    onRefreshRegister(refreshTrainings);
-
-    // Cleanup on unmount
-    return () => {
-      onRefreshRegister(null);
-    };
-  }, [refreshTrainings, onRefreshRegister]);
-
-  // Listen for training status updates via websocket
-  useEffect(() => {
-    const processingTrainings = trainings.filter(
-      (t: ITraining) => t.status === TrainingStatus.PROCESSING,
-    );
-
-    const unsubscribers = processingTrainings.map((training: ITraining) => {
-      const eventPath = `/trainings/${training.id}/status`;
-
-      return subscribe(eventPath, (data: TrainingStatusUpdate) => {
-        const { status, trainingId, progress } = data;
-
-        setTrainings(
-          trainings.map((t: ITraining) =>
-            t.id === trainingId ? { ...t, status, ...progress } : t,
-          ),
-        );
-
-        // Show notification
-        if (status === TrainingStatus.COMPLETED) {
-          notificationsService.success(
-            `Training "${training.label}" completed successfully!`,
-          );
-        } else if (status === TrainingStatus.FAILED) {
-          notificationsService.error(`Training "${training.label}" failed`);
-        }
-      });
-    });
-
-    return () => {
-      unsubscribers.forEach((unsub: () => void) => unsub());
-    };
-  }, [trainings, subscribe, notificationsService, setTrainings]);
-
-  const handleToggleActive = useCallback(
-    async (training: ITraining) => {
-      const newValue = training.isActive === false;
-
-      try {
-        const service = await getTrainingsService();
-        await service.patch(training.id, {
-          isActive: newValue,
-        });
-
-        notificationsService.success(
-          `Training ${newValue ? 'activated' : 'deactivated'}`,
-        );
-
-        await handleRefresh();
-      } catch (error) {
-        const errorMessage = getErrorMessage(
-          error,
-          'Failed to update training status',
-        );
-        notificationsService.error(errorMessage);
-      }
-    },
-    [getTrainingsService, notificationsService, handleRefresh],
-  );
-
-  const handleDelete = useCallback(
-    async (training: ITraining) => {
-      try {
-        const service = await getTrainingsService();
-        await service.delete(training.id);
-
-        notificationsService.success('Training deleted successfully');
-
-        await handleRefresh();
-      } catch (error) {
-        const errorMessage = getErrorMessage(
-          error,
-          'Failed to delete training',
-        );
-        notificationsService.error(errorMessage);
-      }
-    },
-    [getTrainingsService, notificationsService, handleRefresh],
-  );
-
-  const openDeleteConfirmation = useCallback(
-    (training: ITraining) => {
-      openConfirm({
-        confirmLabel: 'Delete',
-        isError: true,
-        label: 'Delete Training',
-        message: `Are you sure you want to delete "${training.label || training.id}"? This action cannot be undone.`,
-        onConfirm: () => handleDelete(training),
-      });
-    },
-    [openConfirm, handleDelete],
-  );
-
-  const openTrainingModal = useCallback((training: ITraining) => {
-    setSelectedTraining(new Training(training));
-    openModal(ModalEnum.TRAINING_EDIT);
-  }, []);
+    isRefreshing,
+    error,
+    selectedTraining,
+    adminOrg,
+    adminBrand,
+    handleRefresh,
+    handleAdminOrgChange,
+    handleAdminBrandChange,
+    handleToggleActive,
+    openTrainingModal,
+    openDeleteConfirmation,
+  } = useTrainingsList({ scope, hideContainer, onRefreshRegister });
 
   // Memoize columns to prevent unnecessary re-renders
-  const columns: TableColumn<ITraining>[] = useMemo(() => {
-    const baseColumns: TableColumn<ITraining>[] = [
-      {
-        header: 'Name',
-        key: 'label',
-        render: (training) => (
-          <div>
-            <div className="font-semibold text-foreground">
-              {training.label}
-            </div>
-            {training.externalId && (
-              <div className="text-xs text-muted-foreground">
-                {training.externalId}
-              </div>
-            )}
-          </div>
-        ),
-      },
-      {
-        header: 'Trigger Word',
-        key: 'trigger_word',
-        render: (training: ITraining) => (
-          <Code size="md">{training.trigger}</Code>
-        ),
-      },
-      {
-        header: 'Status',
-        key: 'status',
-        render: (training: ITraining) => <Badge status={training.status} />,
-      },
-      {
-        className: 'text-center',
-        header: 'Steps',
-        key: 'steps',
-        render: (training: ITraining) => (
-          <span className="text-center">
-            {formatNumberWithCommas(training.steps || 0)}
-          </span>
-        ),
-      },
-      {
-        className: 'text-center',
-        header: 'Sources',
-        key: 'totalSources',
-        render: (training: ITraining) => (
-          <span className="text-center">{training.totalSources || 0}</span>
-        ),
-      },
-      {
-        className: 'text-center',
-        header: 'Generated',
-        key: 'totalGeneratedImages',
-        render: (training: ITraining) => (
-          <span className="text-center">
-            {training.totalGeneratedImages || 0}
-          </span>
-        ),
-      },
-      {
-        header: 'Active',
-        key: 'isActive',
-        render: (training: ITraining) => (
-          <Switch
-            isChecked={training.isActive !== false}
-            onChange={() => handleToggleActive(training)}
-          />
-        ),
-      },
-    ];
-
-    // Add owner column for admin app
-    if (scope === PageScope.SUPERADMIN) {
-      baseColumns.splice(1, 0, {
-        header: 'Owner',
-        key: 'owner',
-        render: (training: ITraining) => (
-          <div className="text-sm">
-            {training.organization && (
-              <div className="text-foreground/80">
-                {(training?.organization as IOrganization).label}
-              </div>
-            )}
-            {training.brand && (
-              <div className="text-muted-foreground">
-                {(training?.brand as IBrand).label}
-              </div>
-            )}
-            <div className="text-xs text-muted-foreground">
-              {(training?.user as IUser).fullName}
-            </div>
-          </div>
-        ),
-      });
-    }
-
-    return baseColumns;
-  }, [scope, handleToggleActive]);
+  const columns = useMemo(
+    () =>
+      buildTrainingsTableColumns({
+        scope,
+        onToggleActive: handleToggleActive,
+      }),
+    [scope, handleToggleActive],
+  );
 
   // Memoize actions to prevent unnecessary re-renders
-  const actions: TableAction<ITraining>[] = useMemo(
-    () => [
-      {
-        icon: () => <HiPencil />,
-        onClick: (training: ITraining) => {
-          openTrainingModal(training);
-        },
-        tooltip: 'Edit',
-      },
-      {
-        icon: () => <HiEye />,
-        onClick: (training: ITraining) =>
+  const actions = useMemo(
+    () =>
+      buildTrainingsTableActions({
+        onEdit: openTrainingModal,
+        onView: (training: ITraining) =>
           router.push(`/trainings/${training.id}`),
-        tooltip: 'Details',
-      },
-      {
-        className: 'text-error hover:text-error',
-        icon: () => <HiTrash />,
-        onClick: (training: ITraining) => {
-          openDeleteConfirmation(training);
-        },
-        tooltip: 'Delete',
-      },
-    ],
+        onDelete: openDeleteConfirmation,
+      }),
     [openTrainingModal, openDeleteConfirmation, router],
   );
 
   if (error) {
     return (
-      <div className="container mx-auto flex min-h-56 items-center justify-center px-4 py-8">
-        <Card className="p-12 w-full max-w-md text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
-            <span className="text-2xl">!</span>
-          </div>
-
-          <h3 className="mb-2 text-lg font-semibold text-foreground">
-            Failed to load trainings
-          </h3>
-
-          <p className="mb-4 text-muted-foreground">{error}</p>
-
-          <div className="flex justify-center">
-            <Button
-              label="Try Again"
-              onClick={() => handleRefresh()}
-              className="mt-4"
-            />
-          </div>
-        </Card>
-      </div>
+      <TrainingsErrorState error={error} onRetry={() => handleRefresh()} />
     );
   }
 

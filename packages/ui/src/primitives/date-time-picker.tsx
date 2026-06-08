@@ -381,6 +381,7 @@ export default function DateTimePicker({
       <div className="flex gap-4">
         <div className="relative flex-1">
           <input
+            aria-label="Date"
             type="date"
             value={selectedDate}
             onChange={handleDateChange}

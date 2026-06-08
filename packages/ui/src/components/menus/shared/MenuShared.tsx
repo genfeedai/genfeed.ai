@@ -1,92 +1,29 @@
 'use client';
 
-import { UserButton, useAuth, useUser } from '@clerk/nextjs';
-import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { useOverviewBootstrap } from '@genfeedai/hooks/data/overview/use-overview-bootstrap';
-import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
-import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import { Kbd } from '@genfeedai/ui';
-
 import MenuItem from '@ui/menus/item/MenuItem';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
-import UserDropdown from '@ui/menus/user-dropdown/UserDropdown';
 import WorkspaceSwitcher from '@ui/menus/workspace-switcher/WorkspaceSwitcher';
 import { Button } from '@ui/primitives/button';
-import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
-
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import {
-  type MouseEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import {
-  HiChevronDown,
-  HiChevronRight,
-  HiOutlineArrowLeft,
-  HiOutlineDocumentText,
-  HiPlus,
-} from 'react-icons/hi2';
+import { useRouter } from 'next/navigation';
+import { HiOutlineArrowLeft } from 'react-icons/hi2';
+import CollapsibleGroup from './CollapsibleGroup';
+import MenuSharedConversations from './MenuSharedConversations';
+import MenuSharedGroupedItems from './MenuSharedGroupedItems';
+import MenuSharedPrimaryAction from './MenuSharedPrimaryAction';
+import SidebarUserProfile from './SidebarUserProfile';
+import { useMenuShared } from './useMenuShared';
 
 /** Single-column sidebar width */
 const SIDEBAR_WIDTH = 240;
 
-const DRILL_DOWN_GROUP_ICON_OVERRIDES = {
-  Posts: HiOutlineDocumentText,
-} as const;
-
-function WorkspaceInboxMenuItem({
-  href,
-  isActive,
-  isComingSoon,
-  label,
-  onClick,
-  outline,
-  solid,
-}: {
-  href?: string;
-  isActive: boolean;
-  isComingSoon?: boolean;
-  label: string;
-  onClick?: () => void;
-  outline?: MenuItemConfig['outline'];
-  solid?: MenuItemConfig['solid'];
-}) {
-  const { reviewInbox } = useOverviewBootstrap();
-  const actionableCount =
-    reviewInbox.pendingCount +
-    reviewInbox.readyCount +
-    reviewInbox.changesRequestedCount +
-    reviewInbox.rejectedCount;
-
-  return (
-    <MenuItem
-      badgeCount={actionableCount}
-      href={href}
-      isActive={isActive}
-      isCollapsed={false}
-      isComingSoon={isComingSoon}
-      label={label}
-      onClick={onClick}
-      outline={outline}
-      solid={solid}
-      variant="icon"
-    />
-  );
-}
-
 export default function MenuShared({
   config,
-  currentApp,
   onClose,
   renderTopSlot,
   renderBody,
@@ -101,289 +38,38 @@ export default function MenuShared({
   conversationActions,
   renderFooterSlot,
 }: MenuSharedProps) {
-  const logoUrl = useThemeLogo();
-  const rawPathname = usePathname();
   const { push } = useRouter();
-  const { href, orgHref, orgSlug, brandSlug } = useOrgUrl();
-  const [isConversationsCollapsed, setIsConversationsCollapsed] =
-    useState(false);
-  const { nestedGroupId, enterNestedGroup, exitNestedGroup } =
-    useSidebarNavigation();
-  const routeScope = useMemo(() => {
-    const parts = rawPathname.split('/').filter(Boolean);
 
-    if (parts[0] === 'settings') {
-      return 'personal' as const;
-    }
-
-    if (parts[1] === '~') {
-      return 'organization' as const;
-    }
-
-    return 'brand' as const;
-  }, [rawPathname]);
-
-  /** Strip org/brand prefix so we can compare against config-level paths. */
-  const pathname = useMemo(() => {
-    const parts = rawPathname.split('/').filter(Boolean);
-    if (parts.length >= 2 && parts[1] === '~') {
-      return `/${parts.slice(2).join('/')}`;
-    }
-    if (parts.length >= 3) {
-      return `/${parts.slice(2).join('/')}`;
-    }
-    return rawPathname;
-  }, [rawPathname]);
-
-  const isAlreadyScopedHref = useCallback(
-    (path: string) => {
-      const parts = path.split('/').filter(Boolean);
-
-      return (
-        parts[0] === orgSlug &&
-        (parts[1] === '~' || (brandSlug && parts[1] === brandSlug))
-      );
-    },
-    [brandSlug, orgSlug],
-  );
-
-  const resolveLegacySettingsHref = useCallback(
-    (path: string) => {
-      if (path === '/settings/personal') {
-        return '/settings';
-      }
-
-      if (path === '/settings/organization') {
-        return orgHref('/settings');
-      }
-
-      if (path.startsWith('/settings/organization/')) {
-        return orgHref(path.replace('/settings/organization', '/settings'));
-      }
-
-      if (path.startsWith('/settings/brands/')) {
-        const [, , , routeBrandSlug, ...rest] = path.split('/');
-
-        if (routeBrandSlug) {
-          const suffix = rest.length > 0 ? `/${rest.join('/')}` : '';
-          return `/${orgSlug}/${routeBrandSlug}/settings${suffix}`;
-        }
-      }
-
-      return orgHref(path);
-    },
-    [orgHref, orgSlug],
-  );
-
-  /** Prefix a config-level path with the configured route scope. */
-  const prefixHref = useCallback(
-    (
-      item:
-        | MenuItemConfig
-        | { href: string; hrefScope?: MenuItemConfig['hrefScope'] },
-    ) => {
-      const path = item.href;
-
-      if (!path) {
-        return undefined;
-      }
-
-      if (isAlreadyScopedHref(path)) {
-        return path;
-      }
-
-      if (item.hrefScope === 'personal') {
-        return path;
-      }
-
-      if (item.hrefScope === 'organization') {
-        return resolveLegacySettingsHref(path);
-      }
-
-      if (item.hrefScope === 'brand') {
-        return href(path);
-      }
-
-      if (path.startsWith('/settings')) {
-        return resolveLegacySettingsHref(path);
-      }
-
-      return href(path);
-    },
-    [href, isAlreadyScopedHref, resolveLegacySettingsHref],
-  );
-
-  const primaryItems = useMemo(
-    () => config.items.filter((item) => item.isPrimary),
-    [config.items],
-  );
-
-  const navigationItems = useMemo(
-    () => config.items.filter((item) => !item.isPrimary),
-    [config.items],
-  );
-
-  const secondaryItems = useMemo(
-    () => config.secondaryItems ?? [],
-    [config.secondaryItems],
-  );
-
-  const isActive = useCallback(
-    (href: string) => {
-      if (!href) {
-        return false;
-      }
-
-      if (href.startsWith('/elements/') && pathname?.startsWith('/elements/')) {
-        return true;
-      }
-      if (
-        href.startsWith('/ingredients/') &&
-        pathname?.startsWith('/ingredients/')
-      ) {
-        return true;
-      }
-
-      return pathname === href || pathname?.startsWith(href);
-    },
-    [pathname],
-  );
-
-  const isActiveItem = useCallback(
-    (item: MenuItemConfig) => {
-      if (!item.href) {
-        return false;
-      }
-
-      if (item.hrefScope && item.hrefScope !== routeScope) {
-        return false;
-      }
-
-      return isActive(item.href);
-    },
-    [isActive, routeScope],
-  );
-
-  // Group items by their group field, preserving order
-  const groupedItems = useMemo(() => {
-    const groups: { group: string; items: MenuItemConfig[] }[] = [];
-    let currentGroup: string | undefined;
-
-    navigationItems.forEach((item) => {
-      const group = item.group ?? '';
-      if (group !== currentGroup) {
-        currentGroup = group;
-        groups.push({ group, items: [item] });
-      } else {
-        groups[groups.length - 1].items.push(item);
-      }
-    });
-
-    return groups;
-  }, [navigationItems]);
-
-  const topLevelGroups = useMemo(
-    () => groupedItems.filter((group) => group.group === ''),
-    [groupedItems],
-  );
-
-  const sectionGroups = useMemo(
-    () => groupedItems.filter((group) => group.group !== ''),
-    [groupedItems],
-  );
-
-  const handleLinkClick = useCallback(() => {
-    if (onClose) {
-      onClose();
-    }
-  }, [onClose]);
-
-  const renderGroupedItems = useCallback(
-    (groups: { group: string; items: MenuItemConfig[] }[]) => (
-      <>
-        {groups.map((group, groupIndex) => (
-          <div key={group.group || `ungrouped-${groupIndex}`}>
-            {group.items[0]?.hasDividerAbove && (
-              <div className="my-2 border-t border-border" />
-            )}
-            <CollapsibleGroup
-              label={group.group}
-              isDrillDown={group.items[0]?.drillDown === true}
-            >
-              {group.items[0]?.drillDown ? (
-                <DrillDownGroupRow
-                  group={group}
-                  isActive={group.items.some((item) => isActiveItem(item))}
-                  defaultHref={prefixHref(group.items[0])}
-                  onEnter={() => enterNestedGroup(group.group)}
-                />
-              ) : (
-                <ul className="flex flex-col gap-px">
-                  {group.items.map((item, index) => {
-                    const itemHref = prefixHref(item);
-                    const itemKey = itemHref ?? `${item.label}-${index}`;
-
-                    return item.href?.startsWith('/workspace/inbox') ? (
-                      <WorkspaceInboxMenuItem
-                        key={itemKey}
-                        href={itemHref}
-                        isActive={isActiveItem(item)}
-                        isComingSoon={item.isComingSoon}
-                        label={item.label}
-                        onClick={handleLinkClick}
-                        outline={item.outline}
-                        solid={item.solid}
-                      />
-                    ) : (
-                      <MenuItem
-                        key={itemKey}
-                        href={itemHref}
-                        label={item.label}
-                        icon={item.icon}
-                        outline={item.outline}
-                        solid={item.solid}
-                        isActive={isActiveItem(item)}
-                        isComingSoon={item.isComingSoon}
-                        onClick={handleLinkClick}
-                        variant="icon"
-                        isCollapsed={false}
-                      />
-                    );
-                  })}
-                </ul>
-              )}
-            </CollapsibleGroup>
-          </div>
-        ))}
-      </>
-    ),
-    [enterNestedGroup, handleLinkClick, isActiveItem, prefixHref],
-  );
-
-  // Get the nested group (for SidebarNested)
-  const nestedGroup = useMemo(() => {
-    if (!nestedGroupId) {
-      return null;
-    }
-    return groupedItems.find((g) => g.group === nestedGroupId) ?? null;
-  }, [groupedItems, nestedGroupId]);
-
-  // Keyboard: Escape exits nested view
-  useEffect(() => {
-    if (!nestedGroupId) {
-      return;
-    }
-
-    const processKeyDownMenuShared = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        exitNestedGroup();
-      }
-    };
-
-    document.addEventListener('keydown', processKeyDownMenuShared);
-    return () =>
-      document.removeEventListener('keydown', processKeyDownMenuShared);
-  }, [nestedGroupId, exitNestedGroup]);
+  const {
+    logoUrl,
+    href,
+    orgHref,
+    isConversationsCollapsed,
+    setIsConversationsCollapsed,
+    nestedGroupId,
+    enterNestedGroup,
+    exitNestedGroup,
+    prefixHref,
+    isActiveItem,
+    primaryItems,
+    secondaryItems,
+    topLevelGroups,
+    sectionGroups,
+    groupedItems,
+    handleLinkClick,
+    nestedGroup,
+    topSlotContent,
+    bodyContent,
+    afterNavigationContent,
+    footerSlotContent,
+  } = useMenuShared({
+    config,
+    onClose,
+    renderTopSlot,
+    renderBody,
+    renderAfterNavigation,
+    renderFooterSlot,
+  });
 
   const secondaryNavigationContent =
     secondaryItems.length > 0 ? (
@@ -415,15 +101,12 @@ export default function MenuShared({
       </div>
     ) : null;
 
-  const topLevelGroupsContent = renderGroupedItems(topLevelGroups);
-  const sectionGroupsContent = renderGroupedItems(sectionGroups);
-  const allGroupsContent = renderGroupedItems(groupedItems);
-  const topSlotContent = renderTopSlot ? renderTopSlot() : null;
-  const bodyContent = renderBody ? renderBody() : null;
-  const afterNavigationContent = renderAfterNavigation
-    ? renderAfterNavigation()
-    : null;
-  const footerSlotContent = renderFooterSlot ? renderFooterSlot() : null;
+  const sharedGroupProps = {
+    prefixHref,
+    isActiveItem,
+    handleLinkClick,
+    enterNestedGroup,
+  };
 
   const navigationContent = (
     <>
@@ -433,7 +116,7 @@ export default function MenuShared({
             href={prefixHref({ href: backHref }) ?? backHref}
             className={cn(
               'group flex h-7 w-full items-center gap-2 rounded px-2.5 py-1 transition-colors duration-150',
-              'text-foreground/72 hover:bg-white/[0.035] hover:text-foreground',
+              'text-foreground/72 hover:bg-foreground/[0.035] hover:text-foreground',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
             )}
             aria-label={`Back to ${backLabel ?? 'previous page'}`}
@@ -447,19 +130,25 @@ export default function MenuShared({
       )}
       {sectionLabel ? (
         <>
-          {topLevelGroupsContent}
+          <MenuSharedGroupedItems
+            groups={topLevelGroups}
+            {...sharedGroupProps}
+          />
           {sectionGroups.length > 0 ? (
             <CollapsibleGroup
               label={sectionLabel}
               isDrillDown={false}
               storageKey={`__${sectionLabel.toLowerCase()}__`}
             >
-              {sectionGroupsContent}
+              <MenuSharedGroupedItems
+                groups={sectionGroups}
+                {...sharedGroupProps}
+              />
             </CollapsibleGroup>
           ) : null}
         </>
       ) : (
-        allGroupsContent
+        <MenuSharedGroupedItems groups={groupedItems} {...sharedGroupProps} />
       )}
     </>
   );
@@ -469,7 +158,7 @@ export default function MenuShared({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={onToggleCollapse}
-      className="flex size-7 flex-shrink-0 items-center justify-center rounded-md bg-transparent text-foreground/72 cursor-pointer transition-colors hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+      className="flex size-7 flex-shrink-0 items-center justify-center rounded-md bg-transparent text-foreground/72 cursor-pointer transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
       ariaLabel={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
     >
       <span className="relative flex size-4 items-center justify-center">
@@ -508,19 +197,12 @@ export default function MenuShared({
         <div
           data-testid="sidebar-header-shell"
           className={cn(
-            'flex h-12 flex-shrink-0 items-center gap-1.5 px-2',
+            'flex h-12 flex-shrink-0 items-center gap-1.5 px-3',
             shellChromeVariant === 'default' && 'border-b border-border',
           )}
         >
           {sharedCollapseControl}
           <WorkspaceSwitcher />
-          {currentApp && orgSlug && (
-            <AppSwitcher
-              currentApp={currentApp}
-              orgSlug={orgSlug}
-              brandSlug={brandSlug}
-            />
-          )}
         </div>
 
         {/* Body — fades out when collapsed, pointer-events disabled */}
@@ -535,93 +217,14 @@ export default function MenuShared({
           ) : null}
 
           {/* Primary actions */}
-          {showPrimaryItems && config.primaryAction ? (
-            <div className="px-3 pt-2 pb-1">
-              {config.primaryAction.href ? (
-                <Link
-                  data-testid="sidebar-primary-action"
-                  href={
-                    prefixHref(config.primaryAction) ??
-                    config.primaryAction.href
-                  }
-                  onClick={handleLinkClick}
-                  className="flex h-9 w-full items-center gap-3 rounded-md border border-border bg-background-secondary px-3 py-1.5 text-left text-xs font-semibold transition-colors hover:border-border-strong hover:bg-background-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-                  data-tone="accent"
-                >
-                  {config.primaryAction.icon ? (
-                    config.primaryAction.icon
-                  ) : config.primaryAction.solid ? (
-                    <config.primaryAction.solid className="size-4" />
-                  ) : config.primaryAction.outline ? (
-                    <config.primaryAction.outline className="size-4" />
-                  ) : (
-                    <HiPlus className="size-4" />
-                  )}
-                  <span className="flex-1">{config.primaryAction.label}</span>
-                  <Kbd
-                    variant="subtle"
-                    size="xs"
-                    className="bg-black/10 text-black/52"
-                  >
-                    {'\u2318\u21E7'}N
-                  </Kbd>
-                </Link>
-              ) : (
-                <Button
-                  data-testid="sidebar-primary-action"
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                  onClick={() => {
-                    handleLinkClick();
-                    config.primaryAction?.onClick?.();
-                  }}
-                  className="flex h-9 w-full items-center gap-3 rounded-md border border-border bg-background-secondary px-3 py-1.5 text-left text-xs font-semibold transition-colors hover:border-border-strong hover:bg-background-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-                  data-tone="accent"
-                >
-                  {config.primaryAction.icon ? (
-                    config.primaryAction.icon
-                  ) : config.primaryAction.solid ? (
-                    <config.primaryAction.solid className="size-4" />
-                  ) : config.primaryAction.outline ? (
-                    <config.primaryAction.outline className="size-4" />
-                  ) : (
-                    <HiPlus className="size-4" />
-                  )}
-                  <span className="flex-1">{config.primaryAction.label}</span>
-                  <Kbd
-                    variant="subtle"
-                    size="xs"
-                    className="bg-black/10 text-black/52"
-                  >
-                    {'\u2318\u21E7'}N
-                  </Kbd>
-                </Button>
-              )}
-            </div>
-          ) : showPrimaryItems && primaryItems.length > 0 ? (
-            <div className="px-3 pt-2 pb-1">
-              <ul className="flex flex-col gap-1">
-                {primaryItems.map((item, index) => {
-                  const itemHref = prefixHref(item);
-
-                  return (
-                    <MenuItem
-                      key={itemHref ?? `${item.label}-${index}`}
-                      href={itemHref}
-                      label={item.label}
-                      icon={item.icon}
-                      outline={item.outline}
-                      solid={item.solid}
-                      isActive={isActiveItem(item)}
-                      isComingSoon={item.isComingSoon}
-                      onClick={handleLinkClick}
-                      variant="icon"
-                      isCollapsed={false}
-                    />
-                  );
-                })}
-              </ul>
-            </div>
+          {showPrimaryItems ? (
+            <MenuSharedPrimaryAction
+              config={config}
+              primaryItems={primaryItems}
+              prefixHref={prefixHref}
+              isActiveItem={isActiveItem}
+              handleLinkClick={handleLinkClick}
+            />
           ) : null}
 
           {bodyContent ? (
@@ -669,56 +272,13 @@ export default function MenuShared({
                 </div>
 
                 {afterNavigationContent && (
-                  <div
-                    data-testid="sidebar-conversations-section"
-                    className={cn(
-                      'px-3 pb-2 pt-2',
-                      !isConversationsCollapsed &&
-                        'flex min-h-0 flex-1 flex-col',
-                    )}
-                  >
-                    <CollapsibleGroup
-                      label="Conversations"
-                      isDrillDown={false}
-                      storageKey="__conversations__"
-                      actions={conversationActions}
-                      className={cn(
-                        'mt-0',
-                        !isConversationsCollapsed &&
-                          'flex min-h-0 flex-1 flex-col',
-                      )}
-                      contentClassName={cn(
-                        !isConversationsCollapsed &&
-                          'flex min-h-0 flex-1 flex-col',
-                      )}
-                      onCollapsedChange={setIsConversationsCollapsed}
-                    >
-                      <div className="pb-1">
-                        <Link
-                          href={orgHref('/chat/new')}
-                          className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 cursor-pointer hover:bg-white/[0.035] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-                        >
-                          <HiPlus className="size-4 text-foreground/42 group-hover:text-foreground/78" />
-                          <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
-                            New Chat
-                          </span>
-                          <Kbd
-                            variant="ghost"
-                            className="ml-auto rounded-md border border-border bg-white/[0.03] text-[10px] text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                          >
-                            ⌘⇧N
-                          </Kbd>
-                        </Link>
-                      </div>
-                      <div
-                        className={cn(
-                          !isConversationsCollapsed && 'min-h-0 flex-1',
-                        )}
-                      >
-                        {afterNavigationContent}
-                      </div>
-                    </CollapsibleGroup>
-                  </div>
+                  <MenuSharedConversations
+                    afterNavigationContent={afterNavigationContent}
+                    conversationActions={conversationActions}
+                    isConversationsCollapsed={isConversationsCollapsed}
+                    newChatHref={orgHref('/chat/new')}
+                    onCollapsedChange={setIsConversationsCollapsed}
+                  />
                 )}
               </div>
 
@@ -732,243 +292,5 @@ export default function MenuShared({
         <SidebarUserProfile isCollapsed={isCollapsed} />
       </div>
     </div>
-  );
-}
-
-function SidebarUserProfile({
-  isCollapsed = false,
-}: {
-  isCollapsed?: boolean;
-}) {
-  const { isSignedIn } = useAuth();
-  const { user } = useUser();
-
-  if (!user) {
-    return null;
-  }
-
-  if (isCollapsed) {
-    return (
-      <div className="border-t border-border p-3 flex justify-center">
-        {isSignedIn ? <UserButton /> : null}
-      </div>
-    );
-  }
-
-  return (
-    <div className="border-t border-border p-3">
-      <div className="flex items-center gap-2.5">
-        {isSignedIn ? <UserButton /> : null}
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-foreground/88">
-            {user.fullName ?? user.primaryEmailAddress?.emailAddress ?? 'User'}
-          </p>
-        </div>
-        <UserDropdown
-          userName={user.fullName ?? 'User'}
-          userEmail={user.primaryEmailAddress?.emailAddress ?? ''}
-        />
-      </div>
-    </div>
-  );
-}
-
-const COLLAPSED_GROUPS_KEY = 'genfeed:sidebar:collapsed';
-
-function getCollapsedGroups(): Set<string> {
-  if (typeof window === 'undefined') {
-    return new Set();
-  }
-  try {
-    const stored = localStorage.getItem(COLLAPSED_GROUPS_KEY);
-    return stored ? new Set(JSON.parse(stored) as string[]) : new Set();
-  } catch {
-    return new Set();
-  }
-}
-
-function persistCollapsedGroups(groups: Set<string>): void {
-  try {
-    localStorage.setItem(COLLAPSED_GROUPS_KEY, JSON.stringify([...groups]));
-  } catch {
-    // Silently ignore localStorage errors
-  }
-}
-
-/** Collapsible group with label header and toggle */
-function CollapsibleGroup({
-  label,
-  isDrillDown,
-  children,
-  storageKey,
-  actions,
-  className,
-  contentClassName,
-  headerClassName,
-  onCollapsedChange,
-}: {
-  label: string;
-  isDrillDown: boolean;
-  children: React.ReactNode;
-  storageKey?: string;
-  actions?: React.ReactNode;
-  className?: string;
-  contentClassName?: string;
-  headerClassName?: string;
-  onCollapsedChange?: (isCollapsed: boolean) => void;
-}) {
-  const key = storageKey ?? label;
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  useEffect(() => {
-    const collapsed = getCollapsedGroups().has(key);
-    if (collapsed) {
-      setIsCollapsed(true);
-    }
-  }, [key]);
-
-  const toggleMenuShared = useCallback(() => {
-    setIsCollapsed((prev) => {
-      const next = !prev;
-      const groups = getCollapsedGroups();
-      if (next) {
-        groups.add(key);
-      } else {
-        groups.delete(key);
-      }
-      persistCollapsedGroups(groups);
-      onCollapsedChange?.(next);
-      return next;
-    });
-  }, [key, onCollapsedChange]);
-
-  // DrillDown groups render their own row — no separate label needed
-  if (isDrillDown) {
-    return <div className={cn('mt-1', className)}>{children}</div>;
-  }
-
-  // Ungrouped items (empty label) render flat without a collapsible header
-  if (!label) {
-    return <div className={cn('mt-1', className)}>{children}</div>;
-  }
-
-  return (
-    <div className={cn('mt-2', className)}>
-      <div
-        className={cn(
-          'group/collapsible flex w-full items-center p-1 text-white/30',
-          headerClassName,
-        )}
-      >
-        <Button
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          onClick={toggleMenuShared}
-          className="flex items-center gap-1.5 hover:text-white/50 transition-colors duration-150 cursor-pointer"
-        >
-          <HiChevronDown
-            className={cn(
-              'size-3 transition-transform duration-200',
-              isCollapsed && '-rotate-90',
-            )}
-          />
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em]">
-            {label}
-          </span>
-        </Button>
-        {actions && !isCollapsed && <div className="ml-auto">{actions}</div>}
-      </div>
-      {!isCollapsed && <div className={contentClassName}>{children}</div>}
-    </div>
-  );
-}
-
-/** A single row representing a drill-down group with > chevron */
-function DrillDownGroupRow({
-  group,
-  isActive,
-  defaultHref,
-  onEnter,
-}: {
-  group: { group: string; items: MenuItemConfig[] };
-  isActive: boolean;
-  defaultHref?: string;
-  onEnter: () => void;
-}) {
-  const { push } = useRouter();
-  const firstItem = group.items[0];
-  const OutlineIcon =
-    DRILL_DOWN_GROUP_ICON_OVERRIDES[
-      group.group as keyof typeof DRILL_DOWN_GROUP_ICON_OVERRIDES
-    ] ?? firstItem?.outline;
-
-  const activateMenuShared = () => {
-    onEnter();
-    if (defaultHref) {
-      push(defaultHref);
-    }
-  };
-
-  const handleLinkClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    // Keep native link behavior for modified/middle clicks.
-    if (
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey
-    ) {
-      return;
-    }
-    onEnter();
-  };
-
-  const rowClasses = cn(
-    'flex w-full items-center gap-3 rounded px-3 py-1.5 transition-colors duration-150 group',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-    isActive
-      ? 'bg-white/[0.08] text-white'
-      : 'text-white/80 hover:bg-white/[0.04]',
-  );
-
-  const content = (
-    <>
-      {OutlineIcon && (
-        <OutlineIcon
-          className={cn(
-            'size-4 transition-colors duration-200',
-            isActive ? 'text-primary' : 'text-white/80 group-hover:text-white',
-          )}
-        />
-      )}
-      <span
-        className={cn(
-          'text-xs font-medium flex-1 text-left',
-          isActive ? 'text-white font-semibold' : 'text-white/90',
-        )}
-      >
-        {group.group}
-      </span>
-      <HiChevronRight className="size-4 text-white/30" />
-    </>
-  );
-
-  if (defaultHref) {
-    return (
-      <Link href={defaultHref} onClick={handleLinkClick} className={rowClasses}>
-        {content}
-      </Link>
-    );
-  }
-
-  return (
-    <Button
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-      onClick={activateMenuShared}
-      className={cn(rowClasses, 'cursor-pointer')}
-    >
-      {content}
-    </Button>
   );
 }

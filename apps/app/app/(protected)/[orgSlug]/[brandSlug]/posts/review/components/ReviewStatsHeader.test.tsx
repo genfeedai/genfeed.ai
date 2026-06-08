@@ -1,7 +1,7 @@
 import { BatchStatus } from '@genfeedai/enums';
 import { render, screen } from '@testing-library/react';
 import ReviewStatsHeader from './ReviewStatsHeader';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockBatch = {

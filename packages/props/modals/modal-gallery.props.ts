@@ -1,6 +1,6 @@
 import type { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
 import type { IAsset, IImage, IMusic, IVideo } from '@genfeedai/interfaces';
-import type { Dispatch, SetStateAction } from 'react';
+import type { ComponentType, Dispatch, SetStateAction } from 'react';
 
 /**
  * Props for ModalGalleryHeader component
@@ -104,6 +104,54 @@ export interface ModalGalleryItemReferenceProps {
   onSelectionLimit: () => void;
   selectionLimit: number;
   selectedItems: string[];
+}
+
+/**
+ * Props for ModalGalleryUploadsTab component
+ */
+export interface ModalGalleryUploadsTabProps {
+  uploads: IImage[];
+  isLoading: boolean;
+  localFormat: IngredientFormat;
+  selectedItems: string[];
+  onSelectItem: (item: IImage) => void;
+  getFormatLabel: (formatValue?: IngredientFormat) => string;
+  getImageFormat: (image: IImage) => IngredientFormat | null;
+  onUploadClick: () => void;
+}
+
+/**
+ * Props for ModalGalleryCreationsTab component
+ */
+export interface ModalGalleryCreationsTabProps {
+  creations: IImage[];
+  isLoadingCreations: boolean;
+  localFormat: IngredientFormat;
+  selectedItems: string[];
+  onSelectItem: (item: IImage) => void;
+  getFormatLabel: (formatValue?: IngredientFormat) => string;
+  getImageFormat: (image: IImage) => IngredientFormat | null;
+}
+
+/**
+ * Props for ModalGalleryReferencesTab component
+ */
+export interface ModalGalleryReferencesTabProps {
+  references: IAsset[];
+  isLoadingReferences: boolean;
+  selectedItems: string[];
+  onSelectReference: (selectedIds: string[]) => void;
+  onSelectionLimit: () => void;
+  selectionLimit: number;
+}
+
+/**
+ * Props for ModalGalleryEmptyState component
+ */
+export interface ModalGalleryEmptyStateProps {
+  emptyIcon: ComponentType<{ className?: string }>;
+  emptyMessage: string;
+  category: IngredientCategory;
 }
 
 /**

@@ -236,6 +236,7 @@ function VideoStitchNodeComponent(props: NodeProps) {
           <div className="relative">
             <video
               src={nodeData.outputVideo}
+              aria-label="Stitched video output"
               className="w-full h-20 object-cover rounded"
               controls
               loop={nodeData.seamlessLoop}

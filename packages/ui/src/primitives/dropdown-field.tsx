@@ -1,12 +1,9 @@
 'use client';
 
 import { type ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { X } from 'lucide-react';
-import Image from 'next/image';
 import {
   type ChangeEvent,
   type KeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
   type ReactNode,
   useCallback,
   useEffect,
@@ -14,10 +11,11 @@ import {
   useState,
 } from 'react';
 import { cn } from '../lib/utils';
-import { Badge } from './badge';
-import { Button } from './button';
-import { Input } from './input';
-import { SimpleTooltip } from './tooltip';
+import { getBadgeVariant } from './dropdown-field.helpers';
+import DropdownOptionItem from './dropdown-field-option-item';
+import DropdownSearchBar from './dropdown-field-search-bar';
+import DropdownTabBar from './dropdown-field-tab-bar';
+import DropdownTrigger from './dropdown-field-trigger';
 
 const EMPTY_ARRAY: never[] = [];
 
@@ -66,32 +64,6 @@ export interface DropdownFieldProps {
   onChange?: (e: ChangeEvent<HTMLSelectElement>) => void;
   onSearch?: (searchTerm: string) => void;
   preserveFocus?: boolean;
-}
-
-function getBadgeVariant(
-  variant: DropdownFieldOption['badgeVariant'],
-):
-  | 'default'
-  | 'destructive'
-  | 'info'
-  | 'outline'
-  | 'secondary'
-  | 'success'
-  | 'warning' {
-  switch (variant) {
-    case 'error':
-      return 'destructive';
-    case 'accent':
-    case 'primary':
-      return 'default';
-    case 'info':
-    case 'secondary':
-    case 'success':
-    case 'warning':
-      return variant;
-    default:
-      return 'default';
-  }
 }
 
 export default function DropdownField({
@@ -254,72 +226,7 @@ export default function DropdownField({
     setSearchTerm(event.target.value);
   };
 
-  const getDisplayLabel = () => {
-    if (triggerDisplay === 'icon-only' && icon) {
-      return <span className="flex items-center">{icon}</span>;
-    }
-
-    if (icon) {
-      return (
-        <span className="flex w-full items-center justify-between gap-2">
-          <span className="flex min-w-0 flex-shrink-1 items-center gap-2">
-            <span className="flex-shrink-0">{icon}</span>
-            <span className="hidden truncate sm:inline">{selectedLabel}</span>
-          </span>
-          {selectedOption?.badge && (
-            <Badge
-              variant={getBadgeVariant(selectedOption.badgeVariant)}
-              className="flex-shrink-0"
-            >
-              {selectedOption.badge}
-            </Badge>
-          )}
-        </span>
-      );
-    }
-
-    return (
-      <span className="flex items-center gap-2">
-        <span className="text-sm text-foreground/50">{label || name}:</span>
-        <span className="text-sm font-medium">{selectedLabel}</span>
-      </span>
-    );
-  };
-
   const widthClass = isFullWidth ? 'w-full' : 'w-auto';
-  const wrapperClass = isFullWidth ? 'w-full' : 'w-auto flex-shrink-0';
-
-  const buttonClassName = cn(
-    'flex items-center capitalize whitespace-nowrap',
-    isFullWidth ? 'w-full' : 'w-auto',
-    triggerDisplay === 'icon-only' && 'justify-center px-0 w-9 max-w-9',
-    triggerDisplay !== 'icon-only' && icon && !isFullWidth
-      ? 'px-2 gap-2 max-w-52'
-      : '',
-    triggerDisplay !== 'icon-only' && icon && isFullWidth
-      ? 'px-2 gap-2 justify-start'
-      : '',
-    !icon ? 'pl-4 pr-8' : '',
-    className,
-    isDisabled && 'opacity-50 cursor-not-allowed',
-  );
-
-  const triggerButton = (
-    <Button
-      variant={variant}
-      size={size}
-      aria-required={isRequired || undefined}
-      className={buttonClassName}
-      wrapperClassName={cn(wrapperClass)}
-      onClick={handleToggle}
-      onMouseDown={handleTriggerMouseDown}
-      isDisabled={isDisabled}
-      aria-expanded={isOpen}
-      ariaLabel={ariaLabel}
-      label={getDisplayLabel()}
-      withWrapper={icon && label ? false : undefined}
-    />
-  );
 
   return (
     <div
@@ -328,17 +235,25 @@ export default function DropdownField({
         isFullWidth ? '' : 'flex-shrink-0'
       }`}
     >
-      {icon && label ? (
-        <SimpleTooltip
-          label={tooltipLabel}
-          position="top"
-          isDisabled={isDisabled}
-        >
-          <div className={cn('capitalize', wrapperClass)}>{triggerButton}</div>
-        </SimpleTooltip>
-      ) : (
-        triggerButton
-      )}
+      <DropdownTrigger
+        name={name}
+        icon={icon}
+        label={label}
+        triggerDisplay={triggerDisplay}
+        variant={variant}
+        size={size}
+        isRequired={isRequired}
+        isDisabled={isDisabled}
+        isFullWidth={isFullWidth}
+        isOpen={isOpen}
+        className={className}
+        selectedOption={selectedOption}
+        selectedLabel={selectedLabel}
+        tooltipLabel={tooltipLabel}
+        ariaLabel={ariaLabel}
+        onToggle={handleToggle}
+        onMouseDown={handleTriggerMouseDown}
+      />
 
       {isOpen && !isDisabled && (
         <div
@@ -358,58 +273,21 @@ export default function DropdownField({
           )}
         >
           <div className="overflow-y-auto max-h-[calc(60vh-3rem)] space-y-1">
-            {isSearchEnabled && (
-              <div className="sticky top-0 z-10 bg-popover pb-2">
-                <div className="relative p-1">
-                  <Input
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                    placeholder={placeholder}
-                    inputRef={searchInputRef}
-                    onClick={(event: ReactMouseEvent<HTMLInputElement>) =>
-                      event.stopPropagation()
-                    }
-                    className="pr-8"
-                  />
-                  {searchTerm && (
-                    <button
-                      type="button"
-                      aria-label="Clear search"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/50 transition-colors hover:text-foreground"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setSearchTerm('');
-                      }}
-                    >
-                      <X className="size-4" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
+            <DropdownSearchBar
+              isSearchEnabled={isSearchEnabled}
+              searchTerm={searchTerm}
+              placeholder={placeholder}
+              searchInputRef={searchInputRef}
+              onSearchChange={handleSearchChange}
+              onClear={() => setSearchTerm('')}
+            />
 
             {tabs && tabs.length > 0 && (
-              <div className="mb-2 flex items-center gap-2 border-b border-border px-3 pb-2">
-                {tabs.map((tab) => (
-                  <Button
-                    key={tab.id}
-                    type="button"
-                    variant={ButtonVariant.UNSTYLED}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setActiveTab(tab.id);
-                    }}
-                    className={cn(
-                      'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-                      activeTab === tab.id
-                        ? 'bg-accent text-accent-foreground'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                    )}
-                  >
-                    {tab.label}
-                  </Button>
-                ))}
-              </div>
+              <DropdownTabBar
+                tabs={tabs}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+              />
             )}
 
             {isNoneEnabled && (
@@ -438,67 +316,16 @@ export default function DropdownField({
             )}
 
             {filteredByTab.map((option, index) => (
-              <button
-                type="button"
+              <DropdownOptionItem
                 key={
                   option.key != null ? String(option.key) : `option-${index}`
                 }
-                className={cn(
-                  'w-full px-3 py-2 text-left hover:bg-background transition-colors',
-                  value === option.key && 'bg-primary/20',
-                )}
-                onClick={() => handleSelect(option.key)}
-                onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    handleSelect(option.key);
-                  }
-                }}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex min-w-0 flex-1 items-center gap-2">
-                    {option.thumbnailUrl && (
-                      <div className="size-10 flex-shrink-0 overflow-hidden bg-muted">
-                        <Image
-                          src={option.thumbnailUrl}
-                          alt={option.label}
-                          className="size-full object-cover"
-                          width={40}
-                          height={40}
-                          sizes="40px"
-                          priority={true}
-                        />
-                      </div>
-                    )}
-
-                    {option.icon && !option.thumbnailUrl && (
-                      <div className="flex-shrink-0 text-foreground/70">
-                        {option.icon}
-                      </div>
-                    )}
-
-                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <div className="line-clamp-2 break-all text-sm font-medium">
-                        {option.label}
-                      </div>
-
-                      {option.description && (
-                        <div className="line-clamp-2 break-all text-xs text-foreground/60">
-                          {option.description}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {option.badge && (
-                    <Badge
-                      variant={getBadgeVariant(option.badgeVariant)}
-                      className="flex-shrink-0"
-                    >
-                      {option.badge}
-                    </Badge>
-                  )}
-                </div>
-              </button>
+                option={option}
+                value={value}
+                index={index}
+                getBadgeVariant={getBadgeVariant}
+                onSelect={handleSelect}
+              />
             ))}
 
             {filteredItems.length === 0 && searchTerm && (

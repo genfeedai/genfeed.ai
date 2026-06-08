@@ -49,7 +49,6 @@ import { forwardRef, Module } from '@nestjs/common';
       name: 'content-pipeline',
     }),
   ],
-  // ContentqueryProcessor moved to workers ProcessorsModule (issue #84)
   providers: [
     ContentOrchestrationService,
     ContentqueryQueueService,

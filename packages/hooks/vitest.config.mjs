@@ -5,6 +5,7 @@ import {
   createVitestWarningLogger,
   installVitestWarningFilter,
 } from '../../configs/vitest-warning-filter';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 installVitestWarningFilter();
 const customLogger = createVitestWarningLogger();
@@ -160,6 +161,14 @@ export default defineConfig({
       {
         find: /^@genfeedai\/utils\/(.*)$/,
         replacement: path.resolve(__dirname, '../utils/$1'),
+      },
+      {
+        find: /^@genfeedai\/serializers$/,
+        replacement: path.join(SERIALIZERS_SRC, 'index.ts'),
+      },
+      {
+        find: /^@genfeedai\/serializers\/(.*)$/,
+        replacement: path.join(SERIALIZERS_SRC, '$1'),
       },
       {
         find: '@ui-constants',

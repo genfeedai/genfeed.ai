@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
+import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -46,7 +48,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 
 const BASELINE_FILE = path.resolve(
-  __dirname,
+  path.dirname(fileURLToPath(import.meta.url)),
   './api-response-benchmarks-baseline.json',
 );
 const DEFAULT_ITERATIONS = 40;

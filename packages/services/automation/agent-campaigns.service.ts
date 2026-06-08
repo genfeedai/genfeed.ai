@@ -1,6 +1,7 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
   IAgentCampaign,
+  IAgentCampaignContentRotation,
   IAgentCampaignStatusResponse,
 } from '@genfeedai/interfaces';
 import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
@@ -18,6 +19,7 @@ export interface CreateAgentCampaignInput {
   brief?: string;
   brand?: string;
   campaignLeadStrategyId?: string;
+  contentRotation?: IAgentCampaignContentRotation;
   contentQuota?: { posts?: number; images?: number; videos?: number };
   creditsAllocated?: number;
   endDate?: string;
@@ -38,6 +40,7 @@ export class AgentCampaign implements IAgentCampaign {
   startDate!: string;
   endDate?: string;
   status!: IAgentCampaign['status'];
+  contentRotation?: IAgentCampaignContentRotation;
   contentQuota?: { posts?: number; images?: number; videos?: number };
   creditsAllocated!: number;
   creditsUsed!: number;

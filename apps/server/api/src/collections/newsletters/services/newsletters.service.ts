@@ -10,6 +10,7 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -33,7 +34,8 @@ type TopicProposal = {
 export class NewslettersService extends BaseService<
   NewsletterDocument,
   CreateNewsletterDto,
-  UpdateNewsletterDto
+  UpdateNewsletterDto,
+  Prisma.NewsletterWhereInput
 > {
   constructor(
     public readonly prisma: PrismaService,
@@ -439,7 +441,9 @@ export class NewslettersService extends BaseService<
         brandId: ctx.brandId,
         isDeleted: false,
         organizationId: ctx.organizationId,
-        status: 'published',
+        // Stage 4: NewsletterStatus enum is DRAFT|SCHEDULED|SENT|FAILED; a
+        // published newsletter is SENT ('published' was an invalid filter value).
+        status: 'SENT',
       },
       orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
       take: limit,

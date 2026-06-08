@@ -2,7 +2,7 @@ import AgentCampaignDetailPage from '@pages/agents/campaigns/AgentCampaignDetail
 import { render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 const pushMock = vi.fn();
 const getByIdMock = vi.fn();

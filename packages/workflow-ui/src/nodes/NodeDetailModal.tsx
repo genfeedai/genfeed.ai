@@ -192,6 +192,7 @@ function MediaPreviewContent({
       {mediaType === 'video' && (
         <video
           src={displayUrl}
+          aria-label={nodeLabel}
           controls
           autoPlay
           loop
