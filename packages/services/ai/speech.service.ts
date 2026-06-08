@@ -213,11 +213,11 @@ export class SpeechService extends HTTPBaseService {
   }
 
   /**
-   * Check if file size is within limits
-   * @param file - File to check
+   * Check if audio data size is within limits
+   * @param audioData - Audio Blob/File to check
    * @returns boolean indicating if file size is acceptable
    */
-  static isFileSizeValid(file: File): boolean {
-    return file.size <= SpeechService.getMaxFileSize();
+  static isFileSizeValid(audioData: Blob): boolean {
+    return audioData.size <= SpeechService.getMaxFileSize();
   }
 }
