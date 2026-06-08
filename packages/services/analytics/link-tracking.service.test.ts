@@ -1,5 +1,6 @@
 import { LinkTrackingService } from '@services/analytics/link-tracking.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { logger } from '@services/core/logger.service';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@services/core/interceptor.service', () => {
   class MockHTTPBaseService {
@@ -32,6 +33,10 @@ describe('LinkTrackingService', () => {
     service = new LinkTrackingService(mockToken);
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('initializes correctly', () => {
     expect(service).toBeInstanceOf(LinkTrackingService);
   });
@@ -56,5 +61,55 @@ describe('LinkTrackingService', () => {
 
   it('has getInstance static method', () => {
     expect(typeof LinkTrackingService.getInstance).toBe('function');
+  });
+
+  it('sends GA events through gtag when available', () => {
+    const gtag = vi.fn();
+    vi.stubGlobal('window', { gtag });
+
+    service.sendGAEvent({
+      eventName: 'link_click',
+      eventParams: {
+        content_id: 'content-123',
+        link_id: 'link-123',
+        session_id: 'session-123',
+      },
+    });
+
+    expect(gtag).toHaveBeenCalledWith('event', 'link_click', {
+      content_id: 'content-123',
+      link_id: 'link-123',
+      session_id: 'session-123',
+    });
+    expect(logger.info).toHaveBeenCalledWith('GA4 event sent', {
+      contentId: 'content-123',
+      eventName: 'link_click',
+    });
+  });
+
+  it('reads the GA client ID through gtag when available', () => {
+    const gtag = vi.fn(
+      (
+        command: string,
+        _measurementId: string,
+        _fieldName: string,
+        callback?: (id: string) => void,
+      ) => {
+        if (command === 'get') {
+          callback?.('client-123');
+        }
+      },
+    );
+    vi.stubGlobal('window', { gtag });
+
+    const result = service.getGAClientId();
+
+    expect(result).toBe('client-123');
+    expect(gtag).toHaveBeenCalledWith(
+      'get',
+      'GA_MEASUREMENT_ID',
+      'client_id',
+      expect.any(Function),
+    );
   });
 });
