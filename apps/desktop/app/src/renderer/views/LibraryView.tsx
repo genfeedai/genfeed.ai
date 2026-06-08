@@ -3,6 +3,7 @@ import type {
   IDesktopGenerationJob,
   IDesktopGenerationProviderPublicConfig,
   IDesktopIngredient,
+  IDesktopWorkspace,
 } from '@genfeedai/desktop-contracts';
 import { DropZone } from '@renderer/components/DropZone';
 import { useCallback, useEffect, useState } from 'react';
@@ -15,15 +16,17 @@ import { LibraryViewHeader } from './LibraryViewHeader';
 type SortBy = 'date' | 'votes';
 
 interface LibraryViewProps {
+  workspace: IDesktopWorkspace | null;
   workspaceId: string | null;
 }
 
-export const LibraryView = ({ workspaceId }: LibraryViewProps) => {
+export const LibraryView = ({ workspace, workspaceId }: LibraryViewProps) => {
   const [assets, setAssets] = useState<IDesktopAsset[]>([]);
   const [assetPrompt, setAssetPrompt] = useState('');
   const [assetJob, setAssetJob] = useState<IDesktopGenerationJob | null>(null);
   const [assetError, setAssetError] = useState<string | null>(null);
   const [isGeneratingAsset, setIsGeneratingAsset] = useState(false);
+  const [isImportingAsset, setIsImportingAsset] = useState(false);
   const [ingredients, setIngredients] = useState<IDesktopIngredient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,14 +92,21 @@ export const LibraryView = ({ workspaceId }: LibraryViewProps) => {
     setTimeout(() => setCopiedId(null), 2000);
   }, []);
 
-  const handleFilesDropped = useCallback(
-    async (paths: string[]) => {
+  const importWorkspaceAssets = useCallback(
+    async (paths?: string[]) => {
       if (!workspaceId) return;
+
+      setIsImportingAsset(true);
+      setError(null);
+
       try {
         const imported = await window.genfeedDesktop.files.importAssets(
           workspaceId,
           paths,
         );
+        if (imported.length === 0) {
+          return;
+        }
         await window.genfeedDesktop.notifications.notify(
           'Import Complete',
           `${String(imported.length)} asset(s) imported to workspace.`,
@@ -104,10 +114,30 @@ export const LibraryView = ({ workspaceId }: LibraryViewProps) => {
         await loadAssets();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to import files');
+      } finally {
+        setIsImportingAsset(false);
       }
     },
     [loadAssets, workspaceId],
   );
+
+  const handleFilesDropped = useCallback(
+    async (paths: string[]) => {
+      await importWorkspaceAssets(paths);
+    },
+    [importWorkspaceAssets],
+  );
+
+  const handleRevealAsset = useCallback(async (assetId: string) => {
+    try {
+      setAssetError(null);
+      await window.genfeedDesktop.files.revealAsset(assetId);
+    } catch (err) {
+      setAssetError(
+        err instanceof Error ? err.message : 'Failed to reveal asset.',
+      );
+    }
+  }, []);
 
   const handleGenerateAsset = useCallback(async () => {
     if (!workspaceId || !providerConfig) {
@@ -177,7 +207,11 @@ export const LibraryView = ({ workspaceId }: LibraryViewProps) => {
     >
       <LibraryViewHeader
         assetCount={assets.length}
+        canImport={Boolean(workspaceId)}
         ingredientCount={ingredients.length}
+        isImporting={isImportingAsset}
+        onImportAssets={() => void importWorkspaceAssets()}
+        workspaceName={workspace?.name}
       />
 
       <LibraryGeneratePanel
@@ -191,7 +225,10 @@ export const LibraryView = ({ workspaceId }: LibraryViewProps) => {
         workspaceId={workspaceId}
       />
 
-      <LibraryAssetGrid assets={assets} />
+      <LibraryAssetGrid
+        assets={assets}
+        onRevealAsset={(assetId) => void handleRevealAsset(assetId)}
+      />
 
       <LibraryFiltersBar
         onPlatformChange={setPlatformFilter}

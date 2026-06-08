@@ -2,8 +2,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import {
+  electronMockState,
+  resetElectronMockState,
+} from './test-support/electron.mock';
 import type { DesktopWorkspaceService } from './workspace.service';
-import './test-support/electron.mock';
 
 const createPrismaMock = () => {
   const assets = new Map<string, Record<string, unknown>>();
@@ -41,6 +44,7 @@ describe('DesktopFilesService', () => {
 
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'genfeed-files-'));
+    resetElectronMockState();
   });
 
   afterEach(async () => {
@@ -91,5 +95,60 @@ describe('DesktopFilesService', () => {
     await expect(service.getAssetUrl(asset.id)).resolves.toContain(
       encodeURIComponent(asset.originalFileName),
     );
+  });
+
+  it('imports duplicate filenames without overwriting prior local assets', async () => {
+    const { DesktopFilesService } = await import('./files.service');
+    const prisma = createPrismaMock();
+    const workspaceService = {
+      getWorkspace: () => ({
+        path: tmpDir,
+      }),
+    };
+    const service = new DesktopFilesService(
+      workspaceService as DesktopWorkspaceService,
+      prisma as never,
+    );
+    const sourcePath = path.join(tmpDir, 'source.png');
+    await fs.writeFile(sourcePath, Buffer.from([1, 2, 3]));
+
+    const [firstImport] = await service.importAssets('ws-1', [sourcePath]);
+    const [secondImport] = await service.importAssets('ws-1', [sourcePath]);
+
+    expect(firstImport.localPath).not.toBe(secondImport.localPath);
+    expect(secondImport.displayName).toBe('source-1.png');
+    await expect(fs.readFile(firstImport.localPath ?? '')).resolves.toEqual(
+      Buffer.from([1, 2, 3]),
+    );
+    await expect(fs.readFile(secondImport.localPath ?? '')).resolves.toEqual(
+      Buffer.from([1, 2, 3]),
+    );
+  });
+
+  it('reveals local assets by asset id instead of renderer-provided paths', async () => {
+    const { DesktopFilesService } = await import('./files.service');
+    const prisma = createPrismaMock();
+    const workspaceService = {
+      getWorkspace: () => ({
+        path: tmpDir,
+      }),
+    };
+    const service = new DesktopFilesService(
+      workspaceService as DesktopWorkspaceService,
+      prisma as never,
+    );
+
+    const asset = await service.writeGeneratedAsset({
+      bytes: new Uint8Array([4, 5, 6]),
+      jobId: 'job-2',
+      mimeType: 'image/png',
+      model: 'flux',
+      provider: 'fal',
+      workspaceId: 'ws-1',
+    });
+
+    await service.revealAsset(asset.id);
+
+    expect(electronMockState.shell.revealedPaths).toEqual([asset.localPath]);
   });
 });

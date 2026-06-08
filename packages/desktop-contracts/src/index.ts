@@ -30,6 +30,7 @@ export const DESKTOP_IPC_CHANNELS = {
   filesGetAssetUrl: 'desktop:files:getAssetUrl',
   filesImportAssets: 'desktop:files:importAssets',
   filesListAssets: 'desktop:files:listAssets',
+  filesRevealAsset: 'desktop:files:revealAsset',
   filesRead: 'desktop:files:read',
   filesWrite: 'desktop:files:write',
   generationClearProviderConfig: 'desktop:generation:clearProviderConfig',
@@ -71,6 +72,7 @@ export const DESKTOP_IPC_CHANNELS = {
   workspaceRead: 'desktop:workspace:read',
   workspaceRecent: 'desktop:workspace:recent',
   workspaceReveal: 'desktop:workspace:reveal',
+  workspaceSelect: 'desktop:workspace:select',
 } as const;
 
 /* ─── Environment ─── */
@@ -478,6 +480,7 @@ export interface IDesktopPreferences {
 /* ─── Bootstrap ─── */
 
 export interface IDesktopBootstrap {
+  activeWorkspaceId: string | null;
   /** Clerk user ID persisted locally after first cloud sign-in; null if never signed in */
   clerkId: string | null;
   environment: IDesktopEnvironment;
@@ -756,6 +759,7 @@ export interface IGenfeedDesktopBridge {
     ) => Promise<IDesktopAsset[]>;
     listAssets: (workspaceId?: string) => Promise<IDesktopAsset[]>;
     openFileDialog: () => Promise<{ canceled: boolean; filePaths: string[] }>;
+    revealAsset: (assetId: string) => Promise<void>;
     readFile: (workspaceId: string, relativePath: string) => Promise<string>;
     writeFile: (
       workspaceId: string,
@@ -843,6 +847,7 @@ export interface IGenfeedDesktopBridge {
     openWorkspace: () => Promise<IDesktopWorkspace | null>;
     readWorkspace: (workspaceId: string) => Promise<IDesktopWorkspace>;
     revealInFinder: (workspaceId: string) => Promise<void>;
+    selectWorkspace: (workspaceId: string) => Promise<IDesktopWorkspace>;
   };
   onQuickGenerate: (callback: () => void) => () => void;
 }

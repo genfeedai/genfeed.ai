@@ -1011,6 +1011,13 @@ textarea {
   margin: 0;
 }
 
+.view-header-action {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+
 /* View content wrappers */
 
 .view-library,
@@ -1088,6 +1095,58 @@ textarea {
   gap: 6px;
   margin-bottom: 16px;
   padding: 12px;
+}
+
+.workspace-switch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.workspace-switch-item {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 18px minmax(0, 1fr) 8px;
+  padding: 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.workspace-switch-item.active,
+.workspace-switch-item:hover {
+  background: var(--accent-soft);
+  border-color: var(--card-border);
+}
+
+.workspace-switch-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.workspace-switch-copy strong,
+.workspace-switch-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-dot {
+  border-radius: 999px;
+  height: 8px;
+  width: 8px;
+}
+
+.status-dot.status-active {
+  background: var(--success);
+}
+
+.status-dot.status-pending {
+  background: var(--warning);
 }
 
 .muted-text {
@@ -1346,6 +1405,15 @@ textarea {
   color: var(--success);
   font-size: 13px;
   font-weight: 700;
+}
+
+.asset-card-action {
+  align-items: center;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  padding: 0;
+  width: 30px;
 }
 
 .skeleton-grid {

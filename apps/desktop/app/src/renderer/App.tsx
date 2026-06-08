@@ -81,6 +81,7 @@ const emptyBootstrap: IDesktopBootstrap = {
   },
   localUserId: '',
   preferences: { nativeNotificationsEnabled: false },
+  activeWorkspaceId: null,
   brands: [],
   recents: [],
   session: null,
@@ -121,7 +122,13 @@ export const App = () => {
   }, []);
 
   const localUserId = bootstrap.localUserId || null;
-  const selectedWorkspaceId = bootstrap.workspaces[0]?.id ?? null;
+  const selectedWorkspace =
+    bootstrap.workspaces.find(
+      (workspace) => workspace.id === bootstrap.activeWorkspaceId,
+    ) ??
+    bootstrap.workspaces[0] ??
+    null;
+  const selectedWorkspaceId = selectedWorkspace?.id ?? null;
 
   const {
     activeThreadId,
@@ -249,6 +256,10 @@ export const App = () => {
     await window.genfeedDesktop.workspace.openWorkspace();
   }, []);
 
+  const handleSelectWorkspace = useCallback(async (workspaceId: string) => {
+    await window.genfeedDesktop.workspace.selectWorkspace(workspaceId);
+  }, []);
+
   const handleSelectThread = useCallback(
     (threadId: string) => {
       setActiveView('conversation');
@@ -338,7 +349,12 @@ export const App = () => {
       case 'analytics':
         return <AnalyticsView workspaceId={selectedWorkspaceId} />;
       case 'library':
-        return <LibraryView workspaceId={selectedWorkspaceId} />;
+        return (
+          <LibraryView
+            workspace={selectedWorkspace}
+            workspaceId={selectedWorkspaceId}
+          />
+        );
       case 'trends':
         return <TrendsView onGenerateFromTrend={handleGenerateFromTrend} />;
       default:
@@ -362,6 +378,7 @@ export const App = () => {
       )}
       <Sidebar
         activeThreadId={activeThreadId}
+        activeWorkspaceId={selectedWorkspaceId}
         activeView={activeView}
         isCollapsed={isSidebarCollapsed}
         isSyncing={isSyncing}
@@ -371,6 +388,9 @@ export const App = () => {
         onNewThread={handleNewThread}
         onOpenWorkspace={() => void handleOpenWorkspace()}
         onSelectThread={handleSelectThread}
+        onSelectWorkspace={(workspaceId) =>
+          void handleSelectWorkspace(workspaceId)
+        }
         onTriggerSync={triggerSync}
         session={bootstrap.session}
         syncErrors={syncErrors}

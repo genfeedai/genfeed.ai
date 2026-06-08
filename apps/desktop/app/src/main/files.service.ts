@@ -60,6 +60,15 @@ const sanitizeFilenamePart = (value: string): string =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 80) || 'asset';
 
+const pathExists = async (targetPath: string): Promise<boolean> => {
+  try {
+    await fs.access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export interface GeneratedAssetWriteOptions {
   bytes: Uint8Array;
   displayName?: string;
@@ -127,11 +136,15 @@ export class DesktopFilesService {
 
     for (const sourceFilePath of selectedFilePaths) {
       const fileName = path.basename(sourceFilePath);
-      const targetPath = path.join(targetDirectory, fileName);
+      const targetPath = await this.resolveAvailableImportPath(
+        targetDirectory,
+        fileName,
+      );
+      const targetFileName = path.basename(targetPath);
       await fs.copyFile(sourceFilePath, targetPath);
       importedAssets.push(
         await this.registerAsset({
-          displayName: fileName,
+          displayName: targetFileName,
           localPath: targetPath,
           mimeType: inferMimeType(targetPath),
           origin: 'local-import',
@@ -143,6 +156,25 @@ export class DesktopFilesService {
     }
 
     return importedAssets;
+  }
+
+  private async resolveAvailableImportPath(
+    targetDirectory: string,
+    fileName: string,
+  ): Promise<string> {
+    const parsed = path.parse(fileName);
+    let candidate = path.join(targetDirectory, fileName);
+    let index = 1;
+
+    while (await pathExists(candidate)) {
+      candidate = path.join(
+        targetDirectory,
+        `${parsed.name}-${String(index)}${parsed.ext}`,
+      );
+      index += 1;
+    }
+
+    return candidate;
   }
 
   async getAssetUrl(assetId: string): Promise<string> {
@@ -199,6 +231,20 @@ export class DesktopFilesService {
 
   async revealPath(targetPath: string): Promise<void> {
     await shell.showItemInFolder(targetPath);
+  }
+
+  async revealAsset(assetId: string): Promise<void> {
+    const asset = await this.prisma.desktopAsset.findUnique({
+      where: {
+        id: assetId,
+      },
+    });
+
+    if (!asset?.localPath) {
+      throw new Error('Local asset file is not available.');
+    }
+
+    await this.revealPath(asset.localPath);
   }
 
   private async registerAsset(params: {
