@@ -107,6 +107,24 @@ export interface IGoogleAnalyticsEvent {
   };
 }
 
+export type GoogleTag = {
+  (
+    command: 'event',
+    eventName: string,
+    eventParams: IGoogleAnalyticsEvent['eventParams'],
+  ): void;
+  (
+    command: 'get',
+    measurementId: string,
+    fieldName: 'client_id',
+    callback: (id: string) => void,
+  ): void;
+};
+
+export type WindowWithGoogleTag = Window & {
+  gtag?: GoogleTag;
+};
+
 export interface IContentCTAStats {
   contentId: string;
   contentType: string;
