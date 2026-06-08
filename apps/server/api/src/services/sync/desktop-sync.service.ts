@@ -458,7 +458,7 @@ export class DesktopSyncService {
             existing?.uploadPolicy === 'full'
               ? Number(existing.sizeBytes ?? 0)
               : 0;
-          const nextProjectedStorageBytes =
+          const nextProjectedStorageBytes: number =
             projectedStorageBytes - existingSize + asset.sizeBytes;
 
           if (

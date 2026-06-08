@@ -172,7 +172,7 @@ export class AgentStrategiesService extends BaseService<
     return this.delegate.findMany({
       where: {
         isDeleted: false,
-        isEnabled: true,
+        isActive: true,
         ...filter,
       },
     }) as Promise<AgentStrategyDocument[]>;

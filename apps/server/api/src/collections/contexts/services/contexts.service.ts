@@ -13,7 +13,7 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform, PublishStatus } from '@genfeedai/enums';
+import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -539,8 +539,8 @@ export class ContextsService {
           brandId: dto.brandId.toString(),
           isDeleted: false,
           organizationId,
-          platform: credentialPlatform as never,
-          publishStatus: PublishStatus.PUBLISHED,
+          platform: credentialPlatform,
+          status: PostStatus.PUBLIC,
           ...(dto.dateRange
             ? {
                 publicationDate: {

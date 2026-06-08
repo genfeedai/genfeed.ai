@@ -4,7 +4,7 @@ import type { CreditTransaction as PrismaCreditTransaction } from '@genfeedai/pr
 export type { CreditTransaction as CreditTransactions } from '@genfeedai/prisma';
 
 export interface CreditTransactionsDocument
-  extends Omit<PrismaCreditTransaction, 'metadata'> {
+  extends Omit<PrismaCreditTransaction, 'metadata' | 'category'> {
   _id: string;
   balanceBefore?: number | null;
   category?: CreditTransactionCategory;

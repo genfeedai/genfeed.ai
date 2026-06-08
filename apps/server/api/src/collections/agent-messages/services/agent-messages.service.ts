@@ -41,8 +41,10 @@ export class AgentMessagesService extends BaseService<
   }
 
   async addMessage(dto: AddMessageDto): Promise<AgentMessageDocument> {
+    const { room, ...rest } = dto;
     return this.create({
-      ...dto,
+      ...rest,
+      threadId: room,
       isDeleted: false,
     } as unknown as Partial<AgentMessageDocument>);
   }
@@ -59,7 +61,7 @@ export class AgentMessagesService extends BaseService<
       where: {
         isDeleted: false,
         organizationId,
-        roomId,
+        threadId: roomId,
       },
       orderBy: { createdAt: 'desc' },
       skip,
@@ -74,7 +76,7 @@ export class AgentMessagesService extends BaseService<
     const messages = await this.delegate.findMany({
       where: {
         isDeleted: false,
-        roomId,
+        threadId: roomId,
       },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -100,7 +102,7 @@ export class AgentMessagesService extends BaseService<
       where: {
         id: { gt: afterMessageId },
         isDeleted: false,
-        roomId,
+        threadId: roomId,
       },
       orderBy: { id: 'desc' },
       take: limit,
@@ -116,7 +118,7 @@ export class AgentMessagesService extends BaseService<
     return this.delegate.count({
       where: {
         isDeleted: false,
-        roomId,
+        threadId: roomId,
       },
     });
   }
@@ -132,7 +134,7 @@ export class AgentMessagesService extends BaseService<
       where: {
         id: { gt: afterMessageId },
         isDeleted: false,
-        roomId,
+        threadId: roomId,
       },
     });
   }
@@ -145,7 +147,7 @@ export class AgentMessagesService extends BaseService<
     return this.delegate.findMany({
       where: {
         isDeleted: false,
-        roomId,
+        threadId: roomId,
       },
       orderBy: { id: 'asc' },
     }) as Promise<AgentMessageDocument[]>;
@@ -163,7 +165,7 @@ export class AgentMessagesService extends BaseService<
       where: {
         id: { gt: afterMessageId },
         isDeleted: false,
-        roomId,
+        threadId: roomId,
       },
       orderBy: { id: 'asc' },
     }) as Promise<AgentMessageDocument[]>;
@@ -178,7 +180,7 @@ export class AgentMessagesService extends BaseService<
       where: {
         isDeleted: false,
         organizationId,
-        roomId: sourceRoomId,
+        threadId: sourceRoomId,
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -197,7 +199,7 @@ export class AgentMessagesService extends BaseService<
             metadata: doc.metadata,
             organizationId: doc.organizationId,
             role: doc.role,
-            roomId: targetRoomId,
+            threadId: targetRoomId,
             toolCallId: doc.toolCallId,
             toolCalls: doc.toolCalls,
             userId: doc.userId,

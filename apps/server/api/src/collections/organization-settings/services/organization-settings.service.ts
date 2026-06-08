@@ -183,14 +183,10 @@ export class OrganizationSettingsService extends BaseService<
       where: { organizationId },
     });
     if (!setting) return;
-    const existing = Array.isArray(
-      (setting as Record<string, unknown>).enabledModels,
-    )
-      ? ((setting as Record<string, unknown>).enabledModels as string[])
-      : [];
+    const existing = setting.enabledModelIds;
     if (!existing.includes(modelId)) {
       await this.prisma.organizationSetting.update({
-        data: { enabledModels: { push: modelId } } as never,
+        data: { enabledModelIds: { push: modelId } },
         where: { id: setting.id },
       });
     }

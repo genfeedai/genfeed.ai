@@ -202,7 +202,7 @@ export class TrendsService {
     const now = new Date();
     const [allGlobalTrends, referenceRecords] = await Promise.all([
       this.prisma.trend.findMany({
-        where: { isDeleted: false, organizationId: null } as never,
+        where: { isDeleted: false, organizationId: null },
       }),
       this.trendReferenceCorpusService.countGlobalReferences(),
     ]);
@@ -384,7 +384,7 @@ export class TrendsService {
         brandId: filter.brandId,
         isDeleted: false,
         organizationId: filter.organizationId,
-      } as never,
+      },
     });
 
     return docs
@@ -416,7 +416,7 @@ export class TrendsService {
         brandId: filter.brandId,
         isDeleted: false,
         organizationId: filter.organizationId,
-      } as never,
+      },
     });
 
     return docs
@@ -787,7 +787,7 @@ export class TrendsService {
         ...(organizationId
           ? { OR: [{ organizationId }, { organizationId: null }] }
           : {}),
-      } as never,
+      },
     });
 
     if (!doc) {

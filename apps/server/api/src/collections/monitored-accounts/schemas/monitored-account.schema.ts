@@ -21,7 +21,7 @@ export type MonitoredAccountFilters = {
 };
 
 export interface MonitoredAccountDocument
-  extends Omit<MonitoredAccount, 'config'> {
+  extends Omit<MonitoredAccount, 'config' | 'isActive'> {
   _id: string;
   botConfig?: string | null;
   brand?: string | null;

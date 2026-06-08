@@ -350,7 +350,7 @@ export class ContentEngineService {
     for (const run of runRecords) {
       await this.agentRunsService.patch(String(run._id), {
         metadata: {
-          ...(run.metadata ?? {}),
+          ...((run.metadata ?? {}) as Record<string, unknown>),
           campaignId,
           ...this.buildRotationMetadata(rotationResult.selection),
           orchestrationSummary: summary,

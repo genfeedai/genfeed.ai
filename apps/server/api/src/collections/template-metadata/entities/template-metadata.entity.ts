@@ -14,13 +14,13 @@ export class TemplateMetadataEntity
   estimatedTime?: number;
   difficulty?: TemplateDifficulty;
   goals?: string[];
-  version?: string;
-  author?: string;
-  license?: string;
   requiredFeatures?: string[];
-  compatiblePlatforms?: string[];
-  successRate?: number;
-  averageQuality?: number;
-  usageCount?: number;
-  lastUsed?: Date;
+  declare version: string | null;
+  declare author: string | null;
+  declare license: string | null;
+  declare compatiblePlatforms: string[];
+  declare successRate: number | null;
+  declare averageQuality: number | null;
+  declare usageCount: number | null;
+  declare lastUsed: Date | null;
 }

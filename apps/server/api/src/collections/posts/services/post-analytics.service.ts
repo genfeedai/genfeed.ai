@@ -65,7 +65,6 @@ export class PostAnalyticsService extends BaseService<
         create: {
           ...data,
           date: today,
-          isDeleted: false,
           platform,
           postId,
           totalComments: 0,
@@ -151,7 +150,6 @@ export class PostAnalyticsService extends BaseService<
         brandId: String(post.brand),
         date: today,
         engagementRate,
-        isDeleted: false,
         organizationId: String(post.organization),
         platform,
         postId,

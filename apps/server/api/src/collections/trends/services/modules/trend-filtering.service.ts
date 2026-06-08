@@ -295,7 +295,7 @@ export class TrendFilteringService {
         this.prisma.trend.findMany({
           orderBy: { createdAt: 'desc' },
           take: limit * 5,
-          where: { ...where, organizationId: null } as never,
+          where: { ...where, organizationId: null },
         }),
       ]);
       const allTrends = [...orgTrends, ...globalTrends].map((doc) =>
@@ -313,7 +313,7 @@ export class TrendFilteringService {
     const docs = await this.prisma.trend.findMany({
       orderBy: { createdAt: 'desc' },
       take: limit * 5,
-      where: { ...where, organizationId: null } as never,
+      where: { ...where, organizationId: null },
     });
 
     return docs

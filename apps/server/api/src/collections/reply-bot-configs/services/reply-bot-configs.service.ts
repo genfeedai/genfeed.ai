@@ -66,7 +66,7 @@ export class ReplyBotConfigsService extends BaseService<
     populate: (string | PopulateOption)[] = [],
   ): Promise<ReplyBotConfigDocument> {
     const rateLimits = this.normalizeRateLimits(
-      (createDto as Record<string, unknown>).rateLimits as
+      (createDto as unknown as Record<string, unknown>).rateLimits as
         | ReplyBotRateLimits
         | undefined,
     );

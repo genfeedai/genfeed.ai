@@ -32,7 +32,18 @@ export class PersonasService extends BaseService<
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PersonaDocument> {
-    return super.create(dto, populate);
+    const { user, organization, brand, contentStrategy, ...rest } =
+      dto as typeof dto & {
+        contentStrategy?: Record<string, unknown>;
+      };
+    const payload = {
+      ...rest,
+      userId: user,
+      organizationId: organization,
+      brandId: brand,
+      ...(contentStrategy !== undefined ? { config: { contentStrategy } } : {}),
+    };
+    return super.create(payload as never, populate);
   }
 
   findOne(
