@@ -97,7 +97,10 @@ export class DesktopCloudService implements IDesktopDataService {
         body: JSON.stringify({
           count: 1,
           platform: params.platform,
-          topic: params.sourceTrendTopic ?? params.prompt,
+          topic:
+            params.brief !== undefined
+              ? params.prompt
+              : (params.sourceTrendTopic ?? params.prompt),
         }),
         method: 'POST',
       },

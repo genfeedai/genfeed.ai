@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type {
   IDesktopAsset,
   IDesktopAssetGenerationRequest,
+  IDesktopContentRunBrief,
   IDesktopGenerationJob,
   IDesktopGenerationOptions,
   IDesktopGenerationProviderConfig,
@@ -230,10 +231,27 @@ const buildSystemPrompt = (): string =>
     'Do not mention that you are a local model or that you lack cloud access.',
   ].join(' ');
 
+const formatBriefForPrompt = (brief: IDesktopContentRunBrief): string =>
+  [
+    brief.angle ? `Brief angle: ${brief.angle}` : undefined,
+    brief.audience ? `Audience: ${brief.audience}` : undefined,
+    brief.channelFit ? `Channel fit: ${brief.channelFit}` : undefined,
+    brief.hypothesis ? `Hypothesis: ${brief.hypothesis}` : undefined,
+    brief.callToAction ? `Call to action: ${brief.callToAction}` : undefined,
+    brief.risk ? `Guardrail: ${brief.risk}` : undefined,
+    brief.evidence?.length
+      ? `Evidence: ${brief.evidence.join(' | ')}`
+      : undefined,
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join('\n');
+
 const buildUserPrompt = (params: IDesktopGenerationOptions): string => {
-  const source = params.sourceTrendTopic
-    ? `Source trend: ${params.sourceTrendTopic}`
-    : `Prompt: ${params.prompt.trim()}`;
+  const source = params.brief
+    ? formatBriefForPrompt(params.brief)
+    : params.sourceTrendTopic
+      ? `Source trend: ${params.sourceTrendTopic}`
+      : `Prompt: ${params.prompt.trim()}`;
 
   return [
     `Platform: ${params.platform}`,
@@ -331,6 +349,7 @@ const buildGenerationPayload = (params: IDesktopGenerationOptions): string =>
   JSON.stringify({
     platform: params.platform,
     projectId: params.projectId,
+    brief: params.brief,
     prompt: params.prompt,
     publishIntent: params.publishIntent,
     sourceDraftId: params.sourceDraftId,

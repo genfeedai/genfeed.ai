@@ -108,6 +108,28 @@ export type DesktopContentType =
 
 export type DesktopPublishIntent = 'draft' | 'publish' | 'review';
 
+export interface IDesktopContentRunBrief {
+  angle?: string;
+  audience?: string;
+  callToAction?: string;
+  channelFit?: string;
+  confidence?: number;
+  evidence?: string[];
+  hypothesis?: string;
+  risk?: string;
+  sourceId?: string;
+  sourceUrl?: string;
+}
+
+export interface IDesktopTrendHandoff {
+  engagementScore?: number;
+  id: string;
+  platform: DesktopContentPlatform;
+  summary?: string;
+  topic: string;
+  viralityScore?: number;
+}
+
 /* ─── Session ─── */
 
 export interface IDesktopSession {
@@ -508,6 +530,7 @@ export interface IDesktopGeneratedContent {
 }
 
 export interface IDesktopGenerationOptions {
+  brief?: IDesktopContentRunBrief;
   platform: DesktopContentPlatform;
   projectId?: string;
   prompt: string;
@@ -526,6 +549,7 @@ export interface IDesktopPublishResult {
 }
 
 export interface IDesktopContentRunDraft {
+  brief?: IDesktopContentRunBrief;
   content?: string;
   createdAt: string;
   generatedContent?: IDesktopGeneratedContent;

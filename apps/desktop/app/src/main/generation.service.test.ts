@@ -187,6 +187,26 @@ describe('DesktopGenerationService', () => {
     expect(jobs[0]?.type).toBe('generation');
   });
 
+  it('injects saved trend brief context into the local provider prompt', () => {
+    const prompt = __desktopGenerationServiceTestUtils.buildUserPrompt({
+      ...generationParams,
+      brief: {
+        angle: 'Launch teardown posts',
+        channelFit: 'linkedin article adapted from a live trend signal.',
+        evidence: ['Virality score: 86/100'],
+        hypothesis: 'Turn the launch teardown trend into a founder lesson.',
+      },
+      platform: 'linkedin',
+      sourceTrendTopic: 'Launch teardown posts',
+      type: 'article',
+    });
+
+    expect(prompt).toContain('Platform: linkedin');
+    expect(prompt).toContain('Brief angle: Launch teardown posts');
+    expect(prompt).toContain('Evidence: Virality score: 86/100');
+    expect(prompt).not.toContain('Source trend: Launch teardown posts');
+  });
+
   it('marks the local generation job as failed when the provider fails', async () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
