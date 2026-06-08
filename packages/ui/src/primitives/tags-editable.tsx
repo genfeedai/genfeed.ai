@@ -115,6 +115,7 @@ export default function TagsEditable({
           {tags.length < maxTags && (
             <div className="flex gap-2">
               <input
+                aria-label="Add tag"
                 ref={inputRef}
                 type="text"
                 value={inputValue}

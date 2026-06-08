@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import type {
   ImageReferenceField,
   ReplicateModelSchema,
@@ -8,6 +10,7 @@ import { IMAGE_REFERENCE_FIELDS } from '@api/services/prompt-builder/interfaces/
 import { Logger } from '@nestjs/common';
 
 const logger = new Logger('ReplicateSchemaUtil');
+const moduleDir = dirname(fileURLToPath(import.meta.url));
 
 function resolveSchemasDir(): string | null {
   const candidates = [
@@ -19,7 +22,7 @@ function resolveSchemasDir(): string | null {
     // Local dev/test from api package root
     join(process.cwd(), 'src/services/integrations/replicate/schemas'),
     // Fallback when cwd differs but compiled file structure is preserved
-    join(__dirname, '../../integrations/replicate/schemas'),
+    join(moduleDir, '../../integrations/replicate/schemas'),
   ];
 
   for (const candidate of candidates) {

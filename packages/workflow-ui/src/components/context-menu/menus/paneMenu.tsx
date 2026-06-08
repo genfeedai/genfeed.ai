@@ -30,7 +30,10 @@ import {
   Volume2,
   Wand2,
 } from 'lucide-react';
-import { type ContextMenuItemConfig, createSeparator } from '../ContextMenu';
+import {
+  type ContextMenuItemConfig,
+  createSeparator,
+} from '../context-menu-config';
 
 // Icon mapping from node definition icon strings to Lucide components
 const NODE_ICONS: Record<string, LucideIcon> = {

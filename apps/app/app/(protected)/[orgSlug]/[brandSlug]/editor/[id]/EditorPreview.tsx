@@ -7,7 +7,6 @@ import { Player, type PlayerRef } from '@remotion/player';
 import {
   type ComponentProps,
   type ComponentType,
-  forwardRef,
   type Ref,
   useCallback,
   useEffect,
@@ -213,90 +212,94 @@ export interface EditorPreviewRef {
   getCurrentFrame: () => number;
 }
 
-const EditorPreview = forwardRef<EditorPreviewRef, EditorPreviewProps>(
-  function EditorPreview(
-    { tracks, width, height, fps, totalFrames, onFrameChange, onPlayingChange },
-    ref,
-  ) {
-    const playerRef = useRef<PlayerRef>(null);
-    const [_isPlaying, setIsPlaying] = useState(false);
-    const onFrameChangeRef = useRef(onFrameChange);
-    onFrameChangeRef.current = onFrameChange;
-    const onPlayingChangeRef = useRef(onPlayingChange);
-    onPlayingChangeRef.current = onPlayingChange;
+function EditorPreview({
+  tracks,
+  width,
+  height,
+  fps,
+  totalFrames,
+  onFrameChange,
+  onPlayingChange,
+  ref,
+}: EditorPreviewProps & { ref?: Ref<EditorPreviewRef> }) {
+  const playerRef = useRef<PlayerRef>(null);
+  const [_isPlaying, setIsPlaying] = useState(false);
+  const onFrameChangeRef = useRef(onFrameChange);
+  onFrameChangeRef.current = onFrameChange;
+  const onPlayingChangeRef = useRef(onPlayingChange);
+  onPlayingChangeRef.current = onPlayingChange;
 
-    useImperativeHandle(ref, () => ({
-      getCurrentFrame: () => playerRef.current?.getCurrentFrame() ?? 0,
-      pause: () => playerRef.current?.pause(),
-      play: () => playerRef.current?.play(),
-      seekToFrame: (frame: number) => playerRef.current?.seekTo(frame),
-      toggle: () => playerRef.current?.toggle(),
-    }));
+  useImperativeHandle(ref, () => ({
+    getCurrentFrame: () => playerRef.current?.getCurrentFrame() ?? 0,
+    pause: () => playerRef.current?.pause(),
+    play: () => playerRef.current?.play(),
+    seekToFrame: (frame: number) => playerRef.current?.seekTo(frame),
+    toggle: () => playerRef.current?.toggle(),
+  }));
 
-    const handleFrameUpdate = useCallback(() => {
-      const frame = playerRef.current?.getCurrentFrame() ?? 0;
-      onFrameChangeRef.current?.(frame);
-    }, []);
+  const handleFrameUpdate = useCallback(() => {
+    const frame = playerRef.current?.getCurrentFrame() ?? 0;
+    onFrameChangeRef.current?.(frame);
+  }, []);
 
-    const handlePlay = useCallback(() => {
-      setIsPlaying(true);
-      onPlayingChangeRef.current?.(true);
-    }, []);
+  const handlePlay = useCallback(() => {
+    setIsPlaying(true);
+    onPlayingChangeRef.current?.(true);
+  }, []);
 
-    const handlePause = useCallback(() => {
-      setIsPlaying(false);
-      onPlayingChangeRef.current?.(false);
-    }, []);
+  const handlePause = useCallback(() => {
+    setIsPlaying(false);
+    onPlayingChangeRef.current?.(false);
+  }, []);
 
-    useEffect(() => {
-      const player = playerRef.current;
-      if (!player) {
-        return;
-      }
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) {
+      return;
+    }
 
-      player.addEventListener('frameupdate', handleFrameUpdate);
-      player.addEventListener('play', handlePlay);
-      player.addEventListener('pause', handlePause);
+    player.addEventListener('frameupdate', handleFrameUpdate);
+    player.addEventListener('play', handlePlay);
+    player.addEventListener('pause', handlePause);
 
-      return () => {
-        player.removeEventListener('frameupdate', handleFrameUpdate);
-        player.removeEventListener('play', handlePlay);
-        player.removeEventListener('pause', handlePause);
-      };
-    }, [handleFrameUpdate, handlePlay, handlePause]);
+    return () => {
+      player.removeEventListener('frameupdate', handleFrameUpdate);
+      player.removeEventListener('play', handlePlay);
+      player.removeEventListener('pause', handlePause);
+    };
+  }, [handleFrameUpdate, handlePlay, handlePause]);
 
-    // Calculate aspect ratio for container
-    const aspectRatio = width / height;
+  // Calculate aspect ratio for container
+  const aspectRatio = width / height;
 
-    return (
-      <div className="relative w-full bg-neutral-950 overflow-hidden">
-        <div
-          className="relative mx-auto"
+  return (
+    <div className="relative w-full bg-neutral-950 overflow-hidden">
+      <div
+        className="relative mx-auto"
+        style={{
+          aspectRatio: aspectRatio.toString(),
+          maxWidth: '100%',
+        }}
+      >
+        <RemotionPlayer
+          ref={playerRef}
+          component={EditorComposition}
+          inputProps={{ tracks }}
+          compositionWidth={width}
+          compositionHeight={height}
+          durationInFrames={Math.max(1, totalFrames)}
+          fps={fps}
           style={{
-            aspectRatio: aspectRatio.toString(),
-            maxWidth: '100%',
+            height: '100%',
+            width: '100%',
           }}
-        >
-          <RemotionPlayer
-            ref={playerRef}
-            component={EditorComposition}
-            inputProps={{ tracks }}
-            compositionWidth={width}
-            compositionHeight={height}
-            durationInFrames={Math.max(1, totalFrames)}
-            fps={fps}
-            style={{
-              height: '100%',
-              width: '100%',
-            }}
-            controls={false}
-            loop={false}
-            clickToPlay={false}
-          />
-        </div>
+          controls={false}
+          loop={false}
+          clickToPlay={false}
+        />
       </div>
-    );
-  },
-);
+    </div>
+  );
+}
 
 export default EditorPreview;

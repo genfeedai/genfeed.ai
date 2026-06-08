@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { Logger } from '@nestjs/common';
 import { globSync } from 'glob';
 
-const logger = new Logger('CheckRawButtonUsage');
+const logger = {
+  error: (message: string) => console.error(`[CheckRawButtonUsage] ${message}`),
+  log: (message: string) => console.log(`[CheckRawButtonUsage] ${message}`),
+};
 
 const INCLUDE_GLOBS = [
   'apps/app/**/*.{tsx,jsx}',

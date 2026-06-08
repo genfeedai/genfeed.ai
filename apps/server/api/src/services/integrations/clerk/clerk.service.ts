@@ -1,7 +1,11 @@
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 import type { ClerkClient, User } from '@clerk/backend';
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 type CreateUserParams = Parameters<ClerkClient['users']['createUser']>[0];
 
@@ -16,9 +20,19 @@ interface GetClerkUserOptions {
 export class ClerkService {
   constructor(
     @Inject('ClerkClient')
-    private readonly clerkClient: ClerkClient,
+    private readonly clerkClient: ClerkClient | null,
     private readonly cacheService: CacheService,
   ) {}
+
+  private getClient(): ClerkClient {
+    if (!this.clerkClient) {
+      throw new ServiceUnavailableException(
+        'Clerk is not configured for this deployment mode',
+      );
+    }
+
+    return this.clerkClient;
+  }
 
   private buildUserCacheKey(userId: string): string {
     return this.cacheService.generateKey(CLERK_USER_CACHE_NAMESPACE, userId);
@@ -33,7 +47,7 @@ export class ClerkService {
   }
 
   private async fetchUser(userId: string): Promise<User> {
-    return await this.clerkClient.users.getUser(userId);
+    return await this.getClient().users.getUser(userId);
   }
 
   public async getUser(
@@ -62,21 +76,21 @@ export class ClerkService {
   }
 
   public async getUserByEmail(email: string) {
-    const users = await this.clerkClient.users.getUserList({
+    const users = await this.getClient().users.getUserList({
       emailAddress: [email],
     });
     return users.data[0] || null;
   }
 
   public async createUser(params: CreateUserParams): Promise<User> {
-    return await this.clerkClient.users.createUser(params);
+    return await this.getClient().users.createUser(params);
   }
 
   public async updateUser(
     userId: string,
     attrs: Partial<IClerkPublicMetadata>,
   ) {
-    const updatedUser = await this.clerkClient.users.updateUser(userId, attrs);
+    const updatedUser = await this.getClient().users.updateUser(userId, attrs);
     await this.invalidateUserCache(userId);
     return updatedUser;
   }
@@ -85,7 +99,7 @@ export class ClerkService {
     userId: string,
     attrs: Partial<IClerkPublicMetadata>,
   ) {
-    const updatedUser = await this.clerkClient.users.updateUserMetadata(
+    const updatedUser = await this.getClient().users.updateUserMetadata(
       userId,
       {
         privateMetadata: {
@@ -115,7 +129,7 @@ export class ClerkService {
       }
     }
 
-    const updatedUser = await this.clerkClient.users.updateUserMetadata(
+    const updatedUser = await this.getClient().users.updateUserMetadata(
       clerkUserId,
       {
         publicMetadata: nextMetadata,
@@ -132,7 +146,7 @@ export class ClerkService {
     redirectUrl?: string,
     publicMetadata?: Record<string, unknown>,
   ) {
-    return await this.clerkClient.invitations.createInvitation({
+    return await this.getClient().invitations.createInvitation({
       emailAddress,
       publicMetadata,
       redirectUrl,
@@ -140,7 +154,7 @@ export class ClerkService {
   }
 
   public async listInvitations(status?: 'pending' | 'accepted' | 'revoked') {
-    const result = await this.clerkClient.invitations.getInvitationList({
+    const result = await this.getClient().invitations.getInvitationList({
       ...(status && { status }),
     });
     return result.data;
@@ -148,7 +162,7 @@ export class ClerkService {
 
   public async getInvitation(invitationId: string) {
     try {
-      const result = await this.clerkClient.invitations.getInvitationList({
+      const result = await this.getClient().invitations.getInvitationList({
         limit: 1,
         query: invitationId,
       });
@@ -161,6 +175,6 @@ export class ClerkService {
   }
 
   public async revokeInvitation(invitationId: string) {
-    return await this.clerkClient.invitations.revokeInvitation(invitationId);
+    return await this.getClient().invitations.revokeInvitation(invitationId);
   }
 }

@@ -18,6 +18,13 @@ inputs:
     description: Whether to cache the local Turbo directory
     required: false
     default: 'true'
+  cache-playwright:
+    description: |
+      Whether to cache Playwright browser binaries (chromium) and install
+      them when the cache is cold. Defaults to false so existing callers are
+      unaffected.
+    required: false
+    default: 'false'
 
 runs:
   using: composite
@@ -49,6 +56,46 @@ runs:
         restore-keys: |
           ${{ runner.os }}-turbo-
 
+    # Retry with backoff: a postinstall script (notably ffmpeg-static, which
+    # pulls its binary from the GitHub releases CDN) can fail transiently and
+    # take the whole `bun install` down with it. bun install is idempotent, so
+    # re-running re-attempts only the missing download. 3 attempts, 15s/30s
+    # backoff — turns a flaky CDN into a self-healing step for every caller.
     - name: Install dependencies
       shell: bash
-      run: ${{ inputs.install-command }}
+      run: |
+        for attempt in 1 2 3; do
+          echo "::group::install attempt ${attempt}/3: ${{ inputs.install-command }}"
+          if ${{ inputs.install-command }}; then
+            echo "::endgroup::"
+            exit 0
+          fi
+          echo "::endgroup::"
+          if [ "${attempt}" -lt 3 ]; then
+            backoff=$((attempt * 15))
+            echo "::warning::install attempt ${attempt} failed; retrying in ${backoff}s"
+            sleep "${backoff}"
+          fi
+        done
+        echo "::error::install failed after 3 attempts"
+        exit 1
+
+    # Playwright browser binaries — key matches the strategy used by the inline
+    # e2e jobs so warm cache entries are reused when jobs migrate here.
+    - name: Cache Playwright browsers
+      if: ${{ inputs.cache-playwright == 'true' }}
+      id: playwright-cache
+      uses: actions/cache@v5
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('**/bun.lock') }}
+
+    - name: Install Playwright browsers (cache miss)
+      if: ${{ inputs.cache-playwright == 'true' && steps.playwright-cache.outputs.cache-hit != 'true' }}
+      shell: bash
+      run: npx playwright install --with-deps chromium
+
+    - name: Install Playwright OS deps (cache hit)
+      if: ${{ inputs.cache-playwright == 'true' && steps.playwright-cache.outputs.cache-hit == 'true' }}
+      shell: bash
+      run: npx playwright install-deps chromium || true

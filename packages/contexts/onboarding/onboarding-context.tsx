@@ -13,8 +13,8 @@ import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   createContext,
+  use,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -23,7 +23,7 @@ import {
 const OnboardingContext = createContext<IOnboardingContextValue | null>(null);
 
 export function useOnboarding(): IOnboardingContextValue {
-  const ctx = useContext(OnboardingContext);
+  const ctx = use(OnboardingContext);
   if (!ctx) {
     throw new Error('useOnboarding must be used within OnboardingProvider');
   }
@@ -160,7 +160,7 @@ export default function OnboardingProvider({
   if (isLoading || !initialized) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+        <div className="size-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
       </div>
     );
   }

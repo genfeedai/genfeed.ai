@@ -5,6 +5,7 @@ import type { AgentThreadSnapshotDocument } from '@api/services/agent-threading/
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AgentExecutionStatus, AgentThreadStatus } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
@@ -30,7 +31,12 @@ type AgentThreadSummary = Partial<{
 type AgentThreadWithSummary = AgentRoomDocument & AgentThreadSummary;
 
 @Injectable()
-export class AgentThreadsService extends BaseService<AgentRoomDocument> {
+export class AgentThreadsService extends BaseService<
+  AgentRoomDocument,
+  Partial<AgentRoomDocument>,
+  Partial<AgentRoomDocument>,
+  Prisma.AgentThreadWhereInput
+> {
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,

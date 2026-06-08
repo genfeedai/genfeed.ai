@@ -8,11 +8,17 @@ import { PerformanceSource } from '@api/collections/content-performance/schemas/
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { ContentType, PostCategory } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()
-export class ContentPerformanceService extends BaseService<ContentPerformanceDocument> {
+export class ContentPerformanceService extends BaseService<
+  ContentPerformanceDocument,
+  Partial<ContentPerformanceDocument>,
+  Partial<ContentPerformanceDocument>,
+  Prisma.ContentPerformanceWhereInput
+> {
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,

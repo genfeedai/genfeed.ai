@@ -1,10 +1,11 @@
-require('./instrument');
+import './instrument';
 
 import { bootstrap } from '@libs/bootstrap';
 
 bootstrap({ app: 'workers' });
 
 import type { Server } from 'node:http';
+import process from 'node:process';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '@workers/app.module';

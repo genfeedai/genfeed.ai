@@ -2,7 +2,7 @@
 
 import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
 import { PageScope } from '@genfeedai/enums';
-import { useElementsContext } from '@providers/elements/elements.provider';
+import { useElementsContext } from '@providers/elements/elements.context';
 import { Suspense } from 'react';
 import StylesList from './styles-list';
 

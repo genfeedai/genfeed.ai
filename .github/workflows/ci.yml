@@ -5,6 +5,9 @@ on:
     branches: [master, develop, staging]
   pull_request:
     branches: [master, develop, staging]
+  # Allow this gate to be run as a reusable workflow (e.g. by full-suite.yml,
+  # which chains CI → E2E on demand). No inputs needed; secrets are inherited.
+  workflow_call:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -13,6 +16,7 @@ concurrency:
 permissions:
   contents: read
   pull-requests: write
+  statuses: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -130,7 +134,15 @@ jobs:
     name: React Health Check
     runs-on: ubuntu-latest
     needs: trust
-    if: github.event_name == 'pull_request' && needs.trust.outputs.is-trusted == 'true'
+    # Skip on promotion PRs (base staging/master): their diffs span hundreds of
+    # commits, which defeats react-doctor's changed-file enumeration and forces a
+    # full-monorepo scan that aborts (exit 1, zero findings) → spurious red. The
+    # check already ran green on each underlying feature PR into develop.
+    if: >-
+      github.event_name == 'pull_request'
+      && needs.trust.outputs.is-trusted == 'true'
+      && github.base_ref != 'staging'
+      && github.base_ref != 'master'
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
@@ -140,7 +152,7 @@ jobs:
       - name: Detect React changes
         id: react_changes
         run: |
-          if git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD | grep -E '^(apps/(app|website|docs|desktop|mobile)|packages/(ui|hooks|contexts|providers|pages|workflow-ui))/' >/dev/null; then
+          if git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD | grep -E '^(apps/(app|website|docs|desktop|mobile|extensions)|packages/(ui|hooks|contexts|providers|pages|workflow-ui|agent))/' >/dev/null; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -149,12 +161,56 @@ jobs:
 
       - name: Run React Doctor
         if: steps.react_changes.outputs.changed == 'true'
-        uses: millionco/react-doctor@main
+        uses: millionco/react-doctor@v2.1.0
         with:
           directory: '.'
-          diff: ${{ github.event.pull_request.base.ref }}
-          fail-on: 'error'
-          verbose: 'true'
+          scope: 'changed'
+          blocking: 'error'
+          version: '0.4.2'
+
+  architecture-guards:
+    name: Architecture Guards
+    runs-on: ubuntu-latest
+    needs: trust
+    if: needs.trust.outputs.is-trusted == 'true'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.13'
+      - name: Cache bun modules
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - run: bun install --frozen-lockfile
+      - run: bun run check:architecture
+
+  ui-guards:
+    name: UI Guards
+    runs-on: ubuntu-latest
+    needs: trust
+    if: needs.trust.outputs.is-trusted == 'true'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.13'
+      - name: Cache bun modules
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - run: bun install --frozen-lockfile
+      - run: bun run check:ui-guards
 
   format:
     name: Format
@@ -449,7 +505,7 @@ jobs:
     name: Test App (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     needs: [trust, test-scope]
-    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.app == 'true'
+    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.app == 'true' && ((github.event_name == 'pull_request' && (github.base_ref == 'staging' || github.base_ref == 'master')) || (github.event_name != 'pull_request' && (github.ref_name == 'staging' || github.ref_name == 'master')))
     strategy:
       fail-fast: false
       matrix:
@@ -487,7 +543,7 @@ jobs:
     name: Test API (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     needs: [trust, test-scope]
-    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true'
+    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true' && ((github.event_name == 'pull_request' && (github.base_ref == 'staging' || github.base_ref == 'master')) || (github.event_name != 'pull_request' && (github.ref_name == 'staging' || github.ref_name == 'master')))
     strategy:
       fail-fast: false
       matrix:

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import {
   act,
   fireEvent,
@@ -24,6 +24,8 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@services/billing/managed-credits.service', () => ({
+  isManagedCreditsTransientError: (error: unknown) =>
+    error instanceof Error && error.message.includes('not found'),
   ManagedCreditsService: {
     apiEndpoint: 'https://api.genfeed.ai/v1',
     getCheckoutResult: getCheckoutResultMock,
@@ -158,5 +160,49 @@ describe('ManagedCreditsSuccessContent', () => {
       'cs_test_123',
       expect.any(AbortSignal),
     );
+  });
+
+  it('does not retry permanent checkout lookup failures', async () => {
+    getCheckoutResultMock.mockRejectedValue(
+      new Error('Stripe checkout session expired'),
+    );
+
+    render(<ManagedCreditsSuccessContent />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Provisioning result not ready')).toBeVisible();
+    });
+
+    expect(getCheckoutResultMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a copy error when clipboard write fails', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: vi.fn().mockRejectedValue(new Error('denied')),
+      },
+    });
+
+    getCheckoutResultMock.mockResolvedValue({
+      apiKey: 'gf_managed_secret',
+      apiKeyAlreadyExists: false,
+      brandId: 'brand-1',
+      email: 'buyer@example.com',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+
+    render(<ManagedCreditsSuccessContent />);
+
+    await waitFor(() => {
+      expect(screen.getByText('GENFEED_API_KEY')).toBeVisible();
+    });
+
+    fireEvent.click(screen.getAllByText('Copy')[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Clipboard access failed/)).toBeVisible();
+    });
   });
 });

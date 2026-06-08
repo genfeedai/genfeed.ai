@@ -1,7 +1,7 @@
 import StudioSelectionActionsBar from '@pages/studio/selection/StudioSelectionActionsBar';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 describe('StudioSelectionActionsBar', () => {
   beforeEach(() => {

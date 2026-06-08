@@ -32,6 +32,7 @@ export function MediaPreview({
     return (
       <div className={containerClass}>
         <video
+          aria-label="Media preview"
           src={src}
           className="h-24 w-full object-contain"
           controls={controls}

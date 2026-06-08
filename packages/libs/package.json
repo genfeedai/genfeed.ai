@@ -6,5 +6,6 @@
   "name": "@genfeedai/libs",
   "private": true,
   "sideEffects": false,
+  "type": "module",
   "version": "0.1.0"
 }

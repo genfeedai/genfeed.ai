@@ -6,6 +6,7 @@ import { ConfigService } from '@api/config/config.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
+import { ReplyCandidatePrefilterService } from '@api/services/reply-bot/reply-candidate-prefilter.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -51,6 +52,14 @@ describe('ReplyBotOrchestratorService', () => {
     isWithinSchedule: vi.fn(),
   };
 
+  const mockReplyCandidatePrefilterService = {
+    prefilter: vi.fn((content) => ({
+      candidates: content,
+      skipped: 0,
+      skipCounts: {},
+    })),
+  };
+
   const mockReplyBotConfigsService = {
     findActive: vi.fn(),
     findOneById: vi.fn(),
@@ -86,6 +95,10 @@ describe('ReplyBotOrchestratorService', () => {
           useValue: mockBotActionExecutorService,
         },
         { provide: RateLimitService, useValue: mockRateLimitService },
+        {
+          provide: ReplyCandidatePrefilterService,
+          useValue: mockReplyCandidatePrefilterService,
+        },
         {
           provide: ReplyBotConfigsService,
           useValue: mockReplyBotConfigsService,
@@ -202,6 +215,7 @@ describe('ReplyBotOrchestratorService', () => {
       await service.processSingleBot(botConfig as never, orgId, credential);
 
       expect(mockSocialMonitorService.getUserMentions).toHaveBeenCalled();
+      expect(mockReplyCandidatePrefilterService.prefilter).toHaveBeenCalled();
     });
 
     it('should fetch monitored account content for ACCOUNT_MONITOR bot type', async () => {
@@ -260,6 +274,41 @@ describe('ReplyBotOrchestratorService', () => {
       expect(result.repliesSent).toBe(0);
     });
 
+    it('should skip candidates removed by the deterministic prefilter', async () => {
+      const botConfig = makeBotConfig();
+      const contentItem = {
+        authorId: 'author-1',
+        authorUsername: 'author',
+        contentType: 'tweet',
+        createdAt: new Date(),
+        id: 'tweet-1',
+        platform: 'twitter',
+        text: 'Hello',
+      };
+
+      mockRateLimitService.isWithinSchedule.mockReturnValue(true);
+      mockSocialMonitorService.getUserMentions.mockResolvedValue([contentItem]);
+      mockSocialMonitorService.filterUnprocessedContent.mockResolvedValue([
+        contentItem,
+      ]);
+      mockReplyCandidatePrefilterService.prefilter.mockReturnValueOnce({
+        candidates: [],
+        skipped: 1,
+        skipCounts: { excluded_keyword: 1 },
+      });
+
+      const result = await service.processSingleBot(
+        botConfig as never,
+        orgId,
+        credential,
+      );
+
+      expect(result.skipped).toBe(1);
+      expect(result.contentProcessed).toBe(0);
+      expect(mockReplyGenerationService.generateReply).not.toHaveBeenCalled();
+      expect(mockRateLimitService.checkRateLimit).not.toHaveBeenCalled();
+    });
+
     it('should increment repliesSent on successful reply post', async () => {
       const botConfig = makeBotConfig({ actionType: 'reply_only' });
       const contentItem = {
@@ -306,6 +355,52 @@ describe('ReplyBotOrchestratorService', () => {
         orgId,
         'reply_guy',
         botConfig._id.toString(),
+      );
+    });
+
+    it('should pass enriched candidate context into reply generation', async () => {
+      const botConfig = makeBotConfig({ actionType: 'reply_only' });
+      const contentItem = {
+        authorId: 'author-1',
+        authorUsername: 'author',
+        contentType: 'tweet',
+        createdAt: new Date(),
+        id: 'tweet-1',
+        platform: 'twitter',
+        replyContext: 'Parent content ID: parent-1',
+        text: 'Hello',
+      };
+
+      mockRateLimitService.isWithinSchedule.mockReturnValue(true);
+      mockSocialMonitorService.getUserMentions.mockResolvedValue([contentItem]);
+      mockSocialMonitorService.filterUnprocessedContent.mockResolvedValue([
+        contentItem,
+      ]);
+      mockReplyCandidatePrefilterService.prefilter.mockReturnValueOnce({
+        candidates: [contentItem],
+        skipped: 0,
+        skipCounts: {},
+      });
+      mockRateLimitService.checkRateLimit.mockResolvedValue({ allowed: true });
+      mockBotActivitiesService.create.mockResolvedValue({
+        _id: 'test-object-id',
+      });
+      mockReplyGenerationService.generateReply.mockResolvedValue(
+        'Generated reply text',
+      );
+      mockBotActionExecutorService.postReply.mockResolvedValue({
+        contentId: 'reply-1',
+        success: true,
+      });
+      mockBotActivitiesService.updateStatus.mockResolvedValue(undefined);
+      mockProcessedTweetsService.markAsProcessed.mockResolvedValue(undefined);
+
+      await service.processSingleBot(botConfig as never, orgId, credential);
+
+      expect(mockReplyGenerationService.generateReply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          context: 'test context\n\nParent content ID: parent-1',
+        }),
       );
     });
 

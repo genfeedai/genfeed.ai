@@ -124,7 +124,7 @@ export class ArticlesAnalyticsService {
   }
 
   private normalizeArticle(
-    article: PrismaArticle & Partial<ArticleDocument>,
+    article: PrismaArticle | ArticleDocument,
   ): ArticleDocument {
     const record = this.readObjectRecord(article);
 

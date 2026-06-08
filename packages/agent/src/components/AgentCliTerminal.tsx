@@ -84,6 +84,7 @@ export interface AgentCliTerminalController {
   searchQuery: string;
   /** Sessions for the current thread key (multi-tab, T6). */
   sessions: TerminalSessionDto[];
+  persistCwdInput: () => void;
   setCwdInput: (value: string) => void;
   setSearchQuery: (value: string) => void;
   startSession: (kind: TerminalSessionKind) => void;
@@ -251,9 +252,14 @@ function attachTerminalSocketHandlers({
 export function useAgentCliTerminal(
   apiService: AgentApiService,
 ): AgentCliTerminalController {
+  const hostedCloud = isHostedCloud();
   const [activeKind, setActiveKind] = useState<TerminalSessionKind>('shell');
   const [cwdInput, setCwdInputState] = useState(readPersistedTerminalCwd);
-  const [status, setStatus] = useState('connecting to local terminal...');
+  const [status, setStatus] = useState(() =>
+    hostedCloud
+      ? 'terminal unavailable on hosted cloud'
+      : 'connecting to local terminal...',
+  );
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQueryState] = useState('');
 
@@ -405,6 +411,13 @@ export function useAgentCliTerminal(
     startSession(activeKind);
   }, [activeKind, startSession]);
 
+  const persistCwdInput = useCallback(() => {
+    const nextCwd = cwdRef.current.trim();
+    cwdRef.current = nextCwd;
+    setCwdInputState(nextCwd);
+    persistTerminalCwd(nextCwd);
+  }, []);
+
   const toggleSearch = useCallback(() => {
     setIsSearchOpen((prev) => !prev);
   }, []);
@@ -448,13 +461,13 @@ export function useAgentCliTerminal(
 
   // Boot effect — mounts xterm, establishes socket, lists existing sessions
   useEffect(() => {
-    if (isHostedCloud()) {
-      setStatus('terminal unavailable on hosted cloud');
+    if (hostedCloud) {
       return undefined;
     }
 
     let disposed = false;
     let detachSocketHandlers: (() => void) | null = null;
+    let detachConnectHandler: (() => void) | null = null;
 
     async function bootTerminal(): Promise<void> {
       const [{ Terminal }, { FitAddon }, { SearchAddon }, { WebLinksAddon }] =
@@ -556,12 +569,14 @@ export function useAgentCliTerminal(
       });
       socketRef.current = socket;
 
-      socket.on('connect', () => {
+      const handleConnect = () => {
         setStatus('connected');
 
         // T2: request existing sessions for rehydration
         socket.emit('terminal:list');
-      });
+      };
+      socket.on('connect', handleConnect);
+      detachConnectHandler = () => socket.off('connect', handleConnect);
 
       detachSocketHandlers = attachTerminalSocketHandlers({
         fitAndSyncSize,
@@ -626,6 +641,7 @@ export function useAgentCliTerminal(
       }
 
       resizeObserverRef.current?.disconnect();
+      detachConnectHandler?.();
       detachSocketHandlers?.();
       dataDisposableRef.current?.dispose();
       terminalRef.current?.dispose();
@@ -639,7 +655,7 @@ export function useAgentCliTerminal(
       sessionIdRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiService]);
+  }, [apiService, hostedCloud]);
 
   // T7: Cmd/Ctrl+F → open search bar
   useEffect(() => {
@@ -665,6 +681,7 @@ export function useAgentCliTerminal(
     cwdInput,
     isSearchOpen,
     killSession,
+    persistCwdInput,
     searchQuery,
     sessions,
     setCwdInput,
@@ -822,6 +839,7 @@ export function AgentCliTerminalControls({
     cwdInput,
     isSearchOpen,
     killSession,
+    persistCwdInput,
     sessions,
     setCwdInput,
     startSession,
@@ -851,7 +869,7 @@ export function AgentCliTerminalControls({
             >
               <Button
                 className={cn(
-                  'h-5 rounded-sm border border-border/60 px-2 text-[10px] text-foreground/50 transition-colors hover:border-emerald-300/40 hover:text-emerald-200',
+                  'h-6 rounded-sm border border-border/60 px-2 text-[10px] text-foreground/50 transition-colors hover:border-emerald-300/40 hover:text-emerald-200',
                   activeSessionId === session.id &&
                     'border-emerald-300/50 text-emerald-200',
                 )}
@@ -866,7 +884,7 @@ export function AgentCliTerminalControls({
               />
               <Button
                 aria-label={`Close ${session.kind} session`}
-                className="h-5 rounded-sm border border-border/60 px-1 text-[10px] text-foreground/35 transition-colors hover:border-red-400/50 hover:text-red-300"
+                className="h-6 rounded-sm border border-border/60 px-1 text-[10px] text-foreground/35 transition-colors hover:border-red-400/50 hover:text-red-300"
                 label="×"
                 onClick={(event) => {
                   event.stopPropagation();
@@ -880,7 +898,7 @@ export function AgentCliTerminalControls({
           ))}
           <Button
             aria-label="Open new terminal session"
-            className="h-5 rounded-sm border border-border/60 px-1.5 text-[10px] text-foreground/35 transition-colors hover:border-emerald-300/40 hover:text-emerald-200"
+            className="h-6 rounded-sm border border-border/60 px-1.5 text-[10px] text-foreground/35 transition-colors hover:border-emerald-300/40 hover:text-emerald-200"
             label="+"
             onClick={(event) => {
               event.stopPropagation();
@@ -906,7 +924,7 @@ export function AgentCliTerminalControls({
             aria-label="Terminal working directory"
             className="h-6 min-w-0 flex-1 rounded border border-border/50 bg-background/30 px-2 text-[11px] text-foreground/70 outline-none transition-colors placeholder:text-foreground/28 focus:border-emerald-300/50"
             onChange={(event) => setCwdInput(event.target.value)}
-            onBlur={() => submitCwd()}
+            onBlur={persistCwdInput}
             placeholder="$HOME or /path/to/project"
             spellCheck={false}
             value={cwdInput}

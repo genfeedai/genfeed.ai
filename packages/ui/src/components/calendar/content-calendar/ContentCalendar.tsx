@@ -1,24 +1,86 @@
 'use client';
 
 import type {
+  CalendarOptions,
   DatesSetArg,
   EventClickArg,
   EventInput,
+  Calendar as FullCalendarInstance,
 } from '@fullcalendar/core';
-import interactionPlugin from '@fullcalendar/interaction';
-import timeGridPlugin from '@fullcalendar/timegrid';
 import type {
   CalendarItem,
   ContentCalendarProps,
 } from '@genfeedai/props/components/calendar.props';
 import Card from '@ui/card/Card';
-import dynamic from 'next/dynamic';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-const FullCalendar = dynamic(
-  () => import('@fullcalendar/react').then((mod) => mod.default),
-  { ssr: false },
-);
+interface FullCalendarHostProps {
+  options: CalendarOptions;
+}
+
+function FullCalendarHost({ options }: FullCalendarHostProps) {
+  const [loadError, setLoadError] = useState<Error | null>(null);
+  const calendarRef = useRef<FullCalendarInstance | null>(null);
+  const elementRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    let calendar: FullCalendarInstance | null = null;
+    let isMounted = true;
+
+    async function loadCalendar() {
+      if (!elementRef.current) {
+        return;
+      }
+
+      setLoadError(null);
+
+      try {
+        const [coreModule, timeGridModule, interactionModule] =
+          await Promise.all([
+            import('@fullcalendar/core/index.js'),
+            import('@fullcalendar/timegrid/index.js'),
+            import('@fullcalendar/interaction/index.js'),
+          ]);
+
+        if (!isMounted || !elementRef.current) {
+          return;
+        }
+
+        calendar = new coreModule.Calendar(elementRef.current, {
+          ...options,
+          plugins: [timeGridModule.default, interactionModule.default],
+        });
+        calendarRef.current = calendar;
+        calendar.render();
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+        setLoadError(
+          error instanceof Error
+            ? error
+            : new Error('Unable to load FullCalendar component'),
+        );
+      }
+    }
+
+    loadCalendar();
+
+    return () => {
+      isMounted = false;
+      calendar?.destroy();
+      if (calendarRef.current === calendar) {
+        calendarRef.current = null;
+      }
+    };
+  }, [options]);
+
+  if (loadError) {
+    throw loadError;
+  }
+
+  return <div ref={elementRef} />;
+}
 
 export default function ContentCalendar<T extends CalendarItem>({
   items,
@@ -52,13 +114,16 @@ export default function ContentCalendar<T extends CalendarItem>({
     [items, getEventColor],
   );
 
-  const handleEventClick = (info: EventClickArg) => {
-    if (info.event.extendedProps.isDisabled) {
-      return;
-    }
-    const item = info.event.extendedProps.item as T;
-    onEventClick(item);
-  };
+  const handleEventClick = useCallback(
+    (info: EventClickArg) => {
+      if (info.event.extendedProps.isDisabled) {
+        return;
+      }
+      const item = info.event.extendedProps.item as T;
+      onEventClick(item);
+    },
+    [onEventClick],
+  );
 
   const handleDatesSet = useCallback(
     (arg: DatesSetArg) => {
@@ -69,6 +134,36 @@ export default function ContentCalendar<T extends CalendarItem>({
       onDatesChange(arg.start, arg.end);
     },
     [onDatesChange],
+  );
+
+  const calendarOptions: CalendarOptions = useMemo(
+    () => ({
+      allDaySlot: false,
+      contentHeight: 'auto',
+      datesSet: handleDatesSet,
+      defaultTimedEventDuration: '00:15:00',
+      eventClick: handleEventClick,
+      eventTimeFormat: {
+        hour: '2-digit',
+        meridiem: false,
+        minute: '2-digit',
+      },
+      events,
+      firstDay: 1,
+      headerToolbar: {
+        center: 'title',
+        left: 'prev,next',
+        right: '',
+      },
+      height: 'auto',
+      initialView: 'timeGridWeek',
+      nowIndicator: true,
+      slotDuration: '00:15:00',
+      slotMaxTime: '24:00:00',
+      slotMinTime: '00:00:00',
+      snapDuration: '00:15:00',
+    }),
+    [events, handleEventClick, handleDatesSet],
   );
 
   return (
@@ -87,33 +182,7 @@ export default function ContentCalendar<T extends CalendarItem>({
           }
         `}</style>
         <div className="fullcalendar-container">
-          <FullCalendar
-            plugins={[timeGridPlugin, interactionPlugin]}
-            initialView="timeGridWeek"
-            headerToolbar={{
-              center: 'title',
-              left: 'prev,next',
-              right: '',
-            }}
-            events={events}
-            eventClick={handleEventClick}
-            datesSet={handleDatesSet}
-            height="auto"
-            contentHeight="auto"
-            slotMinTime="00:00:00"
-            slotMaxTime="24:00:00"
-            slotDuration="00:15:00"
-            snapDuration="00:15:00"
-            defaultTimedEventDuration="00:15:00"
-            allDaySlot={false}
-            nowIndicator={true}
-            firstDay={1}
-            eventTimeFormat={{
-              hour: '2-digit',
-              meridiem: false,
-              minute: '2-digit',
-            }}
-          />
+          <FullCalendarHost options={calendarOptions} />
         </div>
       </Card>
 

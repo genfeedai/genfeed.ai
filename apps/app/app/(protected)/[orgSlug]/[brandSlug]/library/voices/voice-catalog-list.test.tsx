@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import type { Voice } from '@models/ingredients/voice.model';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';

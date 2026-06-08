@@ -19,8 +19,8 @@ describe('PresetFilterUtil', () => {
 
       expect(conditions).toHaveLength(3);
       expect(conditions[0]).toEqual({
-        organization: { not: false },
-        user: { not: false },
+        organization: null,
+        user: null,
       });
       expect(conditions[1].organization).toBe(organization);
       expect(conditions[2].user).toBe(user);
@@ -28,9 +28,7 @@ describe('PresetFilterUtil', () => {
 
     it('falls back to global scope when metadata empty', () => {
       const conditions = PresetFilterUtil.buildScopeOrConditions({});
-      expect(conditions).toEqual([
-        { organization: { not: false }, user: { not: false } },
-      ]);
+      expect(conditions).toEqual([{ organization: null, user: null }]);
     });
   });
 

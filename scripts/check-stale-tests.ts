@@ -22,7 +22,9 @@ const IGNORE_GLOBS = [
   '**/dist/**',
   '**/.next/**',
   '**/coverage/**',
+  '**/playwright/artifacts/**',
   '**/playwright-report/**',
+  '**/playwright-results/**',
   '**/test-results/**',
 ];
 
@@ -96,11 +98,6 @@ type CliArgs = {
 type CompilerConfig = {
   aliasPrefixes: string[];
   options: ts.CompilerOptions;
-};
-
-type ModuleReference = {
-  line: number;
-  specifier: string;
 };
 
 type AssertBindings = {

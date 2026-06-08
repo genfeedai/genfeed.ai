@@ -228,13 +228,13 @@ export default function TwitterPipelineEngage() {
             onClick={handleSearch}
             isDisabled={!searchQuery.trim() || isLoading}
           >
-            <HiMagnifyingGlass className="w-4 h-4" />
+            <HiMagnifyingGlass className="size-4" />
             {status === 'searching' ? 'Scanning...' : 'Scan Trends'}
           </Button>
 
           {(searchResults.length > 0 || opportunities.length > 0) && (
             <Button variant={ButtonVariant.OUTLINE} onClick={handleReset}>
-              <HiArrowPath className="w-4 h-4" />
+              <HiArrowPath className="size-4" />
               Reset
             </Button>
           )}
@@ -260,7 +260,7 @@ export default function TwitterPipelineEngage() {
               onClick={handleDraft}
               isDisabled={isLoading}
             >
-              <HiSparkles className="w-4 h-4" />
+              <HiSparkles className="size-4" />
               {status === 'drafting' ? 'Drafting...' : 'Draft with Grok'}
             </Button>
           </div>

@@ -104,6 +104,7 @@ function ImageInputNodeComponent(props: NodeProps) {
         accept="image/*"
         onChange={handleFileSelect}
         className="hidden"
+        aria-label="Upload image file"
       />
 
       {/* URL Input (shown when link button clicked) */}
@@ -115,6 +116,7 @@ function ImageInputNodeComponent(props: NodeProps) {
             onChange={(e) => setUrlValue(e.target.value)}
             onKeyDown={handleUrlKeyDown}
             placeholder="https://..."
+            aria-label="Image URL"
             className="nodrag nopan flex-1 h-7 px-2 text-xs border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <Button

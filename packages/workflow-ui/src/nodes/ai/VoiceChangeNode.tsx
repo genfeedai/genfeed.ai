@@ -111,6 +111,7 @@ function VoiceChangeNodeComponent(props: NodeProps) {
           <div className="relative">
             <video
               src={nodeData.outputVideo}
+              aria-label="Voice-changed video output"
               controls
               className="w-full rounded border border-[var(--border)]"
             />

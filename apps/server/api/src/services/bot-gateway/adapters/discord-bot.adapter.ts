@@ -1,3 +1,4 @@
+import { verify } from 'node:crypto';
 import { ConfigService } from '@api/config/config.service';
 import {
   BotCommandType,
@@ -105,8 +106,6 @@ export class DiscordBotAdapter implements IBotPlatformAdapter {
     publicKey: Buffer,
   ): boolean {
     try {
-      // Import the ed25519 verification using crypto
-      const { verify } = require('node:crypto');
       const signatureBuffer = Buffer.from(signature, 'hex');
 
       // Create the key object for Ed25519

@@ -17,6 +17,91 @@ export interface ServiceOperationOptions<T> {
   rethrow?: boolean;
 }
 
+type ActionStateOptions<S extends Record<string, boolean>> = {
+  setActionStates: React.Dispatch<React.SetStateAction<S>>;
+  stateKey: keyof S;
+};
+
+type ServiceOperationLogLevel = 'debug' | 'info';
+
+type ServiceOperationRunnerOptions<T> = Omit<
+  ServiceOperationOptions<T>,
+  'successMessage'
+> & {
+  isSuccessNotificationEnabled?: boolean;
+  successLogLevel: ServiceOperationLogLevel;
+  successMessage?: string;
+};
+
+type ActionStateScopeOptions<T, S extends Record<string, boolean>> = {
+  actionState: ActionStateOptions<S>;
+  operation: () => Promise<T | undefined>;
+};
+
+function logServiceOperationSuccess(
+  url: string,
+  level: ServiceOperationLogLevel,
+) {
+  if (level === 'debug') {
+    logger.debug(`${url} success`);
+    return;
+  }
+
+  logger.info(`${url} success`);
+}
+
+async function runServiceOperation<T>({
+  url,
+  operation,
+  successMessage,
+  errorMessage,
+  onSuccess,
+  isSuccessNotificationEnabled = false,
+  successLogLevel,
+  rethrow = false,
+}: ServiceOperationRunnerOptions<T>): Promise<T | undefined> {
+  const notificationsService = NotificationsService.getInstance();
+
+  try {
+    const result = await operation();
+    logServiceOperationSuccess(url, successLogLevel);
+    if (isSuccessNotificationEnabled) {
+      notificationsService.success(successMessage ?? '');
+    }
+    onSuccess?.(result);
+    return result;
+  } catch (error) {
+    logger.error(`${url} failed`, error);
+    notificationsService.error(errorMessage);
+    if (rethrow) {
+      throw error;
+    }
+    return undefined;
+  }
+}
+
+function setActionState<S extends Record<string, boolean>>(
+  { setActionStates, stateKey }: ActionStateOptions<S>,
+  isActive: boolean,
+) {
+  setActionStates((prev) => ({ ...prev, [stateKey]: isActive }));
+}
+
+async function executeWithActionStateScope<
+  T,
+  S extends Record<string, boolean>,
+>({
+  actionState,
+  operation,
+}: ActionStateScopeOptions<T, S>): Promise<T | undefined> {
+  setActionState(actionState, true);
+  try {
+    return await operation();
+  } finally {
+    setActionState(actionState, false);
+  }
+}
+
 /**
  * Wrapper for service operations with consistent logging and notifications
  *
@@ -39,22 +124,16 @@ export async function withServiceOperation<T>({
   onSuccess,
   rethrow = false,
 }: ServiceOperationOptions<T>): Promise<T | undefined> {
-  const notificationsService = NotificationsService.getInstance();
-
-  try {
-    const result = await operation();
-    logger.info(`${url} success`);
-    notificationsService.success(successMessage);
-    onSuccess?.(result);
-    return result;
-  } catch (error) {
-    logger.error(`${url} failed`, error);
-    notificationsService.error(errorMessage);
-    if (rethrow) {
-      throw error;
-    }
-    return undefined;
-  }
+  return runServiceOperation({
+    errorMessage,
+    isSuccessNotificationEnabled: true,
+    onSuccess,
+    operation,
+    rethrow,
+    successLogLevel: 'info',
+    successMessage,
+    url,
+  });
 }
 
 /**
@@ -68,21 +147,14 @@ export async function withSilentOperation<T>({
   onSuccess,
   rethrow = false,
 }: Omit<ServiceOperationOptions<T>, 'successMessage'>): Promise<T | undefined> {
-  const notificationsService = NotificationsService.getInstance();
-
-  try {
-    const result = await operation();
-    logger.debug(`${url} success`);
-    onSuccess?.(result);
-    return result;
-  } catch (error) {
-    logger.error(`${url} failed`, error);
-    notificationsService.error(errorMessage);
-    if (rethrow) {
-      throw error;
-    }
-    return undefined;
-  }
+  return runServiceOperation({
+    errorMessage,
+    onSuccess,
+    operation,
+    rethrow,
+    successLogLevel: 'debug',
+    url,
+  });
 }
 
 /**
@@ -167,20 +239,21 @@ export async function executeWithActionState<
   setActionStates: React.Dispatch<React.SetStateAction<S>>;
   stateKey: keyof S;
 }): Promise<T | undefined> {
-  setActionStates((prev) => ({ ...prev, [stateKey]: true }));
-  try {
-    const result = await withServiceOperation({
-      errorMessage,
-      onSuccess,
-      operation,
-      rethrow,
-      successMessage,
-      url,
-    });
-    return result;
-  } finally {
-    setActionStates((prev) => ({ ...prev, [stateKey]: false }));
-  }
+  return executeWithActionStateScope({
+    actionState: {
+      setActionStates,
+      stateKey,
+    },
+    operation: () =>
+      withServiceOperation({
+        errorMessage,
+        onSuccess,
+        operation,
+        rethrow,
+        successMessage,
+        url,
+      }),
+  });
 }
 
 /**
@@ -202,17 +275,18 @@ export async function executeSilentWithActionState<
   setActionStates: React.Dispatch<React.SetStateAction<S>>;
   stateKey: keyof S;
 }): Promise<T | undefined> {
-  setActionStates((prev) => ({ ...prev, [stateKey]: true }));
-  try {
-    const result = await withSilentOperation({
-      errorMessage,
-      onSuccess,
-      operation,
-      rethrow,
-      url,
-    });
-    return result;
-  } finally {
-    setActionStates((prev) => ({ ...prev, [stateKey]: false }));
-  }
+  return executeWithActionStateScope({
+    actionState: {
+      setActionStates,
+      stateKey,
+    },
+    operation: () =>
+      withSilentOperation({
+        errorMessage,
+        onSuccess,
+        operation,
+        rethrow,
+        url,
+      }),
+  });
 }

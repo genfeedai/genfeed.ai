@@ -4,6 +4,7 @@
  * playbook building, and pattern-based content generation.
  */
 
+import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CreatorsController } from '@api/collections/content-intelligence/controllers/creators.controller';
 import { GenerateController } from '@api/collections/content-intelligence/controllers/generate.controller';
@@ -15,6 +16,8 @@ import { CreatorScraperService } from '@api/collections/content-intelligence/ser
 import { PatternAnalyzerService } from '@api/collections/content-intelligence/services/pattern-analyzer.service';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
+import { TopPerformerPromptContextService } from '@api/collections/content-intelligence/services/top-performer-prompt-context.service';
+import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
 import { PersonasModule } from '@api/collections/personas/personas.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
@@ -38,11 +41,14 @@ import { forwardRef, Module } from '@nestjs/common';
     PatternAnalyzerService,
     PatternStoreService,
     PlaybookBuilderService,
+    TopPerformerPromptContextService,
   ],
   imports: [
     forwardRef(() => AgentContextAssemblyModule),
     forwardRef(() => BrandsModule),
+    forwardRef(() => BrandMemoryModule),
     forwardRef(() => ApifyModule),
+    forwardRef(() => ContentPerformanceModule),
     forwardRef(() => ContentHarnessModule),
     forwardRef(() => HarnessProfilesModule),
     forwardRef(() => HttpModule),
@@ -56,6 +62,7 @@ import { forwardRef, Module } from '@nestjs/common';
     PatternAnalyzerService,
     PatternStoreService,
     PlaybookBuilderService,
+    TopPerformerPromptContextService,
   ],
 })
 export class ContentIntelligenceModule {}

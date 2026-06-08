@@ -6,11 +6,11 @@ Accepted
 
 ## Boundary Spec Version
 
-v1.2.0
+v1.3.0
 
 ## Last Updated
 
-2026-05-03
+2026-06-02
 
 ## Canonical Source
 
@@ -41,6 +41,10 @@ Genfeed follows a hybrid OSS + SaaS model:
 | Social publishing connectors                    | Manual export/upload      | Managed integrations   |
 | Cross-workflow analytics and optimization loops | Limited local insight     | Full managed analytics |
 | Team/org controls, billing, quotas              | Enterprise only (`ee/`)   | Yes                    |
+| Skill model and local attachment                | Yes                       | Yes                    |
+| Personal feedback memory                        | Yes                       | Yes                    |
+| Routine engine and workflow-backed scheduling   | Yes                       | Yes                    |
+| Shared review queue and collaborative memory    | No                        | Yes                    |
 
 ## Non-Negotiables
 
@@ -54,6 +58,13 @@ Genfeed follows a hybrid OSS + SaaS model:
 
 Multi-tenant organization controls are available via `ee/packages/` under commercial license. All multi-tenant data access code must live under `ee/` or import from `ee/packages/`.
 
+## Related ADRs
+
+- `ADR-SKILLS-ROUTINES-MEMORY-BOUNDARY.md` - canonical boundary for skills,
+  routines, personal feedback memory, shared review, and collaborative learning.
+- `ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL.md` - workflow-backed scheduling is
+  the canonical scheduling model for new product automation.
+
 ## Version Bump Checklist
 
 1. Update the ADR version and last-updated date.
@@ -66,3 +77,4 @@ Multi-tenant organization controls are available via `ee/packages/` under commer
 | v1.1.0  | 2026-03-11 | Initial accepted version                                                               |
 | v1.1.1  | 2026-03-15 | Added CI check script, revision log                                                    |
 | v1.2.0  | 2026-05-03 | Added V1 execution modes, account-sync contract, and managed inference bridge boundary |
+| v1.3.0  | 2026-06-02 | Added skills, routines, feedback memory, and collaborative learning boundary summary   |

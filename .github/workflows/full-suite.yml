@@ -1,0 +1,29 @@
+# Full Suite — on-demand caller that runs the CI gate, then the E2E suite.
+#
+# Dispatch from any branch: Actions → "Full Suite (CI + E2E)" → Run workflow →
+# pick the branch. E2E runs only if the CI gate (format, lint, typecheck,
+# design, unit tests, build) passes first.
+#
+# Reuses ci.yml and e2e.yml unchanged via workflow_call — no job logic is
+# duplicated here; this file only orders the two existing workflows.
+
+name: Full Suite (CI + E2E)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: full-suite-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: CI Gate
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  e2e:
+    name: E2E Suite
+    needs: ci
+    uses: ./.github/workflows/e2e.yml
+    secrets: inherit

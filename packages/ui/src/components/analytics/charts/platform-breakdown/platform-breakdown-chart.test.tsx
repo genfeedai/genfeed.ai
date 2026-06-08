@@ -1,5 +1,5 @@
 import { PlatformBreakdownChart } from '@ui/analytics/charts/platform-breakdown/platform-breakdown-chart';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

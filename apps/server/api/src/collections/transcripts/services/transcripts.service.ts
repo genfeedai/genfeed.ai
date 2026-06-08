@@ -7,6 +7,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { TranscriptStatus } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -14,7 +15,8 @@ import { Injectable, Optional } from '@nestjs/common';
 export class TranscriptsService extends BaseService<
   TranscriptDocument,
   CreateTranscriptDto,
-  UpdateTranscriptDto
+  UpdateTranscriptDto,
+  Prisma.TranscriptWhereInput
 > {
   private readonly constructorName = this.constructor.name;
 

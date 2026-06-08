@@ -13,20 +13,20 @@
   },
   "exports": {
     ".": {
-      "default": "./src/index.ts",
-      "types": "./src/index.ts"
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
     },
     "./subscriptions": {
-      "default": "./src/subscriptions/index.ts",
-      "types": "./src/subscriptions/index.ts"
+      "types": "./src/subscriptions/index.ts",
+      "default": "./src/subscriptions/index.ts"
     },
     "./user-subscriptions": {
-      "default": "./src/user-subscriptions/index.ts",
-      "types": "./src/user-subscriptions/index.ts"
+      "types": "./src/user-subscriptions/index.ts",
+      "default": "./src/user-subscriptions/index.ts"
     },
     "./subscription-attributions": {
-      "default": "./src/subscription-attributions/index.ts",
-      "types": "./src/subscription-attributions/index.ts"
+      "types": "./src/subscription-attributions/index.ts",
+      "default": "./src/subscription-attributions/index.ts"
     }
   },
   "files": [
@@ -37,6 +37,7 @@
   "main": "./src/index.ts",
   "name": "@genfeedai/ee-billing",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "echo 'Source-level package — consumed via path aliases, no build needed'",
     "clean": "echo 'Nothing to clean'",

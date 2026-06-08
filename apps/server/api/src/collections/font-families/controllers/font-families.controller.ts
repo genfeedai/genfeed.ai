@@ -101,24 +101,20 @@ export class FontFamiliesController extends BaseCRUDController<
 
   /**
    * Override the base pipeline to load font families
-   * Load items with: (no org AND no user) OR (user's org) OR (user's user)
+   * Load items with: (no org) OR (user's org)
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const publicMetadata = getPublicMetadata(user);
 
-    // Build OR conditions: global items OR user's org items OR user's items
+    // Build OR conditions: global items OR user's org items
     const orConditions: Record<string, unknown>[] = [
-      { organization: null, user: null }, // global items
+      { organization: null }, // global items
     ];
 
     if (publicMetadata.organization) {
       orConditions.push({
         organization: publicMetadata.organization,
       });
-    }
-
-    if (publicMetadata.user) {
-      orConditions.push({ user: publicMetadata.user });
     }
 
     return {

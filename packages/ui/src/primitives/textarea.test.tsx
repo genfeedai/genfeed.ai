@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import { Textarea } from '@ui/primitives/textarea';
 import { useForm } from 'react-hook-form';

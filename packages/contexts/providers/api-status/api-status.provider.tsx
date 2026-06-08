@@ -8,8 +8,8 @@ import { Button } from '@ui/primitives/button';
 import {
   createContext,
   type ReactNode,
+  use,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -37,7 +37,7 @@ const API_HEALTH_CACHE_TTL_MS = 60_000;
 let lastApiHealthCheck: ApiHealthCacheEntry | null = null;
 
 export function useApiStatus(): ApiStatusContextValue {
-  const context = useContext(ApiStatusContext);
+  const context = use(ApiStatusContext);
   if (!context) {
     throw new Error('useApiStatus must be used within ApiStatusProvider');
   }
@@ -155,8 +155,8 @@ export default function ApiStatusProvider({
       <ApiStatusContext.Provider value={contextValue}>
         <div className="fixed inset-0 flex items-center justify-center bg-background p-4">
           <div className="max-w-md w-full text-center space-y-6">
-            <div className="mx-auto flex items-center justify-center w-16 h-16 bg-error/10">
-              <HiExclamationTriangle className="w-8 h-8 text-error" />
+            <div className="mx-auto flex items-center justify-center size-16 bg-error/10">
+              <HiExclamationTriangle className="size-8 text-error" />
             </div>
 
             <div className="space-y-2">
@@ -201,7 +201,7 @@ export default function ApiStatusProvider({
               onClick={() => void checkApiHealth(true)}
               className="gap-2"
             >
-              <HiArrowPath className="w-4 h-4" />
+              <HiArrowPath className="size-4" />
               Try Again
             </Button>
           </div>

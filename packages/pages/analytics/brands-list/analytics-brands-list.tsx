@@ -162,10 +162,10 @@ export default function AnalyticsBrandsList({
                         alt={brand.name}
                         width={40}
                         height={40}
-                        className="w-10 h-10 rounded-full object-cover"
+                        className="size-10 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-lg">
+                      <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-lg">
                         {brand.name.charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -258,7 +258,7 @@ export default function AnalyticsBrandsList({
             ]}
             actions={[
               {
-                icon: <HiArrowRight className="w-4 h-4" />,
+                icon: <HiArrowRight className="size-4" />,
                 onClick: (brand) =>
                   router.push(`${basePath}/brands/${brand.id}`),
                 tooltip: 'View Brand Details',

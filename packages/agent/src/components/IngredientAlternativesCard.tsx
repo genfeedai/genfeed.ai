@@ -123,7 +123,7 @@ export function IngredientAlternativesCard({
 
             return (
               <Button
-                key={`alt-${index}`}
+                key={alt.label}
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
                 isDisabled={status === 'generating'}
@@ -178,7 +178,12 @@ export function IngredientAlternativesCard({
                   className="w-full object-cover"
                 />
               ) : (
-                <video src={resultUrl} controls className="w-full">
+                <video
+                  src={resultUrl}
+                  controls
+                  aria-label="Generated result"
+                  className="w-full"
+                >
                   <track kind="captions" />
                 </video>
               )}

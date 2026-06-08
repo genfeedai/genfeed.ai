@@ -10,7 +10,11 @@ export interface ITemplateVariable {
   [key: string]: unknown;
 }
 
-export interface TemplateDocument extends PrismaTemplate {
+export interface TemplateDocument
+  extends Omit<
+    PrismaTemplate,
+    'key' | 'scope' | 'purpose' | 'platforms' | 'industries' | 'categories'
+  > {
   _id: string;
   categories?: string[];
   content?: string;

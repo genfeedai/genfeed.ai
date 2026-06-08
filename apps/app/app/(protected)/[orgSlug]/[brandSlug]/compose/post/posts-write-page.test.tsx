@@ -1,5 +1,5 @@
 import PostsWritePage from './posts-write-page';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { PostStatus } from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';

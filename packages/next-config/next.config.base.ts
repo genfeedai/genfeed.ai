@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
 
@@ -36,6 +37,11 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
       'localhost',
     ],
     distDir: process.env.NEXT_DIST_DIR || undefined,
+    // Pin the file-tracing root to the monorepo root so production builds
+    // (standalone / Vercel) trace workspace package files correctly instead of
+    // inferring the root (which warns and can mis-bundle). cwd is the app dir
+    // during `next build` / `next dev`, so two levels up is the repo root.
+    outputFileTracingRoot: path.resolve(process.cwd(), '..', '..'),
     experimental: {
       optimizePackageImports: [
         '@genfeedai/agent',

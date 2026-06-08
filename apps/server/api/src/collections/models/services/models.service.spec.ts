@@ -161,6 +161,115 @@ describe('ModelsService', () => {
     });
   });
 
+  it('approves a discovered draft model', async () => {
+    modelDelegate.findMany.mockResolvedValue([
+      makeModel({
+        config: {
+          isDiscovered: true,
+          key: 'google/imagen-4',
+          reviewStatus: 'pending',
+        },
+        id: 'model-1',
+        isActive: false,
+      }),
+    ]);
+    modelDelegate.update.mockResolvedValue(
+      makeModel({
+        config: {
+          isDiscovered: true,
+          key: 'google/imagen-4',
+          reviewStatus: 'approved',
+        },
+      }),
+    );
+
+    await service.approveRegistryModel(
+      'model-1',
+      { label: 'Imagen 4 Approved' },
+      'user-1',
+    );
+
+    expect(modelDelegate.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        config: expect.objectContaining({
+          isLegacy: false,
+          lastSyncedAt: expect.any(Date),
+          reviewStatus: 'approved',
+          reviewedAt: expect.any(Date),
+          reviewedBy: 'user-1',
+        }),
+        isActive: true,
+        label: 'Imagen 4 Approved',
+      }),
+      where: { id: 'model-1' },
+    });
+  });
+
+  it('rejects a registry model without deleting it so it is not rediscovered', async () => {
+    modelDelegate.findMany.mockResolvedValue([
+      makeModel({
+        config: {
+          isDiscovered: true,
+          key: 'google/imagen-4',
+          reviewStatus: 'pending',
+        },
+        id: 'model-1',
+        isActive: false,
+      }),
+    ]);
+    modelDelegate.update.mockResolvedValue(makeModel());
+
+    await service.rejectRegistryModel('model-1', {
+      reason: 'Not content-generation relevant',
+      reviewedBy: 'user-1',
+    });
+
+    expect(modelDelegate.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        config: expect.objectContaining({
+          rejectionReason: 'Not content-generation relevant',
+          reviewStatus: 'rejected',
+          reviewedAt: expect.any(Date),
+          reviewedBy: 'user-1',
+        }),
+        isActive: false,
+      }),
+      where: { id: 'model-1' },
+    });
+  });
+
+  it('marks a registry model as legacy and disables it', async () => {
+    modelDelegate.findMany.mockResolvedValue([
+      makeModel({
+        config: {
+          key: 'google/imagen-3',
+          reviewStatus: 'approved',
+        },
+        id: 'model-1',
+      }),
+    ]);
+    modelDelegate.update.mockResolvedValue(makeModel());
+
+    await service.markRegistryModelLegacy('model-1', {
+      reviewedBy: 'user-1',
+      succeededBy: 'google/imagen-4',
+    });
+
+    expect(modelDelegate.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        config: expect.objectContaining({
+          deprecatedAt: expect.any(Date),
+          isLegacy: true,
+          reviewStatus: 'legacy',
+          reviewedBy: 'user-1',
+          succeededBy: 'google/imagen-4',
+        }),
+        isActive: false,
+      }),
+      where: { id: 'model-1' },
+    });
+  });
+
   it('returns enabled org-scoped models from findAvailableModels', async () => {
     modelDelegate.findMany.mockResolvedValue([
       makeModel({ id: 'system-model', organizationId: null }),

@@ -16,8 +16,8 @@ import { ArticleAnalyticsService } from '@api/collections/articles/services/arti
 import type {
   ArticleCycleModelConfig,
   ArticleReviewRubric,
-  ArticlesContentService,
 } from '@api/collections/articles/services/articles-content.service';
+import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import {
   buildViralityAnalysisResponse,
   normalizePerformanceMetrics,
@@ -58,6 +58,7 @@ import {
   SystemPromptKey,
 } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -72,7 +73,8 @@ import {
 export class ArticlesService extends BaseService<
   ArticleDocument,
   CreateArticleDto,
-  UpdateArticleDto
+  UpdateArticleDto,
+  Prisma.ArticleWhereInput
 > {
   private readonly constructorName = this.constructor.name;
   private static readonly TEXT_MAX_OVERDRAFT_CREDITS = 5;
@@ -91,11 +93,7 @@ export class ArticlesService extends BaseService<
     @Optional()
     private readonly promptsService?: PromptsService,
     @Optional()
-    @Inject(
-      forwardRef(
-        () => require('./articles-content.service').ArticlesContentService,
-      ),
-    )
+    @Inject(forwardRef(() => ArticlesContentService))
     private readonly articlesContentService?: ArticlesContentService,
     @Optional() private readonly templatesService?: TemplatesService,
     @Optional() protected readonly cacheService?: CacheService,

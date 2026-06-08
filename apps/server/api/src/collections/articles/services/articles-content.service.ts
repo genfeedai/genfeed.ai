@@ -62,7 +62,8 @@ import type {
   GeneratedArticleData,
 } from '@genfeedai/interfaces/content/article.interface';
 import { LoggerService } from '@libs/logger/logger.service';
-import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 export interface ArticleCycleModelConfig {
   generationModel?: string;
@@ -108,12 +109,10 @@ export class ArticlesContentService {
   constructor(
     private readonly logger: LoggerService,
     private readonly configService: ConfigService,
+    private readonly moduleRef: ModuleRef,
 
     @Optional() private readonly modelsService?: ModelsService,
     @Optional() private readonly promptsService?: PromptsService,
-    @Optional()
-    @Inject(forwardRef(() => require('./articles.service').ArticlesService))
-    private readonly articlesService?: ArticlesService,
     @Optional() private readonly replicateService?: ReplicateService,
     @Optional() private readonly promptBuilderService?: PromptBuilderService,
     @Optional() private readonly templatesService?: TemplatesService,
@@ -127,6 +126,23 @@ export class ArticlesContentService {
     @Optional()
     private readonly accountPublishingContextService?: AccountPublishingContextService,
   ) {}
+
+  /**
+   * Lazily resolve ArticlesService to break the module-init circular dependency
+   * with articles.service. Resolving via ModuleRef at call time (instead of
+   * constructor injection) keeps ArticlesService out of the emitted
+   * `design:paramtypes` metadata, which otherwise references the class before
+   * it is initialized under ESM (TDZ crash at boot). `strict: false` searches
+   * the whole app context; missing provider yields undefined to preserve the
+   * previous `@Optional()` behavior.
+   */
+  private get articlesService(): ArticlesService | undefined {
+    try {
+      return this.moduleRef.get(ArticlesService, { strict: false });
+    } catch {
+      return undefined;
+    }
+  }
 
   private appendAccountPublishingContextToPrompt(
     prompt: string,

@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import EditorEffectsPanel from './EditorEffectsPanel';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 describe('EditorEffectsPanel', () => {
   beforeEach(() => {

@@ -1,9 +1,13 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { Logger } from '@nestjs/common';
 import { globSync } from 'glob';
 
-const logger = new Logger('CheckDesignSystemBoundaries');
+const logger = {
+  error: (message: string) =>
+    console.error(`[CheckDesignSystemBoundaries] ${message}`),
+  log: (message: string) =>
+    console.log(`[CheckDesignSystemBoundaries] ${message}`),
+};
 
 const BANNED_COMPONENT_GLOBS = [
   'apps/app/packages/components/**/_menu.tsx',

@@ -1,8 +1,4 @@
 import {
-  type ReplyBotConfigSchema,
-  replyBotConfigSchema,
-} from '@genfeedai/client/schemas';
-import {
   AlertCategory,
   ButtonVariant,
   ModalEnum,
@@ -14,13 +10,7 @@ import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
-import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
-import type {
-  IReplyBotConfig,
-  IReplyBotRateLimits,
-} from '@genfeedai/interfaces';
 import type { ModalReplyBotProps } from '@genfeedai/props/modals/modal.props';
-import { ReplyBotConfigsService } from '@genfeedai/services/automation/reply-bot-configs.service';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
@@ -36,7 +26,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { type ChangeEvent, useEffect } from 'react';
+import type { ChangeEvent } from 'react';
 import {
   FaInstagram,
   FaReddit,
@@ -45,6 +35,10 @@ import {
   FaYoutube,
 } from 'react-icons/fa6';
 import { HiTrash } from 'react-icons/hi2';
+import ModalReplyBotDmSettings from './ModalReplyBotDmSettings';
+import ModalReplyBotKeywordFilters from './ModalReplyBotKeywordFilters';
+import ModalReplyBotRateLimits from './ModalReplyBotRateLimits';
+import { useModalReplyBot } from './useModalReplyBot';
 
 const PLATFORMS = [
   {
@@ -114,141 +108,13 @@ export default function ModalReplyBot({
     isSubmitting,
     onSubmit,
     closeModal,
-    handleDelete: deleteModalReplyBot,
-  } = useCrudModal<IReplyBotConfig, ReplyBotConfigSchema>({
-    defaultValues: {
-      actionType: ReplyBotActionType.REPLY_ONLY,
-      description: '',
-      isActive: false,
-      monitoredAccounts: [],
-      name: '',
-      platform: ReplyBotPlatform.TWITTER,
-      rateLimits: {
-        cooldownMinutes: 5,
-        maxDmsPerDay: 20,
-        maxDmsPerHour: 5,
-        maxRepliesPerDay: 50,
-        maxRepliesPerHour: 10,
-      },
-      replyInstructions: '',
-      replyTone: '',
-      type: ReplyBotType.REPLY_GUY,
-    },
-    entity: replyBot || null,
-    modalId: ModalEnum.REPLY_BOT,
-    onClose,
-    onConfirm,
-    schema: replyBotConfigSchema,
-    serviceFactory: (token) => ReplyBotConfigsService.getInstance(token),
-  });
-
-  useEffect(() => {
-    if (replyBot) {
-      form.setValue('name', replyBot.name ?? '');
-      form.setValue('description', replyBot.description ?? '');
-      form.setValue('type', replyBot.type);
-      form.setValue('platform', replyBot.platform);
-      form.setValue('actionType', replyBot.actionType);
-      form.setValue('isActive', replyBot.isActive);
-      form.setValue('replyTone', replyBot.replyTone ?? '');
-      form.setValue('replyInstructions', replyBot.replyInstructions ?? '');
-      const extendedRateLimits = replyBot.rateLimits as
-        | IReplyBotRateLimits
-        | undefined;
-      form.setValue('rateLimits', {
-        cooldownMinutes: extendedRateLimits?.cooldownMinutes ?? 5,
-        maxDmsPerDay: extendedRateLimits?.maxDmsPerDay ?? 20,
-        maxDmsPerHour: extendedRateLimits?.maxDmsPerHour ?? 5,
-        maxRepliesPerDay: extendedRateLimits?.maxRepliesPerDay ?? 50,
-        maxRepliesPerHour: extendedRateLimits?.maxRepliesPerHour ?? 10,
-      });
-      if (replyBot.dmConfig) {
-        form.setValue('dmConfig', {
-          context: replyBot.dmConfig.context ?? '',
-          ctaLink: replyBot.dmConfig.ctaLink ?? '',
-          customInstructions: replyBot.dmConfig.customInstructions ?? '',
-          delaySeconds: replyBot.dmConfig.delaySeconds ?? 60,
-          enabled: replyBot.dmConfig.enabled ?? false,
-          offer: replyBot.dmConfig.offer ?? '',
-          template: replyBot.dmConfig.template ?? '',
-          useAiGeneration: replyBot.dmConfig.useAiGeneration ?? true,
-        });
-      }
-      if (replyBot.schedule) {
-        const schedule = replyBot.schedule as {
-          timezone?: string;
-          activeHoursStart?: number;
-          activeHoursEnd?: number;
-          activeDays?: number[];
-        };
-        form.setValue('schedule', {
-          activeDays: schedule.activeDays ?? [1, 2, 3, 4, 5],
-          activeHoursEnd: schedule.activeHoursEnd ?? 17,
-          activeHoursStart: schedule.activeHoursStart ?? 9,
-          timezone: schedule.timezone ?? 'UTC',
-        });
-      }
-      if (replyBot.filters) {
-        const filters = replyBot.filters as {
-          minFollowers?: number;
-          maxFollowers?: number;
-          mustHaveBio?: boolean;
-          excludeKeywords?: string[];
-          includeKeywords?: string[];
-          languageFilter?: string[];
-        };
-        form.setValue('filters', {
-          excludeKeywords: filters.excludeKeywords ?? [],
-          includeKeywords: filters.includeKeywords ?? [],
-          languageFilter: filters.languageFilter ?? [],
-          maxFollowers: filters.maxFollowers,
-          minFollowers: filters.minFollowers ?? 0,
-          mustHaveBio: filters.mustHaveBio ?? false,
-        });
-      }
-      form.setValue('monitoredAccounts', replyBot.monitoredAccounts ?? []);
-    }
-  }, [replyBot, form]);
-
-  const processKeyDownModalReplyBot = (
-    e: React.KeyboardEvent<HTMLTextAreaElement>,
-  ) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      if (!isSubmitting && form.formState.isValid) {
-        onSubmit(e as any);
-      }
-    }
-  };
-
-  const updateModalReplyBot = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-    form.setValue(name as any, value, { shouldValidate: true });
-  };
-
-  const handleRateLimitChange = (field: string, value: number) => {
-    const currentRateLimits = form.getValues('rateLimits');
-    form.setValue(
-      'rateLimits',
-      { ...currentRateLimits, [field]: value },
-      { shouldValidate: true },
-    );
-  };
-
-  const watchedActionType = form.watch('actionType');
-  const rateLimits = form.watch('rateLimits') || {
-    cooldownMinutes: 5,
-    maxDmsPerDay: 20,
-    maxDmsPerHour: 5,
-    maxRepliesPerDay: 50,
-    maxRepliesPerHour: 10,
-  };
-
-  const showDmSettings =
-    watchedActionType === ReplyBotActionType.DM_ONLY ||
-    watchedActionType === ReplyBotActionType.REPLY_AND_DM;
+    deleteModalReplyBot,
+    updateModalReplyBot,
+    processKeyDownModalReplyBot,
+    handleRateLimitChange,
+    rateLimits,
+    showDmSettings,
+  } = useModalReplyBot({ replyBot, onConfirm, onClose });
 
   return (
     <Modal
@@ -394,230 +260,26 @@ export default function ModalReplyBot({
             />
           </FormControl>
 
-          <div className="flex items-center gap-4 my-4">
-            <div className="h-px bg-border flex-1" />
-            <span className="text-sm text-muted-foreground">Rate Limits</span>
-            <div className="h-px bg-border flex-1" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <FormControl label="Max Replies/Hour">
-              <Input
-                type="number"
-                value={rateLimits.maxRepliesPerHour}
-                onChange={(e) =>
-                  handleRateLimitChange(
-                    'maxRepliesPerHour',
-                    parseInt(e.target.value, 10),
-                  )
-                }
-                min={1}
-                max={100}
-                disabled={isSubmitting}
-              />
-            </FormControl>
-
-            <FormControl label="Max Replies/Day">
-              <Input
-                type="number"
-                value={rateLimits.maxRepliesPerDay}
-                onChange={(e) =>
-                  handleRateLimitChange(
-                    'maxRepliesPerDay',
-                    parseInt(e.target.value, 10),
-                  )
-                }
-                min={1}
-                max={500}
-                disabled={isSubmitting}
-              />
-            </FormControl>
-
-            {showDmSettings && (
-              <>
-                <FormControl label="Max DMs/Hour">
-                  <Input
-                    type="number"
-                    value={rateLimits.maxDmsPerHour}
-                    onChange={(e) =>
-                      handleRateLimitChange(
-                        'maxDmsPerHour',
-                        parseInt(e.target.value, 10),
-                      )
-                    }
-                    min={0}
-                    max={50}
-                    disabled={isSubmitting}
-                  />
-                </FormControl>
-
-                <FormControl label="Max DMs/Day">
-                  <Input
-                    type="number"
-                    value={rateLimits.maxDmsPerDay}
-                    onChange={(e) =>
-                      handleRateLimitChange(
-                        'maxDmsPerDay',
-                        parseInt(e.target.value, 10),
-                      )
-                    }
-                    min={0}
-                    max={200}
-                    disabled={isSubmitting}
-                  />
-                </FormControl>
-              </>
-            )}
-
-            <FormControl label="Cooldown (minutes)">
-              <Input
-                type="number"
-                value={rateLimits.cooldownMinutes}
-                onChange={(e) =>
-                  handleRateLimitChange(
-                    'cooldownMinutes',
-                    parseInt(e.target.value, 10),
-                  )
-                }
-                min={0}
-                max={60}
-                disabled={isSubmitting}
-              />
-            </FormControl>
-          </div>
+          <ModalReplyBotRateLimits
+            rateLimits={rateLimits}
+            showDmSettings={showDmSettings}
+            isSubmitting={isSubmitting}
+            onRateLimitChange={handleRateLimitChange}
+          />
 
           {form.watch('type') === ReplyBotType.COMMENT_RESPONDER && (
-            <>
-              <div className="flex items-center gap-4 my-4">
-                <div className="h-px bg-border flex-1" />
-                <span className="text-sm text-muted-foreground">
-                  Keyword Triggers
-                </span>
-                <div className="h-px bg-border flex-1" />
-              </div>
-
-              <FormControl label="Include Keywords (comma-separated)">
-                <Input
-                  type="text"
-                  name="filters.includeKeywords"
-                  control={form.control}
-                  onChange={(e) => {
-                    const keywords = e.target.value
-                      .split(',')
-                      .flatMap((k: string) => {
-                        const t = k.trim();
-                        return t ? [t] : [];
-                      });
-                    form.setValue('filters.includeKeywords', keywords, {
-                      shouldValidate: true,
-                    });
-                  }}
-                  placeholder="INFO, YES, SEND"
-                  isDisabled={isSubmitting}
-                />
-              </FormControl>
-              <p className="text-xs text-foreground/50 -mt-2">
-                Only DM users who comment these words. Post &quot;Comment INFO
-                to get our free course&quot; then the bot auto-DMs commenters.
-              </p>
-
-              <FormControl label="Exclude Keywords (comma-separated)">
-                <Input
-                  type="text"
-                  name="filters.excludeKeywords"
-                  control={form.control}
-                  onChange={(e) => {
-                    const keywords = e.target.value
-                      .split(',')
-                      .flatMap((k: string) => {
-                        const t = k.trim();
-                        return t ? [t] : [];
-                      });
-                    form.setValue('filters.excludeKeywords', keywords, {
-                      shouldValidate: true,
-                    });
-                  }}
-                  placeholder="spam, unsubscribe"
-                  isDisabled={isSubmitting}
-                />
-              </FormControl>
-            </>
+            <ModalReplyBotKeywordFilters
+              form={form}
+              isSubmitting={isSubmitting}
+            />
           )}
 
           {showDmSettings && (
-            <>
-              <div className="flex items-center gap-4 my-4">
-                <div className="h-px bg-border flex-1" />
-                <span className="text-sm text-muted-foreground">
-                  DM Message Settings
-                </span>
-                <div className="h-px bg-border flex-1" />
-              </div>
-
-              <FormControl label="Product Context">
-                <Textarea
-                  name="dmConfig.context"
-                  control={form.control}
-                  onChange={(e) => {
-                    form.setValue('dmConfig.context', e.target.value, {
-                      shouldValidate: true,
-                    });
-                  }}
-                  placeholder="What product are you selling? Describe your offer…"
-                  isDisabled={isSubmitting}
-                  onKeyDown={processKeyDownModalReplyBot}
-                  className="h-20"
-                />
-              </FormControl>
-
-              <FormControl label="Custom DM Instructions">
-                <Textarea
-                  name="dmConfig.customInstructions"
-                  control={form.control}
-                  onChange={(e) => {
-                    form.setValue(
-                      'dmConfig.customInstructions',
-                      e.target.value,
-                      { shouldValidate: true },
-                    );
-                  }}
-                  placeholder="Any specific instructions for the DM?"
-                  isDisabled={isSubmitting}
-                  onKeyDown={processKeyDownModalReplyBot}
-                  className="h-20"
-                />
-              </FormControl>
-
-              <FormControl label="CTA Link">
-                <Input
-                  type="text"
-                  name="dmConfig.ctaLink"
-                  control={form.control}
-                  onChange={(e) => {
-                    form.setValue('dmConfig.ctaLink', e.target.value, {
-                      shouldValidate: true,
-                    });
-                  }}
-                  placeholder="https://app.genfeed.ai"
-                  isDisabled={isSubmitting}
-                />
-              </FormControl>
-
-              <FormControl label="Offer">
-                <Input
-                  type="text"
-                  name="dmConfig.offer"
-                  control={form.control}
-                  onChange={(e) => {
-                    form.setValue('dmConfig.offer', e.target.value, {
-                      shouldValidate: true,
-                    });
-                  }}
-                  placeholder="30-Day Content Sprint"
-                  isDisabled={isSubmitting}
-                />
-              </FormControl>
-            </>
+            <ModalReplyBotDmSettings
+              form={form}
+              isSubmitting={isSubmitting}
+              onKeyDown={processKeyDownModalReplyBot}
+            />
           )}
         </div>
 

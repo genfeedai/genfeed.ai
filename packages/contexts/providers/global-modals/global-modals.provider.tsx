@@ -1,24 +1,11 @@
 'use client';
-
-import { useUser } from '@clerk/nextjs';
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import {
-  type IngredientCategory,
-  ModalEnum,
-  type Platform,
-  type SubscriptionTier,
-} from '@genfeedai/enums';
+import type { IngredientCategory, Platform } from '@genfeedai/enums';
 import { capitalize } from '@genfeedai/helpers/formatting/format/format.helper';
-import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type {
   IAsset,
   IBrand,
   ICredential,
-  IImage,
   IIngredient,
-  IMusic,
   IPost,
 } from '@genfeedai/interfaces';
 import type { UsePostModalOptions } from '@genfeedai/interfaces/hooks/use-publication-modal.interface';
@@ -29,33 +16,9 @@ import type {
   ModalMetadataProps,
   ModalPromptProps,
 } from '@genfeedai/props/modals/modal.props';
-import { logger } from '@genfeedai/services/core/logger.service';
-import { UsersService } from '@genfeedai/services/organization/users.service';
-import {
-  LazyBrandOverlay,
-  LazyIngredientOverlay,
-  LazyModalConfirm,
-  LazyModalCredential,
-  LazyModalExport,
-  LazyModalGallery,
-  LazyModalGenerateIllustration,
-  LazyModalMetadata,
-  LazyModalPost,
-  LazyModalPostBatch,
-  LazyModalPostRemix,
-  LazyModalPrompt,
-  LazyModalUpload,
-  LazyPostMetadataOverlay,
-} from '@ui/lazy/modal/LazyModal';
-import { ModalUpgradePrompt } from '@ui/modals';
-import { useRouter } from 'next/navigation';
-import {
-  createContext,
-  type ReactNode,
-  useCallback,
-  useContext,
-  useState,
-} from 'react';
+import { createContext, type ReactNode, use, useCallback } from 'react';
+import GlobalModalsRenderer from './GlobalModalsRenderer';
+import { useGlobalModalsState } from './useGlobalModalsState';
 
 export interface GallerySelectItem {
   id: string;
@@ -151,7 +114,7 @@ export function usePostModal(options: UsePostModalOptions = {}): {
   openPostBatchModal: (ingredient: IIngredient | IIngredient[]) => void;
   publishIngredient: IIngredient | null;
 } {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error('usePostModal must be used within GlobalModalsProvider');
   }
@@ -177,7 +140,7 @@ export function useConfirmModal(): Pick<
   GlobalModalsContextValue,
   'closeConfirm' | 'openConfirm'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error('useConfirmModal must be used within GlobalModalsProvider');
   }
@@ -190,7 +153,7 @@ export function useConfirmModal(): Pick<
 export function useUploadModal(
   options: { onConfirm?: (ingredient?: IIngredient | IAsset) => void } = {},
 ) {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error('useUploadModal must be used within GlobalModalsProvider');
   }
@@ -228,7 +191,7 @@ export function useGalleryModal(): Pick<
   GlobalModalsContextValue,
   'closeGallery' | 'openGallery'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error('useGalleryModal must be used within GlobalModalsProvider');
   }
@@ -242,7 +205,7 @@ export function useIngredientOverlay(): Pick<
   GlobalModalsContextValue,
   'closeIngredientOverlay' | 'openIngredientOverlay'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error(
       'useIngredientOverlay must be used within GlobalModalsProvider',
@@ -258,7 +221,7 @@ export function useExportModal(): Pick<
   GlobalModalsContextValue,
   'closeExport' | 'openExport'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error('useExportModal must be used within GlobalModalsProvider');
   }
@@ -272,7 +235,7 @@ export function useCredentialModal(): Pick<
   GlobalModalsContextValue,
   'closeCredentialModal' | 'openCredentialModal'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error(
       'useCredentialModal must be used within GlobalModalsProvider',
@@ -288,7 +251,7 @@ export function usePromptModal(): Pick<
   GlobalModalsContextValue,
   'closePromptModal' | 'openPromptModal'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error('usePromptModal must be used within GlobalModalsProvider');
   }
@@ -299,7 +262,7 @@ export function usePromptModal(): Pick<
 }
 
 export function useConfirmDeleteModal() {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error(
       'useConfirmDeleteModal must be used within GlobalModalsProvider',
@@ -343,7 +306,7 @@ export function useMetadataModal(): Pick<
   GlobalModalsContextValue,
   'closeMetadataModal' | 'openMetadataModal'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error(
       'useMetadataModal must be used within GlobalModalsProvider',
@@ -359,7 +322,7 @@ export function useBrandOverlay(): Pick<
   GlobalModalsContextValue,
   'closeBrandOverlay' | 'openBrandOverlay'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error('useBrandOverlay must be used within GlobalModalsProvider');
   }
@@ -373,7 +336,7 @@ export function usePostMetadataOverlay(): Pick<
   GlobalModalsContextValue,
   'closePostMetadataOverlay' | 'openPostMetadataOverlay'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error(
       'usePostMetadataOverlay must be used within GlobalModalsProvider',
@@ -389,7 +352,7 @@ export function useGenerateIllustrationModal(): Pick<
   GlobalModalsContextValue,
   'closeGenerateIllustration' | 'openGenerateIllustration'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error(
       'useGenerateIllustrationModal must be used within GlobalModalsProvider',
@@ -405,7 +368,7 @@ export function usePostRemixModal(): Pick<
   GlobalModalsContextValue,
   'closePostRemixModal' | 'openPostRemixModal'
 > {
-  const context = useContext(GlobalModalsContext);
+  const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error(
       'usePostRemixModal must be used within GlobalModalsProvider',
@@ -424,604 +387,42 @@ export interface GlobalModalsProviderProps {
 export function GlobalModalsProvider({
   children,
 }: GlobalModalsProviderProps): ReactNode {
-  const { credentials, refreshBrands, settings } = useBrand();
-  const { user } = useUser();
-  const router = useRouter();
-  const { href } = useOrgUrl();
-
-  const getUsersService = useAuthedService((token: string) =>
-    UsersService.getInstance(token),
-  );
-
-  // Memoized callbacks for LazyModalPost to prevent infinite re-renders
-  const handlePostConfirm = useCallback(() => {}, []);
-  const handlePostCreated = useCallback(
-    (postId: string) => {
-      closeModal(ModalEnum.POST);
-      router.push(href(`/posts/${postId}`));
-    },
-    [router, href],
-  );
-
-  const [publishIngredients, setPublishIngredients] = useState<IIngredient[]>(
-    [],
-  );
-  const [openTrigger, setOpenTrigger] = useState(0);
-
-  const [confirmQueue, setConfirmQueue] = useState<
-    Array<{
-      id: string;
-      label?: string;
-      message?: string;
-      confirmLabel?: string;
-      cancelLabel?: string;
-      isError?: boolean;
-      onConfirm: () => void | Promise<void>;
-    }>
-  >([]);
-
-  const [uploadConfig, setUploadConfig] = useState<{
-    category: string;
-    parentId?: string;
-    parentModel?: string;
-    width?: number;
-    height?: number;
-    isResizeEnabled?: boolean;
-    isMultiple?: boolean;
-    maxFiles?: number;
-    initialFiles?: File[];
-    autoSubmit?: boolean;
-    onConfirm?: (ingredient?: IIngredient | IAsset) => void;
-    onComplete?: (ingredients: (IIngredient | IAsset)[]) => void;
-  } | null>(null);
-  const [uploadTrigger, setUploadTrigger] = useState(0);
-
-  const [galleryConfig, setGalleryConfig] = useState<{
-    isOpen: boolean;
-    category: IngredientCategory;
-    onSelect: (item: GallerySelectItem | GallerySelectItem[] | null) => void;
-    title?: string;
-    selectedId?: string;
-    format?: string;
-    isNoneAllowed?: boolean;
-    maxSelectableItems?: number;
-    accountReference?: IAsset | null;
-    onSelectAccountReference?: (assets: IAsset[]) => void;
-    selectedReferences?: string[];
-  } | null>(null);
-
-  const [ingredientOverlayData, setIngredientOverlayData] = useState<{
-    ingredient: IIngredient | null;
-    onConfirm?: () => void;
-  } | null>(null);
-  const [ingredientOverlayTrigger, setIngredientOverlayTrigger] = useState(0);
-
-  const [exportConfig, setExportConfig] = useState<ModalExportProps | null>(
-    null,
-  );
-
-  const [credentialData, setCredentialData] = useState<{
-    credential: ICredential | null;
-    onConfirm: () => void;
-  } | null>(null);
-  const [credentialTrigger, setCredentialTrigger] = useState(0);
-
-  const [promptConfig, setPromptConfig] = useState<{
-    originalPrompt?: string;
-    enhancedPrompt?: string;
-    style?: string;
-    mood?: string;
-    camera?: string;
-    onConfirm: (prompt: string) => void;
-  } | null>(null);
-
-  const [metadataConfig, setMetadataConfig] =
-    useState<ModalMetadataProps | null>(null);
-
-  const [brandOverlayData, setBrandOverlayData] = useState<{
-    brand: IBrand | Brand | null;
-    onConfirm?: () => void;
-    initialView?: 'edit' | 'overview';
-  } | null>(null);
-  const [brandOverlayTrigger, setBrandOverlayTrigger] = useState(0);
-
-  const [postMetadataOverlayData, setPostMetadataOverlayData] = useState<{
-    post: IPost | null;
-    onConfirm?: () => void;
-  } | null>(null);
-
-  const [generateIllustrationConfig, setGenerateIllustrationConfig] = useState<{
-    postId: string;
-    initialPrompt?: string;
-    platform?: Platform;
-    onConfirm: (imageId: string) => void;
-  } | null>(null);
-  const [generateIllustrationTrigger, setGenerateIllustrationTrigger] =
-    useState(0);
-
-  const [postRemixData, setPostRemixData] = useState<{
-    post: IPost;
-    onSubmit: (description: string, label?: string) => Promise<void>;
-  } | null>(null);
-  const [postRemixTrigger, setPostRemixTrigger] = useState(0);
-
-  const publishIngredient = publishIngredients[0] ?? null;
-
-  const openPostBatchModal = useCallback(
-    (ingredient: IIngredient | IIngredient[]) => {
-      setPublishIngredients(
-        Array.isArray(ingredient) ? ingredient.filter(Boolean) : [ingredient],
-      );
-      setOpenTrigger((prev) => prev + 1);
-    },
-    [],
-  );
-
-  const closePublishModal = useCallback(() => {
-    setPublishIngredients([]);
-    window.dispatchEvent(new CustomEvent('refresh-ingredients'));
-  }, []);
-
-  const openConfirm = useCallback(
-    (
-      config: Omit<ModalConfirmProps, 'onConfirm'> & {
-        onConfirm: () => void | Promise<void>;
-      },
-    ) => {
-      const id = `confirm-${Date.now()}-${Math.random()}`;
-      setConfirmQueue((prev) => [...prev, { ...config, id }]);
-    },
-    [],
-  );
-
-  const closeConfirm = useCallback(() => {
-    setConfirmQueue((prev) => {
-      const newQueue = prev.slice(1);
-      if (newQueue.length === 0) {
-        closeModal(ModalEnum.CONFIRM);
-      }
-      return newQueue;
-    });
-  }, []);
-
-  const currentConfirm = confirmQueue[0];
-
-  const openUpload = useCallback(
-    (config: {
-      category: string;
-      parentId?: string;
-      parentModel?: string;
-      width?: number;
-      height?: number;
-      isResizeEnabled?: boolean;
-      isMultiple?: boolean;
-      maxFiles?: number;
-      initialFiles?: File[];
-      autoSubmit?: boolean;
-      onConfirm?: (ingredient?: IIngredient | IAsset) => void;
-      onComplete?: (ingredients: (IIngredient | IAsset)[]) => void;
-    }) => {
-      setUploadConfig(config);
-      setUploadTrigger((prev) => prev + 1);
-    },
-    [],
-  );
-
-  const closeUpload = useCallback(() => {
-    setUploadConfig(null);
-  }, []);
-
-  const openGallery = useCallback(
-    (config: {
-      category: IngredientCategory;
-      onSelect: (item: GallerySelectItem | GallerySelectItem[] | null) => void;
-      title?: string;
-      selectedId?: string;
-      format?: string;
-      isNoneAllowed?: boolean;
-      maxSelectableItems?: number;
-      accountReference?: IAsset | null;
-      onSelectAccountReference?: (assets: IAsset[]) => void;
-      selectedReferences?: string[];
-    }) => {
-      setGalleryConfig({ ...config, isOpen: true });
-    },
-    [],
-  );
-
-  const closeGallery = useCallback(() => {
-    setGalleryConfig(null);
-    closeModal(ModalEnum.GALLERY);
-  }, []);
-
-  const openIngredientOverlay = useCallback(
-    (ingredient: IIngredient | null, onConfirm?: () => void) => {
-      setIngredientOverlayData({ ingredient, onConfirm });
-      setIngredientOverlayTrigger((prev) => prev + 1);
-    },
-    [],
-  );
-
-  const closeIngredientOverlay = useCallback(() => {
-    setIngredientOverlayData(null);
-  }, []);
-
-  const openExport = useCallback((config: ModalExportProps) => {
-    setExportConfig(config);
-  }, []);
-
-  const closeExport = useCallback(() => {
-    setExportConfig(null);
-    closeModal(ModalEnum.EXPORT);
-  }, []);
-
-  const openCredentialModal = useCallback(
-    (credential: ICredential | null, onConfirm: () => void) => {
-      setCredentialData({ credential, onConfirm });
-      setCredentialTrigger((prev) => prev + 1);
-    },
-    [],
-  );
-
-  const closeCredentialModal = useCallback(() => {
-    setCredentialData(null);
-  }, []);
-
-  const openPromptModal = useCallback(
-    (
-      config: Omit<ModalPromptProps, 'onConfirm'> & {
-        onConfirm: (prompt: string) => void;
-      },
-    ) => {
-      setPromptConfig(config);
-    },
-    [],
-  );
-
-  const closePromptModal = useCallback(() => {
-    setPromptConfig(null);
-    closeModal(ModalEnum.PROMPT);
-  }, []);
-
-  const openMetadataModal = useCallback((config: ModalMetadataProps) => {
-    setMetadataConfig(config);
-  }, []);
-
-  const closeMetadataModal = useCallback(() => {
-    setMetadataConfig(null);
-    closeModal(ModalEnum.METADATA);
-  }, []);
-
-  const openBrandOverlay = useCallback(
-    (
-      brand: IBrand | Brand | null,
-      onConfirm?: () => void,
-      initialView: 'edit' | 'overview' = 'edit',
-    ) => {
-      setBrandOverlayData({ brand, initialView, onConfirm });
-      setBrandOverlayTrigger((prev) => prev + 1);
-    },
-    [],
-  );
-
-  const closeBrandOverlay = useCallback(() => {
-    setBrandOverlayData(null);
-  }, []);
-
-  const openPostMetadataOverlay = useCallback(
-    (post: IPost, onConfirm?: () => void) => {
-      setPostMetadataOverlayData({ onConfirm, post });
-    },
-    [],
-  );
-
-  const closePostMetadataOverlay = useCallback(() => {
-    setPostMetadataOverlayData(null);
-    closeModal(ModalEnum.POST_METADATA);
-  }, []);
-
-  const openGenerateIllustration = useCallback(
-    (config: {
-      postId: string;
-      initialPrompt?: string;
-      platform?: Platform;
-      onConfirm: (imageId: string) => void;
-    }) => {
-      setGenerateIllustrationConfig(config);
-      setGenerateIllustrationTrigger((prev) => prev + 1);
-    },
-    [],
-  );
-
-  const closeGenerateIllustration = useCallback(() => {
-    setGenerateIllustrationConfig(null);
-    closeModal(ModalEnum.GENERATE_ILLUSTRATION);
-  }, []);
-
-  const openPostRemixModal = useCallback(
-    (
-      post: IPost,
-      onSubmit: (description: string, label?: string) => Promise<void>,
-    ) => {
-      setPostRemixData({ onSubmit, post });
-      setPostRemixTrigger((prev) => prev + 1);
-    },
-    [],
-  );
-
-  const closePostRemixModal = useCallback(() => {
-    setPostRemixData(null);
-    closeModal(ModalEnum.POST_REMIX);
-  }, []);
+  const state = useGlobalModalsState();
 
   const contextValue: GlobalModalsContextValue = {
-    closeBrandOverlay,
-    closeConfirm,
-    closeCredentialModal,
-    closeExport,
-    closeGallery,
-    closeGenerateIllustration,
-    closeIngredientOverlay,
-    closeMetadataModal,
-    closePostMetadataOverlay,
-    closePostRemixModal,
-    closePromptModal,
-    closeUpload,
-    handlePostClose: closePublishModal,
-    openBrandOverlay,
-    openConfirm,
-    openCredentialModal,
-    openExport,
-    openGallery,
-    openGenerateIllustration,
-    openIngredientOverlay,
-    openMetadataModal,
-    openPostBatchModal,
-    openPostMetadataOverlay,
-    openPostRemixModal,
-    openPromptModal,
-    openUpload,
-    publishIngredient,
+    closeBrandOverlay: state.closeBrandOverlay,
+    closeConfirm: state.closeConfirm,
+    closeCredentialModal: state.closeCredentialModal,
+    closeExport: state.closeExport,
+    closeGallery: state.closeGallery,
+    closeGenerateIllustration: state.closeGenerateIllustration,
+    closeIngredientOverlay: state.closeIngredientOverlay,
+    closeMetadataModal: state.closeMetadataModal,
+    closePostMetadataOverlay: state.closePostMetadataOverlay,
+    closePostRemixModal: state.closePostRemixModal,
+    closePromptModal: state.closePromptModal,
+    closeUpload: state.closeUpload,
+    handlePostClose: state.handlePostClose,
+    openBrandOverlay: state.openBrandOverlay,
+    openConfirm: state.openConfirm,
+    openCredentialModal: state.openCredentialModal,
+    openExport: state.openExport,
+    openGallery: state.openGallery,
+    openGenerateIllustration: state.openGenerateIllustration,
+    openIngredientOverlay: state.openIngredientOverlay,
+    openMetadataModal: state.openMetadataModal,
+    openPostBatchModal: state.openPostBatchModal,
+    openPostMetadataOverlay: state.openPostMetadataOverlay,
+    openPostRemixModal: state.openPostRemixModal,
+    openPromptModal: state.openPromptModal,
+    openUpload: state.openUpload,
+    publishIngredient: state.publishIngredient,
   };
 
   return (
     <GlobalModalsContext.Provider value={contextValue}>
       {children}
-
-      <LazyModalPost
-        credentials={credentials}
-        onConfirm={handlePostConfirm}
-        onCreated={handlePostCreated}
-      />
-
-      <LazyModalPostBatch
-        key={openTrigger}
-        ingredient={publishIngredient || undefined}
-        ingredients={
-          publishIngredients.length > 1 ? publishIngredients : undefined
-        }
-        credentials={credentials}
-        onConfirm={closePublishModal}
-        isOpen={publishIngredients.length > 0}
-        openKey={openTrigger}
-      />
-
-      {currentConfirm && (
-        <LazyModalConfirm
-          key={currentConfirm.id}
-          label={currentConfirm.label}
-          message={currentConfirm.message}
-          confirmLabel={currentConfirm.confirmLabel}
-          cancelLabel={currentConfirm.cancelLabel}
-          isError={currentConfirm.isError}
-          isOpen={Boolean(currentConfirm)}
-          openKey={currentConfirm.id}
-          onClose={closeConfirm}
-          onConfirm={async () => {
-            await currentConfirm.onConfirm();
-            closeConfirm();
-          }}
-        />
-      )}
-
-      {uploadConfig && (
-        <LazyModalUpload
-          key={uploadTrigger}
-          isOpen={Boolean(uploadConfig)}
-          openKey={uploadTrigger}
-          category={uploadConfig.category}
-          parentId={uploadConfig.parentId}
-          parentModel={uploadConfig.parentModel}
-          width={uploadConfig.width}
-          height={uploadConfig.height}
-          isResizeEnabled={uploadConfig.isResizeEnabled}
-          isMultiple={uploadConfig.isMultiple}
-          maxFiles={uploadConfig.maxFiles}
-          initialFiles={uploadConfig.initialFiles}
-          autoSubmit={uploadConfig.autoSubmit}
-          onConfirm={(ingredient?: IIngredient | IAsset) => {
-            uploadConfig.onConfirm?.(ingredient);
-            closeUpload();
-          }}
-          onComplete={(ingredients) => {
-            uploadConfig.onComplete?.(ingredients);
-          }}
-        />
-      )}
-
-      {galleryConfig && (
-        <LazyModalGallery
-          isOpen={galleryConfig.isOpen}
-          category={galleryConfig.category}
-          title={galleryConfig.title}
-          selectedId={galleryConfig.selectedId}
-          format={galleryConfig.format}
-          isNoneAllowed={galleryConfig.isNoneAllowed}
-          maxSelectableItems={galleryConfig.maxSelectableItems}
-          accountReference={galleryConfig.accountReference}
-          onSelectAccountReference={galleryConfig.onSelectAccountReference}
-          selectedReferences={galleryConfig.selectedReferences}
-          onClose={closeGallery}
-          onSelect={(
-            item: IAsset | IImage | IMusic | (IAsset | IImage)[] | null,
-          ) => {
-            galleryConfig.onSelect(
-              item as GallerySelectItem | GallerySelectItem[] | null,
-            );
-            closeGallery();
-          }}
-        />
-      )}
-
-      {ingredientOverlayData?.ingredient && (
-        <LazyIngredientOverlay
-          key={ingredientOverlayTrigger}
-          isOpen={Boolean(ingredientOverlayData.ingredient)}
-          openKey={ingredientOverlayTrigger}
-          ingredient={ingredientOverlayData.ingredient}
-          onConfirm={() => {
-            ingredientOverlayData.onConfirm?.();
-          }}
-          onClose={closeIngredientOverlay}
-        />
-      )}
-
-      {exportConfig && (
-        <LazyModalExport
-          isOpen={Boolean(exportConfig)}
-          onExport={(format, fields) => {
-            exportConfig.onExport(format, fields);
-            closeExport();
-          }}
-        />
-      )}
-
-      {credentialData && (
-        <LazyModalCredential
-          key={credentialTrigger}
-          isOpen={Boolean(credentialData)}
-          openKey={credentialTrigger}
-          credential={credentialData.credential}
-          onConfirm={() => {
-            credentialData.onConfirm();
-            closeCredentialModal();
-          }}
-        />
-      )}
-
-      {promptConfig && (
-        <LazyModalPrompt
-          isOpen={Boolean(promptConfig)}
-          originalPrompt={promptConfig.originalPrompt}
-          enhancedPrompt={promptConfig.enhancedPrompt}
-          style={promptConfig.style}
-          mood={promptConfig.mood}
-          camera={promptConfig.camera}
-          onUsePrompt={(promptData) => {
-            promptConfig.onConfirm(promptData.text);
-            closePromptModal();
-          }}
-        />
-      )}
-
-      {metadataConfig && (
-        <LazyModalMetadata
-          isOpen={Boolean(metadataConfig)}
-          ingredientId={metadataConfig.ingredientId}
-          ingredientCategory={metadataConfig.ingredientCategory}
-          metadata={metadataConfig.metadata}
-          scope={metadataConfig.scope}
-          folder={metadataConfig.folder}
-          onConfirm={metadataConfig.onConfirm}
-        />
-      )}
-
-      {brandOverlayData && (
-        <LazyBrandOverlay
-          key={brandOverlayTrigger}
-          isOpen={Boolean(brandOverlayData)}
-          openKey={brandOverlayTrigger}
-          brand={brandOverlayData.brand}
-          initialView={brandOverlayData.initialView}
-          onConfirm={async (_isRefreshing, createdBrandId) => {
-            if (createdBrandId) {
-              // Select the newly created brand
-              try {
-                const service = await getUsersService();
-                await service.patchMeBrand(createdBrandId, {
-                  isSelected: true,
-                });
-
-                logger.info(`Selected newly created brand: ${createdBrandId}`);
-
-                // Reload user data to update selected brand in Clerk
-                await user?.reload();
-
-                // Refresh brands list to include the new brand
-                await refreshBrands();
-              } catch (error) {
-                logger.error('Failed to select newly created brand', error);
-                // Still reload user and refresh brands even if selection fails
-                await user?.reload();
-                await refreshBrands();
-              }
-            } else {
-              // Just reload user data and refresh brands list (for updates)
-              await user?.reload();
-              await refreshBrands();
-            }
-
-            // Call custom onConfirm if provided
-            brandOverlayData.onConfirm?.();
-          }}
-          onClose={closeBrandOverlay}
-        />
-      )}
-
-      {postMetadataOverlayData?.post && (
-        <LazyPostMetadataOverlay
-          post={postMetadataOverlayData.post}
-          onConfirm={() => {
-            postMetadataOverlayData.onConfirm?.();
-            closePostMetadataOverlay();
-          }}
-          onClose={closePostMetadataOverlay}
-        />
-      )}
-
-      {generateIllustrationConfig && (
-        <LazyModalGenerateIllustration
-          key={generateIllustrationTrigger}
-          isOpen={Boolean(generateIllustrationConfig)}
-          openKey={generateIllustrationTrigger}
-          postId={generateIllustrationConfig.postId}
-          initialPrompt={generateIllustrationConfig.initialPrompt}
-          platform={generateIllustrationConfig.platform}
-          onConfirm={(imageId) => {
-            generateIllustrationConfig.onConfirm(imageId);
-            closeGenerateIllustration();
-          }}
-          onClose={closeGenerateIllustration}
-        />
-      )}
-
-      <ModalUpgradePrompt
-        currentTier={settings?.subscriptionTier as SubscriptionTier | undefined}
-      />
-
-      {postRemixData && (
-        <LazyModalPostRemix
-          key={postRemixTrigger}
-          isOpen={Boolean(postRemixData)}
-          openKey={postRemixTrigger}
-          post={postRemixData.post}
-          onSubmit={async (description, label) => {
-            await postRemixData.onSubmit(description, label);
-            closePostRemixModal();
-          }}
-          onClose={closePostRemixModal}
-        />
-      )}
+      <GlobalModalsRenderer {...state} />
     </GlobalModalsContext.Provider>
   );
 }

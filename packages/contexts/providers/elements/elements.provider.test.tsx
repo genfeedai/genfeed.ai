@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
 'use client';
 
-import ElementsProvider, {
-  useElementsContext,
-} from '@providers/elements/elements.provider';
+import { useElementsContext } from '@providers/elements/elements.context';
+import ElementsProvider from '@providers/elements/elements.provider';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -29,6 +28,9 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
 vi.mock('@providers/elements-filters/elements-filters.provider', () => ({
   ElementsFiltersProvider: ({ children }: { children: React.ReactNode }) =>
     children,
+}));
+
+vi.mock('@providers/elements-filters/elements-filters.context', () => ({
   useElementsFilters: () => ({
     filters: {},
     isRefreshing: false,

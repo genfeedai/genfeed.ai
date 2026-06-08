@@ -19,10 +19,10 @@ function CardCtas({ action }: AgentCardProps): ReactElement | null {
 
   return (
     <div className="mt-3 flex flex-wrap gap-2">
-      {action.ctas.map((cta, index) =>
+      {action.ctas.map((cta) =>
         cta.href ? (
           <Link
-            key={`${action.id}-cta-${index}`}
+            key={`${action.id}-cta-${cta.label}`}
             href={cta.href}
             className="inline-flex items-center gap-1.5 border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
           >

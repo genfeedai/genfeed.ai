@@ -26,6 +26,8 @@ Primary architecture references for planning/reporting.
 
 - Agent runtime: `./AGENT-RUNTIME.md`
 - ADRs: `./architecture/`
-- Critical rules: `./critical/`
+- Skills, routines, and memory boundary:
+  `../architecture/ADR-SKILLS-ROUTINES-MEMORY-BOUNDARY.md`
+- Critical rules: `./CRITICAL-NEVER-DO.md`
 - Open-source context: `./OPEN-SOURCE-CONTEXT.md`
 - Self-hosted guide: `./SELF-HOSTED-GUIDE.md`

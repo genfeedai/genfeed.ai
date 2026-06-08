@@ -10,6 +10,7 @@ import type {
 import { buildWorkspaceAssetsDir } from '@genfeedai/desktop-core';
 import type { PrismaClient } from '@genfeedai/desktop-prisma';
 import { dialog, shell } from 'electron';
+import { toDesktopAsset } from './desktop-asset.util';
 import { toIso } from './time.util';
 import type { DesktopWorkspaceService } from './workspace.service';
 
@@ -59,47 +60,14 @@ const sanitizeFilenamePart = (value: string): string =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 80) || 'asset';
 
-const toDesktopAsset = (row: {
-  brandId: string | null;
-  cloudId: string | null;
-  cloudObjectKey: string | null;
-  createdAt: string;
-  deletedAt: string | null;
-  displayName: string;
-  id: string;
-  kind: string;
-  localPath: string | null;
-  mimeType: string;
-  organizationId: string;
-  origin: string;
-  originalFileName: string;
-  residency: string;
-  sha256: string;
-  sizeBytes: number;
-  updatedAt: string;
-  uploadPolicy: string;
-  workspaceId: string | null;
-}): IDesktopAsset => ({
-  brandId: row.brandId ?? undefined,
-  cloudId: row.cloudId ?? undefined,
-  cloudObjectKey: row.cloudObjectKey ?? undefined,
-  createdAt: row.createdAt,
-  deletedAt: row.deletedAt ?? undefined,
-  displayName: row.displayName,
-  id: row.id,
-  kind: row.kind as IDesktopAsset['kind'],
-  localPath: row.localPath ?? undefined,
-  mimeType: row.mimeType,
-  organizationId: row.organizationId,
-  origin: row.origin as IDesktopAsset['origin'],
-  originalFileName: row.originalFileName,
-  residency: row.residency as IDesktopAsset['residency'],
-  sha256: row.sha256,
-  sizeBytes: row.sizeBytes,
-  updatedAt: row.updatedAt,
-  uploadPolicy: row.uploadPolicy as IDesktopAsset['uploadPolicy'],
-  workspaceId: row.workspaceId ?? undefined,
-});
+const pathExists = async (targetPath: string): Promise<boolean> => {
+  try {
+    await fs.access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 export interface GeneratedAssetWriteOptions {
   bytes: Uint8Array;
@@ -168,11 +136,15 @@ export class DesktopFilesService {
 
     for (const sourceFilePath of selectedFilePaths) {
       const fileName = path.basename(sourceFilePath);
-      const targetPath = path.join(targetDirectory, fileName);
+      const targetPath = await this.resolveAvailableImportPath(
+        targetDirectory,
+        fileName,
+      );
+      const targetFileName = path.basename(targetPath);
       await fs.copyFile(sourceFilePath, targetPath);
       importedAssets.push(
         await this.registerAsset({
-          displayName: fileName,
+          displayName: targetFileName,
           localPath: targetPath,
           mimeType: inferMimeType(targetPath),
           origin: 'local-import',
@@ -184,6 +156,25 @@ export class DesktopFilesService {
     }
 
     return importedAssets;
+  }
+
+  private async resolveAvailableImportPath(
+    targetDirectory: string,
+    fileName: string,
+  ): Promise<string> {
+    const parsed = path.parse(fileName);
+    let candidate = path.join(targetDirectory, fileName);
+    let index = 1;
+
+    while (await pathExists(candidate)) {
+      candidate = path.join(
+        targetDirectory,
+        `${parsed.name}-${String(index)}${parsed.ext}`,
+      );
+      index += 1;
+    }
+
+    return candidate;
   }
 
   async getAssetUrl(assetId: string): Promise<string> {
@@ -240,6 +231,20 @@ export class DesktopFilesService {
 
   async revealPath(targetPath: string): Promise<void> {
     await shell.showItemInFolder(targetPath);
+  }
+
+  async revealAsset(assetId: string): Promise<void> {
+    const asset = await this.prisma.desktopAsset.findUnique({
+      where: {
+        id: assetId,
+      },
+    });
+
+    if (!asset?.localPath) {
+      throw new Error('Local asset file is not available.');
+    }
+
+    await this.revealPath(asset.localPath);
   }
 
   private async registerAsset(params: {

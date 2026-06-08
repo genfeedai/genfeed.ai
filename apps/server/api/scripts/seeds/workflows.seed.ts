@@ -17,6 +17,8 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import { AppModule } from '@api/app.module';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -25,6 +27,7 @@ import { NestFactory } from '@nestjs/core';
 
 const logger = new Logger('WorkflowsSeed');
 const SUPPORTED_CLUSTERS = ['local', 'staging', 'production'] as const;
+const scriptDir = fileURLToPath(new URL('.', import.meta.url));
 
 type SupportedCluster = (typeof SUPPORTED_CLUSTERS)[number];
 
@@ -41,7 +44,7 @@ function loadEnvFile(): void {
   const args = process.argv.slice(2);
   const envArg = args.find((arg) => arg.startsWith('--env='))?.split('=')[1];
   const envSuffix = envArg || 'local';
-  const envPath = resolve(__dirname, '..', '..', `.env.${envSuffix}`);
+  const envPath = resolve(scriptDir, '..', '..', `.env.${envSuffix}`);
 
   try {
     const content = readFileSync(envPath, 'utf-8');

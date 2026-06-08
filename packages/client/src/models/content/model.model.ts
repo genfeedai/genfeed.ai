@@ -31,6 +31,12 @@ export class Model extends BaseEntity implements IModel {
   public declare pricingType?: PricingType;
   public declare costPerUnit?: number;
   public declare minCost?: number;
+  public declare isDiscovered?: boolean;
+  public declare isLegacy?: boolean;
+  public declare rejectionReason?: string;
+  public declare reviewStatus?: IModel['reviewStatus'];
+  public declare reviewedAt?: Date;
+  public declare reviewedBy?: string;
 
   constructor(data: Partial<IModel> = {}) {
     super(data);

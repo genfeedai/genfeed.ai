@@ -59,7 +59,7 @@ export default function IngredientPosts({
       {/* Ingredient header */}
       <div className="mb-8 flex flex-col md:flex-row gap-6 items-start">
         {/* Thumbnail */}
-        <div className="relative w-32 h-32 bg-background overflow-hidden flex-shrink-0">
+        <div className="relative size-32 bg-background overflow-hidden flex-shrink-0">
           {ingredient.thumbnailUrl ? (
             <Image
               src={ingredient.thumbnailUrl}
@@ -131,7 +131,7 @@ export default function IngredientPosts({
                 key={post.id}
                 className="p-4 hover:shadow-lg transition-shadow duration-300"
               >
-                <div className="flex flex-col space-y-3">
+                <div className="flex flex-col gap-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold truncate flex-1">
                       {post.label || 'Untitled Post'}

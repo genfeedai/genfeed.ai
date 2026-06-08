@@ -3,6 +3,11 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import { dark } from '@clerk/themes';
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
+import type {
+  ClerkProviderWithThemeProps,
+  MaybeClerkProviderProps,
+  AppProvidersProps as SharedAppProvidersProps,
+} from '@genfeedai/props/providers/app-providers.props';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ThemeCookieSync from '@ui/providers/ThemeCookieSync';
@@ -10,8 +15,21 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import dynamic from 'next/dynamic';
 import { ThemeProvider, useTheme } from 'next-themes';
-import { type ComponentProps, type ReactNode, useState } from 'react';
+import { type ComponentProps, useState } from 'react';
 import { Toaster } from 'sonner';
+
+type ClerkProviderProps = Omit<
+  ComponentProps<typeof ClerkProvider>,
+  'children'
+>;
+
+export type AppProvidersProps = SharedAppProvidersProps<ClerkProviderProps>;
+
+type ClerkProviderWithThemeComponentProps =
+  ClerkProviderWithThemeProps<ClerkProviderProps>;
+
+type MaybeClerkProviderComponentProps =
+  MaybeClerkProviderProps<ClerkProviderProps>;
 
 function makeQueryClient() {
   return new QueryClient({
@@ -46,45 +64,27 @@ const LazyReactQueryDevtools =
       )
     : () => null;
 
-type ClerkProviderProps = Omit<
-  ComponentProps<typeof ClerkProvider>,
-  'children'
->;
-
-export interface AppProvidersProps {
-  children: ReactNode;
-  initialTheme: string;
-  clerkProps?: ClerkProviderProps;
-  disableTransitionOnChange?: boolean;
-  enableSystem?: boolean;
-  googleAnalyticsId?: string;
-  includeLazyModalErrorDebug?: boolean;
-  includeSpeedInsights?: boolean;
-  includeToaster?: boolean;
-  includeVercelAnalytics?: boolean;
-  storageKey?: string;
-}
-
 /**
  * Whether Clerk is available in this deployment.
  * Checked once at module load — NEXT_PUBLIC_ vars are inlined at build time.
  */
 const cloudConnected = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+const isHostedCloud = process.env.NEXT_PUBLIC_GENFEED_CLOUD === 'true';
 
 function ClerkProviderWithTheme({
   children,
   clerkProps,
-}: {
-  children: ReactNode;
-  clerkProps?: ClerkProviderProps;
-}) {
+  hasMissingPublishableKeyBypass = false,
+}: ClerkProviderWithThemeComponentProps) {
   const { resolvedTheme } = useTheme();
   const isPlaywrightTest = process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true';
+  const hasMissingPublishableKeyBypassEnabled =
+    isPlaywrightTest || hasMissingPublishableKeyBypass;
 
   return (
     <ClerkProvider
       {...clerkProps}
-      {...(isPlaywrightTest
+      {...(hasMissingPublishableKeyBypassEnabled
         ? {
             __internal_bypassMissingPublishableKey: true,
             publishableKey: '',
@@ -103,16 +103,16 @@ function ClerkProviderWithTheme({
 function MaybeClerkProvider({
   children,
   clerkProps,
-}: {
-  children: ReactNode;
-  clerkProps?: ClerkProviderProps;
-}) {
-  if (!cloudConnected || !clerkProps) {
+}: MaybeClerkProviderComponentProps) {
+  if ((!cloudConnected && isHostedCloud) || !clerkProps) {
     return <>{children}</>;
   }
 
   return (
-    <ClerkProviderWithTheme clerkProps={clerkProps}>
+    <ClerkProviderWithTheme
+      clerkProps={clerkProps}
+      hasMissingPublishableKeyBypass={!cloudConnected}
+    >
       {children}
     </ClerkProviderWithTheme>
   );

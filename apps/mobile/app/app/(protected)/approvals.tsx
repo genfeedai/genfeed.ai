@@ -12,7 +12,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { EmptyState, LoadingScreen } from '@/components/ScreenStates';
 import { CONTENT_TYPE_LABELS, colors } from '@/constants';
 import {

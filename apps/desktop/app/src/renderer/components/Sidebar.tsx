@@ -88,8 +88,10 @@ interface SidebarProps {
   isCollapsed: boolean;
   isSyncing: boolean;
   lastSyncAt: string | null;
+  activeWorkspaceId: string | null;
   onNavigate: (view: NavView) => void;
   onSelectThread: (threadId: string) => void;
+  onSelectWorkspace: (workspaceId: string) => void;
   onNewThread: () => void;
   onOpenWorkspace: () => void;
   onLogout: () => void;
@@ -104,11 +106,13 @@ interface SidebarProps {
 export const Sidebar = ({
   activeView,
   activeThreadId,
+  activeWorkspaceId,
   isCollapsed,
   isSyncing,
   lastSyncAt,
   onNavigate,
   onSelectThread,
+  onSelectWorkspace,
   onNewThread,
   onOpenWorkspace,
   onLogout,
@@ -177,20 +181,40 @@ export const Sidebar = ({
         </Button>
       )}
 
-      {!isCollapsed && workspaces[0] && (
+      {!isCollapsed && workspaces.length > 0 && (
         <div className="sidebar-workspace-card">
           <span className="sidebar-section-label">Active Workspace</span>
-          <strong>{workspaces[0].name}</strong>
-          <span className="muted-text">{workspaces[0].path}</span>
-          {workspaces[0].linkedProjectId ? (
-            <span className="status-badge status-active">
-              Linked to project
-            </span>
-          ) : (
-            <span className="status-badge status-pending">
-              Project link pending
-            </span>
-          )}
+          <div className="workspace-switch-list">
+            {workspaces.slice(0, 5).map((workspace) => {
+              const isActive = workspace.id === activeWorkspaceId;
+
+              return (
+                <Button
+                  ariaLabel={`Select ${workspace.name}`}
+                  className={`workspace-switch-item ${
+                    isActive ? 'active' : ''
+                  }`}
+                  key={workspace.id}
+                  onClick={() => onSelectWorkspace(workspace.id)}
+                  type="button"
+                  variant={ButtonVariant.UNSTYLED}
+                >
+                  <HiOutlineFolderOpen className="nav-icon-svg" />
+                  <span className="workspace-switch-copy">
+                    <strong>{workspace.name}</strong>
+                    <span className="muted-text">{workspace.path}</span>
+                  </span>
+                  <span
+                    className={`status-dot ${
+                      workspace.linkedProjectId
+                        ? 'status-active'
+                        : 'status-pending'
+                    }`}
+                  />
+                </Button>
+              );
+            })}
+          </div>
         </div>
       )}
 

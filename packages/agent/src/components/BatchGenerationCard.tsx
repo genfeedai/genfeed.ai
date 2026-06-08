@@ -85,10 +85,14 @@ export function BatchGenerationCard({
 
       {/* Count input */}
       <div className="mb-3">
-        <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <label
+          htmlFor="batch-count"
+          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+        >
           Number of items
         </label>
         <Input
+          id="batch-count"
           type="number"
           min={1}
           max={50}
@@ -99,9 +103,9 @@ export function BatchGenerationCard({
 
       {/* Platform checkboxes */}
       <div className="mb-3">
-        <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           Platforms
-        </label>
+        </span>
         <div className="flex flex-wrap gap-2">
           {AVAILABLE_PLATFORMS.map((platform) => (
             <label

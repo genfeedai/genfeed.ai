@@ -34,7 +34,6 @@ const GradientDivider = memo(function GradientDivider({
         className,
       )}
       role="none"
-      aria-hidden="true"
     />
   );
 });

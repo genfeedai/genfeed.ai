@@ -1,0 +1,127 @@
+# Prelaunch Corpus Health
+
+This page defines the launch-minimum dataset targets and health metrics for the prelaunch trend and reference corpus tracked by `#210`.
+
+## Purpose
+
+The prelaunch corpus is the global trend/reference dataset that lets Genfeed start useful content loops before a tenant has deep brand-specific history.
+
+It feeds:
+
+- trend discovery and trend-content reads
+- source-reference lookup for remix and brief handoff
+- prompt-ready examples for generation context
+- follow-up issues `#211` through `#216`
+
+This page is the readiness contract. It does not add a new ingestion provider, replace the existing startup warmup, or require live provider credentials in CI.
+
+## Runtime Baseline vs Launch Readiness
+
+The current runtime has a startup warmup guard in `TrendsWarmupService`:
+
+| Runtime baseline check   | Threshold | Meaning                                                     |
+| ------------------------ | --------- | ----------------------------------------------------------- |
+| active global trends     | `>= 50`   | enough rows to avoid empty reads                            |
+| global source references | `>= 100`  | enough references to avoid empty reference corpus responses |
+
+Those thresholds are bootstrapping thresholds, not launch readiness targets. Launch readiness requires broader platform coverage, source diversity, freshness, and prompt-ready metadata.
+
+## Launch-Minimum Dataset Targets
+
+The launch-minimum target is the smallest corpus that can support global cold-start recommendations without obvious repetition.
+
+| Platform    | Active trend topics | Source references | Source accounts | Content types required   |
+| ----------- | ------------------- | ----------------- | --------------- | ------------------------ |
+| TikTok      | `100`               | `300`             | `80`            | videos, hashtags, sounds |
+| Instagram   | `80`                | `240`             | `70`            | reels/posts, hashtags    |
+| X / Twitter | `100`               | `300`             | `100`           | posts/threads, hashtags  |
+| YouTube     | `60`                | `180`             | `50`            | shorts/videos            |
+| Reddit      | `60`                | `180`             | `40`            | posts/comments           |
+| Pinterest   | `40`                | `120`             | `35`            | pins                     |
+| LinkedIn    | `40`                | `120`             | `40`            | posts/articles           |
+
+The global launch floor is:
+
+| Corpus slice                            | Minimum  |
+| --------------------------------------- | -------- |
+| active global trend topics              | `480`    |
+| source references                       | `1,440`  |
+| source accounts                         | `415`    |
+| platforms with green coverage           | `5 of 7` |
+| platforms with at least yellow coverage | `7 of 7` |
+
+Coverage is green when a platform meets every target in its row. Coverage is yellow when it has at least `60%` of each row target and has refreshed inside its freshness window. Coverage is red when either condition fails.
+
+## Content-Type Targets
+
+Content-type targets prevent the corpus from being technically large but one-dimensional.
+
+| Content type                 | Launch minimum | Notes                                                                                          |
+| ---------------------------- | -------------- | ---------------------------------------------------------------------------------------------- |
+| short-form video examples    | `500`          | TikTok, Instagram, YouTube, and Reddit video references combined.                              |
+| text post/thread examples    | `350`          | X / Twitter, Reddit, LinkedIn, and article-like references combined.                           |
+| hashtag records              | `300`          | Must include at least TikTok, Instagram, and X / Twitter.                                      |
+| sound records                | `80`           | TikTok is required; other platforms are optional until provider support expands.               |
+| paid/creative references     | `100`          | Can be manually or provider-ingested; must be marked separately from organic trend references. |
+| evergreen reference examples | `200`          | Longer-lived references that remain useful after short trend windows expire.                   |
+
+Paid/creative and evergreen references may overlap with platform rows, but they must be classifiable so prompt assembly can choose the right example set.
+
+## Health Metrics
+
+The corpus health summary should report these metrics at minimum.
+
+| Metric                    | Green                                                                                                       | Yellow                                  | Red                                        |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------------ |
+| Platform coverage         | `>= 5` green platforms and no red platforms                                                                 | at least `7` yellow-or-better platforms | any red platform                           |
+| Active trend coverage     | `>= 100%` global floor                                                                                      | `>= 80%` global floor                   | `< 80%` global floor                       |
+| Source-reference coverage | `>= 100%` global floor                                                                                      | `>= 80%` global floor                   | `< 80%` global floor                       |
+| Source diversity          | median `>= 3` references per source account and no account supplies more than `10%` of one platform         | one platform over-concentrated          | repeated source dominance across platforms |
+| Live preview rate         | `>= 70%` live source previews                                                                               | `50%` to `69%` live previews            | `< 50%` live previews                      |
+| Empty preview rate        | `<= 10%` empty source previews                                                                              | `11%` to `20%` empty previews           | `> 20%` empty previews                     |
+| Prompt-ready metadata     | `>= 85%` references have title or text, platform, content type, canonical URL, and current engagement total | `70%` to `84%` complete                 | `< 70%` complete                           |
+| Duplicate canonical URLs  | `< 5%` duplicate rate per platform                                                                          | `5%` to `10%`                           | `> 10%`                                    |
+| Snapshot continuity       | `>= 5` daily snapshots in the last `7` days for references seen more than once                              | `3` to `4` snapshots                    | `< 3` snapshots                            |
+
+## Freshness Expectations
+
+Freshness is measured from the newest successful ingestion or refresh for that corpus slice.
+
+| Slice                      | Green                       | Yellow         | Red              |
+| -------------------------- | --------------------------- | -------------- | ---------------- |
+| Active trends              | refreshed within `24h`      | `24h` to `48h` | older than `48h` |
+| Hashtags                   | refreshed within `24h`      | `24h` to `72h` | older than `72h` |
+| Sounds                     | refreshed within `24h`      | `24h` to `72h` | older than `72h` |
+| Viral videos/posts         | refreshed within `48h`      | `48h` to `7d`  | older than `7d`  |
+| Source-reference snapshots | newest snapshot within `7d` | `7d` to `14d`  | older than `14d` |
+| Evergreen references       | revalidated within `30d`    | `30d` to `60d` | older than `60d` |
+| Paid/creative references   | revalidated within `30d`    | `30d` to `90d` | older than `90d` |
+
+The freshness window is stricter for trend-native rows than for evergreen and paid references because trend recommendations degrade quickly when social context moves.
+
+## Readiness Rule
+
+The corpus is launch-ready when all of these are true:
+
+- global launch floor is met
+- at least `5 of 7` platforms are green
+- every platform is at least yellow
+- all content-type targets are met
+- no health metric is red
+- freshness is green or yellow for every slice
+
+If the corpus is not launch-ready, downstream readers should still use the existing cold-start bootstrap fallback rather than block user flows.
+
+## Implementation Notes For Follow-Up Issues
+
+Follow-up implementation should treat this page as the product contract:
+
+- `#211` should backfill toward the launch-minimum rows.
+- `#213` should replace curated topics with public reference ingestion while preserving the platform/content-type targets.
+- `#214` should make paid/creative references classifiable so they do not pollute organic trend slices.
+- `#215` should derive prompt-ready packs only from references that satisfy prompt-ready metadata.
+- `#216` should automate the health metrics and freshness checks defined here.
+
+## V1 Boundary
+
+This page defines launch readiness for the corpus. It does not make launch dependent on all future provider-specific ingestion work being complete.

@@ -30,7 +30,7 @@ export interface UseAgentRunsReturn {
 export function useAgentRuns(
   options: UseAgentRunsOptions = {},
 ): UseAgentRunsReturn {
-  const { getToken } = useAuth();
+  const { getToken, orgId, userId } = useAuth();
   const [stats, setStats] = useState<AgentRunStats | null>(
     options.initialStats ?? null,
   );
@@ -45,6 +45,8 @@ export function useAgentRuns(
   } = useQuery({
     queryKey: [
       'agent-runs',
+      userId ?? 'anonymous',
+      orgId ?? 'no-org',
       options.historyOnly,
       options.model,
       options.page,

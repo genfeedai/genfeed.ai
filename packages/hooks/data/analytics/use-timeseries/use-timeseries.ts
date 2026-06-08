@@ -9,9 +9,11 @@ import {
   createCacheKey,
   createLocalStorageCache,
 } from '@helpers/data/cache/cache.helper';
-import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
+import {
+  getDateRangeKeys,
+  getDateRangeWithDefaults,
+} from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const TIMESERIES_CACHE_TTL_MS = 15 * 60 * 1000;
@@ -67,14 +69,9 @@ export function useTimeseries(
   );
   const [isTimeseriesUsingCache, setIsTimeseriesUsingCache] = useState(false);
 
-  const startDateKey = useMemo(
-    () =>
-      dateRange.startDate ? format(dateRange.startDate, 'yyyy-MM-dd') : null,
-    [dateRange.startDate],
-  );
-  const endDateKey = useMemo(
-    () => (dateRange.endDate ? format(dateRange.endDate, 'yyyy-MM-dd') : null),
-    [dateRange.endDate],
+  const { endDateKey, startDateKey } = useMemo(
+    () => getDateRangeKeys(dateRange),
+    [dateRange],
   );
 
   const timeseriesCacheKey = useMemo(

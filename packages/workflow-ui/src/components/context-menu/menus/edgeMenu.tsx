@@ -1,5 +1,5 @@
 import { Trash2 } from 'lucide-react';
-import type { ContextMenuItemConfig } from '../ContextMenu';
+import type { ContextMenuItemConfig } from '../context-menu-config';
 
 interface EdgeMenuOptions {
   edgeId: string;

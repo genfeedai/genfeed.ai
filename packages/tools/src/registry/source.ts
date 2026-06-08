@@ -23,7 +23,7 @@ export interface SourceTool {
 const OVERLAP_TOOLS: SourceTool[] = [
   // create_post: agent params (9 props) > mcp params (4 props); agent desc longer
   {
-    creditCost: 0,
+    creditCost: 1,
     description:
       'Create a post draft from text, or prepare and confirm direct publishing for an existing content item or ingredient by returning a publish confirmation card first.',
     name: 'create_post',

@@ -16,6 +16,7 @@ Multi-tenant organization controls are available under commercial license in `ee
 **Repo invariant:** All multi-tenant data access code must live under `ee/` or import from `ee/packages/`.
 
 This means:
+
 - Organization-scoped query enforcement for data isolation belongs in `ee/`
 - Billing, quotas, and team management belong in `ee/`
 - The core OSS code should work with a single implicit organization
@@ -25,6 +26,7 @@ This means:
 See `CONTRIBUTING.md` at repo root for contribution guidelines.
 
 Key points:
+
 - OSS contributions go to the root codebase (AGPL-3.0)
 - Enterprise features go to `ee/` (commercial license, typically internal)
 - All contributions must follow the coding standards in `CLAUDE.md`
@@ -36,13 +38,19 @@ Key points:
 
 ## What Stays Open vs Enterprise
 
-| Capability | OSS | Enterprise (`ee/`) |
-|---|---|---|
-| Workflow builder + execution | Yes | -- |
-| BYOK model execution | Yes | -- |
-| Agent chat + tools | Yes | -- |
-| Single-tenant deployment | Yes | -- |
-| Multi-tenant org isolation | -- | Yes |
-| Team/role management | -- | Yes |
-| Billing + quotas | -- | Yes |
-| Advanced analytics | -- | Yes |
+| Capability                                  | OSS | Enterprise (`ee/`) |
+| ------------------------------------------- | --- | ------------------ |
+| Workflow builder + execution                | Yes | --                 |
+| BYOK model execution                        | Yes | --                 |
+| Agent chat + tools                          | Yes | --                 |
+| Skill model + local skills                  | Yes | --                 |
+| Routine engine + workflow-backed scheduling | Yes | --                 |
+| Personal feedback memory                    | Yes | --                 |
+| Single-tenant deployment                    | Yes | --                 |
+| Multi-tenant org isolation                  | --  | Yes                |
+| Team/role management                        | --  | Yes                |
+| Shared review queue                         | --  | Yes                |
+| Org-shared memory + governance              | --  | Yes                |
+| Skill promotion from feedback               | --  | Yes                |
+| Billing + quotas                            | --  | Yes                |
+| Advanced analytics                          | --  | Yes                |

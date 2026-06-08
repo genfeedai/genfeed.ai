@@ -51,6 +51,7 @@
       "@genfeedai/serializers": ["../../packages/serializers/src/index.ts"],
       "@genfeedai/serializers/*": ["../../packages/serializers/src/*"],
       "@genfeedai/ui": ["../../packages/ui/src/index.ts"],
+      "@genfeedai/ui/*": ["../../packages/ui/src/*"],
       "@serializers/*": ["../../packages/serializers/src/*"],
       "@services/*": ["../../packages/services/*"],
       "@shared/*": ["../../packages/*", "../../../tests/*"],

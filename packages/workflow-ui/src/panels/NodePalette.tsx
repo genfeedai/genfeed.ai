@@ -305,6 +305,7 @@ export function NodePalette() {
           <input
             type="text"
             placeholder="Search nodes..."
+            aria-label="Search nodes"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-8 pr-3 py-1.5 text-sm bg-[var(--secondary)] border border-[var(--border)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--ring)]"

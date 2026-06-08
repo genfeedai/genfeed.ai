@@ -1,8 +1,12 @@
 import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-integration.dto';
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IntegrationPlatform } from '@genfeedai/enums';
+import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
+import {
+  IntegrationPlatform as PrismaIntegrationPlatform,
+  IntegrationStatus as PrismaIntegrationStatus,
+} from '@genfeedai/prisma';
 import { CryptoService } from '@libs/crypto/crypto.service';
 import { RedisService } from '@libs/redis/redis.service';
 import {
@@ -31,12 +35,14 @@ export class IntegrationsService {
     orgId: string,
     dto: CreateIntegrationDto,
   ): Promise<Record<string, unknown>> {
+    const platform = this.toPrismaPlatform(dto.platform);
+
     // Check if integration for this platform already exists
     const existing = await this.prisma.orgIntegration.findFirst({
       where: {
         isDeleted: false,
         organizationId: orgId,
-        platform: dto.platform as never,
+        platform,
       },
     });
 
@@ -54,7 +60,7 @@ export class IntegrationsService {
         config: (dto.config || {}) as never,
         encryptedToken,
         organizationId: orgId,
-        platform: dto.platform as never,
+        platform,
       },
     });
 
@@ -65,7 +71,7 @@ export class IntegrationsService {
       platform: dto.platform,
     });
 
-    return integration;
+    return this.toApiIntegration(integration);
   }
 
   async findAll(orgId: string): Promise<Record<string, unknown>[]> {
@@ -77,7 +83,7 @@ export class IntegrationsService {
     });
 
     return integrations.map((integration) => ({
-      ...integration,
+      ...this.toApiIntegration(integration),
       config: this.maskSecretConfig(
         integration.config as Record<string, unknown>,
       ),
@@ -102,7 +108,7 @@ export class IntegrationsService {
     }
 
     return {
-      ...integration,
+      ...this.toApiIntegration(integration),
       config: this.maskSecretConfig(
         integration.config as Record<string, unknown>,
       ),
@@ -113,16 +119,17 @@ export class IntegrationsService {
   async findByPlatform(
     platform: IntegrationPlatform,
   ): Promise<Record<string, unknown>[]> {
+    const prismaPlatform = this.toPrismaPlatform(platform);
     const integrations = await this.prisma.orgIntegration.findMany({
       where: {
         isDeleted: false,
-        platform: platform as never,
-        status: 'ACTIVE',
+        platform: prismaPlatform,
+        status: PrismaIntegrationStatus.ACTIVE,
       },
     });
 
     return integrations.map((integration) => ({
-      ...integration,
+      ...this.toApiIntegration(integration),
       // Decrypt token for internal use
       botToken: this.cryptoService.decrypt(integration.encryptedToken),
     }));
@@ -132,11 +139,12 @@ export class IntegrationsService {
     platform: IntegrationPlatform,
     integrationId: string,
   ): Promise<Record<string, unknown>> {
+    const prismaPlatform = this.toPrismaPlatform(platform);
     const integration = await this.prisma.orgIntegration.findFirst({
       where: {
         id: integrationId,
         isDeleted: false,
-        platform: platform as never,
+        platform: prismaPlatform,
       },
     });
 
@@ -147,7 +155,7 @@ export class IntegrationsService {
     }
 
     return {
-      ...integration,
+      ...this.toApiIntegration(integration),
       botToken: this.cryptoService.decrypt(integration.encryptedToken),
     };
   }
@@ -186,7 +194,7 @@ export class IntegrationsService {
     }
 
     if (dto.status) {
-      updateData['status'] = dto.status;
+      updateData['status'] = this.toPrismaStatus(dto.status);
     }
 
     const updated = await this.prisma.orgIntegration.update({
@@ -198,11 +206,11 @@ export class IntegrationsService {
     await this.emitIntegrationEvent(REDIS_EVENTS.INTEGRATION_UPDATED, {
       integrationId: updated.id,
       orgId,
-      platform: updated.platform as unknown as IntegrationPlatform,
+      platform: this.toApiPlatform(updated.platform),
     });
 
     return {
-      ...updated,
+      ...this.toApiIntegration(updated),
       config: this.maskSecretConfig(updated.config as Record<string, unknown>),
       encryptedToken: '***MASKED***',
     };
@@ -230,8 +238,41 @@ export class IntegrationsService {
     await this.emitIntegrationEvent(REDIS_EVENTS.INTEGRATION_DELETED, {
       integrationId: existing.id,
       orgId,
-      platform: existing.platform as unknown as IntegrationPlatform,
+      platform: this.toApiPlatform(existing.platform),
     });
+  }
+
+  private toPrismaPlatform(
+    platform: IntegrationPlatform,
+  ): (typeof PrismaIntegrationPlatform)[keyof typeof PrismaIntegrationPlatform] {
+    const key =
+      platform.toUpperCase() as keyof typeof PrismaIntegrationPlatform;
+    return PrismaIntegrationPlatform[key];
+  }
+
+  private toPrismaStatus(
+    status: IntegrationStatus,
+  ): (typeof PrismaIntegrationStatus)[keyof typeof PrismaIntegrationStatus] {
+    const key = status.toUpperCase() as keyof typeof PrismaIntegrationStatus;
+    return PrismaIntegrationStatus[key];
+  }
+
+  private toApiIntegration(
+    integration: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return {
+      ...integration,
+      platform: this.toApiPlatform(integration['platform']),
+      status: this.toApiStatus(integration['status']),
+    };
+  }
+
+  private toApiPlatform(platform: unknown): IntegrationPlatform {
+    return String(platform).toLowerCase() as IntegrationPlatform;
+  }
+
+  private toApiStatus(status: unknown): IntegrationStatus {
+    return String(status).toLowerCase() as IntegrationStatus;
   }
 
   /**

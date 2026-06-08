@@ -11,8 +11,14 @@ import path from 'node:path';
 const ROOT_DIR = process.cwd();
 const ROOT_TSCONFIG = path.join(ROOT_DIR, 'tsconfig.json');
 const BASELINE_FILE = path.join(ROOT_DIR, 'scripts/import-cycle-baseline.json');
-const EXCLUDE_REGEX = String.raw`(^|/)(node_modules|dist|coverage|storybook-static|public|docs|e2e|__tests__|__mocks__|\.next)(/|$)|\.(spec|test)\.[jt]sx?$|\.d\.ts$`;
+const EXCLUDE_REGEX = String.raw`(^|/)(node_modules|dist|coverage|storybook-static|public|docs|e2e|__tests__|__mocks__|\.next|packages/generated)(/|$)|\.(spec|test)\.[jt]sx?$|\.d\.ts$`;
 const WORKSPACE_GLOBS = ['packages/*', 'apps/server/*', 'apps/app/*'];
+const EXCLUDED_WORKSPACES = new Set([
+  // Generated Prisma client output has intentional internal cycles.
+  'packages/generated',
+  // Type-only interface barrels produce noisy Madge cycles with no runtime edge.
+  'packages/interfaces',
+]);
 const CODE_DIR_HINTS = ['src', 'app', 'packages', 'components', 'lib'];
 const DEFAULT_MADGE_TIMEOUT_MS = 60_000;
 const SOURCE_FILE_PATTERN = '*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}';
@@ -177,6 +183,10 @@ function expandWorkspacePattern(pattern: string): string[] {
 
 function discoverWorkspaceRoots(): string[] {
   return WORKSPACE_GLOBS.flatMap((pattern) => expandWorkspacePattern(pattern))
+    .filter(
+      (workspaceRoot) =>
+        !EXCLUDED_WORKSPACES.has(toRepoRelative(workspaceRoot)),
+    )
     .filter((workspaceRoot) => hasCodeTree(workspaceRoot))
     .sort((left, right) => left.localeCompare(right));
 }
@@ -445,24 +455,28 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  const detectedCycles = workspaceRoots.flatMap((workspaceRoot) => {
-    const tsconfigPath = resolveTsconfig(workspaceRoot);
-    const scanTargets = discoverScanTargets(workspaceRoot);
-    if (!args.json) {
-      process.stdout.write(
-        `Scanning ${toRepoRelative(workspaceRoot)} (${scanTargets
-          .map((target) => toRepoRelative(target))
-          .join(', ')})...\n`,
+  const detectedCycles = workspaceRoots
+    .flatMap((workspaceRoot) => {
+      const tsconfigPath = resolveTsconfig(workspaceRoot);
+      const scanTargets = discoverScanTargets(workspaceRoot);
+      if (!args.json) {
+        process.stdout.write(
+          `Scanning ${toRepoRelative(workspaceRoot)} (${scanTargets
+            .map((target) => toRepoRelative(target))
+            .join(', ')})...\n`,
+        );
+      }
+      const cycles = runMadge(
+        workspaceRoot,
+        tsconfigPath,
+        scanTargets,
+        args.timeoutMs,
       );
-    }
-    const cycles = runMadge(
-      workspaceRoot,
-      tsconfigPath,
-      scanTargets,
-      args.timeoutMs,
-    );
-    return cycles.map((cycleFiles) => toCycleRecord(cycleFiles, workspaceRoot));
-  });
+      return cycles.map((cycleFiles) =>
+        toCycleRecord(cycleFiles, workspaceRoot),
+      );
+    })
+    .filter((cycle) => !EXCLUDED_WORKSPACES.has(cycle.workspace));
 
   const dedupedCycles = [
     ...new Map(detectedCycles.map((cycle) => [cycle.key, cycle])).values(),

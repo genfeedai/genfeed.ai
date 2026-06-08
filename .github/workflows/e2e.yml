@@ -2,11 +2,16 @@ name: E2E Tests
 
 on:
   workflow_dispatch:
+  # Allow the suite to be run as a reusable workflow (e.g. by full-suite.yml,
+  # which runs it after the CI gate passes). Secrets are inherited from caller.
+  workflow_call:
   schedule:
     - cron: "0 6 * * 1" # Weekly Monday 6am UTC
 
+# Include the workflow name in the group so a full-suite.yml workflow_call on the
+# same ref does not cancel the weekly cron run of this workflow (and vice versa).
 concurrency:
-  group: e2e-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -14,6 +19,23 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
 jobs:
+  # Static route-coverage gate — fast, deterministic, no app build required.
+  # Fails if dedicated route coverage drops below threshold (default 80%).
+  e2e-route-coverage:
+    name: E2E Route Coverage Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22.x"
+
+      - name: Check route coverage
+        run: node scripts/e2e-route-coverage.mjs
+
   # API E2E Tests — test infrastructure incomplete, non-blocking until ready
   e2e-api:
     name: API E2E Tests
@@ -75,6 +97,13 @@ jobs:
       - name: Build packages
         run: bunx turbo run build --filter="./packages/*"
 
+      # Provision the schema on the ephemeral Postgres service container.
+      # The E2E suite assumes a migrated DB (it truncates + reseeds per test,
+      # it does not create the schema itself).
+      - name: Apply Prisma migrations to test DB
+        run: bunx prisma migrate deploy
+        working-directory: packages/prisma
+
       - name: Run API E2E smoke tests
         run: bun run --cwd apps/server/api test:e2e:ci
         env:
@@ -87,10 +116,127 @@ jobs:
           flags: api-e2e
           fail_ci_if_error: false
 
+  # Frontend Core E2E — sharded 4-way. Each shard is an independent machine
+  # running ~1/4 of the app-core specs with 2 workers, so a fix only needs the
+  # affected shard re-run ("Re-run failed jobs" carries the green shards forward
+  # unchanged). fail-fast:false keeps every shard's result independent.
   e2e-frontend:
-    name: Frontend Core E2E Tests
+    name: Frontend E2E (Shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: "1.3.13"
+          cache-playwright: "true"
+
+      - name: Build app
+        run: bunx turbo run build --filter=@genfeedai/app
+        env:
+          # Build the app in Playwright test mode. This NEXT_PUBLIC_* flag is
+          # inlined at build time and is the master switch for the proxy.ts auth
+          # bypass (middleware can't read a plain server env at request time on
+          # edge), disables live sockets (use-socket-manager), and bypasses the
+          # Clerk publishable-key requirement client-side (AppProviders).
+          NEXT_PUBLIC_PLAYWRIGHT_TEST: "true"
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
+          NEXT_PUBLIC_API_URL: http://localhost:3010
+
+      - name: Run core E2E shard ${{ matrix.shard }}/4
+        # --reporter=blob (passed inline, overriding the config reporter) so the
+        # merge job can stitch all shards into one HTML report. --shard splits
+        # the app-core specs by file across the 4 machines.
+        run: bun run test:e2e:core -- --reporter=blob --shard=${{ matrix.shard }}/4
+        env:
+          CI: true
+          APP_BASE_URL: http://localhost:3000
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
+
+      - name: Upload blob report (shard ${{ matrix.shard }})
+        uses: actions/upload-artifact@v4
+        # Always upload so the merge job has every shard, even failed ones.
+        if: always()
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: blob-report/
+          retention-days: 1
+
+  # Merge the per-shard blob reports into a single browsable HTML report.
+  e2e-merge-reports:
+    name: Merge E2E Reports
+    runs-on: ubuntu-latest
+    needs: [e2e-frontend]
+    if: always()
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: "1.3.13"
+          cache-turbo: "false"
+
+      - name: Download all blob reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: blob-report-*
+          merge-multiple: true
+          path: all-blob-reports/
+
+      - name: Merge into HTML report
+        run: bunx playwright merge-reports --reporter=html,github ./all-blob-reports
+
+      - name: Upload merged HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-merged
+          path: playwright-report/
+          retention-days: 7
+
+  # Gate aggregator — the single job that represents the E2E suite's pass/fail.
+  # Fails if route coverage fails OR any frontend shard failed OR was cancelled
+  # (a cancelled shard means it hung/timed out — surface it, never silently pass).
+  e2e-gate:
+    name: E2E Gate (all shards)
+    runs-on: ubuntu-latest
+    needs: [e2e-route-coverage, e2e-frontend]
+    if: always()
+    steps:
+      - name: Check shard results
+        run: |
+          echo "Route coverage: ${{ needs.e2e-route-coverage.result }}"
+          echo "Frontend matrix: ${{ needs.e2e-frontend.result }}"
+          if [[ "${{ needs.e2e-route-coverage.result }}" == "failure" ]]; then
+            echo "Route coverage gate failed" && exit 1
+          fi
+          if [[ "${{ needs.e2e-frontend.result }}" == "failure" || \
+                "${{ needs.e2e-frontend.result }}" == "cancelled" ]]; then
+            echo "One or more E2E shards failed or were cancelled" && exit 1
+          fi
+          echo "All required E2E checks passed."
+
+  # Real-Clerk authenticated smoke (Playwright `app-authed` project). Exercises
+  # the GENUINE clerkMiddleware path via a real Clerk test-instance session — no
+  # proxy.ts bypass — so it must be built with a REAL Clerk client (bypass flag
+  # OFF) and given the real test-instance secrets. Dormant + non-blocking until
+  # the secrets land: gated behind the E2E_AUTHED_ENABLED repo variable and
+  # continue-on-error, so it never affects the gate while it hardens. mac-studio
+  # already runs this path locally; this makes CI ready to trigger on demand.
+  e2e-frontend-authed:
+    name: Frontend Authed E2E (real Clerk)
+    if: ${{ vars.E2E_AUTHED_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v5
 
@@ -132,43 +278,45 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Build app
+      - name: Build app (real Clerk client, bypass OFF)
         run: bunx turbo run build --filter=@genfeedai/app
         env:
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
+          # CRUCIAL: build with the bypass flag OFF so AppProviders mounts a REAL
+          # ClerkProvider with the real publishable key. With the flag ON it forces
+          # publishableKey:'' (__internal_bypassMissingPublishableKey), leaving no
+          # real window.Clerk for clerk.signIn to use. NEXT_PUBLIC_* is inlined at
+          # build time, so this MUST be set here — not just at runtime.
+          NEXT_PUBLIC_PLAYWRIGHT_TEST: "false"
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
           NEXT_PUBLIC_API_URL: http://localhost:3010
 
-      - name: Run core E2E tests
-        run: bun run test:e2e:core
+      - name: Run authed E2E (clerk-setup + app-authed)
+        run: bun run test:e2e:authed
         env:
           CI: true
           APP_BASE_URL: http://localhost:3000
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
+          NEXT_PUBLIC_PLAYWRIGHT_TEST: "false"
+          # clerk.setup.ts reads CLERK_PUBLISHABLE_KEY first, then NEXT_PUBLIC_*.
+          # Set BOTH so the @clerk/backend provisioning client and the app under
+          # test resolve to the SAME Clerk instance as CLERK_SECRET_KEY.
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
+          E2E_CLERK_USER_PASSWORD: ${{ secrets.E2E_CLERK_USER_PASSWORD }}
 
-      - name: Upload Playwright report
+      - name: Upload authed Playwright report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report
-          path: playwright-report/
+          name: playwright-report-authed
+          path: playwright/artifacts/report/
           retention-days: 7
 
-      - name: Upload test results (on failure)
+      - name: Upload authed traces (on failure)
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-traces
-          path: test-results/
-          retention-days: 7
-
-      - name: Upload screenshot diffs (on failure)
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: screenshot-diffs
-          path: |
-            e2e/__screenshots__/
-            playwright-results/
+          name: playwright-traces-authed
+          path: playwright/artifacts/results/
           retention-days: 7

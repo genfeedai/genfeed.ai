@@ -25,7 +25,7 @@
         ],
         "builder": {
           "options": {
-            "configPath": "api/webpack.config.js"
+            "configPath": "api/webpack.config.cjs"
           },
           "type": "webpack"
         },
@@ -40,7 +40,7 @@
       "compilerOptions": {
         "builder": {
           "options": {
-            "configPath": "clips/webpack.config.js"
+            "configPath": "clips/webpack.config.cjs"
           },
           "type": "webpack"
         },
@@ -55,7 +55,7 @@
       "compilerOptions": {
         "builder": {
           "options": {
-            "configPath": "discord/webpack.config.js"
+            "configPath": "discord/webpack.config.cjs"
           },
           "type": "webpack"
         },
@@ -70,7 +70,7 @@
       "compilerOptions": {
         "builder": {
           "options": {
-            "configPath": "files/webpack.config.js"
+            "configPath": "files/webpack.config.cjs"
           },
           "type": "webpack"
         },
@@ -85,7 +85,7 @@
       "compilerOptions": {
         "builder": {
           "options": {
-            "configPath": "images/webpack.config.js"
+            "configPath": "images/webpack.config.cjs"
           },
           "type": "webpack"
         },
@@ -108,7 +108,7 @@
         ],
         "builder": {
           "options": {
-            "configPath": "mcp/webpack.config.js"
+            "configPath": "mcp/webpack.config.cjs"
           },
           "type": "webpack"
         },
@@ -123,7 +123,7 @@
       "compilerOptions": {
         "builder": {
           "options": {
-            "configPath": "notifications/webpack.config.js"
+            "configPath": "notifications/webpack.config.cjs"
           },
           "type": "webpack"
         },
@@ -138,7 +138,7 @@
       "compilerOptions": {
         "builder": {
           "options": {
-            "configPath": "slack/webpack.config.js"
+            "configPath": "slack/webpack.config.cjs"
           },
           "type": "webpack"
         },
@@ -153,7 +153,7 @@
       "compilerOptions": {
         "builder": {
           "options": {
-            "configPath": "telegram/webpack.config.js"
+            "configPath": "telegram/webpack.config.cjs"
           },
           "type": "webpack"
         },
@@ -168,7 +168,7 @@
       "compilerOptions": {
         "builder": {
           "options": {
-            "configPath": "videos/webpack.config.js"
+            "configPath": "videos/webpack.config.cjs"
           },
           "type": "webpack"
         },
@@ -183,7 +183,7 @@
       "compilerOptions": {
         "builder": {
           "options": {
-            "configPath": "voices/webpack.config.js"
+            "configPath": "voices/webpack.config.cjs"
           },
           "type": "webpack"
         },
@@ -198,7 +198,7 @@
       "compilerOptions": {
         "builder": {
           "options": {
-            "configPath": "workers/webpack.config.js"
+            "configPath": "workers/webpack.config.cjs"
           },
           "type": "webpack"
         },

@@ -3,6 +3,7 @@
   "name": "@genfeedai/desktop-core",
   "private": true,
   "sideEffects": false,
+  "type": "module",
   "types": "src/index.ts",
   "version": "0.1.0"
 }

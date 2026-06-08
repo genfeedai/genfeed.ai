@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  CredentialPlatform,
-  PostCategory,
-  PromptCategory,
-  SystemPromptKey,
-} from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
@@ -16,69 +9,15 @@ import { PromptsService } from '@genfeedai/services/content/prompts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { createPromptHandler } from '@genfeedai/services/core/socket-manager.service';
 import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
-import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
-import FormControl from '@ui/primitives/field';
-import { Input } from '@ui/primitives/input';
-import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
-import { SelectField } from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { IconType } from 'react-icons';
-import { FaInstagram, FaTiktok, FaXTwitter, FaYoutube } from 'react-icons/fa6';
-import { HiSparkles } from 'react-icons/hi2';
-
-const platformIcons: Record<string, IconType> = {
-  instagram: FaInstagram,
-  tiktok: FaTiktok,
-  twitter: FaXTwitter,
-  youtube: FaYoutube,
-};
-
-const platformColors: Record<string, string> = {
-  instagram: 'text-pink-500',
-  tiktok: 'text-black',
-  twitter: 'text-blue-400',
-  youtube: 'text-red-500',
-};
-
-const PLATFORM_TO_CONTENT_CATEGORY: Record<string, PromptCategory> = {
-  instagram: PromptCategory.POST_CONTENT_INSTAGRAM,
-  tiktok: PromptCategory.POST_CONTENT_TIKTOK,
-  twitter: PromptCategory.POST_CONTENT_TWITTER,
-  youtube: PromptCategory.POST_CONTENT_YOUTUBE,
-};
-
-const PLATFORM_TO_TITLE_CATEGORY: Record<string, PromptCategory> = {
-  instagram: PromptCategory.POST_TITLE_INSTAGRAM,
-  tiktok: PromptCategory.POST_TITLE_TIKTOK,
-  twitter: PromptCategory.POST_TITLE_TWITTER,
-  youtube: PromptCategory.POST_TITLE_YOUTUBE,
-};
-
-// Platform to system prompt key mapping with content/title variants
-const PLATFORM_TO_SYSTEM_PROMPT_KEY: Record<
-  string,
-  { content: SystemPromptKey; title: SystemPromptKey }
-> = {
-  instagram: {
-    content: SystemPromptKey.INSTAGRAM_CONTENT,
-    title: SystemPromptKey.INSTAGRAM_TITLE,
-  },
-  tiktok: {
-    content: SystemPromptKey.TIKTOK_CONTENT,
-    title: SystemPromptKey.TIKTOK_TITLE,
-  },
-  twitter: {
-    content: SystemPromptKey.TWITTER_CONTENT,
-    title: SystemPromptKey.TWITTER_TITLE,
-  },
-  youtube: {
-    content: SystemPromptKey.YOUTUBE_CONTENT,
-    title: SystemPromptKey.YOUTUBE_TITLE,
-  },
-};
+import ModalPostPlatformCard from './ModalPostPlatformCard';
+import ModalPostPlatformGrid from './ModalPostPlatformGrid';
+import {
+  PLATFORM_TO_CONTENT_CATEGORY,
+  PLATFORM_TO_SYSTEM_PROMPT_KEY,
+  PLATFORM_TO_TITLE_CATEGORY,
+} from './platform-map.constants';
 
 export default function ModalPostPlatformsTab({
   form,
@@ -216,67 +155,10 @@ export default function ModalPostPlatformsTab({
 
   return (
     <>
-      {/* Platform selection */}
-      <div className="mb-6">
-        <p className="text-sm font-medium mb-2">Available Platforms</p>
-
-        <div className="grid grid-cols-4 gap-2">
-          {platformConfigs.map((config) => {
-            const Icon = platformIcons[config.platform];
-            const color = platformColors[config.platform];
-            const hasCredential = !!config.credentialId;
-            const isCredentialValid = config.isCredentialValid !== false;
-            const isEnabled =
-              hasCredential && isCredentialValid && config.enabled;
-            const isSelectable = hasCredential && isCredentialValid;
-
-            return (
-              <div
-                key={config.platform}
-                className={`bg-card border border-white/[0.08] p-3 ${
-                  isEnabled
-                    ? 'ring-2 ring-primary/40'
-                    : !hasCredential
-                      ? 'opacity-60'
-                      : ''
-                }`}
-              >
-                <label
-                  className={`flex items-center gap-2 ${
-                    hasCredential ? 'cursor-pointer' : 'cursor-not-allowed'
-                  }`}
-                >
-                  <Checkbox
-                    name={`platform-${config.platform}`}
-                    isChecked={config.enabled}
-                    onChange={() =>
-                      isSelectable && togglePlatform(config.credentialId)
-                    }
-                    isDisabled={!isSelectable}
-                  />
-                  <div className="flex items-center gap-2 flex-1">
-                    {Icon && (
-                      <Icon
-                        className={`size-4 ${hasCredential ? color : 'text-foreground/30'}`}
-                      />
-                    )}
-                    {hasCredential && (
-                      <span className="text-xs text-foreground/60">
-                        @{config.handle}
-                      </span>
-                    )}
-                  </div>
-                </label>
-                {hasCredential && !isCredentialValid && (
-                  <span className="text-xs text-warning">
-                    Reconnect account to enable
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <ModalPostPlatformGrid
+        platformConfigs={platformConfigs}
+        togglePlatform={togglePlatform}
+      />
 
       {/* Platform-specific customization */}
       <div className="border-t pt-4 space-y-4">
@@ -298,8 +180,6 @@ export default function ModalPostPlatformsTab({
               const isCredentialValid = config.isCredentialValid !== false;
               const isEnabled =
                 hasCredential && isCredentialValid && config.enabled;
-              const Icon = platformIcons[config.platform];
-              const color = platformColors[config.platform];
               const isTwitter = config.platform === CredentialPlatform.TWITTER;
               const isYoutube = config.platform === CredentialPlatform.YOUTUBE;
               const isInstagram =
@@ -307,288 +187,23 @@ export default function ModalPostPlatformsTab({
               const currentLength = config.description?.length ?? 0;
 
               const node = (
-                <div
+                <ModalPostPlatformCard
                   key={config.platform}
-                  className={`bg-card border border-white/[0.08] p-4 space-y-3 ${
-                    isEnabled ? '' : 'bg-muted/20'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      {Icon && (
-                        <Icon
-                          className={`size-4 ${
-                            hasCredential ? color : 'text-foreground/40'
-                          }`}
-                        />
-                      )}
-                      {hasCredential && (
-                        <span className="text-xs text-foreground/60">
-                          @{config.handle}
-                        </span>
-                      )}
-                    </div>
-                    {!hasCredential && (
-                      <span className="text-xs text-warning">
-                        Connect account to enable
-                      </span>
-                    )}
-                    {hasCredential && !isCredentialValid && (
-                      <span className="text-xs text-warning">
-                        Reconnect account to publish
-                      </span>
-                    )}
-                  </div>
-
-                  {isYoutube && (
-                    <FormControl label="YouTube Visibility">
-                      <SelectField
-                        name={`youtubeStatus-${config.credentialId || config.platform}`}
-                        value={config.status || 'unlisted'}
-                        onChange={(event) => {
-                          if (!isEnabled) {
-                            return;
-                          }
-
-                          updatePlatformConfig(config.credentialId, {
-                            status: event.target.value,
-                          });
-                        }}
-                        isDisabled={!isEnabled || isLoading}
-                      >
-                        <option value="public">Public</option>
-                        <option value="private">Private</option>
-                        <option value="unlisted">Unlisted</option>
-                        <option value="scheduled">Scheduled</option>
-                      </SelectField>
-                    </FormControl>
-                  )}
-
-                  {isInstagram && (
-                    <div className="space-y-3">
-                      <p className="text-sm font-medium">Instagram Post Type</p>
-
-                      <RadioGroup
-                        className="space-y-2"
-                        disabled={!isEnabled || isLoading}
-                        value={
-                          config.category === PostCategory.IMAGE
-                            ? 'image'
-                            : config.isShareToFeedSelected
-                              ? 'video-feed'
-                              : 'video-only'
-                        }
-                        onValueChange={(value) => {
-                          if (!isEnabled) {
-                            return;
-                          }
-
-                          if (value === 'image') {
-                            updatePlatformConfig(config.credentialId, {
-                              category: PostCategory.IMAGE,
-                              isShareToFeedSelected: false,
-                            });
-                            return;
-                          }
-
-                          updatePlatformConfig(config.credentialId, {
-                            category: PostCategory.VIDEO,
-                            isShareToFeedSelected: value === 'video-feed',
-                          });
-                        }}
-                      >
-                        {/* Image Post */}
-                        <label
-                          className="flex items-center gap-2 cursor-pointer"
-                          htmlFor={`${config.credentialId}-instagram-image`}
-                        >
-                          <RadioGroupItem
-                            id={`${config.credentialId}-instagram-image`}
-                            value="image"
-                          />
-                          <span className="text-sm">Image Post</span>
-                        </label>
-
-                        {/* Reel Only */}
-                        <label
-                          className="flex items-center gap-2 cursor-pointer"
-                          htmlFor={`${config.credentialId}-instagram-video-only`}
-                        >
-                          <RadioGroupItem
-                            id={`${config.credentialId}-instagram-video-only`}
-                            value="video-only"
-                          />
-                          <span className="text-sm">Reel only</span>
-                        </label>
-
-                        {/* Reel + Feed */}
-                        <label
-                          className="flex items-center gap-2 cursor-pointer"
-                          htmlFor={`${config.credentialId}-instagram-video-feed`}
-                        >
-                          <RadioGroupItem
-                            id={`${config.credentialId}-instagram-video-feed`}
-                            value="video-feed"
-                          />
-                          <span className="text-sm">Reel + Feed</span>
-                        </label>
-                      </RadioGroup>
-                    </div>
-                  )}
-
-                  {!isTwitter && (
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label
-                          htmlFor={`platform-title-${config.credentialId || config.platform}`}
-                          className="text-sm font-medium"
-                        >
-                          Title
-                        </label>
-                        <Button
-                          variant={ButtonVariant.GHOST}
-                          size={ButtonSize.XS}
-                          className="gap-2"
-                          onClick={() =>
-                            handleGenerateContent(
-                              config.credentialId,
-                              config.platform,
-                              'title',
-                            )
-                          }
-                          isDisabled={
-                            !isEnabled ||
-                            isLoading ||
-                            generatingTitleFor === config.credentialId
-                          }
-                          isLoading={generatingTitleFor === config.credentialId}
-                          icon={<HiSparkles className="size-3" />}
-                          label={
-                            generatingTitleFor === config.credentialId
-                              ? 'Generating…'
-                              : 'Generate'
-                          }
-                        />
-                      </div>
-                      <Input
-                        id={`platform-title-${config.credentialId || config.platform}`}
-                        type="text"
-                        value={config.label}
-                        onChange={(event) => {
-                          if (!isEnabled) {
-                            return;
-                          }
-
-                          updatePlatformConfig(config.credentialId, {
-                            label: event.target.value,
-                          });
-                        }}
-                        placeholder={globalLabel || 'Enter title'}
-                        disabled={!isEnabled || isLoading}
-                      />
-                    </div>
-                  )}
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label
-                        htmlFor={`platform-description-${config.credentialId || config.platform}`}
-                        className="text-sm font-medium"
-                      >
-                        {isTwitter ? 'Tweet' : 'Description'}
-                      </label>
-                      <Button
-                        variant={ButtonVariant.GHOST}
-                        size={ButtonSize.XS}
-                        className="gap-2"
-                        onClick={() =>
-                          handleGenerateContent(
-                            config.credentialId,
-                            config.platform,
-                            'description',
-                          )
-                        }
-                        isDisabled={
-                          !isEnabled ||
-                          isLoading ||
-                          generatingDescFor === config.credentialId
-                        }
-                        isLoading={generatingDescFor === config.credentialId}
-                        icon={<HiSparkles className="size-3" />}
-                        label={
-                          generatingDescFor === config.credentialId
-                            ? 'Generating…'
-                            : 'Generate'
-                        }
-                      />
-                    </div>
-
-                    <Textarea
-                      id={`platform-description-${config.credentialId || config.platform}`}
-                      className={isTwitter ? 'h-20' : 'h-24'}
-                      value={config.description}
-                      onChange={(event) => {
-                        if (!isEnabled) {
-                          return;
-                        }
-
-                        updatePlatformConfig(config.credentialId, {
-                          description: event.target.value,
-                        });
-                      }}
-                      placeholder={
-                        isTwitter
-                          ? "What's happening?"
-                          : globalDescription || 'Enter description'
-                      }
-                      disabled={!isEnabled || isLoading}
-                    />
-
-                    {isTwitter && (
-                      <p className="text-xs text-foreground/70 mt-1">
-                        {280 - currentLength} characters remaining
-                      </p>
-                    )}
-                  </div>
-
-                  <Checkbox
-                    name={`override-${config.platform}`}
-                    label="Override schedule time"
-                    className="checkbox-xs"
-                    isChecked={config.overrideSchedule}
-                    onChange={(event) => {
-                      if (!isEnabled) {
-                        return;
-                      }
-
-                      updatePlatformConfig(config.credentialId, {
-                        customScheduledDate: event.target.checked
-                          ? config.customScheduledDate
-                          : '',
-                        overrideSchedule: event.target.checked,
-                      });
-                    }}
-                    isDisabled={!isEnabled || isLoading}
-                  />
-
-                  {config.overrideSchedule && (
-                    <Input
-                      type="datetime-local"
-                      value={config.customScheduledDate}
-                      onChange={(event) => {
-                        if (!isEnabled) {
-                          return;
-                        }
-
-                        updatePlatformConfig(config.credentialId, {
-                          customScheduledDate: event.target.value,
-                        });
-                      }}
-                      min={getMinDateTime().toISOString().slice(0, 16)}
-                      disabled={!isEnabled || isLoading}
-                    />
-                  )}
-                </div>
+                  config={config}
+                  isLoading={isLoading}
+                  isEnabled={isEnabled}
+                  isTwitter={isTwitter}
+                  isYoutube={isYoutube}
+                  isInstagram={isInstagram}
+                  currentLength={currentLength}
+                  globalLabel={globalLabel}
+                  globalDescription={globalDescription}
+                  generatingTitleFor={generatingTitleFor}
+                  generatingDescFor={generatingDescFor}
+                  updatePlatformConfig={updatePlatformConfig}
+                  getMinDateTime={getMinDateTime}
+                  handleGenerateContent={handleGenerateContent}
+                />
               );
               acc.push(node);
               return acc;

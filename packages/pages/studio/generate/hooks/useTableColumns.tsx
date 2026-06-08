@@ -105,7 +105,7 @@ export function useTableColumns({
           </div>
 
           {isProcessing && (
-            <div className="w-4 h-4 rounded-full bg-foreground/20 animate-pulse" />
+            <div className="size-4 rounded-full bg-foreground/20 animate-pulse" />
           )}
         </div>
       );
@@ -123,14 +123,17 @@ export function useTableColumns({
       const isProcessing = item.status === IngredientStatus.PROCESSING;
 
       return (
-        <div
-          className="w-16 h-16 overflow-hidden bg-background relative group cursor-pointer"
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+          className="size-16 overflow-hidden bg-background relative group cursor-pointer"
           onClick={() => {
             if (hasMedia && index !== -1) {
               setLightboxIndex(index);
               setLightboxOpen(true);
             }
           }}
+          aria-label="View ingredient"
         >
           {(item.category === IngredientCategory.VIDEO ||
             item.category === IngredientCategory.AVATAR) &&
@@ -183,16 +186,16 @@ export function useTableColumns({
               position="right"
             >
               <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full bg-white/30 animate-pulse" />
+                <div className="size-8 rounded-full bg-white/30 animate-pulse" />
               </div>
             </SimpleTooltip>
           )}
           {hasMedia && !isProcessing && (
             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <HiEye className="w-6 h-6 text-white" />
+              <HiEye className="size-6 text-white" />
             </div>
           )}
-        </div>
+        </Button>
       );
     },
     [allAssets, setLightboxIndex, setLightboxOpen],
@@ -277,7 +280,7 @@ export function useTableColumns({
                 size={ButtonSize.XS}
                 className="opacity-0 group-hover:opacity-100 transition-opacity"
                 ariaLabel="Copy prompt to clipboard"
-                icon={<HiClipboardDocument className="w-4 h-4" />}
+                icon={<HiClipboardDocument className="size-4" />}
               />
             </div>
           );
@@ -415,14 +418,14 @@ export function useTableActions({
         variant: ButtonVariant.GHOST,
       },
       {
-        icon: <HiClipboardDocument className="w-4 h-4" />,
+        icon: <HiClipboardDocument className="size-4" />,
         isDisabled: (item: IIngredient) => !item.promptText,
         onClick: handleCopy,
         tooltip: 'Copy Prompt',
         variant: ButtonVariant.GHOST,
       },
       {
-        icon: <HiPencil className="w-4 h-4" />,
+        icon: <HiPencil className="size-4" />,
         onClick: handleEditIngredient,
         tooltip: 'Edit',
         variant: ButtonVariant.DEFAULT,
@@ -431,7 +434,7 @@ export function useTableActions({
 
     if (categoryType !== IngredientCategory.MUSIC) {
       baseActions.splice(1, 0, {
-        icon: <HiInformationCircle className="w-4 h-4" />,
+        icon: <HiInformationCircle className="size-4" />,
         onClick: handleSeeDetails,
         tooltip: 'View Ingredient',
         variant: ButtonVariant.GHOST,
@@ -440,7 +443,7 @@ export function useTableActions({
 
     if (categoryType === IngredientCategory.IMAGE) {
       baseActions.splice(3, 0, {
-        icon: <HiVideoCamera className="w-4 h-4" />,
+        icon: <HiVideoCamera className="size-4" />,
         isDisabled: (item: IIngredient) =>
           item.status === IngredientStatus.PROCESSING,
         onClick: handleConvertImageToVideo,

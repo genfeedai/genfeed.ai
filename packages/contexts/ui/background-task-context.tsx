@@ -14,8 +14,8 @@ import {
 } from '@helpers/generation-eta.helper';
 import {
   createContext,
+  use,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -366,7 +366,7 @@ export function BackgroundTaskProvider({ children }: LayoutProps) {
 }
 
 export function useBackgroundTaskContext(): IBackgroundTaskContextType {
-  const context = useContext(BackgroundTaskContext);
+  const context = use(BackgroundTaskContext);
 
   if (!context) {
     throw new Error(

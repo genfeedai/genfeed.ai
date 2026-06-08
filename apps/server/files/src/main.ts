@@ -1,4 +1,4 @@
-require('./instrument');
+import './instrument';
 
 import {
   bootstrap,
@@ -58,7 +58,7 @@ async function main() {
     // Serve local files in self-hosted mode (LOCAL + HYBRID)
     if (IS_SELF_HOSTED) {
       const localStorageDir =
-        process.env.GENFEED_STORAGE_PATH ??
+        configService.get('GENFEED_STORAGE_PATH') ??
         path.join(os.homedir(), '.genfeed', 'data', 'files');
 
       if (!fs.existsSync(localStorageDir)) {

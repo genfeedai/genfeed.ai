@@ -89,6 +89,9 @@ export default function TrainingDetail({
     }
 
     return () => {
+      // loadTraining() is also invoked outside this effect (retry button,
+      // modal onSuccess, refreshTraining), each time replacing the ref, so
+      // cleanup must abort the current controller, not one captured at setup.
       abortControllerRef.current?.abort();
     };
   }, [trainingId, loadTraining]);

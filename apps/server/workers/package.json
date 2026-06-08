@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@aws-sdk/client-ec2": "3.1053.0",
+    "@aws-sdk/client-ec2": "3.1059.0",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
@@ -10,7 +10,7 @@
   },
   "description": "Genfeed Workers Service (Cron Jobs)",
   "devDependencies": {
-    "@nestjs/testing": "11.1.23",
+    "@nestjs/testing": "11.1.24",
     "@types/multer": "2.1.0",
     "unplugin-swc": "1.5.9"
   },
@@ -38,5 +38,6 @@
     "test:e2e": "echo 'No e2e tests yet'",
     "test:watch": "vitest --config vitest.config.ts"
   },
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "type": "module"
 }

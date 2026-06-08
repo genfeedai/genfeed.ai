@@ -1,7 +1,7 @@
 import TwitterPipelineEngage from '@pages/twitter-pipeline/twitter-pipeline-engage';
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({

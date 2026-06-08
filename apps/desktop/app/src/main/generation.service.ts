@@ -10,6 +10,7 @@ import type {
   IDesktopWorkflowGenerationOptions,
   IDesktopWorkflowGenerationResult,
 } from '@genfeedai/desktop-contracts';
+import { sleep } from '@genfeedai/helpers';
 import {
   buildWorkflowGenerationMessages,
   DEFAULT_WORKFLOW_GENERATION_NODE_TYPES,
@@ -105,9 +106,6 @@ type AssetGenerationJobPayload = {
   providerMetadata?: Record<string, unknown>;
   request: IDesktopAssetGenerationRequest;
 };
-
-const sleep = (durationMs: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, durationMs));
 
 const isReplicatePendingStatus = (status: string): boolean =>
   ['queued', 'processing', 'starting'].includes(status.toLowerCase());
@@ -1224,7 +1222,7 @@ export class DesktopGenerationService {
       }
 
       if (attempt > 0) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await sleep(1000);
       }
 
       const statusResponse = await fetch(statusUrl, {
@@ -1341,7 +1339,7 @@ export class DesktopGenerationService {
         );
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await sleep(1000);
     }
 
     throw new Error('fal generation timed out waiting for the queued result.');

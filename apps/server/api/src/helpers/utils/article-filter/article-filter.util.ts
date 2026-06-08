@@ -1,6 +1,16 @@
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ArticleStatus } from '@genfeedai/enums';
 
+/**
+ * Maps app-level ArticleStatus values (lowercase) to Prisma enum values (uppercase).
+ * processing and failed have no Prisma equivalent and are excluded from the filter.
+ */
+const APP_TO_PRISMA_STATUS: Partial<Record<ArticleStatus, string>> = {
+  [ArticleStatus.DRAFT]: 'DRAFT',
+  [ArticleStatus.PUBLIC]: 'PUBLISHED',
+  [ArticleStatus.ARCHIVED]: 'ARCHIVED',
+};
+
 export class ArticleFilterUtil {
   static buildArticleStatusFilter(
     status?: ArticleStatus | ArticleStatus[],
@@ -8,23 +18,16 @@ export class ArticleFilterUtil {
     if (!status) return {};
 
     const statuses = Array.isArray(status) ? status : [status];
-    const expandedStatuses = new Set<ArticleStatus>();
+    const mapped = statuses
+      .map((s) => APP_TO_PRISMA_STATUS[s])
+      .filter((s): s is string => s !== undefined);
 
-    for (const item of statuses) {
-      if (item === ArticleStatus.DRAFT) {
-        expandedStatuses.add(ArticleStatus.DRAFT);
-        expandedStatuses.add(ArticleStatus.PROCESSING);
-      } else {
-        expandedStatuses.add(item);
-      }
+    if (mapped.length === 0) return {};
+    if (mapped.length === 1) {
+      return { status: mapped[0] };
     }
 
-    if (expandedStatuses.size === 0) return {};
-    if (expandedStatuses.size === 1) {
-      return { status: Array.from(expandedStatuses)[0] };
-    }
-
-    return { status: { in: Array.from(expandedStatuses) } };
+    return { status: { in: mapped } };
   }
 
   static buildCategoryFilter(category?: string): Record<string, unknown> {
@@ -32,7 +35,7 @@ export class ArticleFilterUtil {
   }
 
   static buildTagFilter(tagId?: string): Record<string, unknown> {
-    return tagId && isEntityId(tagId) ? { tags: tagId } : {};
+    return tagId && isEntityId(tagId) ? { tags: { some: { id: tagId } } } : {};
   }
 
   static buildContentSearchFilter(search?: string): Record<string, unknown> {
@@ -41,8 +44,8 @@ export class ArticleFilterUtil {
     const searchFilter = { contains: search.trim(), mode: 'insensitive' };
     return {
       OR: [
-        { label: searchFilter },
-        { summary: searchFilter },
+        { title: searchFilter },
+        { excerpt: searchFilter },
         { content: searchFilter },
       ],
     };

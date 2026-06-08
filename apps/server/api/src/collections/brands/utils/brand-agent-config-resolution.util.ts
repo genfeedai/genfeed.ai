@@ -55,6 +55,7 @@ export interface EffectiveBrandAgentConfig {
   defaultModel?: string;
   identityDefaults: {
     brand: AgentIdentityDefaults;
+    effective: AgentIdentityDefaults;
     organization: AgentIdentityDefaults;
   };
   persona?: string;
@@ -138,6 +139,22 @@ const resolveIdentityDefaults = (
       : undefined,
 });
 
+const mergeIdentityDefaults = (
+  organizationDefaults: AgentIdentityDefaults,
+  brandDefaults: AgentIdentityDefaults,
+): AgentIdentityDefaults => ({
+  defaultAvatarIngredientId:
+    brandDefaults.defaultAvatarIngredientId ??
+    organizationDefaults.defaultAvatarIngredientId,
+  defaultAvatarPhotoUrl:
+    brandDefaults.defaultAvatarPhotoUrl ??
+    organizationDefaults.defaultAvatarPhotoUrl,
+  defaultVoiceId:
+    brandDefaults.defaultVoiceId ?? organizationDefaults.defaultVoiceId,
+  defaultVoiceRef:
+    brandDefaults.defaultVoiceRef ?? organizationDefaults.defaultVoiceRef,
+});
+
 const normalizeAutonomyMode = (value: unknown): AgentAutonomyMode =>
   Object.values(AgentAutonomyMode).find((mode) => mode === value) ??
   AgentAutonomyMode.SUPERVISED;
@@ -177,6 +194,9 @@ export const resolveEffectiveBrandAgentConfig = ({
     brandAgentConfig?.voice != null || platformOverride?.voice != null;
   const hasStrategyConfig =
     brandAgentConfig?.strategy != null || platformOverride?.strategy != null;
+  const brandIdentityDefaults = resolveIdentityDefaults(brandAgentConfig);
+  const organizationIdentityDefaults =
+    resolveIdentityDefaults(organizationSettings);
 
   return {
     autoPublish: brandAgentConfig?.autoPublish,
@@ -185,8 +205,12 @@ export const resolveEffectiveBrandAgentConfig = ({
       asOptionalString(brandAgentConfig?.defaultModel) ??
       asOptionalString(organizationSettings?.defaultModel),
     identityDefaults: {
-      brand: resolveIdentityDefaults(brandAgentConfig),
-      organization: resolveIdentityDefaults(organizationSettings),
+      brand: brandIdentityDefaults,
+      effective: mergeIdentityDefaults(
+        organizationIdentityDefaults,
+        brandIdentityDefaults,
+      ),
+      organization: organizationIdentityDefaults,
     },
     persona:
       asOptionalString(platformOverride?.persona) ??

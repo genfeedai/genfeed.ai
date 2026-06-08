@@ -1,34 +1,20 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/enums';
+import type { VoiceProvider } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Voice } from '@models/ingredients/voice.model';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { VoicesService } from '@services/ingredients/voices.service';
-import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
-import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  HiArrowPath,
-  HiMagnifyingGlass,
-  HiOutlineSpeakerWave,
-  HiSparkles,
-  HiStar,
-} from 'react-icons/hi2';
+import { HiOutlineSpeakerWave } from 'react-icons/hi2';
+import VoiceCatalogCard from './voice-catalog-card';
+import VoicesCatalogControls, {
+  type ProviderFilter,
+} from './voices-catalog-controls';
 
 const VOICE_SKELETON_KEYS = [
   'voice-skeleton-1',
@@ -38,29 +24,6 @@ const VOICE_SKELETON_KEYS = [
   'voice-skeleton-5',
   'voice-skeleton-6',
 ] as const;
-
-type ProviderFilter = 'all' | VoiceProvider.ELEVENLABS | VoiceProvider.HEYGEN;
-
-const PROVIDER_FILTERS: Array<{ label: string; value: ProviderFilter }> = [
-  { label: 'All providers', value: 'all' },
-  { label: 'ElevenLabs', value: VoiceProvider.ELEVENLABS },
-  { label: 'HeyGen', value: VoiceProvider.HEYGEN },
-];
-
-function getVoiceName(voice: Voice): string {
-  return voice.metadataLabel || voice.externalVoiceId || voice.id;
-}
-
-function getProviderLabel(provider?: string): string {
-  switch (provider) {
-    case VoiceProvider.ELEVENLABS:
-      return 'ElevenLabs';
-    case VoiceProvider.HEYGEN:
-      return 'HeyGen';
-    default:
-      return provider ?? 'Unknown';
-  }
-}
 
 export default function VoicesLibraryPage() {
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
@@ -165,84 +128,15 @@ export default function VoicesLibraryPage() {
       icon={HiOutlineSpeakerWave}
       label="Voice Library"
     >
-      <WorkspaceSurface
-        title="Catalog Controls"
-        tone="muted"
-        data-testid="voices-library-controls-surface"
-      >
-        <div className="flex flex-col gap-4 p-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="grid flex-1 gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
-            <div className="space-y-2">
-              <span className="text-sm font-medium text-foreground/70">
-                Search
-              </span>
-              <div className="relative">
-                <HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/40" />
-                <Input
-                  className="pl-9"
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search by name or external ID"
-                  value={search}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-sm font-medium text-foreground/70">
-                Provider
-              </span>
-              <Select
-                onValueChange={(value) =>
-                  setProviderFilter(value as ProviderFilter)
-                }
-                value={providerFilter}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PROVIDER_FILTERS.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Button
-              isDisabled={isSyncingAll || syncingProvider !== null}
-              onClick={() => handleSync()}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.DEFAULT}
-              withWrapper={false}
-            >
-              <HiArrowPath className="mr-2 size-4" />
-              Sync All
-            </Button>
-            <Button
-              isDisabled={isSyncingAll || syncingProvider !== null}
-              onClick={() => handleSync([VoiceProvider.ELEVENLABS])}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-              withWrapper={false}
-            >
-              Sync ElevenLabs
-            </Button>
-            <Button
-              isDisabled={isSyncingAll || syncingProvider !== null}
-              onClick={() => handleSync([VoiceProvider.HEYGEN])}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.OUTLINE}
-              withWrapper={false}
-            >
-              Sync HeyGen
-            </Button>
-          </div>
-        </div>
-      </WorkspaceSurface>
+      <VoicesCatalogControls
+        isSyncingAll={isSyncingAll}
+        providerFilter={providerFilter}
+        search={search}
+        syncingProvider={syncingProvider}
+        onProviderFilterChange={setProviderFilter}
+        onSearchChange={setSearch}
+        onSync={handleSync}
+      />
 
       <WorkspaceSurface
         className="mt-6"
@@ -255,109 +149,14 @@ export default function VoicesLibraryPage() {
             ? VOICE_SKELETON_KEYS.map((key) => (
                 <Card key={key} className="min-h-[260px]" />
               ))
-            : voices.map((voice) => {
-                const activeKey = `${voice.id}:isActive`;
-                const defaultKey = `${voice.id}:isDefaultSelectable`;
-                const featuredKey = `${voice.id}:isFeatured`;
-
-                return (
-                  <Card key={voice.id}>
-                    <div className="space-y-4 p-5">
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline">
-                            {getProviderLabel(voice.provider)}
-                          </Badge>
-                          {voice.isFeatured ? (
-                            <Badge variant="warning">Featured</Badge>
-                          ) : null}
-                          {voice.isDefaultSelectable === false ? (
-                            <Badge variant="secondary">
-                              Not default selectable
-                            </Badge>
-                          ) : null}
-                          {voice.isActive === false ? (
-                            <Badge variant="destructive">Inactive</Badge>
-                          ) : null}
-                        </div>
-                        <div>
-                          <h3 className="text-base font-semibold text-foreground">
-                            {getVoiceName(voice)}
-                          </h3>
-                          <p className="truncate text-xs text-foreground/50">
-                            {voice.externalVoiceId ?? voice.id}
-                          </p>
-                        </div>
-                      </div>
-
-                      <InsetSurface density="compact" tone="contrast">
-                        <AudioPreviewPlayer
-                          audioUrl={voice.sampleAudioUrl ?? null}
-                          label={getVoiceName(voice)}
-                        />
-                      </InsetSurface>
-
-                      <div className="grid gap-2">
-                        <Button
-                          isDisabled={togglingKey === activeKey}
-                          onClick={() =>
-                            handleToggle(voice, 'isActive', !voice.isActive)
-                          }
-                          size={ButtonSize.SM}
-                          variant={
-                            voice.isActive === false
-                              ? ButtonVariant.OUTLINE
-                              : ButtonVariant.DEFAULT
-                          }
-                          withWrapper={false}
-                        >
-                          <HiSparkles className="mr-2 size-4" />
-                          {voice.isActive === false ? 'Activate' : 'Active'}
-                        </Button>
-
-                        <Button
-                          isDisabled={togglingKey === defaultKey}
-                          onClick={() =>
-                            handleToggle(
-                              voice,
-                              'isDefaultSelectable',
-                              voice.isDefaultSelectable === false,
-                            )
-                          }
-                          size={ButtonSize.SM}
-                          variant={
-                            voice.isDefaultSelectable === false
-                              ? ButtonVariant.OUTLINE
-                              : ButtonVariant.SECONDARY
-                          }
-                          withWrapper={false}
-                        >
-                          {voice.isDefaultSelectable === false
-                            ? 'Enable default selection'
-                            : 'Default selectable'}
-                        </Button>
-
-                        <Button
-                          isDisabled={togglingKey === featuredKey}
-                          onClick={() =>
-                            handleToggle(voice, 'isFeatured', !voice.isFeatured)
-                          }
-                          size={ButtonSize.SM}
-                          variant={
-                            voice.isFeatured
-                              ? ButtonVariant.DEFAULT
-                              : ButtonVariant.GHOST
-                          }
-                          withWrapper={false}
-                        >
-                          <HiStar className="mr-2 size-4" />
-                          {voice.isFeatured ? 'Featured' : 'Mark featured'}
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
+            : voices.map((voice) => (
+                <VoiceCatalogCard
+                  key={voice.id}
+                  togglingKey={togglingKey}
+                  voice={voice}
+                  onToggle={handleToggle}
+                />
+              ))}
         </div>
       </WorkspaceSurface>
     </Container>

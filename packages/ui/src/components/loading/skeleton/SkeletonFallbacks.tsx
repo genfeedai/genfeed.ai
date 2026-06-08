@@ -42,7 +42,7 @@ export function SkeletonLoadingFallback({
           <SkeletonMasonryGrid count={count} />
 
           <div className="flex justify-center mt-8">
-            <div className="flex space-x-2">
+            <div className="flex gap-x-2">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div
                   key={i}

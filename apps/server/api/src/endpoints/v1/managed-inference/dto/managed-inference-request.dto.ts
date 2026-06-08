@@ -10,12 +10,29 @@ import {
 
 export enum ManagedInferenceProvider {
   FAL = 'fal',
+  GENFEEDAI = 'genfeedai',
   LEONARDO = 'leonardoai',
   REPLICATE = 'replicate',
 }
 
 export enum ManagedInferenceOperation {
   IMAGE = 'image',
+  VIDEO = 'video',
+}
+
+export interface ManagedInferenceVideoInput {
+  prompt: string;
+  imageUrl?: string;
+  image_url?: string;
+  negativePrompt?: string;
+  negative_prompt?: string;
+  duration?: number;
+  fps?: number;
+  aspectRatio?: string;
+  aspect_ratio?: string;
+  seed?: number;
+  width?: number;
+  height?: number;
 }
 
 export class ManagedInferenceRequestDto {

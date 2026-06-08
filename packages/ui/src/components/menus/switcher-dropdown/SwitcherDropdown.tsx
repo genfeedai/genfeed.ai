@@ -145,7 +145,7 @@ export default function SwitcherDropdown({
         {hasSearch && (
           <div className="px-2 pt-1.5 pb-1">
             <div className="relative">
-              <HiMagnifyingGlass className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-white/40" />
+              <HiMagnifyingGlass className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-foreground/40" />
               <Input
                 ref={searchInputRef}
                 type="text"
@@ -165,7 +165,7 @@ export default function SwitcherDropdown({
               <SwitcherItem key={item.id} item={item} onSelect={handleSelect} />
             ))
           ) : (
-            <div className="p-3 text-xs text-white/40 text-center">
+            <div className="p-3 text-xs text-foreground/40 text-center">
               {items.length === 0 ? 'Loading…' : 'No results'}
             </div>
           )}
@@ -173,7 +173,7 @@ export default function SwitcherDropdown({
 
         {/* Footer */}
         {resolvedFooterActions.length > 0 && (
-          <div className="border-t border-white/[0.08] mt-1 pt-1">
+          <div className="border-t border-foreground/[0.08] mt-1 pt-1">
             {resolvedFooterActions.map((action) => {
               const ActionIcon = action.icon;
 
@@ -186,7 +186,7 @@ export default function SwitcherDropdown({
                     close();
                     action.onAction();
                   }}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors duration-150 cursor-pointer"
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground/60 hover:text-foreground hover:bg-foreground/[0.06] transition-colors duration-150 cursor-pointer"
                 >
                   {ActionIcon ? (
                     <ActionIcon className="size-3.5 flex-shrink-0" />
@@ -220,8 +220,8 @@ function SwitcherItem({
       className={cn(
         'flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors duration-150',
         item.isActive
-          ? 'text-white cursor-default'
-          : 'text-white/70 hover:text-white hover:bg-white/[0.06] cursor-pointer',
+          ? 'text-foreground cursor-default'
+          : 'text-foreground/70 hover:text-foreground hover:bg-foreground/[0.06] cursor-pointer',
       )}
     >
       {/* Avatar */}
@@ -243,7 +243,7 @@ function SwitcherItem({
             'size-5 rounded flex items-center justify-center text-[10px] font-bold flex-shrink-0',
             item.isActive
               ? 'bg-primary/30 text-primary'
-              : 'bg-white/10 text-white/60',
+              : 'bg-foreground/10 text-foreground/60',
           )}
         >
           {item.label.charAt(0).toUpperCase()}

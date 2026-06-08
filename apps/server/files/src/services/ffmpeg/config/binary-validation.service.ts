@@ -1,8 +1,7 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import ffmpegPath from 'ffmpeg-static';
-
-const ffprobeStatic = require('ffprobe-static');
+import ffprobeStatic from 'ffprobe-static';
 
 @Injectable()
 export class BinaryValidationService {

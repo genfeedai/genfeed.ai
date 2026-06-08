@@ -1,9 +1,9 @@
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
-import type { SocialAnalyticsJobData } from '@api/queues/analytics-social/analytics-social.processor';
 import { QueueService } from '@api/queues/core/queue.service';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import type { SocialAnalyticsJobData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

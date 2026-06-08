@@ -7,8 +7,8 @@
     "forceConsistentCasingInFileNames": true,
     "inlineSources": true,
     "lib": ["ES2020", "DOM"],
-    "module": "node16",
-    "moduleResolution": "node16",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "outDir": "./dist",
     "paths": {
       "@genfeedai/constants": ["../constants/src/index.ts"],

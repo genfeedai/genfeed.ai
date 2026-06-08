@@ -33,7 +33,7 @@ export function AgentTerminalHeader({
         )}
       />
       <span className="sr-only">{catalog.environmentLabel}</span>
-      <p className="shrink-0 truncate text-[11px] text-foreground/55">
+      <p className="shrink-0 self-center truncate text-[11px] leading-none text-foreground/55">
         {threadLabel || 'New session'}
       </p>
 

@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { fireEvent, render } from '@testing-library/react';
 import ProcessNode from '@ui/workflow-builder/nodes/ProcessNode';
 import type { ComponentProps, ComponentPropsWithoutRef } from 'react';

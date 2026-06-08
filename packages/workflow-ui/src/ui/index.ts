@@ -1,4 +1,5 @@
-export { Button, buttonVariants } from './button';
+export { Button } from './button';
+export { buttonVariants } from './button.variants';
 export { Checkbox } from './checkbox';
 export { ComparisonSlider } from './comparison-slider';
 export { GridPositionSelector } from './grid-position-selector';

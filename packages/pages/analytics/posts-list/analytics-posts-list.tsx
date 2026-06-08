@@ -80,22 +80,19 @@ export default function AnalyticsPostsList() {
 
   const items: PostsListItem[] = useMemo(
     () =>
-      topPosts
-        .filter((post) => {
-          const label = post.label || post.description || '';
-          const normalizedSearch = search.trim().toLowerCase();
-          if (!normalizedSearch) {
-            return true;
-          }
-
-          return (
-            post.postId === normalizedSearch ||
-            label.toLowerCase().includes(normalizedSearch) ||
-            (post.brandName || '').toLowerCase().includes(normalizedSearch) ||
-            post.platform.toLowerCase().includes(normalizedSearch)
-          );
-        })
-        .map((post) => ({
+      topPosts.reduce<PostsListItem[]>((acc, post) => {
+        const label = post.label || post.description || '';
+        const normalizedSearch = search.trim().toLowerCase();
+        if (
+          normalizedSearch &&
+          post.postId !== normalizedSearch &&
+          !label.toLowerCase().includes(normalizedSearch) &&
+          !(post.brandName || '').toLowerCase().includes(normalizedSearch) &&
+          !post.platform.toLowerCase().includes(normalizedSearch)
+        ) {
+          return acc;
+        }
+        acc.push({
           brandName: post.brandName || 'Unknown brand',
           engagementRate: post.engagementRate || 0,
           label: post.label || post.description || 'Untitled Post',
@@ -103,7 +100,9 @@ export default function AnalyticsPostsList() {
           postId: post.postId,
           totalEngagement: post.totalEngagement || 0,
           totalViews: post.totalViews || 0,
-        })),
+        });
+        return acc;
+      }, []),
     [search, topPosts],
   );
 
@@ -119,7 +118,7 @@ export default function AnalyticsPostsList() {
   ): ReactNode => {
     const icon =
       option.value === 'all' ? (
-        <HiSquares2X2 className="h-4 w-4 shrink-0 text-foreground/70" />
+        <HiSquares2X2 className="size-4 shrink-0 text-foreground/70" />
       ) : (
         getPlatformIcon(option.value, 'h-4 w-4 shrink-0')
       );

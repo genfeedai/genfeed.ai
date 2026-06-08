@@ -103,6 +103,8 @@ const desktopBridge: IGenfeedDesktopBridge = {
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.filesListAssets, workspaceId),
     openFileDialog: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.openFileDialog),
+    revealAsset: async (assetId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.filesRevealAsset, assetId),
     readFile: async (workspaceId, relativePath) =>
       ipcRenderer.invoke(
         DESKTOP_IPC_CHANNELS.filesRead,
@@ -276,6 +278,8 @@ const desktopBridge: IGenfeedDesktopBridge = {
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceRead, workspaceId),
     revealInFinder: async (workspaceId) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceReveal, workspaceId),
+    selectWorkspace: async (workspaceId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceSelect, workspaceId),
   },
 };
 

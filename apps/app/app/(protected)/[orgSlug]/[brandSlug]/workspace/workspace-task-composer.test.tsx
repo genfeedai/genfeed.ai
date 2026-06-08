@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import {
   act,
   fireEvent,
@@ -8,12 +8,12 @@ import {
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { WorkspaceBrandMentionList } from './workspace-task-brand-mention-list';
+import { WorkspaceTaskComposer } from './workspace-task-composer';
 import {
   extractBrandMentionMatch,
   getBrandDisplayLabel,
-  WorkspaceBrandMentionList,
-  WorkspaceTaskComposer,
-} from './workspace-task-composer';
+} from './workspace-task-composer.helpers';
 
 const mocks = vi.hoisted(() => ({
   brandUpdateAgentConfig: vi.fn(),
@@ -163,7 +163,7 @@ vi.mock('@tiptap/react', () => ({
   },
 }));
 
-vi.mock('@ui/modals/compound/Modal', () => ({
+vi.mock('@ui/modals/compound/modal.compound', () => ({
   Modal: {
     Body: ({ children }: { children: ReactNode }) => <div>{children}</div>,
     CloseButton: ({ children }: { children: ReactNode }) => <>{children}</>,

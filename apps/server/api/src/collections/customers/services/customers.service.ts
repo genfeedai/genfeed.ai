@@ -6,6 +6,7 @@ import type {
 } from '@api/collections/customers/schemas/customer.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -13,7 +14,8 @@ import { Injectable } from '@nestjs/common';
 export class CustomersService extends BaseService<
   CustomerDocument,
   CreateCustomerDto,
-  UpdateCustomerDto
+  UpdateCustomerDto,
+  Prisma.CustomerWhereInput
 > {
   constructor(
     public readonly prisma: PrismaService,

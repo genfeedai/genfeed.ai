@@ -187,7 +187,7 @@ vi.mock('@app-config/menu-items.config', () => ({
   POSTS_INSERT_AFTER_LABEL: 'Posts',
 }));
 
-vi.mock('@contexts/features/command-palette.context', () => ({
+vi.mock('@contexts/features/command-palette.provider', () => ({
   CommandPaletteProvider: ({ children }: { children: ReactNode }) => (
     <>{children}</>
   ),

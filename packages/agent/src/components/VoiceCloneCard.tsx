@@ -1,21 +1,8 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
-import {
-  ButtonVariant,
-  VoiceCloneStatus,
-  VoiceProvider,
-} from '@genfeedai/enums';
+import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/enums';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import {
   type ReactElement,
   useCallback,
@@ -24,13 +11,11 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  HiCheck,
-  HiCloudArrowUp,
-  HiExclamationCircle,
-  HiMicrophone,
-  HiMusicalNote,
-} from 'react-icons/hi2';
+import { HiExclamationCircle, HiMicrophone } from 'react-icons/hi2';
+import { VoiceCloneDoneState } from './VoiceCloneDoneState';
+import { VoiceCloneDropzone } from './VoiceCloneDropzone';
+import { VoiceCloneExistingVoiceSelector } from './VoiceCloneExistingVoiceSelector';
+import { VoiceCloneProgress } from './VoiceCloneProgress';
 
 interface VoiceCloneCardProps {
   action: AgentUiAction;
@@ -241,16 +226,7 @@ export function VoiceCloneCard({
   }, [action.brandId, apiService, file]);
 
   if (status === 'done') {
-    return (
-      <div className="my-2 border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
-        <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-          <HiCheck className="size-5" />
-          <span className="text-sm font-medium">
-            Voice is ready and set for this brand
-          </span>
-        </div>
-      </div>
-    );
+    return <VoiceCloneDoneState />;
   }
 
   return (
@@ -271,115 +247,42 @@ export function VoiceCloneCard({
       {/* Audio preview if provided */}
       {action.audioUrl && (
         <div className="mb-3">
-          <audio src={action.audioUrl} controls className="w-full">
+          <audio
+            src={action.audioUrl}
+            controls
+            aria-label="Voice preview"
+            className="w-full"
+          >
             <track kind="captions" />
           </audio>
         </div>
       )}
 
       {canUseExisting && (
-        <div className="mb-3 space-y-2">
-          <p className="text-xs font-medium text-foreground">
-            Use existing voice
-          </p>
-          <Select
-            value={selectedVoiceId}
-            onValueChange={(value) => setSelectedVoiceId(value)}
-            disabled={status === 'uploading' || status === 'cloning'}
-          >
-            <SelectTrigger className="w-full text-xs">
-              <SelectValue placeholder="Select a cloned voice" />
-            </SelectTrigger>
-            <SelectContent>
-              {existingVoices.map((voice) => (
-                <SelectItem key={voice.id} value={voice.id}>
-                  {voice.label} ({voice.provider ?? 'unknown'})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            variant={ButtonVariant.OUTLINE}
-            onClick={handleUseExisting}
-            isDisabled={!selectedVoiceId || status === 'uploading'}
-            className="w-full"
-          >
-            Use Selected Voice
-          </Button>
-        </div>
+        <VoiceCloneExistingVoiceSelector
+          existingVoices={existingVoices}
+          selectedVoiceId={selectedVoiceId}
+          status={status}
+          onValueChange={(value) => setSelectedVoiceId(value)}
+          onUseExisting={handleUseExisting}
+        />
       )}
 
       {canUpload && (
-        <>
-          {/* Audio dropzone */}
-          <Button
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onClick={() => fileInputRef.current?.click()}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                fileInputRef.current?.click();
-              }
-            }}
-            className="mb-3 flex cursor-pointer flex-col items-center justify-center border-2 border-dashed border-border p-6 transition-colors hover:border-primary/50 hover:bg-muted/50"
-          >
-            <HiCloudArrowUp className="mb-2 size-8 text-muted-foreground" />
-            {file ? (
-              <div className="flex items-center gap-2">
-                <HiMusicalNote className="size-4 text-rose-500" />
-                <span className="text-xs font-medium text-foreground">
-                  {file.name}
-                </span>
-              </div>
-            ) : (
-              <div className="text-center">
-                <p className="text-xs font-medium text-foreground">
-                  Drop audio file here
-                </p>
-                <p className="mt-0.5 text-[10px] text-muted-foreground">
-                  or click to browse (MP3, WAV, M4A)
-                </p>
-              </div>
-            )}
-            <Input
-              inputRef={fileInputRef}
-              type="file"
-              accept="audio/*"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-          </Button>
-
-          {/* Clone button */}
-          <Button
-            variant={ButtonVariant.DEFAULT}
-            onClick={handleClone}
-            isDisabled={!file || status === 'uploading' || status === 'cloning'}
-            isLoading={status === 'uploading'}
-            className="w-full"
-          >
-            <HiMicrophone className="size-4" />
-            {status === 'uploading' ? 'Uploading…' : 'Clone New Voice'}
-          </Button>
-        </>
+        <VoiceCloneDropzone
+          file={file}
+          status={status}
+          fileInputRef={fileInputRef}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onFileChange={handleFileChange}
+          onClone={handleClone}
+        />
       )}
 
       {/* Progress (when cloning is in progress from server) */}
       {status === 'cloning' && progress > 0 && progress < 100 && (
-        <div className="mt-3">
-          <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-            <span>Cloning in progress…</span>
-            <span>{progress}%</span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-rose-500 transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
+        <VoiceCloneProgress progress={progress} />
       )}
 
       {/* Error */}

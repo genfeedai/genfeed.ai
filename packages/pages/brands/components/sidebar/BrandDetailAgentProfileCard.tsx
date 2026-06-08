@@ -1,19 +1,7 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type {
-  IBrandAgentPlatformOverride,
-  IBrandAgentStrategy,
-  IBrandAgentVoice,
-} from '@genfeedai/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
+import { ButtonVariant } from '@genfeedai/enums';
 import type { BrandDetailAgentProfileCardProps } from '@props/pages/brand-detail.props';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import { BrandsService } from '@services/social/brands.service';
-import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -32,441 +20,37 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-
-type AgentProfileFormState = {
-  defaultModel: string;
-  frequency: string;
-  persona: string;
-  platformOverrides: Record<string, PlatformOverrideFormState>;
-  strategyContentTypes: string;
-  strategyGoals: string;
-  strategyPlatforms: string;
-  voiceApprovedHooks: string;
-  voiceAudience: string;
-  voiceBannedPhrases: string;
-  voiceCanonicalSource: 'brand' | 'founder' | 'hybrid';
-  voiceDoNotSoundLike: string;
-  voiceExemplarTexts: string;
-  voiceMessagingPillars: string;
-  voiceSampleOutput: string;
-  voiceStyle: string;
-  voiceTone: string;
-  voiceValues: string;
-  voiceWritingRules: string;
-};
-
-type PlatformOverrideFormState = {
-  approvedHooks: string;
-  contentTypes: string;
-  defaultModel: string;
-  bannedPhrases: string;
-  canonicalSource: 'brand' | 'founder' | 'hybrid' | '';
-  doNotSoundLike: string;
-  exemplarTexts: string;
-  frequency: string;
-  goals: string;
-  messagingPillars: string;
-  persona: string;
-  sampleOutput: string;
-  style: string;
-  tone: string;
-  audience: string;
-  values: string;
-  writingRules: string;
-};
-
-const AUTO_MODEL_SELECT_VALUE = '__auto__';
-const PLATFORM_OPTIONS = [
-  { label: 'Twitter / X', value: 'twitter' },
-  { label: 'Instagram', value: 'instagram' },
-  { label: 'LinkedIn', value: 'linkedin' },
-  { label: 'YouTube', value: 'youtube' },
-  { label: 'TikTok', value: 'tiktok' },
-];
-
-function joinList(values?: string[] | string): string {
-  if (Array.isArray(values)) {
-    return values.join(', ');
-  }
-
-  return values ?? '';
-}
-
-function parseList(value: string): string[] {
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function toPlatformOverrideFormState(
-  override?: IBrandAgentPlatformOverride,
-): PlatformOverrideFormState {
-  const overrideVoice = override?.voice as
-    | (IBrandAgentPlatformOverride['voice'] & {
-        approvedHooks?: string[];
-        bannedPhrases?: string[];
-        canonicalSource?: 'brand' | 'founder' | 'hybrid';
-        doNotSoundLike?: string[];
-        exemplarTexts?: string[];
-        messagingPillars?: string[];
-        sampleOutput?: string;
-        writingRules?: string[];
-      })
-    | undefined;
-
-  return {
-    approvedHooks: joinList(overrideVoice?.approvedHooks),
-    audience: joinList(override?.voice?.audience),
-    bannedPhrases: joinList(overrideVoice?.bannedPhrases),
-    canonicalSource: overrideVoice?.canonicalSource ?? '',
-    contentTypes: joinList(override?.strategy?.contentTypes),
-    defaultModel: override?.defaultModel ?? '',
-    doNotSoundLike: joinList(overrideVoice?.doNotSoundLike),
-    exemplarTexts: joinList(overrideVoice?.exemplarTexts),
-    frequency: override?.strategy?.frequency ?? '',
-    goals: joinList(override?.strategy?.goals),
-    messagingPillars: joinList(overrideVoice?.messagingPillars),
-    persona: override?.persona ?? '',
-    sampleOutput: overrideVoice?.sampleOutput ?? '',
-    style: override?.voice?.style ?? '',
-    tone: override?.voice?.tone ?? '',
-    values: joinList(override?.voice?.values),
-    writingRules: joinList(overrideVoice?.writingRules),
-  };
-}
-
-function toFormState(brand: BrandDetailAgentProfileCardProps['brand']) {
-  const config = brand.agentConfig;
-
-  return {
-    defaultModel: config?.defaultModel ?? '',
-    frequency: config?.strategy?.frequency ?? '',
-    persona: config?.persona ?? '',
-    platformOverrides: Object.fromEntries(
-      PLATFORM_OPTIONS.map((platform) => [
-        platform.value,
-        toPlatformOverrideFormState(
-          config?.platformOverrides?.[platform.value],
-        ),
-      ]),
-    ),
-    strategyContentTypes: joinList(config?.strategy?.contentTypes),
-    strategyGoals: joinList(config?.strategy?.goals),
-    strategyPlatforms: joinList(config?.strategy?.platforms),
-    voiceApprovedHooks: joinList(config?.voice?.approvedHooks),
-    voiceAudience: joinList(config?.voice?.audience),
-    voiceBannedPhrases: joinList(config?.voice?.bannedPhrases),
-    voiceCanonicalSource: config?.voice?.canonicalSource ?? 'brand',
-    voiceDoNotSoundLike: joinList(
-      (config?.voice as { doNotSoundLike?: string[] } | undefined)
-        ?.doNotSoundLike,
-    ),
-    voiceExemplarTexts: joinList(config?.voice?.exemplarTexts),
-    voiceMessagingPillars: joinList(
-      (config?.voice as { messagingPillars?: string[] } | undefined)
-        ?.messagingPillars,
-    ),
-    voiceSampleOutput:
-      (config?.voice as { sampleOutput?: string } | undefined)?.sampleOutput ??
-      '',
-    voiceStyle: config?.voice?.style ?? '',
-    voiceTone: config?.voice?.tone ?? '',
-    voiceValues: joinList(config?.voice?.values),
-    voiceWritingRules: joinList(config?.voice?.writingRules),
-  };
-}
-
-function buildVoice(
-  canonicalSource: 'brand' | 'founder' | 'hybrid',
-  tone: string,
-  style: string,
-  audience: string,
-  values: string,
-  messagingPillars: string,
-  doNotSoundLike: string,
-  sampleOutput: string,
-  approvedHooks: string,
-  bannedPhrases: string,
-  writingRules: string,
-  exemplarTexts: string,
-): IBrandAgentVoice {
-  return {
-    approvedHooks: parseList(approvedHooks),
-    audience: parseList(audience),
-    bannedPhrases: parseList(bannedPhrases),
-    canonicalSource,
-    doNotSoundLike: parseList(doNotSoundLike),
-    exemplarTexts: parseList(exemplarTexts),
-    messagingPillars: parseList(messagingPillars),
-    sampleOutput: sampleOutput.trim(),
-    style: style.trim(),
-    tone: tone.trim(),
-    values: parseList(values),
-    writingRules: parseList(writingRules),
-  } as IBrandAgentVoice;
-}
-
-function buildStrategy(
-  contentTypes: string,
-  platforms: string,
-  frequency: string,
-  goals: string,
-): IBrandAgentStrategy {
-  return {
-    contentTypes: parseList(contentTypes),
-    frequency: frequency.trim(),
-    goals: parseList(goals),
-    platforms: parseList(platforms),
-  };
-}
-
-function hasPlatformOverrideContent(
-  override: PlatformOverrideFormState,
-): boolean {
-  return Boolean(
-    override.persona ||
-      override.defaultModel ||
-      override.canonicalSource ||
-      override.tone ||
-      override.style ||
-      override.audience ||
-      override.approvedHooks ||
-      override.bannedPhrases ||
-      override.messagingPillars ||
-      override.doNotSoundLike ||
-      override.sampleOutput ||
-      override.exemplarTexts ||
-      override.values ||
-      override.writingRules ||
-      override.contentTypes ||
-      override.goals ||
-      override.frequency,
-  );
-}
-
-function summarizeValue(value: string, fallback: string): string {
-  const trimmed = value.trim();
-
-  if (!trimmed) {
-    return fallback;
-  }
-
-  return trimmed.length > 96 ? `${trimmed.slice(0, 93)}...` : trimmed;
-}
-
-function SummaryItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-border/70 bg-background/30 p-3">
-      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-2 text-sm text-foreground/90">{value}</p>
-    </div>
-  );
-}
+import AgentProfilePlatformOverride from './AgentProfilePlatformOverride';
+import AgentProfileSummaryCard from './AgentProfileSummaryCard';
+import AgentProfileVoiceFields from './AgentProfileVoiceFields';
+import { useBrandDetailAgentProfileCard } from './useBrandDetailAgentProfileCard';
 
 export default function BrandDetailAgentProfileCard({
   brand,
   brandId,
   onRefreshBrand,
 }: BrandDetailAgentProfileCardProps) {
-  const notifications = NotificationsService.getInstance();
-  const { refreshBrands } = useBrand();
-  const { settings } = useOrganization();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [form, setForm] = useState<AgentProfileFormState>(() =>
-    toFormState(brand),
-  );
-  const [isSaving, setIsSaving] = useState(false);
-
-  const getBrandsService = useAuthedService((token: string) =>
-    BrandsService.getInstance(token),
-  );
-
-  useEffect(() => {
-    setForm(toFormState(brand));
-  }, [brand]);
-
-  const enabledModels = settings?.enabledModels ?? [];
-  const populatedPlatformCount = useMemo(
-    () =>
-      Object.values(form.platformOverrides).filter(hasPlatformOverrideContent)
-        .length,
-    [form.platformOverrides],
-  );
-
-  const handlePlatformOverrideChange = useCallback(
-    (platform: string, key: keyof PlatformOverrideFormState, value: string) => {
-      setForm((prev) => ({
-        ...prev,
-        platformOverrides: {
-          ...prev.platformOverrides,
-          [platform]: {
-            ...prev.platformOverrides[platform],
-            [key]: value,
-          },
-        },
-      }));
-    },
-    [],
-  );
-
-  const handleSave = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      const service = await getBrandsService();
-      await service.updateAgentConfig(brandId, {
-        defaultModel: form.defaultModel || undefined,
-        persona: form.persona,
-        platformOverrides: Object.fromEntries(
-          Object.entries(form.platformOverrides)
-            .filter(([, override]) => hasPlatformOverrideContent(override))
-            .map(([platform, override]) => [
-              platform,
-              {
-                defaultModel: override.defaultModel || undefined,
-                persona: override.persona,
-                strategy: {
-                  contentTypes: parseList(override.contentTypes),
-                  frequency: override.frequency.trim(),
-                  goals: parseList(override.goals),
-                  platforms: [platform],
-                },
-                voice: {
-                  approvedHooks: parseList(override.approvedHooks),
-                  audience: parseList(override.audience),
-                  bannedPhrases: parseList(override.bannedPhrases),
-                  canonicalSource: override.canonicalSource || undefined,
-                  doNotSoundLike: parseList(override.doNotSoundLike),
-                  exemplarTexts: parseList(override.exemplarTexts),
-                  messagingPillars: parseList(override.messagingPillars),
-                  sampleOutput: override.sampleOutput.trim(),
-                  style: override.style.trim(),
-                  tone: override.tone.trim(),
-                  values: parseList(override.values),
-                  writingRules: parseList(override.writingRules),
-                },
-              },
-            ]),
-        ),
-        strategy: buildStrategy(
-          form.strategyContentTypes,
-          form.strategyPlatforms,
-          form.frequency,
-          form.strategyGoals,
-        ),
-        voice: buildVoice(
-          form.voiceCanonicalSource,
-          form.voiceTone,
-          form.voiceStyle,
-          form.voiceAudience,
-          form.voiceValues,
-          form.voiceMessagingPillars,
-          form.voiceDoNotSoundLike,
-          form.voiceSampleOutput,
-          form.voiceApprovedHooks,
-          form.voiceBannedPhrases,
-          form.voiceWritingRules,
-          form.voiceExemplarTexts,
-        ),
-      });
-      await refreshBrands();
-      await onRefreshBrand();
-      setIsDialogOpen(false);
-      notifications.success('Brand agent profile saved');
-    } catch (error) {
-      logger.error('Failed to save brand agent profile', error);
-      notifications.error('Failed to save brand agent profile');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [
-    brandId,
+  const {
+    AUTO_MODEL_SELECT_VALUE,
+    enabledModels,
     form,
-    getBrandsService,
-    notifications,
-    onRefreshBrand,
-    refreshBrands,
-  ]);
-
-  const summaryItems = useMemo(
-    () => [
-      {
-        label: 'Persona',
-        value: summarizeValue(
-          form.persona,
-          'No brand-level persona configured yet.',
-        ),
-      },
-      {
-        label: 'Voice',
-        value: summarizeValue(
-          [form.voiceTone, form.voiceStyle].filter(Boolean).join(' • '),
-          'Tone and style inherit from the default workspace voice.',
-        ),
-      },
-      {
-        label: 'Content Strategy',
-        value: summarizeValue(
-          [form.strategyContentTypes, form.strategyGoals]
-            .filter(Boolean)
-            .join(' • '),
-          'No content types or goals configured yet.',
-        ),
-      },
-      {
-        label: 'Platform Overrides',
-        value:
-          populatedPlatformCount > 0
-            ? `${populatedPlatformCount} platform override${populatedPlatformCount === 1 ? '' : 's'} configured.`
-            : 'No platform-specific overrides configured.',
-      },
-    ],
-    [
-      form.persona,
-      form.strategyContentTypes,
-      form.strategyGoals,
-      form.voiceStyle,
-      form.voiceTone,
-      populatedPlatformCount,
-    ],
-  );
+    handlePlatformOverrideChange,
+    handleSave,
+    isDialogOpen,
+    isSaving,
+    PLATFORM_OPTIONS,
+    populatedPlatformCount,
+    setForm,
+    setIsDialogOpen,
+    summaryItems,
+  } = useBrandDetailAgentProfileCard({ brand, brandId, onRefreshBrand });
 
   return (
     <>
-      <Card className="p-6">
-        <div className="space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold">Agent Profile</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Set the brand-level persona, voice, strategy, and platform
-                overrides used by autonomous agents and content runs.
-              </p>
-            </div>
-
-            <Button
-              onClick={() => setIsDialogOpen(true)}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-            >
-              Manage
-            </Button>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-2">
-            {summaryItems.map((item) => (
-              <SummaryItem
-                key={item.label}
-                label={item.label}
-                value={item.value}
-              />
-            ))}
-          </div>
-        </div>
-      </Card>
+      <AgentProfileSummaryCard
+        onManage={() => setIsDialogOpen(true)}
+        summaryItems={summaryItems}
+      />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
@@ -543,256 +127,56 @@ export default function BrandDetailAgentProfileCard({
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label
-                  className="mb-1 block text-sm font-medium"
-                  htmlFor="brand-agent-canonical-source"
-                >
-                  Canonical Voice Source
-                </label>
-                <Select
-                  value={form.voiceCanonicalSource}
-                  onValueChange={(value: 'brand' | 'founder' | 'hybrid') =>
-                    setForm((prev) => ({
-                      ...prev,
-                      voiceCanonicalSource: value,
-                    }))
-                  }
-                >
-                  <SelectTrigger
-                    id="brand-agent-canonical-source"
-                    className="w-full"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="brand">Brand</SelectItem>
-                    <SelectItem value="founder">Founder</SelectItem>
-                    <SelectItem value="hybrid">Hybrid</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label
-                  className="mb-1 block text-sm font-medium"
-                  htmlFor="brand-agent-tone"
-                >
-                  Tone
-                </label>
-                <Input
-                  id="brand-agent-tone"
-                  value={form.voiceTone}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      voiceTone: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div>
-                <label
-                  className="mb-1 block text-sm font-medium"
-                  htmlFor="brand-agent-style"
-                >
-                  Style
-                </label>
-                <Input
-                  id="brand-agent-style"
-                  value={form.voiceStyle}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      voiceStyle: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div>
-                <label
-                  className="mb-1 block text-sm font-medium"
-                  htmlFor="brand-agent-audience"
-                >
-                  Audience
-                </label>
-                <Input
-                  id="brand-agent-audience"
-                  placeholder="founders, marketers"
-                  value={form.voiceAudience}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      voiceAudience: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div>
-                <label
-                  className="mb-1 block text-sm font-medium"
-                  htmlFor="brand-agent-values"
-                >
-                  Values
-                </label>
-                <Input
-                  id="brand-agent-values"
-                  placeholder="clarity, speed"
-                  value={form.voiceValues}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      voiceValues: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div>
-                <label
-                  className="mb-1 block text-sm font-medium"
-                  htmlFor="brand-agent-messaging-pillars"
-                >
-                  Messaging Pillars
-                </label>
-                <Input
-                  id="brand-agent-messaging-pillars"
-                  placeholder="clarity, proof, systems thinking"
-                  value={form.voiceMessagingPillars}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      voiceMessagingPillars: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div>
-                <label
-                  className="mb-1 block text-sm font-medium"
-                  htmlFor="brand-agent-do-not-sound-like"
-                >
-                  Do Not Sound Like
-                </label>
-                <Input
-                  id="brand-agent-do-not-sound-like"
-                  placeholder="buzzwords, hype-heavy copy, corporate jargon"
-                  value={form.voiceDoNotSoundLike}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      voiceDoNotSoundLike: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div>
-                <label
-                  className="mb-1 block text-sm font-medium"
-                  htmlFor="brand-agent-approved-hooks"
-                >
-                  Approved Hooks
-                </label>
-                <Input
-                  id="brand-agent-approved-hooks"
-                  placeholder="Say the quiet part out loud, Most teams get this wrong"
-                  value={form.voiceApprovedHooks}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      voiceApprovedHooks: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div>
-                <label
-                  className="mb-1 block text-sm font-medium"
-                  htmlFor="brand-agent-banned-phrases"
-                >
-                  Banned Phrases
-                </label>
-                <Input
-                  id="brand-agent-banned-phrases"
-                  placeholder="game-changing AI, unlock your potential"
-                  value={form.voiceBannedPhrases}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      voiceBannedPhrases: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div>
-                <label
-                  className="mb-1 block text-sm font-medium"
-                  htmlFor="brand-agent-writing-rules"
-                >
-                  Writing Rules
-                </label>
-                <Input
-                  id="brand-agent-writing-rules"
-                  placeholder="Lead with a claim, use proof, cut fluff"
-                  value={form.voiceWritingRules}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      voiceWritingRules: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div>
-                <label
-                  className="mb-1 block text-sm font-medium"
-                  htmlFor="brand-agent-exemplar-texts"
-                >
-                  Exemplar Texts
-                </label>
-                <Input
-                  id="brand-agent-exemplar-texts"
-                  placeholder="We ship systems, not vibes"
-                  value={form.voiceExemplarTexts}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      voiceExemplarTexts: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
-                className="mb-1 block text-sm font-medium"
-                htmlFor="brand-agent-sample-output"
-              >
-                Sample Output
-              </label>
-              <Textarea
-                id="brand-agent-sample-output"
-                className="min-h-[120px]"
-                placeholder="Write a representative example of how this brand should sound."
-                value={form.voiceSampleOutput}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    voiceSampleOutput: event.target.value,
-                  }))
-                }
-              />
-            </div>
+            <AgentProfileVoiceFields
+              voiceCanonicalSource={form.voiceCanonicalSource}
+              voiceTone={form.voiceTone}
+              voiceStyle={form.voiceStyle}
+              voiceAudience={form.voiceAudience}
+              voiceValues={form.voiceValues}
+              voiceMessagingPillars={form.voiceMessagingPillars}
+              voiceDoNotSoundLike={form.voiceDoNotSoundLike}
+              voiceApprovedHooks={form.voiceApprovedHooks}
+              voiceBannedPhrases={form.voiceBannedPhrases}
+              voiceWritingRules={form.voiceWritingRules}
+              voiceExemplarTexts={form.voiceExemplarTexts}
+              voiceSampleOutput={form.voiceSampleOutput}
+              onCanonicalSourceChange={(value) =>
+                setForm((prev) => ({ ...prev, voiceCanonicalSource: value }))
+              }
+              onToneChange={(value) =>
+                setForm((prev) => ({ ...prev, voiceTone: value }))
+              }
+              onStyleChange={(value) =>
+                setForm((prev) => ({ ...prev, voiceStyle: value }))
+              }
+              onAudienceChange={(value) =>
+                setForm((prev) => ({ ...prev, voiceAudience: value }))
+              }
+              onValuesChange={(value) =>
+                setForm((prev) => ({ ...prev, voiceValues: value }))
+              }
+              onMessagingPillarsChange={(value) =>
+                setForm((prev) => ({ ...prev, voiceMessagingPillars: value }))
+              }
+              onDoNotSoundLikeChange={(value) =>
+                setForm((prev) => ({ ...prev, voiceDoNotSoundLike: value }))
+              }
+              onApprovedHooksChange={(value) =>
+                setForm((prev) => ({ ...prev, voiceApprovedHooks: value }))
+              }
+              onBannedPhrasesChange={(value) =>
+                setForm((prev) => ({ ...prev, voiceBannedPhrases: value }))
+              }
+              onWritingRulesChange={(value) =>
+                setForm((prev) => ({ ...prev, voiceWritingRules: value }))
+              }
+              onExemplarTextsChange={(value) =>
+                setForm((prev) => ({ ...prev, voiceExemplarTexts: value }))
+              }
+              onSampleOutputChange={(value) =>
+                setForm((prev) => ({ ...prev, voiceSampleOutput: value }))
+              }
+            />
 
             <div className="grid gap-4 md:grid-cols-2">
               <div>
@@ -886,325 +270,16 @@ export default function BrandDetailAgentProfileCard({
               </div>
 
               <div className="space-y-4">
-                {PLATFORM_OPTIONS.map((platform) => {
-                  const override = form.platformOverrides[platform.value];
-                  return (
-                    <div
-                      key={platform.value}
-                      className="space-y-4 rounded-lg border border-border p-4"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <h4 className="text-sm font-medium">
-                          {platform.label}
-                        </h4>
-                        <span className="text-xs text-muted-foreground">
-                          Optional override
-                        </span>
-                      </div>
-
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                          <label className="mb-1 block text-xs font-medium">
-                            Voice Source Override
-                          </label>
-                          <Select
-                            value={
-                              override.canonicalSource ||
-                              AUTO_MODEL_SELECT_VALUE
-                            }
-                            onValueChange={(value) =>
-                              handlePlatformOverrideChange(
-                                platform.value,
-                                'canonicalSource',
-                                value === AUTO_MODEL_SELECT_VALUE ? '' : value,
-                              )
-                            }
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={AUTO_MODEL_SELECT_VALUE}>
-                                Inherit brand voice source
-                              </SelectItem>
-                              <SelectItem value="brand">Brand</SelectItem>
-                              <SelectItem value="founder">Founder</SelectItem>
-                              <SelectItem value="hybrid">Hybrid</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div>
-                          <label className="mb-1 block text-xs font-medium">
-                            Model Override
-                          </label>
-                          <Select
-                            value={
-                              override.defaultModel || AUTO_MODEL_SELECT_VALUE
-                            }
-                            onValueChange={(value) =>
-                              handlePlatformOverrideChange(
-                                platform.value,
-                                'defaultModel',
-                                value === AUTO_MODEL_SELECT_VALUE ? '' : value,
-                              )
-                            }
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={AUTO_MODEL_SELECT_VALUE}>
-                                Auto
-                              </SelectItem>
-                              {enabledModels.map((model) => (
-                                <SelectItem key={model} value={model}>
-                                  {model}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div>
-                          <label className="mb-1 block text-xs font-medium">
-                            Tone Override
-                          </label>
-                          <Input
-                            value={override.tone}
-                            onChange={(event) =>
-                              handlePlatformOverrideChange(
-                                platform.value,
-                                'tone',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </div>
-
-                        <div>
-                          <label className="mb-1 block text-xs font-medium">
-                            Style Override
-                          </label>
-                          <Input
-                            value={override.style}
-                            onChange={(event) =>
-                              handlePlatformOverrideChange(
-                                platform.value,
-                                'style',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </div>
-
-                        <div>
-                          <label className="mb-1 block text-xs font-medium">
-                            Frequency Override
-                          </label>
-                          <Input
-                            value={override.frequency}
-                            onChange={(event) =>
-                              handlePlatformOverrideChange(
-                                platform.value,
-                                'frequency',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </div>
-
-                        <div>
-                          <label className="mb-1 block text-xs font-medium">
-                            Audience Override
-                          </label>
-                          <Input
-                            placeholder="developers, operators"
-                            value={override.audience}
-                            onChange={(event) =>
-                              handlePlatformOverrideChange(
-                                platform.value,
-                                'audience',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </div>
-
-                        <div>
-                          <label className="mb-1 block text-xs font-medium">
-                            Goals Override
-                          </label>
-                          <Input
-                            placeholder="engagement, leads"
-                            value={override.goals}
-                            onChange={(event) =>
-                              handlePlatformOverrideChange(
-                                platform.value,
-                                'goals',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </div>
-
-                        <div>
-                          <label className="mb-1 block text-xs font-medium">
-                            Messaging Pillars Override
-                          </label>
-                          <Input
-                            placeholder="clarity, proof"
-                            value={override.messagingPillars}
-                            onChange={(event) =>
-                              handlePlatformOverrideChange(
-                                platform.value,
-                                'messagingPillars',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </div>
-
-                        <div>
-                          <label className="mb-1 block text-xs font-medium">
-                            Approved Hooks Override
-                          </label>
-                          <Input
-                            placeholder="clarity, proof"
-                            value={override.approvedHooks}
-                            onChange={(event) =>
-                              handlePlatformOverrideChange(
-                                platform.value,
-                                'approvedHooks',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </div>
-
-                        <div>
-                          <label className="mb-1 block text-xs font-medium">
-                            Banned Phrases Override
-                          </label>
-                          <Input
-                            placeholder="clickbait, jargon"
-                            value={override.bannedPhrases}
-                            onChange={(event) =>
-                              handlePlatformOverrideChange(
-                                platform.value,
-                                'bannedPhrases',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </div>
-
-                        <div>
-                          <label className="mb-1 block text-xs font-medium">
-                            Avoid Override
-                          </label>
-                          <Input
-                            placeholder="clickbait, jargon"
-                            value={override.doNotSoundLike}
-                            onChange={(event) =>
-                              handlePlatformOverrideChange(
-                                platform.value,
-                                'doNotSoundLike',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </div>
-
-                        <div className="md:col-span-2">
-                          <label className="mb-1 block text-xs font-medium">
-                            Content Types Override
-                          </label>
-                          <Input
-                            placeholder="thread, reel, explainer"
-                            value={override.contentTypes}
-                            onChange={(event) =>
-                              handlePlatformOverrideChange(
-                                platform.value,
-                                'contentTypes',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </div>
-
-                        <div className="md:col-span-2">
-                          <label className="mb-1 block text-xs font-medium">
-                            Writing Rules Override
-                          </label>
-                          <Input
-                            placeholder="Lead with a claim, use proof"
-                            value={override.writingRules}
-                            onChange={(event) =>
-                              handlePlatformOverrideChange(
-                                platform.value,
-                                'writingRules',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </div>
-
-                        <div className="md:col-span-2">
-                          <label className="mb-1 block text-xs font-medium">
-                            Persona Override
-                          </label>
-                          <Textarea
-                            className="min-h-[90px]"
-                            value={override.persona}
-                            onChange={(event) =>
-                              handlePlatformOverrideChange(
-                                platform.value,
-                                'persona',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </div>
-
-                        <div className="md:col-span-2">
-                          <label className="mb-1 block text-xs font-medium">
-                            Sample Output Override
-                          </label>
-                          <Textarea
-                            className="min-h-[90px]"
-                            placeholder="Short example of how this platform-specific voice should sound."
-                            value={override.sampleOutput}
-                            onChange={(event) =>
-                              handlePlatformOverrideChange(
-                                platform.value,
-                                'sampleOutput',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </div>
-
-                        <div className="md:col-span-2">
-                          <label className="mb-1 block text-xs font-medium">
-                            Exemplar Texts Override
-                          </label>
-                          <Input
-                            placeholder="Short example of a winning post."
-                            value={override.exemplarTexts}
-                            onChange={(event) =>
-                              handlePlatformOverrideChange(
-                                platform.value,
-                                'exemplarTexts',
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {PLATFORM_OPTIONS.map((platform) => (
+                  <AgentProfilePlatformOverride
+                    key={platform.value}
+                    enabledModels={enabledModels}
+                    label={platform.label}
+                    override={form.platformOverrides[platform.value]}
+                    platformValue={platform.value}
+                    onChange={handlePlatformOverrideChange}
+                  />
+                ))}
               </div>
             </div>
           </div>

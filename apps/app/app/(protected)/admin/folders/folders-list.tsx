@@ -12,7 +12,6 @@ import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Folder } from '@models/content/folder.model';
 import type { ContentProps } from '@props/layout/content.props';
-import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { FoldersService } from '@services/content/folders.service';
 import { logger } from '@services/core/logger.service';
@@ -23,13 +22,12 @@ import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
-import { LazyModalFolder } from '@ui/lazy/modal/LazyModal';
-import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import { Switch } from '@ui/primitives/switch';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { HiFolderOpen, HiPencil, HiPlus, HiTrash } from 'react-icons/hi2';
+import { buildFoldersColumns } from './folders-list-columns';
+import FoldersListModals from './folders-list-modals';
 
 function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
   const { isSignedIn } = useAuth();
@@ -207,34 +205,8 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
     [],
   );
 
-  const columns: TableColumn<Folder>[] = useMemo(
-    () => [
-      {
-        header: 'Label',
-        key: 'label',
-        render: (folder: Folder) => folder.label || '-',
-      },
-      {
-        header: 'Description',
-        key: 'description',
-        render: (folder: Folder) => folder.description || '-',
-      },
-      {
-        header: 'Brand',
-        key: 'brand',
-        render: (folder: Folder) => folder.brand?.label || '-',
-      },
-      {
-        header: 'Active',
-        key: 'active',
-        render: (folder: IFolder) => (
-          <Switch
-            isChecked={folder.isActive !== false}
-            onChange={() => handleToggleActive(folder)}
-          />
-        ),
-      },
-    ],
+  const columns = useMemo(
+    () => buildFoldersColumns(handleToggleActive),
     [handleToggleActive],
   );
 
@@ -334,15 +306,11 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
         emptyLabel="No folders found"
       />
 
-      <LazyModalFolder
-        item={selectedFolder}
+      <FoldersListModals
+        selectedFolder={selectedFolder}
         onConfirm={() => refreshFolders()}
         scope={scope}
       />
-
-      <div className="mt-4">
-        <AutoPagination showTotal totalLabel="folders" />
-      </div>
     </Container>
   );
 }

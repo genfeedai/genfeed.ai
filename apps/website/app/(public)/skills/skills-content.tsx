@@ -4,15 +4,12 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Code } from '@genfeedai/ui';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import {
-  HOW_IT_WORKS,
   SKILL_CATEGORIES,
   type SkillRegistry,
   type SkillRegistryEntry,
-  STATS,
-  TERMINAL_COMMANDS,
 } from '@public/skills/_data';
 import { EnvironmentService } from '@services/core/environment.service';
-import { Button as BaseButton, Button } from '@ui/primitives/button';
+import { Button } from '@ui/primitives/button';
 import {
   CtaSection,
   NeuralGrid,
@@ -21,118 +18,19 @@ import {
 } from '@web-components/content/NeuralGrid';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { FaGithub } from 'react-icons/fa6';
 import {
   LuArrowRight,
   LuBrainCircuit,
-  LuCheck,
-  LuCopy,
   LuLoader,
   LuSparkles,
-  LuTerminal,
 } from 'react-icons/lu';
-
-/* ─── Install Command ─── */
-
-function InstallCommand(): React.ReactElement {
-  const [copied, setCopied] = useState(false);
-
-  async function handleCopy(): Promise<void> {
-    try {
-      await navigator.clipboard.writeText('npx skills add genfeedai/skills');
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard write failed — don't show success checkmark
-    }
-  }
-
-  return (
-    <BaseButton
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-      onClick={handleCopy}
-      className="group inline-flex items-center gap-3 px-6 py-3 bg-fill/5 border border-edge/10 hover:border-edge/20 transition-all font-mono text-sm cursor-pointer"
-    >
-      <LuTerminal className="size-4 text-surface/30" />
-      <span className="text-surface/70">npx skills add genfeedai/skills</span>
-      {copied ? (
-        <LuCheck className="size-4 text-emerald-400" />
-      ) : (
-        <LuCopy className="size-4 text-surface/30 group-hover:text-surface/60 transition-colors" />
-      )}
-    </BaseButton>
-  );
-}
-
-/* ─── Terminal Animation ─── */
-
-function TerminalDemo(): React.ReactElement {
-  const [currentLine, setCurrentLine] = useState(0);
-  const isTyping = currentLine < TERMINAL_COMMANDS.length;
-
-  useEffect(() => {
-    if (!isTyping) {
-      return;
-    }
-
-    const delay = currentLine === 0 ? 800 : currentLine <= 1 ? 600 : 300;
-    const timer = setTimeout(() => setCurrentLine((prev) => prev + 1), delay);
-
-    return () => clearTimeout(timer);
-  }, [currentLine, isTyping]);
-
-  return (
-    <div className="overflow-hidden border border-edge/10 bg-black/40">
-      <div className="flex items-center gap-2 px-4 py-3 bg-fill/5 border-b border-edge/10">
-        <div className="flex gap-2">
-          <div className="size-3 rounded-full bg-fill/20" />
-          <div className="size-3 rounded-full bg-fill/20" />
-          <div className="size-3 rounded-full bg-fill/20" />
-        </div>
-        <div className="flex-1 text-center text-xs text-surface/30 font-mono uppercase tracking-widest">
-          terminal
-        </div>
-      </div>
-
-      <div className="p-6 font-mono text-sm space-y-1.5 min-h-card">
-        {TERMINAL_COMMANDS.slice(0, currentLine).map((line) => (
-          <div key={line.command} className="flex flex-wrap gap-2">
-            {line.prompt && (
-              <span className="text-surface/30">{line.prompt}</span>
-            )}
-            {line.prompt && <span className="text-surface/40">$</span>}
-            <span
-              className={
-                line.command.startsWith('#')
-                  ? 'text-emerald-400/60'
-                  : line.command.startsWith('\u2713')
-                    ? 'text-emerald-400/40'
-                    : line.command.startsWith('...')
-                      ? 'text-surface/30'
-                      : 'text-surface/80'
-              }
-            >
-              {line.command}
-            </span>
-          </div>
-        ))}
-        {isTyping && (
-          <div className="flex items-center gap-2">
-            <span className="text-surface/30">
-              {TERMINAL_COMMANDS[currentLine]?.prompt || ''}
-            </span>
-            {TERMINAL_COMMANDS[currentLine]?.prompt && (
-              <span className="text-surface/40">$</span>
-            )}
-            <span className="w-2 h-4 bg-fill/40 animate-pulse" />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+import InstallCommand from './install-command';
+import SkillsBundleCta from './skills-bundle-cta';
+import SkillsHowItWorks from './skills-how-it-works';
+import SkillsStatsBar from './skills-stats-bar';
+import TerminalDemo from './terminal-demo';
 
 /* ─── Main Content ─── */
 
@@ -219,18 +117,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
         }
       >
         {/* Stats Bar */}
-        <WebSection py="md" maxWidth="lg">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 gsap-hero">
-            {STATS.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-4xl font-serif mb-1">{stat.value}</div>
-                <div className="text-xs font-black uppercase tracking-widest text-surface/30">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </WebSection>
+        <SkillsStatsBar />
 
         {/* Skill Categories */}
         {SKILL_CATEGORIES.map((category, catIndex) => (
@@ -319,70 +206,15 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
 
         {/* Bundle CTA */}
         {registry && registry.skills.length > 0 && (
-          <WebSection bg="subtle" className="gsap-section">
-            <NeuralGrid columns={1}>
-              <NeuralGridItem inverted padding="lg" align="center">
-                <div className="max-w-2xl mx-auto py-8">
-                  <div className="text-inv-fg/30 text-xs font-black uppercase tracking-widest mb-6">
-                    All Pro Skills Included
-                  </div>
-                  <h2 className="text-5xl font-serif text-inv-fg mb-4">
-                    Get Pro Skills
-                  </h2>
-                  <div className="text-6xl font-serif text-inv-fg mb-8">
-                    ${registry.bundlePrice}
-                  </div>
-                  <Button
-                    variant={ButtonVariant.BLACK}
-                    size={ButtonSize.PUBLIC}
-                    className="min-w-skill-col"
-                    disabled={checkoutLoading}
-                    onClick={() => handleCheckout()}
-                  >
-                    {checkoutLoading ? (
-                      <LuLoader className="size-4 animate-spin" />
-                    ) : (
-                      <>
-                        <LuSparkles className="size-4" />
-                        Buy Bundle
-                        <LuArrowRight className="size-4" />
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </NeuralGridItem>
-            </NeuralGrid>
-          </WebSection>
+          <SkillsBundleCta
+            bundlePrice={registry.bundlePrice}
+            checkoutLoading={checkoutLoading}
+            onCheckout={handleCheckout}
+          />
         )}
 
         {/* How It Works */}
-        <WebSection maxWidth="lg" bg="bordered" className="gsap-section">
-          <div className="text-center mb-16">
-            <div className="text-surface/20 text-xs font-black uppercase tracking-widest mb-6">
-              How It Works
-            </div>
-            <h2 className="text-5xl font-serif mb-6">
-              Install. Learn. Create.
-            </h2>
-            <p className="text-surface/50 max-w-xl mx-auto">
-              Skills are knowledge packages your agent absorbs, not plugins you
-              configure.
-            </p>
-          </div>
-
-          <NeuralGrid columns={4} className="gsap-grid">
-            {HOW_IT_WORKS.map((step) => (
-              <NeuralGridItem
-                key={step.number}
-                className="gsap-card"
-                tierLabel={`${step.number} / ${step.title}`}
-                icon={step.icon}
-                title={step.title}
-                description={step.description}
-              />
-            ))}
-          </NeuralGrid>
-        </WebSection>
+        <SkillsHowItWorks />
 
         {/* Terminal Demo */}
         <WebSection maxWidth="lg" className="gsap-section">

@@ -34,7 +34,13 @@ interface WorkflowExecution {
 }
 
 function parseInputsOption(value: string): Record<string, unknown> {
-  const parsed = JSON.parse(value) as unknown;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value) as unknown;
+  } catch {
+    throw new GenfeedError('--inputs must be a JSON object');
+  }
+
   if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') {
     throw new GenfeedError('--inputs must be a JSON object');
   }
@@ -66,13 +72,13 @@ export const workflowCommand = new Command('workflow')
             const workflows = flattenCollection<Workflow>(response);
             spinner.stop();
 
-            if (workflows.length === 0) {
-              print(chalk.dim('No workflows found.'));
+            if (options.json) {
+              printJson(workflows);
               return;
             }
 
-            if (options.json) {
-              printJson(workflows);
+            if (workflows.length === 0) {
+              print(chalk.dim('No workflows found.'));
               return;
             }
 

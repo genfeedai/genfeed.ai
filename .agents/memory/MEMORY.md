@@ -1,6 +1,7 @@
 # Memory Index
 
 ## Project State
+
 - [Project Overview](project_overview.md) — Genfeed.ai monorepo structure and key context
 - [One API Epic](project_one_api_epic.md) — Epic #95: consolidate self-hosted + cloud into one NestJS API, 20 issues, 8 phases
 - [Fallow Health](project_fallow.md) — Fallow codebase health analysis (#83), weekly CI, score 72/100
@@ -8,8 +9,10 @@
 - [Migration Status](project_migration.md) — cloud + core → genfeed.ai migration complete, all pages/tests present
 - [Settings Routing](project_settings_routing.md) — canonical personal/org/brand settings URL shapes
 - [Desktop BYOK Generation](project_desktop_byok_generation.md) — desktop local/BYOK generation works without Clerk; Clerk is sync-only
+- [TS6.0/Prisma-7 build regression](project_ts6_prisma7_build_regression.md) — **BUILD REGRESSION RESOLVED 2026-06-03** (develop CI green @ 2e66b0aa8). Root cause was stale turbo cache + mv-dist-src hack, not ~2020 real errors; removed the hack + fixed ~7 Prisma-7 Document interfaces. Stage 4 + migration-apply still pending.
 
 ## Feedback (user corrections — permanent)
+
 - [Never lose code](feedback_never_lose_code.md) — Always branch+push WIP before destructive git ops
 - [Never commit/push to master](feedback_never_commit_to_master.md) — Feature branches: commit freely. Master: always ask.
 - [proxy.ts is middleware](feedback_proxy_middleware.md) — Next.js 16 renamed middleware.ts → proxy.ts
@@ -19,11 +22,17 @@
 - [No external symlinks](feedback_no_external_symlinks.md) — Open source repo. Internal symlinks only.
 - [End-to-end implementation](feedback_end_to_end_implementation.md) — Never ship half-architecture; wire the full user path
 - [P0 status, not label](feedback_p0_status_not_label.md) — P0 is issue status; never create priority labels
+- [GPU instances off by default](feedback_gpu_instances_off_by_default.md) — Keep Genfeed GPU/Fleet inference instances off unless explicitly needed
+- [Inference servers private boundary](feedback_inference_servers_private_boundary.md) — Keep Genfeed inference server implementations out of the public monorepo
+- [GenfeedAI managed provider](feedback_genfeedai_managed_provider.md) — Model Genfeed-managed inference as provider=genfeedai, enabled per customer from console
+- [Concurrent automation on develop](feedback_concurrent_automation_develop.md) — A background bot commits to HEAD + pushes develop in this shared checkout; path-scope git add, never blind add -u
 
 ## References
+
 - [MongoDB Atlas URI](reference_mongodb_atlas.md) — Atlas connection string for `cloud` DB
 
 ## Context (loaded via CLAUDE.md @import)
+
 - [System Patterns](context/system-patterns.md) — architecture patterns, serializers, multi-tenancy
 - [Project Structure](context/project-structure.md) — directory layout, 12 backend services, 6 frontends
 - [Style Guide](context/project-style-guide.md) — TypeScript, git, formatting, naming conventions
@@ -34,11 +43,14 @@
 - [Project Brief](context/project-brief.md) — project brief
 - [Project Vision](context/project-vision.md) — long-term vision
 - [Tech Context](context/tech-context.md) — technology stack details
+- [E2E Architecture](context/e2e-architecture.md) — GitHub Actions e2e pipeline (4 jobs), Playwright + API E2E layers, triggers, DB provisioning, known debt
 
 ## Features
+
 - [Agent Architecture](features/agent/README.md) — orchestration, threading, collections, tools, frontend
 
 ## System
+
 - [Agent Runtime](system/AGENT-RUNTIME.md) — task loop, verification, completion gate
 - [Critical Never Do](system/CRITICAL-NEVER-DO.md) — production-breaking violations
 - [System Rules](system/SYSTEM-RULES.md) — coding standards
@@ -48,14 +60,18 @@
 - [Self-Hosted Guide](system/SELF-HOSTED-GUIDE.md) — Docker deployment guide
 
 ## Plans (UI design outputs)
+
 - **MergedSwitcher** (2026-05-17) — Merged AppSwitcher + ContentTypeSwitcher. Generate section: 4×2 colored icon grid (GenerationType enum). Navigate section: 2-col grid (Overview, Workflows, Library, Calendar, Analytics). Component: `packages/ui/src/components/shell/merged-switcher/MergedSwitcher.tsx`. HTML mockups gitignored under `.agents/plans/`.
 
 ## Architecture Decisions
+
 - [Dynamic Scheduling](architecture/ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL.md) — scheduling via workflow engine
 - [PLG Boundary](architecture/ADR-PLG-BOUNDARY-OSS-CLOUD.md) — OSS vs cloud feature split
 - [Workflow-Backed Agents](architecture/ADR-WORKFLOW-BACKED-RECURRING-AGENT-AUTOMATION.md) — recurring agent automation
+- [Skills, Routines, and Memory Boundary](architecture/ADR-SKILLS-ROUTINES-MEMORY-BOUNDARY.md) — OSS single-player loop vs cloud collaborative governance
 
 ## Rules (symlinked to .claude/rules/)
+
 - [Security](rules/00-security.md) — secret isolation, no outbound HTTP
 - [Backend Services](rules/10-backend-services.md) — soft deletes, service boundaries
 - [Web Apps](rules/20-web-apps.md) — semantic UI, async cancellation

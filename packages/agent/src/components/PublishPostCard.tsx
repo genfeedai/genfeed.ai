@@ -135,10 +135,14 @@ export function PublishPostCard({
       ) : null}
 
       <div className="mb-3">
-        <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <label
+          htmlFor="publish-caption"
+          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+        >
           Caption
         </label>
         <Textarea
+          id="publish-caption"
           value={caption}
           onChange={handleCaptionChange}
           rows={4}
@@ -147,9 +151,9 @@ export function PublishPostCard({
       </div>
 
       <div className="mb-3">
-        <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           Platforms
-        </label>
+        </span>
         <div className="flex flex-wrap gap-2">
           {availablePlatforms.map((platform) => {
             const selected = selectedPlatforms.includes(platform);
@@ -174,11 +178,15 @@ export function PublishPostCard({
       </div>
 
       <div className="mb-4">
-        <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <label
+          htmlFor="publish-schedule"
+          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+        >
           <HiCalendarDays className="mr-1 inline size-3" />
           Schedule for later
         </label>
         <Input
+          id="publish-schedule"
           type="datetime-local"
           value={scheduledAt}
           onChange={handleScheduleChange}

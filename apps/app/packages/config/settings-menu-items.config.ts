@@ -12,7 +12,7 @@ import {
 
 export const SETTINGS_MENU_ITEMS: MenuItemConfig[] = [
   {
-    group: '',
+    group: 'Account',
     href: '/settings',
     hrefScope: 'personal',
     label: 'Personal',
@@ -21,7 +21,7 @@ export const SETTINGS_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiUser,
   },
   {
-    group: '',
+    group: 'Workspace',
     href: '/settings',
     hrefScope: 'organization',
     label: 'Organization',
@@ -30,16 +30,16 @@ export const SETTINGS_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiBuildingOffice2,
   },
   {
-    group: '',
+    group: 'Workspace',
     href: '/settings/brands',
     hrefScope: 'organization',
-    label: 'Brands',
+    label: 'Brand Profiles',
     matchPaths: ['/settings/brands'],
     outline: HiOutlineTag,
     solid: HiTag,
   },
   {
-    group: '',
+    group: 'Support',
     href: '/settings/help',
     hrefScope: 'organization',
     label: 'Help',

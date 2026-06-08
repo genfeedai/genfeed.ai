@@ -6,6 +6,7 @@ import {
   ContentPatternType,
   TemplateCategory,
 } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -38,7 +39,8 @@ export interface CreatePatternDto {
 export class PatternStoreService extends BaseService<
   ContentPatternDocument,
   CreatePatternDto,
-  Partial<CreatePatternDto>
+  Partial<CreatePatternDto>,
+  Prisma.ContentPatternWhereInput
 > {
   constructor(
     public readonly prisma: PrismaService,

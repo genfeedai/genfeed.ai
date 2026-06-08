@@ -1,0 +1,200 @@
+'use client';
+
+import {
+  type IngredientCategory,
+  type IngredientFormat,
+  type IngredientStatus,
+  ViewType,
+} from '@genfeedai/enums';
+import type { IImage, IIngredient } from '@genfeedai/interfaces';
+import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
+import { AssetDisplayGrid } from '@pages/studio/generate/components/AssetDisplayGrid';
+import { GenerateEmptyState } from '@pages/studio/generate/components/GenerateEmptyState';
+import { StoryboardPanel } from '@pages/studio/generate/components/StoryboardPanel';
+import StudioSelectionActionsBar from '@pages/studio/selection/StudioSelectionActionsBar';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
+import InfiniteScroll from '@ui/feedback/infinite-scroll/InfiniteScroll';
+
+interface GenerateContentAreaProps {
+  // Category flags
+  isVideoCategory: boolean;
+  isEmptyStudioState: boolean;
+
+  // Storyboard props (video only)
+  cameraMovementPreset: CameraMovementPreset;
+  customCameraPrompt: string;
+  storyboardFormat: IngredientFormat;
+  storyboardFrames: IImage[];
+  hasInterpolationModel: boolean;
+  isStoryboardGenerating: boolean;
+  onCameraMovementPresetChange: (preset: CameraMovementPreset) => void;
+  onClearStoryboard: () => void;
+  onCustomCameraPromptChange: (prompt: string) => void;
+  onStoryboardFramesChange: (frames: IImage[]) => void;
+  onGenerateStoryboard: () => void;
+
+  // Selection bar props
+  viewMode: ViewType.MASONRY | ViewType.TABLE;
+  tableSelectedIds: string[];
+  onClearSelection: () => void;
+  onBulkDelete: () => void;
+  onBulkStatusChange: (status: IngredientStatus) => void;
+  isBulkUpdating: boolean;
+
+  // Infinite scroll props
+  onLoadMore: () => Promise<void>;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  isLoading: boolean;
+
+  // Asset display grid props
+  supportsMasonry: boolean;
+  allAssets: IIngredient[];
+  initialLoadComplete: boolean;
+  selectedIngredientIds: string[];
+  scrollFocusedAssetId: string | null;
+  resolvedGridFormat: IngredientFormat | undefined;
+  categoryType: IngredientCategory;
+  columns: TableColumn<IIngredient>[];
+  actions: TableAction<IIngredient>[];
+  emptyLabel: string;
+  onRefresh: () => Promise<void>;
+  onClickIngredient: (ingredient: IIngredient) => void;
+  onToggleFavorite: (item: IIngredient) => Promise<void>;
+  onCopyPrompt: (item: IIngredient) => void;
+  onReprompt: (ingredient: IIngredient) => Promise<void>;
+  onEditIngredient: (ingredient: IIngredient) => void;
+  onMarkValidated: (item: IIngredient) => Promise<void>;
+  onMarkRejected: (item: IIngredient) => Promise<void>;
+  onMarkArchived: (item: IIngredient) => Promise<void>;
+  onSeeDetails: (ingredient: IIngredient) => void;
+  onPublishIngredient: (ingredient: IIngredient) => void;
+  onUseAsVideoReference?: (ingredient: IIngredient) => void;
+  onCreateVariation?: (ingredient: IIngredient) => void;
+  onTableSelectionChange: (ids: string[]) => void;
+}
+
+export function GenerateContentArea({
+  isVideoCategory,
+  isEmptyStudioState,
+  cameraMovementPreset,
+  customCameraPrompt,
+  storyboardFormat,
+  storyboardFrames,
+  hasInterpolationModel,
+  isStoryboardGenerating,
+  onCameraMovementPresetChange,
+  onClearStoryboard,
+  onCustomCameraPromptChange,
+  onStoryboardFramesChange,
+  onGenerateStoryboard,
+  viewMode,
+  tableSelectedIds,
+  onClearSelection,
+  onBulkDelete,
+  onBulkStatusChange,
+  isBulkUpdating,
+  onLoadMore,
+  hasMore,
+  isLoadingMore,
+  isLoading,
+  supportsMasonry,
+  allAssets,
+  initialLoadComplete,
+  selectedIngredientIds,
+  scrollFocusedAssetId,
+  resolvedGridFormat,
+  categoryType,
+  columns,
+  actions,
+  emptyLabel,
+  onRefresh,
+  onClickIngredient,
+  onToggleFavorite,
+  onCopyPrompt,
+  onReprompt,
+  onEditIngredient,
+  onMarkValidated,
+  onMarkRejected,
+  onMarkArchived,
+  onSeeDetails,
+  onPublishIngredient,
+  onUseAsVideoReference,
+  onCreateVariation,
+  onTableSelectionChange,
+}: GenerateContentAreaProps) {
+  return (
+    <div className="flex flex-1 overflow-hidden relative w-full">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-auto px-6 pt-6 pb-40 md:pb-40">
+          {isVideoCategory && (
+            <StoryboardPanel
+              cameraMovementPreset={cameraMovementPreset}
+              customCameraPrompt={customCameraPrompt}
+              format={storyboardFormat}
+              frames={storyboardFrames}
+              hasInterpolationModel={hasInterpolationModel}
+              isGenerating={isStoryboardGenerating}
+              onCameraMovementPresetChange={onCameraMovementPresetChange}
+              onClear={onClearStoryboard}
+              onCustomCameraPromptChange={onCustomCameraPromptChange}
+              onFramesChange={onStoryboardFramesChange}
+              onGenerate={onGenerateStoryboard}
+            />
+          )}
+
+          {viewMode === ViewType.TABLE && tableSelectedIds.length > 0 && (
+            <StudioSelectionActionsBar
+              count={tableSelectedIds.length}
+              onClear={onClearSelection}
+              onBulkDelete={onBulkDelete}
+              onBulkStatusChange={onBulkStatusChange}
+              isBulkUpdating={isBulkUpdating}
+            />
+          )}
+
+          {isEmptyStudioState ? (
+            <GenerateEmptyState />
+          ) : (
+            <InfiniteScroll
+              onLoadMore={onLoadMore}
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+              enabled={!isLoading}
+            >
+              <AssetDisplayGrid
+                viewMode={viewMode}
+                supportsMasonry={supportsMasonry}
+                isLoading={isLoading}
+                allAssets={allAssets}
+                initialLoadComplete={initialLoadComplete}
+                selectedIngredientIds={selectedIngredientIds}
+                scrollFocusedIngredientId={scrollFocusedAssetId}
+                resolvedGridFormat={resolvedGridFormat}
+                categoryType={categoryType}
+                columns={columns}
+                actions={actions}
+                tableSelectedIds={tableSelectedIds}
+                onTableSelectionChange={onTableSelectionChange}
+                emptyLabel={emptyLabel}
+                onRefresh={onRefresh}
+                onClickIngredient={onClickIngredient}
+                onToggleFavorite={onToggleFavorite}
+                onCopyPrompt={onCopyPrompt}
+                onReprompt={onReprompt}
+                onEditIngredient={onEditIngredient}
+                onMarkValidated={onMarkValidated}
+                onMarkRejected={onMarkRejected}
+                onMarkArchived={onMarkArchived}
+                onSeeDetails={onSeeDetails}
+                onPublishIngredient={onPublishIngredient}
+                onUseAsVideoReference={onUseAsVideoReference}
+                onCreateVariation={onCreateVariation}
+              />
+            </InfiniteScroll>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
