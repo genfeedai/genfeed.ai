@@ -4,33 +4,17 @@
  */
 
 import type {
+  GoogleTag,
   IContentCTAStats,
   IGoogleAnalyticsEvent,
   ILinkPerformance,
   ITrackedLink,
   IUTMBuilder,
+  WindowWithGoogleTag,
 } from '@genfeedai/interfaces/analytics/link-tracking.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import { logger } from '@services/core/logger.service';
-
-type GoogleTag = {
-  (
-    command: 'event',
-    eventName: string,
-    eventParams: IGoogleAnalyticsEvent['eventParams'],
-  ): void;
-  (
-    command: 'get',
-    measurementId: string,
-    fieldName: 'client_id',
-    callback: (id: string) => void,
-  ): void;
-};
-
-type WindowWithGoogleTag = Window & {
-  gtag?: GoogleTag;
-};
 
 function getGoogleTag(): GoogleTag | undefined {
   if (typeof window === 'undefined') {
@@ -309,21 +293,25 @@ export class LinkTrackingService extends HTTPBaseService {
 
   /**
    * Get Google Analytics Client ID (for GA4 integration)
+   *
+   * `gtag('get', ...)` resolves its value through an asynchronous callback, so
+   * this must return a Promise — reading the result synchronously always yields
+   * `undefined`.
    */
-  public getGAClientId(): string | undefined {
+  public async getGAClientId(): Promise<string | undefined> {
     if (typeof window === 'undefined') {
       return undefined;
     }
 
     const gtag = getGoogleTag();
-    if (gtag) {
-      let clientId: string | undefined;
-      gtag('get', 'GA_MEASUREMENT_ID', 'client_id', (id: string) => {
-        clientId = id;
-      });
-      return clientId;
+    if (!gtag) {
+      return undefined;
     }
 
-    return undefined;
+    return new Promise<string | undefined>((resolve) => {
+      gtag('get', EnvironmentService.GA_ID, 'client_id', (id: string) => {
+        resolve(id);
+      });
+    });
   }
 }
