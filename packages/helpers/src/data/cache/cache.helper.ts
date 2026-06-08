@@ -70,6 +70,10 @@ export class MemoryCache<T> {
     this.cache.clear();
   }
 
+  size(): number {
+    return this.cache.size;
+  }
+
   private cleanup(): void {
     const now = Date.now();
     for (const [key, entry] of this.cache.entries()) {
@@ -155,8 +159,6 @@ export function pruneExpiredItems(): void {}
 
 export function getCacheStats(): CacheStats {
   const cache = getGlobalCache();
-  const size = (cache as unknown as { cache: Map<unknown, unknown> }).cache
-    .size;
 
   const totalRequests = cacheHits + cacheMisses;
   const hitRate = totalRequests > 0 ? cacheHits / totalRequests : 0;
@@ -165,7 +167,7 @@ export function getCacheStats(): CacheStats {
     hitRate,
     hits: cacheHits,
     misses: cacheMisses,
-    size,
+    size: cache.size(),
   };
 }
 
