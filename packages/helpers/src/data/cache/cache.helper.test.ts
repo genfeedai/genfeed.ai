@@ -110,6 +110,15 @@ describe('MemoryCache', () => {
     expect(cache.get('b')).toBeUndefined();
   });
 
+  it('reports current size', () => {
+    expect(cache.size()).toBe(0);
+    cache.set('a', '1');
+    cache.set('b', '2');
+    expect(cache.size()).toBe(2);
+    cache.delete('a');
+    expect(cache.size()).toBe(1);
+  });
+
   it('evicts oldest entry when maxSize is reached', () => {
     const small = new MemoryCache<number>(60000, 3);
     small.set('a', 1);
