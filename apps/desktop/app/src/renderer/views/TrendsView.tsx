@@ -1,4 +1,8 @@
-import type { IDesktopTrend } from '@genfeedai/desktop-contracts';
+import type {
+  DesktopContentPlatform,
+  IDesktopTrend,
+  IDesktopTrendHandoff,
+} from '@genfeedai/desktop-contracts';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
@@ -13,11 +17,20 @@ const PLATFORM_LABELS: Record<string, string> = {
 };
 
 interface TrendsViewProps {
-  onGenerateFromTrend: (trend: {
-    id: string;
-    platform: 'instagram' | 'linkedin' | 'twitter' | 'tiktok' | 'youtube';
-    topic: string;
-  }) => void;
+  onGenerateFromTrend: (trend: IDesktopTrendHandoff) => void;
+}
+
+function toDesktopContentPlatform(
+  value: string,
+  fallback: string,
+): DesktopContentPlatform {
+  const nextValue = [value, fallback].find((candidate) =>
+    ['instagram', 'linkedin', 'twitter', 'tiktok', 'youtube'].includes(
+      candidate,
+    ),
+  );
+
+  return (nextValue ?? 'twitter') as DesktopContentPlatform;
 }
 
 export const TrendsView = ({ onGenerateFromTrend }: TrendsViewProps) => {
@@ -117,14 +130,15 @@ export const TrendsView = ({ onGenerateFromTrend }: TrendsViewProps) => {
                 className="small"
                 onClick={() =>
                   onGenerateFromTrend({
+                    engagementScore: trend.engagementScore,
                     id: trend.id,
-                    platform: trend.platform as
-                      | 'instagram'
-                      | 'linkedin'
-                      | 'twitter'
-                      | 'tiktok'
-                      | 'youtube',
+                    platform: toDesktopContentPlatform(
+                      trend.platform,
+                      platform,
+                    ),
+                    summary: trend.summary,
                     topic: trend.topic,
+                    viralityScore: trend.viralityScore,
                   })
                 }
                 type="button"

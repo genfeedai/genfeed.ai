@@ -4,8 +4,10 @@ import type {
   DesktopGenerationProviderKind,
   DesktopPublishIntent,
   IDesktopCloudProject,
+  IDesktopContentRunBrief,
   IDesktopContentRunDraft,
   IDesktopGenerationProviderPublicConfig,
+  IDesktopTrendHandoff,
   IDesktopWorkspace,
 } from '@genfeedai/desktop-contracts';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -30,6 +32,104 @@ export function buildDraftTitle(
   }
 
   return trimmed.length > 48 ? `${trimmed.slice(0, 48)}…` : trimmed;
+}
+
+function formatTrendScore(label: string, score?: number): string | undefined {
+  if (typeof score !== 'number') {
+    return undefined;
+  }
+
+  return `${label}: ${String(Math.round(score))}/100`;
+}
+
+export function buildTrendBrief(
+  trend: IDesktopTrendHandoff,
+  contentType: DesktopContentType,
+): IDesktopContentRunBrief {
+  const evidence = [
+    trend.summary,
+    formatTrendScore('Virality score', trend.viralityScore),
+    formatTrendScore('Engagement score', trend.engagementScore),
+  ].filter((value): value is string => Boolean(value));
+  const scores = [trend.viralityScore, trend.engagementScore].filter(
+    (score): score is number => typeof score === 'number',
+  );
+  const confidence =
+    scores.length > 0
+      ? Math.min(
+          1,
+          Math.max(
+            0,
+            scores.reduce((total, score) => total + score, 0) /
+              scores.length /
+              100,
+          ),
+        )
+      : undefined;
+
+  return {
+    angle: trend.topic,
+    channelFit: `${trend.platform} ${contentType} adapted from a live trend signal.`,
+    confidence,
+    evidence,
+    hypothesis: `Turn "${trend.topic}" into a brand-fit ${trend.platform} ${contentType} that borrows the trend pattern without copying the source.`,
+    risk: 'Avoid copying source wording; add original perspective and proof.',
+    sourceId: trend.id,
+  };
+}
+
+export function buildTrendBriefPrompt(
+  trend: IDesktopTrendHandoff,
+  contentType: DesktopContentType,
+): string {
+  const brief = buildTrendBrief(trend, contentType);
+  const lines = [
+    `Create a ${trend.platform} ${contentType} from this trend brief.`,
+    '',
+    `Trend: ${trend.topic}`,
+    trend.summary ? `Summary: ${trend.summary}` : undefined,
+    brief.channelFit ? `Channel fit: ${brief.channelFit}` : undefined,
+    brief.hypothesis ? `Hypothesis: ${brief.hypothesis}` : undefined,
+    brief.risk ? `Guardrail: ${brief.risk}` : undefined,
+    brief.evidence?.length
+      ? `Evidence: ${brief.evidence.join(' | ')}`
+      : undefined,
+    '',
+    'Return a ready-to-edit draft with a clear hook, concrete angle, and no copied source wording.',
+  ];
+
+  return lines
+    .filter((line): line is string => line !== undefined)
+    .join('\n');
+}
+
+export function buildTrendContentRunDraft(params: {
+  contentType: DesktopContentType;
+  now: string;
+  trend: IDesktopTrendHandoff;
+  workspace: IDesktopWorkspace | null;
+  workspaceId: string;
+}): IDesktopContentRunDraft {
+  const { contentType, now, trend, workspace, workspaceId } = params;
+  const prompt = buildTrendBriefPrompt(trend, contentType);
+
+  return {
+    brief: buildTrendBrief(trend, contentType),
+    createdAt: now,
+    id: createId(),
+    platform: trend.platform,
+    projectId: workspace?.linkedProjectId,
+    prompt,
+    publishIntent: 'review',
+    sourceTrendId: trend.id,
+    sourceTrendTopic: trend.topic,
+    sourceType: 'trend',
+    status: 'draft',
+    title: buildDraftTitle(`Trend brief: ${trend.topic}`, contentType),
+    type: contentType,
+    updatedAt: now,
+    workspaceId,
+  };
 }
 
 type BuildPersistedContentRunDraftParams = {
@@ -75,11 +175,7 @@ export function buildPersistedContentRunDraft({
 
 interface UseConversationStateParams {
   workspaceId: string | null;
-  pendingTrend?: {
-    id: string;
-    platform: DesktopContentPlatform;
-    topic: string;
-  } | null;
+  pendingTrend?: IDesktopTrendHandoff | null;
   onTrendConsumed?: () => void;
 }
 
@@ -224,25 +320,24 @@ export function useConversationState({
   }, [selectedDraft]);
 
   useEffect(() => {
-    if (!pendingTrend || !workspaceId) {
+    if (!pendingTrend) {
       return;
     }
 
-    const nextDraft: IDesktopContentRunDraft = {
-      createdAt: new Date().toISOString(),
-      id: createId(),
-      platform: pendingTrend.platform,
-      prompt: `Create a ${pendingTrend.platform} ${contentType} from trend: ${pendingTrend.topic}`,
-      publishIntent: 'review',
-      sourceTrendId: pendingTrend.id,
-      sourceTrendTopic: pendingTrend.topic,
-      sourceType: 'trend',
-      status: 'draft',
-      title: buildDraftTitle(pendingTrend.topic, contentType),
-      type: contentType,
-      updatedAt: new Date().toISOString(),
+    if (!workspaceId) {
+      setError('Open a workspace before creating a draft from a trend.');
+      onTrendConsumed?.();
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const nextDraft = buildTrendContentRunDraft({
+      contentType,
+      now,
+      trend: pendingTrend,
+      workspace,
       workspaceId,
-    };
+    });
 
     void window.genfeedDesktop.drafts
       .save(workspaceId, nextDraft)
@@ -262,7 +357,7 @@ export function useConversationState({
             : 'Failed to create draft from trend.',
         );
       });
-  }, [contentType, onTrendConsumed, pendingTrend, workspaceId]);
+  }, [contentType, onTrendConsumed, pendingTrend, workspace, workspaceId]);
 
   const persistDraft = useCallback(
     async (

@@ -1,6 +1,7 @@
 import type {
   IDesktopBootstrap,
   IDesktopSession,
+  IDesktopTrendHandoff,
 } from '@genfeedai/desktop-contracts';
 import {
   lazy,
@@ -29,6 +30,11 @@ const AgentsView = lazy(() =>
 const AnalyticsView = lazy(() =>
   import('./views/AnalyticsView').then((module) => ({
     default: module.AnalyticsView,
+  })),
+);
+const ConversationView = lazy(() =>
+  import('./views/ConversationView').then((module) => ({
+    default: module.ConversationView,
   })),
 );
 const LibraryView = lazy(() =>
@@ -105,11 +111,8 @@ export const App = () => {
   const [isOnline, setIsOnline] = useState(
     typeof navigator === 'undefined' ? true : navigator.onLine,
   );
-  const [_pendingTrend, setPendingTrend] = useState<{
-    id: string;
-    platform: 'instagram' | 'linkedin' | 'twitter' | 'tiktok' | 'youtube';
-    topic: string;
-  } | null>(null);
+  const [pendingTrend, setPendingTrend] =
+    useState<IDesktopTrendHandoff | null>(null);
   const [onboardingState, setOnboardingState] = useState<OnboardingState>({
     completed: false,
     loaded: false,
@@ -132,9 +135,11 @@ export const App = () => {
 
   const {
     activeThreadId,
+    activeThread,
     addMessage,
     createThread,
     setActiveThreadId,
+    setThreadStatus,
     threads,
   } = useThreads(selectedWorkspaceId, localUserId);
 
@@ -274,7 +279,7 @@ export const App = () => {
   }, [createThread]);
 
   const handleOpenTerminal = useCallback(() => {
-    setActiveView('conversation');
+    setActiveView('terminal');
   }, []);
 
   const handleOpenSettings = useCallback(() => {
@@ -282,16 +287,12 @@ export const App = () => {
   }, []);
 
   const handleGenerateFromTrend = useCallback(
-    (trend: {
-      id: string;
-      platform: 'instagram' | 'linkedin' | 'twitter' | 'tiktok' | 'youtube';
-      topic: string;
-    }) => {
+    (trend: IDesktopTrendHandoff) => {
       setActiveView('conversation');
       setPendingTrend(trend);
       const thread = createThread();
       const message = {
-        content: `Generate content about: ${trend.topic}`,
+        content: `Draft a ${trend.platform} brief from trend: ${trend.topic}`,
         createdAt: new Date().toISOString(),
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         role: 'user' as const,
@@ -339,6 +340,18 @@ export const App = () => {
   const renderMainView = () => {
     switch (activeView) {
       case 'conversation':
+        return (
+          <ConversationView
+            onCreateThread={createThread}
+            onSendMessage={addMessage}
+            onSetStatus={setThreadStatus}
+            onTrendConsumed={() => setPendingTrend(null)}
+            pendingTrend={pendingTrend}
+            thread={activeThread}
+            workspaceId={selectedWorkspaceId}
+          />
+        );
+      case 'terminal':
         return <TerminalView workspaceId={selectedWorkspaceId} />;
       case 'workflows':
         return <WorkflowsView />;
@@ -358,7 +371,17 @@ export const App = () => {
       case 'trends':
         return <TrendsView onGenerateFromTrend={handleGenerateFromTrend} />;
       default:
-        return <TerminalView workspaceId={selectedWorkspaceId} />;
+        return (
+          <ConversationView
+            onCreateThread={createThread}
+            onSendMessage={addMessage}
+            onSetStatus={setThreadStatus}
+            onTrendConsumed={() => setPendingTrend(null)}
+            pendingTrend={pendingTrend}
+            thread={activeThread}
+            workspaceId={selectedWorkspaceId}
+          />
+        );
     }
   };
 
