@@ -1,0 +1,56 @@
+name: Desktop QA
+
+on:
+  pull_request:
+    branches: [develop, staging, master]
+    paths:
+      - 'apps/desktop/**'
+      - 'apps/app/**'
+      - 'packages/desktop-*/**'
+      - 'package.json'
+      - 'bun.lock'
+      - 'turbo.json'
+      - '.github/actions/setup-bun-env/**'
+      - '.github/workflows/desktop-qa.yml'
+      - '.github/workflows/desktop-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-qa-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  GENFEED_DESKTOP_RELEASE: ${{ github.sha }}
+  TZ: UTC
+
+jobs:
+  desktop-release-qa:
+    name: Desktop Release QA
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          node-version: '24.x'
+          bun-version: '1.3.13'
+          install-command: 'bun install --frozen-lockfile'
+
+      - name: Run desktop release QA
+        run: bun run --filter=@genfeedai/desktop qa:release
+
+      - name: QA summary
+        if: always()
+        run: |
+          echo "## Desktop QA" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Checklist: apps/desktop/RELEASE_QA.md" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Command: \`bun run --filter=@genfeedai/desktop qa:release\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Release SHA: \`${GENFEED_DESKTOP_RELEASE}\`" >> "$GITHUB_STEP_SUMMARY"
