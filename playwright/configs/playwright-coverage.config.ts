@@ -29,6 +29,13 @@ const COVERAGE_THRESHOLD = Number(process.env.E2E_COVERAGE_THRESHOLD ?? '80');
 
 export default defineConfig({
   ...baseConfig,
+  // Coverage runs the mocked app-core suite only — never clerk-setup (real
+  // Clerk) or app-authed (depends on clerk-setup). Inheriting them would make
+  // assertRealClerkEnv() throw when CLERK_SECRET_KEY is the CI mock placeholder,
+  // silently failing two projects on every coverage run.
+  projects: baseConfig.projects?.filter(
+    (project) => project.name === 'app-core',
+  ),
   reporter: [
     ['list'],
     ['html', { open: 'never', outputFolder: 'playwright-report/html' }],

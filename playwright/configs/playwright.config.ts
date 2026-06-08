@@ -221,5 +221,9 @@ export default defineConfig({
             url: appWebServerUrl,
           },
         ],
-  workers: 1,
+  // 2 workers in CI matches ubuntu-latest (2 vCPU). Fixtures are closure-scoped
+  // per page (no shared mutable state), so intra-shard parallelism is safe. Under
+  // sharding total concurrency is shardCount × 2. Serial describe blocks (e.g.
+  // avatar-library.spec.ts) stay serial within their worker. Local stays auto.
+  workers: isCI ? 2 : undefined,
 });

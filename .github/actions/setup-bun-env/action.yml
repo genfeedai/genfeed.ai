@@ -18,6 +18,13 @@ inputs:
     description: Whether to cache the local Turbo directory
     required: false
     default: 'true'
+  cache-playwright:
+    description: |
+      Whether to cache Playwright browser binaries (chromium) and install
+      them when the cache is cold. Defaults to false so existing callers are
+      unaffected.
+    required: false
+    default: 'false'
 
 runs:
   using: composite
@@ -52,3 +59,23 @@ runs:
     - name: Install dependencies
       shell: bash
       run: ${{ inputs.install-command }}
+
+    # Playwright browser binaries — key matches the strategy used by the inline
+    # e2e jobs so warm cache entries are reused when jobs migrate here.
+    - name: Cache Playwright browsers
+      if: ${{ inputs.cache-playwright == 'true' }}
+      id: playwright-cache
+      uses: actions/cache@v5
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('**/bun.lock') }}
+
+    - name: Install Playwright browsers (cache miss)
+      if: ${{ inputs.cache-playwright == 'true' && steps.playwright-cache.outputs.cache-hit != 'true' }}
+      shell: bash
+      run: npx playwright install --with-deps chromium
+
+    - name: Install Playwright OS deps (cache hit)
+      if: ${{ inputs.cache-playwright == 'true' && steps.playwright-cache.outputs.cache-hit == 'true' }}
+      shell: bash
+      run: npx playwright install-deps chromium || true

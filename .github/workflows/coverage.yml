@@ -265,3 +265,65 @@ jobs:
           directory: apps/server/api/coverage
           flags: api
           fail_ci_if_error: false
+
+  # ── Frontend E2E coverage — sharded 4-way (V8 → monocart) ──
+  # Lives here, NOT in e2e.yml, so a slow/cancelled coverage run can never turn
+  # the E2E gate red. Inherits this workflow's triggers (workflow_dispatch +
+  # weekly Mon 6am UTC) and runs the mocked app-core suite only. Each shard is an
+  # isolated machine; the 4 lcov reports are merged server-side by Codecov via the
+  # shared `app-e2e` flag, so no cross-shard merge job is needed.
+  coverage-e2e:
+    name: Coverage — apps/app E2E (shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          node-version: "22.x"
+          install-command: "bun install --frozen-lockfile"
+          cache-playwright: "true"
+
+      - name: Build app (Playwright test mode + browser source maps)
+        run: bunx turbo run build --filter=@genfeedai/app
+        env:
+          E2E_COVERAGE: "1"
+          NEXT_PUBLIC_PLAYWRIGHT_TEST: "true"
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
+          NEXT_PUBLIC_API_URL: http://localhost:3010
+
+      - name: Run E2E coverage shard ${{ matrix.shard }}/4
+        # No --reporter override here so the monocart reporter (lcov + v8) from
+        # playwright-coverage.config.ts runs in full. --shard splits app-core.
+        # Threshold 0 — this run reports coverage, it does not gate on it.
+        run: bun run test:e2e:coverage -- --shard=${{ matrix.shard }}/4
+        env:
+          CI: true
+          APP_BASE_URL: http://localhost:3000
+          E2E_COVERAGE_THRESHOLD: "0"
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
+
+      - name: Upload coverage artifact (shard ${{ matrix.shard }})
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-coverage-shard-${{ matrix.shard }}
+          path: playwright-report/coverage/
+          retention-days: 7
+
+      - name: Report E2E coverage to Codecov (shard ${{ matrix.shard }})
+        uses: codecov/codecov-action@v6
+        if: always()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: playwright-report/coverage/lcov.info
+          flags: app-e2e
+          fail_ci_if_error: false
