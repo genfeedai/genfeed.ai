@@ -32,6 +32,47 @@ export function buildDraftTitle(
   return trimmed.length > 48 ? `${trimmed.slice(0, 48)}…` : trimmed;
 }
 
+type BuildPersistedContentRunDraftParams = {
+  contentType: DesktopContentType;
+  input: string;
+  now: string;
+  overrides?: Partial<IDesktopContentRunDraft>;
+  platform: DesktopContentPlatform;
+  publishIntent: DesktopPublishIntent;
+  selectedDraft: IDesktopContentRunDraft | null;
+  workspace: IDesktopWorkspace | null;
+  workspaceId: string;
+};
+
+export function buildPersistedContentRunDraft({
+  contentType,
+  input,
+  now,
+  overrides,
+  platform,
+  publishIntent,
+  selectedDraft,
+  workspace,
+  workspaceId,
+}: BuildPersistedContentRunDraftParams): IDesktopContentRunDraft {
+  return {
+    ...selectedDraft,
+    createdAt: selectedDraft?.createdAt ?? now,
+    id: selectedDraft?.id ?? createId(),
+    platform,
+    projectId: workspace ? workspace.linkedProjectId : selectedDraft?.projectId,
+    prompt: input.trim(),
+    publishIntent,
+    sourceType: selectedDraft?.sourceType ?? 'prompt',
+    status: selectedDraft?.status ?? 'draft',
+    title: buildDraftTitle(input, contentType),
+    type: contentType,
+    updatedAt: now,
+    workspaceId,
+    ...overrides,
+  };
+}
+
 interface UseConversationStateParams {
   workspaceId: string | null;
   pendingTrend?: {
@@ -210,6 +251,7 @@ export function useConversationState({
         setSelectedDraftId(savedDraft.id);
         setInput(savedDraft.prompt);
         setPlatform(savedDraft.platform);
+        setContentType(savedDraft.type);
         setPublishIntent(savedDraft.publishIntent);
         onTrendConsumed?.();
       })
@@ -232,22 +274,17 @@ export function useConversationState({
       }
 
       const now = new Date().toISOString();
-      const draft: IDesktopContentRunDraft = {
-        createdAt: selectedDraft?.createdAt ?? now,
-        id: selectedDraft?.id ?? createId(),
+      const draft = buildPersistedContentRunDraft({
+        contentType,
+        input,
+        now,
+        overrides,
         platform,
-        projectId: workspace?.linkedProjectId,
-        prompt: input.trim(),
         publishIntent,
-        sourceType: selectedDraft?.sourceType ?? 'prompt',
-        status: selectedDraft?.status ?? 'draft',
-        title: buildDraftTitle(input, contentType),
-        type: contentType,
-        updatedAt: now,
+        selectedDraft,
+        workspace,
         workspaceId,
-        ...selectedDraft,
-        ...overrides,
-      };
+      });
 
       const savedDraft = await window.genfeedDesktop.drafts.save(
         workspaceId,
