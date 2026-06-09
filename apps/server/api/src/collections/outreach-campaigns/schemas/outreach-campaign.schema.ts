@@ -63,7 +63,10 @@ export type CampaignSchedule = {
 };
 
 export interface OutreachCampaignDocument
-  extends Omit<OutreachCampaign, 'config' | 'status'> {
+  extends Omit<
+    OutreachCampaign,
+    'config' | 'status' | 'campaignType' | 'isActive' | 'platform'
+  > {
   _id: string;
   aiConfig?: CampaignAiConfig;
   brand?: string | null;

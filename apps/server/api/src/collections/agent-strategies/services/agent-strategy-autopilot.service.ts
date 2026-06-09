@@ -770,7 +770,7 @@ export class AgentStrategyAutopilotService {
     }
 
     const autopilotMetadata = {
-      ...(draft.metadata ?? {}),
+      ...((draft.metadata ?? {}) as Record<string, unknown>),
       autopilotFormat: format,
       autopilotOpportunityId: String(
         (opportunity as Record<string, unknown>).id ?? opportunity._id,

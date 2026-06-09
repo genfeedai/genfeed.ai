@@ -3,7 +3,20 @@ import type { CampaignTarget } from '@genfeedai/prisma';
 
 export type { CampaignTarget } from '@genfeedai/prisma';
 
-export interface CampaignTargetDocument extends Omit<CampaignTarget, 'data'> {
+export interface CampaignTargetDocument
+  extends Omit<
+    CampaignTarget,
+    | 'data'
+    | 'errorMessage'
+    | 'externalId'
+    | 'processedAt'
+    | 'replyExternalId'
+    | 'replyText'
+    | 'replyUrl'
+    | 'retryCount'
+    | 'scheduledAt'
+    | 'skipReason'
+  > {
   _id: string;
   authorId?: string | null;
   authorUsername?: string | null;

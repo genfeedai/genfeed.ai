@@ -22,6 +22,7 @@ import {
   RunStatus,
   RunSurface,
 } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -335,9 +336,9 @@ export class RunsService extends BaseService<
         orderBy: { createdAt: 'desc' },
         skip: offset,
         take: limit,
-        where: filters as never,
+        where: filters as Prisma.RunWhereInput,
       }),
-      this.prisma.run.count({ where: filters as never }),
+      this.prisma.run.count({ where: filters as Prisma.RunWhereInput }),
     ]);
 
     return {
@@ -506,7 +507,7 @@ export class RunsService extends BaseService<
     }
 
     const updated = await this.prisma.run.update({
-      data: updatePayload as never,
+      data: updatePayload as Prisma.RunUpdateInput,
       where: { id: runId },
     });
 
@@ -557,7 +558,7 @@ export class RunsService extends BaseService<
     const updatedEvents = [...existingEvents, eventToPersist];
 
     const updated = await this.prisma.run.update({
-      data: { events: updatedEvents as never },
+      data: { events: updatedEvents as Prisma.InputJsonValue[] },
       where: { id: runId },
     });
 

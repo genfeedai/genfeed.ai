@@ -10,6 +10,7 @@ The repo already contains the live server surfaces for this loop. This section m
 
 - **Step 1: Trend Ingestion**: how trend signals enter the platform and end up in `collections/trends`
 - **Prelaunch Corpus Health**: launch-minimum targets, health metrics, and freshness expectations for the global trend/reference corpus
+- **Prelaunch Corpus Backfill**: the credential-free global seed path for launch cold-start coverage
 - **Agent Orchestration**: how the V1 agent runtime should own turn state while campaigns, skills, and content pipelines stay as adapters or deterministic execution layers
 - **Step 3: Generation Service**: how generation-facing modules route into provider-backed media and text paths
 - **Step 5: Analytics Backbone**: how analytics-facing services aggregate activity into dashboard-visible output
@@ -56,6 +57,7 @@ Each v1 area now has one narrow verification path:
 
 - **Trend ingestion**: verify `TrendsService` falls through the cached path into the live-fetch path when cache is empty
 - **Prelaunch corpus health**: verify launch readiness against explicit platform, content-type, freshness, and prompt-ready metadata targets
+- **Prelaunch corpus backfill**: dry-run the global seed plan, then apply it with `seed:prelaunch-corpus` when launch data is needed
 - **Agent orchestration**: verify new agent-facing automation routes through one runtime boundary instead of adding another peer orchestrator
 - **Generation service**: verify dynamic provider-backed model discovery merges into the stable generation-facing model surface
 - **Analytics backbone**: verify provider metrics are stored in `postAnalytics`, visible in publication analytics, and included in content-performance summaries once the data is no longer current-day incomplete
@@ -66,5 +68,6 @@ Each v1 area now has one narrow verification path:
 - `#160` Analytics Backbone
 - `#161` Generation Service
 - `#210` Prelaunch corpus launch targets and health metrics
+- `#211` Prelaunch corpus backfill
 
 Continue with the step-specific pages for the concrete module inventories and smoke-path details.

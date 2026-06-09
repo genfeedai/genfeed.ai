@@ -1,0 +1,112 @@
+# Prelaunch Corpus Backfill
+
+This page documents the credential-free backfill path for `#211`.
+
+## Purpose
+
+The prelaunch reference corpus gives cold-start tenants prompt-ready trend examples before they connect platform credentials or accumulate brand history.
+
+The backfill writes global rows only:
+
+- `organizationId = null`
+- `brandId = null`
+- `requiresAuth = false`
+- `metadata.prelaunchCorpus = true`
+- `metadata.sourceSetVersion = "2026-06-09"`
+
+It is a launch operations path, not a replacement for provider ingestion or the full health automation tracked by `#216`.
+
+## Source Set
+
+The seed source set lives in `apps/server/api/src/collections/trends/data/prelaunch-reference-corpus.seed.ts`.
+
+It currently generates:
+
+| Slice             | Count |
+| ----------------- | ----- |
+| global trends     | `70`  |
+| source references | `140` |
+| platforms         | `7`   |
+| themes            | `10`  |
+
+Platforms covered:
+
+- TikTok
+- Instagram
+- X / Twitter
+- YouTube
+- Reddit
+- Pinterest
+- LinkedIn
+
+Themes covered:
+
+- AI agent workflows
+- creator ops
+- short-form remix
+- brand voice systems
+- UGC proof hooks
+- launch content sprints
+- analytics feedback loops
+- local-first AI
+- paid creative breakdowns
+- community research
+
+Every source item includes platform, content type, canonical URL, title or text, author handle, published timestamp, and engagement metrics so prompt assembly can use the reference corpus without fetching live provider APIs.
+
+## Write Contract
+
+`TrendsService.backfillPrelaunchReferenceCorpus()` owns the backfill because `TrendsService` owns the trend write boundary.
+
+The method:
+
+1. Builds the deterministic public source set.
+2. Finds existing global prelaunch trend rows by `metadata.prelaunchCorpusKey`.
+3. Creates missing rows or refreshes existing rows.
+4. Stores `metadata.sourcePreviewCache` on each trend row.
+5. Calls `TrendReferenceCorpusService.syncTrendReferences()` to upsert source references, snapshots, and trend-reference links.
+6. Invalidates `trends` and `trends:content` caches.
+
+The operation is idempotent. Re-running it refreshes the same keyed prelaunch rows and does not create duplicate source references for the same canonical URL and platform.
+
+## Operations
+
+Dry-run is the default:
+
+```bash
+bun --cwd apps/server/api run seed:prelaunch-corpus:dry
+```
+
+Apply writes:
+
+```bash
+bun --cwd apps/server/api run seed:prelaunch-corpus
+```
+
+Run against a named env file:
+
+```bash
+bun run apps/server/api/scripts/seeds/prelaunch-reference-corpus.seed.ts --env=production --live
+```
+
+The script loads `.env.local` by default, or `.env.<name>` when `--env=<name>` is provided.
+
+## Verification
+
+After a live run, check the script summary:
+
+- `createdTrends + updatedTrends = 70`
+- `referencesSynced = 140` on first run, or updated references on later runs
+- `links` and `snapshots` are nonzero on first run
+
+Then verify through the existing read surfaces:
+
+- trends can load from the global cached corpus without tenant credentials
+- trend-content reads include `sourcePreviewState = "fallback"` rows
+- reference-corpus reads return prompt-ready source records
+
+Local validation for automation PRs may be skipped when the active policy requires GitHub CI as the verification path.
+
+## Boundary
+
+This backfill clears the existing cold-start baseline and starts the corpus toward the launch-minimum targets in the health contract. It does not claim the full `480` trend and `1,440` reference launch floor, and it does not replace provider-specific ingestion work in `#213` through `#216`.

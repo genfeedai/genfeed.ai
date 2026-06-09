@@ -116,7 +116,7 @@ If the corpus is not launch-ready, downstream readers should still use the exist
 
 Follow-up implementation should treat this page as the product contract:
 
-- `#211` should backfill toward the launch-minimum rows.
+- `#211` backfills the first credential-free global source set through `seed:prelaunch-corpus`; it clears the runtime cold-start baseline and starts toward the launch-minimum rows without claiming full launch readiness.
 - `#213` should replace curated topics with public reference ingestion while preserving the platform/content-type targets.
 - `#214` should make paid/creative references classifiable so they do not pollute organic trend slices.
 - `#215` should derive prompt-ready packs only from references that satisfy prompt-ready metadata.

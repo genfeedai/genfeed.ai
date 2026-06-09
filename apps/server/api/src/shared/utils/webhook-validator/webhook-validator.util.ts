@@ -1,3 +1,4 @@
+import type { LookupAddress } from 'node:dns';
 import * as dns from 'node:dns/promises';
 import { Agent as HttpsAgent } from 'node:https';
 import * as net from 'node:net';
@@ -145,7 +146,7 @@ async function resolveSafeWebhookUrl(
     return { address: bareIpv6, family: 6, hostname };
   }
 
-  let records: dns.LookupAddress[];
+  let records: LookupAddress[];
 
   try {
     records = await dns.lookup(hostname, { all: true });
@@ -207,7 +208,7 @@ export async function createSafeWebhookHttpsAgent(
         return;
       }
 
-      callback(new Error('Unsafe webhook redirect hostname rejected'));
+      callback(new Error('Unsafe webhook redirect hostname rejected'), '', 4);
     },
   });
 }

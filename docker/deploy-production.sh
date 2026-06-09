@@ -279,6 +279,37 @@ deploy_wave() {
   done
 }
 
+run_db_migrations() {
+  # Apply pending Prisma migrations before bringing services up.
+  # Gated on the api service since that is the schema owner; idempotent
+  # (`migrate deploy` is a no-op when the DB is already up to date).
+  if ! is_changed "api"; then
+    log "Skipping DB migrations (api not in this deploy)"
+    return 0
+  fi
+
+  log_header "Database Migrations"
+  log "Applying Prisma migrations using image: ${DEFAULT_SERVER_IMAGE}"
+
+  # One-shot container: needs DATABASE_URL (from the SSM-rendered root env file)
+  # and egress to the public RDS endpoint (default bridge network provides it).
+  # Run as root + HOME=/tmp so the schema engine can write its cache regardless
+  # of the image's non-root runtime user.
+  if docker run --rm \
+      --user root \
+      -e HOME=/tmp \
+      --env-file "$ENV_FILE" \
+      -w /usr/src/app/packages/prisma \
+      "$DEFAULT_SERVER_IMAGE" \
+      bunx prisma migrate deploy; then
+    log "Prisma migrations applied (or already up to date)"
+    return 0
+  fi
+
+  log "FATAL: prisma migrate deploy failed"
+  return 1
+}
+
 # --- Main ---
 
 if [ ${#CHANGED_SERVICES[@]} -eq 0 ]; then
@@ -328,6 +359,9 @@ if [ ${#PULL_SERVICES[@]} -gt 0 ]; then
 else
   log "No images to pull (only redis changed)"
 fi
+
+# 2.5 Apply DB migrations (api-guarded) before bringing services up
+run_db_migrations || { log "FATAL: DB migrations failed — aborting deploy"; exit 1; }
 
 # 3. Deploy in waves
 log_header "Deploying Services"

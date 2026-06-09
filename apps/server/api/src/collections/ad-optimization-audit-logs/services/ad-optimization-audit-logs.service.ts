@@ -1,4 +1,5 @@
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -12,17 +13,21 @@ export class AdOptimizationAuditLogsService {
     private readonly logger: LoggerService,
   ) {}
 
-  async create(
-    data: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
+  async create(payload: {
+    organizationId: string;
+    data: Record<string, unknown>;
+  }): Promise<Record<string, unknown>> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
       const doc = await this.prisma.adOptimizationAuditLog.create({
-        data: data as never,
+        data: {
+          organizationId: payload.organizationId,
+          data: payload.data as Prisma.InputJsonValue,
+        },
       });
       this.logger.log(
-        `${caller} created audit log for run ${data.runId as string}`,
+        `${caller} created audit log for run ${payload.data.runId as string}`,
       );
       return doc;
     } catch (error: unknown) {

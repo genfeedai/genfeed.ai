@@ -87,7 +87,7 @@ export class CreatePersonaDto {
     description: 'Bio/description',
     required: false,
   })
-  readonly bio?: string;
+  readonly description?: string;
 
   @IsOptional()
   @IsString()
@@ -103,7 +103,7 @@ export class CreatePersonaDto {
     description: 'Avatar ingredient ID',
     required: false,
   })
-  readonly avatar?: string;
+  readonly avatarIngredientId?: string;
 
   @IsOptional()
   @IsEnum(AvatarProvider)
@@ -129,7 +129,7 @@ export class CreatePersonaDto {
     description: 'Voice ID',
     required: false,
   })
-  readonly voice?: string;
+  readonly voiceIngredientId?: string;
 
   @IsOptional()
   @IsEnum(VoiceProvider)

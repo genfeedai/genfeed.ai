@@ -2,19 +2,11 @@
 
 name: Deploy Staging
 
+# Manual-only: staging API stays down until explicitly dispatched (no
+# auto-deploy on push to staging). Promotions land on the branch without
+# bringing the environment up; deploy on demand via the Actions "Run workflow"
+# button or `gh workflow run deploy-staging.yml`.
 on:
-  push:
-    branches: [staging]
-    paths:
-      - 'apps/server/**'
-      - 'packages/**'
-      - 'package.json'
-      - 'bun.lock'
-      - 'docker/**'
-      - 'scripts/**'
-      - '.github/workflows/deploy-staging.yml'
-      - '.github/workflows/_deploy.yml'
-      - '.github/actions/**'
   workflow_dispatch:
     inputs:
       force_all:

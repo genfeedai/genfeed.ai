@@ -4,6 +4,7 @@ import type {
   DesktopPublishIntent,
   IDesktopMessage,
   IDesktopThread,
+  IDesktopTrendHandoff,
 } from '@genfeedai/desktop-contracts';
 import { DropZone } from '@renderer/components/DropZone';
 
@@ -19,11 +20,7 @@ interface ConversationViewProps {
   onCreateThread: () => IDesktopThread;
   onSendMessage: (threadId: string, message: IDesktopMessage) => void;
   onSetStatus: (threadId: string, status: 'awaiting-response' | 'idle') => void;
-  pendingTrend?: {
-    id: string;
-    platform: DesktopContentPlatform;
-    topic: string;
-  } | null;
+  pendingTrend?: IDesktopTrendHandoff | null;
   onTrendConsumed?: () => void;
   thread: IDesktopThread | null;
   workspaceId: string | null;

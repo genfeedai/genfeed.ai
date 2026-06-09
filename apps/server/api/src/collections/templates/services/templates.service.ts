@@ -13,6 +13,7 @@ import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import Handlebars from 'handlebars';
@@ -83,20 +84,25 @@ export class TemplatesService {
       }
     }
 
+    // `content` (used above for extractVariables) and `metadata` (persisted separately
+    // via templateMetadataService) are DTO-only — not Template scalar columns. Exclude
+    // them from the spread so Prisma's create data matches the model.
+    const { content: _content, metadata: _metadata, ...templateScalars } = dto;
+
     const template = await this.prisma.template.create({
       data: {
-        ...dto,
+        ...templateScalars,
         createdById: userId,
         isActive: dto.isActive ?? (dto.purpose === 'prompt' ? true : undefined),
         organizationId: organization || null,
-        variables: variables as never,
+        variables: variables as Prisma.InputJsonValue,
         version: dto.version ?? (dto.purpose === 'prompt' ? 1 : undefined),
-      } as never,
+      },
     });
 
     const templateId = template.id;
 
-    const metadata = await this.templateMetadataService.create(templateId, {
+    await this.templateMetadataService.create(templateId, {
       author: dto.metadata?.author,
       compatiblePlatforms: dto.metadata?.compatiblePlatforms,
       difficulty: dto.metadata?.difficulty,
@@ -105,15 +111,6 @@ export class TemplatesService {
       license: dto.metadata?.license,
       requiredFeatures: dto.metadata?.requiredFeatures,
       version: dto.metadata?.version,
-    });
-
-    await this.prisma.template.update({
-      data: {
-        metadataId: String(
-          metadata._id ?? (metadata as Record<string, unknown>).id,
-        ),
-      } as never,
-      where: { id: templateId },
     });
 
     this.logger.debug('Template created', { templateId });
@@ -295,7 +292,7 @@ export class TemplatesService {
 
       // Increment usage count
       await this.prisma.template.update({
-        data: { usageCount: { increment: 1 } } as never,
+        data: { usageCount: { increment: 1 } },
         where: { id: dto.templateId },
       });
 

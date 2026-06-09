@@ -10,7 +10,28 @@ export interface RunEvent {
   [key: string]: unknown;
 }
 
-export interface RunDocument extends Omit<PrismaRun, 'data'> {
+export interface RunDocument
+  extends Omit<
+    PrismaRun,
+    | 'data'
+    | 'actionType'
+    | 'authType'
+    | 'surface'
+    | 'status'
+    | 'trigger'
+    | 'progress'
+    | 'traceId'
+    | 'correlationId'
+    | 'idempotencyKey'
+    | 'startedAt'
+    | 'completedAt'
+    | 'durationMs'
+    | 'input'
+    | 'output'
+    | 'metadata'
+    | 'error'
+    | 'events'
+  > {
   _id: string;
   organization?: string;
   user?: string;

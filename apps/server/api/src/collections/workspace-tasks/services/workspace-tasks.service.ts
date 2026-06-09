@@ -17,6 +17,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AgentExecutionStatus } from '@genfeedai/enums';
+import { TaskStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -157,10 +158,10 @@ export class WorkspaceTasksService extends BaseService<
         isDeleted: false,
         OR: [
           { reviewState: { in: ['pending_approval', 'changes_requested'] } },
-          { status: { in: ['completed', 'failed'] } },
+          { status: { in: [TaskStatus.DONE, TaskStatus.CANCELLED] } },
         ],
         organizationId,
-      } as never,
+      },
     });
     return results as unknown as WorkspaceTaskDocument[];
   }
@@ -176,8 +177,8 @@ export class WorkspaceTasksService extends BaseService<
         failureReason: null,
         requestedChangesReason: null,
         reviewState: 'approved',
-        status: 'completed',
-      } as never,
+        status: TaskStatus.DONE,
+      },
       where: { id },
     });
 
@@ -208,8 +209,8 @@ export class WorkspaceTasksService extends BaseService<
       data: {
         requestedChangesReason: reason,
         reviewState: 'changes_requested',
-        status: 'needs_review',
-      } as never,
+        status: TaskStatus.IN_REVIEW,
+      },
       where: { id },
     });
 
@@ -242,8 +243,8 @@ export class WorkspaceTasksService extends BaseService<
         dismissedAt: new Date(),
         failureReason: reason,
         reviewState: 'dismissed',
-        status: 'dismissed',
-      } as never,
+        status: TaskStatus.CANCELLED,
+      },
       where: { id },
     });
 
@@ -290,7 +291,7 @@ export class WorkspaceTasksService extends BaseService<
       : [...approvedOutputIds, outputId];
 
     const updated = await this.prisma.task.update({
-      data: { approvedOutputIds: nextApprovedOutputIds as never } as never,
+      data: { approvedOutputIds: nextApprovedOutputIds },
       where: { id },
     });
 
@@ -333,7 +334,7 @@ export class WorkspaceTasksService extends BaseService<
     );
 
     const updated = await this.prisma.task.update({
-      data: { approvedOutputIds: nextApprovedOutputIds as never } as never,
+      data: { approvedOutputIds: nextApprovedOutputIds },
       where: { id },
     });
 
@@ -386,7 +387,7 @@ export class WorkspaceTasksService extends BaseService<
     );
 
     const updated = await this.prisma.task.update({
-      data: { approvedOutputIds: nextApprovedOutputIds as never } as never,
+      data: { approvedOutputIds: nextApprovedOutputIds },
       where: { id },
     });
 

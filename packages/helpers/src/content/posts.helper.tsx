@@ -56,6 +56,7 @@ export const PLATFORM_LABEL_MAP: Record<PostsPlatform, string> = {
   [Platform.GHOST]: 'Ghost',
   [Platform.SHOPIFY]: 'Shopify',
   [Platform.BEEHIIV]: 'Beehiiv',
+  [Platform.UNIPILE]: 'Unipile',
   [Platform.GOOGLE_ADS]: 'Google Ads',
 };
 
@@ -174,6 +175,7 @@ const PLATFORM_ICON_MAP: Record<
   [Platform.GHOST]: FaGhost,
   [Platform.SHOPIFY]: FaShopify,
   [Platform.BEEHIIV]: HiNewspaper,
+  [Platform.UNIPILE]: HiSquares2X2,
   [Platform.GOOGLE_ADS]: FaGoogle,
 };
 

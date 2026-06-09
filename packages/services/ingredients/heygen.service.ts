@@ -49,8 +49,11 @@ export class HeyGenService extends BaseService<IHeyGen> {
     // Target: POST /videos/avatar (AvatarVideoController)
     const avatarUrl = `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.VIDEOS}/avatar`;
 
-    const response = await this.instance.post(avatarUrl, backendPayload);
+    const response = await this.instance.post<IHeyGen>(
+      avatarUrl,
+      backendPayload,
+    );
 
-    return response.data as unknown as IHeyGen;
+    return response.data;
   }
 }

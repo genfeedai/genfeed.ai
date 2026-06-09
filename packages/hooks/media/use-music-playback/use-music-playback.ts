@@ -1,5 +1,5 @@
 import { IngredientCategory } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import { useAudioPlayer } from '@hooks/media/use-audio-player/use-audio-player';
 import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useRef } from 'react';
@@ -8,18 +8,25 @@ export interface UseMusicPlaybackOptions {
   setAssets: Dispatch<SetStateAction<IIngredient[]>>;
 }
 
-const ensureMusicMetadata = (asset: IIngredient) => {
-  if (asset.category !== IngredientCategory.MUSIC) {
-    return asset;
-  }
+type MusicPlaybackIngredient = IIngredient & { hasAudio: true };
 
-  if (typeof asset.metadata === 'object' && asset.metadata !== null) {
-    (asset.metadata as unknown as Record<string, unknown>).hasAudio = true;
-  }
+const isMetadata = (metadata: IIngredient['metadata']): metadata is IMetadata =>
+  typeof metadata === 'object' && metadata !== null;
 
-  (asset as IIngredient & { hasAudio?: boolean }).hasAudio = true;
+const markMusicAsset = (
+  asset: IIngredient,
+  isPlaying: boolean,
+): MusicPlaybackIngredient => {
+  const metadata = isMetadata(asset.metadata)
+    ? { ...asset.metadata, hasAudio: true }
+    : asset.metadata;
 
-  return asset;
+  return {
+    ...asset,
+    hasAudio: true,
+    isPlaying,
+    metadata,
+  };
 };
 
 const markPlayingState = (
@@ -31,11 +38,7 @@ const markPlayingState = (
       return asset;
     }
 
-    const normalized = ensureMusicMetadata(asset);
-
-    normalized.isPlaying = Boolean(activeId && normalized.id === activeId);
-
-    return normalized;
+    return markMusicAsset(asset, Boolean(activeId && asset.id === activeId));
   });
 
 export function useMusicPlayback({ setAssets }: UseMusicPlaybackOptions) {

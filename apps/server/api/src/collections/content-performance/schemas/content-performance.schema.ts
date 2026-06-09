@@ -2,7 +2,17 @@ import type { ContentPerformance } from '@genfeedai/prisma';
 
 export type { ContentPerformance } from '@genfeedai/prisma';
 
-export interface ContentPerformanceDocument extends ContentPerformance {
+export interface ContentPerformanceDocument
+  extends Omit<
+    ContentPerformance,
+    | 'cycleNumber'
+    | 'comments'
+    | 'engagementRate'
+    | 'likes'
+    | 'measuredAt'
+    | 'saves'
+    | 'shares'
+  > {
   _id: string;
   brand?: string | null;
   cycleNumber?: number;
