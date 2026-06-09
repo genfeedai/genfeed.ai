@@ -35,17 +35,36 @@ export GENFEEDAI_PUBLIC_URL=${GENFEEDAI_PUBLIC_URL:-http://localhost:3000}
 # Start infrastructure
 redis-server --dir /data/redis --appendonly yes --daemonize yes
 
+# Run Prisma migrations before starting services (DB may still be initialising)
+echo "[entrypoint] Running Prisma migrations..."
+MIGRATE_RETRIES=5
+MIGRATE_DELAY=5
+for i in $(seq 1 $MIGRATE_RETRIES); do
+  if bunx prisma migrate deploy --schema packages/prisma/prisma/schema.prisma; then
+    echo "[entrypoint] Prisma migrations applied successfully"
+    break
+  fi
+  if [ "$i" -eq "$MIGRATE_RETRIES" ]; then
+    echo "[entrypoint] FATAL: Prisma migrate deploy failed after ${MIGRATE_RETRIES} attempts" >&2
+    exit 1
+  fi
+  echo "[entrypoint] Migration attempt ${i} failed, retrying in ${MIGRATE_DELAY}s..."
+  sleep "$MIGRATE_DELAY"
+done
+
 # Derive service ports from their env URLs
 API_PORT=$(echo "$GENFEEDAI_API_URL" | sed 's|.*:||')
 FILES_PORT=$(echo "$GENFEEDAI_MICROSERVICES_FILES_URL" | sed 's|.*:||')
 NOTIFICATIONS_PORT=$(echo "$GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL" | sed 's|.*:||')
 WORKERS_PORT=$(echo "$GENFEEDAI_MICROSERVICES_WORKERS_URL" | sed 's|.*:||')
+MCP_PORT=${MCP_PORT:-3014}
 
 # Start NestJS services
 PORT=${API_PORT} node apps/server/dist/apps/api/main.js &
 PORT=${WORKERS_PORT} node apps/server/dist/apps/workers/main.js &
 PORT=${FILES_PORT} node apps/server/dist/apps/files/main.js &
 PORT=${NOTIFICATIONS_PORT} node apps/server/dist/apps/notifications/main.js &
+PORT=${MCP_PORT} node apps/server/dist/apps/mcp/main.js &
 
 # Start Next.js web app (foreground — keeps container alive)
 # Derive port from GENFEEDAI_APP_URL so it stays in sync with env config
