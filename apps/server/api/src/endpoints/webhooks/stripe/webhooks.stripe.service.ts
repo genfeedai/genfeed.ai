@@ -1456,6 +1456,39 @@ export class StripeWebhookService {
     }
   }
 
+  /**
+   * Stripe SDK v22 moved the invoice→subscription link to
+   * `invoice.parent.subscription_details.subscription`; the pre-v22
+   * top-level `invoice.subscription` is kept as a fallback for replayed
+   * historical events. The value may also arrive as an expanded object.
+   */
+  private extractInvoiceSubscriptionId(
+    invoice: StripeInvoice,
+  ): string | undefined {
+    const parentPath = (
+      invoice as unknown as {
+        parent?: {
+          subscription_details?: { subscription?: string | { id?: string } };
+        };
+      }
+    ).parent?.subscription_details?.subscription;
+    const legacyPath = (
+      invoice as unknown as { subscription?: string | { id?: string } }
+    ).subscription;
+
+    const candidate = parentPath ?? legacyPath;
+
+    if (typeof candidate === 'string' && candidate.length > 0) {
+      return candidate;
+    }
+
+    if (candidate && typeof candidate === 'object' && candidate.id) {
+      return candidate.id;
+    }
+
+    return undefined;
+  }
+
   private async handleInvoicePaid(invoice: StripeInvoice, url: string) {
     try {
       // Handle BYOK platform fee invoices
@@ -1468,11 +1501,14 @@ export class StripeWebhookService {
         invoice.billing_reason === 'subscription_cycle' ||
         invoice.billing_reason === 'subscription_create'
       ) {
-        const stripeSubscriptionId = (
-          invoice as unknown as {
-            parent?: { subscription_details?: { subscription?: string } };
-          }
-        ).parent?.subscription_details?.subscription;
+        const stripeSubscriptionId = this.extractInvoiceSubscriptionId(invoice);
+
+        if (!stripeSubscriptionId) {
+          return this.loggerService.warn(
+            `${url} invoice carries no subscription id, skipping`,
+            { billingReason: invoice.billing_reason, invoiceId: invoice.id },
+          );
+        }
 
         const subscription = await this.subscriptionsService.findOne({
           stripeSubscriptionId: stripeSubscriptionId,
@@ -1668,9 +1704,15 @@ export class StripeWebhookService {
         return;
       }
 
-      const stripeSubscriptionId = (
-        invoice as unknown as { subscription?: string }
-      ).subscription as string;
+      const stripeSubscriptionId = this.extractInvoiceSubscriptionId(invoice);
+
+      if (!stripeSubscriptionId) {
+        return this.loggerService.warn(
+          `${url} failed invoice carries no subscription id, skipping`,
+          { invoiceId: invoice.id },
+        );
+      }
+
       const subscription = await this.subscriptionsService.findOne({
         stripeSubscriptionId: stripeSubscriptionId,
       });
