@@ -178,11 +178,11 @@ export class UnipileService {
       .filter((account) =>
         this.isAccountAllowed(connection.config, account.id),
       );
-    const cursor = this.toOptionalCursor(response['cursor']);
+    const nextCursor = this.toOptionalCursor(response['cursor']);
 
     return {
       items: accounts,
-      ...(cursor !== undefined ? { cursor } : {}),
+      ...(nextCursor !== undefined ? { cursor: nextCursor } : {}),
     };
   }
 
