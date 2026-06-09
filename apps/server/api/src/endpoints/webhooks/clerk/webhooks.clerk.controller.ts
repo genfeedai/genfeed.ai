@@ -9,7 +9,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
-  Body,
   Controller,
   HttpCode,
   NotFoundException,
@@ -33,17 +32,12 @@ export class ClerkWebhookController {
 
   @HttpCode(200)
   @Post('callback')
-  async handleClerk(
-    @Req() request: Request,
-    @Body() payload: ClerkWebhookPayload,
-  ) {
+  async handleClerk(@Req() request: Request) {
     if (IS_LOCAL_MODE) throw new NotFoundException();
 
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      this.loggerService.log(`${url} received`, payload);
-
       const headers = request.headers;
 
       // Get the Svix headers for verification
@@ -63,11 +57,19 @@ export class ClerkWebhookController {
         this.configService.get('CLERK_WEBHOOK_SIGNING_SECRET')!,
       );
 
+      // Svix signs the exact bytes Clerk sent — verify over the raw body
+      // preserved by the express.raw middleware for this route.
+      // Re-serialized JSON can differ byte-for-byte and break the HMAC.
+      const rawBody = request.body as unknown;
+      const signedPayload = Buffer.isBuffer(rawBody)
+        ? rawBody.toString('utf8')
+        : JSON.stringify(rawBody as ClerkWebhookPayload);
+
       // Verify webhook signature and process event. A failed verification is
       // expected hostile/replayed traffic — answer 400, never a Sentry 500.
       let event: WebhookEvent;
       try {
-        event = webhook.verify(JSON.stringify(payload), {
+        event = webhook.verify(signedPayload, {
           'svix-id': svixId,
           'svix-signature': svixSignature,
           'svix-timestamp': svixTimestamp,
@@ -76,6 +78,11 @@ export class ClerkWebhookController {
         this.loggerService.error(`${url} invalid signature`, error);
         throw new BadRequestException('Invalid Clerk webhook signature');
       }
+
+      this.loggerService.log(`${url} received`, {
+        id: svixId,
+        type: event.type,
+      });
 
       await this.clerkWebhookService.handleWebhookEvent(event, url);
 

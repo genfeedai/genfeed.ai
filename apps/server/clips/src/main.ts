@@ -11,6 +11,7 @@ import process from 'node:process';
 import { AppModule } from '@clips/app.module';
 import { ConfigService } from '@clips/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 
@@ -33,6 +34,9 @@ async function main() {
     });
 
     app.setGlobalPrefix('v1');
+    app.useGlobalPipes(
+      new ValidationPipe({ transform: true, whitelist: true }),
+    );
 
     await app.listen(port);
     logger.debug(`Clips service is running on port ${port}`);

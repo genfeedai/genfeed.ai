@@ -1,4 +1,6 @@
+import { ConfigService } from '@api/config/config.service';
 import { KlingWebhookService } from '@api/endpoints/webhooks/klingai/webhooks.kling.service';
+import { assertWebhookToken } from '@api/endpoints/webhooks/webhook-token.util';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { IngredientCategory } from '@genfeedai/enums';
@@ -6,7 +8,8 @@ import { Public } from '@libs/decorators/public.decorator';
 import { KlingAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Body, Controller, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
+import type { Request } from 'express';
 
 @AutoSwagger()
 @Public()
@@ -15,6 +18,7 @@ export class KlingWebhookController {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
+    private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly klingWebhookService: KlingWebhookService,
     private readonly webhooksService: WebhooksService,
@@ -22,8 +26,20 @@ export class KlingWebhookController {
 
   @HttpCode(200)
   @Post('callback')
-  async handleCallback(@Body() payload: KlingAIWebhookPayload) {
+  async handleCallback(
+    @Req() request: Request,
+    @Body() payload: KlingAIWebhookPayload,
+  ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    assertWebhookToken({
+      configuredSecret: this.configService.get('KLINGAI_WEBHOOK_SECRET') as
+        | string
+        | undefined,
+      loggerService: this.loggerService,
+      request,
+      url,
+    });
 
     try {
       this.loggerService.log(`${url} received`, payload);
