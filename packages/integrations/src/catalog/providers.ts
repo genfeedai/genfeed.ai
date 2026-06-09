@@ -2,9 +2,13 @@ import { CredentialPlatform } from '@genfeedai/enums';
 
 import type {
   IntegrationProviderDefinition,
+  IntegrationProviderCapability,
   IntegrationProviderKey,
 } from './provider.schema';
-import { validateIntegrationProviderDefinition } from './provider.schema';
+import {
+  providerSupportsCapability,
+  validateIntegrationProviderDefinition,
+} from './provider.schema';
 
 const DEFAULT_RETRY = {
   baseDelayMs: 500,
@@ -14,6 +18,47 @@ const DEFAULT_RETRY = {
 };
 
 export const INTEGRATION_PROVIDER_DEFINITIONS = [
+  {
+    authMode: 'api_key',
+    capabilities: [
+      'connect_account',
+      'fetch_account',
+      'send_message',
+      'read_message',
+      'send_email',
+      'read_email',
+      'read_calendar_events',
+      'create_calendar_event',
+    ],
+    credentialFields: [
+      {
+        description: 'Access token generated in the Unipile dashboard.',
+        key: 'apiKey',
+        label: 'API Key',
+        required: true,
+        secret: true,
+      },
+      {
+        description:
+          'Unipile DSN base URL ending in /api/v1, copied from the dashboard.',
+        example: 'https://api1.unipile.com:13111/api/v1',
+        key: 'apiBaseUrl',
+        label: 'API Base URL',
+        required: true,
+        secret: false,
+      },
+    ],
+    displayName: 'Unipile',
+    docsUrl: 'https://developer.unipile.com/docs/api-usage',
+    endpoints: {
+      apiBaseUrl: 'https://api.unipile.com/api/v1',
+      appBaseUrl: 'https://dashboard.unipile.com',
+    },
+    key: 'unipile',
+    platform: CredentialPlatform.UNIPILE,
+    retry: DEFAULT_RETRY,
+    setupGuideUrl: 'https://developer.unipile.com/docs/getting-started',
+  },
   {
     authMode: 'oauth2',
     capabilities: ['fetch_account', 'publish_post', 'fetch_analytics'],
@@ -196,6 +241,28 @@ export function getIntegrationProviderDefinition(
   key: IntegrationProviderKey,
 ): IntegrationProviderDefinition | undefined {
   return PROVIDERS_BY_KEY.get(key);
+}
+
+export function listIntegrationProvidersByCapability(
+  capability: IntegrationProviderCapability,
+): IntegrationProviderDefinition[] {
+  return INTEGRATION_PROVIDER_DEFINITIONS.filter((provider) =>
+    providerSupportsCapability(provider, capability),
+  );
+}
+
+export function resolveIntegrationProviderForCapability(
+  capability: IntegrationProviderCapability,
+  preferredKeys: IntegrationProviderKey[] = [],
+): IntegrationProviderDefinition | undefined {
+  for (const key of preferredKeys) {
+    const provider = getIntegrationProviderDefinition(key);
+    if (provider && providerSupportsCapability(provider, capability)) {
+      return provider;
+    }
+  }
+
+  return listIntegrationProvidersByCapability(capability)[0];
 }
 
 export function assertValidIntegrationProviderCatalog(): void {

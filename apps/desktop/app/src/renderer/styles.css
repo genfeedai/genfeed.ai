@@ -763,6 +763,37 @@ textarea {
   padding: 24px;
 }
 
+.brief-handoff-card {
+  background: color-mix(in srgb, var(--accent) 7%, var(--tertiary));
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+  max-width: 760px;
+  padding: 14px 16px;
+}
+
+.brief-handoff-header {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.brief-handoff-card h3,
+.brief-handoff-card p {
+  margin: 0;
+}
+
+.brief-evidence-list {
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+
 .conversation-empty {
   align-items: center;
   display: flex;
@@ -1160,6 +1191,74 @@ textarea {
 
 .empty-state.compact {
   padding: 8px 0;
+}
+
+.desktop-resilience-state {
+  align-items: flex-start;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  margin: 0 0 16px;
+  padding: 16px;
+}
+
+.desktop-resilience-offline {
+  background: color-mix(in srgb, var(--warning) 9%, var(--card));
+  border-color: color-mix(in srgb, var(--warning) 28%, transparent);
+}
+
+.desktop-resilience-error {
+  background: color-mix(in srgb, var(--danger) 9%, var(--card));
+  border-color: color-mix(in srgb, var(--danger) 28%, transparent);
+}
+
+.desktop-resilience-empty {
+  background: color-mix(in srgb, var(--info) 7%, var(--card));
+  border-color: color-mix(in srgb, var(--info) 22%, transparent);
+}
+
+.desktop-resilience-icon {
+  align-items: center;
+  background: var(--accent-soft);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  color: var(--text);
+  display: flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.desktop-resilience-icon-svg,
+.desktop-resilience-action-icon {
+  height: 18px;
+  width: 18px;
+}
+
+.desktop-resilience-copy {
+  min-width: 0;
+}
+
+.desktop-resilience-copy h3 {
+  font-size: 14px;
+  margin: 0 0 4px;
+}
+
+.desktop-resilience-copy p {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.desktop-resilience-action {
+  align-self: center;
+  white-space: nowrap;
+}
+
+.desktop-local-stats {
+  margin-top: 16px;
 }
 
 .stack-list {
@@ -1855,6 +1954,15 @@ textarea {
 
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .desktop-resilience-state {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .desktop-resilience-action {
+    grid-column: 1 / -1;
+    justify-self: start;
   }
 
   .ingredient-grid {

@@ -73,6 +73,23 @@ This package should not own:
 - cron scheduling
 - queue enqueue/process wiring
 
+## Communication Provider Boundary
+
+Unipile is modeled as an optional communication provider for messaging, email,
+calendar, and relationship/outreach actions. Use it where a unified
+communication API gives faster coverage across Gmail, Outlook, IMAP, LinkedIn
+messaging, Instagram DMs, WhatsApp, Telegram, Google Calendar, and Outlook
+Calendar.
+
+Do not route native Genfeed integrations through Unipile when the work is about
+content publishing, AI generation, ads, billing, storage, analytics, or
+provider-specific media generation. Native integrations remain the default OSS
+and self-hosted path for those surfaces.
+
+Unipile API keys must stay in server-side env or encrypted org integration
+storage. Controllers must derive organization scope from authenticated user
+metadata, never from route-supplied organization IDs.
+
 ## Current State
 
 Today this package mainly contains bot-manager primitives plus workflow execution helpers. It is intentionally still smaller than the full backend integration surface.
@@ -83,3 +100,6 @@ Current public subpaths:
 
 - `@genfeedai/integrations`
 - `@genfeedai/integrations/ads`
+- `@genfeedai/integrations/catalog`
+- `@genfeedai/integrations/connections`
+- `@genfeedai/integrations/http`

@@ -74,6 +74,26 @@ describe('Integration Common Types', () => {
       expect(integration.status).toBe('error');
       expect(integration.config.defaultWorkflow).toBe('image-gen-wf');
     });
+
+    it('should accept valid unipile integration config', () => {
+      const integration: OrgIntegration = {
+        botToken: 'encrypted-unipile-api-key',
+        config: {
+          allowedAccountIds: ['acct_1'],
+          apiBaseUrl: 'https://api1.unipile.com:13111/api/v1',
+          defaultAccountId: 'acct_1',
+        },
+        createdAt: new Date(),
+        id: 'int-unipile-123',
+        orgId: 'org-999',
+        platform: 'unipile',
+        status: 'active',
+        updatedAt: new Date(),
+      };
+
+      expect(integration.platform).toBe('unipile');
+      expect(integration.config.allowedAccountIds).toContain('acct_1');
+    });
   });
 
   describe('WorkflowInput interface', () => {

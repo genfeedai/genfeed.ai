@@ -164,6 +164,15 @@ export const beehiivSchema = {
 };
 
 /**
+ * Unipile communication provider (optional integration)
+ */
+export const unipileSchema = {
+  UNIPILE_API_BASE_URL: Joi.string().uri().optional().allow(''),
+  UNIPILE_API_KEY: Joi.string().optional().allow(''),
+  UNIPILE_WEBHOOK_SECRET: Joi.string().optional().allow(''),
+};
+
+/**
  * All social platforms combined (for API service)
  */
 export const allSocialSchema = {
@@ -184,4 +193,5 @@ export const allSocialSchema = {
   ...whatsappSchema,
   ...shopifySchema,
   ...beehiivSchema,
+  ...unipileSchema,
 };

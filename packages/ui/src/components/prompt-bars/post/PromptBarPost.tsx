@@ -176,6 +176,8 @@ function usePromptBarPostController({
         'e.g., product descriptions, store updates, promotions…',
       [Platform.BEEHIIV]:
         'e.g., newsletter topics, subscriber updates, curated content…',
+      [Platform.UNIPILE]:
+        'e.g., outreach replies, meeting follow-ups, inbox summaries…',
       [Platform.GOOGLE_ADS]:
         'e.g., ad copy, campaign ideas, keyword strategies…',
     };
