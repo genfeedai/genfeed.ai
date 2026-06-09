@@ -13,7 +13,6 @@ export interface AgentRoomDocument extends Omit<PrismaAgentThread, 'config'> {
   requestedModel?: string | null;
   runtimeKey?: string | null;
   source?: string | null;
-  status?: string | null;
   systemPrompt?: string | null;
   user: string;
   [key: string]: unknown;

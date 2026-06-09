@@ -17,7 +17,10 @@ vi.mock('@services/core/interceptor.service', () => {
 });
 
 vi.mock('@services/core/environment.service', () => ({
-  EnvironmentService: { apiEndpoint: 'https://api.genfeed.ai' },
+  EnvironmentService: {
+    GA_ID: 'G-TESTID0001',
+    apiEndpoint: 'https://api.genfeed.ai',
+  },
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -87,7 +90,7 @@ describe('LinkTrackingService', () => {
     });
   });
 
-  it('reads the GA client ID through gtag when available', () => {
+  it('reads the GA client ID through gtag when available', async () => {
     const gtag = vi.fn(
       (
         command: string,
@@ -96,20 +99,40 @@ describe('LinkTrackingService', () => {
         callback?: (id: string) => void,
       ) => {
         if (command === 'get') {
-          callback?.('client-123');
+          // GA invokes the callback asynchronously in production.
+          setTimeout(() => callback?.('client-123'), 0);
         }
       },
     );
     vi.stubGlobal('window', { gtag });
 
-    const result = service.getGAClientId();
+    const result = await service.getGAClientId();
 
     expect(result).toBe('client-123');
     expect(gtag).toHaveBeenCalledWith(
       'get',
-      'GA_MEASUREMENT_ID',
+      'G-TESTID0001',
       'client_id',
       expect.any(Function),
     );
+  });
+
+  it('settles without a GA client ID when gtag never calls back', async () => {
+    vi.useFakeTimers();
+    const gtag = vi.fn();
+    vi.stubGlobal('window', { gtag });
+
+    const result = service.getGAClientId();
+    await vi.advanceTimersByTimeAsync(1500);
+
+    await expect(result).resolves.toBeUndefined();
+    expect(gtag).toHaveBeenCalledWith(
+      'get',
+      'G-TESTID0001',
+      'client_id',
+      expect.any(Function),
+    );
+
+    vi.useRealTimers();
   });
 });

@@ -107,9 +107,14 @@ downloaded app useful without requiring Redis, BullMQ, or the server repo.
 
 ```bash
 cd apps/desktop/app
-bun run smoke
+bun run qa:release
 bun run release:mac
 ```
+
+`bun run qa:release` is the release-candidate gate for desktop changes. It runs
+desktop lint, type-check, tests, and the Electron smoke boot used by the
+`Desktop QA` workflow. Use the checklist in
+[`apps/desktop/RELEASE_QA.md`](./RELEASE_QA.md) for manual release evidence.
 
 `bun run release:mac` writes macOS artifacts into `apps/desktop/app/release/`
 and creates `genfeed-desktop-release.json` beside them. The manifest records the

@@ -16,11 +16,16 @@ import { LibraryViewHeader } from './LibraryViewHeader';
 type SortBy = 'date' | 'votes';
 
 interface LibraryViewProps {
+  isOnline: boolean;
   workspace: IDesktopWorkspace | null;
   workspaceId: string | null;
 }
 
-export const LibraryView = ({ workspace, workspaceId }: LibraryViewProps) => {
+export const LibraryView = ({
+  isOnline,
+  workspace,
+  workspaceId,
+}: LibraryViewProps) => {
   const [assets, setAssets] = useState<IDesktopAsset[]>([]);
   const [assetPrompt, setAssetPrompt] = useState('');
   const [assetJob, setAssetJob] = useState<IDesktopGenerationJob | null>(null);
@@ -40,6 +45,12 @@ export const LibraryView = ({ workspace, workspaceId }: LibraryViewProps) => {
     setLoading(true);
     setError(null);
 
+    if (!isOnline) {
+      setIngredients([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       const result = await window.genfeedDesktop.cloud.getIngredients({
         limit: 20,
@@ -51,7 +62,7 @@ export const LibraryView = ({ workspace, workspaceId }: LibraryViewProps) => {
     } finally {
       setLoading(false);
     }
-  }, [platformFilter]);
+  }, [isOnline, platformFilter]);
 
   const loadAssets = useCallback(async () => {
     if (!workspaceId) {
@@ -241,7 +252,9 @@ export const LibraryView = ({ workspace, workspaceId }: LibraryViewProps) => {
         copiedId={copiedId}
         error={error}
         ingredients={sortedIngredients}
+        isOnline={isOnline}
         loading={loading}
+        onRetry={() => void loadIngredients()}
         onCopy={(ingredient) => void handleCopy(ingredient)}
       />
     </DropZone>

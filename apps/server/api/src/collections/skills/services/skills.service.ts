@@ -10,6 +10,7 @@ import { ValidationException } from '@api/helpers/exceptions/http/validation.exc
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ByokProvider } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -103,11 +104,11 @@ export class SkillsService {
 
     const result = await this.prisma.skill.create({
       data: {
-        config,
+        config: config as Prisma.InputJsonValue,
         isDeleted: false,
         label: payload.name,
         organizationId: isBuiltIn ? null : organizationId,
-      } as never,
+      },
     });
 
     return this.normalizeSkill(result);

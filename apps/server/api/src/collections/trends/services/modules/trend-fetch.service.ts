@@ -10,6 +10,7 @@ import { LinkedInService } from '@api/services/integrations/linkedin/services/li
 import { GrokTrendData } from '@api/services/integrations/xai/dto/grok-trends.dto';
 import { XaiService } from '@api/services/integrations/xai/services/xai.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -285,14 +286,20 @@ export class TrendFetchService {
 
           const savedTrend = await this.prisma.trend.create({
             data: {
-              ...trendData,
+              data: {
+                growthRate: trendData.growthRate,
+                mentions: trendData.mentions,
+                metadata: trendData.metadata,
+              } as Prisma.InputJsonValue,
               brandId: brandId || null,
               expiresAt,
               isCurrent: true,
               organizationId: organizationId || null,
+              platform: trendData.platform,
               requiresAuth,
+              topic: trendData.topic,
               viralityScore,
-            } as never,
+            },
           });
           allTrends.push(
             new TrendEntity({

@@ -1,4 +1,5 @@
 import type {
+  IDesktopContentRunBrief,
   IDesktopContentRunDraft,
   IDesktopThread,
 } from '@genfeedai/desktop-contracts';
@@ -13,6 +14,34 @@ interface ConversationMessagesProps {
   thread: IDesktopThread | null;
 }
 
+function BriefHandoffCard({ brief }: { brief: IDesktopContentRunBrief }) {
+  return (
+    <div className="brief-handoff-card">
+      <div className="brief-handoff-header">
+        <span className="status-badge status-active">Brief</span>
+        {typeof brief.confidence === 'number' && (
+          <span className="muted-text">
+            Confidence {String(Math.round(brief.confidence * 100))}%
+          </span>
+        )}
+      </div>
+      <h3>{brief.angle ?? 'Trend brief'}</h3>
+      {brief.hypothesis && <p>{brief.hypothesis}</p>}
+      {brief.channelFit && (
+        <p className="muted-text">Channel fit: {brief.channelFit}</p>
+      )}
+      {brief.evidence && brief.evidence.length > 0 && (
+        <ul className="brief-evidence-list">
+          {brief.evidence.map((item, index) => (
+            <li key={`${item}-${String(index)}`}>{item}</li>
+          ))}
+        </ul>
+      )}
+      {brief.risk && <p className="muted-text">Guardrail: {brief.risk}</p>}
+    </div>
+  );
+}
+
 export default function ConversationMessages({
   isGenerating,
   messagesEndRef,
@@ -22,6 +51,8 @@ export default function ConversationMessages({
 }: ConversationMessagesProps) {
   return (
     <>
+      {selectedDraft?.brief && <BriefHandoffCard brief={selectedDraft.brief} />}
+
       {(!thread || thread.messages.length === 0) && !isGenerating && (
         <div className="conversation-empty">
           <div className="empty-logo">G</div>

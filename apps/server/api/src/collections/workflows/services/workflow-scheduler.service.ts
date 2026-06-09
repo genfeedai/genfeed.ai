@@ -287,7 +287,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
             isScheduleEnabled: isEnabled && !!schedule,
             schedule,
             timezone,
-          } as never,
+          },
           where: { id: workflowId },
         })
       : null;

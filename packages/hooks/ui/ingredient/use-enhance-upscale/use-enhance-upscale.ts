@@ -1,6 +1,8 @@
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { IngredientCategory } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
+import type { IImageEditParams } from '@genfeedai/interfaces/components/image-edit.interface';
+import type { IVideoEditParams } from '@genfeedai/interfaces/components/video-operations.interface';
 import type { MasonryActionStates } from '@genfeedai/interfaces/hooks/hooks.interface';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import type { ImagesService } from '@genfeedai/services/ingredients/images.service';
@@ -17,6 +19,18 @@ import {
 } from '@hooks/utils/service-operation/service-operation.util';
 import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useMemo, useState } from 'react';
+
+const TOPAZ_ENHANCE_PROMPT = 'Enhance image quality using Topaz AI upscaling';
+
+type TopazImageEnhancePayload = IImageEditParams & {
+  category: IngredientCategory.IMAGE;
+  parent: string;
+};
+
+type TopazVideoEnhancePayload = IVideoEditParams & {
+  category: IngredientCategory.VIDEO;
+  parent: string;
+};
 
 export interface UseEnhanceUpscaleParams {
   onRefresh?: () => void | Promise<void>;
@@ -186,24 +200,27 @@ export function useEnhanceUpscale({
       errorMessage: 'Failed to enhance ingredient',
       onSuccess: onRefresh,
       operation: async () => {
-        const service = isVideo
-          ? await getVideosService()
-          : await getImagesService();
+        if (isVideo) {
+          const service = await getVideosService();
+          const payload: TopazVideoEnhancePayload = {
+            category: IngredientCategory.VIDEO,
+            model: modelKey,
+            parent: ingredient.id,
+            prompt: TOPAZ_ENHANCE_PROMPT,
+          };
 
-        const payload: any = {
-          category: isVideo
-            ? IngredientCategory.VIDEO
-            : IngredientCategory.IMAGE,
+          return service.postUpscale(ingredient.id, payload);
+        }
+
+        const service = await getImagesService();
+        const payload: TopazImageEnhancePayload = {
+          category: IngredientCategory.IMAGE,
           model: modelKey,
           parent: ingredient.id,
-          prompt: 'Enhance image quality using Topaz AI upscaling',
+          prompt: TOPAZ_ENHANCE_PROMPT,
         };
 
-        if (isVideo) {
-          return (service as VideosService).postUpscale(ingredient.id, payload);
-        } else {
-          return (service as ImagesService).postUpscale(ingredient.id, payload);
-        }
+        return service.postUpscale(ingredient.id, payload);
       },
       setActionStates,
       stateKey: 'isEnhancing',
@@ -222,19 +239,22 @@ export function useEnhanceUpscale({
     setEnhanceConfirmData(null);
   }, []);
 
-  const formatConfirmMessage = (
-    action: string,
-    data: { ingredient: IIngredient | null; cost: number } | null,
-  ): string => {
-    if (!data) {
-      return '';
-    }
-    const category =
-      data.ingredient?.category === IngredientCategory.VIDEO
-        ? IngredientCategory.VIDEO
-        : IngredientCategory.IMAGE;
-    return `${action} ${category} with Topaz AI?\n\nThis will cost ${formatNumberWithCommas(data.cost)} credits.`;
-  };
+  const formatConfirmMessage = useCallback(
+    (
+      action: string,
+      data: { ingredient: IIngredient | null; cost: number } | null,
+    ): string => {
+      if (!data) {
+        return '';
+      }
+      const category =
+        data.ingredient?.category === IngredientCategory.VIDEO
+          ? IngredientCategory.VIDEO
+          : IngredientCategory.IMAGE;
+      return `${action} ${category} with Topaz AI?\n\nThis will cost ${formatNumberWithCommas(data.cost)} credits.`;
+    },
+    [],
+  );
 
   const enhanceConfirmMessage = useMemo(
     () => formatConfirmMessage('Enhance', enhanceConfirmData),

@@ -299,8 +299,10 @@ export class ContentRunsService {
       this.hydrateRun(existing as unknown as Record<string, unknown>) ??
       existing;
     const currentConfig = this.isRecord(existing.config) ? existing.config : {};
-    const existingVariants = Array.isArray(hydrated.variants)
-      ? (hydrated.variants as ContentRunVariant[])
+    const existingVariants = Array.isArray(
+      (hydrated as Record<string, unknown>).variants,
+    )
+      ? ((hydrated as Record<string, unknown>).variants as ContentRunVariant[])
       : [];
     const existingIds = new Set(existingVariants.map((variant) => variant.id));
     const generatedVariants = this.buildRemixPackVariants(hydrated).filter(

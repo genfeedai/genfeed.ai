@@ -3,9 +3,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { PGlite } from '@electric-sql/pglite';
 
-const MIGRATIONS_DIRECTORY = path.resolve(
+const SOURCE_MIGRATIONS_DIRECTORY = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../prisma/migrations',
+);
+const BUNDLED_MIGRATIONS_DIRECTORY = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  'desktop-prisma/migrations',
 );
 
 interface MigrationFile {
@@ -14,7 +18,8 @@ interface MigrationFile {
 }
 
 async function loadMigrationFiles(): Promise<MigrationFile[]> {
-  const entries = await fs.readdir(MIGRATIONS_DIRECTORY, {
+  const migrationsDirectory = await resolveMigrationsDirectory();
+  const entries = await fs.readdir(migrationsDirectory, {
     withFileTypes: true,
   });
 
@@ -24,7 +29,7 @@ async function loadMigrationFiles(): Promise<MigrationFile[]> {
       .sort((left, right) => left.name.localeCompare(right.name))
       .map(async (entry) => {
         const sql = await fs.readFile(
-          path.join(MIGRATIONS_DIRECTORY, entry.name, 'migration.sql'),
+          path.join(migrationsDirectory, entry.name, 'migration.sql'),
           'utf8',
         );
 
@@ -36,6 +41,23 @@ async function loadMigrationFiles(): Promise<MigrationFile[]> {
   );
 
   return migrations;
+}
+
+async function resolveMigrationsDirectory(): Promise<string> {
+  for (const directory of [
+    BUNDLED_MIGRATIONS_DIRECTORY,
+    SOURCE_MIGRATIONS_DIRECTORY,
+  ]) {
+    try {
+      const stat = await fs.stat(directory);
+
+      if (stat.isDirectory()) {
+        return directory;
+      }
+    } catch {}
+  }
+
+  throw new Error('Desktop Prisma migrations directory was not found.');
 }
 
 export async function runDesktopPrismaMigrations(

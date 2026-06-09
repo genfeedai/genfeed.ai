@@ -1,5 +1,10 @@
-import type { IDesktopTrend } from '@genfeedai/desktop-contracts';
+import type {
+  DesktopContentPlatform,
+  IDesktopTrend,
+  IDesktopTrendHandoff,
+} from '@genfeedai/desktop-contracts';
 import { ButtonVariant } from '@genfeedai/enums';
+import { DesktopResilienceState } from '@renderer/components/DesktopResilienceState';
 import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -13,14 +18,27 @@ const PLATFORM_LABELS: Record<string, string> = {
 };
 
 interface TrendsViewProps {
-  onGenerateFromTrend: (trend: {
-    id: string;
-    platform: 'instagram' | 'linkedin' | 'twitter' | 'tiktok' | 'youtube';
-    topic: string;
-  }) => void;
+  isOnline: boolean;
+  onGenerateFromTrend: (trend: IDesktopTrendHandoff) => void;
 }
 
-export const TrendsView = ({ onGenerateFromTrend }: TrendsViewProps) => {
+function toDesktopContentPlatform(
+  value: string,
+  fallback: string,
+): DesktopContentPlatform {
+  const nextValue = [value, fallback].find((candidate) =>
+    ['instagram', 'linkedin', 'twitter', 'tiktok', 'youtube'].includes(
+      candidate,
+    ),
+  );
+
+  return (nextValue ?? 'twitter') as DesktopContentPlatform;
+}
+
+export const TrendsView = ({
+  isOnline,
+  onGenerateFromTrend,
+}: TrendsViewProps) => {
   const [trends, setTrends] = useState<IDesktopTrend[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +48,12 @@ export const TrendsView = ({ onGenerateFromTrend }: TrendsViewProps) => {
     setLoading(true);
     setError(null);
 
+    if (!isOnline) {
+      setTrends([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       const result = await window.genfeedDesktop.cloud.getTrends(platform);
       setTrends(result);
@@ -38,7 +62,7 @@ export const TrendsView = ({ onGenerateFromTrend }: TrendsViewProps) => {
     } finally {
       setLoading(false);
     }
-  }, [platform]);
+  }, [isOnline, platform]);
 
   useEffect(() => {
     void loadTrends();
@@ -67,16 +91,35 @@ export const TrendsView = ({ onGenerateFromTrend }: TrendsViewProps) => {
         ))}
       </div>
 
-      {loading && <p className="muted-text">Loading trends…</p>}
-      {error && <div className="error-banner">{error}</div>}
-
-      {!loading && !error && trends.length === 0 && (
-        <p className="empty-state">
-          No trends found for {PLATFORM_LABELS[platform]}.
-        </p>
+      {loading && <p className="muted-text">Loading trends...</p>}
+      {!loading && !isOnline && (
+        <DesktopResilienceState
+          actionLabel="Retry"
+          details="Trend discovery needs a cloud connection. Local drafts and desktop generation stay available while the network is down."
+          kind="offline"
+          onAction={() => void loadTrends()}
+          title="Trend discovery is offline"
+        />
+      )}
+      {!loading && isOnline && error && (
+        <DesktopResilienceState
+          actionLabel="Retry"
+          details={error}
+          kind="error"
+          onAction={() => void loadTrends()}
+          title="Unable to load trends"
+        />
       )}
 
-      {!loading && trends.length > 0 && (
+      {!loading && isOnline && !error && trends.length === 0 && (
+        <DesktopResilienceState
+          details={`No ${PLATFORM_LABELS[platform]} trends are available yet. Try another platform or refresh after the next sync.`}
+          kind="empty"
+          title="No trends found"
+        />
+      )}
+
+      {!loading && isOnline && !error && trends.length > 0 && (
         <div className="trends-list">
           {trends.map((trend) => (
             <div className="trend-card panel-card" key={trend.id}>
@@ -117,14 +160,15 @@ export const TrendsView = ({ onGenerateFromTrend }: TrendsViewProps) => {
                 className="small"
                 onClick={() =>
                   onGenerateFromTrend({
+                    engagementScore: trend.engagementScore,
                     id: trend.id,
-                    platform: trend.platform as
-                      | 'instagram'
-                      | 'linkedin'
-                      | 'twitter'
-                      | 'tiktok'
-                      | 'youtube',
+                    platform: toDesktopContentPlatform(
+                      trend.platform,
+                      platform,
+                    ),
+                    summary: trend.summary,
                     topic: trend.topic,
+                    viralityScore: trend.viralityScore,
                   })
                 }
                 type="button"

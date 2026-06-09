@@ -26,6 +26,7 @@
 - [Inference servers private boundary](feedback_inference_servers_private_boundary.md) — Keep Genfeed inference server implementations out of the public monorepo
 - [GenfeedAI managed provider](feedback_genfeedai_managed_provider.md) — Model Genfeed-managed inference as provider=genfeedai, enabled per customer from console
 - [Concurrent automation on develop](feedback_concurrent_automation_develop.md) — A background bot commits to HEAD + pushes develop in this shared checkout; path-scope git add, never blind add -u
+- [Genfeed project kanban](feedback_genfeed_project_kanban.md) — Use project #12 Genfeed.ai as canonical; never select work from closed Mission Control #11
 
 ## References
 

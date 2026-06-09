@@ -13,7 +13,16 @@ export interface ITemplateVariable {
 export interface TemplateDocument
   extends Omit<
     PrismaTemplate,
-    'key' | 'scope' | 'purpose' | 'platforms' | 'industries' | 'categories'
+    | 'key'
+    | 'scope'
+    | 'purpose'
+    | 'platforms'
+    | 'industries'
+    | 'categories'
+    | 'isActive'
+    | 'usageCount'
+    | 'variables'
+    | 'version'
   > {
   _id: string;
   categories?: string[];

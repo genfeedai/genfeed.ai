@@ -4,16 +4,24 @@ export type IntegrationProviderKey =
   | 'google_ads'
   | 'linkedin'
   | 'meta_ads'
-  | 'twitter';
+  | 'twitter'
+  | 'unipile';
 
 export type IntegrationProviderAuthMode = 'api_key' | 'oauth1' | 'oauth2';
 
 export type IntegrationProviderCapability =
+  | 'connect_account'
+  | 'create_calendar_event'
   | 'fetch_account'
   | 'fetch_analytics'
   | 'fetch_campaigns'
   | 'manage_ads'
-  | 'publish_post';
+  | 'publish_post'
+  | 'read_calendar_events'
+  | 'read_email'
+  | 'read_message'
+  | 'send_email'
+  | 'send_message';
 
 export interface IntegrationProviderCredentialField {
   description?: string;

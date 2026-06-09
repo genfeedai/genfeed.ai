@@ -163,6 +163,7 @@ import { TelegramModule } from '@api/services/integrations/telegram/telegram.mod
 import { ThreadsModule } from '@api/services/integrations/threads/threads.module';
 import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
+import { UnipileModule } from '@api/services/integrations/unipile/unipile.module';
 import { WhatsappModule } from '@api/services/integrations/whatsapp/whatsapp.module';
 import { WordpressModule } from '@api/services/integrations/wordpress/wordpress.module';
 import { XaiModule } from '@api/services/integrations/xai/xai.module';
@@ -355,6 +356,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ThreadsModule,
     TiktokModule,
     TwitterModule,
+    UnipileModule,
     // UserSubscriptionsModule — EE (gated below)
     VideoCompletionModule,
     WebhooksModule,

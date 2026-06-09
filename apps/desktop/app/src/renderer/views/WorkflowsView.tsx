@@ -1,5 +1,6 @@
 import type { IDesktopWorkflow } from '@genfeedai/desktop-contracts';
 import { ButtonVariant } from '@genfeedai/enums';
+import { DesktopResilienceState } from '@renderer/components/DesktopResilienceState';
 import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -20,13 +21,26 @@ const LIFECYCLE_COLORS: Record<string, string> = {
   published: 'status-active',
 };
 
-export const WorkflowsView = () => {
+interface WorkflowsViewProps {
+  isOnline: boolean;
+}
+
+export const WorkflowsView = ({ isOnline }: WorkflowsViewProps) => {
   const [workflows, setWorkflows] = useState<IDesktopWorkflow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [runningId, setRunningId] = useState<string | null>(null);
 
   const loadWorkflows = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    if (!isOnline) {
+      setWorkflows([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       const result = await window.genfeedDesktop.cloud.listWorkflows();
       setWorkflows(result);
@@ -35,28 +49,37 @@ export const WorkflowsView = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isOnline]);
 
   useEffect(() => {
     void loadWorkflows();
   }, [loadWorkflows]);
 
-  const handleRun = useCallback(async (workflowId: string, batch?: boolean) => {
-    setRunningId(workflowId);
-    setError(null);
+  const handleRun = useCallback(
+    async (workflowId: string, batch?: boolean) => {
+      setRunningId(workflowId);
+      setError(null);
 
-    try {
-      await window.genfeedDesktop.cloud.runWorkflow({ batch, workflowId });
-      await window.genfeedDesktop.notifications.notify(
-        'Workflow started',
-        `Workflow ${batch ? 'batch ' : ''}execution started.`,
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to run workflow');
-    } finally {
-      setRunningId(null);
-    }
-  }, []);
+      if (!isOnline) {
+        setError('Reconnect before running cloud workflows.');
+        setRunningId(null);
+        return;
+      }
+
+      try {
+        await window.genfeedDesktop.cloud.runWorkflow({ batch, workflowId });
+        await window.genfeedDesktop.notifications.notify(
+          'Workflow started',
+          `Workflow ${batch ? 'batch ' : ''}execution started.`,
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to run workflow');
+      } finally {
+        setRunningId(null);
+      }
+    },
+    [isOnline],
+  );
 
   return (
     <div className="view-workflows">
@@ -73,74 +96,97 @@ export const WorkflowsView = () => {
         </Button>
       </div>
 
-      {loading && <p className="muted-text">Loading workflows…</p>}
-      {error && <div className="error-banner">{error}</div>}
-
-      {!loading && workflows.length === 0 && (
-        <p className="empty-state">
-          No workflows found. Create workflows in the GenFeed workflow builder.
-        </p>
+      {loading && <p className="muted-text">Loading workflows...</p>}
+      {!loading && !isOnline && (
+        <DesktopResilienceState
+          actionLabel="Retry"
+          details="Cloud workflows require a network connection. Local drafting remains available until the desktop app reconnects."
+          kind="offline"
+          onAction={() => void loadWorkflows()}
+          title="Workflows are offline"
+        />
+      )}
+      {!loading && isOnline && error && (
+        <DesktopResilienceState
+          actionLabel="Retry"
+          details={error}
+          kind="error"
+          onAction={() => void loadWorkflows()}
+          title="Unable to load workflows"
+        />
       )}
 
-      <div className="workflows-grid">
-        {workflows.map((wf) => (
-          <div className="workflow-card panel-card" key={wf.id}>
-            <div className="workflow-card-header">
-              <div>
-                <strong className="workflow-name">{wf.name}</strong>
-                {wf.description && (
-                  <p className="workflow-desc muted-text">{wf.description}</p>
+      {!loading && isOnline && !error && workflows.length === 0 && (
+        <DesktopResilienceState
+          details="No workflows are available for this workspace. Create workflows in the web builder, then refresh desktop."
+          kind="empty"
+          title="No workflows found"
+        />
+      )}
+
+      {isOnline && !error && workflows.length > 0 ? (
+        <div className="workflows-grid">
+          {workflows.map((wf) => (
+            <div className="workflow-card panel-card" key={wf.id}>
+              <div className="workflow-card-header">
+                <div>
+                  <strong className="workflow-name">{wf.name}</strong>
+                  {wf.description && (
+                    <p className="workflow-desc muted-text">{wf.description}</p>
+                  )}
+                </div>
+                <span
+                  className={`status-badge ${LIFECYCLE_COLORS[wf.lifecycle] ?? ''}`}
+                >
+                  {wf.lifecycle}
+                </span>
+              </div>
+
+              <div className="workflow-meta">
+                <span className="node-count-badge">
+                  {String(wf.nodeCount)} node{wf.nodeCount !== 1 ? 's' : ''}
+                </span>
+                {wf.latestRun && (
+                  <span
+                    className={`status-badge status-${wf.latestRun.status}`}
+                  >
+                    {wf.latestRun.mode === 'batch' ? 'Batch' : 'Latest'}:{' '}
+                    {wf.latestRun.status}
+                  </span>
+                )}
+                {wf.lastExecutedAt && (
+                  <span className="muted-text">
+                    Last run: {timeAgo(wf.lastExecutedAt)}
+                  </span>
                 )}
               </div>
-              <span
-                className={`status-badge ${LIFECYCLE_COLORS[wf.lifecycle] ?? ''}`}
-              >
-                {wf.lifecycle}
-              </span>
-            </div>
 
-            <div className="workflow-meta">
-              <span className="node-count-badge">
-                {String(wf.nodeCount)} node{wf.nodeCount !== 1 ? 's' : ''}
-              </span>
-              {wf.latestRun && (
-                <span className={`status-badge status-${wf.latestRun.status}`}>
-                  {wf.latestRun.mode === 'batch' ? 'Batch' : 'Latest'}:{' '}
-                  {wf.latestRun.status}
-                </span>
-              )}
-              {wf.lastExecutedAt && (
-                <span className="muted-text">
-                  Last run: {timeAgo(wf.lastExecutedAt)}
-                </span>
-              )}
-            </div>
-
-            <div className="workflow-card-actions">
-              <Button
-                className="small"
-                disabled={runningId === wf.id}
-                onClick={() => void handleRun(wf.id)}
-                type="button"
-                variant={ButtonVariant.DEFAULT}
-              >
-                {runningId === wf.id ? 'Running…' : '▶ Run'}
-              </Button>
-              {wf.supportsBatch && (
+              <div className="workflow-card-actions">
                 <Button
                   className="small"
                   disabled={runningId === wf.id}
-                  onClick={() => void handleRun(wf.id, true)}
+                  onClick={() => void handleRun(wf.id)}
                   type="button"
-                  variant={ButtonVariant.GHOST}
+                  variant={ButtonVariant.DEFAULT}
                 >
-                  📦 Run Batch
+                  {runningId === wf.id ? 'Running…' : '▶ Run'}
                 </Button>
-              )}
+                {wf.supportsBatch && (
+                  <Button
+                    className="small"
+                    disabled={runningId === wf.id}
+                    onClick={() => void handleRun(wf.id, true)}
+                    type="button"
+                    variant={ButtonVariant.GHOST}
+                  >
+                    📦 Run Batch
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 };

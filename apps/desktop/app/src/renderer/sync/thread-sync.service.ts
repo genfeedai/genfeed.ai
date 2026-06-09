@@ -301,7 +301,7 @@ export class ThreadSyncService {
       }
 
       const asset = assetById.get(pushedAsset.localAssetId);
-      if (!asset || asset.uploadPolicy !== 'full') {
+      if (asset?.uploadPolicy !== 'full') {
         continue;
       }
 

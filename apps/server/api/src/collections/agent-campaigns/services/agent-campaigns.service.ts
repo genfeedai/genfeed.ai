@@ -52,7 +52,10 @@ export class AgentCampaignsService extends BaseService<
     populate: PopulateInput = [],
   ): Promise<AgentCampaignDocument> {
     return await super.create(
-      this.toPrismaWriteData(createDto, 'create'),
+      this.toPrismaWriteData(
+        createDto,
+        'create',
+      ) as unknown as CreateAgentCampaignDto,
       populate,
     );
   }
@@ -130,7 +133,7 @@ export class AgentCampaignsService extends BaseService<
 
     for (const key of CONFIG_BACKED_KEYS) {
       if (Object.hasOwn(dto, key)) {
-        config[key] = dto[key];
+        config[key] = (dto as Record<string, unknown>)[key];
       }
     }
 

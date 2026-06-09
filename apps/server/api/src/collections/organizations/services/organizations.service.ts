@@ -3,6 +3,7 @@ import { UpdateOrganizationDto } from '@api/collections/organizations/dto/update
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -136,16 +137,14 @@ export class OrganizationsService extends BaseService<
     let candidate = base;
     let counter = 2;
     while (true) {
-      const filter: Record<string, unknown> = {
+      const filter: Prisma.OrganizationWhereInput = {
         isDeleted: false,
         slug: candidate,
       };
       if (excludeOrgId) {
-        filter._id = { not: excludeOrgId };
+        filter.id = { not: excludeOrgId };
       }
-      if (
-        !(await this.prisma.organization.findFirst({ where: filter as never }))
-      ) {
+      if (!(await this.prisma.organization.findFirst({ where: filter }))) {
         break;
       }
       candidate = `${base}-${counter}`;

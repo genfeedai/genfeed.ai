@@ -202,9 +202,11 @@ describe('TrendFetchService', () => {
     expect(mockPrisma.trend.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         brandId: 'brand-1',
-        growthRate: 81,
+        data: expect.objectContaining({
+          growthRate: 81,
+          mentions: 42500,
+        }),
         isCurrent: true,
-        mentions: 42500,
         organizationId: 'org-1',
         platform: 'tiktok',
         requiresAuth: true,

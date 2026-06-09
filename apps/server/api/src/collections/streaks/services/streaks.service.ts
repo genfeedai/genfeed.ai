@@ -591,17 +591,17 @@ export class StreaksService {
     const rangeStart = from ? startOfUtcDay(from) : addUtcDays(rangeEnd, -89);
 
     const docs = await this.prisma.activity.findMany({
-      select: { createdAt: true, key: true },
+      select: { createdAt: true, action: true },
       where: {
         createdAt: {
           gte: rangeStart,
           lt: addUtcDays(rangeEnd, 1),
         },
         isDeleted: false,
-        key: { in: Array.from(QUALIFYING_ACTIVITY_KEYS) },
+        action: { in: Array.from(QUALIFYING_ACTIVITY_KEYS) },
         organizationId,
         userId,
-      } as never,
+      },
     });
 
     const days: IStreakCalendarResponse['days'] = {};
@@ -612,7 +612,7 @@ export class StreaksService {
       )
         .toISOString()
         .slice(0, 10);
-      const type = toTypeLabel(doc.key as ActivityKey);
+      const type = toTypeLabel(doc.action as ActivityKey);
 
       if (!days[key]) {
         days[key] = { count: 0, types: [] };

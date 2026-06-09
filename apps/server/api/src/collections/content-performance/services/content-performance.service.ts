@@ -45,7 +45,9 @@ export class ContentPerformanceService extends BaseService<
   }
 
   private toCredentialPlatform(platform?: string): string | undefined {
-    return platform ? platform.toUpperCase() : undefined;
+    // Canonical platform values are lowercase (Post.platform is now a String column
+    // storing the lowercase code-enum value); normalise so equality filters match.
+    return platform ? platform.toLowerCase() : undefined;
   }
 
   /**
@@ -104,9 +106,7 @@ export class ContentPerformanceService extends BaseService<
     }));
 
     const created = await Promise.all(
-      records.map((r) =>
-        this.delegate.create({ data: r as Record<string, unknown> }),
-      ),
+      records.map((r) => this.delegate.create({ data: r })),
     );
 
     return created as ContentPerformanceDocument[];
@@ -156,7 +156,7 @@ export class ContentPerformanceService extends BaseService<
               organizationId,
               OR: postMatchConditions.map((c) => ({
                 externalId: c.externalId,
-                platform: c.platform as never,
+                platform: c.platform,
               })),
             },
           })
@@ -233,7 +233,7 @@ export class ContentPerformanceService extends BaseService<
           externalId: dto.externalPostId,
           isDeleted: false,
           organizationId,
-          platform: this.toCredentialPlatform(dto.platform) as never,
+          platform: this.toCredentialPlatform(dto.platform),
         },
       });
     }

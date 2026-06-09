@@ -187,7 +187,7 @@ export class AgentRunsService extends BaseService<
 
     // Ensure the org field in the DTO comes only from the validated value above —
     // strip any raw 'organization' field that may have leaked from the request body.
-    delete dto.organization;
+    delete (dto as { organization?: unknown }).organization;
 
     return super.create(createDto) as Promise<AgentRunDocument>;
   }

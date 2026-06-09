@@ -1,7 +1,11 @@
 import type { AvatarProvider, VoiceProvider } from '@genfeedai/enums';
 import type { Persona as PrismaPersona } from '@genfeedai/prisma';
 
-export interface PersonaDocument extends PrismaPersona {
+export interface PersonaDocument
+  extends Omit<
+    PrismaPersona,
+    'avatarExternalId' | 'avatarProvider' | 'voiceExternalId' | 'voiceProvider'
+  > {
   _id: string;
   avatarExternalId?: string | null;
   avatarProvider?: AvatarProvider | string | null;

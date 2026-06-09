@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type {
@@ -55,8 +56,8 @@ const mainDir = path.dirname(fileURLToPath(import.meta.url));
 
 let mainWindow: BrowserWindow | null = null;
 let bootstrapCache: IDesktopBootstrap | null = null;
-let pgliteService: DesktopPgliteService;
-let prismaService: DesktopPrismaService;
+let pgliteService: DesktopPgliteService | null = null;
+let prismaService: DesktopPrismaService | null = null;
 let kvService: DesktopKvService;
 let sessionService: DesktopSessionService;
 let workspaceService: DesktopWorkspaceService;
@@ -79,6 +80,13 @@ let isQuitting = false;
 const isSmokeTest =
   process.argv.includes('--smoke-test') ||
   process.env.GENFEED_DESKTOP_SMOKE_TEST === '1';
+const smokeUserDataDir = isSmokeTest
+  ? fs.mkdtempSync(path.join(os.tmpdir(), 'genfeed-desktop-smoke-'))
+  : null;
+
+if (smokeUserDataDir) {
+  app.setPath('userData', smokeUserDataDir);
+}
 
 const LOCAL_PROVIDER_REQUIRED_ERROR =
   'Configure a local generation provider before generating content.';
@@ -805,11 +813,17 @@ app.on('before-quit', (event) => {
     } finally {
       shortcutsService.unregister();
       trayService.destroy();
-      await prismaService.getClient().$disconnect();
-      await pgliteService.close();
+      await prismaService?.getClient().$disconnect();
+      await pgliteService?.close();
       app.quit();
     }
   })();
+});
+
+app.on('will-quit', () => {
+  if (smokeUserDataDir) {
+    fs.rmSync(smokeUserDataDir, { force: true, recursive: true });
+  }
 });
 
 app.whenReady().then(async () => {
@@ -817,6 +831,7 @@ app.whenReady().then(async () => {
   pgliteService = new DesktopPgliteService(
     path.join(app.getPath('userData'), 'pglite-db'),
   );
+  const desktopPgliteService = pgliteService;
   const pglite = await pgliteService.init();
   prismaService = new DesktopPrismaService(pglite);
   const prismaClient = prismaService.getClient();
@@ -876,7 +891,7 @@ app.whenReady().then(async () => {
   appShellService = new DesktopAppShellService(
     environment,
     () => sessionService.getSession(),
-    () => pgliteService.getDataDir(),
+    () => desktopPgliteService.getDataDir(),
   );
   isOfflineMode = kvService.getValueSync(OFFLINE_MODE_KEY) === '1';
   telemetryService.setUser(sessionService.getSession());

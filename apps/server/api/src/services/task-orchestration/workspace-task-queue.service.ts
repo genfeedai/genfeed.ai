@@ -26,6 +26,8 @@ export interface WorkspaceTaskJobData {
   voiceId?: string;
   /** Voice provider hint — determines how voiceId is resolved (heygen | elevenlabs | genfeed-ai | hedra) */
   voiceProvider?: string;
+  /** Explicit ElevenLabs voice ID (facecam tasks) when caller pins the ElevenLabs provider directly */
+  elevenlabsVoiceId?: string;
 }
 
 @Injectable()

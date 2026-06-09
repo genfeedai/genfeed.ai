@@ -84,7 +84,8 @@ export interface ReplyBotFilters {
   [key: string]: unknown;
 }
 
-export interface ReplyBotConfigDocument extends Omit<ReplyBotConfig, 'config'> {
+export interface ReplyBotConfigDocument
+  extends Omit<ReplyBotConfig, 'config' | 'actionType' | 'isActive' | 'type'> {
   _id: string;
   actionType?: ReplyBotActionType | string;
   brand?: string | null;

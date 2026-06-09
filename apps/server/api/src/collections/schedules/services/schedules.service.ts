@@ -11,6 +11,7 @@ import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
@@ -115,7 +116,7 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
   async bulkSchedule(
     dto: BulkScheduleDto,
     organizationId: string,
-    userId?: string,
+    userId: string,
   ): Promise<{
     scheduled: Schedule[];
     failed: Array<{ contentId: string; reason: string }>;
@@ -157,7 +158,7 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
               scheduledAt: scheduleTimes[i],
               schedulingMethod: dto.schedulingStrategy,
               userId,
-            } as never,
+            },
           });
 
           scheduled.push(schedule as unknown as Schedule);
@@ -210,7 +211,7 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
   async repurposeContent(
     dto: RepurposeContentDto,
     organizationId: string,
-    userId?: string,
+    userId: string,
   ): Promise<RepurposingJob> {
     try {
       this.logger.debug('Starting content repurposing', {
@@ -225,14 +226,14 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
           results: dto.targetFormats.map((format) => ({
             format,
             status: 'pending',
-          })),
-          settings: dto.settings,
+          })) as Prisma.InputJsonValue,
+          settings: dto.settings as Prisma.InputJsonValue,
           sourceContentId: dto.contentId,
           sourceContentType: 'video',
           status: 'pending',
           targetFormats: dto.targetFormats,
           userId,
-        } as never,
+        },
       });
 
       this.logger.debug('Repurposing job created', {

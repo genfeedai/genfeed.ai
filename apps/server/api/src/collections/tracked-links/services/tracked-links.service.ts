@@ -743,7 +743,7 @@ export class TrackedLinksService {
       // mutation, not just on a preceding read (defense-in-depth against
       // cross-tenant writes if the read/write ever drift apart).
       const { count } = await tx.trackedLink.updateMany({
-        data: safeData as never,
+        data: safeData,
         where: { id: linkId, isDeleted: false, organizationId },
       });
 

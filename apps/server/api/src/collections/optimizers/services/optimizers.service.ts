@@ -133,16 +133,18 @@ export class OptimizersService {
     // Create and save score
     const score = await this.prisma.contentScore.create({
       data: {
-        breakdown: analysis.breakdown as never,
-        content: dto.content,
-        contentType: dto.contentType,
-        goals: dto.goals || [],
-        metadata: metadata as never,
         organizationId,
-        overallScore: analysis.overallScore,
-        platform: dto.platform,
-        suggestions: analysis.suggestions as never,
-        userId,
+        data: {
+          breakdown: analysis.breakdown,
+          content: dto.content,
+          contentType: dto.contentType,
+          goals: dto.goals || [],
+          metadata,
+          overallScore: analysis.overallScore,
+          platform: dto.platform,
+          suggestions: analysis.suggestions,
+          userId,
+        } as Prisma.InputJsonValue,
       },
     });
 

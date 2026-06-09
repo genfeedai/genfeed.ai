@@ -149,6 +149,7 @@ export function useConversationSend({
 
     try {
       const generated = await window.genfeedDesktop.cloud.generateContent({
+        brief: savedDraft.brief,
         platform,
         projectId: workspace?.linkedProjectId,
         prompt: input.trim(),
