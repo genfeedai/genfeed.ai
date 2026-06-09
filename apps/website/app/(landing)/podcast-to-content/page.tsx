@@ -12,5 +12,5 @@ const config = serviceLandingConfigBySlug[
 export const metadata = createServiceLandingMetadata(config);
 
 export default function PodcastToContentPage() {
-  return <ServiceLandingPage config={config} />;
+  return <ServiceLandingPage slug="podcast-to-content" />;
 }

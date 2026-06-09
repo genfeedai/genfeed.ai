@@ -24,6 +24,9 @@ export default function AppHtmlDocument({
       data-theme={initialTheme}
       data-scroll-behavior="smooth"
       style={{ colorScheme: initialTheme }}
+      // next-themes rewrites data-theme/style on the client before React
+      // hydrates, so the server-rendered attributes legitimately differ.
+      suppressHydrationWarning
     >
       {head ? <head>{head}</head> : null}
       <body className={bodyClassName}>{children}</body>

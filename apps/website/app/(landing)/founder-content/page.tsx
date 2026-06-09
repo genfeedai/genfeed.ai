@@ -12,5 +12,5 @@ const config = serviceLandingConfigBySlug[
 export const metadata = createServiceLandingMetadata(config);
 
 export default function FounderContentPage() {
-  return <ServiceLandingPage config={config} />;
+  return <ServiceLandingPage slug="founder-content" />;
 }
