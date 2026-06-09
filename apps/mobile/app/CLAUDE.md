@@ -2,13 +2,13 @@
 
 **React Native app with Expo.**
 
-Rules auto-load from `.claude/rules/` (symlinked to `.agents/rules/`). Docs in `../../../.agents/`.
+Workspace rules and docs live in `../../../.agents/` (the root `.agents/memory/`). This app has no local rules dir.
 
 ## Tech Stack
 
-- React Native + Expo
+- React Native + Expo (expo-router)
 - TypeScript
-- NativeWind (Tailwind)
+- React Native `StyleSheet` + shared `@genfeedai/ui` components (no NativeWind)
 
 ## Commands
 
@@ -21,4 +21,4 @@ bun run android    # Android emulator
 ## Docs
 
 - `../../../.agents/README.md` - Project guide
-- `../../../.agents/SYSTEM/RULES.md` - Coding standards
+- `../../../.agents/memory/system/RULES.md` - Coding standards

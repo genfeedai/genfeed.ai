@@ -18,7 +18,7 @@ Project guidance lives in `AGENTS.md` and `.agents/`. Docs in `.agents/`.
 bun install      # Install dependencies
 bun run dev      # Local preview on port 3001
 bun run build    # Production build (.next output)
-bun run start    # Start production server on port 3001
+bun run start    # Start production server (Next.js default port 3000; set PORT to override)
 ```
 
 ## Structure
@@ -32,9 +32,9 @@ bun run start    # Start production server on port 3001
 
 ## Docs
 
-- `.agents/README.md` - Project guide
-- `.agents/SESSIONS/` - Session logs and template
-- `../.agents/` - Workspace-level architecture/rules/SOPs
+- `../../.agents/README.md` - Workspace project guide
+- `../../.agents/SESSIONS/` - Session logs and template
+- `../../.agents/memory/` - Workspace-level architecture/rules/SOPs
 
 ## Vercel Deployments
 NEVER run `vercel` or `vercel deploy` without first confirming `.vercel/project.json` exists.

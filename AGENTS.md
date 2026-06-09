@@ -2,7 +2,7 @@
 
 ## Last Verified
 
-- **Date:** 2026-04-07
+- **Date:** 2026-06-09
 - **Sources:** local monorepo structure + GitHub issues
 
 ## Project Memory — READ AT SESSION START
