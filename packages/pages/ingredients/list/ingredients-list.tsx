@@ -3,7 +3,6 @@
 import { useIngredientsContext } from '@contexts/content/ingredients-context/ingredients-context';
 import { useIngredientsHeaderContext } from '@contexts/content/ingredients-header-context/ingredients-header-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
   AlertCategory,
   ButtonVariant,
@@ -266,16 +265,8 @@ export default function IngredientsList({
             blacklists={blacklists}
             promptData={imageToVideoPromptData || { isValid: false, text: '' }}
             isGenerating={isImageToVideoGenerating || false}
-            onPromptChange={
-              handleImageToVideoPromptChange as (
-                data: Partial<PromptTextareaSchema> & { isValid: boolean },
-              ) => void
-            }
-            onSubmit={
-              handleImageToVideoSubmit as (
-                data: PromptTextareaSchema & { isValid: boolean },
-              ) => void
-            }
+            onPromptChange={handleImageToVideoPromptChange}
+            onSubmit={handleImageToVideoSubmit}
             onClose={handleCloseImageToVideoModal}
           />
         )}

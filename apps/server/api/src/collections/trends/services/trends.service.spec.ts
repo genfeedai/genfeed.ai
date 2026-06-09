@@ -20,11 +20,22 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
+type MockCacheService = {
+  invalidateByTags: ReturnType<typeof vi.fn>;
+};
+
+type MockTrendReferenceCorpusService = {
+  syncTrendReferences: ReturnType<typeof vi.fn>;
+};
+
 describe('TrendsService', () => {
   let service: TrendsService;
   let trendContentIdeasService: TrendContentIdeasService;
+  let cacheService: MockCacheService;
+  let trendReferenceCorpusService: MockTrendReferenceCorpusService;
   let prisma: {
     trend: {
+      create: ReturnType<typeof vi.fn>;
       findMany: ReturnType<typeof vi.fn>;
       findFirst: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
@@ -86,6 +97,7 @@ describe('TrendsService', () => {
   beforeEach(async () => {
     prisma = {
       trend: {
+        create: vi.fn(),
         findFirst: vi.fn().mockResolvedValue(null),
         findMany: vi.fn().mockResolvedValue([]),
         update: vi.fn().mockResolvedValue({}),
@@ -192,6 +204,10 @@ describe('TrendsService', () => {
     trendContentIdeasService = module.get<TrendContentIdeasService>(
       TrendContentIdeasService,
     );
+    cacheService = module.get(CacheService) as unknown as MockCacheService;
+    trendReferenceCorpusService = module.get(
+      TrendReferenceCorpusService,
+    ) as unknown as MockTrendReferenceCorpusService;
     loggerService = module.get<LoggerService>(LoggerService);
 
     vi.clearAllMocks();
@@ -199,6 +215,104 @@ describe('TrendsService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('backfillPrelaunchReferenceCorpus', () => {
+    const fixedNow = new Date('2026-06-09T00:00:00.000Z');
+    const makeSeedTrendDoc = (id: string, data: Record<string, unknown>) => ({
+      brandId: null,
+      createdAt: fixedNow,
+      data,
+      id,
+      isDeleted: false,
+      organizationId: null,
+      updatedAt: fixedNow,
+    });
+
+    it('plans the credential-free corpus without writes by default', async () => {
+      prisma.trend.findMany.mockResolvedValue([]);
+
+      const result = await service.backfillPrelaunchReferenceCorpus({
+        now: fixedNow,
+      });
+
+      expect(result).toMatchObject({
+        createdTrends: 0,
+        dryRun: true,
+        plannedCreates: 70,
+        plannedUpdates: 0,
+        seedReferences: 140,
+        seedTrends: 70,
+        updatedTrends: 0,
+      });
+      expect(prisma.trend.create).not.toHaveBeenCalled();
+      expect(prisma.trend.update).not.toHaveBeenCalled();
+      expect(
+        trendReferenceCorpusService.syncTrendReferences,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('creates missing global trends and syncs source references in live mode', async () => {
+      prisma.trend.findMany.mockResolvedValue([]);
+      prisma.trend.create.mockImplementation(async (input: unknown) => {
+        const payload = input as {
+          data: {
+            data: Record<string, unknown>;
+          };
+        };
+
+        return makeSeedTrendDoc(
+          `prelaunch-${prisma.trend.create.mock.calls.length}`,
+          payload.data.data,
+        );
+      });
+      trendReferenceCorpusService.syncTrendReferences.mockResolvedValue({
+        links: 140,
+        references: 140,
+        snapshots: 140,
+      });
+
+      const result = await service.backfillPrelaunchReferenceCorpus({
+        dryRun: false,
+        now: fixedNow,
+      });
+
+      expect(prisma.trend.create).toHaveBeenCalledTimes(70);
+      expect(prisma.trend.update).not.toHaveBeenCalled();
+      expect(
+        trendReferenceCorpusService.syncTrendReferences,
+      ).toHaveBeenCalledTimes(1);
+
+      const syncCall =
+        trendReferenceCorpusService.syncTrendReferences.mock.calls[0];
+      const syncPayload = syncCall?.[0] as Array<{
+        sourcePreview: unknown[];
+        sourcePreviewState: string;
+      }>;
+
+      expect(syncPayload).toHaveLength(70);
+      expect(syncPayload[0]).toMatchObject({
+        sourcePreviewState: 'fallback',
+      });
+      expect(syncPayload[0]?.sourcePreview).toHaveLength(2);
+      expect(cacheService.invalidateByTags).toHaveBeenCalledWith([
+        'trends',
+        'trends:content',
+      ]);
+      expect(result).toMatchObject({
+        createdTrends: 70,
+        dryRun: false,
+        plannedCreates: 70,
+        referenceSync: {
+          links: 140,
+          references: 140,
+          snapshots: 140,
+        },
+        seedReferences: 140,
+        seedTrends: 70,
+        updatedTrends: 0,
+      });
+    });
   });
 
   describe('sanitizeForPrompt', () => {

@@ -1,5 +1,6 @@
 import type { IDesktopAgent } from '@genfeedai/desktop-contracts';
 import { ButtonVariant } from '@genfeedai/enums';
+import { DesktopResilienceState } from '@renderer/components/DesktopResilienceState';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -121,7 +122,11 @@ const AgentCard = ({
   );
 };
 
-export const AgentsView = () => {
+interface AgentsViewProps {
+  isOnline: boolean;
+}
+
+export const AgentsView = ({ isOnline }: AgentsViewProps) => {
   const [agents, setAgents] = useState<IDesktopAgent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +134,15 @@ export const AgentsView = () => {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadAgents = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    if (!isOnline) {
+      setAgents([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       const result = await window.genfeedDesktop.cloud.listAgents();
       setAgents(result);
@@ -137,7 +151,7 @@ export const AgentsView = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isOnline]);
 
   useEffect(() => {
     void loadAgents();
@@ -166,6 +180,12 @@ export const AgentsView = () => {
       setRunningAgentId(agentId);
       setError(null);
 
+      if (!isOnline) {
+        setError('Reconnect before running cloud agent strategies.');
+        setRunningAgentId(null);
+        return;
+      }
+
       try {
         await window.genfeedDesktop.cloud.runAgent(agentId);
         // Keep polling; it will auto-clear when run completes
@@ -177,7 +197,7 @@ export const AgentsView = () => {
         setRunningAgentId(null);
       }
     },
-    [loadAgents],
+    [isOnline, loadAgents],
   );
 
   return (
@@ -195,25 +215,46 @@ export const AgentsView = () => {
         </Button>
       </div>
 
-      {loading && <p className="muted-text">Loading agents…</p>}
-      {error && <div className="error-banner">{error}</div>}
-
-      {!loading && agents.length === 0 && (
-        <p className="empty-state">
-          No agents configured. Create agent strategies in the GenFeed web app.
-        </p>
+      {loading && <p className="muted-text">Loading agents...</p>}
+      {!loading && !isOnline && (
+        <DesktopResilienceState
+          actionLabel="Retry"
+          details="Agent strategies sync from Genfeed Cloud. You can keep drafting locally while the desktop app waits for a connection."
+          kind="offline"
+          onAction={() => void loadAgents()}
+          title="Agents are offline"
+        />
+      )}
+      {!loading && isOnline && error && (
+        <DesktopResilienceState
+          actionLabel="Retry"
+          details={error}
+          kind="error"
+          onAction={() => void loadAgents()}
+          title="Unable to load agents"
+        />
       )}
 
-      <div className="agents-grid">
-        {agents.map((agent) => (
-          <AgentCard
-            agent={agent}
-            key={agent.id}
-            onRun={(id) => void handleRunAgent(id)}
-            runningAgentId={runningAgentId}
-          />
-        ))}
-      </div>
+      {!loading && isOnline && !error && agents.length === 0 && (
+        <DesktopResilienceState
+          details="No agent strategies are available for this account. Create them in the web app, then refresh desktop."
+          kind="empty"
+          title="No agents configured"
+        />
+      )}
+
+      {isOnline && !error && agents.length > 0 ? (
+        <div className="agents-grid">
+          {agents.map((agent) => (
+            <AgentCard
+              agent={agent}
+              key={agent.id}
+              onRun={(id) => void handleRunAgent(id)}
+              runningAgentId={runningAgentId}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 };
