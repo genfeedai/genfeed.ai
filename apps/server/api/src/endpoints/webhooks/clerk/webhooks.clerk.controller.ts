@@ -8,6 +8,7 @@ import { ClerkWebhookPayload } from '@libs/interfaces/webhook-payload.interface'
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
+  BadRequestException,
   Body,
   Controller,
   HttpCode,
@@ -62,12 +63,19 @@ export class ClerkWebhookController {
         this.configService.get('CLERK_WEBHOOK_SIGNING_SECRET')!,
       );
 
-      // Verify webhook signature and process event
-      const event = webhook.verify(JSON.stringify(payload), {
-        'svix-id': svixId,
-        'svix-signature': svixSignature,
-        'svix-timestamp': svixTimestamp,
-      }) as WebhookEvent;
+      // Verify webhook signature and process event. A failed verification is
+      // expected hostile/replayed traffic — answer 400, never a Sentry 500.
+      let event: WebhookEvent;
+      try {
+        event = webhook.verify(JSON.stringify(payload), {
+          'svix-id': svixId,
+          'svix-signature': svixSignature,
+          'svix-timestamp': svixTimestamp,
+        }) as WebhookEvent;
+      } catch (error: unknown) {
+        this.loggerService.error(`${url} invalid signature`, error);
+        throw new BadRequestException('Invalid Clerk webhook signature');
+      }
 
       await this.clerkWebhookService.handleWebhookEvent(event, url);
 
