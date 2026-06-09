@@ -43,13 +43,15 @@ export const facebookSchema = {
 };
 
 /**
- * Google Ads OAuth (required in cloud, optional in self-hosted)
+ * Google Ads OAuth (optional everywhere — the integration is not provisioned
+ * in cloud production, and GoogleAdsOAuthService already degrades gracefully
+ * when credentials are absent)
  */
 export const googleAdsSchema = {
-  GOOGLE_ADS_CLIENT_ID: conditionalRequired(),
-  GOOGLE_ADS_CLIENT_SECRET: conditionalRequired(),
-  GOOGLE_ADS_REDIRECT_URI: conditionalRequired(Joi.string().uri()),
-  GOOGLE_ADS_DEVELOPER_TOKEN: conditionalRequired(),
+  GOOGLE_ADS_CLIENT_ID: Joi.string().optional().allow(''),
+  GOOGLE_ADS_CLIENT_SECRET: Joi.string().optional().allow(''),
+  GOOGLE_ADS_REDIRECT_URI: Joi.string().uri().optional().allow(''),
+  GOOGLE_ADS_DEVELOPER_TOKEN: Joi.string().optional().allow(''),
 };
 
 /**
