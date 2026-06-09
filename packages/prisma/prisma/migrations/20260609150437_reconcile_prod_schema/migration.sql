@@ -331,3 +331,10 @@ ALTER TABLE "skills" ADD CONSTRAINT "skills_organizationId_fkey" FOREIGN KEY ("o
 
 -- AddForeignKey
 ALTER TABLE "templates" ADD CONSTRAINT "templates_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organizations"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- Remap legacy enum values with no equivalent in the new application enums.
+-- WorkflowStatus dropped ARCHIVED and TaskStatus dropped BACKLOG, so the
+-- lowercased legacy values 'archived'/'backlog' would not be valid members.
+-- Map them to the nearest valid status so every row stays a valid enum member.
+UPDATE "workflows" SET "status" = 'paused' WHERE "status" = 'archived';
+UPDATE "tasks" SET "status" = 'pending' WHERE "status" = 'backlog';
