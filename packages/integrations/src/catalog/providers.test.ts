@@ -1,8 +1,8 @@
 import {
   assertValidIntegrationProviderCatalog,
   getIntegrationProviderDefinition,
-  listIntegrationProvidersByCapability,
   listIntegrationProviderDefinitions,
+  listIntegrationProvidersByCapability,
   providerSupportsCapability,
   resolveIntegrationProviderForCapability,
   validateIntegrationProviderDefinition,
@@ -56,8 +56,7 @@ describe('integration provider catalog', () => {
     ).toEqual(['unipile']);
 
     expect(
-      resolveIntegrationProviderForCapability('publish_post', ['unipile'])
-        ?.key,
+      resolveIntegrationProviderForCapability('publish_post', ['unipile'])?.key,
     ).toBe('linkedin');
   });
 });

@@ -553,16 +553,14 @@ export class UnipileService {
     input: Record<string, string | number | boolean | undefined>,
   ): Record<string, string | number | boolean> {
     return Object.fromEntries(
-      Object.entries(input).filter((entry): entry is [
-        string,
-        string | number | boolean,
-      ] => entry[1] !== undefined && entry[1] !== ''),
+      Object.entries(input).filter(
+        (entry): entry is [string, string | number | boolean] =>
+          entry[1] !== undefined && entry[1] !== '',
+      ),
     );
   }
 
-  private compactBody(
-    input: Record<string, unknown>,
-  ): Record<string, unknown> {
+  private compactBody(input: Record<string, unknown>): Record<string, unknown> {
     return Object.fromEntries(
       Object.entries(input).filter(
         ([, value]) =>

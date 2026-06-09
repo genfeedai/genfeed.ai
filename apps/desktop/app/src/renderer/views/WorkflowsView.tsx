@@ -55,28 +55,31 @@ export const WorkflowsView = ({ isOnline }: WorkflowsViewProps) => {
     void loadWorkflows();
   }, [loadWorkflows]);
 
-  const handleRun = useCallback(async (workflowId: string, batch?: boolean) => {
-    setRunningId(workflowId);
-    setError(null);
+  const handleRun = useCallback(
+    async (workflowId: string, batch?: boolean) => {
+      setRunningId(workflowId);
+      setError(null);
 
-    if (!isOnline) {
-      setError('Reconnect before running cloud workflows.');
-      setRunningId(null);
-      return;
-    }
+      if (!isOnline) {
+        setError('Reconnect before running cloud workflows.');
+        setRunningId(null);
+        return;
+      }
 
-    try {
-      await window.genfeedDesktop.cloud.runWorkflow({ batch, workflowId });
-      await window.genfeedDesktop.notifications.notify(
-        'Workflow started',
-        `Workflow ${batch ? 'batch ' : ''}execution started.`,
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to run workflow');
-    } finally {
-      setRunningId(null);
-    }
-  }, [isOnline]);
+      try {
+        await window.genfeedDesktop.cloud.runWorkflow({ batch, workflowId });
+        await window.genfeedDesktop.notifications.notify(
+          'Workflow started',
+          `Workflow ${batch ? 'batch ' : ''}execution started.`,
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to run workflow');
+      } finally {
+        setRunningId(null);
+      }
+    },
+    [isOnline],
+  );
 
   return (
     <div className="view-workflows">
@@ -129,9 +132,7 @@ export const WorkflowsView = ({ isOnline }: WorkflowsViewProps) => {
                 <div>
                   <strong className="workflow-name">{wf.name}</strong>
                   {wf.description && (
-                    <p className="workflow-desc muted-text">
-                      {wf.description}
-                    </p>
+                    <p className="workflow-desc muted-text">{wf.description}</p>
                   )}
                 </div>
                 <span

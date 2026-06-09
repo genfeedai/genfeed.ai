@@ -32,9 +32,7 @@ export class UnipileController {
   }
 
   @Get('status')
-  status(
-    @CurrentUser() user: User,
-  ): ReturnType<UnipileService['getStatus']> {
+  status(@CurrentUser() user: User): ReturnType<UnipileService['getStatus']> {
     return this.unipileService.getStatus(this.getOrganizationId(user));
   }
 

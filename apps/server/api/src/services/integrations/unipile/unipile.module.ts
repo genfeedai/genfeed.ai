@@ -8,9 +8,7 @@ import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(UnipileService, {
   additionalImports: [forwardRef(() => HttpModule), PrismaModule],
-  additionalProviders: [
-    { provide: 'CryptoService', useClass: CryptoService },
-  ],
+  additionalProviders: [{ provide: 'CryptoService', useClass: CryptoService }],
 });
 
 @Module({

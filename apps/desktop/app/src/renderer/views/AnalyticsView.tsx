@@ -11,7 +11,10 @@ interface AnalyticsViewProps {
   workspaceId: string | null;
 }
 
-export const AnalyticsView = ({ isOnline, workspaceId }: AnalyticsViewProps) => {
+export const AnalyticsView = ({
+  isOnline,
+  workspaceId,
+}: AnalyticsViewProps) => {
   const [analytics, setAnalytics] = useState<IDesktopAnalytics | null>(null);
   const [draftStats, setDraftStats] = useState({
     generatedCount: 0,
