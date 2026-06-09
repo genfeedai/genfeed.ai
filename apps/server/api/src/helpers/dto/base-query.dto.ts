@@ -6,6 +6,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   Min,
   ValidateIf,
 } from 'class-validator';
@@ -37,6 +38,7 @@ export class BaseQueryDto {
   @Type(() => Number)
   @IsNumber()
   @Min(1)
+  @Max(100)
   @Transform(({ value }) =>
     value !== undefined && value !== null ? Number(value) : 10,
   )

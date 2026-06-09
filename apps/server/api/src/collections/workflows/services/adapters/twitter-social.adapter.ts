@@ -628,9 +628,18 @@ export class TwitterSocialAdapter {
       }
 
       if (matchMode === 'regex') {
+        // ReDoS guard: keyword patterns are user-controlled. Cap pattern
+        // and subject length until RE2 lands (genfeedai/genfeed.ai#475).
+        if (keyword.length > 200) {
+          if (sourceText.includes(keyword)) {
+            return keyword;
+          }
+          continue;
+        }
+
         try {
           const regex = new RegExp(keyword, caseSensitive ? 'g' : 'gi');
-          if (regex.test(text)) {
+          if (regex.test(text.slice(0, 10_000))) {
             return keyword;
           }
         } catch {

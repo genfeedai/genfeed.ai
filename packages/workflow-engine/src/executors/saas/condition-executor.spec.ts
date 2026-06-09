@@ -88,6 +88,16 @@ describe('evaluateCondition', () => {
     expect(evaluateCondition('matches', 'hello', '\\d+')).toBe(false);
   });
 
+  it('rejects pathologically long regex patterns without evaluating (ReDoS guard)', () => {
+    const pattern = `(${'a+'.repeat(150)})+$`;
+    const start = Date.now();
+    expect(evaluateCondition('matches', 'a'.repeat(5_000), pattern)).toBe(
+      false,
+    );
+    // must short-circuit, not backtrack
+    expect(Date.now() - start).toBeLessThan(100);
+  });
+
   it('isTrue / isFalse', () => {
     expect(evaluateCondition('isTrue', true, undefined)).toBe(true);
     expect(evaluateCondition('isTrue', 1, undefined)).toBe(true);

@@ -1,5 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
+import { assertHostNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -60,55 +61,36 @@ export class MastodonService {
   ) {}
 
   /**
-   * Blocked hostnames for SSRF prevention
-   */
-  private static readonly BLOCKED_HOSTNAMES = new Set([
-    'localhost',
-    '127.0.0.1',
-    '0.0.0.0',
-    '::1',
-    '[::]',
-    '[::1]',
-    'metadata.google.internal',
-    'metadata.google',
-    'instance-data',
-  ]);
-
-  /**
-   * Validate that a hostname does not resolve to a private/internal address
+   * Validate that a hostname does not resolve to a private/internal address.
+   * Delegates to the shared SSRF util (single fix path for bypasses).
    */
   private validateInstanceHost(hostname: string): void {
-    const lowerHost = hostname.toLowerCase();
+    assertHostNotPrivate(hostname);
+  }
 
-    if (MastodonService.BLOCKED_HOSTNAMES.has(lowerHost)) {
-      throw new BadRequestException('Instance URL points to a blocked address');
-    }
+  /**
+   * Only app-owned redirect URIs may participate in the OAuth flow.
+   * A caller-supplied arbitrary redirectUri turns the API into an open
+   * redirector / token-exfiltration helper.
+   */
+  private assertRedirectUriAllowed(redirectUri: string): void {
+    const appUrl = (
+      this.configService.get('GENFEEDAI_APP_URL') as string | undefined
+    )?.replace(/\/+$/, '');
 
-    // Block private IPv4 ranges
-    const ipv4Match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(
-      lowerHost,
-    );
-    if (ipv4Match) {
-      const [, a, b] = ipv4Match.map(Number);
-      if (
-        a === 10 || // 10.0.0.0/8
-        (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12
-        (a === 192 && b === 168) || // 192.168.0.0/16
-        (a === 169 && b === 254) || // 169.254.0.0/16 (link-local / cloud metadata)
-        a === 127 || // 127.0.0.0/8
-        a === 0 // 0.0.0.0/8
-      ) {
-        throw new BadRequestException(
-          'Instance URL points to a private IP range',
-        );
-      }
-    }
-
-    // Block .internal and .local TLDs
-    if (lowerHost.endsWith('.internal') || lowerHost.endsWith('.local')) {
-      throw new BadRequestException(
-        'Instance URL points to an internal hostname',
+    if (!appUrl) {
+      this.loggerService.warn(
+        'MastodonService GENFEEDAI_APP_URL not configured — skipping redirectUri allowlist',
       );
+      return;
+    }
+
+    if (
+      redirectUri !== appUrl &&
+      !redirectUri.startsWith(`${appUrl}/`) &&
+      redirectUri !== 'urn:ietf:wg:oauth:2.0:oob'
+    ) {
+      throw new BadRequestException('redirectUri is not allowed');
     }
   }
 
@@ -155,6 +137,7 @@ export class MastodonService {
     instanceUrl: string,
     redirectUri: string,
   ): Promise<MastodonAppRegistration> {
+    this.assertRedirectUriAllowed(redirectUri);
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const normalizedUrl = this.normalizeInstanceUrl(instanceUrl);
 
@@ -192,6 +175,7 @@ export class MastodonService {
     redirectUri: string,
     state: string,
   ): string {
+    this.assertRedirectUriAllowed(redirectUri);
     const normalizedUrl = this.normalizeInstanceUrl(instanceUrl);
     const params = new URLSearchParams({
       client_id: clientId,
@@ -213,6 +197,7 @@ export class MastodonService {
     code: string,
     redirectUri: string,
   ): Promise<{ accessToken: string }> {
+    this.assertRedirectUriAllowed(redirectUri);
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const normalizedUrl = this.normalizeInstanceUrl(instanceUrl);
 
