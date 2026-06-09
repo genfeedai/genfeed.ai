@@ -219,10 +219,7 @@ describe('TrendsService', () => {
 
   describe('backfillPrelaunchReferenceCorpus', () => {
     const fixedNow = new Date('2026-06-09T00:00:00.000Z');
-    const makeSeedTrendDoc = (
-      id: string,
-      data: Record<string, unknown>,
-    ) => ({
+    const makeSeedTrendDoc = (id: string, data: Record<string, unknown>) => ({
       brandId: null,
       createdAt: fixedNow,
       data,

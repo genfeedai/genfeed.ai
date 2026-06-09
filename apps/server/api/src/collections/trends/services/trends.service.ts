@@ -882,11 +882,14 @@ export class TrendsService {
       seeds.length < PRELAUNCH_REFERENCE_CORPUS_MINIMUMS.trends ||
       seedReferences < PRELAUNCH_REFERENCE_CORPUS_MINIMUMS.sourceReferences
     ) {
-      this.loggerService.warn('Prelaunch reference corpus seed is below floor', {
-        minimums: PRELAUNCH_REFERENCE_CORPUS_MINIMUMS,
-        seedReferences,
-        seedTrends: seeds.length,
-      });
+      this.loggerService.warn(
+        'Prelaunch reference corpus seed is below floor',
+        {
+          minimums: PRELAUNCH_REFERENCE_CORPUS_MINIMUMS,
+          seedReferences,
+          seedTrends: seeds.length,
+        },
+      );
     }
 
     return {
