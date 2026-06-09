@@ -116,4 +116,23 @@ describe('LinkTrackingService', () => {
       expect.any(Function),
     );
   });
+
+  it('settles without a GA client ID when gtag never calls back', async () => {
+    vi.useFakeTimers();
+    const gtag = vi.fn();
+    vi.stubGlobal('window', { gtag });
+
+    const result = service.getGAClientId();
+    await vi.advanceTimersByTimeAsync(1500);
+
+    await expect(result).resolves.toBeUndefined();
+    expect(gtag).toHaveBeenCalledWith(
+      'get',
+      'G-TESTID0001',
+      'client_id',
+      expect.any(Function),
+    );
+
+    vi.useRealTimers();
+  });
 });

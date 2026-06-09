@@ -304,13 +304,25 @@ export class LinkTrackingService extends HTTPBaseService {
     }
 
     const gtag = getGoogleTag();
-    if (!gtag) {
+    if (!gtag || !EnvironmentService.GA_ID) {
       return undefined;
     }
 
     return new Promise<string | undefined>((resolve) => {
+      let isSettled = false;
+      const timeoutId = globalThis.setTimeout(() => {
+        if (!isSettled) {
+          isSettled = true;
+          resolve(undefined);
+        }
+      }, 1500);
+
       gtag('get', EnvironmentService.GA_ID, 'client_id', (id: string) => {
-        resolve(id);
+        if (!isSettled) {
+          isSettled = true;
+          globalThis.clearTimeout(timeoutId);
+          resolve(id);
+        }
       });
     });
   }
