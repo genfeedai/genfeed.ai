@@ -164,9 +164,9 @@ export class NewslettersService extends BaseService<
     return await this.create(
       {
         ...dto,
-        brand: ctx.brandId,
-        organization: ctx.organizationId,
-        user: ctx.userId,
+        brandId: ctx.brandId,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
       } as CreateNewsletterDto,
       ['organization', 'brand', 'user'],
     );
@@ -192,9 +192,9 @@ export class NewslettersService extends BaseService<
       id,
       {
         approvedAt: new Date(),
-        approvedByUser: ctx.userId,
+        approvedByUserId: ctx.userId,
         status: 'approved',
-      } as UpdateNewsletterDto,
+      },
       ['organization', 'brand', 'user'],
     );
   }
@@ -215,11 +215,11 @@ export class NewslettersService extends BaseService<
       id,
       {
         approvedAt: newsletter.approvedAt ?? new Date(),
-        approvedByUser: newsletter.approvedByUser ?? ctx.userId,
+        approvedByUserId: newsletter.approvedByUserId ?? ctx.userId,
         publishedAt: new Date(),
-        publishedByUser: ctx.userId,
+        publishedByUserId: ctx.userId,
         status: 'published',
-      } as UpdateNewsletterDto,
+      },
       ['organization', 'brand', 'user'],
     );
   }
@@ -230,7 +230,7 @@ export class NewslettersService extends BaseService<
   ): Promise<NewsletterDocument> {
     await this.findOneScoped(id, ctx);
 
-    return await this.patch(id, { status: 'archived' } as UpdateNewsletterDto, [
+    return await this.patch(id, { status: 'archived' }, [
       'organization',
       'brand',
       'user',
@@ -441,9 +441,7 @@ export class NewslettersService extends BaseService<
         brandId: ctx.brandId,
         isDeleted: false,
         organizationId: ctx.organizationId,
-        // Stage 4: NewsletterStatus enum is DRAFT|SCHEDULED|SENT|FAILED; a
-        // published newsletter is SENT ('published' was an invalid filter value).
-        status: 'SENT',
+        status: 'published',
       },
       orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
       take: limit,

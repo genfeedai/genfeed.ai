@@ -394,13 +394,6 @@ enum ArticleStatus {
   ARCHIVED
 }
 
-enum NewsletterStatus {
-  DRAFT
-  SCHEDULED
-  SENT
-  FAILED
-}
-
 enum PersonaStatus {
   ACTIVE
   INACTIVE
@@ -1626,26 +1619,26 @@ model PostAnalytics {
 }
 
 model Schedule {
-  id               String              @id @default(cuid())
-  mongoId          String?             @unique
+  id               String       @id @default(cuid())
+  mongoId          String?      @unique
   organizationId   String
-  organization     Organization        @relation(fields: [organizationId], references: [id])
+  organization     Organization @relation(fields: [organizationId], references: [id])
   userId           String
   brandId          String?
-  brand            Brand?              @relation(fields: [brandId], references: [id])
+  brand            Brand?       @relation(fields: [brandId], references: [id])
   label            String?
   // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
   platform         String?
-  timezone         String              @default("UTC")
-  slots            Json                @default("[]")
+  timezone         String       @default("UTC")
+  slots            Json         @default("[]")
   contentId        String?
   contentType      String?
   scheduledAt      DateTime?
   schedulingMethod String?
-  isActive         Boolean             @default(true)
-  isDeleted        Boolean             @default(false)
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
+  isActive         Boolean      @default(true)
+  isDeleted        Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   @@map("schedules")
 }
@@ -1912,28 +1905,35 @@ model ArticleAnalytics {
 }
 
 model Newsletter {
-  id                String           @id @default(cuid())
-  mongoId           String?          @unique
-  userId            String
-  user              User             @relation("newsletter_user", fields: [userId], references: [id])
-  organizationId    String
-  organization      Organization     @relation(fields: [organizationId], references: [id])
-  brandId           String?
-  brand             Brand?           @relation(fields: [brandId], references: [id])
-  agentRunId        String?
-  agentRun          AgentRun?        @relation(fields: [agentRunId], references: [id])
-  approvedByUserId  String?
-  approvedByUser    User?            @relation("newsletter_approved_by", fields: [approvedByUserId], references: [id])
-  publishedByUserId String?
-  publishedByUser   User?            @relation("newsletter_published_by", fields: [publishedByUserId], references: [id])
-  title             String
-  content           String?
-  status            NewsletterStatus @default(DRAFT)
-  scheduledAt       DateTime?
-  sentAt            DateTime?
-  isDeleted         Boolean          @default(false)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  id                   String       @id @default(cuid())
+  mongoId              String?      @unique
+  userId               String
+  user                 User         @relation("newsletter_user", fields: [userId], references: [id])
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id])
+  brandId              String?
+  brand                Brand?       @relation(fields: [brandId], references: [id])
+  agentRunId           String?
+  agentRun             AgentRun?    @relation(fields: [agentRunId], references: [id])
+  approvedByUserId     String?
+  approvedByUser       User?        @relation("newsletter_approved_by", fields: [approvedByUserId], references: [id])
+  publishedByUserId    String?
+  publishedByUser      User?        @relation("newsletter_published_by", fields: [publishedByUserId], references: [id])
+  label                String
+  topic                String?
+  angle                String?
+  summary              String?
+  content              String?
+  status               String       @default("draft")
+  generationPrompt     String?
+  sourceRefs           Json?
+  contextNewsletterIds String[]     @default([])
+  approvedAt           DateTime?
+  publishedAt          DateTime?
+  scheduledFor         DateTime?
+  isDeleted            Boolean      @default(false)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
   articles           Article[]    @relation("newsletter_articles")
   contextNewsletters Newsletter[] @relation("newsletter_context")
@@ -2274,34 +2274,34 @@ model AgentGoal {
 }
 
 model AgentMemory {
-  id             String         @id @default(cuid())
-  mongoId        String?        @unique
-  organizationId String
-  organization   Organization   @relation(fields: [organizationId], references: [id])
-  userId         String
-  user           User           @relation(fields: [userId], references: [id])
-  brandId        String?
-  brand          Brand?         @relation(fields: [brandId], references: [id])
-  campaignId     String?
-  campaign       AgentCampaign? @relation(fields: [campaignId], references: [id])
-  content        String?
-  type           String?
-  metadata       Json?
-  scope          String?
-  kind           String?
-  contentType    String?
-  platform       String?
-  summary        String?
-  tags           String[]       @default([])
-  sourceType     String?
-  sourceUrl      String?
-  sourceContentId  String?
-  sourceMessageId  String?
-  importance     Float?
-  confidence     Float?
+  id                  String         @id @default(cuid())
+  mongoId             String?        @unique
+  organizationId      String
+  organization        Organization   @relation(fields: [organizationId], references: [id])
+  userId              String
+  user                User           @relation(fields: [userId], references: [id])
+  brandId             String?
+  brand               Brand?         @relation(fields: [brandId], references: [id])
+  campaignId          String?
+  campaign            AgentCampaign? @relation(fields: [campaignId], references: [id])
+  content             String?
+  type                String?
+  metadata            Json?
+  scope               String?
+  kind                String?
+  contentType         String?
+  platform            String?
+  summary             String?
+  tags                String[]       @default([])
+  sourceType          String?
+  sourceUrl           String?
+  sourceContentId     String?
+  sourceMessageId     String?
+  importance          Float?
+  confidence          Float?
   performanceSnapshot Json?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 
   @@map("agent_memories")
 }
@@ -2382,24 +2382,24 @@ model AgentWorkflow {
 // ═══════════════════════════════════════════════════════════════
 
 model Workflow {
-  id                String         @id @default(cuid())
-  mongoId           String?        @unique
+  id                String       @id @default(cuid())
+  mongoId           String?      @unique
   userId            String
-  user              User           @relation(fields: [userId], references: [id])
+  user              User         @relation(fields: [userId], references: [id])
   organizationId    String
-  organization      Organization   @relation(fields: [organizationId], references: [id])
+  organization      Organization @relation(fields: [organizationId], references: [id])
   label             String?
   description       String?
-  steps             Json           @default("[]")
-  nodes             Json           @default("[]")
-  edges             Json           @default("[]")
-  inputVariables    Json           @default("[]")
-  config            Json           @default("{}")
+  steps             Json         @default("[]")
+  nodes             Json         @default("[]")
+  edges             Json         @default("[]")
+  inputVariables    Json         @default("[]")
+  config            Json         @default("{}")
   metadata          Json?
   recurrence        Json?
   lockedNodeIds     Json?
   // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
-  status            String         @default("draft")
+  status            String       @default("draft")
   lifecycle         String?
   isScheduleEnabled Boolean?
   schedule          String?
@@ -2411,9 +2411,9 @@ model Workflow {
   startedAt         DateTime?
   completedAt       DateTime?
   lastExecutedAt    DateTime?
-  isDeleted         Boolean        @default(false)
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  isDeleted         Boolean      @default(false)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
   tags       Tag[]               @relation("workflow_tags")
   brands     Brand[]             @relation("workflow_brands")
@@ -2845,19 +2845,19 @@ model CreativePattern {
 }
 
 model ContentDraft {
-  id             String             @id @default(cuid())
-  mongoId        String?            @unique
+  id             String       @id @default(cuid())
+  mongoId        String?      @unique
   organizationId String
-  organization   Organization       @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
   brandId        String?
-  brand          Brand?             @relation(fields: [brandId], references: [id])
+  brand          Brand?       @relation(fields: [brandId], references: [id])
   contentRunId   String?
-  contentRun     ContentRun?        @relation(fields: [contentRunId], references: [id])
+  contentRun     ContentRun?  @relation(fields: [contentRunId], references: [id])
   approvedById   String?
-  approvedBy     User?              @relation("content_draft_approved_by", fields: [approvedById], references: [id])
+  approvedBy     User?        @relation("content_draft_approved_by", fields: [approvedById], references: [id])
   // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
-  status         String             @default("draft")
-  data           Json               @default("{}")
+  status         String       @default("draft")
+  data           Json         @default("{}")
   // Draft payload columns — createFromSkillExecution / createFromContentEngine write
   // these as top-level fields and autoPublishAboveThreshold filters on `confidence`.
   // They were absent from the model (incomplete Mongo→Prisma migration): the create
@@ -2868,12 +2868,12 @@ model ContentDraft {
   generatedBy    String?
   skillSlug      String?
   confidence     Float?
-  mediaUrls      String[]           @default([])
-  platforms      String[]           @default([])
+  mediaUrls      String[]     @default([])
+  platforms      String[]     @default([])
   metadata       Json?
-  isDeleted      Boolean            @default(false)
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   trendRemixLineages TrendRemixLineage[]
 
@@ -3262,19 +3262,19 @@ model TrendSourceReferenceSnapshot {
 // ═══════════════════════════════════════════════════════════════
 
 model OutreachCampaign {
-  id             String                 @id @default(cuid())
-  mongoId        String?                @unique
+  id             String       @id @default(cuid())
+  mongoId        String?      @unique
   organizationId String
-  organization   Organization           @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
   userId         String?
-  user           User?                  @relation(fields: [userId], references: [id])
+  user           User?        @relation(fields: [userId], references: [id])
   brandId        String?
   // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
-  status         String                 @default("draft")
-  config         Json                   @default("{}")
-  isDeleted      Boolean                @default(false)
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
+  status         String       @default("draft")
+  config         Json         @default("{}")
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   targets CampaignTarget[]
 
@@ -3286,27 +3286,27 @@ model OutreachCampaign {
 }
 
 model CampaignTarget {
-  id             String               @id @default(cuid())
-  mongoId        String?              @unique
-  organizationId String
-  organization   Organization         @relation(fields: [organizationId], references: [id])
-  campaignId     String
-  campaign       OutreachCampaign     @relation(fields: [campaignId], references: [id])
+  id              String           @id @default(cuid())
+  mongoId         String?          @unique
+  organizationId  String
+  organization    Organization     @relation(fields: [organizationId], references: [id])
+  campaignId      String
+  campaign        OutreachCampaign @relation(fields: [campaignId], references: [id])
   // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
-  status         String               @default("pending")
-  data           Json                 @default("{}")
-  externalId     String?
-  scheduledAt    DateTime?
-  processedAt    DateTime?
+  status          String           @default("pending")
+  data            Json             @default("{}")
+  externalId      String?
+  scheduledAt     DateTime?
+  processedAt     DateTime?
   replyExternalId String?
-  replyText      String?
-  replyUrl       String?
-  errorMessage   String?
-  retryCount     Int                  @default(0)
-  skipReason     String?
-  isDeleted      Boolean              @default(false)
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
+  replyText       String?
+  replyUrl        String?
+  errorMessage    String?
+  retryCount      Int              @default(0)
+  skipReason      String?
+  isDeleted       Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@index([campaignId, status])
   @@map("campaign_targets")
