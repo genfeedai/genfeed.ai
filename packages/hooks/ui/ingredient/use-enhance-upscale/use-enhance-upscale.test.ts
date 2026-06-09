@@ -323,7 +323,38 @@ describe('useEnhanceUpscale', () => {
       });
 
       expect(mockGetImagesService).toHaveBeenCalled();
-      expect(mockPostUpscale).toHaveBeenCalled();
+      expect(mockPostUpscale).toHaveBeenCalledWith('img-123', {
+        category: IngredientCategory.IMAGE,
+        model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        parent: 'img-123',
+        prompt: 'Enhance image quality using Topaz AI upscaling',
+      });
+      expect(result.current.enhanceConfirmData).toBeNull();
+    });
+
+    it('executes video enhance with correct parameters', async () => {
+      const ingredient: Partial<IIngredient> = {
+        category: IngredientCategory.VIDEO,
+        id: 'vid-123',
+      };
+
+      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
+
+      await act(async () => {
+        await result.current.handleEnhance(ingredient as IIngredient);
+      });
+
+      await act(async () => {
+        await result.current.executeEnhance();
+      });
+
+      expect(mockGetVideosService).toHaveBeenCalled();
+      expect(mockPostUpscale).toHaveBeenCalledWith('vid-123', {
+        category: IngredientCategory.VIDEO,
+        model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        parent: 'vid-123',
+        prompt: 'Enhance image quality using Topaz AI upscaling',
+      });
       expect(result.current.enhanceConfirmData).toBeNull();
     });
 
