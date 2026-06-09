@@ -10,6 +10,7 @@ import { UnauthorizedException } from '@nestjs/common';
 describe('AuthIdentityResolverService', () => {
   const usersService = {
     findOne: vi.fn(),
+    patch: vi.fn(),
   };
   const organizationsService = {
     findOne: vi.fn(),
@@ -24,6 +25,7 @@ describe('AuthIdentityResolverService', () => {
     updateUserPublicMetadata: vi.fn(),
   };
   const loggerService = {
+    error: vi.fn(),
     warn: vi.fn(),
   };
 
@@ -227,5 +229,69 @@ describe('AuthIdentityResolverService', () => {
         publicMetadata: {},
       } as never),
     ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('self-heals a stale clerkId by reconciling on verified primary email', async () => {
+    usersService.findOne
+      // clerkId lookup misses (rotated/recreated Clerk identity)
+      .mockResolvedValueOnce(null)
+      // email lookup matches the existing row carrying the stale clerkId
+      .mockResolvedValueOnce({ _id: 'user_existing', clerkId: 'clerk_old' });
+    usersService.patch.mockResolvedValue({ _id: 'user_existing' });
+    membersService.find.mockResolvedValue([]);
+    organizationsService.findOne.mockResolvedValue(null);
+    clerkService.updateUserPublicMetadata.mockResolvedValue(undefined);
+
+    const result = await service.resolve({
+      emailAddresses: [
+        {
+          emailAddress: 'Vincent@Genfeed.ai',
+          id: 'idem_1',
+          verification: { status: 'verified' },
+        },
+      ],
+      id: 'clerk_new',
+      primaryEmailAddressId: 'idem_1',
+      publicMetadata: {},
+    } as never);
+
+    expect(usersService.findOne).toHaveBeenNthCalledWith(
+      2,
+      { email: 'vincent@genfeed.ai', isDeleted: false },
+      [],
+    );
+    expect(usersService.patch).toHaveBeenCalledWith('user_existing', {
+      clerkId: 'clerk_new',
+    });
+    expect(result).toEqual({
+      brandId: undefined,
+      clerkUserId: 'clerk_new',
+      organizationId: undefined,
+      resolvedBy: 'reconciled',
+      userId: 'user_existing',
+    });
+  });
+
+  it('does not reconcile on an unverified primary email', async () => {
+    usersService.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.resolve({
+        emailAddresses: [
+          {
+            emailAddress: 'attacker@example.com',
+            id: 'idem_1',
+            verification: { status: 'unverified' },
+          },
+        ],
+        id: 'clerk_attacker',
+        primaryEmailAddressId: 'idem_1',
+        publicMetadata: {},
+      } as never),
+    ).rejects.toThrow(UnauthorizedException);
+
+    // Only the clerkId lookup runs; no email lookup, no write.
+    expect(usersService.findOne).toHaveBeenCalledTimes(1);
+    expect(usersService.patch).not.toHaveBeenCalled();
   });
 });

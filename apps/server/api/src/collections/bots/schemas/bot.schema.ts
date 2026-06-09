@@ -66,7 +66,10 @@ export interface BotLivestreamSettings {
 }
 
 export interface BotDocument
-  extends Omit<Bot, 'config' | 'settings' | 'targets'> {
+  extends Omit<
+    Bot,
+    'config' | 'settings' | 'targets' | 'category' | 'platforms'
+  > {
   _id: string;
   brand?: string | null;
   category?: string;

@@ -1,6 +1,7 @@
 import type { ContentPerformanceDocument } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 
 // ─── Interfaces ──────────────────────────────────────────────────────
@@ -270,7 +271,7 @@ export class OptimizationCycleService {
   ): Promise<RankedContentResult[]> {
     const rows = (await this.prisma.contentPerformance.findMany({
       take: limit * 3, // Fetch more to sort by combinedScore in memory
-      where: where as never,
+      where: where as Prisma.ContentPerformanceWhereInput,
     })) as unknown as ContentPerformanceDocument[];
 
     return rows

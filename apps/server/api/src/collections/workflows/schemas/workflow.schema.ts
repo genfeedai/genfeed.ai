@@ -69,7 +69,25 @@ export type WorkflowStep = {
 export interface WorkflowDocument
   extends Omit<
     PrismaWorkflow,
-    'config' | 'edges' | 'inputVariables' | 'nodes' | 'steps'
+    | 'config'
+    | 'edges'
+    | 'inputVariables'
+    | 'nodes'
+    | 'steps'
+    | 'metadata'
+    | 'progress'
+    | 'startedAt'
+    | 'completedAt'
+    | 'executionCount'
+    | 'lastExecutedAt'
+    | 'recurrence'
+    | 'thumbnail'
+    | 'thumbnailNodeId'
+    | 'schedule'
+    | 'timezone'
+    | 'isScheduleEnabled'
+    | 'lifecycle'
+    | 'lockedNodeIds'
   > {
   _id: string;
   organization?: string;

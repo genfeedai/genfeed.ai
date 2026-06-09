@@ -7,7 +7,7 @@ export interface AgentRunToolCall {
   [key: string]: unknown;
 }
 
-export interface AgentRunDocument extends AgentRun {
+export interface AgentRunDocument extends Omit<AgentRun, 'durationMs'> {
   _id: string;
   durationMs?: number | null;
   organization: string;

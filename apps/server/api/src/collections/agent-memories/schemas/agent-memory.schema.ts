@@ -2,18 +2,14 @@ import type { AgentMemory } from '@genfeedai/prisma';
 
 export type { AgentMemory } from '@genfeedai/prisma';
 
-export interface AgentMemoryDocument extends AgentMemory {
+export interface AgentMemoryDocument
+  extends Omit<AgentMemory, 'contentType' | 'kind' | 'scope'> {
   _id: string;
   brand?: string | null;
-  confidence?: number;
-  contentType?: AgentMemoryContentType;
-  importance?: number;
-  kind?: AgentMemoryKind;
+  contentType?: AgentMemoryContentType | null;
+  kind?: AgentMemoryKind | null;
   organization: string;
-  platform?: string;
-  scope?: AgentMemoryScope;
-  summary?: string;
-  tags?: string[];
+  scope?: AgentMemoryScope | null;
   user: string;
   [key: string]: unknown;
 }

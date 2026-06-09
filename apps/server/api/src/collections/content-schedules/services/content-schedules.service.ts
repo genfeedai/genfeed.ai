@@ -142,7 +142,6 @@ export class ContentSchedulesService extends BaseService<
         isDeleted: false,
         isEnabled: true,
         nextRunAt: { lte: now },
-        organizationId: { not: null },
       },
     }) as Promise<ContentScheduleDocument[]>;
   }

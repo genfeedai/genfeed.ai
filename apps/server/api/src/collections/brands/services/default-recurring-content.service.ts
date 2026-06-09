@@ -50,7 +50,7 @@ export class DefaultRecurringContentService {
     const workflows = await this.prisma.workflow.findMany({
       orderBy: { createdAt: 'desc' },
       where: {
-        brandIds: { has: brandId },
+        brands: { some: { id: brandId } },
         isDeleted: false,
         isScheduleEnabled: true,
         organizationId,

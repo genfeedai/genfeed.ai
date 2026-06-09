@@ -504,11 +504,11 @@ export class PostsService extends BaseService<
     >`
       WITH RECURSIVE ancestors AS (
         SELECT id, "parentId"
-        FROM "Post"
+        FROM "posts"
         WHERE id = ${postId} AND "isDeleted" = false
         UNION ALL
         SELECT p.id, p."parentId"
-        FROM "Post" p
+        FROM "posts" p
         INNER JOIN ancestors a ON p.id = a."parentId"
         WHERE p."isDeleted" = false
       )

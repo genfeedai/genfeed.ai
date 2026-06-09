@@ -21,12 +21,12 @@ export class TrendAnalysisService {
    */
   async markExpiredTrendsAsHistorical(): Promise<number> {
     const result = await this.prisma.trend.updateMany({
-      data: { isCurrent: false } as never,
+      data: { isCurrent: false },
       where: {
         expiresAt: { lte: new Date() },
         isCurrent: true,
         isDeleted: false,
-      } as never,
+      },
     });
 
     this.loggerService.log(`Marked ${result.count} trends as historical`, {
@@ -52,7 +52,7 @@ export class TrendAnalysisService {
     };
 
     await this.prisma.trend.updateMany({
-      data: { isCurrent: false } as never,
+      data: { isCurrent: false },
       where: where as never,
     });
   }

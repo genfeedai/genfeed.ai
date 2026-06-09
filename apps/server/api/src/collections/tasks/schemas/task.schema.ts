@@ -62,6 +62,11 @@ export interface TaskDocument
     | 'priority'
     | 'progress'
     | 'status'
+    | 'assigneeUserId'
+    | 'completedAt'
+    | 'dismissedAt'
+    | 'failureReason'
+    | 'requestedChangesReason'
   > {
   _id: string;
   approvedOutputIds: string[];

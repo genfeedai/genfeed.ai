@@ -531,7 +531,7 @@ export class OutreachCampaignsService {
    */
   async incrementFailedCounter(id: string): Promise<void> {
     await this.updateCampaignConfig(id, (doc) => ({
-      totalFailed: (doc.totalFailed ?? 0) + 1,
+      totalFailed: Number(doc.totalFailed ?? 0) + 1,
     }));
   }
 

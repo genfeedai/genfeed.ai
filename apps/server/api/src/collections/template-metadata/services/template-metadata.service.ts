@@ -1,6 +1,7 @@
 import { TemplateMetadataEntity } from '@api/collections/template-metadata/entities/template-metadata.entity';
 import type { TemplateMetadataDocument } from '@api/collections/template-metadata/schemas/template-metadata.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
@@ -19,18 +20,20 @@ export class TemplateMetadataService {
         author: data?.author ?? null,
         averageQuality: null,
         compatiblePlatforms: data?.compatiblePlatforms ?? [],
-        difficulty: data?.difficulty ?? null,
-        estimatedTime: data?.estimatedTime ?? null,
-        goals: data?.goals ?? [],
+        data: {
+          difficulty: data?.difficulty ?? null,
+          estimatedTime: data?.estimatedTime ?? null,
+          goals: data?.goals ?? [],
+          requiredFeatures: data?.requiredFeatures ?? [],
+        },
         isDeleted: false,
         lastUsed: null,
         license: data?.license ?? null,
-        requiredFeatures: data?.requiredFeatures ?? [],
         successRate: null,
         templateId,
         usageCount: 0,
         version: data?.version ?? null,
-      } as never,
+      },
     });
 
     return result as unknown as TemplateMetadataEntity;
@@ -98,7 +101,7 @@ export class TemplateMetadataService {
 
     if (Object.keys(updateData).length > 0) {
       await this.prisma.templateMetadata.updateMany({
-        data: updateData as never,
+        data: updateData as Prisma.TemplateMetadataUpdateManyMutationInput,
         where: { templateId },
       });
     }

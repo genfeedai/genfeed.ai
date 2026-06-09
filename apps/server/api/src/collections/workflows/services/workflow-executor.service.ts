@@ -395,7 +395,7 @@ export class WorkflowExecutorService {
         data: {
           completedAt: approvedAt,
           status: WorkflowStatus.FAILED,
-        } as never,
+        },
         where: { id: workflowId },
       });
 
@@ -689,7 +689,7 @@ export class WorkflowExecutorService {
           executionCount: { increment: 1 },
           lastExecutedAt: new Date(),
           status: WorkflowStatus.RUNNING,
-        } as never,
+        },
         where: { id: workflowId },
       });
 

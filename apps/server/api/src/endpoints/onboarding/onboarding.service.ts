@@ -188,7 +188,7 @@ export class OnboardingService {
     }
 
     let organizationId = publicMetadata.organization?.toString() ?? '';
-    let brandId = publicMetadata.brand?.toString() ?? null;
+    let brandId: string | null = publicMetadata.brand?.toString() ?? null;
 
     if (!organizationId) {
       const setupResult = await this.userSetupService.initializeUserResources(

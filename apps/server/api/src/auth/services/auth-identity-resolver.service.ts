@@ -29,6 +29,31 @@ function asMemberRecord(member: MemberDocument): Record<string, unknown> {
   return member as unknown as Record<string, unknown>;
 }
 
+/**
+ * Extract the primary, verified email from a Clerk user. Returns '' when there
+ * is no verified primary email. Matching on a *verified* address is what makes
+ * email-based reconciliation safe: Clerk enforces email uniqueness per instance
+ * and only the rightful owner can verify an address, so a verified email is a
+ * trustworthy join key back to an existing local user row.
+ */
+function getPrimaryVerifiedEmail(user: User): string {
+  const emails = user.emailAddresses ?? [];
+  if (emails.length === 0) {
+    return '';
+  }
+
+  const primary =
+    (user.primaryEmailAddressId
+      ? emails.find((email) => email.id === user.primaryEmailAddressId)
+      : undefined) ?? emails[0];
+
+  if (!primary || primary.verification?.status !== 'verified') {
+    return '';
+  }
+
+  return (primary.emailAddress ?? '').trim().toLowerCase();
+}
+
 @Injectable()
 export class AuthIdentityResolverService {
   constructor(
@@ -41,9 +66,13 @@ export class AuthIdentityResolverService {
   ) {}
 
   private async resolveUserId(
-    clerkUserId: string,
+    clerkUser: User,
     publicMetadata: Partial<IClerkPublicMetadata>,
-  ): Promise<{ resolvedBy: 'lookup' | 'metadata'; userId: string }> {
+  ): Promise<{
+    resolvedBy: 'lookup' | 'metadata' | 'reconciled';
+    userId: string;
+  }> {
+    const clerkUserId = clerkUser.id;
     const metadataUserId =
       typeof publicMetadata.user === 'string' ? publicMetadata.user : '';
 
@@ -67,14 +96,88 @@ export class AuthIdentityResolverService {
     const currentUserId = getEntityId(
       user as Record<string, unknown> | null | undefined,
     );
-    if (!currentUserId) {
-      throw new UnauthorizedException('User account not found');
+    if (currentUserId) {
+      return {
+        resolvedBy: 'lookup',
+        userId: currentUserId,
+      };
     }
 
-    return {
-      resolvedBy: 'lookup',
-      userId: currentUserId,
-    };
+    // Self-heal: the clerkId on file no longer matches (rotated key, recreated
+    // Clerk account, or a stale projection). Fall back to the verified primary
+    // email and re-attach the live clerkId to the existing row so the user is
+    // not locked out by an identity drift they cannot see or fix themselves.
+    const reconciledUserId = await this.reconcileByEmail(clerkUser);
+    if (reconciledUserId) {
+      return {
+        resolvedBy: 'reconciled',
+        userId: reconciledUserId,
+      };
+    }
+
+    throw new UnauthorizedException('User account not found');
+  }
+
+  /**
+   * Attach the current clerkId to an existing local user matched by verified
+   * primary email. Returns the local user id on success, '' when no safe match
+   * exists. Only verified primary emails are trusted (see getPrimaryVerifiedEmail).
+   */
+  private async reconcileByEmail(clerkUser: User): Promise<string> {
+    const email = getPrimaryVerifiedEmail(clerkUser);
+    if (!email) {
+      return '';
+    }
+
+    const existing = await this.usersService.findOne(
+      { email, isDeleted: false },
+      [],
+    );
+    const existingUserId = getEntityId(
+      existing as Record<string, unknown> | null | undefined,
+    );
+    if (!existingUserId) {
+      return '';
+    }
+
+    const previousClerkId = getRecordId(
+      existing as Record<string, unknown> | null | undefined,
+      'clerkId',
+    );
+    if (previousClerkId === clerkUser.id) {
+      // Row already points at this clerkId (e.g. email lookup raced the clerkId
+      // lookup); nothing to repair, just adopt it.
+      return existingUserId;
+    }
+
+    try {
+      await this.usersService.patch(existingUserId, {
+        clerkId: clerkUser.id,
+      });
+      this.loggerService.warn(
+        `Reconciled local user ${existingUserId} to Clerk id ${clerkUser.id} by verified email`,
+        {
+          clerkUserId: clerkUser.id,
+          previousClerkId: previousClerkId || 'none',
+          service: 'AuthIdentityResolverService',
+          userId: existingUserId,
+        },
+      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown reconcile error';
+      this.loggerService.error(
+        `Failed to reconcile local user ${existingUserId} to Clerk id ${clerkUser.id}: ${message}`,
+        {
+          clerkUserId: clerkUser.id,
+          service: 'AuthIdentityResolverService',
+          userId: existingUserId,
+        },
+      );
+      return '';
+    }
+
+    return existingUserId;
   }
 
   private async findAccessibleOrganization(
@@ -264,7 +367,7 @@ export class AuthIdentityResolverService {
     brandId?: string;
     clerkUserId: string;
     organizationId?: string;
-    resolvedBy: 'lookup' | 'metadata';
+    resolvedBy: 'lookup' | 'metadata' | 'reconciled';
     userId: string;
   }> {
     const clerkUserId = user.id;
@@ -274,7 +377,7 @@ export class AuthIdentityResolverService {
 
     const publicMetadata =
       user.publicMetadata as unknown as IClerkPublicMetadata;
-    const resolvedUser = await this.resolveUserId(clerkUserId, publicMetadata);
+    const resolvedUser = await this.resolveUserId(user, publicMetadata);
     const members = await this.membersService.find({
       isActive: true,
       isDeleted: false,
