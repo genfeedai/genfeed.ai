@@ -14,7 +14,7 @@
     "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start clips --watch",
     "lint": "biome lint --write src --no-errors-on-unmatched",
     "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project clips-genfeed-ai ../dist",
-    "sentry:sourcemaps": "bun run sentry:inject && bun run sentry:upload",
+    "sentry:sourcemaps": "[ -z \"$SENTRY_AUTH_TOKEN\" ] && echo 'Sentry upload skipped (no token)' || (bun run sentry:inject && bun run sentry:upload)",
     "sentry:upload": "sentry-cli sourcemaps upload --org genfeedai --project clips-genfeed-ai ../dist",
     "start": "cd .. && nest start clips",
     "start:debug": "cd .. && nest start clips --debug --watch",
