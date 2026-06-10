@@ -213,9 +213,19 @@ export function evaluateCondition(
       return String(actual).endsWith(String(expected));
 
     case 'matches': {
+      const pattern = String(expected);
+
+      // ReDoS guard: workflow config is user-controlled; a crafted
+      // backtracking pattern against a long string blocks the event loop.
+      // Length caps bound the blowup until a linear-time engine (RE2)
+      // replaces this — tracked in genfeedai/genfeed.ai#475.
+      if (pattern.length > 200) {
+        return false;
+      }
+
       try {
-        const regex = new RegExp(String(expected));
-        return regex.test(String(actual));
+        const regex = new RegExp(pattern);
+        return regex.test(String(actual).slice(0, 10_000));
       } catch {
         return false;
       }
