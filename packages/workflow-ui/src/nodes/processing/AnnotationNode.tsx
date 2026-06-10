@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { memo, useCallback, useMemo } from 'react';
 import { useAnnotationStore } from '../../stores/annotationStore';
 import { useUIStore } from '../../stores/uiStore';
-import { useWorkflowStore } from '../../stores/workflowStore';
+import { useWorkflowStore } from '../../stores/workflow';
 import { Button } from '../../ui/button';
 import { BaseNode } from '../BaseNode';
 

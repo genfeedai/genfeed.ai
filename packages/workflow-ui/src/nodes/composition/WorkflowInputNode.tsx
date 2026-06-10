@@ -3,7 +3,7 @@
 import type { HandleType, WorkflowInputNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback } from 'react';
-import { useWorkflowStore } from '../../stores/workflowStore';
+import { useWorkflowStore } from '../../stores/workflow';
 import { Checkbox } from '../../ui/checkbox';
 import { Label } from '../../ui/label';
 import {

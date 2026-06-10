@@ -8,7 +8,7 @@ import {
   CONNECTION_FIELDS,
   validateRequiredSchemaFields,
 } from '../lib/schemaValidation';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 import { useRequiredInputs } from './useRequiredInputs';
 
 interface MissingItem {

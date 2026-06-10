@@ -70,9 +70,9 @@ import {
   useState,
 } from 'react';
 import { generateHandlesFromSchema } from '../lib/schemaHandles';
-import { useExecutionStore } from '../stores/executionStore';
+import { useExecutionStore } from '../stores/execution';
 import { useUIStore } from '../stores/uiStore';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 import { Button } from '../ui/button';
 import { NodeErrorBoundary } from './NodeErrorBoundary';
 import { PreviewTooltip } from './PreviewTooltip';

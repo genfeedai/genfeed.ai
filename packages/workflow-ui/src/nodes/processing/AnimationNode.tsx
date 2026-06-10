@@ -8,9 +8,9 @@ import { memo, useCallback, useMemo } from 'react';
 import { useRequiredInputs } from '../../hooks/useRequiredInputs';
 import { CubicBezierEditor } from '../../lib/CubicBezierEditor';
 import { EASING_PRESETS } from '../../lib/easing';
-import { useExecutionStore } from '../../stores/executionStore';
+import { useExecutionStore } from '../../stores/execution';
 import { useUIStore } from '../../stores/uiStore';
-import { useWorkflowStore } from '../../stores/workflowStore';
+import { useWorkflowStore } from '../../stores/workflow';
 import { Button } from '../../ui/button';
 import {
   Select,

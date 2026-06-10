@@ -11,9 +11,9 @@ import {
 import { DollarSign, X } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 import { calculateWorkflowCost, formatCost } from '../lib/costCalculator';
-import { useExecutionStore } from '../stores/executionStore';
+import { useExecutionStore } from '../stores/execution';
 import { useUIStore } from '../stores/uiStore';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 import { Button } from '../ui/button';
 
 export function CostModal() {

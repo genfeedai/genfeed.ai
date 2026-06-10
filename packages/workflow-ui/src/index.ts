@@ -45,7 +45,7 @@ export type {
 // Provider
 export { useWorkflowUIConfig, WorkflowUIProvider } from './provider';
 export { useAnnotationStore } from './stores/annotationStore';
-export { useExecutionStore } from './stores/executionStore';
+export { useExecutionStore } from './stores/execution';
 export { usePromptEditorStore } from './stores/promptEditorStore';
 export {
   configurePromptLibrary,
@@ -54,8 +54,8 @@ export {
 export { useSettingsStore } from './stores/settingsStore';
 // Stores
 export { useUIStore } from './stores/uiStore';
+export { useWorkflowStore } from './stores/workflow';
 export type { ImageHistoryItem } from './stores/workflow/types';
-export { useWorkflowStore } from './stores/workflowStore';
 export type {
   DropdownItem,
   OverflowMenuProps,
