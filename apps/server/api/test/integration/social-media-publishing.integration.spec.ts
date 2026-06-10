@@ -17,6 +17,7 @@ vi.mock('@api/services/integrations/youtube/services/youtube.service', () => ({
   })),
 }));
 
+import process from 'node:process';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ConfigService } from '@api/config/config.service';
@@ -103,9 +104,9 @@ interface MockPostAnalyticsService extends Partial<PostAnalyticsService> {
   aggregateAnalytics: vi.Mock;
 }
 
-// Allow skipping this file when MongoDB memory server cannot run
-// Set SKIP_MONGODB_MEMORY=true to skip all tests in this file
-if (process.env.SKIP_MONGODB_MEMORY === 'true') {
+// Allow skipping this file when a real DB integration is not available
+// Set SKIP_DB_INTEGRATION=true to skip all tests in this file
+if (process.env.SKIP_DB_INTEGRATION === 'true') {
   const g: any = global as any;
   const d: any = (global as any).describe;
   g.describe = ((name: string, fn: any) =>

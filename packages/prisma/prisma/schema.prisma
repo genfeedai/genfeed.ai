@@ -178,17 +178,6 @@ enum BookmarkIntent {
   INSPIRATION
 }
 
-enum PostStatus {
-  PUBLIC
-  PRIVATE
-  UNLISTED
-  DRAFT
-  SCHEDULED
-  PROCESSING
-  PENDING
-  FAILED
-}
-
 enum PostCategory {
   ARTICLE
   VIDEO
@@ -373,13 +362,6 @@ enum TrainingStage {
   CANCELLED
 }
 
-enum WorkflowStatus {
-  DRAFT
-  ACTIVE
-  PAUSED
-  ARCHIVED
-}
-
 enum WorkflowExecutionStatus {
   PENDING
   RUNNING
@@ -405,15 +387,6 @@ enum AgentRunStatus {
   RUNNING
   COMPLETED
   FAILED
-  CANCELLED
-}
-
-enum TaskStatus {
-  BACKLOG
-  TODO
-  IN_PROGRESS
-  IN_REVIEW
-  DONE
   CANCELLED
 }
 
