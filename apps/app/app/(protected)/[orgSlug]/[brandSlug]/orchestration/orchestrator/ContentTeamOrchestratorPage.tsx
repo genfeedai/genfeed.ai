@@ -26,6 +26,7 @@ export default function ContentTeamOrchestratorPage() {
     form,
     handleChange,
     handleSubmit,
+    href,
     isSubmitting,
     leadOptions,
     push,
@@ -251,7 +252,7 @@ export default function ContentTeamOrchestratorPage() {
             />
             <Button
               label="Cancel"
-              onClick={() => push('/orchestration')}
+              onClick={() => push(href('/orchestration'))}
               type="button"
               variant={ButtonVariant.SECONDARY}
             />

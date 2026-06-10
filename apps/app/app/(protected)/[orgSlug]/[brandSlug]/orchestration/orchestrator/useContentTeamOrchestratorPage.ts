@@ -1,6 +1,7 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   buildBlueprintStrategyInputs,
   buildContentTeamCampaignInput,
@@ -44,6 +45,7 @@ function toggleValue(values: string[], value: string): string[] {
 
 export function useContentTeamOrchestratorPage() {
   const { push } = useRouter();
+  const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
   const { brandId, brands } = useBrand();
   const { strategies } = useAgentStrategies();
@@ -218,7 +220,7 @@ export function useContentTeamOrchestratorPage() {
         );
 
         notificationsService.success('Content team orchestrator launched');
-        push('/orchestration');
+        push(href('/orchestration'));
       } catch (error) {
         logger.error('Failed to launch content team orchestrator', { error });
         notificationsService.error('Unable to launch orchestrator');
@@ -243,6 +245,7 @@ export function useContentTeamOrchestratorPage() {
       getCampaignsService,
       getGoalsService,
       getStrategiesService,
+      href,
       notificationsService,
       push,
       selectedBlueprint,
@@ -255,6 +258,7 @@ export function useContentTeamOrchestratorPage() {
     form,
     handleChange,
     handleSubmit,
+    href,
     isSubmitting,
     leadOptions,
     push,

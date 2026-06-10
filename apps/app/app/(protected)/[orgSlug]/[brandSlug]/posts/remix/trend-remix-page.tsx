@@ -176,7 +176,7 @@ function TrendRemixPageContent() {
             ? 'Thread remix draft created'
             : 'Tweet remix draft created',
         );
-        replace('/posts?platform=twitter');
+        replace(href('/posts?platform=twitter'));
       } catch (runError) {
         logger.error('Failed to create trend remix draft', runError);
         setError('Failed to create the remix draft.');
@@ -224,7 +224,7 @@ function TrendRemixPageContent() {
           <Button
             label="Go to Drafts"
             variant={ButtonVariant.SECONDARY}
-            onClick={() => push('/posts?platform=twitter')}
+            onClick={() => push(href('/posts?platform=twitter'))}
           />
           <Button
             label="Go to Credentials"
