@@ -33,7 +33,7 @@ genfeed.ai/
 │   └── extensions/          # Browser & IDE extensions (v2 milestone)
 │       ├── browser/
 │       └── ide/
-├── packages/                # ~45 shared packages (@genfeedai/*)
+├── packages/                # 43 shared packages (@genfeedai/*)
 │   ├── agent/               # Agent logic
 │   ├── api-types/           # Generated API types
 │   ├── cli/                 # CLI tooling
@@ -90,6 +90,7 @@ genfeed.ai/
 │   └── packages/
 │       ├── analytics/       # Advanced analytics (v2)
 │       ├── billing/         # Stripe billing & credits (Phase C extraction target)
+│       ├── harness/         # @genfeedai/ee-harness — enterprise content-harness contributions
 │       ├── multi-tenancy/   # Multi-tenant org isolation (v2)
 │       └── teams/           # Team management (v2)
 ├── docker/                  # Docker configs

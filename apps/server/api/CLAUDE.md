@@ -5,7 +5,7 @@
 The HTTP-level `@Cache` decorator on list endpoints uses tag `{collection}` (e.g. `brands`), so newly created
 records were invisible in list responses until the cache TTL expired (up to 30 minutes).
 
-`patch()` and `remove()` were already correct — they invalidate the bare collection tag.
+`patch()` and `remove()` invalidate the same full four-tag set (`collectionName`, `collection:{name}`, `agg:{name}`, `agg:paginated`).
 
 ### Fix applied (BaseService)
 `BaseService.create()` now invalidates the same set of tags as `patch()` and `remove()`:

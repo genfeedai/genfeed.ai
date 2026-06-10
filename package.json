@@ -81,7 +81,7 @@
     "dev:app": "bunx turbo run dev --filter=@genfeedai/app",
     "dev:app:be": "bunx turbo run dev --filter=@genfeedai/api --filter=@genfeedai/notifications",
     "dev:app:fe": "bunx turbo run dev --filter=@genfeedai/app",
-    "dev:backend": "bunx turbo run dev --filter=@genfeedai/api --filter=@genfeedai/files --filter=@genfeedai/mcp --filter=@genfeedai/notifications --filter=@genfeedai/workers --concurrency=2",
+    "dev:backend": "bunx turbo run dev --filter=@genfeedai/api --filter=@genfeedai/files --filter=@genfeedai/mcp --filter=@genfeedai/notifications --filter=@genfeedai/workers --concurrency=6",
     "dev:cli": "bun run --cwd packages/cli dev --",
     "dev:essentials": "bunx turbo run dev --filter=@genfeedai/api --filter=@genfeedai/notifications --concurrency=2",
     "dev:desktop": "bunx turbo run dev --filter=@genfeedai/desktop",

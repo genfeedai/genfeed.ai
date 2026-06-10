@@ -29,6 +29,7 @@ type FilterConstructor = new (
 
 describe('DatabaseExceptionFilter', () => {
   let DatabaseExceptionFilterClass: FilterConstructor;
+  let Sentry: typeof import('@sentry/nestjs');
   let filter: FilterInstance;
   let mockLoggerService: { error: ReturnType<typeof vi.fn> };
   let mockConfigService: { get: ReturnType<typeof vi.fn> };
@@ -44,9 +45,11 @@ describe('DatabaseExceptionFilter', () => {
     );
     DatabaseExceptionFilterClass =
       module.DatabaseExceptionFilter as unknown as FilterConstructor;
+    Sentry = await import('@sentry/nestjs');
   });
 
   beforeEach(() => {
+    vi.clearAllMocks();
     mockLoggerService = { error: vi.fn() };
     mockConfigService = {
       get: vi.fn((key: string) =>
@@ -109,6 +112,29 @@ describe('DatabaseExceptionFilter', () => {
     );
 
     expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
+  });
+
+  it('does not report expected client-level Prisma errors to Sentry', () => {
+    for (const code of ['P2002', 'P2003', 'P2025']) {
+      filter.catch(
+        { code, message: 'expected', name: 'PrismaClientKnownRequestError' },
+        mockArgumentsHost,
+      );
+    }
+
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it('reports unexpected Prisma errors to Sentry', () => {
+    filter.catch(
+      {
+        message: 'Unknown argument `label`',
+        name: 'PrismaClientValidationError',
+      },
+      mockArgumentsHost,
+    );
+
+    expect(Sentry.captureException).toHaveBeenCalled();
   });
 
   it('delegates non-Prisma errors to the base filter', () => {

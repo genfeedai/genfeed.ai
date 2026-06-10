@@ -91,7 +91,10 @@ export class AllExceptionFilter implements ExceptionFilter {
       },
     );
 
-    if (this.SENTRY_ENVIRONMENT !== 'development') {
+    // Only report server-side failures. Exceptions that resolve to a 4xx are
+    // expected client/bot traffic (404 probes, bad input) and must not page
+    // Sentry — see HttpExceptionFilter for the HttpException equivalent.
+    if (this.SENTRY_ENVIRONMENT !== 'development' && status >= 500) {
       Sentry.captureException(exception);
     }
 

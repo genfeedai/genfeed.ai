@@ -286,12 +286,21 @@ COPY --from=builder /usr/src/app/packages/workflow-saas/package.json ./packages/
 COPY --from=builder /usr/src/app/packages/workflows/package.json ./packages/workflows/package.json
 COPY --from=builder /usr/src/app/ee/packages/billing/package.json ./ee/packages/billing/package.json
 
-# Create non-root user for security
-RUN groupadd -r appuser && useradd -r -g appuser -u 1001 appuser
+# Create non-root user for security (with a real, writable home — spawned
+# tools like yt-dlp/whisper write caches to $HOME and EACCES otherwise)
+RUN groupadd -r appuser && useradd -r -g appuser -u 1001 -m -d /home/appuser appuser
 
 # Set ownership for appuser (skip chown -R on node_modules — 100k+ files, very slow)
 # Service dirs only contain package.json — chown is instant and lets app create logs/ at runtime
-RUN mkdir -p /usr/src/app/public/tmp && \
+# `bun --filter` runs services with cwd = the package dir, so runtime dirs the
+# services create relative to cwd (public/tmp, logs) must pre-exist there with
+# appuser ownership. logs/ especially: compose mounts a named volume at
+# apps/server/files/logs, and Docker only seeds the volume with appuser
+# ownership if the directory exists in the image — otherwise the mountpoint is
+# created root-owned and every mkdir/write under it fails with EACCES.
+RUN mkdir -p /usr/src/app/public/tmp \
+        /usr/src/app/apps/server/files/public/tmp \
+        /usr/src/app/apps/server/files/logs && \
     chown appuser:appuser /usr/src/app && \
     chown -R appuser:appuser \
         /usr/src/app/apps/server/dist \
@@ -311,6 +320,7 @@ RUN mkdir -p /usr/src/app/public/tmp && \
 
 # Switch to non-root user
 USER appuser
+ENV HOME=/home/appuser
 
 # No EXPOSE or HEALTHCHECK — each compose service defines its own
 # Default CMD prints usage — each compose service overrides with command:

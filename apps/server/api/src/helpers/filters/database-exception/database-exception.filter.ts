@@ -25,7 +25,16 @@ export class DatabaseExceptionFilter extends AllExceptionFilter {
 
     const { detail, status, title } = this.mapPrismaError(exceptionObj);
 
-    if (this.SENTRY_ENVIRONMENT !== 'development') {
+    // P2002/P2003/P2025 are expected request-level outcomes (conflict, bad
+    // relation, missing record) mapped to 4xx — only unexpected Prisma errors
+    // (e.g. PrismaClientValidationError = query built against a stale schema)
+    // belong in Sentry.
+    const isExpectedClientError =
+      exceptionObj.code === 'P2002' ||
+      exceptionObj.code === 'P2003' ||
+      exceptionObj.code === 'P2025';
+
+    if (this.SENTRY_ENVIRONMENT !== 'development' && !isExpectedClientError) {
       Sentry.captureException(exception);
     } else {
       this.loggerService.error(
