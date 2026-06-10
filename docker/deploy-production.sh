@@ -21,7 +21,7 @@ DEFAULT_SERVER_IMAGE="ghcr.io/genfeedai/cloud/server:${IMAGE_TAG:-latest}"
 WAVE_1=(redis)
 WAVE_2=(api mcp notifications files)
 WAVE_3=(telegram discord slack)
-WAVE_4=(fanvue clips workers)
+WAVE_4=(clips workers)
 
 # --- Logging helpers ---
 
@@ -84,7 +84,7 @@ canonicalize_env_link() {
 service_env_override_file() {
   local service="$1"
   case "$service" in
-    api|clips|discord|fanvue|files|mcp|notifications|slack|telegram|workers)
+    api|clips|discord|files|mcp|notifications|slack|telegram|workers)
       printf 'apps/server/%s/%s\n' "$service" "$ENV_FILE"
       ;;
     *)
