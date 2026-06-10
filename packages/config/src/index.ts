@@ -27,3 +27,5 @@ export * from './schemas';
 export type { ConfigServiceOptions } from './services/base-config.service';
 // Services
 export { BaseConfigService } from './services/base-config.service';
+export type { CreateServiceConfigOptions } from './services/create-service-config';
+export { createServiceConfig } from './services/create-service-config';
