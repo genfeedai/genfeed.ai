@@ -1,6 +1,8 @@
 import {
+  AlertFrequency,
   BotCategory,
   BotPlatform,
+  ContentSourceType,
   EngagementAction,
   MonitoringAlertType,
   PublishingFrequency,
@@ -95,7 +97,9 @@ export const engagementBotSettingsSchema = z.object({
 
 export const monitoringBotSettingsSchema = z.object({
   alertEmail: z.string().email().optional(),
-  alertFrequency: z.enum(['instant', 'hourly', 'daily']).default('instant'),
+  alertFrequency: z
+    .enum([AlertFrequency.INSTANT, AlertFrequency.HOURLY, AlertFrequency.DAILY])
+    .default(AlertFrequency.INSTANT),
   alertSlackWebhookUrl: z.string().url().optional(),
   alertTypes: z
     .array(
@@ -122,8 +126,12 @@ export const publishingBotSettingsSchema = z.object({
   autoHashtags: z.array(z.string()).default([]),
   contentQueueId: z.string().optional(),
   contentSourceType: z
-    .enum(['queue', 'template', 'ai_generated'])
-    .default('queue'),
+    .enum([
+      ContentSourceType.QUEUE,
+      ContentSourceType.TEMPLATE,
+      ContentSourceType.AI_GENERATED,
+    ])
+    .default(ContentSourceType.QUEUE),
   customCronExpression: z.string().optional(),
   daysOfWeek: z.array(z.number().min(0).max(6)).default([0, 1, 2, 3, 4, 5, 6]),
   frequency: z

@@ -12,9 +12,13 @@ import { monitoredAccountSchema } from '@genfeedai/client/schemas/automation/mon
 import { replyBotConfigSchema } from '@genfeedai/client/schemas/automation/reply-bot-config.schema';
 import { workflowSchema } from '@genfeedai/client/schemas/automation/workflow.schema';
 import {
+  AlertFrequency,
   BotCategory,
   BotPlatform,
+  ContentSourceType,
   EngagementAction,
+  MonitoringAlertType,
+  PublishingFrequency,
   ReplyBotActionType,
   ReplyBotPlatform,
   ReplyBotType,
@@ -135,10 +139,89 @@ describe('automation schemas', () => {
       ).toBe(true);
     });
 
+    it('applies defaults for omitted fields', () => {
+      const parsed = engagementBotSettingsSchema.safeParse({
+        actions: [EngagementAction.FOLLOW],
+      });
+      expect(parsed.success).toBe(true);
+      if (parsed.success) {
+        expect(parsed.data.actionsPerDay).toBe(100);
+        expect(parsed.data.actionsPerHour).toBe(10);
+        expect(parsed.data.delayBetweenActions).toBe(30);
+        expect(parsed.data.onlyVerified).toBe(false);
+        expect(parsed.data.excludeAccounts).toEqual([]);
+        expect(parsed.data.targetAccounts).toEqual([]);
+        expect(parsed.data.targetHashtags).toEqual([]);
+        expect(parsed.data.targetKeywords).toEqual([]);
+      }
+    });
+
     it('rejects empty actions', () => {
       expect(
         engagementBotSettingsSchema.safeParse({
           actions: [],
+        }).success,
+      ).toBe(false);
+    });
+
+    it('rejects an unknown engagement action', () => {
+      expect(
+        engagementBotSettingsSchema.safeParse({
+          actions: ['shout'],
+        }).success,
+      ).toBe(false);
+    });
+
+    it('rejects actionsPerDay outside the supported range', () => {
+      expect(
+        engagementBotSettingsSchema.safeParse({
+          actions: [EngagementAction.LIKE],
+          actionsPerDay: 0,
+        }).success,
+      ).toBe(false);
+      expect(
+        engagementBotSettingsSchema.safeParse({
+          actions: [EngagementAction.LIKE],
+          actionsPerDay: 1001,
+        }).success,
+      ).toBe(false);
+    });
+
+    it('rejects actionsPerHour outside the supported range', () => {
+      expect(
+        engagementBotSettingsSchema.safeParse({
+          actions: [EngagementAction.LIKE],
+          actionsPerHour: 0,
+        }).success,
+      ).toBe(false);
+      expect(
+        engagementBotSettingsSchema.safeParse({
+          actions: [EngagementAction.LIKE],
+          actionsPerHour: 101,
+        }).success,
+      ).toBe(false);
+    });
+
+    it('rejects delayBetweenActions outside the supported range', () => {
+      expect(
+        engagementBotSettingsSchema.safeParse({
+          actions: [EngagementAction.LIKE],
+          delayBetweenActions: 4,
+        }).success,
+      ).toBe(false);
+      expect(
+        engagementBotSettingsSchema.safeParse({
+          actions: [EngagementAction.LIKE],
+          delayBetweenActions: 301,
+        }).success,
+      ).toBe(false);
+    });
+
+    it('rejects a negative follower bound', () => {
+      expect(
+        engagementBotSettingsSchema.safeParse({
+          actions: [EngagementAction.LIKE],
+          minFollowers: -1,
         }).success,
       ).toBe(false);
     });
@@ -148,17 +231,100 @@ describe('automation schemas', () => {
     it('accepts valid settings', () => {
       expect(
         monitoringBotSettingsSchema.safeParse({
-          alertTypes: ['email'],
+          alertTypes: [MonitoringAlertType.EMAIL],
           keywords: ['ai'],
         }).success,
       ).toBe(true);
     });
 
+    it('applies defaults for omitted fields', () => {
+      const parsed = monitoringBotSettingsSchema.safeParse({
+        alertTypes: [MonitoringAlertType.IN_APP],
+        keywords: ['ai'],
+      });
+      expect(parsed.success).toBe(true);
+      if (parsed.success) {
+        expect(parsed.data.alertFrequency).toBe(AlertFrequency.INSTANT);
+        expect(parsed.data.onlyVerified).toBe(false);
+        expect(parsed.data.excludeKeywords).toEqual([]);
+        expect(parsed.data.hashtags).toEqual([]);
+        expect(parsed.data.mentionAccounts).toEqual([]);
+      }
+    });
+
     it('rejects empty keywords', () => {
       expect(
         monitoringBotSettingsSchema.safeParse({
-          alertTypes: ['email'],
+          alertTypes: [MonitoringAlertType.EMAIL],
           keywords: [],
+        }).success,
+      ).toBe(false);
+    });
+
+    it('rejects empty alert types', () => {
+      expect(
+        monitoringBotSettingsSchema.safeParse({
+          alertTypes: [],
+          keywords: ['ai'],
+        }).success,
+      ).toBe(false);
+    });
+
+    it('rejects an unknown alert type', () => {
+      expect(
+        monitoringBotSettingsSchema.safeParse({
+          alertTypes: ['carrier-pigeon'],
+          keywords: ['ai'],
+        }).success,
+      ).toBe(false);
+    });
+
+    it('rejects an unknown alert frequency', () => {
+      expect(
+        monitoringBotSettingsSchema.safeParse({
+          alertFrequency: 'whenever',
+          alertTypes: [MonitoringAlertType.EMAIL],
+          keywords: ['ai'],
+        }).success,
+      ).toBe(false);
+    });
+
+    it('rejects a malformed alert email', () => {
+      expect(
+        monitoringBotSettingsSchema.safeParse({
+          alertEmail: 'not-an-email',
+          alertTypes: [MonitoringAlertType.EMAIL],
+          keywords: ['ai'],
+        }).success,
+      ).toBe(false);
+    });
+
+    it('rejects a malformed alert webhook url', () => {
+      expect(
+        monitoringBotSettingsSchema.safeParse({
+          alertTypes: [MonitoringAlertType.WEBHOOK],
+          alertWebhookUrl: 'not a url',
+          keywords: ['ai'],
+        }).success,
+      ).toBe(false);
+    });
+
+    it('rejects a malformed alert slack webhook url', () => {
+      expect(
+        monitoringBotSettingsSchema.safeParse({
+          alertSlackWebhookUrl: 'not a url',
+          alertTypes: [MonitoringAlertType.SLACK],
+          keywords: ['ai'],
+        }).success,
+      ).toBe(false);
+    });
+
+    it('rejects a negative minimum engagement', () => {
+      expect(
+        monitoringBotSettingsSchema.safeParse({
+          alertTypes: [MonitoringAlertType.EMAIL],
+          keywords: ['ai'],
+          minEngagement: -1,
         }).success,
       ).toBe(false);
     });
@@ -167,6 +333,57 @@ describe('automation schemas', () => {
   describe('publishingBotSettingsSchema', () => {
     it('accepts defaults', () => {
       expect(publishingBotSettingsSchema.safeParse({}).success).toBe(true);
+    });
+
+    it('applies defaults for omitted fields', () => {
+      const parsed = publishingBotSettingsSchema.safeParse({});
+      expect(parsed.success).toBe(true);
+      if (parsed.success) {
+        expect(parsed.data.frequency).toBe(PublishingFrequency.DAILY);
+        expect(parsed.data.contentSourceType).toBe(ContentSourceType.QUEUE);
+        expect(parsed.data.maxPostsPerDay).toBe(5);
+        expect(parsed.data.timezone).toBe('UTC');
+        expect(parsed.data.daysOfWeek).toEqual([0, 1, 2, 3, 4, 5, 6]);
+        expect(parsed.data.autoHashtags).toEqual([]);
+        expect(parsed.data.scheduledTimes).toEqual([]);
+      }
+    });
+
+    it('rejects an unknown publishing frequency', () => {
+      expect(
+        publishingBotSettingsSchema.safeParse({
+          frequency: 'fortnightly',
+        }).success,
+      ).toBe(false);
+    });
+
+    it('rejects an unknown content source type', () => {
+      expect(
+        publishingBotSettingsSchema.safeParse({
+          contentSourceType: 'carrier-pigeon',
+        }).success,
+      ).toBe(false);
+    });
+
+    it('rejects maxPostsPerDay outside the supported range', () => {
+      expect(
+        publishingBotSettingsSchema.safeParse({
+          maxPostsPerDay: 0,
+        }).success,
+      ).toBe(false);
+      expect(
+        publishingBotSettingsSchema.safeParse({
+          maxPostsPerDay: 51,
+        }).success,
+      ).toBe(false);
+    });
+
+    it('rejects a day-of-week outside 0-6', () => {
+      expect(
+        publishingBotSettingsSchema.safeParse({
+          daysOfWeek: [7],
+        }).success,
+      ).toBe(false);
     });
   });
 
