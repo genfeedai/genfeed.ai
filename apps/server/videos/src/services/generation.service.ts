@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { LoggerService } from '@libs/logger/logger.service';
+import { S3Service } from '@libs/s3/s3.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@videos/config/config.service';
@@ -9,7 +10,6 @@ import type {
 } from '@videos/interfaces/videos.interfaces';
 import { ComfyUIService } from '@videos/services/comfyui.service';
 import { JobService } from '@videos/services/job.service';
-import { S3Service } from '@videos/services/s3.service';
 import { WorkflowService } from '@videos/services/workflow.service';
 
 @Injectable()

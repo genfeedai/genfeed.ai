@@ -1,6 +1,7 @@
 import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { LoggerService } from '@libs/logger/logger.service';
+import { S3Service } from '@libs/s3/s3.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
@@ -14,7 +15,6 @@ import type {
   VoiceCloneUploadRequest,
   VoiceCloneUploadResult,
 } from '@voices/interfaces/voice-clone.interfaces';
-import { S3Service } from '@voices/services/s3.service';
 
 const S3_VOICE_CLONE_PREFIX = 'trainings/voice-clones/';
 const MODEL_EXTENSIONS = new Set(['.pth', '.onnx', '.bin', '.safetensors']);

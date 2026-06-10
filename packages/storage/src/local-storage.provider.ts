@@ -48,7 +48,11 @@ export class LocalStorageProvider implements StorageProvider {
     }
   }
 
-  async upload(file: Buffer, filePath: string): Promise<string> {
+  async upload(
+    file: Buffer,
+    filePath: string,
+    _contentType?: string,
+  ): Promise<string> {
     const fullPath = path.join(this.baseDir, filePath);
     const dir = path.dirname(fullPath);
     await fs.mkdir(dir, { recursive: true });

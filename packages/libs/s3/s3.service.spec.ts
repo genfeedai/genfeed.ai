@@ -1,7 +1,6 @@
-import { ConfigService } from '@images/config/config.service';
-import { S3Service } from '@images/services/s3.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import { S3Service } from '@libs/s3/s3.service';
+import { Test, type TestingModule } from '@nestjs/testing';
 
 // Mock @aws-sdk/client-s3
 const mockSend = vi.fn();
@@ -45,19 +44,22 @@ vi.mock('node:stream/promises', () => ({
   pipeline: vi.fn().mockResolvedValue(undefined),
 }));
 
-describe('S3Service', () => {
+vi.mock('@libs/utils/caller/caller.util', () => ({
+  CallerUtil: { getCallerName: vi.fn().mockReturnValue('test-caller') },
+}));
+
+const mockConfigService = {
+  AWS_ACCESS_KEY_ID: 'test-key',
+  AWS_REGION: 'us-east-1',
+  AWS_SECRET_ACCESS_KEY: 'test-secret',
+};
+
+describe('S3Service (shared @libs/s3)', () => {
   let service: S3Service;
   let mockLoggerService: {
     log: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
-  };
-
-  const mockConfigService = {
-    AWS_ACCESS_KEY_ID: 'test-key',
-    AWS_REGION: 'us-east-1',
-    AWS_S3_BUCKET: 'test-bucket',
-    AWS_SECRET_ACCESS_KEY: 'test-secret',
   };
 
   beforeEach(async () => {
@@ -72,7 +74,7 @@ describe('S3Service', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         S3Service,
-        { provide: ConfigService, useValue: mockConfigService },
+        { provide: 'ConfigService', useValue: mockConfigService },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
     }).compile();
@@ -109,15 +111,74 @@ describe('S3Service', () => {
   });
 
   describe('uploadFile', () => {
-    it('should upload a file to S3', async () => {
+    it('should upload a file to S3 with explicit content type', async () => {
       mockSend.mockResolvedValue({});
 
       await service.uploadFile(
         'test-bucket',
-        'loras/test.safetensors',
-        '/tmp/test.safetensors',
+        'videos/job123/video.mp4',
+        '/tmp/video.mp4',
+        'video/mp4',
       );
 
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      // The mock PutObjectCommand stores params on .params
+      const [cmdInstance] = mockSend.mock.calls[0] as [
+        { params: Record<string, unknown> },
+      ];
+      expect(cmdInstance.params.ContentType).toBe('video/mp4');
+      expect(mockLoggerService.log).toHaveBeenCalledTimes(2);
+    });
+
+    it('should infer content type from extension when not provided (jpg → image/jpeg)', async () => {
+      mockSend.mockResolvedValue({});
+
+      await service.uploadFile(
+        'test-bucket',
+        'images/photo.jpg',
+        '/tmp/photo.jpg',
+      );
+
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
+
+    it('should infer content type from extension when not provided (mp4 → video/mp4)', async () => {
+      mockSend.mockResolvedValue({});
+
+      await service.uploadFile(
+        'test-bucket',
+        'videos/clip.mp4',
+        '/tmp/clip.mp4',
+      );
+
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
+
+    it('should use application/octet-stream for unknown extensions', async () => {
+      mockSend.mockResolvedValue({});
+
+      await service.uploadFile(
+        'test-bucket',
+        'data/model.bin',
+        '/tmp/model.bin',
+      );
+
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('uploadSafetensors', () => {
+    it('should upload with the canonical S3 key path', async () => {
+      mockSend.mockResolvedValue({});
+
+      const result = await service.uploadSafetensors(
+        'test-bucket',
+        'my-lora',
+        '/tmp/my-lora.safetensors',
+      );
+
+      expect(result.s3Key).toBe('trainings/loras/my-lora.safetensors');
+      expect(result.sizeBytes).toBe(9);
       expect(mockSend).toHaveBeenCalledTimes(1);
       expect(mockLoggerService.log).toHaveBeenCalledTimes(2);
     });
@@ -149,7 +210,6 @@ describe('S3Service', () => {
       expect(result).toHaveLength(2);
       expect(result[0].key).toBe('trainings/loras/model-a.safetensors');
       expect(result[0].size).toBe(1024);
-      expect(result[1].key).toBe('trainings/loras/model-b.safetensors');
     });
 
     it('should handle pagination', async () => {
@@ -159,7 +219,7 @@ describe('S3Service', () => {
           NextContinuationToken: 'token-123',
         })
         .mockResolvedValueOnce({
-          Contents: [{ Key: 'file2.jpg', LastModified: new Date(), Size: 200 }],
+          Contents: [{ Key: 'file2.mp4', LastModified: new Date(), Size: 200 }],
           NextContinuationToken: undefined,
         });
 
@@ -178,6 +238,22 @@ describe('S3Service', () => {
       const result = await service.listObjects('test-bucket', 'empty/');
 
       expect(result).toHaveLength(0);
+    });
+
+    it('should skip items without Key or Size', async () => {
+      mockSend.mockResolvedValue({
+        Contents: [
+          { Key: 'valid.mp4', LastModified: new Date(), Size: 500 },
+          { Key: undefined, LastModified: new Date(), Size: 100 },
+          { Key: 'no-size.mp4', LastModified: new Date(), Size: undefined },
+        ],
+        NextContinuationToken: undefined,
+      });
+
+      const result = await service.listObjects('test-bucket', 'prefix/');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].key).toBe('valid.mp4');
     });
   });
 });

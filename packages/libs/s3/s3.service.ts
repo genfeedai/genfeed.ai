@@ -1,7 +1,7 @@
 import { createWriteStream } from 'node:fs';
 import { mkdir, readFile, stat } from 'node:fs/promises';
-import { dirname } from 'node:path';
-import { Readable } from 'node:stream';
+import { dirname, extname } from 'node:path';
+import type { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import {
   GetObjectCommand,
@@ -9,15 +9,49 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@videos/config/config.service';
+import { Inject, Injectable } from '@nestjs/common';
 
 export interface S3Object {
   key: string;
   size: number;
   lastModified: string;
+}
+
+/** Minimal shape of ConfigService required by S3Service. */
+export interface S3ConfigService {
+  AWS_ACCESS_KEY_ID: string;
+  AWS_SECRET_ACCESS_KEY: string;
+  AWS_REGION: string;
+}
+
+/** MIME fallback table keyed by lowercase file extension (without the dot). */
+const MIME_BY_EXT: Readonly<Record<string, string>> = {
+  aac: 'audio/aac',
+  avi: 'video/x-msvideo',
+  flac: 'audio/flac',
+  gif: 'image/gif',
+  jpeg: 'image/jpeg',
+  jpg: 'image/jpeg',
+  m4a: 'audio/mp4',
+  mp3: 'audio/mpeg',
+  mp4: 'video/mp4',
+  mov: 'video/quicktime',
+  ogg: 'audio/ogg',
+  png: 'image/png',
+  pth: 'application/octet-stream',
+  safetensors: 'application/octet-stream',
+  wav: 'audio/wav',
+  webm: 'video/webm',
+  webp: 'image/webp',
+};
+
+/** Derive a MIME type from a file path extension, defaulting to application/octet-stream. */
+function mimeFromPath(filePath: string): string {
+  const ext = extname(filePath).replace('.', '').toLowerCase();
+  return MIME_BY_EXT[ext] ?? 'application/octet-stream';
 }
 
 @Injectable()
@@ -26,7 +60,8 @@ export class S3Service {
   private readonly client: S3Client;
 
   constructor(
-    private readonly configService: ConfigService,
+    @Inject('ConfigService')
+    private readonly configService: S3ConfigService,
     private readonly loggerService: LoggerService,
   ) {
     this.client = new S3Client({
@@ -73,6 +108,13 @@ export class S3Service {
     });
   }
 
+  /**
+   * Upload a local file to S3.
+   *
+   * @param contentType - Optional explicit MIME type. When omitted the type is
+   *   inferred from the file extension (with application/octet-stream as the
+   *   final fallback).
+   */
   async uploadFile(
     bucket: string,
     key: string,
@@ -90,12 +132,13 @@ export class S3Service {
 
     const fileBuffer = await readFile(localPath);
     const fileStats = await stat(localPath);
+    const resolvedContentType = contentType ?? mimeFromPath(localPath);
 
     const command = new PutObjectCommand({
       Body: fileBuffer,
       Bucket: bucket,
       ContentLength: fileStats.size,
-      ContentType: contentType,
+      ContentType: resolvedContentType,
       Key: key,
     });
 
@@ -107,6 +150,50 @@ export class S3Service {
       message: 'File uploaded successfully',
       sizeBytes: fileStats.size,
     });
+  }
+
+  /**
+   * Upload a safetensors LoRA file to the canonical S3 path.
+   * Always uses application/octet-stream content type.
+   */
+  async uploadSafetensors(
+    bucket: string,
+    loraName: string,
+    localPath: string,
+  ): Promise<{ s3Key: string; sizeBytes: number }> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const s3Key = `trainings/loras/${loraName}.safetensors`;
+
+    this.loggerService.log(caller, {
+      bucket,
+      localPath,
+      loraName,
+      message: 'Uploading safetensors to S3',
+      s3Key,
+    });
+
+    const fileBuffer = await readFile(localPath);
+    const fileStats = await stat(localPath);
+
+    const command = new PutObjectCommand({
+      Body: fileBuffer,
+      Bucket: bucket,
+      ContentLength: fileStats.size,
+      ContentType: 'application/octet-stream',
+      Key: s3Key,
+    });
+
+    await this.client.send(command);
+
+    this.loggerService.log(caller, {
+      bucket,
+      loraName,
+      message: 'Safetensors uploaded successfully',
+      s3Key,
+      sizeBytes: fileStats.size,
+    });
+
+    return { s3Key, sizeBytes: fileStats.size };
   }
 
   async listObjects(bucket: string, prefix: string): Promise<S3Object[]> {
