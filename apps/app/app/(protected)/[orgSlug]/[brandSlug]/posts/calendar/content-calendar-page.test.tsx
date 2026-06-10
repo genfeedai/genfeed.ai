@@ -42,6 +42,7 @@ vi.mock('@services/core/notifications.service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'acme-creator', orgSlug: 'acme-org' }),
   useRouter: vi.fn(() => ({
     push: pushMock,
   })),

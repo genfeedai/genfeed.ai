@@ -221,6 +221,7 @@ vi.mock('@ui/primitives/textarea', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'acme-creator', orgSlug: 'acme-org' }),
   useRouter: () => ({
     push: mocks.push,
   }),
@@ -329,7 +330,9 @@ describe('ContentTeamOrchestratorPage', () => {
       expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
         'Content team orchestrator launched',
       );
-      expect(mocks.push).toHaveBeenCalledWith('/orchestration');
+      expect(mocks.push).toHaveBeenCalledWith(
+        '/acme-org/acme-creator/orchestration',
+      );
     });
   });
 
@@ -365,6 +368,8 @@ describe('ContentTeamOrchestratorPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(mocks.push).toHaveBeenCalledWith('/orchestration');
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/acme-org/acme-creator/orchestration',
+    );
   });
 });

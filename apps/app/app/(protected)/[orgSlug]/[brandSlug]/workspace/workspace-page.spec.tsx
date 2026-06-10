@@ -59,6 +59,7 @@ vi.mock('@hooks/utils/use-websocket-prompt/use-websocket-prompt', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'acme-creator', orgSlug: 'acme-org' }),
   usePathname: () => '/workspace/inbox/unread',
   useRouter: () => ({
     push: routerPushMock,
