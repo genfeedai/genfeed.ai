@@ -362,6 +362,13 @@ enum TrainingStage {
   CANCELLED
 }
 
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
 enum WorkflowExecutionStatus {
   PENDING
   RUNNING
@@ -387,6 +394,15 @@ enum AgentRunStatus {
   RUNNING
   COMPLETED
   FAILED
+  CANCELLED
+}
+
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
   CANCELLED
 }
 
