@@ -269,13 +269,17 @@ export abstract class HTTPBaseService {
       );
     }
 
-    // In production, sanitize error data
+    // In production, sanitize error data. Throw a real Error (not a plain
+    // object) so unhandled-rejection reporting gets a stack and a readable
+    // title instead of a JSON-serialized object blob.
     if (EnvironmentService.isProduction && response?.data) {
-      const sanitizedError: IHttpSanitizedError = {
-        message: 'An error occurred',
-        status: response.status || 500,
-        statusText: response.statusText || 'Internal Server Error',
-      };
+      const status = response.status || 500;
+      const statusText = response.statusText || 'Internal Server Error';
+      const sanitizedError = new Error(
+        `Request failed with status ${status} (${statusText})`,
+      ) as Error & IHttpSanitizedError;
+      sanitizedError.status = status;
+      sanitizedError.statusText = statusText;
 
       // Check for JSON API error format (from NestJS backend)
       if (

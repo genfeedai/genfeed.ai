@@ -31,6 +31,7 @@
 ## References
 
 - [MongoDB Atlas URI](reference_mongodb_atlas.md) — Atlas connection string for `cloud` DB
+- [Postgres RDS](reference_postgres_rds.md) — prod `genfeed-data` + dev `local-genfeedai` instances, sslmode gotcha, PrismaService env path
 
 ## Context (loaded via CLAUDE.md @import)
 

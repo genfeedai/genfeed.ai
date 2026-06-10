@@ -4,6 +4,7 @@ import { ClerkWebhookService } from '@api/endpoints/webhooks/clerk/webhooks.cler
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -125,10 +126,10 @@ describe('ClerkWebhookController', () => {
       expect((result as Response).status).toBe(400);
     });
 
-    it('should throw when webhook verification fails', async () => {
+    it('should throw a 400 BadRequestException when webhook verification fails', async () => {
       const payload = { data: {}, object: 'user', type: 'user.created' };
       const request = mockRequest(validHeaders);
-      const verificationError = new Error('Invalid signature');
+      const verificationError = new Error('No matching signature found');
 
       const svix = await import('svix');
       const Webhook = svix.Webhook as vi.Mock;
@@ -139,12 +140,15 @@ describe('ClerkWebhookController', () => {
         return { verify: mockVerify };
       });
 
+      // A failed verification is expected hostile/replayed traffic — it must
+      // surface as a 400 HttpException (suppressed from Sentry), never as the
+      // raw svix error (which the catch-all filter reports as a 500).
       await expect(controller.handleClerk(request, payload)).rejects.toThrow(
-        verificationError,
+        BadRequestException,
       );
 
       expect(loggerService.error).toHaveBeenCalledWith(
-        'ClerkWebhookController createClerk failed',
+        'ClerkWebhookController createClerk invalid signature',
         verificationError,
       );
     });

@@ -16,12 +16,12 @@ genfeed.ai/
 ├── skills/                  # Product/content skills (used by the app)
 │   ├── prompt-generator/
 │   ├── workflow-creator/
-│   └── ...                  # 22 content skills
+│   └── ...                  # 27 content skills
 ├── .agents/skills/          # Dev/build skills (for building the app)
 │   ├── react-patterns/
 │   ├── docker-expert/
 │   ├── multitenancy-guard/
-│   └── ...                  # 25 dev skills
+│   └── ...                  # 30 dev skills
 ├── .claude/skills/          # GITIGNORED — auto-generated symlinks
 │   └── * -> ../../.agents/skills/*
 ```

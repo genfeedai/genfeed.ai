@@ -2,7 +2,7 @@
 
 **Plasmo-based Chrome/Firefox extension.**
 
-Rules auto-load from `.claude/rules/` (symlinked to `.agents/rules/`). Docs in `../../../../.agents/`.
+Workspace rules and docs live in `../../../../.agents/` (the root `.agents/memory/`). This app has no local rules dir.
 
 ## Tech Stack
 
@@ -20,4 +20,4 @@ bun run build   # Production build
 ## Docs
 
 - `../../../../.agents/README.md` - Project guide
-- `../../../../.agents/SYSTEM/RULES.md` - Coding standards
+- `../../../../.agents/memory/system/RULES.md` - Coding standards

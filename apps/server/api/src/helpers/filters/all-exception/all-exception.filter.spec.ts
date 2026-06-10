@@ -143,6 +143,19 @@ describe('AllExceptionFilter', () => {
     expect(Sentry.captureException).toHaveBeenCalledWith(exception);
   });
 
+  it('should not capture exceptions that resolve to a 4xx status', () => {
+    const exception = {
+      getResponse: () => ({ message: 'Cannot POST /' }),
+      getStatus: () => HttpStatus.NOT_FOUND,
+      name: 'NotFoundException',
+    };
+
+    filter.catch(exception, mockArgumentsHost);
+
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
+  });
+
   it('should log exception in development mode', () => {
     // Change to development mode
     mockConfigService.get.mockImplementation((key: string) => {

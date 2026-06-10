@@ -389,12 +389,16 @@ describe('HTTPBaseService (InterceptorService)', () => {
         toJSON: () => ({}),
       };
 
-      await expect(
-        service.handleError(error as AxiosError),
-      ).rejects.toMatchObject({
-        message: 'An error occurred',
+      const rejection = service.handleError(error as AxiosError);
+      // Must be a real Error (a thrown plain object surfaces in Sentry as an
+      // unreadable JSON-serialized unhandledrejection title) and must not
+      // leak response data.
+      await expect(rejection).rejects.toBeInstanceOf(Error);
+      await expect(rejection).rejects.toMatchObject({
+        message: 'Request failed with status 500 (Internal Server Error)',
         status: 500,
       });
+      await expect(rejection).rejects.not.toHaveProperty('sensitive');
     });
 
     it('preserves full error details in development', async () => {

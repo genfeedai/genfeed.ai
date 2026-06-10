@@ -8,19 +8,12 @@ export interface NewsletterSourceRef {
   [key: string]: unknown;
 }
 
-export interface NewsletterDocument extends PrismaNewsletter {
+export interface NewsletterDocument
+  extends Omit<PrismaNewsletter, 'sourceRefs'> {
   _id: string;
   organization?: string;
   brand?: string | null;
   user?: string;
-  label?: string | null;
-  topic?: string | null;
-  summary?: string | null;
-  approvedAt?: Date | string | null;
-  approvedByUser?: string | null;
-  publishedAt?: Date | string | null;
-  publishedByUser?: string | null;
-  contextNewsletterIds?: string[];
-  sourceRefs?: NewsletterSourceRef[];
+  sourceRefs?: NewsletterSourceRef[] | null;
   [key: string]: unknown;
 }

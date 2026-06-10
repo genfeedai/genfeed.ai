@@ -13,7 +13,6 @@ import { ConfigService } from '@api/config/config.service';
 import { DocsService } from '@api/endpoints/docs/docs.service';
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
 import { DatabaseExceptionFilter } from '@api/helpers/filters/database-exception/database-exception.filter';
-import { DatabaseValidationExceptionFilter } from '@api/helpers/filters/database-validation-exception/database-validation-exception.filter';
 import { HttpExceptionFilter } from '@api/helpers/filters/http-exception/http-exception.filter';
 import {
   APIMetricsInterceptor,
@@ -199,12 +198,13 @@ async function main() {
 
     app.useGlobalInterceptors(...interceptors);
 
+    // Nest resolves global filters in REVERSE registration order (last
+    // registered, first matched). HttpExceptionFilter must be registered last
+    // so HttpExceptions (incl. 4xx like NotFoundException) hit its
+    // status-aware Sentry suppression instead of a catch-all filter.
     app.useGlobalFilters(new AllExceptionFilter(logger, configService));
-    app.useGlobalFilters(new HttpExceptionFilter(logger, configService));
     app.useGlobalFilters(new DatabaseExceptionFilter(logger, configService));
-    app.useGlobalFilters(
-      new DatabaseValidationExceptionFilter(logger, configService),
-    );
+    app.useGlobalFilters(new HttpExceptionFilter(logger, configService));
 
     // Bull Board setup
     const serverAdapter = new ExpressAdapter();

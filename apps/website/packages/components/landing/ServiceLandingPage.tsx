@@ -14,18 +14,25 @@ import {
   WebSection,
 } from '@web-components/content/NeuralGrid';
 import LandingFooter from '@web-components/landing/LandingFooter';
-import type { ServiceLandingConfig } from '@web-components/landing/service-landings.data';
+import {
+  type ServiceLandingConfig,
+  serviceLandingConfigBySlug,
+} from '@web-components/landing/service-landings.data';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
 import { LuBadgeCheck, LuCalendarRange, LuSparkles } from 'react-icons/lu';
 
 export interface ServiceLandingPageProps {
-  config: ServiceLandingConfig;
+  // Server pages pass the slug, not the config: the config carries icon
+  // component functions, which cannot cross the server->client boundary
+  // ("Functions cannot be passed directly to Client Components").
+  slug: string;
 }
 
 export default function ServiceLandingPage({
-  config,
+  slug,
 }: ServiceLandingPageProps): React.ReactElement {
+  const config = serviceLandingConfigBySlug[slug] as ServiceLandingConfig;
   const containerRef = useMarketingEntrance({ cards: false });
 
   return (

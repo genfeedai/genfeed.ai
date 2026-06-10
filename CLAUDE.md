@@ -6,7 +6,7 @@
 @.agents/memory/context/project-style-guide.md
 @.agents/memory/context/skills-architecture.md
 
-TypeScript monorepo: 6 app surfaces, 12 backend services, 45+ shared packages.
+TypeScript monorepo: 6 app surfaces, 12 backend services, 43 shared packages.
 Stack: Next.js + NestJS + MongoDB + Redis + BullMQ
 
 ## Git Workflow
@@ -36,14 +36,14 @@ If ANY step fails, fix it before pushing.
 
 ```bash
 # Development
-bun install                              # Install dependencies
-bun run dev:backend                      # All backend services
-bun dev:app @genfeedai/api               # Start API server (port 3010)
-bun dev:app @genfeedai/app               # Start main app
-bun dev:app @genfeedai/[name]            # Start any specific app
+bun install                                          # Install dependencies
+bun run dev:backend                                  # Core backend services (api, files, mcp, notifications, workers)
+bun run dev:app:be                                   # API + notifications only
+bun run dev:app                                      # Main app (apps/app)
+bunx turbo run dev --filter=@genfeedai/[name]        # Start any specific app/service
 
 # Build (NEVER run `bun run build` at root)
-bun build:app @genfeedai/[name]          # Build specific app
+bunx turbo run build --filter=@genfeedai/[name]      # Build specific app/package
 
 # Quality
 bun type-check                           # Type-check all packages
