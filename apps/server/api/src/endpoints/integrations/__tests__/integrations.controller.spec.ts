@@ -5,6 +5,7 @@ import { InternalIntegrationsController } from '@api/endpoints/integrations/inte
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { User } from '@clerk/backend';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import type { OrgIntegration } from '@genfeedai/prisma';
@@ -54,6 +55,10 @@ describe('OrganizationsIntegrationsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OrganizationsIntegrationsController],
       providers: [
+        {
+          provide: FilesClientService,
+          useValue: { uploadToS3: vi.fn() },
+        },
         {
           provide: IntegrationsService,
           useValue: mockService,
@@ -284,6 +289,10 @@ describe('InternalIntegrationsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [InternalIntegrationsController],
       providers: [
+        {
+          provide: FilesClientService,
+          useValue: { uploadToS3: vi.fn() },
+        },
         {
           provide: IntegrationsService,
           useValue: mockService,

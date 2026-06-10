@@ -441,7 +441,18 @@ export class TelegramBotManager
       const bestPhoto = photos[photos.length - 1];
       const file = await ctx.api.getFile(bestPhoto.file_id);
 
-      const imageUrl = `https://api.telegram.org/file/bot${ctx.api.token}/${file.file_path}`;
+      // The Telegram file URL embeds the bot token — it must never be
+      // persisted. Mirror it into our storage via the internal media
+      // endpoint and store only the durable public URL.
+      const transportUrl = `https://api.telegram.org/file/bot${ctx.api.token}/${file.file_path}`;
+      const imageUrl = session.orgId
+        ? await this.mirrorTelegramFile(transportUrl, session.orgId)
+        : null;
+
+      if (!imageUrl) {
+        await ctx.reply('Failed to process the photo. Please try again.');
+        return;
+      }
 
       session.collectedInputs.set(currentInput.nodeId, imageUrl);
       session.currentInputIndex++;
@@ -573,6 +584,29 @@ export class TelegramBotManager
       .filter(
         (integration): integration is OrgIntegration => integration !== null,
       );
+  }
+
+  private async mirrorTelegramFile(
+    transportUrl: string,
+    organizationId: string,
+  ): Promise<string | null> {
+    try {
+      const apiKey = this.configService.API_KEY;
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.configService.API_URL}/v1/internal/integrations/telegram/media`,
+          { fileUrl: transportUrl, organizationId },
+          {
+            headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
+          },
+        ),
+      );
+      const url = response.data?.data?.url;
+      return typeof url === 'string' && url.length > 0 ? url : null;
+    } catch (error) {
+      this.logger.error('Failed to mirror Telegram file:', error);
+      return null;
+    }
   }
 
   private async fetchActiveIntegrations(): Promise<OrgIntegration[]> {
