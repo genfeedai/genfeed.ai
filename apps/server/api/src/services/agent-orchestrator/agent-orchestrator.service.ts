@@ -1068,6 +1068,7 @@ export class AgentOrchestratorService {
             }
           }
 
+          const preRemapToolName = toolName;
           const directGenerationOverride =
             this.getGenerationPreparationOverride(toolName, allowedToolNames);
           if (directGenerationOverride) {
@@ -1099,16 +1100,23 @@ export class AgentOrchestratorService {
           });
 
           const creditCost = AGENT_CREDIT_COSTS[toolName] ?? 0;
-          if (creditCost > 0) {
+          // Gate affordability on the tool the model asked for: the
+          // prepare_generation remap above would otherwise resolve a zero
+          // cost and skip the check entirely (#482).
+          const preflightCreditCost = Math.max(
+            creditCost,
+            AGENT_CREDIT_COSTS[preRemapToolName] ?? 0,
+          );
+          if (preflightCreditCost > 0) {
             const canAfford =
               await this.creditsUtilsService.checkOrganizationCreditsAvailable(
                 context.organizationId,
-                creditCost,
+                preflightCreditCost,
               );
 
             if (!canAfford) {
               const durationMs = Date.now() - startTime;
-              const error = `Insufficient credits (need ${creditCost})`;
+              const error = `Insufficient credits (need ${preflightCreditCost})`;
               const summary: ToolCallSummary = {
                 creditsUsed: 0,
                 durationMs,
@@ -1131,7 +1139,7 @@ export class AgentOrchestratorService {
 
               messages.push({
                 content: JSON.stringify({
-                  error: `Insufficient credits. This tool requires ${creditCost} credits.`,
+                  error: `Insufficient credits. This tool requires ${preflightCreditCost} credits.`,
                   success: false,
                 }),
                 role: 'tool' as const,
@@ -1181,7 +1189,11 @@ export class AgentOrchestratorService {
             highestRiskLevel = 'medium';
           }
 
-          if (result.success && creditCost > 0) {
+          // Generation tools delegate billing to their endpoint (dynamic
+          // amount); deducting the flat creditCost here would double-charge.
+          const isOrchestratorBilled =
+            result.success && creditCost > 0 && !result.isBillingDelegated;
+          if (isOrchestratorBilled) {
             await this.creditsUtilsService.deductCreditsFromOrganization(
               context.organizationId,
               context.userId,
@@ -1193,7 +1205,7 @@ export class AgentOrchestratorService {
           }
 
           const summary: ToolCallSummary = {
-            creditsUsed: result.success ? creditCost : 0,
+            creditsUsed: isOrchestratorBilled ? creditCost : 0,
             durationMs,
             error: result.error,
             parameters: toolParams,
@@ -1761,6 +1773,7 @@ export class AgentOrchestratorService {
             }
           }
 
+          const preRemapToolName = toolName;
           const directGenerationOverride =
             this.getGenerationPreparationOverride(toolName, allowedToolNames);
           if (directGenerationOverride) {
@@ -1783,6 +1796,13 @@ export class AgentOrchestratorService {
           }
 
           const creditCost = AGENT_CREDIT_COSTS[toolName] ?? 0;
+          // Gate affordability on the tool the model asked for: the
+          // prepare_generation remap above would otherwise resolve a zero
+          // cost and skip the check entirely (#482).
+          const preflightCreditCost = Math.max(
+            creditCost,
+            AGENT_CREDIT_COSTS[preRemapToolName] ?? 0,
+          );
           const startTime = Date.now();
 
           await runEffectPromise(
@@ -1853,18 +1873,18 @@ export class AgentOrchestratorService {
           }
 
           // Check credits
-          if (creditCost > 0) {
+          if (preflightCreditCost > 0) {
             const canAfford =
               await this.creditsUtilsService.checkOrganizationCreditsAvailable(
                 context.organizationId,
-                creditCost,
+                preflightCreditCost,
               );
 
             if (!canAfford) {
               const summary: ToolCallSummary = {
                 creditsUsed: 0,
                 durationMs: Date.now() - startTime,
-                error: `Insufficient credits (need ${creditCost})`,
+                error: `Insufficient credits (need ${preflightCreditCost})`,
                 status: 'failed',
                 toolName,
               };
@@ -1888,7 +1908,7 @@ export class AgentOrchestratorService {
 
               messages.push({
                 content: JSON.stringify({
-                  error: `Insufficient credits. This tool requires ${creditCost} credits.`,
+                  error: `Insufficient credits. This tool requires ${preflightCreditCost} credits.`,
                   success: false,
                 }),
                 role: 'tool' as const,
@@ -1945,7 +1965,11 @@ export class AgentOrchestratorService {
             highestRiskLevel = 'medium';
           }
 
-          if (result.success && creditCost > 0) {
+          // Generation tools delegate billing to their endpoint (dynamic
+          // amount); deducting the flat creditCost here would double-charge.
+          const isOrchestratorBilled =
+            result.success && creditCost > 0 && !result.isBillingDelegated;
+          if (isOrchestratorBilled) {
             await this.creditsUtilsService.deductCreditsFromOrganization(
               context.organizationId,
               context.userId,
@@ -1957,7 +1981,7 @@ export class AgentOrchestratorService {
           }
 
           const summary: ToolCallSummary = {
-            creditsUsed: result.success ? creditCost : 0,
+            creditsUsed: isOrchestratorBilled ? creditCost : 0,
             durationMs,
             error: result.error,
             parameters: toolParams,

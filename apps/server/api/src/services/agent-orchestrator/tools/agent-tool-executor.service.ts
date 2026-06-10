@@ -5764,6 +5764,7 @@ export class AgentToolExecutorService {
       return {
         creditsUsed: 0,
         data: { status: Status.PROCESSING },
+        isBillingDelegated: true,
         nextActions: [
           {
             ctas: [{ href: '/library/images', label: 'Check gallery' }],
@@ -5804,6 +5805,7 @@ export class AgentToolExecutorService {
     return {
       creditsUsed: 0, // endpoint handles credits via CreditsInterceptor
       data: { id, status: Status.GENERATED, url: cdnUrl },
+      isBillingDelegated: true,
       nextActions: id
         ? [
             {
@@ -5998,6 +6000,7 @@ export class AgentToolExecutorService {
     return {
       creditsUsed: 0,
       data: { id, status: Status.GENERATED, url: cdnUrl },
+      isBillingDelegated: true,
       nextActions: id
         ? [
             {
@@ -6047,6 +6050,7 @@ export class AgentToolExecutorService {
     return {
       creditsUsed: 0,
       data: { id, status: Status.GENERATED, url: cdnUrl },
+      isBillingDelegated: true,
       nextActions: id
         ? [
             {
@@ -6095,6 +6099,7 @@ export class AgentToolExecutorService {
     return {
       creditsUsed: 0,
       data: { id, status: Status.GENERATED, url: cdnUrl },
+      isBillingDelegated: true,
       nextActions: id
         ? [
             {
@@ -7319,6 +7324,7 @@ export class AgentToolExecutorService {
           'Avatar video generation started using your identity (avatar + cloned voice).',
         status: 'processing',
       },
+      isBillingDelegated: true,
       nextActions: id
         ? [
             {

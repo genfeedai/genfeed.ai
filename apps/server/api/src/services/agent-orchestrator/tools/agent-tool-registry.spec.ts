@@ -35,6 +35,14 @@ describe('agent-tool-registry', () => {
     expect(uniqueNames.size).toBe(names.length);
   });
 
+  it('should set non-zero credit costs for generation tools', () => {
+    expect(AGENT_CREDIT_COSTS[AgentToolName.GENERATE_IMAGE]).toBe(50);
+    expect(AGENT_CREDIT_COSTS[AgentToolName.GENERATE_VIDEO]).toBe(300);
+    expect(AGENT_CREDIT_COSTS[AgentToolName.GENERATE_MUSIC]).toBe(10);
+    expect(AGENT_CREDIT_COSTS[AgentToolName.GENERATE_VOICE]).toBe(17);
+    expect(AGENT_CREDIT_COSTS[AgentToolName.GENERATE_AS_IDENTITY]).toBe(100);
+  });
+
   it('should set onboarding tool costs to zero', () => {
     expect(AGENT_CREDIT_COSTS[AgentToolName.CREATE_BRAND]).toBe(0);
     expect(AGENT_CREDIT_COSTS[AgentToolName.CHECK_ONBOARDING_STATUS]).toBe(0);
