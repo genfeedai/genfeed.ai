@@ -10,8 +10,8 @@ import {
   Square,
 } from 'lucide-react';
 import { type RefObject, useCallback, useMemo, useRef, useState } from 'react';
-import { useExecutionStore } from '../stores/executionStore';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useExecutionStore } from '../stores/execution';
+import { useWorkflowStore } from '../stores/workflow';
 import { Button } from '../ui/button';
 
 const MIN_BATCH = 1;

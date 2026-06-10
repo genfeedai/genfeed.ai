@@ -11,6 +11,7 @@ import {
   getPlaywrightAuthState,
   resolveClerkToken,
 } from '@helpers/auth/clerk.helper';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
 import { OnboardingFunnelService } from '@services/onboarding/onboarding-funnel.service';
@@ -43,6 +44,7 @@ function ChatWorkspaceLayoutClientContent({
   );
   const params = useParams<{ id?: string; threadId?: string }>();
   const { replace } = useRouter();
+  const { orgHref } = useOrgUrl();
   const searchParams = useSearchParams();
   const { getToken, isLoaded } = useAuth();
   const { session } = useSession();
@@ -58,7 +60,6 @@ function ChatWorkspaceLayoutClientContent({
   const isJourneyRoute = pathname.startsWith('/chat/journey');
   const isOnboarding = pathname.startsWith('/chat/onboarding');
   const isOnboardingEntryRoute = pathname === '/chat/onboarding';
-  const conversationBasePath = '/chat';
   const isStandardNewRoute = pathname === '/chat' || pathname === '/chat/new';
   const isUnthreadedRoute = isOnboardingEntryRoute || isStandardNewRoute;
   const prefillPrompt = searchParams.get('prompt')?.trim() || '';
@@ -114,11 +115,11 @@ function ChatWorkspaceLayoutClientContent({
         });
         const returnTo = isOnboarding
           ? threadId
-            ? `/chat/onboarding/${threadId}`
-            : '/chat/onboarding'
+            ? orgHref(`/chat/onboarding/${threadId}`)
+            : orgHref('/chat/onboarding')
           : threadId
-            ? `${conversationBasePath}/${threadId}`
-            : `${conversationBasePath}/new`;
+            ? orgHref(`/chat/${threadId}`)
+            : orgHref('/chat/new');
         const separator = credential.url.includes('?') ? '&' : '?';
         window.open(
           `${credential.url}${separator}return_to=${encodeURIComponent(returnTo)}`,
@@ -128,7 +129,7 @@ function ChatWorkspaceLayoutClientContent({
         logger.error('OAuth connect failed', error);
       }
     },
-    [getToken, isOnboarding, selectedBrand, threadId],
+    [getToken, isOnboarding, orgHref, selectedBrand, threadId],
   );
 
   // Bootstrap the prefilled prompt only on unthreaded entry routes.
@@ -193,8 +194,8 @@ function ChatWorkspaceLayoutClientContent({
       pendingNavigationThreadRef.current !== activeThreadId
     ) {
       const nextRoute = isOnboarding
-        ? `/chat/onboarding/${activeThreadId}`
-        : `${conversationBasePath}/${activeThreadId}`;
+        ? orgHref(`/chat/onboarding/${activeThreadId}`)
+        : orgHref(`/chat/${activeThreadId}`);
       newRouteBaselineThreadRef.current = activeThreadId;
       pendingNavigationThreadRef.current = activeThreadId;
       replace(nextRoute);
@@ -204,6 +205,7 @@ function ChatWorkspaceLayoutClientContent({
     isJourneyRoute,
     isOnboarding,
     isUnthreadedRoute,
+    orgHref,
     replace,
   ]);
 

@@ -52,7 +52,7 @@
     "url": "git+https://github.com/genfeedai/packages.git"
   },
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsc --build && test -f dist/index.js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "deps:update": "bunx npm-check-updates -u && bun install",
     "test": "vitest run --config vitest.config.ts",

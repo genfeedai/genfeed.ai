@@ -1,4 +1,6 @@
 import { authService } from '~services/auth.service';
+// Source of truth: EnvironmentService.apiEndpoint (environment.service.ts)
+import { apiEndpoint } from '~services/environment.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
 import type { ExtensionMessage } from '~types/extension';
 import { logger } from '~utils/logger.util';
@@ -6,8 +8,8 @@ import { logger } from '~utils/logger.util';
 // Type for Chrome extension sendResponse callback
 type SendResponse = (response?: Record<string, unknown>) => void;
 
-// API base URL
-const API_BASE = 'https://api.genfeed.ai';
+// API base URL — includes /v1 suffix; sourced from environment.service.ts apiEndpoint
+const API_BASE = apiEndpoint;
 
 initializeErrorTracking('background');
 
@@ -1107,7 +1109,7 @@ async function handleChatCreateThread(
   sendResponse: SendResponse,
 ): Promise<void> {
   await executeAuthenticatedRequest<{ data?: { id?: string } }>(
-    '/v1/threads',
+    '/threads',
     {
       body: JSON.stringify({
         brand: payload.brandId,
@@ -1155,7 +1157,7 @@ async function handleChatSendMessage(
       };
     };
   }>(
-    `/v1/threads/${payload.threadId}/messages`,
+    `/threads/${payload.threadId}/messages`,
     {
       body: JSON.stringify({
         brandId: payload.brandId,
@@ -1200,7 +1202,7 @@ async function handleChatGetThreads(
   await executeAuthenticatedRequest<{
     data?: Array<{ id: string; attributes: Record<string, unknown> }>;
   }>(
-    `/v1/threads?page=${page}&limit=${limit}`,
+    `/threads?page=${page}&limit=${limit}`,
     { method: 'GET' },
     sendResponse,
     (data) => {
@@ -1230,7 +1232,7 @@ async function handleChatGetMessages(
   await executeAuthenticatedRequest<{
     data?: Array<{ id: string; attributes: Record<string, unknown> }>;
   }>(
-    `/v1/threads/${payload.threadId}/messages?page=${page}&limit=${limit}`,
+    `/threads/${payload.threadId}/messages?page=${page}&limit=${limit}`,
     { method: 'GET' },
     sendResponse,
     (data) => {
@@ -1248,7 +1250,7 @@ async function handleGetBrands(sendResponse: SendResponse): Promise<void> {
   await executeAuthenticatedRequest<{
     data?: Array<{ id: string; attributes: Record<string, unknown> }>;
   }>(
-    '/v1/brands',
+    '/brands',
     { method: 'GET' },
     sendResponse,
     (data) => {
@@ -1277,7 +1279,7 @@ async function handleGetBrandVoice(
   await executeAuthenticatedRequest<{
     data?: Array<{ attributes: { branding?: Record<string, unknown> } }>;
   }>(
-    `/v1/knowledge-bases?brand=${payload.brandId}&limit=1`,
+    `/knowledge-bases?brand=${payload.brandId}&limit=1`,
     { method: 'GET' },
     sendResponse,
     (data) => {
@@ -1306,7 +1308,7 @@ async function handleGetCredentials(
   await executeAuthenticatedRequest<{
     data?: Array<{ id: string; attributes: Record<string, unknown> }>;
   }>(
-    `/v1/credentials?brand=${payload.brandId}`,
+    `/credentials?brand=${payload.brandId}`,
     { method: 'GET' },
     sendResponse,
     (data) => {

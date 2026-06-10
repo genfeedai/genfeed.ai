@@ -5,7 +5,7 @@ import type { NodeProps } from '@xyflow/react';
 import { Expand, Link, Music, Upload, X } from 'lucide-react';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { useUIStore } from '../../stores/uiStore';
-import { useWorkflowStore } from '../../stores/workflowStore';
+import { useWorkflowStore } from '../../stores/workflow';
 import { Button } from '../../ui/button';
 import { BaseNode } from '../BaseNode';
 

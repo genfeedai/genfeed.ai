@@ -8,6 +8,7 @@ import {
   getPublisherPostsHref,
   normalizePublisherPostsStatus,
 } from '@helpers/content/posts.helper';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -45,6 +46,7 @@ function PostsLayoutContentContent({ children }: { children: ReactNode }) {
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
   );
+  const { href } = useOrgUrl();
 
   const [refreshFn, setRefreshFn] = useState<
     RefreshFunction | (() => RefreshFunction) | null
@@ -57,41 +59,56 @@ function PostsLayoutContentContent({ children }: { children: ReactNode }) {
   const [scheduleActionsNode, setScheduleActionsNode] =
     useState<ReactNode>(null);
 
-  const knownSubRoutes: string[] = [];
+  // Named sub-route segments that exist under /posts/ (not post-detail pages)
+  const knownSubRoutes = [
+    'analytics',
+    'calendar',
+    'newsletters',
+    'remix',
+    'review',
+  ];
   const lastSegment = pathname?.split('/').pop();
   const isDetailRoute =
     pathname?.match(/^\/posts\/[^/]+$/) &&
     !knownSubRoutes.includes(lastSegment ?? '');
   const activeTab = useMemo(() => {
-    return getPublisherPostsHref({
-      platform: parsedSearchParams.get('platform'),
-      status: normalizePublisherPostsStatus(parsedSearchParams.get('status')),
-    });
-  }, [parsedSearchParams]);
+    return href(
+      getPublisherPostsHref({
+        platform: parsedSearchParams.get('platform'),
+        status: normalizePublisherPostsStatus(parsedSearchParams.get('status')),
+      }),
+    );
+  }, [href, parsedSearchParams]);
   const tabs = useMemo(
     () => [
       {
-        href: getPublisherPostsHref({
-          platform: parsedSearchParams.get('platform'),
-        }),
+        href: href(
+          getPublisherPostsHref({
+            platform: parsedSearchParams.get('platform'),
+          }),
+        ),
         label: 'Drafts',
       },
       {
-        href: getPublisherPostsHref({
-          platform: parsedSearchParams.get('platform'),
-          status: 'scheduled',
-        }),
+        href: href(
+          getPublisherPostsHref({
+            platform: parsedSearchParams.get('platform'),
+            status: 'scheduled',
+          }),
+        ),
         label: 'Scheduled',
       },
       {
-        href: getPublisherPostsHref({
-          platform: parsedSearchParams.get('platform'),
-          status: 'public',
-        }),
+        href: href(
+          getPublisherPostsHref({
+            platform: parsedSearchParams.get('platform'),
+            status: 'public',
+          }),
+        ),
         label: 'Published',
       },
     ],
-    [parsedSearchParams],
+    [href, parsedSearchParams],
   );
 
   const handleRefresh = useCallback(() => {

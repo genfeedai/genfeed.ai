@@ -1,7 +1,7 @@
 import { NodeStatusEnum } from '@genfeedai/types';
 import { useCallback } from 'react';
-import { useExecutionStore } from '../stores/executionStore';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useExecutionStore } from '../stores/execution';
+import { useWorkflowStore } from '../stores/workflow';
 
 /**
  * Hook for triggering and stopping node execution

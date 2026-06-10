@@ -7,7 +7,7 @@
 @.agents/memory/context/skills-architecture.md
 
 TypeScript monorepo: 6 app surfaces, 12 backend services, 43 shared packages.
-Stack: Next.js + NestJS + MongoDB + Redis + BullMQ
+Stack: Next.js + NestJS + PostgreSQL (Prisma) + Redis + BullMQ
 
 ## Git Workflow
 
@@ -125,7 +125,7 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 
 ### Infrastructure
 - **Self-hosted**: Docker deployment (see `docs/self-hosting.md`)
-- **Database**: MongoDB
+- **Database**: PostgreSQL (via Prisma ORM — `packages/prisma/`)
 - **Cache/Queue**: Redis + BullMQ
 - **Auth**: Clerk
 - **Monitoring**: Sentry

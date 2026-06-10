@@ -1,6 +1,9 @@
 import {
   BaseBotManager,
+  type BotHttpAdapter,
+  BotInternalApiClient,
   extractWorkflowExecutionSnapshot,
+  extractWorkflowInputs,
   extractWorkflowOutputsFromExecution,
   IMAGE_MODELS,
   IntegrationEvent,
@@ -9,7 +12,7 @@ import {
   REDIS_EVENTS,
   UserSettings,
   VIDEO_MODELS,
-  WorkflowInput,
+  WorkflowDefinition,
   WorkflowSession,
 } from '@genfeedai/integrations';
 import { RedisService } from '@libs/redis/redis.service';
@@ -26,20 +29,28 @@ interface SlackBotInstance {
   integration: OrgIntegration;
 }
 
-interface WorkflowDefinition {
-  id: string;
-  name: string;
-  description?: string;
-  nodes?: Record<string, WorkflowNode>;
-}
-
-interface WorkflowNode {
-  type: string;
-  data?: {
-    label?: string;
-    inputType?: 'text' | 'image';
-    defaultValue?: string;
-    required?: boolean;
+/**
+ * Build the BotHttpAdapter that wraps NestJS HttpService + RxJS firstValueFrom
+ * into the framework-agnostic interface BotInternalApiClient expects.
+ */
+function makeBotHttpAdapter(httpService: HttpService): BotHttpAdapter {
+  return {
+    async get<T>(url: string, headers?: Record<string, string>): Promise<T> {
+      const response = await firstValueFrom(
+        httpService.get<T>(url, headers ? { headers } : undefined),
+      );
+      return response.data;
+    },
+    async post<T>(
+      url: string,
+      body: unknown,
+      headers?: Record<string, string>,
+    ): Promise<T> {
+      const response = await firstValueFrom(
+        httpService.post<T>(url, body, headers ? { headers } : undefined),
+      );
+      return response.data;
+    },
   };
 }
 
@@ -59,6 +70,7 @@ export class SlackBotManager
   private redisSubscribed = false;
   private readonly sessions = new Map<string, WorkflowSession>();
   private readonly userSettings = new Map<string, UserSettings>();
+  private readonly internalApiClient: BotInternalApiClient;
 
   constructor(
     private readonly configService: ConfigService,
@@ -66,6 +78,12 @@ export class SlackBotManager
     private readonly redisService: RedisService,
   ) {
     super();
+    this.internalApiClient = new BotInternalApiClient({
+      apiUrl: this.configService.API_URL,
+      apiKey: this.configService.API_KEY,
+      platform: this.platform,
+      http: makeBotHttpAdapter(this.httpService),
+    });
   }
 
   async onModuleInit() {
@@ -101,7 +119,14 @@ export class SlackBotManager
   async shutdown(): Promise<void> {
     this.logger.log('Shutting down Slack Bot Manager');
 
-    await this.unsubscribeFromIntegrationEvents();
+    // NOTE: We intentionally do NOT call redisService.unsubscribe() on the
+    // shared integration channels (INTEGRATION_CREATED / UPDATED / DELETED)
+    // during shutdown.  RedisService only supports channel-level unsubscribe;
+    // there is no per-handler granularity.  Unsubscribing the channel would
+    // remove ALL platform handlers that were registered on it (including those
+    // belonging to the Discord and Telegram managers), starving their hot-reload
+    // subscriptions when this service restarts.  The Redis client connections
+    // are torn down by RedisService.onModuleDestroy() when the process exits.
 
     for (const [, botInstance] of this.bots.entries()) {
       await this.destroyBotInstance(botInstance);
@@ -349,81 +374,11 @@ export class SlackBotManager
     this.logger.log('Subscribed to Slack integration Redis events');
   }
 
-  private async unsubscribeFromIntegrationEvents(): Promise<void> {
-    if (!this.redisSubscribed) {
-      return;
-    }
-
-    const results = await Promise.allSettled(
-      this.integrationEvents.map((event) =>
-        this.redisService.unsubscribe(event),
-      ),
-    );
-
-    for (const result of results) {
-      if (result.status === 'rejected') {
-        this.logger.warn(
-          'Failed to unsubscribe from one or more Redis channels',
-          this.sanitizeErrorForLog(result.reason),
-        );
-      }
-    }
-
-    this.redisSubscribed = false;
-  }
-
   // --- API fetch methods ---
 
-  private normalizeIntegration(payload: unknown): OrgIntegration | null {
-    if (!payload || typeof payload !== 'object') {
-      return null;
-    }
-
-    const raw = payload as Record<string, unknown>;
-    const rawId = raw.id ?? raw._id;
-    const rawOrgId = raw.orgId ?? raw.organization;
-    const rawToken = raw.botToken;
-
-    if (!rawId || !rawOrgId || !rawToken) {
-      return null;
-    }
-
-    return {
-      botToken: String(rawToken),
-      config: (raw.config as OrgIntegration['config']) || {},
-      createdAt: raw.createdAt ? new Date(raw.createdAt as string) : new Date(),
-      id: String(rawId),
-      orgId: String(rawOrgId),
-      platform: this.platform,
-      status: (raw.status as OrgIntegration['status'] | undefined) || 'active',
-      updatedAt: raw.updatedAt ? new Date(raw.updatedAt as string) : new Date(),
-    };
-  }
-
-  private normalizeIntegrations(payload: unknown): OrgIntegration[] {
-    if (!Array.isArray(payload)) {
-      return [];
-    }
-
-    return payload
-      .map((integration) => this.normalizeIntegration(integration))
-      .filter(
-        (integration): integration is OrgIntegration => integration !== null,
-      );
-  }
-
-  private async fetchActiveIntegrations(): Promise<OrgIntegration[]> {
+  async fetchActiveIntegrations(): Promise<OrgIntegration[]> {
     try {
-      const apiKey = this.configService.API_KEY;
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.configService.API_URL}/v1/internal/integrations/slack`,
-          {
-            headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
-          },
-        ),
-      );
-      return this.normalizeIntegrations(response.data);
+      return await this.internalApiClient.fetchActiveIntegrations();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       const status = (error as { response?: { status?: number } })?.response
@@ -449,16 +404,8 @@ export class SlackBotManager
 
   protected async fetchAndAddIntegration(integrationId: string): Promise<void> {
     try {
-      const apiKey = this.configService.API_KEY;
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.configService.API_URL}/v1/internal/integrations/slack/${integrationId}`,
-          {
-            headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
-          },
-        ),
-      );
-      const integration = this.normalizeIntegration(response.data);
+      const integration =
+        await this.internalApiClient.fetchIntegration(integrationId);
       if (!integration) {
         this.logger.warn(
           `Unable to normalize Slack integration payload: ${integrationId}`,
@@ -478,16 +425,8 @@ export class SlackBotManager
     integrationId: string,
   ): Promise<void> {
     try {
-      const apiKey = this.configService.API_KEY;
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.configService.API_URL}/v1/internal/integrations/slack/${integrationId}`,
-          {
-            headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
-          },
-        ),
-      );
-      const integration = this.normalizeIntegration(response.data);
+      const integration =
+        await this.internalApiClient.fetchIntegration(integrationId);
       if (!integration) {
         this.logger.warn(
           `Unable to normalize Slack integration payload: ${integrationId}`,
@@ -507,12 +446,7 @@ export class SlackBotManager
     orgId: string,
   ): Promise<WorkflowDefinition[]> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.configService.API_URL}/v1/orgs/${orgId}/workflows`,
-        ),
-      );
-      return response.data;
+      return await this.internalApiClient.fetchOrgWorkflows(orgId);
     } catch (error) {
       this.logger.error(
         'Failed to fetch workflows',
@@ -672,14 +606,12 @@ export class SlackBotManager
     respond: (msg: any) => Promise<unknown>,
   ) {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.configService.API_URL}/v1/orgs/${orgId}/workflows/${workflowId}`,
-        ),
+      const workflow = await this.internalApiClient.fetchWorkflow(
+        orgId,
+        workflowId,
       );
 
-      const workflow: WorkflowDefinition = response.data;
-      const requiredInputs = this.extractWorkflowInputs(workflow);
+      const requiredInputs = extractWorkflowInputs(workflow);
 
       const session = this.getSession(userId);
       if (!session) {
@@ -709,28 +641,6 @@ export class SlackBotManager
         text: 'Failed to load workflow details. Please try again.',
       });
     }
-  }
-
-  private extractWorkflowInputs(workflow: WorkflowDefinition): WorkflowInput[] {
-    const inputs: WorkflowInput[] = [];
-
-    if (!workflow.nodes) {
-      return inputs;
-    }
-
-    for (const [nodeId, node] of Object.entries(workflow.nodes)) {
-      if (node.type === 'input' && node.data) {
-        inputs.push({
-          defaultValue: node.data.defaultValue,
-          inputType: node.data.inputType || 'text',
-          label: node.data.label || nodeId,
-          nodeId,
-          required: node.data.required !== false,
-        });
-      }
-    }
-
-    return inputs;
   }
 
   private async promptNextInput(
@@ -1119,28 +1029,5 @@ export class SlackBotManager
       });
       this.deleteSession(userId);
     }
-  }
-
-  /**
-   * Sanitize an error object before logging to prevent Authorization headers
-   * or other sensitive fields from appearing in log output.
-   */
-  private sanitizeError(error: unknown): Record<string, unknown> {
-    if (!(error instanceof Error)) {
-      return { message: String(error) };
-    }
-
-    const axiosError = error as {
-      message: string;
-      response?: { status?: number; statusText?: string };
-      config?: { url?: string };
-    };
-
-    return {
-      message: axiosError.message,
-      responseStatus: axiosError.response?.status,
-      responseStatusText: axiosError.response?.statusText,
-      url: axiosError.config?.url,
-    };
   }
 }

@@ -13,7 +13,14 @@ vi.mock(
   }),
 );
 
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: vi.fn(() => ({
+    selectedBrand: null,
+  })),
+}));
+
 vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'acme-creator', orgSlug: 'acme-org' }),
   useRouter: vi.fn(() => ({
     replace: vi.fn(),
   })),

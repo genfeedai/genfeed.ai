@@ -64,6 +64,12 @@ vi.mock('@genfeedai/integrations', () => ({
     }
     async handleRedisEvent() {}
   },
+  BotInternalApiClient: class {
+    fetchActiveIntegrations = vi.fn().mockResolvedValue([]);
+    fetchIntegration = vi.fn().mockResolvedValue(null);
+    fetchOrgWorkflows = vi.fn().mockResolvedValue([]);
+    fetchWorkflow = vi.fn().mockResolvedValue(null);
+  },
   IMAGE_MODELS: ['flux-pro', 'sdxl'],
   REDIS_EVENTS: {
     INTEGRATION_CREATED: 'integration:created',
@@ -71,6 +77,11 @@ vi.mock('@genfeedai/integrations', () => ({
     INTEGRATION_UPDATED: 'integration:updated',
   },
   VIDEO_MODELS: ['kling', 'runway'],
+  WorkflowDefinition: {},
+  extractWorkflowExecutionSnapshot: vi.fn(),
+  extractWorkflowInputs: vi.fn().mockReturnValue([]),
+  extractWorkflowOutputsFromExecution: vi.fn().mockReturnValue([]),
+  isWorkflowExecutionTerminalStatus: vi.fn().mockReturnValue(false),
 }));
 
 import { firstValueFrom } from 'rxjs';
@@ -169,9 +180,12 @@ describe('TelegramBotManager', () => {
     expect(manager.getActiveCount()).toBe(0);
   });
 
-  it('should unsubscribe from redis on shutdown', async () => {
+  it('should NOT unsubscribe shared Redis channels on shutdown (starves other bots)', async () => {
+    // Shared integration channels are intentionally not unsubscribed because
+    // RedisService has no per-handler granularity — unsubscribing would starve
+    // Discord and Slack managers.  Cleanup happens in RedisService.onModuleDestroy.
     await manager.initialize();
     await manager.shutdown();
-    expect(mockRedisService.unsubscribe).toHaveBeenCalled();
+    expect(mockRedisService.unsubscribe).not.toHaveBeenCalled();
   });
 });

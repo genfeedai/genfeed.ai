@@ -28,6 +28,8 @@ export class CreateWorkflowExecutionDto {
     description: 'Input values for workflow variables',
     required: false,
   })
+  @IsOptional()
+  @IsObject()
   readonly inputValues?: Record<string, unknown>;
 
   @IsObject()

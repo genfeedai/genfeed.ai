@@ -1,6 +1,5 @@
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { describe, expect, it } from 'vitest';
-
-import { getErrorMessage } from './get-error-message.util';
 
 describe('getErrorMessage', () => {
   it('returns error.message for Error instances', () => {

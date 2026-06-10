@@ -3,6 +3,7 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   buildRoleStrategyInput,
   CONTENT_TEAM_ROLE_PRESETS,
@@ -39,6 +40,7 @@ interface HireFormState {
 
 export default function ContentTeamHirePage() {
   const { push } = useRouter();
+  const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
   const { brandId, brands } = useBrand();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -100,7 +102,7 @@ export default function ContentTeamHirePage() {
         });
 
         notificationsService.success('Agent hired successfully');
-        push('/orchestration');
+        push(href('/orchestration'));
       } catch (error) {
         logger.error('Failed to hire content team agent', { error });
         notificationsService.error('Unable to hire agent');
@@ -118,6 +120,7 @@ export default function ContentTeamHirePage() {
       form.sharedTopic,
       form.teamGroup,
       getStrategiesService,
+      href,
       notificationsService,
       push,
       selectedPreset,
@@ -293,7 +296,7 @@ export default function ContentTeamHirePage() {
             />
             <Button
               label="Cancel"
-              onClick={() => push('/orchestration')}
+              onClick={() => push(href('/orchestration'))}
               type="button"
               variant={ButtonVariant.SECONDARY}
             />

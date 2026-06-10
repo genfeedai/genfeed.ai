@@ -124,7 +124,7 @@ export function getPublisherPostsHref({
   }
 
   const queryString = params.toString();
-  return queryString ? `/content/posts?${queryString}` : '/content/posts';
+  return queryString ? `/posts?${queryString}` : '/posts';
 }
 
 export function getPostStatusOptions(

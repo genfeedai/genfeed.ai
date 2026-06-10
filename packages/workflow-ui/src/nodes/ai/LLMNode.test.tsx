@@ -31,7 +31,7 @@ vi.mock('../BaseNode', () => ({
 const mockUpdateNodeData = vi.fn();
 const mockOpenNodeDetailModal = vi.fn();
 
-vi.mock('../../stores/workflowStore', () => ({
+vi.mock('../../stores/workflow', () => ({
   useWorkflowStore: Object.assign(
     (selector: (state: unknown) => unknown) => {
       const state = {

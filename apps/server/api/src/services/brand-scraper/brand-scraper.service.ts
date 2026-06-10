@@ -1,3 +1,4 @@
+import { assertHostNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import type {
   BrandScrapeSources,
   LinkedInScrapedData,
@@ -902,8 +903,12 @@ export class BrandScraperService {
         return { error: 'Invalid domain', isValid: false };
       }
 
-      const blockedDomains = ['localhost', '127.0.0.1', '0.0.0.0'];
-      if (blockedDomains.some((d) => parsedUrl.hostname.includes(d))) {
+      // Shared SSRF blocklist: loopback, RFC-1918, link-local/cloud
+      // metadata, internal TLDs. The previous three-string check left
+      // 169.254.169.254 and all private ranges fetchable.
+      try {
+        assertHostNotPrivate(parsedUrl.hostname);
+      } catch {
         return { error: 'Local URLs are not allowed', isValid: false };
       }
 

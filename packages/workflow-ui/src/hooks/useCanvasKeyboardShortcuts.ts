@@ -2,7 +2,7 @@ import type { NodeType, WorkflowNode } from '@genfeedai/types';
 import type { FitViewOptions } from '@xyflow/react';
 import { useEffect } from 'react';
 import { createIdLookup, filterItemsByIdLookup, hasSomeId } from '../lib';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 import type { NodeGroup } from '../types/groups';
 
 interface UseCanvasKeyboardShortcutsParams {

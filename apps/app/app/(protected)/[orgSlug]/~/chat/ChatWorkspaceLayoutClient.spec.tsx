@@ -9,7 +9,10 @@ const completeFunnel = vi.fn();
 const touchSession = vi.fn();
 
 const navigationState = {
-  params: {} as { id?: string; threadId?: string },
+  params: {
+    orgSlug: 'acme-org',
+    brandSlug: 'acme-creator',
+  } as { id?: string; threadId?: string; orgSlug?: string; brandSlug?: string },
   pathname: '/chat/new',
   searchParams: new URLSearchParams(),
 };
@@ -93,7 +96,7 @@ vi.mock('next/navigation', () => ({
 
 describe('ChatWorkspaceLayoutClient', () => {
   beforeEach(() => {
-    navigationState.params = {};
+    navigationState.params = { orgSlug: 'acme-org', brandSlug: 'acme-creator' };
     navigationState.pathname = '/chat/new';
     navigationState.searchParams = new URLSearchParams();
     storeState.activeThreadId = 'thread-existing';
@@ -138,7 +141,7 @@ describe('ChatWorkspaceLayoutClient', () => {
     );
 
     await waitFor(() => {
-      expect(routerReplace).toHaveBeenCalledWith('/chat/thread-new');
+      expect(routerReplace).toHaveBeenCalledWith('/acme-org/~/chat/thread-new');
     });
   });
 
@@ -182,7 +185,9 @@ describe('ChatWorkspaceLayoutClient', () => {
     );
 
     await waitFor(() => {
-      expect(routerReplace).toHaveBeenCalledWith('/chat/onboarding/thread-new');
+      expect(routerReplace).toHaveBeenCalledWith(
+        '/acme-org/~/chat/onboarding/thread-new',
+      );
     });
   });
 

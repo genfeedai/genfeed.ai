@@ -17,9 +17,9 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { useExecutionStore } from '../../stores/executionStore';
+import { useExecutionStore } from '../../stores/execution';
 import { useUIStore } from '../../stores/uiStore';
-import { useWorkflowStore } from '../../stores/workflowStore';
+import { useWorkflowStore } from '../../stores/workflow';
 import { Button } from '../../ui/button';
 import { Checkbox } from '../../ui/checkbox';
 import { ComparisonSlider } from '../../ui/comparison-slider';

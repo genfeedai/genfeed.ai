@@ -153,7 +153,9 @@ describe('TrendRemixPage', () => {
       );
     });
 
-    expect(replaceMock).toHaveBeenCalledWith('/posts?platform=twitter');
+    expect(replaceMock).toHaveBeenCalledWith(
+      '/moonrise-org/moonrise-studio/posts?platform=twitter',
+    );
     expect(desktopRuntimeMocks.getDesktopBridge).not.toHaveBeenCalled();
   });
 });

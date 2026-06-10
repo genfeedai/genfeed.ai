@@ -26,7 +26,7 @@
     "url": "git+https://github.com/genfeedai/packages.git"
   },
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsc --build && test -f dist/index.js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit"

@@ -73,22 +73,21 @@ export class StripeWebhookController {
       const publisher = this.redisService.getPublisher();
 
       if (publisher) {
-        const alreadyProcessed = await publisher.get(idempotencyKey);
+        // Atomic SET NX: GET-then-SETEX was a TOCTOU race — two concurrent
+        // deliveries of the same event both saw null and both processed.
+        const acquired = await publisher.set(
+          idempotencyKey,
+          new Date().toISOString(),
+          { EX: WEBHOOK_IDEMPOTENCY_TTL, NX: true },
+        );
 
-        if (alreadyProcessed) {
+        if (!acquired) {
           this.loggerService.log(`${url} duplicate event skipped`, {
             id: event.id,
             type: event.type,
           });
           return { success: true };
         }
-
-        // Mark as processing before handling (set-if-not-exists with TTL)
-        await publisher.setEx(
-          idempotencyKey,
-          WEBHOOK_IDEMPOTENCY_TTL,
-          new Date().toISOString(),
-        );
       }
 
       await this.stripeWebhookService.handleWebhookEvent(event, url);

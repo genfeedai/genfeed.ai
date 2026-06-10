@@ -1,3 +1,4 @@
+import { ConfigService } from '@api/config/config.service';
 import { OpusProWebhookController } from '@api/endpoints/webhooks/opuspro/webhooks.opuspro.controller';
 import { OpusProWebhookService } from '@api/endpoints/webhooks/opuspro/webhooks.opuspro.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
@@ -6,6 +7,10 @@ import { IngredientCategory } from '@genfeedai/enums';
 import type { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+
+function mockTokenRequest() {
+  return { headers: {}, query: {} } as unknown as import('express').Request;
+}
 
 describe('OpusProWebhookController', () => {
   let controller: OpusProWebhookController;
@@ -17,6 +22,10 @@ describe('OpusProWebhookController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OpusProWebhookController],
       providers: [
+        {
+          provide: ConfigService,
+          useValue: { get: vi.fn().mockReturnValue(undefined) },
+        },
         {
           provide: OpusProWebhookService,
           useValue: {
@@ -36,6 +45,7 @@ describe('OpusProWebhookController', () => {
           useValue: {
             error: vi.fn(),
             log: vi.fn(),
+            warn: vi.fn(),
           },
         },
       ],
@@ -70,7 +80,10 @@ describe('OpusProWebhookController', () => {
         undefined as never,
       );
 
-      const result = await controller.handleCallback(payload);
+      const result = await controller.handleCallback(
+        mockTokenRequest(),
+        payload,
+      );
 
       expect(loggerService.log).toHaveBeenCalledWith(
         expect.stringContaining('OpusProWebhookController'),
@@ -106,7 +119,10 @@ describe('OpusProWebhookController', () => {
       opusProWebhookService.handleCallback.mockResolvedValue(undefined);
       webhooksService.handleFailedGeneration.mockResolvedValue(undefined);
 
-      const result = await controller.handleCallback(payload);
+      const result = await controller.handleCallback(
+        mockTokenRequest(),
+        payload,
+      );
 
       expect(opusProWebhookService.handleCallback).toHaveBeenCalledWith(
         payload,
@@ -132,7 +148,7 @@ describe('OpusProWebhookController', () => {
       opusProWebhookService.handleCallback.mockResolvedValue(undefined);
       webhooksService.handleFailedGeneration.mockResolvedValue(undefined);
 
-      await controller.handleCallback(payload);
+      await controller.handleCallback(mockTokenRequest(), payload);
 
       expect(webhooksService.handleFailedGeneration).toHaveBeenCalledWith(
         'callback_789',
@@ -147,7 +163,10 @@ describe('OpusProWebhookController', () => {
 
       opusProWebhookService.extractVideoUrl.mockReturnValue(null);
 
-      const result = await controller.handleCallback(payload);
+      const result = await controller.handleCallback(
+        mockTokenRequest(),
+        payload,
+      );
 
       expect(opusProWebhookService.handleCallback).not.toHaveBeenCalled();
       expect(webhooksService.processMediaFromWebhook).not.toHaveBeenCalled();
@@ -165,7 +184,10 @@ describe('OpusProWebhookController', () => {
       opusProWebhookService.extractVideoUrl.mockReturnValue(null);
       opusProWebhookService.handleCallback.mockResolvedValue(undefined);
 
-      const result = await controller.handleCallback(payload);
+      const result = await controller.handleCallback(
+        mockTokenRequest(),
+        payload,
+      );
 
       expect(opusProWebhookService.handleCallback).toHaveBeenCalledWith(
         payload,
@@ -184,7 +206,10 @@ describe('OpusProWebhookController', () => {
       opusProWebhookService.extractVideoUrl.mockReturnValue(null);
       opusProWebhookService.handleCallback.mockResolvedValue(undefined);
 
-      const result = await controller.handleCallback(payload);
+      const result = await controller.handleCallback(
+        mockTokenRequest(),
+        payload,
+      );
 
       expect(opusProWebhookService.handleCallback).toHaveBeenCalledWith(
         payload,
@@ -209,9 +234,9 @@ describe('OpusProWebhookController', () => {
       );
       opusProWebhookService.handleCallback.mockRejectedValue(error);
 
-      await expect(controller.handleCallback(payload)).rejects.toThrow(
-        'Database connection failed',
-      );
+      await expect(
+        controller.handleCallback(mockTokenRequest(), payload),
+      ).rejects.toThrow('Database connection failed');
 
       expect(loggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('OpusProWebhookController'),
@@ -234,9 +259,9 @@ describe('OpusProWebhookController', () => {
       opusProWebhookService.handleCallback.mockResolvedValue(undefined);
       webhooksService.processMediaFromWebhook.mockRejectedValue(error);
 
-      await expect(controller.handleCallback(payload)).rejects.toThrow(
-        'Webhook service failed',
-      );
+      await expect(
+        controller.handleCallback(mockTokenRequest(), payload),
+      ).rejects.toThrow('Webhook service failed');
 
       expect(loggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('failed'),

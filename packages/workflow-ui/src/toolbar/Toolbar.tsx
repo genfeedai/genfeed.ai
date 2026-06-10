@@ -22,10 +22,10 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { useExecutionStore } from '../stores/executionStore';
+import { useExecutionStore } from '../stores/execution';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useUIStore } from '../stores/uiStore';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 import { Button } from '../ui/button';
 import { SaveAsDialog } from './SaveAsDialog';
 import { SaveIndicator } from './SaveIndicator';

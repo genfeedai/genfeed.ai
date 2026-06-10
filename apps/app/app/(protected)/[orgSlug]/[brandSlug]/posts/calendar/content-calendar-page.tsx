@@ -11,6 +11,7 @@ import {
 import type { IArticle } from '@genfeedai/interfaces';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
 import type { Post } from '@models/content/post.model';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
@@ -80,6 +81,7 @@ function isPostDisabled(post: Post): boolean {
 export default function ContentCalendarPage(): React.JSX.Element {
   const { brandId } = useBrand();
   const { push } = useRouter();
+  const { href } = useOrgUrl();
 
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
@@ -186,7 +188,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
   const filterControls = (
     <div className="flex items-center gap-2">
       <Link
-        href={getPublisherPostsHref()}
+        href={href(getPublisherPostsHref())}
         className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9 transition-colors"
       >
         <HiListBullet />
