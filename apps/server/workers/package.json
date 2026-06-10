@@ -25,7 +25,7 @@
     "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start workers --watch",
     "lint": "biome lint --write src --no-errors-on-unmatched",
     "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project workers-genfeed-ai ../dist",
-    "sentry:sourcemaps": "bun run sentry:inject && bun run sentry:upload",
+    "sentry:sourcemaps": "[ -z \"$SENTRY_AUTH_TOKEN\" ] && echo 'Sentry upload skipped (no token)' || (bun run sentry:inject && bun run sentry:upload)",
     "sentry:upload": "sentry-cli sourcemaps upload --org genfeedai --project workers-genfeed-ai ../dist",
     "start": "cd .. && nest start workers",
     "start:debug": "cd .. && nest start workers --debug --watch",
