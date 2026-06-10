@@ -8,7 +8,7 @@ export default defineConfig({
     'topological-sort': 'src/topological-sort.ts',
     validation: 'src/validation.ts',
   },
-  external: ['@genfeedai/types'],
+  external: ['@genfeedai/pricing', '@genfeedai/types'],
   format: ['esm'],
   sourcemap: true,
   splitting: true,

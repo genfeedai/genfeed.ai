@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@genfeedai/pricing": "workspace:*",
     "@genfeedai/types": "workspace:*"
   },
   "description": "Core utilities for Genfeed workflow engine",

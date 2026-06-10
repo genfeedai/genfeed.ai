@@ -17,6 +17,8 @@
       "@genfeedai/enums/*": ["../enums/src/*"],
       "@genfeedai/helpers": ["../helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../helpers/src/*"],
+      "@genfeedai/pricing": ["../pricing/src/index.ts"],
+      "@genfeedai/pricing/*": ["../pricing/src/*"],
       "@genfeedai/hooks/*": ["../hooks/*"],
       "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../interfaces/src/*"],

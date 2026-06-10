@@ -9,6 +9,8 @@
     "paths": {
       "@genfeedai/config": ["./src/index.ts"],
       "@genfeedai/config/*": ["./src/*"],
+      "@genfeedai/pricing": ["../pricing/src/index.ts"],
+      "@genfeedai/pricing/*": ["../pricing/src/*"],
       "@config/*": ["./src/*"]
     },
     "rootDir": "./src",
@@ -17,5 +19,10 @@
   },
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"],
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "references": [
+    {
+      "path": "../pricing"
+    }
+  ]
 }

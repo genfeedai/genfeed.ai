@@ -37,6 +37,8 @@
       "@genfeedai/constants/*": ["../../packages/constants/src/*"],
       "@genfeedai/helpers": ["../../packages/helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../../packages/helpers/src/*"],
+      "@genfeedai/pricing": ["../../packages/pricing/src/index.ts"],
+      "@genfeedai/pricing/*": ["../../packages/pricing/src/*"],
       "@genfeedai/hooks/*": ["../../packages/hooks/*"],
       "@helpers/*": ["../../packages/helpers/src/*"],
       "@hooks/*": ["../../packages/hooks/*"],

@@ -3,6 +3,7 @@
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
+    "@genfeedai/pricing": "workspace:*",
     "clsx": "2.1.1",
     "tailwind-merge": "3.6.0",
     "ts-jsonapi": "2.1.3"

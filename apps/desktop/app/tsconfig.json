@@ -24,6 +24,8 @@
       "@genfeedai/enums/*": ["../../../packages/enums/src/*"],
       "@genfeedai/helpers": ["../../../packages/helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../../../packages/helpers/src/*"],
+      "@genfeedai/pricing": ["../../../packages/pricing/src/index.ts"],
+      "@genfeedai/pricing/*": ["../../../packages/pricing/src/*"],
       "@genfeedai/hooks/*": ["../../../packages/hooks/*"],
       "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
