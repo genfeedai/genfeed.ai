@@ -355,6 +355,7 @@ jobs:
           scp $SSH_OPTS docker/${COMPOSE_FILE} ${EC2_USER}@${API_IP}:./cloud/docker/${COMPOSE_FILE}
           scp $SSH_OPTS docker/${DEPLOY_SCRIPT} ${EC2_USER}@${API_IP}:./cloud/docker/${DEPLOY_SCRIPT}
           scp $SSH_OPTS docker/render-ssm-env.sh ${EC2_USER}@${API_IP}:./cloud/docker/render-ssm-env.sh
+          scp $SSH_OPTS docker/deploy-common.sh ${EC2_USER}@${API_IP}:./cloud/docker/deploy-common.sh
           ssh $SSH_OPTS ${EC2_USER}@${API_IP} "chmod +x ./cloud/docker/${DEPLOY_SCRIPT}"
           ssh $SSH_OPTS ${EC2_USER}@${API_IP} "chmod +x ./cloud/docker/render-ssm-env.sh"
 
