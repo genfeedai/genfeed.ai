@@ -7,7 +7,12 @@ const usePathnameMock = vi.fn();
 const useRouterMock = vi.fn();
 const useSearchParamsMock = vi.fn();
 
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: vi.fn(() => ({ selectedBrand: null })),
+}));
+
 vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'acme-creator', orgSlug: 'acme-org' }),
   usePathname: () => usePathnameMock(),
   useRouter: () => useRouterMock(),
   useSearchParams: () => useSearchParamsMock(),
@@ -40,15 +45,15 @@ describe('PostsLayoutContent', () => {
     expect(screen.getByText('child content')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /drafts/i })).toHaveAttribute(
       'href',
-      '/content/posts?platform=youtube',
+      '/acme-org/acme-creator/posts?platform=youtube',
     );
     expect(screen.getByRole('link', { name: /scheduled/i })).toHaveAttribute(
       'href',
-      '/content/posts?status=scheduled&platform=youtube',
+      '/acme-org/acme-creator/posts?status=scheduled&platform=youtube',
     );
     expect(screen.getByRole('link', { name: /published/i })).toHaveAttribute(
       'href',
-      '/content/posts?status=public&platform=youtube',
+      '/acme-org/acme-creator/posts?status=public&platform=youtube',
     );
     expect(screen.getByRole('link', { name: /scheduled/i })).toHaveAttribute(
       'data-state',

@@ -5,13 +5,13 @@ import type {
 } from '@genfeedai/types';
 import { nanoid } from 'nanoid';
 import { useCallback, useState } from 'react';
+import { useWorkflowStore } from '../stores/workflow';
 import {
   selectDuplicateNode,
   selectEdges,
   selectNodes,
   selectRemoveNode,
 } from '../stores/workflow/selectors';
-import { useWorkflowStore } from '../stores/workflowStore';
 
 interface ClipboardData {
   nodes: WorkflowNode[];

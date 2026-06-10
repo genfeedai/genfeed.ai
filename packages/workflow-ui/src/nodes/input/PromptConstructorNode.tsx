@@ -10,7 +10,7 @@ import type { NodeProps } from '@xyflow/react';
 import { Expand } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePromptAutocomplete } from '../../hooks/usePromptAutocomplete';
-import { useWorkflowStore } from '../../stores/workflowStore';
+import { useWorkflowStore } from '../../stores/workflow';
 import { Button } from '../../ui/button';
 import { BaseNode } from '../BaseNode';
 

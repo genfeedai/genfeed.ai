@@ -93,9 +93,15 @@ RUN --mount=type=bind,source=.,target=/ctx \
 COPY packages/prisma/prisma.config.mjs ./packages/prisma/prisma.config.mjs
 COPY packages/prisma/prisma/ ./packages/prisma/prisma/
 
-# Install dependencies (mount cache for bun's global cache to speed up repeat builds)
+# Install dependencies (mount cache for bun's global cache to speed up repeat builds).
+# --linker hoisted: bun 1.3 defaults workspaces to isolated installs (per-package
+# node_modules symlink dirs into a root .bun store). The production stage only
+# ships the root node_modules, so runtime requires that resolve through package
+# dirs (tsconfig-paths/register in every service start:prod, prisma/config in
+# prisma.config.mjs) die with MODULE_NOT_FOUND. Hoisting restores the classic
+# layout the previously-working server image had.
 RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
-    HUSKY=0 bun install
+    HUSKY=0 bun install --linker hoisted
 
 # ==================================================
 # Stage 2: Builder - Build all services
@@ -248,6 +254,8 @@ COPY --from=builder /usr/src/app/package.json ./package.json
 
 # Prisma schema, migrations, and config — required so `prisma migrate deploy`
 # can run from this image at deploy time (production stage is otherwise dist-only).
+# (The hoisted install above puts the prisma CLI / prisma/config in the root
+# node_modules, so no per-package node_modules copy is needed.)
 COPY --from=builder /usr/src/app/packages/prisma/prisma ./packages/prisma/prisma
 COPY --from=builder /usr/src/app/packages/prisma/prisma.config.mjs ./packages/prisma/prisma.config.mjs
 

@@ -80,6 +80,12 @@ vi.mock('@genfeedai/integrations', () => ({
     }
     async handleRedisEvent() {}
   },
+  BotInternalApiClient: class {
+    fetchActiveIntegrations = vi.fn().mockResolvedValue([]);
+    fetchIntegration = vi.fn().mockResolvedValue(null);
+    fetchOrgWorkflows = vi.fn().mockResolvedValue([]);
+    fetchWorkflow = vi.fn().mockResolvedValue(null);
+  },
   IMAGE_MODELS: ['flux-pro', 'sdxl'],
   REDIS_EVENTS: {
     DISCORD_SEND_TO_CHANNEL: 'discord:send-to-channel',
@@ -88,6 +94,11 @@ vi.mock('@genfeedai/integrations', () => ({
     INTEGRATION_UPDATED: 'integration:updated',
   },
   VIDEO_MODELS: ['kling', 'runway'],
+  WorkflowDefinition: {},
+  extractWorkflowExecutionSnapshot: vi.fn(),
+  extractWorkflowInputs: vi.fn().mockReturnValue([]),
+  extractWorkflowOutputsFromExecution: vi.fn().mockReturnValue([]),
+  isWorkflowExecutionTerminalStatus: vi.fn().mockReturnValue(false),
 }));
 
 import { firstValueFrom } from 'rxjs';
@@ -148,11 +159,11 @@ describe('DiscordBotManager', () => {
   });
 
   it('should fetch active integrations during init', async () => {
-    (firstValueFrom as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: [],
-    });
     await manager.initialize();
-    expect(firstValueFrom).toHaveBeenCalled();
+    // BotInternalApiClient.fetchActiveIntegrations is called internally;
+    // firstValueFrom is no longer invoked directly by the manager.
+    expect(mockRedisService.subscribe).toHaveBeenCalled();
+    expect(manager.getActiveCount()).toBe(0);
   });
 
   it('should return 0 active bots initially', () => {

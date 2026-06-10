@@ -1,4 +1,5 @@
 import { ConfigService } from '@api/config/config.service';
+import { appendWebhookToken } from '@api/endpoints/webhooks/webhook-token.util';
 import { encodeJwtToken } from '@api/helpers/utils/jwt/jwt.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -43,7 +44,10 @@ export class KlingAIService {
     this.apiKey = this.configService.get('KLINGAI_KEY') ?? '';
     this.apiSecret = this.configService.get('KLINGAI_SECRET') ?? '';
     this.model = this.configService.get('KLINGAI_MODEL') ?? '';
-    this.callbackUrl = `${this.webhookEndpoint}/v1/webhooks/klingai/callback`;
+    this.callbackUrl = appendWebhookToken(
+      `${this.webhookEndpoint}/v1/webhooks/klingai/callback`,
+      this.configService.get('KLINGAI_WEBHOOK_SECRET') as string | undefined,
+    );
   }
 
   private getHeadersWithOverride(credentialsOverride?: {

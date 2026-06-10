@@ -94,6 +94,7 @@ export interface IEnvConfig {
   KLINGAI_KEY?: string;
   KLINGAI_SECRET?: string;
   KLINGAI_MODEL?: string;
+  KLINGAI_WEBHOOK_SECRET?: string;
 
   // === ElevenLabs ===
   ELEVENLABS_API_KEY?: string;
@@ -104,6 +105,10 @@ export interface IEnvConfig {
 
   // === HeyGen ===
   HEYGEN_KEY?: string;
+  HEYGEN_WEBHOOK_SECRET?: string;
+
+  // === OpusPro ===
+  OPUSPRO_WEBHOOK_SECRET?: string;
 
   // === Hedra ===
   HEDRA_KEY?: string;

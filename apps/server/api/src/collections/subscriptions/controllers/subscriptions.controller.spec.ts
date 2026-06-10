@@ -1,7 +1,13 @@
+vi.mock('@genfeedai/workflows', () => ({
+  buildWorkflowGenerationMessages: vi.fn(() => []),
+  parseWorkflowGenerationResponse: vi.fn(() => ({ workflow: {} })),
+}));
+
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { SubscriptionsController } from '@api/collections/subscriptions/controllers/subscriptions.controller';
 import { CreateSubscriptionPreviewDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { ConfigService } from '@api/config/config.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { User } from '@clerk/backend';
@@ -121,12 +127,21 @@ describe('SubscriptionsController', () => {
         ...mockSubscription,
         priceId: 'price_new',
       };
+      const mockRequest = {
+        context: {
+          organizationId: mockUser.publicMetadata.organization as string,
+        },
+      } as RequestWithContext;
 
       mockSubscriptionsService.changeSubscriptionPlan.mockResolvedValue(
         updatedSubscription,
       );
 
-      const result = await controller.changePlan(mockUser, changeData);
+      const result = await controller.changePlan(
+        mockRequest,
+        mockUser,
+        changeData,
+      );
 
       expect(subscriptionsService.changeSubscriptionPlan).toHaveBeenCalledWith(
         mockUser.publicMetadata.organization,

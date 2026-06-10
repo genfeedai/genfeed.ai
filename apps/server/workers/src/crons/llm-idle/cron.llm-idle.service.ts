@@ -1,4 +1,3 @@
-import { getErrorMessage } from '@api/helpers/utils/error/get-error-message.util';
 import {
   DescribeInstancesCommand,
   EC2Client,
@@ -6,6 +5,7 @@ import {
 } from '@aws-sdk/client-ec2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@workers/config/config.service';

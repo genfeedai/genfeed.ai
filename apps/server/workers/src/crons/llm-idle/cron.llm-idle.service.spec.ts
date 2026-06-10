@@ -25,7 +25,7 @@ vi.mock('@aws-sdk/client-ec2', () => {
   };
 });
 
-vi.mock('@api/helpers/utils/error/get-error-message.util', () => ({
+vi.mock('@libs/utils/error/get-error-message.util', () => ({
   getErrorMessage: vi.fn((e: unknown) =>
     e instanceof Error ? e.message : String(e),
   ),

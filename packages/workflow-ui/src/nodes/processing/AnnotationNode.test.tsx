@@ -12,7 +12,7 @@ vi.mock('../../stores/annotationStore', () => ({
   ),
 }));
 
-vi.mock('../../stores/workflowStore', () => ({
+vi.mock('../../stores/workflow', () => ({
   useWorkflowStore: vi.fn((selector: (state: unknown) => unknown) =>
     selector({ getConnectedInputs: mockGetConnectedInputs }),
   ),

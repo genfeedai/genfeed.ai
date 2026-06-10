@@ -18,7 +18,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 import type { GroupColor, NodeGroup } from '../types/groups';
 import { DEFAULT_GROUP_COLORS, GROUP_COLORS } from '../types/groups';
 import { Button } from '../ui/button';

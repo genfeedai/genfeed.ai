@@ -30,6 +30,7 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { ChangePlanDto } from '../dto/change-plan.dto';
 import type { CreateSubscriptionPreviewDto } from '../dto/create-subscription.dto';
 import { SubscriptionsService } from '../services/subscriptions.service';
 
@@ -109,14 +110,18 @@ export class SubscriptionsController {
   @Patch('current')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async changePlan(
+    @Req() request: RequestWithContext,
     @CurrentUser() user: User,
-    @Body() changeData: IChangePriceBodyParams,
+    @Body() changeData: ChangePlanDto,
   ): Promise<SubscriptionMutationResponse> {
-    const publicMetadata = getPublicMetadata(user);
+    // request.context tracks the ACTIVE organization; Clerk publicMetadata
+    // can lag behind an org switch and bill the wrong org.
+    const organizationId =
+      request.context?.organizationId ?? getPublicMetadata(user).organization;
 
     try {
       const result = await this.subscriptionsService.changeSubscriptionPlan(
-        publicMetadata.organization,
+        organizationId,
         changeData.newPriceId,
       );
 

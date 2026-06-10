@@ -195,14 +195,22 @@ fi
 while IFS=$'\t' read -r full_name parameter_value; do
   [ -n "${full_name}" ] || continue
 
+  # A multiline parameter value breaks the tab-separated text framing above:
+  # its continuation lines arrive as rows whose first field is not an SSM
+  # path. (The old `grep -q $'\n'` check could never work — `read` strips
+  # newlines, and GNU grep treats a lone-newline pattern as an empty pattern
+  # that matches every value, which failed the deploy on the first key.)
+  case "${full_name}" in
+    /*) ;;
+    *)
+      log "ERROR: multiline env value detected (row fragment: ${full_name%%=*}) — store single-line values in SSM"
+      exit 1
+      ;;
+  esac
+
   key="${full_name##*/}"
   if [ -z "${key}" ]; then
     log "ERROR: invalid SSM parameter name: ${full_name}"
-    exit 1
-  fi
-
-  if printf '%s' "${parameter_value}" | grep -q $'\n'; then
-    log "ERROR: multiline env values are not supported for ${key}"
     exit 1
   fi
 

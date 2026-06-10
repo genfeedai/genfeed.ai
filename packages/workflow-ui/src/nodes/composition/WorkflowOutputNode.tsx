@@ -4,7 +4,7 @@ import type { HandleType, WorkflowOutputNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import Image from 'next/image';
 import { memo, useCallback, useRef, useState } from 'react';
-import { useWorkflowStore } from '../../stores/workflowStore';
+import { useWorkflowStore } from '../../stores/workflow';
 import { Label } from '../../ui/label';
 import {
   Select,

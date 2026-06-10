@@ -11,7 +11,7 @@ author: Claude Code PM System
 
 - **Runtime**: Bun >= 1.3.x, Node.js >= 24 < 25
 - **Language**: TypeScript (strict, no `any`)
-- **Backend**: NestJS 11 with Mongoose (MongoDB)
+- **Backend**: NestJS 11 with Prisma ORM (PostgreSQL)
 - **Frontend**: Next.js 16 with Turbopack
 - **Queue**: BullMQ + Redis
 - **Auth**: Clerk
@@ -38,7 +38,7 @@ author: Claude Code PM System
 ## Infrastructure (Self-Hosted)
 
 - **Deployment**: Docker containers (see `docker/` for compose files and config)
-- **Database**: MongoDB (self-hosted or Atlas)
+- **Database**: PostgreSQL (self-hosted or RDS — managed via Prisma, `packages/prisma/`)
 - **Cache/Queue**: Redis
 - **GPU**: Optional GPU services for image/video/voice generation
 - **Documentation**: See `docs/self-hosting.md` for full deployment guide

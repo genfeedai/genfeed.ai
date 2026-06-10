@@ -12,6 +12,7 @@ export {
   klingaiSchema,
   leonardoSchema,
   newsApiSchema,
+  opusProSchema,
   replicateSchema,
   trainingPricingSchema,
 } from './ai.schema';

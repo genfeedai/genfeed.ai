@@ -597,6 +597,142 @@ describe('WorkflowEngine', () => {
     });
   });
 
+  describe('execute — cancellation', () => {
+    it('should stop dispatching and return cancelled when aborted mid-execution', async () => {
+      const controller = new AbortController();
+      const executed: string[] = [];
+      const abortingExecutor: NodeExecutor = vi.fn(async (node) => {
+        executed.push(node.id);
+        if (node.id === 'n1') {
+          controller.abort();
+        }
+        return { result: node.id };
+      });
+
+      engine.registerExecutor('generate', abortingExecutor);
+      engine.registerExecutor('upscale', abortingExecutor);
+      engine.registerExecutor('publish', abortingExecutor);
+
+      // Sequential chain so the abort lands before n2/n3 are dispatched.
+      const workflow = makeWorkflow(
+        [
+          makeNode('n1', 'generate'),
+          makeNode('n2', 'upscale'),
+          makeNode('n3', 'publish'),
+        ],
+        [makeEdge('n1', 'n2'), makeEdge('n2', 'n3')],
+      );
+
+      const result = await engine.execute(workflow, {
+        abortSignal: controller.signal,
+      });
+
+      expect(result.status).toBe('cancelled');
+      // Only the first node ran; later nodes were never dispatched.
+      expect(executed).toEqual(['n1']);
+      expect(result.nodeResults.has('n2')).toBe(false);
+      expect(result.nodeResults.has('n3')).toBe(false);
+    });
+
+    it('should report cancelled when an in-flight sibling fails after the signal fires', async () => {
+      // maxConcurrency 2 so n1 and n2 fill both slots while n3 is deferred.
+      const cancelEngine = new WorkflowEngine({ maxConcurrency: 2 });
+      const controller = new AbortController();
+
+      // n1 aborts the run the moment it runs, then succeeds immediately.
+      const aborter: NodeExecutor = vi.fn(async (node) => {
+        controller.abort();
+        return { result: node.id };
+      });
+      // n2 is already in flight when the abort fires; it fails during the drain.
+      const failer: NodeExecutor = vi.fn(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        throw new Error('sibling failed during drain');
+      });
+
+      cancelEngine.registerExecutor('generate', aborter);
+      cancelEngine.registerExecutor('upscale', failer);
+      cancelEngine.registerExecutor('publish', aborter);
+
+      // n1 + n2 occupy both slots; n3 is deferred so the dispatch phase re-runs
+      // after n1 settles and observes the abort, then n2 fails during drain.
+      const workflow = makeWorkflow([
+        makeNode('n1', 'generate'),
+        makeNode('n2', 'upscale'),
+        makeNode('n3', 'publish'),
+      ]);
+
+      const result = await cancelEngine.execute(workflow, {
+        abortSignal: controller.signal,
+        maxRetries: 0,
+      });
+
+      // Abort wins over the concurrent in-flight failure.
+      expect(result.status).toBe('cancelled');
+      // n3 was deferred and never dispatched once the abort was observed.
+      expect(result.nodeResults.has('n3')).toBe(false);
+    });
+  });
+
+  describe('execute — concurrency limit', () => {
+    it('should not run more than maxConcurrency nodes simultaneously', async () => {
+      let active = 0;
+      let maxActive = 0;
+      const releases: Array<() => void> = [];
+
+      const gatedExecutor: NodeExecutor = vi.fn(async () => {
+        active++;
+        maxActive = Math.max(maxActive, active);
+        await new Promise<void>((resolve) => {
+          releases.push(() => {
+            active--;
+            resolve();
+          });
+        });
+        return { result: 'ok' };
+      });
+
+      // engine from beforeEach is configured with maxConcurrency: 3.
+      engine.registerExecutor('generate', gatedExecutor);
+
+      // 6 independent branches (no edges) all eligible to run at once.
+      const workflow = makeWorkflow([
+        makeNode('n1', 'generate'),
+        makeNode('n2', 'generate'),
+        makeNode('n3', 'generate'),
+        makeNode('n4', 'generate'),
+        makeNode('n5', 'generate'),
+        makeNode('n6', 'generate'),
+      ]);
+
+      let done = false;
+      const runPromise = engine.execute(workflow).then((r) => {
+        done = true;
+        return r;
+      });
+
+      // Drain: each tick, release every currently-gated node so the scheduler
+      // can dispatch the next batch, until the run resolves.
+      while (!done) {
+        if (releases.length > 0) {
+          const toRelease = releases.splice(0, releases.length);
+          for (const release of toRelease) {
+            release();
+          }
+        }
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+
+      const result = await runPromise;
+
+      expect(result.status).toBe('completed');
+      expect(result.nodeResults.size).toBe(6);
+      // Never exceeded the limit, and actually reached it (proves parallelism).
+      expect(maxActive).toBeLessThanOrEqual(3);
+      expect(maxActive).toBe(3);
+    });
+  });
+
   describe('estimateCredits', () => {
     it('should return 0 for unknown node types', () => {
       const result = engine.estimateCredits([makeNode('n1', 'generate')]);

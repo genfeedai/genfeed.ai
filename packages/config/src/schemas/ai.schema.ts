@@ -41,6 +41,12 @@ export const klingaiSchema = {
   KLINGAI_KEY: conditionalRequired(),
   KLINGAI_MODEL: Joi.string().default('kling-v2'),
   KLINGAI_SECRET: conditionalRequired(),
+  KLINGAI_WEBHOOK_SECRET: Joi.string()
+    .optional()
+    .allow('')
+    .description(
+      'Shared secret appended to the KlingAI callback URL and verified on inbound webhooks',
+    ),
 };
 
 /**
@@ -63,6 +69,25 @@ export const leonardoSchema = {
  */
 export const heygenSchema = {
   HEYGEN_KEY: conditionalRequired(),
+  HEYGEN_WEBHOOK_SECRET: Joi.string()
+    .optional()
+    .allow('')
+    .description(
+      'Shared secret appended to the HeyGen callback URL and verified on inbound webhooks',
+    ),
+};
+
+/**
+ * OpusPro clip generation (API key lives in the api-keys collection;
+ * only the webhook shared secret is environment config)
+ */
+export const opusProSchema = {
+  OPUSPRO_WEBHOOK_SECRET: Joi.string()
+    .optional()
+    .allow('')
+    .description(
+      'Shared secret appended to the OpusPro callback URL and verified on inbound webhooks',
+    ),
 };
 
 /**

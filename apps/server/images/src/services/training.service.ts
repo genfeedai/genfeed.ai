@@ -8,8 +8,8 @@ import type {
   TrainingParams,
   TrainingRequest,
 } from '@images/interfaces/training.interfaces';
-import { S3Service } from '@images/services/s3.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { S3Service } from '@libs/s3/s3.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,

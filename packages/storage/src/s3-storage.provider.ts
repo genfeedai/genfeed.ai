@@ -1,3 +1,4 @@
+import path from 'node:path';
 import {
   DeleteObjectCommand,
   HeadObjectCommand,
@@ -11,6 +12,29 @@ import type {
   ListOptions,
   StorageProvider,
 } from './storage.provider';
+
+const MIME_BY_EXT: Record<string, string> = {
+  '.aac': 'audio/aac',
+  '.flac': 'audio/flac',
+  '.gif': 'image/gif',
+  '.jpeg': 'image/jpeg',
+  '.jpg': 'image/jpeg',
+  '.mp3': 'audio/mpeg',
+  '.mp4': 'video/mp4',
+  '.ogg': 'audio/ogg',
+  '.png': 'image/png',
+  '.safetensors': 'application/octet-stream',
+  '.svg': 'image/svg+xml',
+  '.wav': 'audio/wav',
+  '.webm': 'video/webm',
+  '.webp': 'image/webp',
+  '.zip': 'application/zip',
+};
+
+function mimeFromPath(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  return MIME_BY_EXT[ext] ?? 'application/octet-stream';
+}
 
 function getFileType(key: string): string {
   const ext = key.split('.').pop()?.toLowerCase() ?? '';
@@ -40,11 +64,17 @@ export class S3StorageProvider implements StorageProvider {
     });
   }
 
-  async upload(file: Buffer, filePath: string): Promise<string> {
+  async upload(
+    file: Buffer,
+    filePath: string,
+    contentType?: string,
+  ): Promise<string> {
+    const resolvedContentType = contentType ?? mimeFromPath(filePath);
     const command = new PutObjectCommand({
-      Bucket: this.bucket,
-      Key: filePath,
       Body: file,
+      Bucket: this.bucket,
+      ContentType: resolvedContentType,
+      Key: filePath,
     });
     await this.client.send(command);
     return filePath;

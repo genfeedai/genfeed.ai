@@ -178,17 +178,6 @@ enum BookmarkIntent {
   INSPIRATION
 }
 
-enum PostStatus {
-  PUBLIC
-  PRIVATE
-  UNLISTED
-  DRAFT
-  SCHEDULED
-  PROCESSING
-  PENDING
-  FAILED
-}
-
 enum PostCategory {
   ARTICLE
   VIDEO

@@ -2,7 +2,7 @@
 
 import { Check, Cloud, CloudOff, Loader2 } from 'lucide-react';
 import { useSettingsStore } from '../stores/settingsStore';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 import { Button } from '../ui/button';
 import type { SaveIndicatorProps } from './types';
 

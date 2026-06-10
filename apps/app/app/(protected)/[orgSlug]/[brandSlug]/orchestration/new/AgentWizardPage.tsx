@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/enums';
 import type { IAgentWizardFormData } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -72,6 +73,7 @@ const AGENT_TYPE_LABELS: Partial<Record<AgentType, string>> = {
 
 export default function AgentWizardPage() {
   const { push } = useRouter();
+  const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<IAgentWizardFormData>(DEFAULT_FORM);
@@ -229,14 +231,14 @@ export default function AgentWizardPage() {
           : [],
       });
       notificationsService.success('Agent created successfully');
-      push('/orchestration');
+      push(href('/orchestration'));
     } catch (error) {
       logger.error('Failed to create agent', { error });
       notificationsService.error('Failed to create agent');
     } finally {
       setIsSubmitting(false);
     }
-  }, [form, getService, notificationsService, push]);
+  }, [form, getService, href, notificationsService, push]);
 
   return (
     <Container

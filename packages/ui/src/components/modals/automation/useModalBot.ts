@@ -1,4 +1,10 @@
-import { type BotSchema, botSchema } from '@genfeedai/client/schemas';
+import {
+  type BotSchema,
+  botSchema,
+  type EngagementBotSettingsSchema,
+  type MonitoringBotSettingsSchema,
+  type PublishingBotSettingsSchema,
+} from '@genfeedai/client/schemas';
 import {
   AlertFrequency,
   BotCategory,
@@ -11,12 +17,7 @@ import {
   PublishingFrequency,
 } from '@genfeedai/enums';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
-import type {
-  IBot,
-  IEngagementBotSettings,
-  IMonitoringBotSettings,
-  IPublishingBotSettings,
-} from '@genfeedai/interfaces';
+import type { IBot } from '@genfeedai/interfaces';
 import type { ModalBotProps } from '@genfeedai/props/modals/modal.props';
 import { BotsService } from '@genfeedai/services/automation/bots.service';
 import { type ChangeEvent, useEffect, useMemo } from 'react';
@@ -82,7 +83,7 @@ export const BOT_CATEGORIES = [
   },
 ] as const;
 
-export const DEFAULT_ENGAGEMENT_SETTINGS: IEngagementBotSettings = {
+export const DEFAULT_ENGAGEMENT_SETTINGS: EngagementBotSettingsSchema = {
   actions: [EngagementAction.LIKE],
   actionsPerDay: 100,
   actionsPerHour: 10,
@@ -94,17 +95,21 @@ export const DEFAULT_ENGAGEMENT_SETTINGS: IEngagementBotSettings = {
   targetKeywords: [],
 };
 
-export const DEFAULT_MONITORING_SETTINGS: IMonitoringBotSettings = {
+export const DEFAULT_MONITORING_SETTINGS: MonitoringBotSettingsSchema = {
   alertFrequency: AlertFrequency.INSTANT,
   alertTypes: [MonitoringAlertType.IN_APP],
   excludeKeywords: [],
   hashtags: [],
+  // Seeded empty on purpose: `keywords` is required (schema enforces min(1)),
+  // so an empty seed surfaces the validation error and forces the user to add a
+  // real keyword, mirroring how `label` is seeded ''. Seeding [''] would smuggle
+  // an empty-string keyword past the length check and persist as junk data.
   keywords: [],
   mentionAccounts: [],
   onlyVerified: false,
 };
 
-export const DEFAULT_PUBLISHING_SETTINGS: IPublishingBotSettings = {
+export const DEFAULT_PUBLISHING_SETTINGS: PublishingBotSettingsSchema = {
   autoHashtags: [],
   contentSourceType: ContentSourceType.QUEUE,
   daysOfWeek: [1, 2, 3, 4, 5],
@@ -162,25 +167,25 @@ export function useModalBot({ bot, onConfirm }: ModalBotProps) {
       form.setValue('platforms', bot.platforms ?? []);
       form.setValue('settings', bot.settings);
 
-      // Extended settings fields - use type assertion for form that doesn't include these in schema yet
-      // TODO: Update BotSchema in @genfeedai/client to include these fields
+      // Merge persisted settings over schema defaults so optional interface
+      // fields are backfilled to the values the validated schema requires.
       if (bot.engagementSettings) {
-        (form as { setValue: (key: string, value: unknown) => void }).setValue(
-          'engagementSettings',
-          bot.engagementSettings,
-        );
+        form.setValue('engagementSettings', {
+          ...DEFAULT_ENGAGEMENT_SETTINGS,
+          ...bot.engagementSettings,
+        });
       }
       if (bot.monitoringSettings) {
-        (form as { setValue: (key: string, value: unknown) => void }).setValue(
-          'monitoringSettings',
-          bot.monitoringSettings,
-        );
+        form.setValue('monitoringSettings', {
+          ...DEFAULT_MONITORING_SETTINGS,
+          ...bot.monitoringSettings,
+        });
       }
       if (bot.publishingSettings) {
-        (form as { setValue: (key: string, value: unknown) => void }).setValue(
-          'publishingSettings',
-          bot.publishingSettings,
-        );
+        form.setValue('publishingSettings', {
+          ...DEFAULT_PUBLISHING_SETTINGS,
+          ...bot.publishingSettings,
+        });
       }
     }
   }, [bot, form]);
@@ -205,38 +210,27 @@ export function useModalBot({ bot, onConfirm }: ModalBotProps) {
 
   const handleCategoryChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const category = e.target.value as BotCategory;
-    // Cast to bypass schema type constraints for extended categories
-    // TODO: Update BotSchema to include extended categories
-    (
-      form as {
-        setValue: (key: string, value: unknown, options?: object) => void;
-      }
-    ).setValue('category', category, { shouldValidate: true });
+    form.setValue('category', category, { shouldValidate: true });
 
-    // Initialize category-specific settings when switching
-    // Use type assertions for form methods with extended fields
-    // TODO: Update BotSchema to include extended categories and settings
-    const formExt = form as unknown as {
-      setValue: (key: string, value: unknown) => void;
-      getValues: (key: string) => unknown;
-    };
+    // Initialize category-specific settings the first time that category is
+    // selected, so the validated schema fields start from sensible defaults.
     if (
       category === BotCategory.ENGAGEMENT &&
-      !formExt.getValues('engagementSettings')
+      !form.getValues('engagementSettings')
     ) {
-      formExt.setValue('engagementSettings', DEFAULT_ENGAGEMENT_SETTINGS);
+      form.setValue('engagementSettings', DEFAULT_ENGAGEMENT_SETTINGS);
     }
     if (
       category === BotCategory.MONITORING &&
-      !formExt.getValues('monitoringSettings')
+      !form.getValues('monitoringSettings')
     ) {
-      formExt.setValue('monitoringSettings', DEFAULT_MONITORING_SETTINGS);
+      form.setValue('monitoringSettings', DEFAULT_MONITORING_SETTINGS);
     }
     if (
       category === BotCategory.PUBLISHING &&
-      !formExt.getValues('publishingSettings')
+      !form.getValues('publishingSettings')
     ) {
-      formExt.setValue('publishingSettings', DEFAULT_PUBLISHING_SETTINGS);
+      form.setValue('publishingSettings', DEFAULT_PUBLISHING_SETTINGS);
     }
   };
 
@@ -257,14 +251,6 @@ export function useModalBot({ bot, onConfirm }: ModalBotProps) {
     );
   };
 
-  // Type-safe wrapper for extended form fields not in schema
-  // TODO: Update BotSchema in @genfeedai/client to include these fields
-  const formExtended = form as unknown as {
-    getValues: (key: string) => unknown;
-    setValue: (key: string, value: unknown, options?: object) => void;
-    watch: (key: string) => unknown;
-  };
-
   const handleCategorySettingChange = <
     K extends keyof typeof SETTINGS_DEFAULTS,
   >(
@@ -273,13 +259,27 @@ export function useModalBot({ bot, onConfirm }: ModalBotProps) {
     value: unknown,
   ) => {
     const currentSettings =
-      (formExtended.getValues(settingsKey) as (typeof SETTINGS_DEFAULTS)[K]) ||
-      SETTINGS_DEFAULTS[settingsKey];
-    formExtended.setValue(
-      settingsKey,
-      { ...currentSettings, [field]: value },
-      { shouldValidate: true },
-    );
+      form.getValues(settingsKey) ?? SETTINGS_DEFAULTS[settingsKey];
+    // The merged object carries a computed key, so assert it back to the
+    // concrete settings type for the resolved form field.
+    const next = { ...currentSettings, [field]: value };
+    if (settingsKey === 'engagementSettings') {
+      form.setValue('engagementSettings', next as EngagementBotSettingsSchema, {
+        shouldValidate: true,
+      });
+    } else if (settingsKey === 'monitoringSettings') {
+      form.setValue('monitoringSettings', next as MonitoringBotSettingsSchema, {
+        shouldValidate: true,
+      });
+    } else if (settingsKey === 'publishingSettings') {
+      form.setValue('publishingSettings', next as PublishingBotSettingsSchema, {
+        shouldValidate: true,
+      });
+    } else {
+      // Exhaustiveness guard: every settings key is handled above.
+      const _exhaustive: never = settingsKey;
+      return _exhaustive;
+    }
   };
 
   const handleArrayToggle = <T>(
@@ -289,10 +289,7 @@ export function useModalBot({ bot, onConfirm }: ModalBotProps) {
     defaultSettings: { [key: string]: T[] },
   ) => {
     const currentSettings =
-      (formExtended.getValues(
-        settingsKey,
-      ) as (typeof SETTINGS_DEFAULTS)[typeof settingsKey]) ||
-      SETTINGS_DEFAULTS[settingsKey];
+      form.getValues(settingsKey) ?? SETTINGS_DEFAULTS[settingsKey];
     const currentItems =
       (currentSettings as unknown as { [key: string]: T[] })[field] ||
       defaultSettings[field] ||
@@ -312,9 +309,7 @@ export function useModalBot({ bot, onConfirm }: ModalBotProps) {
     });
 
   const platforms = form.watch('platforms') || [];
-  // Cast to extended BotCategory type since schema only has 'chat' | 'comment'
-  const category =
-    (formExtended.watch('category') as BotCategory) || BotCategory.CHAT;
+  const category = form.watch('category') || BotCategory.CHAT;
   const settings = form.watch('settings') || {
     messagesPerMinute: 5,
     responseDelaySeconds: 10,
@@ -322,14 +317,11 @@ export function useModalBot({ bot, onConfirm }: ModalBotProps) {
     triggers: [],
   };
   const engagementSettings =
-    (formExtended.watch('engagementSettings') as IEngagementBotSettings) ||
-    DEFAULT_ENGAGEMENT_SETTINGS;
+    form.watch('engagementSettings') || DEFAULT_ENGAGEMENT_SETTINGS;
   const monitoringSettings =
-    (formExtended.watch('monitoringSettings') as IMonitoringBotSettings) ||
-    DEFAULT_MONITORING_SETTINGS;
+    form.watch('monitoringSettings') || DEFAULT_MONITORING_SETTINGS;
   const publishingSettings =
-    (formExtended.watch('publishingSettings') as IPublishingBotSettings) ||
-    DEFAULT_PUBLISHING_SETTINGS;
+    form.watch('publishingSettings') || DEFAULT_PUBLISHING_SETTINGS;
 
   const selectedCategory = useMemo(
     () => BOT_CATEGORIES.find((c) => c.value === category),

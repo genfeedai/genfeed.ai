@@ -23,6 +23,7 @@ import {
   microservicesSchema,
   // Infrastructure
   newsApiSchema,
+  opusProSchema,
   postgresSchema,
   redisSchema,
   replicateSchema,
@@ -101,6 +102,7 @@ const apiSchema = Joi.object({
   ...elevenlabsSchema,
   ...leonardoSchema,
   ...heygenSchema,
+  ...opusProSchema,
   ...hedraSchema,
   ...newsApiSchema,
   ...darkroomSchema,

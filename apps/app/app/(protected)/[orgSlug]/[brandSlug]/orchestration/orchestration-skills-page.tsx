@@ -4,6 +4,7 @@ import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { type Skill, SkillsService } from '@services/content/skills.service';
 import { useRouter } from 'next/navigation';
 import {
@@ -35,6 +36,7 @@ function buildSkillTestPrompt(skill: Skill): string {
 
 export default function OrchestrationSkillsPage() {
   const { push } = useRouter();
+  const { orgHref } = useOrgUrl();
   const { getToken } = useAuth();
   const { isReady, selectedBrand } = useBrand();
 
@@ -191,8 +193,8 @@ export default function OrchestrationSkillsPage() {
     }
 
     const prompt = buildSkillTestPrompt(selectedSkill);
-    push(`/chat/new?prompt=${encodeURIComponent(prompt)}`);
-  }, [push, selectedSkill]);
+    push(orgHref(`/chat/new?prompt=${encodeURIComponent(prompt)}`));
+  }, [orgHref, push, selectedSkill]);
 
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 px-4 py-6 md:px-6 lg:px-8">

@@ -1,6 +1,7 @@
 import { mkdir, readdir, rm, stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { LoggerService } from '@libs/logger/logger.service';
+import { S3Service } from '@libs/s3/s3.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
@@ -13,7 +14,6 @@ import type {
   VoiceDatasetSyncRequest,
   VoiceDatasetSyncResult,
 } from '@voices/interfaces/voice-dataset.interfaces';
-import { S3Service } from '@voices/services/s3.service';
 
 const ALLOWED_AUDIO_EXTENSIONS = new Set([
   '.wav',

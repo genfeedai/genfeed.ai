@@ -1,3 +1,4 @@
+import { ConfigService } from '@api/config/config.service';
 import { KlingWebhookController } from '@api/endpoints/webhooks/klingai/webhooks.kling.controller';
 import { KlingWebhookService } from '@api/endpoints/webhooks/klingai/webhooks.kling.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
@@ -11,6 +12,10 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
   },
 }));
 
+function mockTokenRequest() {
+  return { headers: {}, query: {} } as unknown as import('express').Request;
+}
+
 describe('KlingWebhookController', () => {
   let controller: KlingWebhookController;
   let klingWebhookService: vi.Mocked<KlingWebhookService>;
@@ -20,6 +25,10 @@ describe('KlingWebhookController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [KlingWebhookController],
       providers: [
+        {
+          provide: ConfigService,
+          useValue: { get: vi.fn().mockReturnValue(undefined) },
+        },
         {
           provide: KlingWebhookService,
           useValue: {
@@ -34,6 +43,7 @@ describe('KlingWebhookController', () => {
           useValue: {
             error: vi.fn(),
             log: vi.fn(),
+            warn: vi.fn(),
             warn: vi.fn(),
           },
         },
@@ -64,7 +74,7 @@ describe('KlingWebhookController', () => {
       const body = { task_id: '123', task_status: 'failed' };
       klingWebhookService.handleCallback.mockResolvedValue(undefined);
 
-      const result = await controller.handleCallback(body);
+      const result = await controller.handleCallback(mockTokenRequest(), body);
 
       expect(loggerService.log).toHaveBeenCalledWith(
         'KlingWebhookController kling callback received',
@@ -84,7 +94,7 @@ describe('KlingWebhookController', () => {
       };
       klingWebhookService.handleCallback.mockResolvedValue(undefined);
 
-      await controller.handleCallback(body);
+      await controller.handleCallback(mockTokenRequest(), body);
 
       expect(klingWebhookService.handleCallback).toHaveBeenCalledWith(body);
     });
@@ -108,7 +118,7 @@ describe('KlingWebhookController', () => {
         task_status: 'succeed',
       };
 
-      await controller.handleCallback(body);
+      await controller.handleCallback(mockTokenRequest(), body);
 
       expect(webhooksService.processMediaFromWebhook).toHaveBeenCalledWith(
         'klingai',
@@ -127,9 +137,9 @@ describe('KlingWebhookController', () => {
       const error = new Error('Processing failed');
       klingWebhookService.handleCallback.mockRejectedValue(error);
 
-      await expect(controller.handleCallback(body)).rejects.toThrow(
-        'Processing failed',
-      );
+      await expect(
+        controller.handleCallback(mockTokenRequest(), body),
+      ).rejects.toThrow('Processing failed');
 
       expect(loggerService.error).toHaveBeenCalledWith(
         'KlingWebhookController kling callback failed',

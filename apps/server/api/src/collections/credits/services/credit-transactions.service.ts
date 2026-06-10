@@ -3,6 +3,7 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { BusinessLogicException } from '@api/helpers/exceptions/business/business-logic.exception';
+import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { CreditTransactionCategory } from '@genfeedai/enums';
@@ -71,6 +72,7 @@ export class CreditTransactionsService extends BaseService<
     source?: string,
     description?: string,
     expiresAt?: Date,
+    tx?: PrismaTransactionClient,
   ): Promise<CreditTransactionsDocument> {
     if (
       !organizationId ||
@@ -101,7 +103,7 @@ export class CreditTransactionsService extends BaseService<
       );
     }
 
-    const result = await this.create({
+    const data = {
       amount,
       balanceAfter,
       category,
@@ -114,7 +116,17 @@ export class CreditTransactionsService extends BaseService<
       },
       organizationId,
       source,
-    } as Record<string, unknown>);
+    } as Record<string, unknown>;
+
+    // When a transaction client is supplied, the ledger entry MUST be written
+    // through it so it commits/rolls back atomically with the balance update.
+    const result = tx
+      ? this.normalizeDocument(
+          await tx.creditTransaction.create({
+            data: data as never,
+          }),
+        )
+      : await this.create(data);
 
     await this.cacheInvalidationService.invalidate(
       CACHE_PATTERNS.CREDITS_USAGE(organizationId),

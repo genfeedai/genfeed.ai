@@ -8,7 +8,7 @@ import { memo, useCallback } from 'react';
 import { useWorkflowUIConfig } from '../../provider';
 import { usePromptEditorStore } from '../../stores/promptEditorStore';
 import { usePromptLibraryStore } from '../../stores/promptLibraryStore';
-import { useWorkflowStore } from '../../stores/workflowStore';
+import { useWorkflowStore } from '../../stores/workflow';
 import { Button } from '../../ui/button';
 import { BaseNode } from '../BaseNode';
 
