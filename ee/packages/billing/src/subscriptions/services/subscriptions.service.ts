@@ -1,3 +1,4 @@
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -16,6 +17,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -141,6 +144,8 @@ export class SubscriptionsService
     private readonly stripeService: StripeService,
     private readonly customersService: CustomersService,
     private readonly clerkService: ClerkService,
+    @Inject(forwardRef(() => CreditsUtilsService))
+    private readonly creditsUtilsService: CreditsUtilsService,
   ) {
     super(prisma, 'subscription', logger);
   }
@@ -411,12 +416,12 @@ export class SubscriptionsService
         }
 
         if (creditsForNewPlan > 0) {
-          // await this.creditsUtilsService.resetOrganizationCredits(
-          //   organizationId,
-          //   creditsForNewPlan,
-          //   source,
-          //   `Credits reset due to subscription change from ${subscription.type} to ${newType}`,
-          // );
+          await this.creditsUtilsService.resetOrganizationCredits(
+            organizationId,
+            creditsForNewPlan,
+            source,
+            `Credits reset due to subscription change from ${subscription.type} to ${newType}`,
+          );
 
           this.logger.log(`${url} credits reset for plan change`, {
             newCredits: creditsForNewPlan,
@@ -509,7 +514,9 @@ export class SubscriptionsService
         newPriceId,
         prorationAmount,
         upcomingInvoice: {
-          amount_due: prorationAmount,
+          // Stripe's preview already accounts for billing-cycle position;
+          // the naive price diff over/under-charged mid-cycle changes.
+          amount_due: upcomingInvoice.amount_due,
           currency: upcomingInvoice.currency,
           lines: upcomingInvoice.lines.data,
         },

@@ -6,7 +6,14 @@ import { Public } from '@libs/decorators/public.decorator';
 import { LeonardoAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  Post,
+  Req,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -31,10 +38,11 @@ export class LeonardoaiWebhookController {
 
     try {
       this.loggerService.log(`${url} received`, payload);
-      const requestIp: string =
-        request.headers['x-forwarded-for']?.toString().split(',')[0] ||
-        request.ip ||
-        '';
+      // request.ip is derived safely by Express under `trust proxy 1`.
+      // Reading x-forwarded-for directly is spoofable: an attacker sends
+      // 'X-Forwarded-For: <allowed-ip>, <self>' and the first-token split
+      // yields the allowed IP.
+      const requestIp: string = request.ip || '';
 
       // Verify that the request is coming from LeonardoAI's IP addresses
       const allowedIps = [
@@ -50,7 +58,7 @@ export class LeonardoaiWebhookController {
         this.loggerService.warn(
           `Unauthorized webhook request from IP: ${requestIp}`,
         );
-        throw new Error('Unauthorized webhook request');
+        throw new UnauthorizedException('Unauthorized webhook request');
       }
 
       // Handle metadata-based webhook processing if customId is present
