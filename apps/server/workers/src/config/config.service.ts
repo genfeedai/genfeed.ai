@@ -1,8 +1,6 @@
 import {
-  BaseConfigService,
-  baseSchema,
+  createServiceConfig,
   type IEnvConfig,
-  microservicesSchema,
   postgresSchema,
   redisSchema,
   sentryOptionalSchema,
@@ -14,31 +12,17 @@ interface WorkersEnvConfig extends IEnvConfig {
   GF_DEV_ENABLE_SCHEDULERS?: 'true' | 'false';
 }
 
-const workersSpecificSchema = {
-  GF_DEV_ENABLE_SCHEDULERS: Joi.string()
-    .valid('true', 'false')
-    .optional()
-    .allow(''),
-};
-
-const workersSchema = Joi.object({
-  ...baseSchema,
-  ...microservicesSchema,
-  ...postgresSchema,
-  ...redisSchema,
-  ...sentryOptionalSchema,
-  ...workersSpecificSchema,
-});
-
 @Injectable()
-export class ConfigService extends BaseConfigService<WorkersEnvConfig> {
-  constructor() {
-    super(workersSchema, {
-      appName: 'workers',
-      workingDir: 'apps/server',
-    });
-  }
-
+export class ConfigService extends createServiceConfig<WorkersEnvConfig>({
+  appName: 'workers',
+  schemas: [postgresSchema, redisSchema, sentryOptionalSchema],
+  extend: {
+    GF_DEV_ENABLE_SCHEDULERS: Joi.string()
+      .valid('true', 'false')
+      .optional()
+      .allow(''),
+  },
+}) {
   public get isDevSchedulersEnabled(): boolean {
     return this.isLocalDevFlagEnabled('GF_DEV_ENABLE_SCHEDULERS');
   }
