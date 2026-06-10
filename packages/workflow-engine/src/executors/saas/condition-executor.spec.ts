@@ -88,6 +88,30 @@ describe('evaluateCondition', () => {
     expect(evaluateCondition('matches', 'hello', '\\d+')).toBe(false);
   });
 
+  it('rejects exponential ReDoS pattern (a+)+b without evaluating', () => {
+    // First evaluation pays one-time analyzer initialization; the verdict is
+    // cached after that. Time the cached path — it must short-circuit instead
+    // of backtracking through the 10k-char subject.
+    evaluateCondition('matches', 'warm-up', '(a+)+b');
+
+    const start = performance.now();
+    expect(
+      evaluateCondition('matches', `${'a'.repeat(10_000)}!`, '(a+)+b'),
+    ).toBe(false);
+    expect(performance.now() - start).toBeLessThan(10);
+  });
+
+  it('rejects star-height-1 polynomial chain (25x .*) without evaluating', () => {
+    const pattern = `${'.*'.repeat(25)}Z`;
+    evaluateCondition('matches', 'warm-up', pattern);
+
+    const start = performance.now();
+    expect(evaluateCondition('matches', 'a'.repeat(10_000), pattern)).toBe(
+      false,
+    );
+    expect(performance.now() - start).toBeLessThan(10);
+  });
+
   it('rejects pathologically long regex patterns without evaluating (ReDoS guard)', () => {
     const pattern = `(${'a+'.repeat(150)})+$`;
     const start = Date.now();

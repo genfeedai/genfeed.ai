@@ -4,6 +4,10 @@ import {
   type ExecutorOutput,
 } from '@workflow-engine/executors/base-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
+import {
+  createSafeRegExp,
+  SAFE_SUBJECT_MAX_LENGTH,
+} from '@workflow-engine/utils/safe-regex';
 
 // =============================================================================
 // TYPES
@@ -215,20 +219,17 @@ export function evaluateCondition(
     case 'matches': {
       const pattern = String(expected);
 
-      // ReDoS guard: workflow config is user-controlled; a crafted
-      // backtracking pattern against a long string blocks the event loop.
-      // Length caps bound the blowup until a linear-time engine (RE2)
-      // replaces this — tracked in genfeedai/genfeed.ai#475.
-      if (pattern.length > 200) {
+      // ReDoS guard (genfeedai/genfeed.ai#475): createSafeRegExp runs
+      // recheck's automaton-based backtracking analysis in addition to the
+      // 200-char pattern length cap. Exponential, degree>=3 polynomial,
+      // invalid, unanalyzable, or too-long patterns return null and we
+      // short-circuit to false without ever executing the regex engine.
+      const regex = createSafeRegExp(pattern);
+      if (regex === null) {
         return false;
       }
 
-      try {
-        const regex = new RegExp(pattern);
-        return regex.test(String(actual).slice(0, 10_000));
-      } catch {
-        return false;
-      }
+      return regex.test(String(actual).slice(0, SAFE_SUBJECT_MAX_LENGTH));
     }
 
     case 'isTrue':
