@@ -317,6 +317,128 @@ describe('TwitterSocialAdapter', () => {
       );
     });
 
+    it('createKeywordChecker regex matchMode — safe pattern matches', async () => {
+      mockTwitterService.searchRecentTweets.mockResolvedValue([
+        {
+          authorName: 'Author',
+          authorUsername: 'author_one',
+          createdAt: '2026-06-10T00:00:00Z',
+          engagement: 5,
+          id: '902',
+          likes: 3,
+          quotes: 0,
+          replies: 1,
+          retweets: 1,
+          text: 'We ship 42 features every week',
+        },
+      ]);
+
+      const checker = adapter.createKeywordChecker();
+      const result = await checker({
+        caseSensitive: false,
+        excludeKeywords: [],
+        keywords: ['\\d+ features'],
+        lastPostId: null,
+        matchMode: 'regex',
+        organizationId: '507f1f77bcf86cd799439011',
+        platform: 'twitter',
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          matchedKeyword: '\\d+ features',
+          platform: 'twitter',
+          postId: '902',
+        }),
+      );
+    });
+
+    it('createKeywordChecker regex matchMode — ReDoS keyword falls back to includes()', async () => {
+      const redosKeyword = '(a+)+b';
+      mockTwitterService.searchRecentTweets.mockResolvedValue([
+        {
+          authorName: 'Author',
+          authorUsername: 'author_one',
+          createdAt: '2026-06-10T00:00:00Z',
+          engagement: 5,
+          id: '903',
+          likes: 3,
+          quotes: 0,
+          replies: 1,
+          retweets: 1,
+          // Contains the literal string "(a+)+b" so includes() will still match
+          text: `contains literal (a+)+b in text`,
+        },
+      ]);
+
+      const checker = adapter.createKeywordChecker();
+      const checkerInput = {
+        caseSensitive: false,
+        excludeKeywords: [],
+        keywords: [redosKeyword],
+        lastPostId: null,
+        matchMode: 'regex' as const,
+        organizationId: '507f1f77bcf86cd799439011',
+        platform: 'twitter' as const,
+      };
+
+      // First call pays one-time analyzer initialization; the safety verdict
+      // is cached afterwards. Time the cached path.
+      await checker(checkerInput);
+
+      const start = performance.now();
+      const result = await checker(checkerInput);
+      expect(performance.now() - start).toBeLessThan(10);
+
+      // Falls back to includes() — literal substring present so it still matches
+      expect(result).toEqual(
+        expect.objectContaining({
+          matchedKeyword: redosKeyword,
+          platform: 'twitter',
+          postId: '903',
+        }),
+      );
+    });
+
+    it('createKeywordChecker regex matchMode — ReDoS keyword with no substring match returns null', async () => {
+      const redosKeyword = '(a+)+b';
+      mockTwitterService.searchRecentTweets.mockResolvedValue([
+        {
+          authorName: 'Author',
+          authorUsername: 'author_one',
+          createdAt: '2026-06-10T00:00:00Z',
+          engagement: 5,
+          id: '904',
+          likes: 3,
+          quotes: 0,
+          replies: 1,
+          retweets: 1,
+          text: 'This text does not contain the literal keyword',
+        },
+      ]);
+
+      const checker = adapter.createKeywordChecker();
+      const checkerInput = {
+        caseSensitive: false,
+        excludeKeywords: [],
+        keywords: [redosKeyword],
+        lastPostId: null,
+        matchMode: 'regex' as const,
+        organizationId: '507f1f77bcf86cd799439011',
+        platform: 'twitter' as const,
+      };
+
+      // Warm the cached safety verdict, then time the cached path.
+      await checker(checkerInput);
+
+      const start = performance.now();
+      const result = await checker(checkerInput);
+      expect(performance.now() - start).toBeLessThan(10);
+
+      // Falls back to includes() — substring not present so no match
+      expect(result).toBeNull();
+    });
+
     it('createEngagementChecker should return threshold match', async () => {
       mockTwitterService.getMediaAnalyticsBatch.mockResolvedValue(
         new Map([
