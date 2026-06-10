@@ -8,7 +8,6 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { getErrorMessage } from '@api/helpers/utils/error/get-error-message.util';
 import { UserExtractionUtil } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { resolveRoom } from '@api/helpers/utils/websocket-room/websocket-room.util';
@@ -28,6 +27,7 @@ import {
   WebSocketEventType,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 

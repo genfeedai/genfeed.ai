@@ -6,7 +6,6 @@ export * from './base.interface';
 export * from './body-parameters.interface';
 export * from './common.interface';
 export * from './config.interface';
-export * from './credit.interface';
 export * from './credits.interface';
 export * from './json-api.interface';
 export * from './payload.interface';

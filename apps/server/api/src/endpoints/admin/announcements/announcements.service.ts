@@ -2,13 +2,13 @@ import { type AnnouncementDocument } from '@api/collections/announcements/schema
 import { AnnouncementsService as AnnouncementsCollectionService } from '@api/collections/announcements/services/announcements.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
-import { getErrorMessage } from '@api/helpers/utils/error/get-error-message.util';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { TwitterApi } from 'twitter-api-v2';
 

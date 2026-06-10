@@ -17,7 +17,6 @@ import {
   categoryToPlural,
   normalizeCategory,
 } from '@api/helpers/utils/category-conversion/category-conversion.util';
-import { getErrorMessage } from '@api/helpers/utils/error/get-error-message.util';
 import { UserExtractionUtil } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { validateRoomMatch } from '@api/helpers/utils/websocket-room/websocket-room.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -32,6 +31,7 @@ import {
 } from '@genfeedai/enums';
 import type { IIngredientNotificationData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 
