@@ -291,8 +291,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
     setEdgeStyle: (style) => {
       setAndPersist(() => ({ edgeStyle: style }));
       // Dynamic import to avoid circular dependency
-      // Consuming app must provide workflowStore at this path
-      import('./workflowStore').then(({ useWorkflowStore }) => {
+      import('./workflow').then(({ useWorkflowStore }) => {
         useWorkflowStore.getState().setEdgeStyle(style);
       });
     },

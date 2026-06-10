@@ -11,6 +11,7 @@ import {
 import { createIdLookup, filterItemsByIdLookup } from '../lib';
 import { useWorkflowUIConfig } from '../provider/WorkflowUIProvider';
 import { useContextMenuStore } from '../stores/contextMenuStore';
+import { useWorkflowStore } from '../stores/workflow';
 import {
   selectCreateGroup,
   selectNodes,
@@ -19,7 +20,6 @@ import {
   selectUpdateNodeData,
   selectWorkflowId,
 } from '../stores/workflow/selectors';
-import { useWorkflowStore } from '../stores/workflowStore';
 import { useNodeActions } from './useNodeActions';
 import { usePaneActions } from './usePaneActions';
 

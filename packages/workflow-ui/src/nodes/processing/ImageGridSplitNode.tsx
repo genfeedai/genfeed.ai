@@ -9,8 +9,8 @@ import type { NodeProps } from '@xyflow/react';
 import { Download, Grid3X3, Loader2, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useState } from 'react';
-import { useExecutionStore } from '../../stores/executionStore';
-import { useWorkflowStore } from '../../stores/workflowStore';
+import { useExecutionStore } from '../../stores/execution';
+import { useWorkflowStore } from '../../stores/workflow';
 import { Button } from '../../ui/button';
 import {
   Select,

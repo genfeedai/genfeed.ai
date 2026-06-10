@@ -15,7 +15,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useState } from 'react';
-import { useWorkflowStore } from '../../stores/workflowStore';
+import { useWorkflowStore } from '../../stores/workflow';
 import { Button } from '../../ui/button';
 import { Label } from '../../ui/label';
 import {

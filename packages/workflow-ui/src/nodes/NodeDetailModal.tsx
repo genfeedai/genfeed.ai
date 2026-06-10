@@ -25,7 +25,7 @@ import {
 import { getMediaFromNode } from '../lib/mediaExtraction';
 import { usePromptEditorStore } from '../stores/promptEditorStore';
 import { useUIStore } from '../stores/uiStore';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 import { Button } from '../ui/button';
 
 // Node types that should open the prompt editor instead of preview

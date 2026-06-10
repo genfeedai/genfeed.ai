@@ -49,7 +49,7 @@ vi.mock('../../provider', () => ({
 const mockUpdateNodeData = vi.fn();
 const mockOpenCreateModal = vi.fn();
 
-vi.mock('../../stores/workflowStore', () => ({
+vi.mock('../../stores/workflow', () => ({
   useWorkflowStore: (selector: (state: unknown) => unknown) => {
     const state = { edges: [], updateNodeData: mockUpdateNodeData };
     return selector(state);

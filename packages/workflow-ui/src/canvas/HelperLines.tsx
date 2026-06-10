@@ -2,7 +2,7 @@
 
 import { useStore as useReactFlowStore } from '@xyflow/react';
 import { memo, useMemo } from 'react';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 
 // Threshold for snapping (in pixels at zoom level 1)
 const SNAP_THRESHOLD = 5;

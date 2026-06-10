@@ -6,7 +6,7 @@
  * - Configuring bundler aliases to point to app-specific stores
  * - Extending stores via the slice pattern
  *
- * The components in this package import from './workflowStore', './uiStore', etc.
+ * The components in this package import from './workflow', './uiStore', etc.
  * which are re-exported here for consumers that need them.
  */
 
@@ -24,7 +24,7 @@ export type {
 export { useAnnotationStore } from './annotationStore';
 export { type ContextMenuType, useContextMenuStore } from './contextMenuStore';
 export type { DebugPayload, ExecutionStore, Job } from './execution';
-export { useExecutionStore } from './executionStore';
+export { useExecutionStore } from './execution';
 // Embedded stores (moved from core app)
 export { usePromptEditorStore } from './promptEditorStore';
 export {
@@ -45,6 +45,8 @@ export type { ModalType, NodeDetailTab } from './uiStore';
 export { useUIStore } from './uiStore';
 // Store types
 export type { WorkflowData, WorkflowState, WorkflowStore } from './workflow';
+// Store hooks
+export { useWorkflowStore } from './workflow';
 // Workflow selectors
 export {
   createSelectGroupByNodeId,
@@ -81,5 +83,3 @@ export {
   selectWorkflowId,
   selectWorkflowName,
 } from './workflow/selectors';
-// Store hooks
-export { useWorkflowStore } from './workflowStore';

@@ -2,7 +2,7 @@ import type { WorkflowNodeData } from '@genfeedai/types';
 import { useCallback, useRef, useState } from 'react';
 import { getImageDimensions, getVideoMetadata } from '../lib/media';
 import { useWorkflowUIConfig } from '../provider/WorkflowUIProvider';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 
 interface UseMediaUploadOptions<T extends WorkflowNodeData> {
   nodeId: string;
