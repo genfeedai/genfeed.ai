@@ -1,4 +1,7 @@
+import { BotEngagementSettingsDto } from '@api/collections/bots/dto/bot-engagement-settings.dto';
 import { BotLivestreamSettingsDto } from '@api/collections/bots/dto/bot-livestream-settings.dto';
+import { BotMonitoringSettingsDto } from '@api/collections/bots/dto/bot-monitoring-settings.dto';
+import { BotPublishingSettingsDto } from '@api/collections/bots/dto/bot-publishing-settings.dto';
 import { BotSettingsDto } from '@api/collections/bots/dto/bot-settings.dto';
 import { BotTargetDto } from '@api/collections/bots/dto/bot-target.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
@@ -116,4 +119,34 @@ export class CreateBotDto {
     type: BotLivestreamSettingsDto,
   })
   livestreamSettings?: BotLivestreamSettingsDto;
+
+  @ValidateNested()
+  @Type(() => BotEngagementSettingsDto)
+  @IsOptional()
+  @ApiProperty({
+    description: 'Auto-engagement targeting and rate settings',
+    required: false,
+    type: BotEngagementSettingsDto,
+  })
+  engagementSettings?: BotEngagementSettingsDto;
+
+  @ValidateNested()
+  @Type(() => BotMonitoringSettingsDto)
+  @IsOptional()
+  @ApiProperty({
+    description: 'Keyword monitoring and alert settings',
+    required: false,
+    type: BotMonitoringSettingsDto,
+  })
+  monitoringSettings?: BotMonitoringSettingsDto;
+
+  @ValidateNested()
+  @Type(() => BotPublishingSettingsDto)
+  @IsOptional()
+  @ApiProperty({
+    description: 'Content publishing schedule and source settings',
+    required: false,
+    type: BotPublishingSettingsDto,
+  })
+  publishingSettings?: BotPublishingSettingsDto;
 }
