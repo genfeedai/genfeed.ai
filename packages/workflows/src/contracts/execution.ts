@@ -45,6 +45,11 @@ export interface ExecutionOptions {
   onNodeStatusChange?: (event: NodeStatusChangeEvent) => void;
   availableCredits?: number;
   dryRun?: boolean;
+  /**
+   * Cooperative cancellation signal. When it transitions to aborted, the
+   * engine stops dispatching further nodes and returns a `cancelled` status.
+   */
+  abortSignal?: AbortSignal;
 }
 
 export interface ExecutableNode {
