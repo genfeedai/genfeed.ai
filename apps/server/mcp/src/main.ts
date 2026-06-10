@@ -3,6 +3,7 @@ import '@mcp/instrument';
 
 bootstrap({ app: 'mcp' });
 
+import process from 'node:process';
 import { getGenfeedCorsOrigins } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { AppModule } from '@mcp/app.module';
@@ -98,14 +99,18 @@ async function main(): Promise<void> {
     });
   });
 
-  expressApp.delete('/mcp', (req: Request, res: Response) => {
-    streamableHttpService.handleDelete(req, res).catch((err) => {
-      logger.error('Failed to handle MCP DELETE request', err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    });
-  });
+  expressApp.delete(
+    '/mcp',
+    mcpAuthMiddleware,
+    (req: Request, res: Response) => {
+      streamableHttpService.handleDelete(req, res).catch((err) => {
+        logger.error('Failed to handle MCP DELETE request', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Internal server error' });
+        }
+      });
+    },
+  );
 
   app.use('/', (req: Request, res: Response, next: NextFunction) => {
     const redirectPaths = ['/', '/docs', '/v1'];

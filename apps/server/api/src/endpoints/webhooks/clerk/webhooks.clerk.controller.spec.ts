@@ -67,10 +67,14 @@ describe('ClerkWebhookController', () => {
   });
 
   describe('handleClerk', () => {
-    const mockRequest = (headers: Record<string, string>) =>
+    const mockRequest = (headers: Record<string, string>, body?: unknown) =>
       ({
+        body:
+          body === undefined
+            ? undefined
+            : Buffer.from(JSON.stringify(body), 'utf8'),
         headers,
-      }) as Request;
+      }) as unknown as Request;
 
     const validHeaders = {
       'svix-id': 'test-id',
@@ -84,7 +88,7 @@ describe('ClerkWebhookController', () => {
         object: 'user',
         type: 'user.created',
       };
-      const request = mockRequest(validHeaders);
+      const request = mockRequest(validHeaders, payload);
       const mockEvent = { data: { id: 'user_123' }, type: 'user.created' };
 
       const svix = await import('svix');
@@ -96,15 +100,17 @@ describe('ClerkWebhookController', () => {
 
       clerkWebhookService.handleWebhookEvent.mockResolvedValue(undefined);
 
-      const result = await controller.handleClerk(request, payload);
+      const result = await controller.handleClerk(request);
 
-      expect(loggerService.log).toHaveBeenCalledWith(
-        'ClerkWebhookController createClerk received',
-        payload,
-      );
+      // Svix HMAC must be computed over the exact raw bytes received,
+      // never a re-serialized copy of the parsed body
       expect(mockVerify).toHaveBeenCalledWith(
         JSON.stringify(payload),
         validHeaders,
+      );
+      expect(loggerService.log).toHaveBeenCalledWith(
+        'ClerkWebhookController createClerk received',
+        { id: 'test-id', type: 'user.created' },
       );
       expect(clerkWebhookService.handleWebhookEvent).toHaveBeenCalledWith(
         mockEvent,
@@ -117,18 +123,27 @@ describe('ClerkWebhookController', () => {
     });
 
     it('should return error response when svix headers are missing', async () => {
-      const payload = { data: {}, object: 'user', type: 'user.created' };
-      const request = mockRequest({ 'content-type': 'application/json' });
+      const request = mockRequest(
+        { 'content-type': 'application/json' },
+        {
+          data: {},
+          object: 'user',
+          type: 'user.created',
+        },
+      );
 
-      const result = await controller.handleClerk(request, payload);
+      const result = await controller.handleClerk(request);
 
       expect(result).toBeInstanceOf(Response);
       expect((result as Response).status).toBe(400);
     });
 
     it('should throw a 400 BadRequestException when webhook verification fails', async () => {
-      const payload = { data: {}, object: 'user', type: 'user.created' };
-      const request = mockRequest(validHeaders);
+      const request = mockRequest(validHeaders, {
+        data: {},
+        object: 'user',
+        type: 'user.created',
+      });
       const verificationError = new Error('No matching signature found');
 
       const svix = await import('svix');
@@ -143,7 +158,7 @@ describe('ClerkWebhookController', () => {
       // A failed verification is expected hostile/replayed traffic — it must
       // surface as a 400 HttpException (suppressed from Sentry), never as the
       // raw svix error (which the catch-all filter reports as a 500).
-      await expect(controller.handleClerk(request, payload)).rejects.toThrow(
+      await expect(controller.handleClerk(request)).rejects.toThrow(
         BadRequestException,
       );
 
@@ -154,8 +169,11 @@ describe('ClerkWebhookController', () => {
     });
 
     it('should propagate errors from webhook service', async () => {
-      const payload = { data: {}, object: 'user', type: 'user.deleted' };
-      const request = mockRequest(validHeaders);
+      const request = mockRequest(validHeaders, {
+        data: {},
+        object: 'user',
+        type: 'user.deleted',
+      });
       const mockEvent = { data: { id: 'user_456' }, type: 'user.deleted' };
       const serviceError = new Error('Service processing failed');
 
@@ -168,7 +186,7 @@ describe('ClerkWebhookController', () => {
 
       clerkWebhookService.handleWebhookEvent.mockRejectedValue(serviceError);
 
-      await expect(controller.handleClerk(request, payload)).rejects.toThrow(
+      await expect(controller.handleClerk(request)).rejects.toThrow(
         serviceError,
       );
 
