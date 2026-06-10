@@ -4,7 +4,7 @@ import { useReactFlow } from '@xyflow/react';
 import { Pause, Play, Trash2 } from 'lucide-react';
 import { memo, useMemo } from 'react';
 import { useUIStore } from '../stores/uiStore';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 import { Button } from '../ui/button';
 
 function EdgeToolbarComponent() {

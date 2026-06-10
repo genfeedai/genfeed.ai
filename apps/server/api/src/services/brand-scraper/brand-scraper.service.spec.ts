@@ -170,6 +170,30 @@ describe('BrandScraperService', () => {
       expect(result.isValid).toBe(false);
     });
 
+    it('rejects the cloud metadata endpoint (SSRF)', () => {
+      const result = service.validateUrl(
+        'http://169.254.169.254/latest/meta-data/',
+      );
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe('Local URLs are not allowed');
+    });
+
+    it('rejects RFC-1918 private ranges (SSRF)', () => {
+      for (const target of [
+        'http://10.0.0.5',
+        'http://172.16.1.1',
+        'http://192.168.1.1',
+      ]) {
+        expect(service.validateUrl(target).isValid).toBe(false);
+      }
+    });
+
+    it('rejects .internal hostnames (SSRF)', () => {
+      expect(service.validateUrl('http://db.cluster.internal').isValid).toBe(
+        false,
+      );
+    });
+
     it('rejects 0.0.0.0', () => {
       const result = service.validateUrl('http://0.0.0.0');
       expect(result.isValid).toBe(false);

@@ -32,7 +32,7 @@ vi.mock('../stores/uiStore', () => ({
   },
 }));
 
-vi.mock('../stores/workflowStore', () => ({
+vi.mock('../stores/workflow', () => ({
   useWorkflowStore: (selector: (state: unknown) => unknown) => {
     const state = {
       isNodeLocked: mockIsNodeLocked,
@@ -43,7 +43,7 @@ vi.mock('../stores/workflowStore', () => ({
   },
 }));
 
-vi.mock('../stores/executionStore', () => ({
+vi.mock('../stores/execution', () => ({
   useExecutionStore: (selector: (state: unknown) => unknown) => {
     const state = {
       activeNodeExecutions: new Set(),

@@ -19,6 +19,12 @@ vi.mock('@genfeedai/integrations', () => ({
       _data: unknown,
     ): Promise<void> {}
   },
+  BotInternalApiClient: class {
+    fetchActiveIntegrations = vi.fn().mockResolvedValue([]);
+    fetchIntegration = vi.fn().mockResolvedValue(null);
+    fetchOrgWorkflows = vi.fn().mockResolvedValue([]);
+    fetchWorkflow = vi.fn().mockResolvedValue(null);
+  },
   IMAGE_MODELS: ['flux-pro', 'sdxl'],
   IntegrationEvent: {},
   OrgIntegration: {},
@@ -29,8 +35,13 @@ vi.mock('@genfeedai/integrations', () => ({
   },
   UserSettings: {},
   VIDEO_MODELS: ['runway', 'kling'],
+  WorkflowDefinition: {},
   WorkflowInput: {},
   WorkflowSession: {},
+  extractWorkflowExecutionSnapshot: vi.fn(),
+  extractWorkflowInputs: vi.fn().mockReturnValue([]),
+  extractWorkflowOutputsFromExecution: vi.fn().mockReturnValue([]),
+  isWorkflowExecutionTerminalStatus: vi.fn().mockReturnValue(false),
 }));
 
 vi.mock('@slack/bolt', () => ({
@@ -139,13 +150,16 @@ describe('SlackBotManager', () => {
   });
 
   describe('shutdown', () => {
-    it('should unsubscribe from Redis events', async () => {
+    it('should NOT unsubscribe shared Redis channels (starves other bots)', async () => {
       mockFirstValueFrom.mockResolvedValue({ data: [] } as any);
       await service.initialize();
 
       await service.shutdown();
 
-      expect(mockRedisService.unsubscribe).toHaveBeenCalledTimes(3);
+      // Shared integration channels are intentionally not unsubscribed on
+      // shutdown because RedisService has no per-handler granularity.
+      // Unsubscribing would starve Discord and Telegram managers.
+      expect(mockRedisService.unsubscribe).not.toHaveBeenCalled();
     });
 
     it('should clear sessions and userSettings maps', async () => {

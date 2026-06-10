@@ -2,6 +2,7 @@ import {
   BaseConfigService,
   baseSchema,
   type IEnvConfig,
+  microservicesSchema,
   postgresSchema,
   redisSchema,
   sentryOptionalSchema,
@@ -22,6 +23,7 @@ const workersSpecificSchema = {
 
 const workersSchema = Joi.object({
   ...baseSchema,
+  ...microservicesSchema,
   ...postgresSchema,
   ...redisSchema,
   ...sentryOptionalSchema,

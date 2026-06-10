@@ -7,7 +7,7 @@ import { useReactFlow } from '@xyflow/react';
 import { Search, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 import { Button } from '../ui/button';
 
 export function NodeSearch() {

@@ -1,24 +1,14 @@
 import { ConfigService } from '@clips/config/config.service';
+import {
+  CreateProjectDto,
+  RetryProjectDto,
+} from '@clips/controllers/dto/create-project.dto';
+import { InternalApiKeyGuard } from '@clips/guards/internal-api-key.guard';
 import { ClipperQueueService } from '@clips/queues/clipper-queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
-
-interface CreateProjectBody {
-  videoUrl: string;
-  name?: string;
-  userId: string;
-  organizationId: string;
-  settings?: {
-    minDuration?: number;
-    maxDuration?: number;
-    maxClips?: number;
-    aspectRatio?: string;
-    captionStyle?: string;
-    addCaptions?: boolean;
-  };
-}
 
 function unwrapData<T>(value: T): T {
   let current = value as unknown;
@@ -33,7 +23,10 @@ function unwrapData<T>(value: T): T {
   return current as T;
 }
 
-@Controller('v1/clips')
+// Route prefix is 'clips' — main.ts applies the global 'v1' prefix; the old
+// 'v1/clips' value double-prefixed every route to /v1/v1/clips/*.
+@UseGuards(InternalApiKeyGuard)
+@Controller('clips')
 export class ClipperController {
   private readonly constructorName = String(this.constructor.name);
 
@@ -45,7 +38,7 @@ export class ClipperController {
   ) {}
 
   @Post('projects')
-  async createProject(@Body() body: CreateProjectBody) {
+  async createProject(@Body() body: CreateProjectDto) {
     const methodName = `${this.constructorName}.createProject`;
     this.logger.log(`${methodName} Starting for video: ${body.videoUrl}`);
 
@@ -133,10 +126,7 @@ export class ClipperController {
   }
 
   @Post('projects/:id/retry')
-  async retryProject(
-    @Param('id') id: string,
-    @Body() body: { userId: string; organizationId: string },
-  ) {
+  async retryProject(@Param('id') id: string, @Body() body: RetryProjectDto) {
     const methodName = `${this.constructorName}.retryProject`;
     this.logger.log(`${methodName} Retrying project: ${id}`);
 

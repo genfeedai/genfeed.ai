@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { ConfigService } from '@api/config/config.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
@@ -13,9 +14,9 @@ import {
   mockLoggerService,
 } from '@test/mocks/service.mocks';
 
-// Allow skipping this file when MongoDB memory server cannot run
-// Set SKIP_MONGODB_MEMORY=true to skip all tests in this file
-if (process.env.SKIP_MONGODB_MEMORY === 'true') {
+// Allow skipping this file when a real DB integration is not available
+// Set SKIP_DB_INTEGRATION=true to skip all tests in this file
+if (process.env.SKIP_DB_INTEGRATION === 'true') {
   const g: any = global as any;
   const d: any = (global as any).describe;
   g.describe = ((name: string, fn: any) =>

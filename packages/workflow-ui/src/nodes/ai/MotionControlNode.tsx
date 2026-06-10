@@ -19,7 +19,7 @@ import { memo, useCallback, useMemo } from 'react';
 import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useNodeExecution } from '../../hooks/useNodeExecution';
 import { useUIStore } from '../../stores/uiStore';
-import { useWorkflowStore } from '../../stores/workflowStore';
+import { useWorkflowStore } from '../../stores/workflow';
 import { Button } from '../../ui/button';
 import { Checkbox } from '../../ui/checkbox';
 import {

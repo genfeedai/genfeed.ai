@@ -263,4 +263,38 @@ describe('ClipFactoryProcessor', () => {
       expect.objectContaining({ provider: 'heygen' }),
     );
   });
+
+  describe('files service URL resolution', () => {
+    it('fails loud outside development when GENFEEDAI_MICROSERVICES_FILES_URL is unset', async () => {
+      configService.get.mockImplementation((key: string) =>
+        key === 'GENFEEDAI_MICROSERVICES_FILES_URL' ? undefined : 'x',
+      );
+      (configService as { isDevelopment?: boolean }).isDevelopment = false;
+
+      await expect(processor.process(makeJob(makeJobData()))).rejects.toThrow(
+        'GENFEEDAI_MICROSERVICES_FILES_URL is not configured',
+      );
+
+      expect(httpService.post).not.toHaveBeenCalledWith(
+        expect.stringContaining('/v1/files/process/video'),
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('keeps the localhost fallback in local development', async () => {
+      configService.get.mockImplementation((key: string) =>
+        key === 'GENFEEDAI_MICROSERVICES_FILES_URL' ? undefined : 'x',
+      );
+      (configService as { isDevelopment?: boolean }).isDevelopment = true;
+
+      await processor.process(makeJob(makeJobData()));
+
+      expect(httpService.post).toHaveBeenCalledWith(
+        'http://localhost:3012/v1/files/process/video',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+  });
 });

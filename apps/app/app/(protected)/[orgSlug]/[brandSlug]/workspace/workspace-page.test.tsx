@@ -90,6 +90,7 @@ vi.mock('@services/management/tasks.service', async (importOriginal) => {
 });
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'acme-creator', orgSlug: 'acme-org' }),
   usePathname: () => '/workspace/inbox/unread',
   useRouter: () => ({
     push: mocks.push,

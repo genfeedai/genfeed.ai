@@ -1,6 +1,26 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: genfeed-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-genfeed}
+      POSTGRES_USER: ${POSTGRES_USER:-genfeed}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-genfeed_local}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-genfeed} -d ${POSTGRES_DB:-genfeed}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   genfeed:
     image: ghcr.io/genfeedai/genfeed.ai:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "${SELFHOSTED_APP_PORT:-3000}:${SELFHOSTED_APP_PORT:-3000}"  # Web UI
       - "${SELFHOSTED_API_PORT:-3010}:${SELFHOSTED_API_PORT:-3010}"  # API
@@ -9,3 +29,4 @@ services:
 
 volumes:
   genfeed_data:
+  postgres_data:

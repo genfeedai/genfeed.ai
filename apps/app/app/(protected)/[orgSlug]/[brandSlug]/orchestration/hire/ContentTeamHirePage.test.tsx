@@ -78,6 +78,12 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme-org/acme-creator${path}`,
+  }),
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mocks.push,
@@ -247,7 +253,9 @@ describe('ContentTeamHirePage', () => {
       );
     });
     expect(mocks.success).toHaveBeenCalledWith('Agent hired successfully');
-    expect(mocks.push).toHaveBeenCalledWith('/orchestration');
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/acme-org/acme-creator/orchestration',
+    );
   });
 
   it('updates preview fields, cancels, and reports create failures', async () => {
@@ -260,7 +268,9 @@ describe('ContentTeamHirePage', () => {
     expect(screen.getByText(/10 credits/)).toBeVisible();
 
     fireEvent.click(screen.getByText('Cancel'));
-    expect(mocks.push).toHaveBeenCalledWith('/orchestration');
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/acme-org/acme-creator/orchestration',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Hire Agent' }));
     await waitFor(() => {

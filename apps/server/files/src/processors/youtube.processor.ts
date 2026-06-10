@@ -59,6 +59,20 @@ export class YoutubeProcessor extends WorkerHost {
     super();
   }
 
+  /**
+   * Base URL for internal calls to the main API. The API serves all routes
+   * under the `v1` global prefix, so it is appended when the configured URL
+   * does not already include it.
+   */
+  private get apiBaseUrl(): string {
+    const base =
+      (this.configService.get('GENFEEDAI_API_URL') as string | undefined) ??
+      'http://localhost:3010';
+    const trimmed = base.replace(/\/+$/, '');
+
+    return trimmed.endsWith('/v1') ? trimmed : `${trimmed}/v1`;
+  }
+
   async process(job: Job): Promise<unknown> {
     this.logger.log(`Processing YouTube job ${job.id}: ${job.name}`);
 
@@ -243,8 +257,7 @@ export class YoutubeProcessor extends WorkerHost {
    * Call Whisper API for transcription
    */
   private async callWhisperAPI(audioPath: string): Promise<string> {
-    // Internal service communication - use localhost
-    const apiUrl = 'http://localhost:3010/speech/transcribe/audio';
+    const apiUrl = `${this.apiBaseUrl}/speech/transcribe/audio`;
 
     try {
       // Read the audio file
@@ -279,8 +292,7 @@ export class YoutubeProcessor extends WorkerHost {
     status: string,
     additionalData: unknown = {},
   ): Promise<void> {
-    // Internal service communication - use localhost
-    const apiUrl = `http://localhost:3010/transcripts/${transcriptId}`;
+    const apiUrl = `${this.apiBaseUrl}/transcripts/${transcriptId}`;
 
     try {
       await firstValueFrom(
@@ -298,7 +310,7 @@ export class YoutubeProcessor extends WorkerHost {
     transcriptId: string,
     update: Record<string, unknown>,
   ): Promise<void> {
-    const apiUrl = `http://localhost:3010/transcripts/${transcriptId}`;
+    const apiUrl = `${this.apiBaseUrl}/transcripts/${transcriptId}`;
 
     try {
       await firstValueFrom(this.httpService.patch(apiUrl, update));
@@ -314,8 +326,7 @@ export class YoutubeProcessor extends WorkerHost {
     transcriptId: string,
     transcriptText: string,
   ): Promise<void> {
-    // Internal service communication - use localhost
-    const apiUrl = `http://localhost:3010/transcripts/${transcriptId}`;
+    const apiUrl = `${this.apiBaseUrl}/transcripts/${transcriptId}`;
 
     try {
       await firstValueFrom(
@@ -353,7 +364,7 @@ export class YoutubeProcessor extends WorkerHost {
   private async fetchVideoMetadata(
     youtubeId: string,
   ): Promise<YoutubeMetadata | null> {
-    const apiUrl = `http://localhost:3010/services/youtube/metadata/${youtubeId}`;
+    const apiUrl = `${this.apiBaseUrl}/services/youtube/metadata/${youtubeId}`;
 
     try {
       const apiKey = this.configService.get('GENFEEDAI_API_KEY');

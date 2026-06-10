@@ -11,7 +11,6 @@ import { ConfigService } from '@api/config/config.service';
 import { GenerateImageDto } from '@api/endpoints/admin/darkroom/dto/generate-image.dto';
 import { DarkroomGenerationJob } from '@api/endpoints/admin/darkroom/interfaces/darkroom-generation-job.interface';
 import { DarkroomTrainingService } from '@api/endpoints/admin/darkroom/services/darkroom-training.service';
-import { getErrorMessage } from '@api/helpers/utils/error/get-error-message.util';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
@@ -50,6 +49,7 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import {
   BadRequestException,
   Injectable,

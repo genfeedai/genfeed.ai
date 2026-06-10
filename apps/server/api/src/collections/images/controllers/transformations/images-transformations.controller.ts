@@ -28,7 +28,6 @@ import {
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
-import { getErrorMessage } from '@api/helpers/utils/error/get-error-message.util';
 import {
   returnNotFound,
   serializeSingle,
@@ -68,6 +67,7 @@ import type {
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   Body,

@@ -25,8 +25,7 @@ describe('StripeWebhookController', () => {
   let configService: vi.Mocked<ConfigService>;
 
   const mockPublisher = {
-    get: vi.fn().mockResolvedValue(null),
-    setEx: vi.fn().mockResolvedValue('OK'),
+    set: vi.fn().mockResolvedValue('OK'),
   };
 
   beforeEach(async () => {
@@ -121,6 +120,51 @@ describe('StripeWebhookController', () => {
         mockEvent,
         expect.stringContaining('StripeWebhookController'),
       );
+      expect(result).toEqual({ success: true });
+    });
+
+    it('acquires the idempotency key atomically (SET NX) before processing', async () => {
+      const rawBody = Buffer.from('{"type":"invoice.paid"}');
+      const mockEvent = {
+        data: { object: { id: 'in_1' } },
+        id: 'evt_nx',
+        type: 'invoice.paid',
+      };
+      const request = mockRequest(rawBody, 'valid-signature');
+
+      stripeService.stripe.webhooks.constructEventAsync.mockResolvedValue(
+        mockEvent,
+      );
+      mockPublisher.set.mockResolvedValueOnce('OK');
+
+      await controller.handleStripe(request);
+
+      expect(mockPublisher.set).toHaveBeenCalledWith(
+        'stripe:webhook:evt_nx',
+        expect.any(String),
+        expect.objectContaining({ NX: true, EX: expect.any(Number) }),
+      );
+      expect(stripeWebhookService.handleWebhookEvent).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips processing when another delivery already holds the idempotency key', async () => {
+      const rawBody = Buffer.from('{"type":"invoice.paid"}');
+      const mockEvent = {
+        data: { object: { id: 'in_1' } },
+        id: 'evt_dup',
+        type: 'invoice.paid',
+      };
+      const request = mockRequest(rawBody, 'valid-signature');
+
+      stripeService.stripe.webhooks.constructEventAsync.mockResolvedValue(
+        mockEvent,
+      );
+      // SET NX returns null when the key already exists — concurrent duplicate
+      mockPublisher.set.mockResolvedValueOnce(null);
+
+      const result = await controller.handleStripe(request);
+
+      expect(stripeWebhookService.handleWebhookEvent).not.toHaveBeenCalled();
       expect(result).toEqual({ success: true });
     });
 

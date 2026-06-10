@@ -2,6 +2,7 @@ import { ConfigModule } from '@clips/config/config.module';
 import { ConfigService } from '@clips/config/config.service';
 import { ClipperController } from '@clips/controllers/clipper.controller';
 import { HealthController } from '@clips/controllers/health.controller';
+import { InternalApiKeyGuard } from '@clips/guards/internal-api-key.guard';
 import { ClipperProcessor } from '@clips/queues/clipper.processor';
 import { CLIPPER_QUEUE_NAME } from '@clips/queues/clipper-queue.constants';
 import { ClipperQueueService } from '@clips/queues/clipper-queue.service';
@@ -50,6 +51,7 @@ import { Module } from '@nestjs/common';
     }),
   ],
   providers: [
+    InternalApiKeyGuard,
     ClipperPipelineService,
     TranscriptionService,
     HighlightDetectorService,

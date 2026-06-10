@@ -10,6 +10,10 @@ import type {
   NewRepostChecker,
   ReplyPublisher,
 } from '@genfeedai/workflow-engine';
+import {
+  createSafeRegExp,
+  SAFE_SUBJECT_MAX_LENGTH,
+} from '@genfeedai/workflow-engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -628,15 +632,21 @@ export class TwitterSocialAdapter {
       }
 
       if (matchMode === 'regex') {
-        try {
-          const regex = new RegExp(keyword, caseSensitive ? 'g' : 'gi');
-          if (regex.test(text)) {
-            return keyword;
-          }
-        } catch {
+        // ReDoS guard (genfeedai/genfeed.ai#475): createSafeRegExp runs
+        // recheck's automaton-based backtracking analysis plus the 200-char
+        // pattern length cap. Exponential, degree>=3 polynomial, invalid,
+        // unanalyzable, or too-long patterns return null and we fall back to
+        // a plain includes() match to preserve best-effort behaviour.
+        const regex = createSafeRegExp(keyword, caseSensitive ? 'g' : 'gi');
+        if (regex === null) {
           if (sourceText.includes(keyword)) {
             return keyword;
           }
+          continue;
+        }
+
+        if (regex.test(text.slice(0, SAFE_SUBJECT_MAX_LENGTH))) {
+          return keyword;
         }
         continue;
       }

@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -34,9 +35,9 @@ interface MockFFmpegService {
   probe: vi.Mock;
 }
 
-// Allow skipping this file when MongoDB memory server cannot run
-// Set SKIP_MONGODB_MEMORY=true to skip all tests in this file
-if (process.env.SKIP_MONGODB_MEMORY === 'true') {
+// Allow skipping this file when a real DB integration is not available
+// Set SKIP_DB_INTEGRATION=true to skip all tests in this file
+if (process.env.SKIP_DB_INTEGRATION === 'true') {
   const g: any = global as any;
   const d: any = (global as any).describe;
   g.describe = ((name: string, fn: any) =>

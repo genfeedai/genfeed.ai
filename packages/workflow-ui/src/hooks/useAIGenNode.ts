@@ -2,7 +2,7 @@ import type { SelectedModel, WorkflowNodeData } from '@genfeedai/types';
 import { useCallback, useMemo } from 'react';
 import { extractEnumValues, supportsImageInput } from '../lib/schemaUtils';
 import type { SchemaInputs } from '../nodes/SchemaInputs';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 
 interface UseAIGenNodeOptions {
   nodeId: string;

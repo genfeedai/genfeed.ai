@@ -1,4 +1,7 @@
 import {
+  DEFAULT_ANALYTICS_FEEDBACK_DATA,
+  DEFAULT_BEAT_ANALYSIS_DATA,
+  DEFAULT_BEAT_SYNC_EDITOR_DATA,
   DEFAULT_BRAND_ASSET_DATA,
   DEFAULT_BRAND_CONTEXT_DATA,
   DEFAULT_BRAND_DATA,
@@ -6,6 +9,8 @@ import {
   DEFAULT_DELAY_DATA,
   DEFAULT_ENGAGEMENT_TRIGGER_DATA,
   DEFAULT_FOLLOW_USER_DATA,
+  DEFAULT_HOOK_GENERATOR_DATA,
+  DEFAULT_IMAGE_TEXT_OVERLAY_DATA,
   DEFAULT_KEYWORD_TRIGGER_DATA,
   DEFAULT_LIKE_POST_DATA,
   DEFAULT_MUSIC_SOURCE_DATA,
@@ -16,7 +21,16 @@ import {
   DEFAULT_POST_REPLY_DATA,
   DEFAULT_PUBLISH_DATA,
   DEFAULT_SEND_DM_DATA,
+  DEFAULT_SLIDESHOW_IMAGE_BATCH_DATA,
   DEFAULT_SOUND_OVERLAY_DATA,
+  DEFAULT_TREND_HASHTAG_INSPIRATION_DATA,
+  DEFAULT_TREND_SOUND_INSPIRATION_DATA,
+  DEFAULT_TREND_TRIGGER_DATA,
+  DEFAULT_TREND_VIDEO_INSPIRATION_DATA,
+  DEFAULT_VIDEO_INPUT_DATA,
+  defaultRssInputData,
+  defaultTweetInputData,
+  defaultTweetRemixData,
 } from '@workflow-saas/nodes';
 import type {
   ExtendedNodeCategory,
@@ -25,26 +39,52 @@ import type {
 
 /**
  * SaaS-specific node types
+ *
+ * Keep in sync with:
+ *   - packages/workflow-saas/src/nodes/index.ts (barrel exports)
+ *   - SAAS_NODE_DEFINITIONS below
  */
 export type SaaSNodeType =
-  | 'brandContext'
-  | 'brandAsset'
+  // brand / context
   | 'brand'
+  | 'brandAsset'
+  | 'brandContext'
+  | 'patternContext'
+  // control flow
   | 'condition'
   | 'delay'
+  // input / triggers
+  | 'analyticsFeedback'
   | 'engagementTrigger'
   | 'followUser'
   | 'keywordTrigger'
   | 'likePost'
   | 'musicSource'
-  | 'patternContext'
+  | 'rssInput'
+  | 'trendTrigger'
+  | 'tweetInput'
+  | 'videoInput'
+  // processing
+  | 'beatAnalysis'
+  | 'beatSyncEditor'
+  | 'imageTextOverlay'
+  | 'slideshowImageBatch'
+  | 'soundOverlay'
+  | 'tweetRemix'
+  // AI / generation
+  | 'hookGenerator'
+  | 'hookPerformanceTracker'
+  | 'trendHashtagInspiration'
+  | 'trendSoundInspiration'
+  | 'trendVideoInspiration'
+  // persona / content
   | 'personaContentPlan'
   | 'personaPhotoSession'
   | 'personaVideoContent'
+  // output / publish
   | 'postReply'
   | 'publish'
-  | 'sendDm'
-  | 'soundOverlay';
+  | 'sendDm';
 
 /**
  * SaaS node category (extends core categories)
@@ -353,6 +393,300 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
     label: 'Sound Overlay',
     outputs: [{ id: 'videoUrl', label: 'Output Video', type: 'text' }],
     type: 'soundOverlay',
+  },
+
+  // ----- nodes added in barrel but missing from registry -----
+
+  analyticsFeedback: {
+    category: 'input',
+    defaultData: DEFAULT_ANALYTICS_FEEDBACK_DATA as Record<string, unknown>,
+    description: 'Read performance analytics to guide content strategy',
+    icon: 'BarChart3',
+    inputs: [],
+    label: 'Analytics Feedback',
+    outputs: [
+      { id: 'topTopics', label: 'Top Topics', type: 'text' },
+      { id: 'topHooks', label: 'Top Hooks', type: 'text' },
+      { id: 'worstTopics', label: 'Worst Topics', type: 'text' },
+      { id: 'bestPlatform', label: 'Best Platform', type: 'text' },
+      { id: 'avgEngagementRate', label: 'Avg Engagement Rate', type: 'number' },
+      {
+        id: 'weekOverWeekDirection',
+        label: 'Week-over-Week Direction',
+        type: 'text',
+      },
+      {
+        id: 'weekOverWeekChange',
+        label: 'Week-over-Week Change %',
+        type: 'number',
+      },
+    ],
+    type: 'analyticsFeedback',
+  },
+  beatAnalysis: {
+    category: 'processing',
+    defaultData: DEFAULT_BEAT_ANALYSIS_DATA as Record<string, unknown>,
+    description: 'Detect tempo and beat timestamps from audio',
+    icon: 'Activity',
+    inputs: [
+      { id: 'musicUrl', label: 'Music URL', required: true, type: 'audio' },
+    ],
+    label: 'Beat Analysis',
+    outputs: [
+      { id: 'tempo', label: 'Tempo (BPM)', type: 'number' },
+      {
+        id: 'beatTimestamps',
+        label: 'Beat Timestamps',
+        multiple: true,
+        type: 'number',
+      },
+      { id: 'downbeats', label: 'Downbeats', multiple: true, type: 'number' },
+      { id: 'beatCount', label: 'Beat Count', type: 'number' },
+    ],
+    type: 'beatAnalysis',
+  },
+  beatSyncEditor: {
+    category: 'processing',
+    defaultData: DEFAULT_BEAT_SYNC_EDITOR_DATA as Record<string, unknown>,
+    description: 'Cut videos to match beat timestamps',
+    icon: 'Scissors',
+    inputs: [
+      {
+        id: 'videoFiles',
+        label: 'Video Files',
+        multiple: true,
+        required: true,
+        type: 'video',
+      },
+      {
+        id: 'beatTimestamps',
+        label: 'Beat Timestamps',
+        multiple: true,
+        required: true,
+        type: 'number',
+      },
+      { id: 'musicUrl', label: 'Music URL', required: true, type: 'audio' },
+    ],
+    label: 'Beat Sync Editor',
+    outputs: [
+      { id: 'videoUrl', label: 'Output Video', type: 'video' },
+      { id: 'totalClips', label: 'Total Clips', type: 'number' },
+    ],
+    type: 'beatSyncEditor',
+  },
+  hookGenerator: {
+    category: 'saas',
+    defaultData: DEFAULT_HOOK_GENERATOR_DATA as Record<string, unknown>,
+    description:
+      'Generate viral hooks for TikTok slideshows using proven engagement formulas',
+    icon: 'Zap',
+    inputs: [
+      { id: 'trendData', label: 'Trend Data', required: false, type: 'text' },
+      { id: 'brand', label: 'Brand', required: false, type: 'brand' },
+    ],
+    label: 'Hook Generator',
+    outputs: [
+      { id: 'hookText', label: 'Hook Text', type: 'text' },
+      { id: 'captionHook', label: 'Caption Hook', type: 'text' },
+      { id: 'hashtags', label: 'Hashtags', type: 'text' },
+      { id: 'slidePrompts', label: 'Slide Prompts', type: 'text' },
+    ],
+    type: 'hookGenerator',
+  },
+  hookPerformanceTracker: {
+    category: 'saas',
+    defaultData: {},
+    description:
+      'Track hook performance to close the feedback loop on content that works',
+    icon: 'TrendingUp',
+    inputs: [
+      { id: 'postId', label: 'Post ID', required: true, type: 'text' },
+      { id: 'hookText', label: 'Hook Text', required: false, type: 'text' },
+      {
+        id: 'hookFormula',
+        label: 'Hook Formula',
+        required: false,
+        type: 'text',
+      },
+    ],
+    label: 'Hook Performance Tracker',
+    outputs: [
+      { id: 'performanceId', label: 'Performance ID', type: 'text' },
+      { id: 'analysisSummary', label: 'Analysis Summary', type: 'text' },
+    ],
+    type: 'hookPerformanceTracker',
+  },
+  imageTextOverlay: {
+    category: 'saas',
+    defaultData: DEFAULT_IMAGE_TEXT_OVERLAY_DATA as Record<string, unknown>,
+    description:
+      'Burn text overlay onto static images for TikTok slideshow hooks',
+    icon: 'Type',
+    inputs: [
+      { id: 'image', label: 'Image', required: true, type: 'image' },
+      { id: 'text', label: 'Text', required: true, type: 'text' },
+    ],
+    label: 'Image Text Overlay',
+    outputs: [{ id: 'image', label: 'Image with Text', type: 'image' }],
+    type: 'imageTextOverlay',
+  },
+  rssInput: {
+    category: 'input',
+    defaultData: defaultRssInputData as Record<string, unknown>,
+    description: 'Fetch and parse RSS feeds from URL or XML',
+    icon: 'Rss',
+    inputs: [],
+    label: 'RSS Input',
+    outputs: [
+      { id: 'title', label: 'Item Title', type: 'text' },
+      { id: 'description', label: 'Item Description', type: 'text' },
+      { id: 'link', label: 'Item Link', type: 'text' },
+    ],
+    type: 'rssInput',
+  },
+  slideshowImageBatch: {
+    category: 'saas',
+    defaultData: DEFAULT_SLIDESHOW_IMAGE_BATCH_DATA as Record<string, unknown>,
+    description:
+      'Generate a batch of consistent images for TikTok slideshow posts',
+    icon: 'Images',
+    inputs: [
+      {
+        id: 'slidePrompts',
+        label: 'Slide Prompts',
+        required: false,
+        type: 'text',
+      },
+      { id: 'basePrompt', label: 'Base Prompt', required: false, type: 'text' },
+    ],
+    label: 'Slideshow Image Batch',
+    outputs: [
+      { id: 'images', label: 'Slide Images', multiple: true, type: 'image' },
+    ],
+    type: 'slideshowImageBatch',
+  },
+  trendHashtagInspiration: {
+    category: 'input',
+    defaultData: DEFAULT_TREND_HASHTAG_INSPIRATION_DATA as Record<
+      string,
+      unknown
+    >,
+    description: 'Generate content idea from trending hashtag',
+    icon: 'Hash',
+    inputs: [
+      { id: 'hashtag', label: 'Hashtag', required: false, type: 'text' },
+    ],
+    label: 'Trend Hashtag Inspiration',
+    outputs: [
+      { id: 'prompt', label: 'Prompt', type: 'text' },
+      { id: 'hashtags', label: 'Hashtags', type: 'text' },
+      { id: 'contentType', label: 'Content Type', type: 'text' },
+      { id: 'platform', label: 'Best Platform', type: 'text' },
+    ],
+    type: 'trendHashtagInspiration',
+  },
+  trendSoundInspiration: {
+    category: 'input',
+    defaultData: DEFAULT_TREND_SOUND_INSPIRATION_DATA as Record<
+      string,
+      unknown
+    >,
+    description: 'Get trending TikTok sound for content',
+    icon: 'Music',
+    inputs: [],
+    label: 'Trend Sound Inspiration',
+    outputs: [
+      { id: 'soundId', label: 'Sound ID', type: 'text' },
+      { id: 'soundName', label: 'Sound Name', type: 'text' },
+      { id: 'soundUrl', label: 'Sound URL', type: 'text' },
+      { id: 'duration', label: 'Duration (s)', type: 'number' },
+      { id: 'usageCount', label: 'Usage Count', type: 'number' },
+    ],
+    type: 'trendSoundInspiration',
+  },
+  trendTrigger: {
+    category: 'automation',
+    defaultData: DEFAULT_TREND_TRIGGER_DATA as Record<string, unknown>,
+    description: 'Start workflow when new trend matches criteria',
+    icon: 'TrendingUp',
+    inputs: [],
+    label: 'Trend Trigger',
+    outputs: [
+      { id: 'trendId', label: 'Trend ID', type: 'text' },
+      { id: 'topic', label: 'Topic', type: 'text' },
+      { id: 'platform', label: 'Platform', type: 'text' },
+      { id: 'viralScore', label: 'Viral Score', type: 'number' },
+      { id: 'hashtags', label: 'Hashtags', type: 'text' },
+      { id: 'videoUrl', label: 'Video URL', type: 'text' },
+      { id: 'soundId', label: 'Sound ID', type: 'text' },
+    ],
+    type: 'trendTrigger',
+  },
+  trendVideoInspiration: {
+    category: 'input',
+    defaultData: DEFAULT_TREND_VIDEO_INSPIRATION_DATA as Record<
+      string,
+      unknown
+    >,
+    description: 'Extract generation prompt from trending video',
+    icon: 'Sparkles',
+    inputs: [
+      { id: 'trendId', label: 'Trend ID', required: false, type: 'text' },
+    ],
+    label: 'Trend Video Inspiration',
+    outputs: [
+      { id: 'prompt', label: 'Prompt', type: 'text' },
+      { id: 'hashtags', label: 'Hashtags', type: 'text' },
+      { id: 'soundId', label: 'Sound ID', type: 'text' },
+      { id: 'duration', label: 'Duration (s)', type: 'number' },
+      { id: 'aspectRatio', label: 'Aspect Ratio', type: 'text' },
+      { id: 'style', label: 'Style', type: 'text' },
+    ],
+    type: 'trendVideoInspiration',
+  },
+  tweetInput: {
+    category: 'input',
+    defaultData: defaultTweetInputData as Record<string, unknown>,
+    description: 'Fetch tweet content from URL or paste text directly',
+    icon: 'Twitter',
+    inputs: [],
+    label: 'Tweet Input',
+    outputs: [{ id: 'text', label: 'Tweet Text', type: 'text' }],
+    type: 'tweetInput',
+  },
+  tweetRemix: {
+    category: 'processing',
+    defaultData: defaultTweetRemixData as Record<string, unknown>,
+    description: 'Generate tweet variations with different tones and lengths',
+    icon: 'Sparkles',
+    inputs: [
+      { id: 'text', label: 'Input Tweet', required: true, type: 'text' },
+    ],
+    label: 'Tweet Remix',
+    outputs: [{ id: 'text', label: 'Selected Tweet', type: 'text' }],
+    type: 'tweetRemix',
+  },
+  videoInput: {
+    category: 'input',
+    defaultData: DEFAULT_VIDEO_INPUT_DATA as Record<string, unknown>,
+    description: 'Accept multiple video URLs for beat-synced editing',
+    icon: 'Video',
+    inputs: [
+      {
+        id: 'videoUrls',
+        label: 'Video URLs',
+        multiple: true,
+        required: true,
+        type: 'text',
+      },
+    ],
+    label: 'Video Input',
+    outputs: [
+      { id: 'videoFiles', label: 'Video Files', multiple: true, type: 'video' },
+      { id: 'totalDuration', label: 'Total Duration (s)', type: 'number' },
+      { id: 'videoCount', label: 'Video Count', type: 'number' },
+    ],
+    type: 'videoInput',
   },
 };
 

@@ -14,7 +14,7 @@ vi.mock('@xyflow/react', () => ({
   }),
 }));
 
-vi.mock('../stores/workflowStore', () => ({
+vi.mock('../stores/workflow', () => ({
   useWorkflowStore: (
     selector?: (state: { nodes: Array<{ id: string }> }) => unknown,
   ) => {

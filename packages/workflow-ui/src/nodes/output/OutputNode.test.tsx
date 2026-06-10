@@ -56,14 +56,14 @@ vi.mock('../../ui/button', () => ({
 }));
 
 // Mock stores
-vi.mock('../../stores/workflowStore', () => ({
+vi.mock('../../stores/workflow', () => ({
   useWorkflowStore: (selector: (state: unknown) => unknown) => {
     const state = { edges: [], updateNodeData: vi.fn() };
     return selector(state);
   },
 }));
 
-vi.mock('../../stores/executionStore', () => ({
+vi.mock('../../stores/execution', () => ({
   useExecutionStore: (selector: (state: unknown) => unknown) => {
     const state = { isRunning: false };
     return selector(state);

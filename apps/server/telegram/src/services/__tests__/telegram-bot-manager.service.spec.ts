@@ -189,7 +189,10 @@ describe('TelegramBotManager', () => {
 
       await service.shutdown();
 
-      expect(redisService.unsubscribe).toHaveBeenCalledTimes(3);
+      // Shared Redis channels are intentionally NOT unsubscribed on shutdown
+      // (see comment in shutdown()). Process-level cleanup is handled by
+      // RedisService.onModuleDestroy().
+      expect(redisService.unsubscribe).not.toHaveBeenCalled();
       expect(mockBot.stop).toHaveBeenCalled();
       expect(service.getActiveCount()).toBe(0);
       expect(service.logger.log).toHaveBeenCalledWith(
@@ -496,6 +499,7 @@ describe('TelegramBotManager', () => {
 
       expect(httpService.get).toHaveBeenCalledWith(
         'http://localhost:3010/v1/orgs/org-123/workflows',
+        undefined,
       );
       expect(result).toEqual(mockWorkflows);
     });

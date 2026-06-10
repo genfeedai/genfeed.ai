@@ -27,18 +27,12 @@ on:
       slack_changed:
         description: 'Whether Slack service changed'
         value: ${{ jobs.detect.outputs.slack_changed }}
-      fanvue_changed:
-        description: 'Whether Fanvue service changed'
-        value: ${{ jobs.detect.outputs.fanvue_changed }}
       workers_changed:
         description: 'Whether Workers changed'
         value: ${{ jobs.detect.outputs.workers_changed }}
       clips_changed:
         description: 'Whether Clips service changed'
         value: ${{ jobs.detect.outputs.clips_changed }}
-      llm_changed:
-        description: 'Whether LLM service changed'
-        value: ${{ jobs.detect.outputs.llm_changed }}
       build_matrix:
         description: 'JSON matrix of changed services for dynamic build'
         value: ${{ jobs.detect.outputs.build_matrix }}
@@ -56,10 +50,8 @@ jobs:
       telegram_changed: ${{ steps.changes.outputs.telegram }}
       discord_changed: ${{ steps.changes.outputs.discord }}
       slack_changed: ${{ steps.changes.outputs.slack }}
-      fanvue_changed: ${{ steps.changes.outputs.fanvue }}
       workers_changed: ${{ steps.changes.outputs.workers }}
       clips_changed: ${{ steps.changes.outputs.clips }}
-      llm_changed: ${{ steps.changes.outputs.llm }}
       build_matrix: ${{ steps.build-matrix.outputs.matrix }}
     steps:
       - name: Checkout
@@ -135,15 +127,6 @@ jobs:
               - 'package.json'
               - 'bun.lock'
             
-            # Fanvue service changes
-            fanvue:
-              - 'apps/server/fanvue/**'
-              - 'packages/**'
-              - 'docker/Dockerfile.server'
-              - 'docker/docker-compose.fanvue.yml'
-              - 'package.json'
-              - 'bun.lock'
-
             # Workers/cron changes
             workers:
               - 'apps/server/workers/**'
@@ -164,21 +147,12 @@ jobs:
               - 'package.json'
               - 'bun.lock'
 
-            # LLM service changes
-            llm:
-              - 'apps/server/llm/**'
-              - 'packages/**'
-              - 'docker/Dockerfile.server'
-              - 'docker/docker-compose.llm.yml'
-              - 'package.json'
-              - 'bun.lock'
-
       - name: Build dynamic matrix
         id: build-matrix
         run: |
           MATRIX='{"include":['
           FIRST=true
-          for service in api files mcp notifications telegram discord slack fanvue workers clips llm; do
+          for service in api files mcp notifications telegram discord slack workers clips; do
             # Map service name to changes output
             CHANGED="${{ steps.changes.outputs.api }}"
             case "$service" in
@@ -188,10 +162,8 @@ jobs:
               telegram) CHANGED="${{ steps.changes.outputs.telegram }}" ;;
               discord) CHANGED="${{ steps.changes.outputs.discord }}" ;;
               slack) CHANGED="${{ steps.changes.outputs.slack }}" ;;
-              fanvue) CHANGED="${{ steps.changes.outputs.fanvue }}" ;;
               workers) CHANGED="${{ steps.changes.outputs.workers }}" ;;
               clips) CHANGED="${{ steps.changes.outputs.clips }}" ;;
-              llm) CHANGED="${{ steps.changes.outputs.llm }}" ;;
             esac
             if [ "$CHANGED" == "true" ]; then
               if [ "$FIRST" == "true" ]; then
@@ -219,9 +191,7 @@ jobs:
           echo "| Telegram | ${{ steps.changes.outputs.telegram }} | ${{ steps.changes.outputs.telegram == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Discord | ${{ steps.changes.outputs.discord }} | ${{ steps.changes.outputs.discord == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Slack | ${{ steps.changes.outputs.slack }} | ${{ steps.changes.outputs.slack == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Fanvue | ${{ steps.changes.outputs.fanvue }} | ${{ steps.changes.outputs.fanvue == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Workers | ${{ steps.changes.outputs.workers }} | ${{ steps.changes.outputs.workers == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Clips | ${{ steps.changes.outputs.clips }} | ${{ steps.changes.outputs.clips == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| LLM | ${{ steps.changes.outputs.llm }} | ${{ steps.changes.outputs.llm == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Build matrix:** \`${{ steps.build-matrix.outputs.matrix }}\`" >> $GITHUB_STEP_SUMMARY

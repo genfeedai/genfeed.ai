@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 
 export interface CommentNavigation {
   currentIndex: number;

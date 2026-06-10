@@ -348,7 +348,11 @@ export class UploadService {
         storagePath,
       });
 
-      const storedPath = await this.storage.upload(body, storagePath);
+      const storedPath = await this.storage.upload(
+        body,
+        storagePath,
+        contentType,
+      );
       const publicUrl = this.storage.getUrl(storedPath);
 
       const s3UploadDuration = Date.now() - s3UploadStartTime;

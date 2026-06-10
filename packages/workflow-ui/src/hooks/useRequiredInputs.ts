@@ -2,7 +2,7 @@ import type { NodeType, WorkflowEdge } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 
 interface RequiredInputsResult {
   /** Whether all required inputs have connections */

@@ -26,6 +26,11 @@ const checks = [
     name: 'Modal architecture',
     required: true,
   },
+  {
+    command: ['bun', 'run', 'scripts/check-org-scoped-navigation.ts'],
+    name: 'Org-scoped navigation (no bare router.push/replace in [orgSlug] tree)',
+    required: true,
+  },
 ] as const;
 
 let failed = false;
