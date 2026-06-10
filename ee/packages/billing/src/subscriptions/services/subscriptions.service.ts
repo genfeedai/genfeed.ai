@@ -87,14 +87,41 @@ export class SubscriptionsService
     return customer?.stripeCustomerId ?? undefined;
   }
 
-  private async normalizeSubscriptionDocument(
+  /**
+   * The DB column is `plan`; the in-memory field consumers branch on
+   * (Stripe invoice.paid credit allocation, Clerk sync, tier resolution)
+   * is `type`. Overriding here guarantees EVERY BaseService read path
+   * (findOne/findAll/patch/create) populates it — previously only
+   * findByOrganizationId/findByStripeCustomerId did, so webhook handlers
+   * using findOne({stripeSubscriptionId}) saw type=undefined and silently
+   * skipped credit allocation.
+   */
+  protected override normalizeDocument(
     document: unknown,
-  ): Promise<SubscriptionDocument> {
-    const normalized = this.normalizeDocument(
+  ): SubscriptionDocument {
+    const normalized = super.normalizeDocument(
       document,
     ) as SubscriptionDocument & {
       plan?: string | null;
     };
+
+    if (typeof normalized !== 'object' || normalized === null) {
+      return normalized;
+    }
+
+    return {
+      ...normalized,
+      customer:
+        normalized.customer ??
+        (normalized.customerId ? String(normalized.customerId) : undefined),
+      type: normalized.type ?? normalized.plan ?? undefined,
+    };
+  }
+
+  private async normalizeSubscriptionDocument(
+    document: unknown,
+  ): Promise<SubscriptionDocument> {
+    const normalized = this.normalizeDocument(document);
 
     const stripeCustomerId =
       normalized.stripeCustomerId ??
@@ -102,11 +129,7 @@ export class SubscriptionsService
 
     return {
       ...normalized,
-      customer:
-        normalized.customer ??
-        (normalized.customerId ? String(normalized.customerId) : undefined),
       stripeCustomerId,
-      type: normalized.type ?? normalized.plan ?? undefined,
     };
   }
 
