@@ -295,13 +295,16 @@ run_db_migrations() {
   # and egress to the public RDS endpoint (default bridge network provides it).
   # Run as root + HOME=/tmp so the schema engine can write its cache regardless
   # of the image's non-root runtime user.
+  # `bun x` (not `bunx`): the image only ships the bun binary, and the
+  # node:24-slim entrypoint rewrites an unknown first arg into `node bunx ...`
+  # -> MODULE_NOT_FOUND. Pin the prisma version to match packages/prisma.
   if docker run --rm \
       --user root \
       -e HOME=/tmp \
       --env-file "$ENV_FILE" \
       -w /usr/src/app/packages/prisma \
       "$DEFAULT_SERVER_IMAGE" \
-      bunx prisma migrate deploy; then
+      bun x prisma@7.8.0 migrate deploy; then
     log "Prisma migrations applied (or already up to date)"
     return 0
   fi
