@@ -25,6 +25,7 @@ type BootstrapResponse = {
     brandId?: string;
   };
   brands?: BootstrapBrandSummary[];
+  currentUser?: unknown;
 };
 
 type OrganizationMineResponseItem = {
@@ -36,6 +37,7 @@ const hasClerkKeys =
   Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim()) &&
   Boolean(process.env.CLERK_SECRET_KEY?.trim());
 const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
+const ONBOARDING_PATH = '/onboarding';
 const SEEDED_WORKSPACE_PATH = '/default/default/workspace/overview';
 
 /**
@@ -392,6 +394,37 @@ async function resolveActiveWorkspaceSlugs(
   return { cookieValue, slugs };
 }
 
+async function shouldRedirectSignedInUserToOnboarding(
+  token: string,
+): Promise<boolean> {
+  let bootstrapResponse: Response;
+
+  try {
+    bootstrapResponse = await fetch(`${getApiBaseUrl()}/auth/bootstrap`, {
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch {
+    return false;
+  }
+
+  if (!bootstrapResponse.ok) {
+    return false;
+  }
+
+  const bootstrap =
+    (await bootstrapResponse.json()) as BootstrapResponse | null;
+
+  return (
+    Boolean(bootstrap?.currentUser) &&
+    Array.isArray(bootstrap?.brands) &&
+    bootstrap.brands.length === 0
+  );
+}
+
 type CanonicalResolution = {
   cookieValue: string | null;
   path: string;
@@ -501,6 +534,13 @@ const clerkProxy = isCloudConnected
               }
               return response;
             }
+
+            if (
+              token &&
+              (await shouldRedirectSignedInUserToOnboarding(token))
+            ) {
+              return redirectPreservingSearch(req, ONBOARDING_PATH);
+            }
           }
           return NextResponse.next();
         }
@@ -536,6 +576,13 @@ const clerkProxy = isCloudConnected
                 setSlugCookie(response, resolved.cookieValue);
               }
               return response;
+            }
+
+            if (
+              token &&
+              (await shouldRedirectSignedInUserToOnboarding(token))
+            ) {
+              return redirectPreservingSearch(req, ONBOARDING_PATH);
             }
 
             return NextResponse.next();
