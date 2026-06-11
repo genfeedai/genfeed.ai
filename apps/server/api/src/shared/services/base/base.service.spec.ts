@@ -314,8 +314,16 @@ describe('BaseService', () => {
       setModelFields(
         'id',
         'isDeleted',
+        { isRequired: false, name: 'brandId' },
+        { isRequired: false, name: 'folderId' },
+        { isRequired: false, name: 'trainingId' },
         { kind: 'enum', name: 'category', type: 'IngredientCategory' },
-        { kind: 'enum', name: 'scope', type: 'AssetScope' },
+        {
+          isRequired: true,
+          kind: 'enum',
+          name: 'scope',
+          type: 'AssetScope',
+        },
         { kind: 'enum', name: 'status', type: 'IngredientStatus' },
       );
       delegate.findMany.mockResolvedValue([]);
@@ -326,11 +334,14 @@ describe('BaseService', () => {
           where: {
             AND: [
               {
+                brand: 'brand-1',
                 category: 'video',
+                folder: null,
                 scope: 'public',
                 status: {
                   in: ['generated', 'processing', 'validated', 'completed'],
                 },
+                training: null,
               },
             ],
           },
@@ -345,12 +356,64 @@ describe('BaseService', () => {
         where: {
           AND: [
             {
+              brandId: 'brand-1',
               category: 'VIDEO',
+              folderId: null,
               scope: 'PUBLIC',
               status: {
                 in: ['GENERATED', 'PROCESSING', 'VALIDATED', 'GENERATED'],
               },
+              trainingId: null,
             },
+          ],
+          isDeleted: false,
+        },
+      });
+    });
+
+    it('drops required not-null tautologies while preserving relation null filters', async () => {
+      setModelFields(
+        'id',
+        'isDeleted',
+        { isRequired: true, name: 'organizationId' },
+        { isRequired: false, name: 'brandId' },
+        {
+          isRequired: true,
+          kind: 'enum',
+          name: 'scope',
+          type: 'AssetScope',
+        },
+      );
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        {
+          where: {
+            OR: [{ brand: null, organization: 'org-1' }, { brand: 'brand-1' }],
+            scope: { not: null },
+          },
+        },
+        { page: 1, limit: 10 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        orderBy: [{ createdAt: 'desc' }],
+        skip: 0,
+        take: 10,
+        where: {
+          OR: [
+            { brandId: null, organizationId: 'org-1' },
+            { brandId: 'brand-1' },
+          ],
+          isDeleted: false,
+        },
+      });
+      expect(delegate.count).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { brandId: null, organizationId: 'org-1' },
+            { brandId: 'brand-1' },
           ],
           isDeleted: false,
         },

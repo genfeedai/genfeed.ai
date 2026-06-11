@@ -40,6 +40,8 @@ type PrismaOrderDirection = 'asc' | 'desc' | number;
 type PrismaOrderByInput = Record<string, PrismaOrderDirection>;
 type PrismaOrderBy = Record<string, 'asc' | 'desc'>;
 type RuntimeModelField = {
+  isList?: boolean;
+  isRequired?: boolean;
   kind?: string;
   name: string;
   type?: string;
@@ -457,6 +459,11 @@ export abstract class BaseService<
     return enumValues.has(candidate) ? candidate : value;
   }
 
+  private fieldAllowsNull(fieldName: string): boolean {
+    const field = this.getRuntimeField(fieldName);
+    return field ? field.isRequired !== true : true;
+  }
+
   private normalizeOperatorValue(fieldName: string, value: unknown): unknown {
     if (!this.isPlainObject(value)) {
       return this.normalizeEnumScalarValue(fieldName, value);
@@ -464,47 +471,68 @@ export abstract class BaseService<
 
     const operators = value as Record<string, unknown>;
     const normalized: Record<string, unknown> = {};
+    let sawOperator = false;
     const normalizeMaybeList = (operatorValue: unknown): unknown =>
       Array.isArray(operatorValue)
-        ? operatorValue.map((entry) =>
-            this.normalizeEnumScalarValue(fieldName, entry),
-          )
-        : this.normalizeEnumScalarValue(fieldName, operatorValue);
+        ? operatorValue
+            .map((entry) => this.normalizeOperatorValue(fieldName, entry))
+            .filter((entry) => entry !== undefined)
+        : this.normalizeOperatorValue(fieldName, operatorValue);
+    const assignOperator = (operator: string, operatorValue: unknown): void => {
+      sawOperator = true;
+      if (operatorValue !== undefined) {
+        normalized[operator] = operatorValue;
+      }
+    };
 
     if ('equals' in operators) {
-      normalized.equals = normalizeMaybeList(operators.equals);
+      assignOperator('equals', normalizeMaybeList(operators.equals));
     }
     if ('set' in operators) {
-      normalized.set = normalizeMaybeList(operators.set);
+      assignOperator('set', normalizeMaybeList(operators.set));
     }
     if ('in' in operators) {
-      normalized.in = normalizeMaybeList(operators.in);
+      assignOperator('in', normalizeMaybeList(operators.in));
     }
     if ('notIn' in operators) {
-      normalized.notIn = normalizeMaybeList(operators.notIn);
+      assignOperator('notIn', normalizeMaybeList(operators.notIn));
     }
     if ('not' in operators) {
-      normalized.not = this.isPlainObject(operators.not)
-        ? this.normalizeOperatorValue(fieldName, operators.not)
-        : normalizeMaybeList(operators.not);
+      if (operators.not === null && !this.fieldAllowsNull(fieldName)) {
+        sawOperator = true;
+      } else {
+        assignOperator(
+          'not',
+          this.isPlainObject(operators.not)
+            ? this.normalizeOperatorValue(fieldName, operators.not)
+            : normalizeMaybeList(operators.not),
+        );
+      }
     }
     if ('gte' in operators) {
-      normalized.gte = operators.gte;
+      assignOperator('gte', operators.gte);
     }
     if ('gt' in operators) {
-      normalized.gt = operators.gt;
+      assignOperator('gt', operators.gt);
     }
     if ('lte' in operators) {
-      normalized.lte = operators.lte;
+      assignOperator('lte', operators.lte);
     }
     if ('lt' in operators) {
-      normalized.lt = operators.lt;
+      assignOperator('lt', operators.lt);
     }
     if ('contains' in operators) {
-      normalized.contains = operators.contains;
+      assignOperator('contains', operators.contains);
     }
     if ('mode' in operators) {
-      normalized.mode = operators.mode === 'i' ? 'insensitive' : operators.mode;
+      assignOperator(
+        'mode',
+        operators.mode === 'i' ? 'insensitive' : operators.mode,
+      );
+    }
+
+    if (sawOperator && Object.keys(normalized).length === 0) {
+      return undefined;
     }
 
     return Object.keys(normalized).length ? normalized : value;
@@ -540,7 +568,10 @@ export abstract class BaseService<
         continue;
       }
 
-      result[key] = this.normalizeOperatorValue(key, value);
+      const normalizedValue = this.normalizeOperatorValue(key, value);
+      if (normalizedValue !== undefined) {
+        result[key] = normalizedValue;
+      }
     }
 
     return result;
@@ -997,16 +1028,19 @@ export abstract class BaseService<
         continue;
       }
 
+      const scalarRelationKey = `${key}Id`;
       const shouldMapRelationObject =
         this.isPlainObject(value) &&
         Object.keys(value).some((operator) => operator.startsWith('$'));
 
-      if (typeof value === 'string' || shouldMapRelationObject) {
-        const scalarRelationKey = `${key}Id`;
-        if (this.modelHasField(scalarRelationKey)) {
-          processed[scalarRelationKey] = value;
-          continue;
-        }
+      if (
+        (typeof value === 'string' ||
+          value === null ||
+          shouldMapRelationObject) &&
+        this.modelHasField(scalarRelationKey)
+      ) {
+        processed[scalarRelationKey] = value;
+        continue;
       }
 
       if (key === '_id') {
