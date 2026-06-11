@@ -67,8 +67,7 @@ jobs:
             # API service changes
             api:
               - 'apps/server/api/**'
-              - 'packages/**'
-              - '!packages/ui/**'
+              - 'packages/!(ui)/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.api.yml'
               - 'package.json'
@@ -77,8 +76,7 @@ jobs:
             # Files service changes
             files:
               - 'apps/server/files/**'
-              - 'packages/**'
-              - '!packages/ui/**'
+              - 'packages/!(ui)/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.files.yml'
               - 'package.json'
@@ -87,8 +85,7 @@ jobs:
             # MCP service changes
             mcp:
               - 'apps/server/mcp/**'
-              - 'packages/**'
-              - '!packages/ui/**'
+              - 'packages/!(ui)/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.mcp.yml'
               - 'package.json'
@@ -97,8 +94,7 @@ jobs:
             # Notifications service changes
             notifications:
               - 'apps/server/notifications/**'
-              - 'packages/**'
-              - '!packages/ui/**'
+              - 'packages/!(ui)/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.notifications.yml'
               - 'package.json'
@@ -107,8 +103,7 @@ jobs:
             # Telegram service changes
             telegram:
               - 'apps/server/telegram/**'
-              - 'packages/**'
-              - '!packages/ui/**'
+              - 'packages/!(ui)/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.telegram.yml'
               - 'package.json'
@@ -117,8 +112,7 @@ jobs:
             # Discord service changes
             discord:
               - 'apps/server/discord/**'
-              - 'packages/**'
-              - '!packages/ui/**'
+              - 'packages/!(ui)/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.discord.yml'
               - 'package.json'
@@ -127,8 +121,7 @@ jobs:
             # Slack service changes
             slack:
               - 'apps/server/slack/**'
-              - 'packages/**'
-              - '!packages/ui/**'
+              - 'packages/!(ui)/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.slack.yml'
               - 'package.json'
@@ -138,8 +131,7 @@ jobs:
             workers:
               - 'apps/server/workers/**'
               - 'apps/server/api/src/**'
-              - 'packages/**'
-              - '!packages/ui/**'
+              - 'packages/!(ui)/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.workers.yml'
               - 'scripts/**'
@@ -149,8 +141,7 @@ jobs:
             # Clips service changes
             clips:
               - 'apps/server/clips/**'
-              - 'packages/**'
-              - '!packages/ui/**'
+              - 'packages/!(ui)/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.clips.yml'
               - 'package.json'
