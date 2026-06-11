@@ -1246,13 +1246,13 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     switch (metric) {
       case AnalyticsMetric.ENGAGEMENT:
         sortExpr =
-          '(pa.total_likes + pa.total_comments + pa.total_shares + pa.total_saves) DESC';
+          '(pa."totalLikes" + pa."totalComments" + pa."totalShares" + pa."totalSaves") DESC';
         break;
       case AnalyticsMetric.LIKES:
-        sortExpr = 'pa.total_likes DESC';
+        sortExpr = 'pa."totalLikes" DESC';
         break;
       default:
-        sortExpr = 'pa.total_views DESC';
+        sortExpr = 'pa."totalViews" DESC';
     }
 
     const brandFilter = brandId
@@ -1282,11 +1282,11 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         pa."totalSaves",
         pa."totalShares",
         pa."engagementRate",
-        (pa.total_likes + pa.total_comments + pa.total_shares + pa.total_saves) AS total_engagement,
+        (pa."totalLikes" + pa."totalComments" + pa."totalShares" + pa."totalSaves") AS total_engagement,
         p.label AS label,
         p.description AS description,
-        b.name AS brand_name,
-        b.logo AS brand_logo
+        b.label AS brand_name,
+        NULL AS brand_logo
       FROM "post_analytics" pa
       LEFT JOIN "posts" p ON p.id = pa."postId"
       LEFT JOIN "brands" b ON b.id = pa."brandId"

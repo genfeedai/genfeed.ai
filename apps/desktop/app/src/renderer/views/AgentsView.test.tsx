@@ -84,7 +84,8 @@ describe('AgentsView', () => {
 
   it('shows a manual run status after triggering an agent', async () => {
     cloudApi.runAgent.mockResolvedValue({
-      message: 'Proactive run queued. It will execute on the next minute cycle.',
+      message:
+        'Proactive run queued. It will execute on the next minute cycle.',
       runId: '',
       status: 'pending',
     });

@@ -78,7 +78,9 @@ function runTime(run: IDesktopAgentRun): number {
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
-function isManualRunInFlight(manualRun: ManualRunState | null): boolean {
+function isManualRunInFlight(
+  manualRun: ManualRunState | null,
+): manualRun is ManualRunState {
   return (
     manualRun !== null &&
     ['pending', 'queued', 'running'].includes(manualRun.status)
@@ -319,31 +321,34 @@ export const AgentsView = ({ isOnline, onRunHandoff }: AgentsViewProps) => {
   const [runningAgentId, setRunningAgentId] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const loadAgents = useCallback(async (options?: { silent?: boolean }) => {
-    if (!options?.silent) {
-      setLoading(true);
-    }
-    setError(null);
-
-    if (!isOnline) {
-      setAgents([]);
+  const loadAgents = useCallback(
+    async (options?: { silent?: boolean }) => {
       if (!options?.silent) {
-        setLoading(false);
+        setLoading(true);
       }
-      return;
-    }
+      setError(null);
 
-    try {
-      const result = await window.genfeedDesktop.cloud.listAgents();
-      setAgents(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load agents');
-    } finally {
-      if (!options?.silent) {
-        setLoading(false);
+      if (!isOnline) {
+        setAgents([]);
+        if (!options?.silent) {
+          setLoading(false);
+        }
+        return;
       }
-    }
-  }, [isOnline]);
+
+      try {
+        const result = await window.genfeedDesktop.cloud.listAgents();
+        setAgents(result);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load agents');
+      } finally {
+        if (!options?.silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [isOnline],
+  );
 
   useEffect(() => {
     void loadAgents();
@@ -372,19 +377,20 @@ export const AgentsView = ({ isOnline, onRunHandoff }: AgentsViewProps) => {
       return;
     }
 
-    const agent = agents.find((item) => item.id === manualRun.agentId);
+    const activeManualRun = manualRun;
+    const agent = agents.find((item) => item.id === activeManualRun.agentId);
     const latestRun = agent?.latestRun;
 
     if (
       !latestRun ||
-      !isMatchingManualRun(manualRun, latestRun) ||
+      !isMatchingManualRun(activeManualRun, latestRun) ||
       ['pending', 'queued', 'running'].includes(latestRun.status)
     ) {
       return;
     }
 
     setManualRun({
-      ...manualRun,
+      ...activeManualRun,
       ...(latestRun.outputSummary ? { message: latestRun.outputSummary } : {}),
       runId: latestRun.id,
       status: latestRun.status,
