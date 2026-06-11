@@ -7,6 +7,7 @@ import {
   IsBoolean,
   IsIn,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Max,
@@ -322,5 +323,7 @@ export class UpdateBrandAgentConfigDto {
     required: false,
     type: Object,
   })
+  @IsOptional()
+  @IsObject()
   platformOverrides?: Record<string, UpdateBrandAgentPlatformOverrideDto>;
 }

@@ -5,6 +5,7 @@ import {
   IsDate,
   IsEnum,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   MaxLength,
@@ -85,5 +86,6 @@ export class CreateApiKeyDto {
     required: false,
   })
   @IsOptional()
+  @IsObject()
   readonly metadata?: Record<string, unknown>;
 }

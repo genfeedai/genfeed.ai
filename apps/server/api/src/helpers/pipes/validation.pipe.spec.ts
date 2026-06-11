@@ -1,6 +1,6 @@
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
-import { IsEmail, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsObject, IsOptional, IsString } from 'class-validator';
 
 class TestDto {
   @IsString()
@@ -17,6 +17,15 @@ class TestDto {
 class PrimitiveDto {
   @IsString()
   value!: string;
+}
+
+class DynamicDto {
+  @IsString()
+  name!: string;
+
+  @IsOptional()
+  @IsObject()
+  payload?: Record<string, unknown>;
 }
 
 describe('ValidationPipe', () => {
@@ -45,6 +54,26 @@ describe('ValidationPipe', () => {
       const result = await pipe.transform(value, metadata);
 
       expect(result).toEqual(value);
+    });
+
+    it('strips unknown top-level fields while preserving decorated object payloads', async () => {
+      const value = {
+        name: 'workflow',
+        payload: { arbitrary: true, nested: { value: 1 } },
+        unexpected: 'strip me',
+      };
+      const metadata: ArgumentMetadata = {
+        metatype: DynamicDto,
+        type: 'body',
+      };
+
+      const result = await pipe.transform(value, metadata);
+
+      expect(result).toEqual({
+        name: 'workflow',
+        payload: { arbitrary: true, nested: { value: 1 } },
+      });
+      expect(result).not.toHaveProperty('unexpected');
     });
 
     it('should throw BadRequestException for invalid data', async () => {
