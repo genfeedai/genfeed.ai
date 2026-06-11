@@ -9,6 +9,7 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  Allow,
   IsArray,
   IsBoolean,
   IsDate,
@@ -161,6 +162,7 @@ export class WorkflowInputVariableDto {
   @ApiProperty({ description: 'Help text', required: false })
   readonly description?: string;
 
+  @Allow()
   @IsOptional()
   @ApiProperty({ description: 'Default value', required: false })
   readonly defaultValue?: unknown;
@@ -308,6 +310,7 @@ export class CreateWorkflowDto extends LabeledCreateDto {
   })
   readonly status?: WorkflowStatus;
 
+  @IsNumber()
   @IsOptional()
   @ApiProperty({
     description: 'Workflow progress percentage',
@@ -315,6 +318,7 @@ export class CreateWorkflowDto extends LabeledCreateDto {
   })
   readonly progress?: number;
 
+  @IsNumber()
   @IsOptional()
   @ApiProperty({
     description: 'Number of times this workflow has been executed',
@@ -322,6 +326,7 @@ export class CreateWorkflowDto extends LabeledCreateDto {
   })
   readonly executionCount?: number;
 
+  @Allow()
   @IsOptional()
   @ApiProperty({
     description: 'Last execution timestamp',
@@ -329,6 +334,7 @@ export class CreateWorkflowDto extends LabeledCreateDto {
   })
   readonly lastExecutedAt?: Date;
 
+  @Allow()
   @IsOptional()
   @ApiProperty({
     description: 'Workflow start timestamp',
@@ -336,6 +342,7 @@ export class CreateWorkflowDto extends LabeledCreateDto {
   })
   readonly startedAt?: Date;
 
+  @Allow()
   @IsOptional()
   @ApiProperty({
     description: 'Workflow completion timestamp',

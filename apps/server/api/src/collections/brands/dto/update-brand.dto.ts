@@ -5,7 +5,7 @@ import type {
 } from '@api/collections/brands/schemas/brand.schema';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsOptional } from 'class-validator';
+import { IsArray, IsBoolean, IsObject, IsOptional } from 'class-validator';
 
 export class UpdateBrandDto extends PartialType(CreateBrandDto) {
   @IsBoolean()
@@ -16,6 +16,7 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
   })
   readonly isDeleted?: boolean;
 
+  @IsObject()
   @IsOptional()
   @ApiProperty({
     description: 'Agent configuration overrides for the brand',

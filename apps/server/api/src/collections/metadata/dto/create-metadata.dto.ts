@@ -4,6 +4,7 @@ import { MetadataExtension, MetadataStyle } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsNumber,
@@ -112,6 +113,8 @@ export class CreateMetadataDto {
   @IsOptional()
   readonly hasAudio?: boolean;
 
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
   readonly tags?: string[];
 }

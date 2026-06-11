@@ -1,7 +1,7 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   AssetScope,
-  type ContentRating,
+  ContentRating,
   DarkroomReviewStatus,
   IngredientAvatarCategory,
   IngredientCategory,
@@ -212,6 +212,7 @@ export class CreateIngredientDto {
   })
   readonly qualityStatus?: string;
 
+  @IsEnum(ContentRating)
   @IsOptional()
   @ApiProperty({
     description: 'Moderation content rating for darkroom assets',

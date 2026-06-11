@@ -1,6 +1,6 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { Allow, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class CreateContextDto {
   @ApiProperty({
@@ -47,6 +47,7 @@ export class CreateContextDto {
   @IsEntityId()
   sourceBrand?: string;
 
+  @Allow()
   @ApiProperty({
     description: 'Last analyzed timestamp',
     required: false,
