@@ -1,5 +1,6 @@
 import type {
   IDesktopAgent,
+  IDesktopAgentRun,
   IDesktopAgentRunResult,
   IDesktopAnalytics,
   IDesktopCloudProject,
@@ -15,6 +16,75 @@ import type {
   IDesktopWorkflow,
   IDesktopWorkflowRunResult,
 } from '@genfeedai/desktop-contracts';
+
+const AGENT_RUN_STATUSES = new Set<IDesktopAgentRun['status']>([
+  'completed',
+  'failed',
+  'pending',
+  'queued',
+  'running',
+]);
+
+function maybeString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function maybeNumber(value: unknown): number | undefined {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    return undefined;
+  }
+
+  const nextValue = Number(value);
+  return Number.isFinite(nextValue) ? nextValue : undefined;
+}
+
+function normalizeAgentRunStatus(value: unknown): IDesktopAgentRun['status'] {
+  const status = typeof value === 'string' ? value.toLowerCase() : '';
+  return AGENT_RUN_STATUSES.has(status as IDesktopAgentRun['status'])
+    ? (status as IDesktopAgentRun['status'])
+    : 'pending';
+}
+
+function runTimestamp(run: IDesktopAgentRun): number {
+  const timestamp = new Date(run.completedAt ?? run.startedAt).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function mapAgentRun(
+  run: Record<string, unknown>,
+  fallbackId: string,
+): IDesktopAgentRun {
+  const completedAt = maybeString(run.completedAt ?? run.endedAt);
+  const contentGenerated = maybeNumber(
+    run.contentGenerated ?? run.generatedCount ?? run.outputCount,
+  );
+  const creditsUsed = maybeNumber(run.creditsUsed ?? run.creditCost);
+  const message = maybeString(run.message);
+  const outputSummary = maybeString(run.summary ?? run.outputSummary);
+  const threadId = maybeString(run.threadId);
+  const startedAt =
+    maybeString(run.startedAt ?? run.createdAt) ??
+    completedAt ??
+    new Date(0).toISOString();
+
+  return {
+    ...(completedAt ? { completedAt } : {}),
+    ...(contentGenerated !== undefined ? { contentGenerated } : {}),
+    ...(creditsUsed !== undefined ? { creditsUsed } : {}),
+    id: maybeString(run.id ?? run._id ?? run.runId) ?? fallbackId,
+    ...(message ? { message } : {}),
+    ...(outputSummary ? { outputSummary } : {}),
+    startedAt,
+    status: normalizeAgentRunStatus(
+      run.status ?? (completedAt ? 'completed' : undefined),
+    ),
+    ...(threadId ? { threadId } : {}),
+  };
+}
 
 export class DesktopCloudService implements IDesktopDataService {
   constructor(
@@ -280,25 +350,23 @@ export class DesktopCloudService implements IDesktopDataService {
         const runHistory = Array.isArray(attrs.runHistory)
           ? (attrs.runHistory as Array<Record<string, unknown>>)
           : [];
-        const recentRuns = runHistory.slice(0, 5).map((run) => ({
-          completedAt: run.endedAt ? String(run.endedAt) : undefined,
-          id: String(run._id ?? run.id ?? ''),
-          startedAt: String(run.startedAt ?? ''),
-          status: String(run.status ?? 'completed') as
-            | 'completed'
-            | 'failed'
-            | 'pending'
-            | 'running',
-        }));
+        const agentId = String(item.id ?? '');
+        const recentRuns = runHistory
+          .map((run, index) => mapAgentRun(run, `${agentId}-run-${index}`))
+          .sort((left, right) => runTimestamp(right) - runTimestamp(left))
+          .slice(0, 5);
 
         const isActive = Boolean(attrs.isActive ?? attrs.enabled ?? false);
         return {
           avatar: attrs.avatar ? String(attrs.avatar) : undefined,
-          id: String(item.id ?? ''),
+          id: agentId,
           isActive,
-          lastRunAt: recentRuns[0]?.startedAt,
+          lastRunAt:
+            (attrs.lastRunAt ? String(attrs.lastRunAt) : undefined) ??
+            recentRuns[0]?.completedAt ??
+            recentRuns[0]?.startedAt,
           latestRun: recentRuns[0],
-          name: String(attrs.name ?? 'Unnamed Agent'),
+          name: String(attrs.label ?? attrs.name ?? 'Unnamed Agent'),
           platforms: Array.isArray(attrs.platforms)
             ? (attrs.platforms as string[])
             : [],
@@ -314,17 +382,23 @@ export class DesktopCloudService implements IDesktopDataService {
     agentId: string,
   ): Promise<IDesktopDataResult<IDesktopAgentRunResult>> {
     const response = await this.fetchJson<{
+      agentRunId?: string;
       data?: { id?: string; attributes?: Record<string, unknown> };
+      message?: string;
+      runId?: string;
+      status?: string;
     }>(`/agent-strategies/${agentId}/run-now`, {
       method: 'POST',
     });
+    const attributes = response.data?.attributes ?? {};
 
     return {
       data: {
-        runId: String(response.data?.id ?? ''),
-        status: String(response.data?.attributes?.status ?? 'pending') as
-          | 'pending'
-          | 'running',
+        ...(response.message ? { message: response.message } : {}),
+        runId: String(
+          response.data?.id ?? response.agentRunId ?? response.runId ?? '',
+        ),
+        status: normalizeAgentRunStatus(attributes.status ?? response.status),
       },
       status: 'success',
     };

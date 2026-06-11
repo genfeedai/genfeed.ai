@@ -21,6 +21,7 @@ import type { NavView } from './nav-view';
 import OfflineShell from './offline/OfflineShell';
 import { useSyncEngine } from './sync/useSyncEngine';
 import { initializeRendererTelemetry } from './telemetry';
+import type { DesktopAgentRunHandoff } from './views/AgentsView';
 
 const AgentsView = lazy(() =>
   import('./views/AgentsView').then((module) => ({
@@ -303,6 +304,37 @@ export const App = () => {
     [createThread, addMessage],
   );
 
+  const handleAgentRunHandoff = useCallback(
+    ({ agentName, run }: DesktopAgentRunHandoff) => {
+      setActiveView('conversation');
+      const thread = createThread();
+      const outputParts = [
+        run.outputSummary,
+        run.contentGenerated !== undefined
+          ? `${String(run.contentGenerated)} generated output${
+              run.contentGenerated === 1 ? '' : 's'
+            }`
+          : undefined,
+        run.creditsUsed !== undefined
+          ? `${String(run.creditsUsed)} credits used`
+          : undefined,
+        run.threadId ? `Cloud thread: ${run.threadId}` : undefined,
+      ].filter((part): part is string => Boolean(part));
+      const content =
+        outputParts.length > 0
+          ? `Review and turn this ${agentName} run into a content-ready follow-up:\n\n${outputParts.join('\n')}`
+          : `Review the latest ${agentName} run and prepare the next content handoff.`;
+
+      addMessage(thread.id, {
+        content,
+        createdAt: new Date().toISOString(),
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        role: 'user',
+      });
+    },
+    [addMessage, createThread],
+  );
+
   /* ─── Derived state ─── */
 
   const shouldShowWizard =
@@ -357,7 +389,12 @@ export const App = () => {
       case 'workflows':
         return <WorkflowsView isOnline={isOnline} />;
       case 'agents':
-        return <AgentsView isOnline={isOnline} />;
+        return (
+          <AgentsView
+            isOnline={isOnline}
+            onRunHandoff={handleAgentRunHandoff}
+          />
+        );
       case 'mission-control':
         return <MissionControlView onStartNewThread={handleNewThread} />;
       case 'analytics':
