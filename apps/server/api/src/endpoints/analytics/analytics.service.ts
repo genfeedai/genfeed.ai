@@ -253,19 +253,19 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     }
 
     const column =
-      entityField === 'organizationId' ? 'organization_id' : 'brand_id';
+      entityField === 'organizationId' ? '"organizationId"' : '"brandId"';
 
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const results: any[] = await this.prisma.$queryRaw`
       SELECT
         ${Prisma.raw(column)} AS entity_id,
-        AVG("engagement_rate") AS avg_engagement_rate,
-        SUM("total_views") AS total_views,
-        SUM("total_likes") AS total_likes,
-        SUM("total_comments") AS total_comments,
-        SUM("total_shares") AS total_shares,
-        SUM("total_saves") AS total_saves,
-        COUNT(DISTINCT "post_id") AS unique_posts
+        AVG("engagementRate") AS avg_engagement_rate,
+        SUM("totalViews") AS total_views,
+        SUM("totalLikes") AS total_likes,
+        SUM("totalComments") AS total_comments,
+        SUM("totalShares") AS total_shares,
+        SUM("totalSaves") AS total_saves,
+        COUNT(DISTINCT "postId") AS unique_posts
         ${includePlatforms ? Prisma.raw(`, ARRAY_AGG(DISTINCT "platform"::text) AS platforms`) : Prisma.raw('')}
       FROM "post_analytics"
       WHERE ${Prisma.raw(column)} = ANY(${entityIds}::text[])
@@ -309,13 +309,13 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     }
 
     const column =
-      entityField === 'organizationId' ? 'organization_id' : 'brand_id';
+      entityField === 'organizationId' ? '"organizationId"' : '"brandId"';
 
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const results: any[] = await this.prisma.$queryRaw`
       SELECT
         ${Prisma.raw(column)} AS entity_id,
-        SUM("total_likes" + "total_comments" + "total_shares" + "total_saves") AS total_engagement
+        SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS total_engagement
       FROM "post_analytics"
       WHERE ${Prisma.raw(column)} = ANY(${entityIds}::text[])
         AND "date" >= ${startDate}
@@ -935,16 +935,16 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       SELECT
         TO_CHAR("date", 'YYYY-MM-DD') AS day,
         "platform"::text AS platform,
-        SUM("total_comments") AS comments,
-        AVG("engagement_rate") AS engagement_rate,
-        SUM("total_likes") AS likes,
-        SUM("total_saves") AS saves,
-        SUM("total_shares") AS shares,
-        SUM("total_views") AS views
+        SUM("totalComments") AS comments,
+        AVG("engagementRate") AS engagement_rate,
+        SUM("totalLikes") AS likes,
+        SUM("totalSaves") AS saves,
+        SUM("totalShares") AS shares,
+        SUM("totalViews") AS views
       FROM "post_analytics"
       WHERE "date" >= ${start}
         AND "date" <= ${end}
-        ${organizationId ? Prisma.raw(`AND "organization_id" = '${organizationId.replace(/'/g, "''")}'`) : Prisma.raw('')}
+        ${organizationId ? Prisma.raw(`AND "organizationId" = '${organizationId.replace(/'/g, "''")}'`) : Prisma.raw('')}
       GROUP BY TO_CHAR("date", 'YYYY-MM-DD'), "platform"
       ORDER BY day ASC
     `;
@@ -1054,11 +1054,11 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
 
     // Build conditional WHERE fragments
     const brandFilter = brandId
-      ? Prisma.raw(`AND "brand_id" = '${brandId.replace(/'/g, "''")}'`)
+      ? Prisma.raw(`AND "brandId" = '${brandId.replace(/'/g, "''")}'`)
       : Prisma.raw('');
     const orgFilter = organizationId
       ? Prisma.raw(
-          `AND "organization_id" = '${organizationId.replace(/'/g, "''")}'`,
+          `AND "organizationId" = '${organizationId.replace(/'/g, "''")}'`,
         )
       : Prisma.raw('');
 
@@ -1066,13 +1066,13 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const currentMetrics: any[] = await this.prisma.$queryRaw`
       SELECT
-        AVG("engagement_rate") AS avg_engagement_rate,
-        SUM("total_comments") AS total_comments,
-        SUM("total_likes") AS total_likes,
+        AVG("engagementRate") AS avg_engagement_rate,
+        SUM("totalComments") AS total_comments,
+        SUM("totalLikes") AS total_likes,
         COUNT(*) AS total_posts,
-        SUM("total_saves") AS total_saves,
-        SUM("total_shares") AS total_shares,
-        SUM("total_views") AS total_views
+        SUM("totalSaves") AS total_saves,
+        SUM("totalShares") AS total_shares,
+        SUM("totalViews") AS total_views
       FROM "post_analytics"
       WHERE "date" >= ${startDate} AND "date" <= ${endDate}
         ${brandFilter}
@@ -1083,9 +1083,9 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const previousMetrics: any[] = await this.prisma.$queryRaw`
       SELECT
-        SUM("total_likes" + "total_comments" + "total_shares" + "total_saves") AS total_engagement,
+        SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS total_engagement,
         COUNT(*) AS total_posts,
-        SUM("total_views") AS total_views
+        SUM("totalViews") AS total_views
       FROM "post_analytics"
       WHERE "date" >= ${previousStartDate} AND "date" <= ${previousEndDate}
         ${brandFilter}
@@ -1170,11 +1170,11 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     );
 
     const brandFilter = brandId
-      ? Prisma.raw(`AND "brand_id" = '${brandId.replace(/'/g, "''")}'`)
+      ? Prisma.raw(`AND "brandId" = '${brandId.replace(/'/g, "''")}'`)
       : Prisma.raw('');
     const orgFilter = organizationId
       ? Prisma.raw(
-          `AND "organization_id" = '${organizationId.replace(/'/g, "''")}'`,
+          `AND "organizationId" = '${organizationId.replace(/'/g, "''")}'`,
         )
       : Prisma.raw('');
 
@@ -1185,7 +1185,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         SELECT
           "platform"::text AS platform,
           EXTRACT(HOUR FROM "date") AS hour,
-          AVG("engagement_rate") AS avg_engagement_rate,
+          AVG("engagementRate") AS avg_engagement_rate,
           COUNT(*) AS post_count
         FROM "post_analytics"
         WHERE "date" >= ${startDate} AND "date" <= ${endDate}
@@ -1256,7 +1256,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     }
 
     const brandFilter = brandId
-      ? Prisma.raw(`AND pa."brand_id" = '${brandId.replace(/'/g, "''")}'`)
+      ? Prisma.raw(`AND pa."brandId" = '${brandId.replace(/'/g, "''")}'`)
       : Prisma.raw('');
     const platformFilter = platform
       ? Prisma.raw(
@@ -1265,7 +1265,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       : Prisma.raw('');
     const orgFilter = organizationId
       ? Prisma.raw(
-          `AND pa."organization_id" = '${organizationId.replace(/'/g, "''")}'`,
+          `AND pa."organizationId" = '${organizationId.replace(/'/g, "''")}'`,
         )
       : Prisma.raw('');
 
@@ -1273,23 +1273,23 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     const results: any[] = await this.prisma.$queryRaw`
       SELECT
         pa.id,
-        pa."post_id" AS post_id,
+        pa."postId" AS post_id,
         pa."platform"::text AS platform,
         pa."date",
-        pa."total_views",
-        pa."total_likes",
-        pa."total_comments",
-        pa."total_saves",
-        pa."total_shares",
-        pa."engagement_rate",
+        pa."totalViews",
+        pa."totalLikes",
+        pa."totalComments",
+        pa."totalSaves",
+        pa."totalShares",
+        pa."engagementRate",
         (pa.total_likes + pa.total_comments + pa.total_shares + pa.total_saves) AS total_engagement,
         p.label AS label,
         p.description AS description,
         b.name AS brand_name,
         b.logo AS brand_logo
       FROM "post_analytics" pa
-      LEFT JOIN "posts" p ON p.id = pa."post_id"
-      LEFT JOIN "brands" b ON b.id = pa."brand_id"
+      LEFT JOIN "posts" p ON p.id = pa."postId"
+      LEFT JOIN "brands" b ON b.id = pa."brandId"
       WHERE pa."date" >= ${startDate}
         AND pa."date" <= ${endDate}
         ${brandFilter}
@@ -1336,26 +1336,26 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     );
 
     const brandFilter = brandId
-      ? Prisma.raw(`AND "brand_id" = '${brandId.replace(/'/g, "''")}'`)
+      ? Prisma.raw(`AND "brandId" = '${brandId.replace(/'/g, "''")}'`)
       : Prisma.raw('');
 
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const results: any[] = await this.prisma.$queryRaw`
       SELECT
         "platform"::text AS platform,
-        AVG("engagement_rate") AS avg_engagement_rate,
-        SUM("total_comments") AS total_comments,
-        SUM("total_likes") AS total_likes,
+        AVG("engagementRate") AS avg_engagement_rate,
+        SUM("totalComments") AS total_comments,
+        SUM("totalLikes") AS total_likes,
         COUNT(*) AS total_posts,
-        SUM("total_saves") AS total_saves,
-        SUM("total_shares") AS total_shares,
-        SUM("total_views") AS total_views,
-        SUM("total_likes" + "total_comments" + "total_shares" + "total_saves") AS total_engagement
+        SUM("totalSaves") AS total_saves,
+        SUM("totalShares") AS total_shares,
+        SUM("totalViews") AS total_views,
+        SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS total_engagement
       FROM "post_analytics"
       WHERE "date" >= ${startDate} AND "date" <= ${endDate}
         ${brandFilter}
       GROUP BY "platform"
-      ORDER BY SUM("total_views") DESC
+      ORDER BY SUM("totalViews") DESC
     `;
 
     // Calculate totals for percentage calculation
@@ -1409,7 +1409,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       this.parseDateRange(startDateStr, endDateStr);
 
     const brandFilter = brandId
-      ? Prisma.raw(`AND "brand_id" = '${brandId.replace(/'/g, "''")}'`)
+      ? Prisma.raw(`AND "brandId" = '${brandId.replace(/'/g, "''")}'`)
       : Prisma.raw('');
 
     // Current period: group by day
@@ -1417,13 +1417,13 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     const currentResults: any[] = await this.prisma.$queryRaw`
       SELECT
         TO_CHAR("date", 'YYYY-MM-DD') AS day,
-        SUM("total_comments") AS comments,
-        SUM("total_likes") AS likes,
+        SUM("totalComments") AS comments,
+        SUM("totalLikes") AS likes,
         COUNT(*) AS posts,
-        SUM("total_saves") AS saves,
-        SUM("total_shares") AS shares,
-        SUM("total_views") AS views,
-        SUM("total_likes" + "total_comments" + "total_shares" + "total_saves") AS engagement
+        SUM("totalSaves") AS saves,
+        SUM("totalShares") AS shares,
+        SUM("totalViews") AS views,
+        SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS engagement
       FROM "post_analytics"
       WHERE "date" >= ${startDate} AND "date" <= ${endDate}
         ${brandFilter}
@@ -1435,12 +1435,12 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const previousResults: any[] = await this.prisma.$queryRaw`
       SELECT
-        SUM("total_comments") AS total_comments,
-        SUM("total_likes") AS total_likes,
+        SUM("totalComments") AS total_comments,
+        SUM("totalLikes") AS total_likes,
         COUNT(*) AS total_posts,
-        SUM("total_saves") AS total_saves,
-        SUM("total_shares") AS total_shares,
-        SUM("total_views") AS total_views
+        SUM("totalSaves") AS total_saves,
+        SUM("totalShares") AS total_shares,
+        SUM("totalViews") AS total_views
       FROM "post_analytics"
       WHERE "date" >= ${previousStartDate} AND "date" <= ${previousEndDate}
         ${brandFilter}
@@ -1517,7 +1517,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     );
 
     const brandFilter = brandId
-      ? Prisma.raw(`AND "brand_id" = '${brandId.replace(/'/g, "''")}'`)
+      ? Prisma.raw(`AND "brandId" = '${brandId.replace(/'/g, "''")}'`)
       : Prisma.raw('');
     const platformFilter = platform
       ? Prisma.raw(
@@ -1528,10 +1528,10 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const results: any[] = await this.prisma.$queryRaw`
       SELECT
-        SUM("total_comments") AS total_comments,
-        SUM("total_likes") AS total_likes,
-        SUM("total_saves") AS total_saves,
-        SUM("total_shares") AS total_shares
+        SUM("totalComments") AS total_comments,
+        SUM("totalLikes") AS total_likes,
+        SUM("totalSaves") AS total_saves,
+        SUM("totalShares") AS total_shares
       FROM "post_analytics"
       WHERE "date" >= ${startDate} AND "date" <= ${endDate}
         ${brandFilter}
@@ -1614,11 +1614,11 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     );
 
     const brandFilter = brandId
-      ? Prisma.raw(`AND pa."brand_id" = '${brandId.replace(/'/g, "''")}'`)
+      ? Prisma.raw(`AND pa."brandId" = '${brandId.replace(/'/g, "''")}'`)
       : Prisma.raw('');
     const orgFilter = organizationId
       ? Prisma.raw(
-          `AND pa."organization_id" = '${organizationId.replace(/'/g, "''")}'`,
+          `AND pa."organizationId" = '${organizationId.replace(/'/g, "''")}'`,
         )
       : Prisma.raw('');
 
@@ -1626,18 +1626,18 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const videos: any[] = await this.prisma.$queryRaw`
       SELECT
-        pa."post_id" AS id,
+        pa."postId" AS id,
         ARRAY_AGG(DISTINCT pa."platform"::text) AS platforms,
-        SUM(pa."total_likes" + pa."total_comments" + pa."total_shares" + pa."total_saves") AS total_engagement,
-        SUM(pa."total_views") AS total_views,
+        SUM(pa."totalLikes" + pa."totalComments" + pa."totalShares" + pa."totalSaves") AS total_engagement,
+        SUM(pa."totalViews") AS total_views,
         p.description AS description,
         p.label AS title
       FROM "post_analytics" pa
-      LEFT JOIN "posts" p ON p.id = pa."post_id"
+      LEFT JOIN "posts" p ON p.id = pa."postId"
       WHERE pa."date" >= ${startDate} AND pa."date" <= ${endDate}
         ${brandFilter}
         ${orgFilter}
-      GROUP BY pa."post_id", p.description, p.label
+      GROUP BY pa."postId", p.description, p.label
       ORDER BY total_engagement DESC
       LIMIT 50
     `;
@@ -1648,8 +1648,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       SELECT
         "platform"::text AS platform,
         COUNT(*) AS post_count,
-        SUM("total_likes" + "total_comments" + "total_shares" + "total_saves") AS total_engagement,
-        SUM("total_views") AS total_views
+        SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS total_engagement,
+        SUM("totalViews") AS total_views
       FROM "post_analytics"
       WHERE "date" >= ${startDate} AND "date" <= ${endDate}
         ${brandFilter}
