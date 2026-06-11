@@ -25,7 +25,7 @@ import { expect, test as setup } from '@playwright/test';
  *
  * REQUIRES (no mock fallback):
  *   - CLERK_SECRET_KEY              real test-instance secret (sk_test_...)
- *   - CLERK_PUBLISHABLE_KEY (or NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
+ *   - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
  *   - E2E_CLERK_USER_PASSWORD       password for the provisioned test user
  * The instance must have email + password sign-in enabled.
  */
@@ -37,10 +37,7 @@ const ADMIN_AUTH_FILE = path.join(AUTH_DIR, 'admin.json');
 const MOCK_SECRET = 'test-mock-clerk-key';
 
 const secretKey = process.env.CLERK_SECRET_KEY ?? '';
-const publishableKey =
-  process.env.CLERK_PUBLISHABLE_KEY ??
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ??
-  '';
+const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
 const testUserPassword = process.env.E2E_CLERK_USER_PASSWORD ?? '';
 
 function assertRealClerkEnv(): void {
@@ -52,7 +49,7 @@ function assertRealClerkEnv(): void {
   }
   if (!publishableKey?.startsWith('pk_')) {
     problems.push(
-      'CLERK_PUBLISHABLE_KEY / NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is missing or not a pk_ key.',
+      'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is missing or not a pk_ key.',
     );
   }
   if (!testUserPassword) {

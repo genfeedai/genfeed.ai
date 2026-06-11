@@ -5,7 +5,6 @@ import { conditionalRequired } from '../helpers';
  * Optional in self-hosted mode (no auth), required in cloud mode.
  */
 export const clerkSchema = {
-  CLERK_PUBLISHABLE_KEY: conditionalRequired(),
   CLERK_SECRET_KEY: conditionalRequired(),
   CLERK_WEBHOOK_SIGNING_SECRET: conditionalRequired(),
 };

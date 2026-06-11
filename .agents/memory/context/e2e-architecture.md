@@ -134,7 +134,7 @@ Primary config highlights:
   ~15 GB → `ENOSPC`). Best-effort; never fails the suite. Respects `PLAYWRIGHT_WEB_APP_PATH`.
 - **clerk.setup.ts** (`clerk-setup` project) — provisions REAL Clerk test users, writes
   `playwright/artifacts/.clerk/{user,admin}.json` storage state for the `app-authed` project.
-  Hard-fails if `CLERK_SECRET_KEY` / `CLERK_PUBLISHABLE_KEY` / `E2E_CLERK_USER_PASSWORD` missing or mock.
+  Hard-fails if `CLERK_SECRET_KEY` / `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `E2E_CLERK_USER_PASSWORD` missing or mock.
 
 ### Mock-auth fixtures (`playwright/e2e/fixtures/`)
 Most specs use **3-layer auth bypass** (no real Clerk needed):
