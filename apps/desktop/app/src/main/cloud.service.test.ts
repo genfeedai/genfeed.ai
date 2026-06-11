@@ -172,6 +172,114 @@ describe('DesktopCloudService', () => {
     });
   });
 
+  it('maps agent run output and queued manual run responses', async () => {
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      expect(init?.headers).toMatchObject({
+        Authorization: 'Bearer gf_desktop_key',
+      });
+
+      if (String(input).endsWith('/agent-strategies')) {
+        return new Response(
+          JSON.stringify({
+            data: [
+              {
+                attributes: {
+                  isActive: true,
+                  label: 'Trend Scout',
+                  platforms: ['linkedin'],
+                  runHistory: [
+                    {
+                      completedAt: '2026-06-11T06:02:00.000Z',
+                      contentGenerated: 3,
+                      creditsUsed: 12,
+                      id: 'run-1',
+                      startedAt: '2026-06-11T06:00:00.000Z',
+                      status: 'completed',
+                      summary:
+                        'Generated three LinkedIn hooks for the launch angle.',
+                      threadId: 'thread-1',
+                    },
+                  ],
+                },
+                id: 'agent-1',
+              },
+            ],
+          }),
+          {
+            headers: { 'content-type': 'application/json' },
+            status: 200,
+          },
+        );
+      }
+
+      expect(String(input)).toBe(
+        'https://api.genfeed.ai/v1/agent-strategies/agent-1/run-now',
+      );
+      expect(init?.method).toBe('POST');
+      return new Response(
+        JSON.stringify({
+          message: 'Proactive run queued. It will execute shortly.',
+        }),
+        {
+          headers: { 'content-type': 'application/json' },
+          status: 200,
+        },
+      );
+    }) as typeof fetch;
+
+    const service = new DesktopCloudService(environment, () => session);
+
+    await expect(service.listAgents()).resolves.toEqual({
+      data: [
+        {
+          id: 'agent-1',
+          isActive: true,
+          lastRunAt: '2026-06-11T06:02:00.000Z',
+          latestRun: {
+            completedAt: '2026-06-11T06:02:00.000Z',
+            contentGenerated: 3,
+            creditsUsed: 12,
+            id: 'run-1',
+            outputSummary:
+              'Generated three LinkedIn hooks for the launch angle.',
+            startedAt: '2026-06-11T06:00:00.000Z',
+            status: 'completed',
+            threadId: 'thread-1',
+          },
+          name: 'Trend Scout',
+          platforms: ['linkedin'],
+          recentRuns: [
+            {
+              completedAt: '2026-06-11T06:02:00.000Z',
+              contentGenerated: 3,
+              creditsUsed: 12,
+              id: 'run-1',
+              outputSummary:
+                'Generated three LinkedIn hooks for the launch angle.',
+              startedAt: '2026-06-11T06:00:00.000Z',
+              status: 'completed',
+              threadId: 'thread-1',
+            },
+          ],
+          status: 'active',
+        },
+      ],
+      status: 'success',
+    });
+
+    await expect(service.runAgent('agent-1')).resolves.toEqual({
+      data: {
+        message: 'Proactive run queued. It will execute shortly.',
+        runId: '',
+        status: 'pending',
+      },
+      status: 'success',
+    });
+  });
+
   it('rejects cloud calls without a session', async () => {
     const service = new DesktopCloudService(environment, () => null);
 

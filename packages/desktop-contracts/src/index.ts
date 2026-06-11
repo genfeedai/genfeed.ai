@@ -660,11 +660,23 @@ export interface IDesktopTerminalExitEvent {
 
 /* ─── Agents ─── */
 
+export type DesktopAgentRunStatus =
+  | 'completed'
+  | 'failed'
+  | 'pending'
+  | 'queued'
+  | 'running';
+
 export interface IDesktopAgentRun {
   completedAt?: string;
+  contentGenerated?: number;
+  creditsUsed?: number;
   id: string;
+  message?: string;
+  outputSummary?: string;
   startedAt: string;
-  status: 'completed' | 'failed' | 'pending' | 'running';
+  status: DesktopAgentRunStatus;
+  threadId?: string;
 }
 
 export interface IDesktopAgent {
@@ -680,8 +692,9 @@ export interface IDesktopAgent {
 }
 
 export interface IDesktopAgentRunResult {
+  message?: string;
   runId: string;
-  status: 'pending' | 'running';
+  status: DesktopAgentRunStatus;
 }
 
 /* ─── Workflows ─── */
