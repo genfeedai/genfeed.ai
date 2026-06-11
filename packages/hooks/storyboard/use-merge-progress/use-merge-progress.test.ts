@@ -117,6 +117,39 @@ describe('useMergeProgress', () => {
     expect(onComplete).toHaveBeenCalled();
   });
 
+  it('marks current step as failed on video-complete error events', () => {
+    const onError = vi.fn();
+    const { result } = renderHook(() =>
+      useMergeProgress({
+        ingredientId: 'video-1',
+        onError,
+      }),
+    );
+
+    const pathHandler = subscriptions.get('/videos/video-1');
+    const completeHandler = subscriptions.get('video-complete');
+
+    act(() => {
+      pathHandler?.({
+        progress: {
+          step: 'downloading',
+          stepProgress: 10,
+        },
+        status: 'processing',
+      });
+    });
+
+    act(() => {
+      completeHandler?.({
+        error: 'Merge failed',
+        path: '/videos/video-1',
+      });
+    });
+
+    expect(result.current.steps[0].status).toBe('failed');
+    expect(onError).toHaveBeenCalledWith('Merge failed');
+  });
+
   it('marks current step as failed and calls onError', () => {
     const onError = vi.fn();
     const { result } = renderHook(() =>
