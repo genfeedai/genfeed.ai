@@ -51,20 +51,20 @@ RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
     HUSKY=0 bun install
 
 # Copy source
-COPY tsconfig.json tsconfig.build.json tsconfig.server.decorators.json webpack.base.config.js ./
+COPY tsconfig.json tsconfig.server.decorators.json webpack.base.config.js ./
 COPY configs/ configs/
 COPY packages/ packages/
 COPY apps/server/ apps/server/
 
 # Build shared workspace packages
 RUN set -e && \
-    bun --filter @genfeedai/cloud-types build & pid1=$! && \
+    bun --filter @genfeedai/types build & pid1=$! && \
     bun --filter @genfeedai/config build & pid2=$! && \
     bun --filter @genfeedai/workflow-engine build & pid3=$! && \
     wait $pid1 $pid2 $pid3 && \
     bun --filter @genfeedai/helpers build && \
     bun --filter @genfeedai/integrations build && \
-    bun --filter @genfeedai/cloud-serializers build && \
+    bun --filter @genfeedai/serializers build && \
     bun --filter @genfeedai/workflow-saas build
 
 # Disable deleteOutDir for parallel builds

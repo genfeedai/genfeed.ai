@@ -33,8 +33,8 @@ type OrganizationMineResponseItem = {
 };
 
 const hasClerkKeys =
-  Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
-  Boolean(process.env.CLERK_SECRET_KEY);
+  Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim()) &&
+  Boolean(process.env.CLERK_SECRET_KEY?.trim());
 const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
 const SEEDED_WORKSPACE_PATH = '/default/default/workspace/overview';
 

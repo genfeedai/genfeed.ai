@@ -68,7 +68,9 @@ const LazyReactQueryDevtools =
  * Whether Clerk is available in this deployment.
  * Checked once at module load — NEXT_PUBLIC_ vars are inlined at build time.
  */
-const cloudConnected = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+const clerkPublishableKey =
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
+const cloudConnected = Boolean(clerkPublishableKey);
 const isHostedCloud = process.env.NEXT_PUBLIC_GENFEED_CLOUD === 'true';
 
 function ClerkProviderWithTheme({
@@ -84,6 +86,9 @@ function ClerkProviderWithTheme({
   return (
     <ClerkProvider
       {...clerkProps}
+      {...(!hasMissingPublishableKeyBypassEnabled && clerkPublishableKey
+        ? { publishableKey: clerkPublishableKey }
+        : {})}
       {...(hasMissingPublishableKeyBypassEnabled
         ? {
             __internal_bypassMissingPublishableKey: true,
