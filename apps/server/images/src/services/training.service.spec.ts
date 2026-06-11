@@ -4,6 +4,8 @@ import { Readable } from 'node:stream';
 import { ConfigService } from '@images/config/config.service';
 import { TrainingService } from '@images/services/training.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import type { RedisService } from '@libs/redis/redis.service';
+import { S3Service } from '@libs/s3/s3.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -12,6 +14,40 @@ const mockSpawn = vi.fn();
 vi.mock('node:child_process', () => ({
   spawn: (...args: unknown[]) => mockSpawn(...args),
 }));
+
+/** In-memory fake of the node-redis publisher surface used by the store. */
+function createMockPublisher() {
+  const store = new Map<string, string>();
+
+  return {
+    get: vi.fn(async (key: string) => store.get(key) ?? null),
+    scanIterator: vi.fn(({ MATCH }: { COUNT: number; MATCH: string }) => {
+      const prefix = MATCH.slice(0, -1);
+      return (async function* () {
+        for (const key of store.keys()) {
+          if (key.startsWith(prefix)) {
+            yield key;
+          }
+        }
+      })();
+    }),
+    setEx: vi.fn(async (key: string, _ttl: number, value: string) => {
+      store.set(key, value);
+    }),
+    store,
+    unlink: vi.fn(async (key: string) => {
+      store.delete(key);
+    }),
+  };
+}
+
+type MockPublisher = ReturnType<typeof createMockPublisher>;
+
+function createMockRedisService(publisher: MockPublisher | null): RedisService {
+  return {
+    getPublisher: vi.fn(() => publisher),
+  } as unknown as RedisService;
+}
 
 describe('TrainingService', () => {
   let service: TrainingService;
@@ -25,6 +61,13 @@ describe('TrainingService', () => {
     COMFYUI_LORAS_PATH: '/comfyui/models/loras',
     DATASETS_PATH: '/datasets',
     TRAINING_BINARY_PATH: '/usr/local/bin/accelerate',
+  };
+
+  const mockS3Service = {
+    uploadSafetensors: vi.fn().mockResolvedValue({
+      s3Key: 'loras/test-lora.safetensors',
+      sizeBytes: 1024,
+    }),
   };
 
   function createMockChildProcess(): ChildProcess & EventEmitter {
@@ -50,6 +93,7 @@ describe('TrainingService', () => {
         TrainingService,
         { provide: ConfigService, useValue: mockConfigService },
         { provide: LoggerService, useValue: mockLoggerService },
+        { provide: S3Service, useValue: mockS3Service },
       ],
     }).compile();
 
@@ -279,6 +323,174 @@ describe('TrainingService', () => {
       expect(result.args).toContain('32');
       expect(result.args).toContain('--learning_rate');
       expect(result.args).toContain('0.00005');
+    });
+  });
+
+  describe('Redis persistence', () => {
+    let publisher: MockPublisher;
+    let redisBackedService: TrainingService;
+
+    function createService(
+      targetPublisher: MockPublisher | null,
+    ): TrainingService {
+      return new TrainingService(
+        mockConfigService as unknown as ConfigService,
+        mockLoggerService as unknown as LoggerService,
+        mockS3Service as unknown as S3Service,
+        createMockRedisService(targetPublisher),
+      );
+    }
+
+    beforeEach(() => {
+      publisher = createMockPublisher();
+      redisBackedService = createService(publisher);
+    });
+
+    it('persists the job and process record when training starts', async () => {
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const { jobId } = await redisBackedService.startTraining({
+        loraName: 'test-lora',
+        personaSlug: 'test-persona',
+        triggerWord: 'ohwx',
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const rawJob = publisher.store.get(`training:images:job:${jobId}`);
+      expect(rawJob).toBeDefined();
+      expect(JSON.parse(rawJob as string)).toMatchObject({
+        jobId,
+        personaSlug: 'test-persona',
+      });
+
+      const rawRecord = publisher.store.get(`training:images:process:${jobId}`);
+      expect(rawRecord).toBeDefined();
+      expect(JSON.parse(rawRecord as string)).toMatchObject({
+        jobId,
+        pid: 12345,
+      });
+    });
+
+    it('removes the process record when the process exits', async () => {
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const { jobId } = await redisBackedService.startTraining({
+        loraName: 'test-lora',
+        personaSlug: 'test-persona',
+        triggerWord: 'ohwx',
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      mockChild.emit('close', 0);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(publisher.store.has(`training:images:process:${jobId}`)).toBe(
+        false,
+      );
+      const rawJob = publisher.store.get(`training:images:job:${jobId}`);
+      expect(JSON.parse(rawJob as string)).toMatchObject({
+        status: 'completed',
+      });
+    });
+
+    it('removes the process record when the process emits an error', async () => {
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const { jobId } = await redisBackedService.startTraining({
+        loraName: 'test-lora',
+        personaSlug: 'test-persona',
+        triggerWord: 'ohwx',
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      mockChild.emit('error', new Error('spawn ENOENT'));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(publisher.store.has(`training:images:process:${jobId}`)).toBe(
+        false,
+      );
+      const rawJob = publisher.store.get(`training:images:job:${jobId}`);
+      expect(JSON.parse(rawJob as string)).toMatchObject({
+        status: 'failed',
+      });
+    });
+
+    it('recovers orphaned jobs and process records on module init', async () => {
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const { jobId } = await redisBackedService.startTraining({
+        loraName: 'test-lora',
+        personaSlug: 'test-persona',
+        triggerWord: 'ohwx',
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Simulate a service restart while the process record is still present.
+      const restarted = createService(publisher);
+      await restarted.onModuleInit();
+
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          jobId,
+          message: 'Orphaned training process detected on startup',
+          pid: 12345,
+        }),
+      );
+
+      const job = await restarted.getTrainingJob(jobId);
+      expect(job.status).toBe('failed');
+      expect(job.stage).toBe('failed');
+      expect(job.error).toContain('orphaned by service restart');
+      expect(publisher.store.has(`training:images:process:${jobId}`)).toBe(
+        false,
+      );
+
+      const persistedJob = publisher.store.get(`training:images:job:${jobId}`);
+      expect(JSON.parse(persistedJob as string)).toMatchObject({
+        stage: 'failed',
+        status: 'failed',
+      });
+    });
+
+    it('loads a job from Redis on getTrainingJob after a restart without init', async () => {
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const { jobId } = await redisBackedService.startTraining({
+        loraName: 'test-lora',
+        personaSlug: 'test-persona',
+        triggerWord: 'ohwx',
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Fresh instance, same Redis store, onModuleInit not run.
+      const restarted = createService(publisher);
+      const job = await restarted.getTrainingJob(jobId);
+
+      expect(job.jobId).toBe(jobId);
+      expect(job.personaSlug).toBe('test-persona');
+    });
+
+    it('starts cleanly when Redis is unavailable', async () => {
+      const offlineService = createService(null);
+      await offlineService.onModuleInit();
+
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const { jobId } = await offlineService.startTraining({
+        loraName: 'test-lora',
+        personaSlug: 'test-persona',
+        triggerWord: 'ohwx',
+      });
+
+      const job = await offlineService.getTrainingJob(jobId);
+      expect(job.jobId).toBe(jobId);
     });
   });
 });

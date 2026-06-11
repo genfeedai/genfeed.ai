@@ -2,6 +2,7 @@ import type { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { Readable } from 'node:stream';
 import { LoggerService } from '@libs/logger/logger.service';
+import type { RedisService } from '@libs/redis/redis.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@voices/config/config.service';
@@ -12,6 +13,40 @@ const mockSpawn = vi.fn();
 vi.mock('node:child_process', () => ({
   spawn: (...args: unknown[]) => mockSpawn(...args),
 }));
+
+/** In-memory fake of the node-redis publisher surface used by the store. */
+function createMockPublisher() {
+  const store = new Map<string, string>();
+
+  return {
+    get: vi.fn(async (key: string) => store.get(key) ?? null),
+    scanIterator: vi.fn(({ MATCH }: { COUNT: number; MATCH: string }) => {
+      const prefix = MATCH.slice(0, -1);
+      return (async function* () {
+        for (const key of store.keys()) {
+          if (key.startsWith(prefix)) {
+            yield key;
+          }
+        }
+      })();
+    }),
+    setEx: vi.fn(async (key: string, _ttl: number, value: string) => {
+      store.set(key, value);
+    }),
+    store,
+    unlink: vi.fn(async (key: string) => {
+      store.delete(key);
+    }),
+  };
+}
+
+type MockPublisher = ReturnType<typeof createMockPublisher>;
+
+function createMockRedisService(publisher: MockPublisher | null): RedisService {
+  return {
+    getPublisher: vi.fn(() => publisher),
+  } as unknown as RedisService;
+}
 
 describe('VoiceTrainingService', () => {
   let service: VoiceTrainingService;
@@ -244,6 +279,161 @@ describe('VoiceTrainingService', () => {
       expect(result.args).toContain('200');
       expect(result.args).toContain('--batch_size');
       expect(result.args).toContain('16');
+    });
+  });
+
+  describe('Redis persistence', () => {
+    let publisher: MockPublisher;
+    let redisBackedService: VoiceTrainingService;
+
+    function createService(
+      targetPublisher: MockPublisher | null,
+    ): VoiceTrainingService {
+      return new VoiceTrainingService(
+        mockConfigService as unknown as ConfigService,
+        mockLoggerService as unknown as LoggerService,
+        createMockRedisService(targetPublisher),
+      );
+    }
+
+    beforeEach(() => {
+      publisher = createMockPublisher();
+      redisBackedService = createService(publisher);
+    });
+
+    it('persists the job and process record when training starts', async () => {
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const { jobId } = await redisBackedService.startTraining({
+        voiceId: 'test-voice',
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const rawJob = publisher.store.get(`training:voices:job:${jobId}`);
+      expect(rawJob).toBeDefined();
+      expect(JSON.parse(rawJob as string)).toMatchObject({
+        jobId,
+        voiceId: 'test-voice',
+      });
+
+      const rawRecord = publisher.store.get(`training:voices:process:${jobId}`);
+      expect(rawRecord).toBeDefined();
+      expect(JSON.parse(rawRecord as string)).toMatchObject({
+        jobId,
+        pid: 12345,
+      });
+    });
+
+    it('removes the process record when the process exits', async () => {
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const { jobId } = await redisBackedService.startTraining({
+        voiceId: 'test-voice',
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      mockChild.emit('close', 0);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(publisher.store.has(`training:voices:process:${jobId}`)).toBe(
+        false,
+      );
+      const rawJob = publisher.store.get(`training:voices:job:${jobId}`);
+      expect(JSON.parse(rawJob as string)).toMatchObject({
+        status: 'completed',
+      });
+    });
+
+    it('removes the process record when the process emits an error', async () => {
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const { jobId } = await redisBackedService.startTraining({
+        voiceId: 'test-voice',
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      mockChild.emit('error', new Error('spawn ENOENT'));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(publisher.store.has(`training:voices:process:${jobId}`)).toBe(
+        false,
+      );
+      const rawJob = publisher.store.get(`training:voices:job:${jobId}`);
+      expect(JSON.parse(rawJob as string)).toMatchObject({
+        status: 'failed',
+      });
+    });
+
+    it('recovers orphaned jobs and process records on module init', async () => {
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const { jobId } = await redisBackedService.startTraining({
+        voiceId: 'test-voice',
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Simulate a service restart while the process record is still present.
+      const restarted = createService(publisher);
+      await restarted.onModuleInit();
+
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          jobId,
+          message: 'Orphaned voice training process detected on startup',
+          pid: 12345,
+        }),
+      );
+
+      const job = await restarted.getJob(jobId);
+      expect(job.status).toBe('failed');
+      expect(job.stage).toBe('failed');
+      expect(job.error).toContain('orphaned by service restart');
+      expect(publisher.store.has(`training:voices:process:${jobId}`)).toBe(
+        false,
+      );
+
+      const persistedJob = publisher.store.get(`training:voices:job:${jobId}`);
+      expect(JSON.parse(persistedJob as string)).toMatchObject({
+        stage: 'failed',
+        status: 'failed',
+      });
+    });
+
+    it('loads a job from Redis on getJob after a restart without init', async () => {
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const { jobId } = await redisBackedService.startTraining({
+        voiceId: 'test-voice',
+      });
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Fresh instance, same Redis store, onModuleInit not run.
+      const restarted = createService(publisher);
+      const job = await restarted.getJob(jobId);
+
+      expect(job.jobId).toBe(jobId);
+      expect(job.voiceId).toBe('test-voice');
+    });
+
+    it('starts cleanly when Redis is unavailable', async () => {
+      const offlineService = createService(null);
+      await offlineService.onModuleInit();
+
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const { jobId } = await offlineService.startTraining({
+        voiceId: 'test-voice',
+      });
+
+      const job = await offlineService.getJob(jobId);
+      expect(job.jobId).toBe(jobId);
     });
   });
 });

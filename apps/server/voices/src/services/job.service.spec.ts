@@ -1,4 +1,5 @@
 import { LoggerService } from '@libs/logger/logger.service';
+import type { RedisService } from '@libs/redis/redis.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { JobService } from '@voices/services/job.service';
 
@@ -63,8 +64,12 @@ describe('JobService', () => {
       const job = await service.createJob({ params: {}, type: 'tts' });
       const after = new Date().toISOString();
 
-      expect(job.createdAt).toBeGreaterThanOrEqual(before);
-      expect(job.createdAt).toBeLessThanOrEqual(after);
+      expect(new Date(job.createdAt).getTime()).toBeGreaterThanOrEqual(
+        new Date(before).getTime(),
+      );
+      expect(new Date(job.createdAt).getTime()).toBeLessThanOrEqual(
+        new Date(after).getTime(),
+      );
     });
 
     it('should log job creation', async () => {
@@ -131,8 +136,8 @@ describe('JobService', () => {
   });
 
   describe('getStats', () => {
-    it('should return zeroes when no jobs exist', () => {
-      const stats = service.getStats();
+    it('should return zeroes when no jobs exist', async () => {
+      const stats = await service.getStats();
 
       expect(stats).toEqual({
         active: 0,
@@ -147,7 +152,7 @@ describe('JobService', () => {
       await service.createJob({ params: {}, type: 'tts' });
       await service.createJob({ params: {}, type: 'tts' });
 
-      const stats = service.getStats();
+      const stats = await service.getStats();
 
       expect(stats.queued).toBe(2);
       expect(stats.total).toBe(2);
@@ -157,7 +162,7 @@ describe('JobService', () => {
       const job = await service.createJob({ params: {}, type: 'tts' });
       await service.updateJob(job.jobId, { status: 'processing' });
 
-      const stats = service.getStats();
+      const stats = await service.getStats();
 
       expect(stats.active).toBe(1);
       expect(stats.queued).toBe(0);
@@ -171,12 +176,36 @@ describe('JobService', () => {
       await service.updateJob(j1.jobId, { status: 'completed' });
       await service.updateJob(j2.jobId, { status: 'failed' });
 
-      const stats = service.getStats();
+      const stats = await service.getStats();
 
       expect(stats.completed).toBe(1);
       expect(stats.failed).toBe(1);
       expect(stats.queued).toBe(1);
       expect(stats.total).toBe(3);
+    });
+  });
+
+  describe('Redis persistence', () => {
+    it('persists jobs under the voices namespace', async () => {
+      const setEx = vi.fn(async () => undefined);
+      const redisService = {
+        getPublisher: vi.fn(() => ({ setEx })),
+      } as unknown as RedisService;
+      const redisBackedService = new JobService(
+        loggerService as unknown as LoggerService,
+        redisService,
+      );
+
+      const job = await redisBackedService.createJob({
+        params: {},
+        type: 'tts',
+      });
+
+      expect(setEx).toHaveBeenCalledWith(
+        `jobs:voices:${job.jobId}`,
+        86400,
+        JSON.stringify(job),
+      );
     });
   });
 });

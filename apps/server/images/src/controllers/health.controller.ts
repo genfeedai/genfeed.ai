@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { JobService } from '@images/services/job.service';
 import { Controller, Get } from '@nestjs/common';
 
@@ -6,11 +7,11 @@ export class HealthController {
   constructor(private readonly jobService: JobService) {}
 
   @Get()
-  getHealth() {
+  async getHealth() {
     const mem = process.memoryUsage();
 
     return {
-      jobs: this.jobService.getStats(),
+      jobs: await this.jobService.getStats(),
       memory: {
         heapTotal: mem.heapTotal,
         heapUsed: mem.heapUsed,
