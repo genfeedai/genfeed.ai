@@ -44,27 +44,27 @@ describe('HealthController', () => {
   });
 
   describe('getHealth', () => {
-    it('returns service name as "voices"', () => {
-      const result = controller.getHealth();
+    it('returns service name as "voices"', async () => {
+      const result = await controller.getHealth();
 
       expect(result.service).toBe('voices');
     });
 
-    it('returns status "ok"', () => {
-      const result = controller.getHealth();
+    it('returns status "ok"', async () => {
+      const result = await controller.getHealth();
 
       expect(result.status).toBe('ok');
     });
 
-    it('includes job stats from JobService', () => {
-      const result = controller.getHealth();
+    it('includes job stats from JobService', async () => {
+      const result = await controller.getHealth();
 
       expect(mockJobService.getStats).toHaveBeenCalled();
       expect(result.jobs).toEqual(mockJobStats);
     });
 
-    it('includes memory usage fields', () => {
-      const result = controller.getHealth();
+    it('includes memory usage fields', async () => {
+      const result = await controller.getHealth();
 
       expect(result.memory).toHaveProperty('heapTotal');
       expect(result.memory).toHaveProperty('heapUsed');
@@ -74,14 +74,14 @@ describe('HealthController', () => {
       expect(typeof result.memory.rss).toBe('number');
     });
 
-    it('includes uptime as a number', () => {
-      const result = controller.getHealth();
+    it('includes uptime as a number', async () => {
+      const result = await controller.getHealth();
 
       expect(typeof result.uptime).toBe('number');
     });
 
-    it('includes timestamp as ISO string', () => {
-      const result = controller.getHealth();
+    it('includes timestamp as ISO string', async () => {
+      const result = await controller.getHealth();
 
       expect(result.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });

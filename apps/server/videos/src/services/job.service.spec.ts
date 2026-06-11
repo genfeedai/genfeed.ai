@@ -1,4 +1,5 @@
 import { LoggerService } from '@libs/logger/logger.service';
+import type { RedisService } from '@libs/redis/redis.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { JobService } from '@videos/services/job.service';
 
@@ -130,8 +131,8 @@ describe('JobService (videos)', () => {
   });
 
   describe('getStats', () => {
-    it('should return zeroed stats when no jobs exist', () => {
-      const stats = service.getStats();
+    it('should return zeroed stats when no jobs exist', async () => {
+      const stats = await service.getStats();
 
       expect(stats).toEqual({
         active: 0,
@@ -146,7 +147,7 @@ describe('JobService (videos)', () => {
       await service.createJob({ params: {}, type: 'render' });
       await service.createJob({ params: {}, type: 'encode' });
 
-      const stats = service.getStats();
+      const stats = await service.getStats();
 
       expect(stats.queued).toBe(2);
       expect(stats.total).toBe(2);
@@ -156,7 +157,7 @@ describe('JobService (videos)', () => {
       const job = await service.createJob({ params: {}, type: 'render' });
       await service.updateJob(job.jobId, { status: 'processing' });
 
-      const stats = service.getStats();
+      const stats = await service.getStats();
 
       expect(stats.active).toBe(1);
       expect(stats.queued).toBe(0);
@@ -170,12 +171,36 @@ describe('JobService (videos)', () => {
       await service.updateJob(j1.jobId, { status: 'completed' });
       await service.updateJob(j2.jobId, { status: 'failed' });
 
-      const stats = service.getStats();
+      const stats = await service.getStats();
 
       expect(stats.completed).toBe(1);
       expect(stats.failed).toBe(1);
       expect(stats.queued).toBe(1);
       expect(stats.total).toBe(3);
+    });
+  });
+
+  describe('Redis persistence', () => {
+    it('persists jobs under the videos namespace', async () => {
+      const setEx = vi.fn(async () => undefined);
+      const redisService = {
+        getPublisher: vi.fn(() => ({ setEx })),
+      } as unknown as RedisService;
+      const redisBackedService = new JobService(
+        mockLoggerService as unknown as LoggerService,
+        redisService,
+      );
+
+      const job = await redisBackedService.createJob({
+        params: {},
+        type: 'render',
+      });
+
+      expect(setEx).toHaveBeenCalledWith(
+        `jobs:videos:${job.jobId}`,
+        86400,
+        JSON.stringify(job),
+      );
     });
   });
 });

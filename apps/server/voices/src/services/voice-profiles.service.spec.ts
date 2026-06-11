@@ -1,10 +1,32 @@
 import { LoggerService } from '@libs/logger/logger.service';
+import type { RedisService } from '@libs/redis/redis.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TTSInferenceService } from '@voices/services/tts-inference.service';
 import { VoiceProfilesService } from '@voices/services/voice-profiles.service';
 import type { Mocked } from 'vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+/** In-memory fake of the node-redis publisher surface used by the service. */
+function createMockPublisher() {
+  const store = new Map<string, string>();
+
+  return {
+    get: vi.fn(async (key: string) => store.get(key) ?? null),
+    set: vi.fn(async (key: string, value: string) => {
+      store.set(key, value);
+    }),
+    store,
+  };
+}
+
+type MockPublisher = ReturnType<typeof createMockPublisher>;
+
+function createMockRedisService(publisher: MockPublisher | null): RedisService {
+  return {
+    getPublisher: vi.fn(() => publisher),
+  } as unknown as RedisService;
+}
 
 describe('VoiceProfilesService', () => {
   let service: VoiceProfilesService;
@@ -175,6 +197,141 @@ describe('VoiceProfilesService', () => {
       await expect(service.getVoice('unknown-handle')).rejects.toThrow(
         '"unknown-handle" not found',
       );
+    });
+  });
+
+  describe('Redis persistence', () => {
+    let publisher: MockPublisher;
+    let redisBackedService: VoiceProfilesService;
+
+    beforeEach(() => {
+      publisher = createMockPublisher();
+      redisBackedService = new VoiceProfilesService(
+        loggerService,
+        ttsInferenceService,
+        createMockRedisService(publisher),
+      );
+    });
+
+    it('persists profiles to Redis when a voice is cloned', async () => {
+      ttsInferenceService.getStatus = vi
+        .fn()
+        .mockResolvedValue({ modelLoaded: true, status: 'online' });
+
+      await redisBackedService.cloneVoice({
+        audioUrl: 'https://cdn.example.com/grace.wav',
+        handle: 'grace',
+      });
+
+      const raw = publisher.store.get('voices:profiles');
+      expect(raw).toBeDefined();
+      const persisted = JSON.parse(raw as string) as Record<
+        string,
+        { handle: string }
+      >;
+      expect(persisted.grace?.handle).toBe('grace');
+    });
+
+    it('persists the status transition after validation settles', async () => {
+      ttsInferenceService.getStatus = vi
+        .fn()
+        .mockResolvedValue({ modelLoaded: true, status: 'online' });
+
+      await redisBackedService.cloneVoice({
+        audioUrl: 'https://cdn.example.com/henry.wav',
+        handle: 'henry',
+      });
+
+      await new Promise((r) => setTimeout(r, 20));
+
+      const persisted = JSON.parse(
+        publisher.store.get('voices:profiles') as string,
+      ) as Record<string, { status: string }>;
+      expect(persisted.henry?.status).toBe('ready');
+    });
+
+    it('restores profiles from Redis on module init', async () => {
+      ttsInferenceService.getStatus = vi
+        .fn()
+        .mockResolvedValue({ modelLoaded: true, status: 'online' });
+
+      await redisBackedService.cloneVoice({
+        audioUrl: 'https://cdn.example.com/iris.wav',
+        handle: 'iris',
+      });
+      await new Promise((r) => setTimeout(r, 20));
+
+      // Simulate a service restart: fresh instance, same Redis store.
+      const restarted = new VoiceProfilesService(
+        loggerService,
+        ttsInferenceService,
+        createMockRedisService(publisher),
+      );
+      await restarted.onModuleInit();
+
+      const profile = await restarted.getVoice('iris');
+      expect(profile.handle).toBe('iris');
+      expect(profile.status).toBe('ready');
+    });
+
+    it('skips restore and works in-memory when Redis is unavailable', async () => {
+      ttsInferenceService.getStatus = vi
+        .fn()
+        .mockResolvedValue({ modelLoaded: true, status: 'online' });
+
+      const offlineService = new VoiceProfilesService(
+        loggerService,
+        ttsInferenceService,
+        createMockRedisService(null),
+      );
+      await offlineService.onModuleInit();
+
+      const result = await offlineService.cloneVoice({
+        audioUrl: 'https://cdn.example.com/jack.wav',
+        handle: 'jack',
+      });
+
+      expect(result.status).toBe('cloning');
+      expect(await offlineService.listVoices()).toHaveLength(1);
+    });
+
+    it('warns instead of throwing when persistence fails', async () => {
+      ttsInferenceService.getStatus = vi
+        .fn()
+        .mockResolvedValue({ modelLoaded: true, status: 'online' });
+      publisher.set.mockRejectedValueOnce(new Error('redis down'));
+
+      const result = await redisBackedService.cloneVoice({
+        audioUrl: 'https://cdn.example.com/kate.wav',
+        handle: 'kate',
+      });
+
+      expect(result.handle).toBe('kate');
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          message: 'Failed to persist voice profiles to Redis',
+        }),
+      );
+    });
+
+    it('warns instead of throwing when restore fails', async () => {
+      publisher.get.mockRejectedValueOnce(new Error('redis down'));
+
+      const restarted = new VoiceProfilesService(
+        loggerService,
+        ttsInferenceService,
+        createMockRedisService(publisher),
+      );
+      await restarted.onModuleInit();
+
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          message: 'Failed to restore voice profiles from Redis',
+        }),
+      );
+      expect(await restarted.listVoices()).toEqual([]);
     });
   });
 });

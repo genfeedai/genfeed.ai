@@ -47,7 +47,6 @@ export interface IEnvConfig {
   AWS_IMAGE_COMPRESSION?: number;
 
   // === Clerk ===
-  CLERK_PUBLISHABLE_KEY?: string;
   CLERK_SECRET_KEY?: string;
   CLERK_WEBHOOK_SIGNING_SECRET?: string;
 

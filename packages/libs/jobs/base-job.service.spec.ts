@@ -1,6 +1,7 @@
 import { type BaseJob, BaseJobService } from '@libs/jobs/base-job.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import type { RedisService } from '@libs/redis/redis.service';
+import { Injectable, Optional } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
@@ -14,19 +15,66 @@ interface TestJob extends BaseJob {
 
 /** Concrete injectable subclass for DI in tests. */
 @Injectable()
-class TestJobService extends BaseJobService<TestJob> {}
+class TestJobService extends BaseJobService<TestJob> {
+  constructor(
+    loggerService: LoggerService,
+    @Optional() redisService?: RedisService,
+  ) {
+    super(loggerService, 'test', redisService);
+  }
+}
+
+type MockLogger = {
+  log: ReturnType<typeof vi.fn>;
+  error: ReturnType<typeof vi.fn>;
+  warn: ReturnType<typeof vi.fn>;
+};
+
+function createMockLogger(): MockLogger {
+  return { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+}
+
+/** In-memory fake of the node-redis publisher surface used by the service. */
+function createMockPublisher() {
+  const store = new Map<string, string>();
+
+  return {
+    get: vi.fn(async (key: string) => store.get(key) ?? null),
+    scanIterator: vi.fn(({ MATCH }: { COUNT: number; MATCH: string }) => {
+      const prefix = MATCH.slice(0, -1);
+      return (async function* () {
+        for (const key of store.keys()) {
+          if (key.startsWith(prefix)) {
+            yield key;
+          }
+        }
+      })();
+    }),
+    setEx: vi.fn(async (key: string, _ttl: number, value: string) => {
+      store.set(key, value);
+    }),
+    store,
+    unlink: vi.fn(async (key: string) => {
+      store.delete(key);
+    }),
+  };
+}
+
+type MockPublisher = ReturnType<typeof createMockPublisher>;
+
+function createMockRedisService(publisher: MockPublisher | null): RedisService {
+  return {
+    getPublisher: vi.fn(() => publisher),
+  } as unknown as RedisService;
+}
 
 describe('BaseJobService', () => {
   let service: TestJobService;
-  let logger: {
-    log: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-  };
+  let logger: MockLogger;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+    logger = createMockLogger();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [TestJobService, { provide: LoggerService, useValue: logger }],
@@ -132,8 +180,8 @@ describe('BaseJobService', () => {
   });
 
   describe('getStats', () => {
-    it('returns zero counts when no jobs exist', () => {
-      const stats = service.getStats();
+    it('returns zero counts when no jobs exist', async () => {
+      const stats = await service.getStats();
       expect(stats).toEqual({
         active: 0,
         completed: 0,
@@ -146,7 +194,7 @@ describe('BaseJobService', () => {
     it('counts queued jobs correctly', async () => {
       await service.createJob({ params: {}, type: 'gen' });
       await service.createJob({ params: {}, type: 'gen' });
-      const stats = service.getStats();
+      const stats = await service.getStats();
       expect(stats.queued).toBe(2);
       expect(stats.total).toBe(2);
     });
@@ -159,12 +207,200 @@ describe('BaseJobService', () => {
       await service.updateJob(j1.jobId, { status: 'processing' });
       await service.updateJob(j2.jobId, { status: 'completed' });
       await service.updateJob(j3.jobId, { status: 'failed' });
-      const stats = service.getStats();
+      const stats = await service.getStats();
       expect(stats.active).toBe(1);
       expect(stats.completed).toBe(1);
       expect(stats.failed).toBe(1);
       expect(stats.queued).toBe(1);
       expect(stats.total).toBe(4);
+      expect(j4.status).toBe('queued');
+    });
+  });
+
+  describe('Redis persistence', () => {
+    let publisher: MockPublisher;
+    let redisService: RedisService;
+    let redisBackedService: TestJobService;
+
+    beforeEach(() => {
+      publisher = createMockPublisher();
+      redisService = createMockRedisService(publisher);
+      redisBackedService = new TestJobService(
+        logger as unknown as LoggerService,
+        redisService,
+      );
+    });
+
+    it('persists created jobs to Redis under the namespaced key', async () => {
+      const job = await redisBackedService.createJob({
+        params: { prompt: 'persist me' },
+        type: 'gen',
+      });
+
+      expect(publisher.setEx).toHaveBeenCalledWith(
+        `jobs:test:${job.jobId}`,
+        86400,
+        JSON.stringify(job),
+      );
+    });
+
+    it('persists job updates to Redis', async () => {
+      const job = await redisBackedService.createJob({
+        params: {},
+        type: 'gen',
+      });
+      const updated = await redisBackedService.updateJob(job.jobId, {
+        status: 'completed',
+      });
+
+      expect(publisher.store.get(`jobs:test:${job.jobId}`)).toBe(
+        JSON.stringify(updated),
+      );
+    });
+
+    it('reads a job from Redis when not in the in-memory cache', async () => {
+      const job = await redisBackedService.createJob({
+        params: { prompt: 'survive' },
+        type: 'gen',
+      });
+
+      // Simulate a service restart: fresh instance, same Redis store.
+      const restarted = new TestJobService(
+        logger as unknown as LoggerService,
+        redisService,
+      );
+      const recovered = await restarted.getJob(job.jobId);
+
+      expect(recovered).toEqual(job);
+    });
+
+    it('updates a job recovered from Redis after a restart', async () => {
+      const job = await redisBackedService.createJob({
+        params: {},
+        type: 'gen',
+      });
+
+      const restarted = new TestJobService(
+        logger as unknown as LoggerService,
+        redisService,
+      );
+      const updated = await restarted.updateJob(job.jobId, {
+        resultUrl: 'https://cdn.example.com/after-restart.jpg',
+        status: 'completed',
+      });
+
+      expect(updated?.status).toBe('completed');
+      expect(updated?.resultUrl).toBe(
+        'https://cdn.example.com/after-restart.jpg',
+      );
+    });
+
+    it('computes stats from Redis after a restart', async () => {
+      const j1 = await redisBackedService.createJob({
+        params: {},
+        type: 'gen',
+      });
+      await redisBackedService.createJob({ params: {}, type: 'gen' });
+      await redisBackedService.updateJob(j1.jobId, { status: 'completed' });
+
+      const restarted = new TestJobService(
+        logger as unknown as LoggerService,
+        redisService,
+      );
+      const stats = await restarted.getStats();
+
+      expect(stats.completed).toBe(1);
+      expect(stats.queued).toBe(1);
+      expect(stats.total).toBe(2);
+    });
+
+    it('falls back to memory and warns when Redis writes fail', async () => {
+      publisher.setEx.mockRejectedValueOnce(new Error('redis down'));
+
+      const job = await redisBackedService.createJob({
+        params: {},
+        type: 'gen',
+      });
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ message: 'Failed to persist job to Redis' }),
+      );
+      expect(await redisBackedService.getJob(job.jobId)).toEqual(job);
+    });
+
+    it('falls back to memory stats when the publisher is unavailable', async () => {
+      const offlineService = new TestJobService(
+        logger as unknown as LoggerService,
+        createMockRedisService(null),
+      );
+      await offlineService.createJob({ params: {}, type: 'gen' });
+
+      const stats = await offlineService.getStats();
+
+      expect(stats.queued).toBe(1);
+      expect(stats.total).toBe(1);
+    });
+
+    it('returns null from getJob when Redis reads fail', async () => {
+      publisher.get.mockRejectedValueOnce(new Error('read error'));
+
+      const result = await redisBackedService.getJob('unknown-id');
+
+      expect(result).toBeNull();
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ message: 'Failed to read job from Redis' }),
+      );
+    });
+
+    it('keeps the 24h TTL when persisting job updates', async () => {
+      const job = await redisBackedService.createJob({
+        params: {},
+        type: 'gen',
+      });
+      const updated = await redisBackedService.updateJob(job.jobId, {
+        status: 'completed',
+      });
+
+      expect(publisher.setEx).toHaveBeenLastCalledWith(
+        `jobs:test:${job.jobId}`,
+        86400,
+        JSON.stringify(updated),
+      );
+    });
+
+    it('skips corrupt job entries and keeps valid ones in stats', async () => {
+      await redisBackedService.createJob({ params: {}, type: 'gen' });
+      publisher.store.set('jobs:test:corrupt', 'not-json{');
+
+      const stats = await redisBackedService.getStats();
+
+      expect(stats.queued).toBe(1);
+      expect(stats.total).toBe(1);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          key: 'jobs:test:corrupt',
+          message: 'Skipping corrupt job entry in Redis',
+        }),
+      );
+    });
+
+    it('falls back to memory stats and warns when the Redis scan fails', async () => {
+      await redisBackedService.createJob({ params: {}, type: 'gen' });
+      publisher.scanIterator.mockImplementationOnce(() => {
+        throw new Error('scan failed');
+      });
+
+      const stats = await redisBackedService.getStats();
+
+      expect(stats.queued).toBe(1);
+      expect(stats.total).toBe(1);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ message: 'Failed to read jobs from Redis' }),
+      );
     });
   });
 });

@@ -1,4 +1,5 @@
 import { LoggerModule } from '@libs/logger/logger.module';
+import { RedisModule } from '@libs/redis/redis.module';
 import { S3Module } from '@libs/s3/s3.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
@@ -31,6 +32,10 @@ import { VoiceTrainingService } from '@voices/services/voice-training.service';
     ConfigModule,
     HttpModule,
     LoggerModule,
+    RedisModule.forRoot({
+      configModule: ConfigModule,
+      configService: ConfigService,
+    }),
     S3Module.forRoot({
       configModule: ConfigModule,
       configService: ConfigService,

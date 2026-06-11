@@ -18,7 +18,7 @@ import {
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { App } from '@slack/bolt';
+import { App, type RespondArguments, type types } from '@slack/bolt';
 import { ConfigService } from '@slack/config/config.service';
 import { firstValueFrom } from 'rxjs';
 
@@ -28,6 +28,13 @@ interface SlackBotInstance {
   app: App;
   integration: OrgIntegration;
 }
+
+interface SlackReplyArguments {
+  blocks?: Array<types.Block | types.KnownBlock>;
+  text: string;
+}
+type SlackReply = (message: string | SlackReplyArguments) => Promise<unknown>;
+type SlackRespond = (message: string | RespondArguments) => Promise<unknown>;
 
 /**
  * Build the BotHttpAdapter that wraps NestJS HttpService + RxJS firstValueFrom
@@ -461,7 +468,7 @@ export class SlackBotManager
   private async handleWorkflowsCommand(
     userId: string,
     orgId: string,
-    respond: (msg: any) => Promise<unknown>,
+    respond: SlackRespond,
   ) {
     const session = this.getSession(userId);
     if (session?.state === 'running') {
@@ -524,10 +531,7 @@ export class SlackBotManager
     }
   }
 
-  private async handleStatusCommand(
-    userId: string,
-    respond: (msg: any) => Promise<unknown>,
-  ) {
+  private async handleStatusCommand(userId: string, respond: SlackRespond) {
     const session = this.getSession(userId);
 
     let line = 'Idle - no active workflow';
@@ -567,10 +571,7 @@ export class SlackBotManager
     await respond({ text: `*GenFeed Bot Status*\n\nYour status: ${line}` });
   }
 
-  private async handleCancelCommand(
-    userId: string,
-    respond: (msg: any) => Promise<unknown>,
-  ) {
+  private async handleCancelCommand(userId: string, respond: SlackRespond) {
     const session = this.getSession(userId);
     if (!session || session.state === 'idle') {
       await respond({ text: 'Nothing to cancel.' });
@@ -592,10 +593,7 @@ export class SlackBotManager
     await respond({ text: 'Cancelled. Use /workflows to start again.' });
   }
 
-  private async handleSettingsCommand(
-    userId: string,
-    respond: (msg: any) => Promise<unknown>,
-  ) {
+  private async handleSettingsCommand(userId: string, respond: SlackRespond) {
     await this.showSettingsMenu(userId, respond);
   }
 
@@ -603,7 +601,7 @@ export class SlackBotManager
     userId: string,
     orgId: string,
     workflowId: string,
-    respond: (msg: any) => Promise<unknown>,
+    respond: SlackRespond,
   ) {
     try {
       const workflow = await this.internalApiClient.fetchWorkflow(
@@ -643,10 +641,7 @@ export class SlackBotManager
     }
   }
 
-  private async promptNextInput(
-    userId: string,
-    respond: (msg: any) => Promise<unknown>,
-  ) {
+  private async promptNextInput(userId: string, respond: SlackReply) {
     const session = this.getSession(userId);
     if (!session) {
       return;
@@ -674,10 +669,7 @@ export class SlackBotManager
     }
   }
 
-  private async showConfirmation(
-    userId: string,
-    respond: (msg: any) => Promise<unknown>,
-  ) {
+  private async showConfirmation(userId: string, respond: SlackReply) {
     const session = this.getSession(userId);
     if (!session) {
       return;
@@ -732,7 +724,7 @@ export class SlackBotManager
   private async handleRun(
     userId: string,
     orgId: string,
-    respond: (msg: any) => Promise<unknown>,
+    respond: SlackRespond,
   ) {
     const session = this.getSession(userId);
     if (!session || !session.workflowId) {
@@ -783,10 +775,7 @@ export class SlackBotManager
     }
   }
 
-  private async handleEdit(
-    userId: string,
-    respond: (msg: any) => Promise<unknown>,
-  ) {
+  private async handleEdit(userId: string, respond: SlackRespond) {
     const session = this.getSession(userId);
     if (!session) {
       return;
@@ -804,10 +793,7 @@ export class SlackBotManager
     await this.promptNextInput(userId, respond);
   }
 
-  private async showSettingsMenu(
-    userId: string,
-    respond: (msg: any) => Promise<unknown>,
-  ) {
+  private async showSettingsMenu(userId: string, respond: SlackRespond) {
     const current = this.userSettings.get(userId) || {
       imageModel: IMAGE_MODELS[0],
       videoModel: VIDEO_MODELS[0],
@@ -964,7 +950,7 @@ export class SlackBotManager
   private async monitorWorkflowExecution(
     orgId: string,
     userId: string,
-    respond: (msg: any) => Promise<unknown>,
+    respond: SlackRespond,
   ): Promise<void> {
     const session = this.getSession(userId);
     if (!session?.executionId) {

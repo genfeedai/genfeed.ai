@@ -1350,6 +1350,11 @@ textarea {
   color: var(--warning);
 }
 
+.status-queued {
+  background: color-mix(in srgb, var(--info) 14%, transparent);
+  color: var(--info);
+}
+
 .status-running {
   animation: pulse 1.5s infinite;
   background: color-mix(in srgb, var(--agent) 14%, transparent);
@@ -1666,6 +1671,52 @@ textarea {
   font-size: 12px;
 }
 
+.agent-manual-run-panel {
+  border-color: rgba(74, 144, 226, 0.34);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.agent-manual-run-header,
+.agent-run-output-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.agent-manual-run-header h3 {
+  font-size: 14px;
+  margin: 0 0 4px;
+}
+
+.agent-run-output {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+
+.agent-run-metrics,
+.agent-run-summary,
+.agent-run-handoff-note {
+  font-size: 12px;
+  margin: 0;
+}
+
+.agent-run-summary {
+  line-height: 1.5;
+}
+
+.agent-run-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .agent-runs-section {
   margin-top: 4px;
 }
@@ -1681,6 +1732,7 @@ textarea {
 .agent-run-row {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 

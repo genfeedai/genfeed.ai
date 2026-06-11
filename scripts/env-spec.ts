@@ -48,7 +48,6 @@ const frontendSharedKeys = [
 ] as const;
 
 const backendSharedKeys = [
-  'CLERK_PUBLISHABLE_KEY',
   'CLERK_SECRET_KEY',
   'CLERK_WEBHOOK_SIGNING_SECRET',
   'DATABASE_URL',
@@ -492,7 +491,6 @@ export const ROOT_ENV_SECTIONS: EnvSection[] = [
     title: 'Shared Auth And Edition',
     keys: [
       'CLERK_SECRET_KEY',
-      'CLERK_PUBLISHABLE_KEY',
       'CLERK_WEBHOOK_SIGNING_SECRET',
       'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
       'NEXT_PUBLIC_GENFEED_CLOUD',

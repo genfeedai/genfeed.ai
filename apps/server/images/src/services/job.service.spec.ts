@@ -1,5 +1,6 @@
 import { JobService } from '@images/services/job.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import type { RedisService } from '@libs/redis/redis.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
@@ -113,8 +114,8 @@ describe('JobService', () => {
   });
 
   describe('getStats', () => {
-    it('returns zero counts when no jobs exist', () => {
-      const stats = service.getStats();
+    it('returns zero counts when no jobs exist', async () => {
+      const stats = await service.getStats();
       expect(stats).toEqual({
         active: 0,
         completed: 0,
@@ -127,7 +128,7 @@ describe('JobService', () => {
     it('counts queued jobs correctly', async () => {
       await service.createJob({ params: {}, type: 'test' });
       await service.createJob({ params: {}, type: 'test' });
-      const stats = service.getStats();
+      const stats = await service.getStats();
       expect(stats.queued).toBe(2);
       expect(stats.total).toBe(2);
     });
@@ -140,12 +141,36 @@ describe('JobService', () => {
       await service.updateJob(j1.jobId, { status: 'processing' });
       await service.updateJob(j2.jobId, { status: 'completed' });
       await service.updateJob(j3.jobId, { status: 'failed' });
-      const stats = service.getStats();
+      const stats = await service.getStats();
       expect(stats.active).toBe(1);
       expect(stats.completed).toBe(1);
       expect(stats.failed).toBe(1);
       expect(stats.queued).toBe(1);
       expect(stats.total).toBe(4);
+    });
+  });
+
+  describe('Redis persistence', () => {
+    it('persists jobs under the images namespace', async () => {
+      const setEx = vi.fn(async () => undefined);
+      const redisService = {
+        getPublisher: vi.fn(() => ({ setEx })),
+      } as unknown as RedisService;
+      const redisBackedService = new JobService(
+        logger as unknown as LoggerService,
+        redisService,
+      );
+
+      const job = await redisBackedService.createJob({
+        params: {},
+        type: 'image-gen',
+      });
+
+      expect(setEx).toHaveBeenCalledWith(
+        `jobs:images:${job.jobId}`,
+        86400,
+        JSON.stringify(job),
+      );
     });
   });
 });
