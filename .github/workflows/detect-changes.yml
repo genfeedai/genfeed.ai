@@ -63,6 +63,7 @@ jobs:
         uses: dorny/paths-filter@v4
         id: changes
         with:
+          base: ${{ github.ref_name }}
           filters: |
             # API service changes
             api:
