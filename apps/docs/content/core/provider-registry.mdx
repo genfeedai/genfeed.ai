@@ -11,7 +11,7 @@ Genfeed Core uses a provider registry to turn provider-specific model catalogs i
 | fal.ai provider      | `packages/services/ai/providers/fal/fal-provider.service.ts`                 | Reads the fal.ai catalog, filters active `fal-ai/*` models, maps pricing/capabilities/category |
 | HuggingFace provider | `packages/services/ai/providers/huggingface/huggingface-provider.service.ts` | Reads HuggingFace model metadata and maps pipeline tags into Genfeed model categories          |
 | BYOK access          | `apps/server/api/src/services/byok/*`                                        | Resolves organization provider keys before hosted/server fallback at execution time            |
-| Generation tools     | `packages/tools/src/registry/source.agent.ts`                                | Exposes stable agent-facing generation tools such as `generate_image` and `generate_video`     |
+| Generation tools     | `packages/tools/src/registry/source.ts`                                | Exposes stable agent-facing generation tools such as `generate_image` and `generate_video`     |
 
 ## How Discovery Works
 
@@ -44,7 +44,7 @@ Core does not require every provider key. At least one generation-capable provid
 For v1, callers should treat these as the stable generation-facing surfaces:
 
 - Core Loop Step 3 docs: [Generation Service](/core-loop/generation-service)
-- Agent tool metadata: `packages/tools/src/registry/source.agent.ts`
+- Agent tool metadata: `packages/tools/src/registry/source.ts`
 - Agent tool registry/UI mapping: `packages/tools/src/registry/tool-registry.ts`
 - Internal media APIs: `/v1/images`, `/v1/videos`, `/v1/musics`, `/v1/voices/generate`
 - Skill execution path: `apps/server/api/src/services/skill-executor/*`

@@ -7,6 +7,7 @@ import {
   IsBoolean,
   IsIn,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Max,
@@ -312,6 +313,7 @@ export class UpdateBrandAgentConfigDto {
   })
   persona?: string;
 
+  @IsObject()
   @IsOptional()
   @ApiProperty({
     additionalProperties: {
