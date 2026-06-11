@@ -9,6 +9,6 @@
       "staging": true
     }
   },
-  "installCommand": "cd ../../ && sh scripts/sh/vercel-bun.sh install",
+  "installCommand": "cd ../../ && sh scripts/sh/vercel-bun.sh install --ignore-scripts",
   "outputDirectory": ".next"
 }
