@@ -75,6 +75,7 @@ export class UpdateTranscriptDto {
   audioFileUrl?: string;
 
   @IsOptional()
+  @IsString()
   article?: string;
 
   @IsOptional()
