@@ -68,6 +68,7 @@ jobs:
             api:
               - 'apps/server/api/**'
               - 'packages/**'
+              - '!packages/ui/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.api.yml'
               - 'package.json'
@@ -77,6 +78,7 @@ jobs:
             files:
               - 'apps/server/files/**'
               - 'packages/**'
+              - '!packages/ui/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.files.yml'
               - 'package.json'
@@ -86,6 +88,7 @@ jobs:
             mcp:
               - 'apps/server/mcp/**'
               - 'packages/**'
+              - '!packages/ui/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.mcp.yml'
               - 'package.json'
@@ -95,6 +98,7 @@ jobs:
             notifications:
               - 'apps/server/notifications/**'
               - 'packages/**'
+              - '!packages/ui/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.notifications.yml'
               - 'package.json'
@@ -104,6 +108,7 @@ jobs:
             telegram:
               - 'apps/server/telegram/**'
               - 'packages/**'
+              - '!packages/ui/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.telegram.yml'
               - 'package.json'
@@ -113,6 +118,7 @@ jobs:
             discord:
               - 'apps/server/discord/**'
               - 'packages/**'
+              - '!packages/ui/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.discord.yml'
               - 'package.json'
@@ -122,6 +128,7 @@ jobs:
             slack:
               - 'apps/server/slack/**'
               - 'packages/**'
+              - '!packages/ui/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.slack.yml'
               - 'package.json'
@@ -132,6 +139,7 @@ jobs:
               - 'apps/server/workers/**'
               - 'apps/server/api/src/**'
               - 'packages/**'
+              - '!packages/ui/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.workers.yml'
               - 'scripts/**'
@@ -142,6 +150,7 @@ jobs:
             clips:
               - 'apps/server/clips/**'
               - 'packages/**'
+              - '!packages/ui/**'
               - 'docker/Dockerfile.server'
               - 'docker/docker-compose.clips.yml'
               - 'package.json'
