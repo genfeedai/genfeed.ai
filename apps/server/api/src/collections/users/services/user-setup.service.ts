@@ -337,6 +337,19 @@ export class UserSetupService {
     });
 
     if (existing) {
+      if (existing.isActive === false) {
+        const memberId = existing._id || existing.id;
+        const reactivated = await this.membersService.patch(memberId, {
+          isActive: true,
+        });
+
+        this.logger.warn(
+          `Reactivated inactive member for user ${userId} in organization ${organizationId}`,
+          this.context,
+        );
+        return reactivated;
+      }
+
       this.logger.warn(
         `Member already exists for user ${userId} in organization ${organizationId}`,
         this.context,

@@ -4,6 +4,7 @@ import type { MemberDocument } from '@api/collections/members/schemas/member.sch
 import { MembersService } from '@api/collections/members/services/members.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
@@ -63,6 +64,7 @@ export class AuthIdentityResolverService {
     private readonly membersService: MembersService,
     private readonly clerkService: ClerkService,
     private readonly loggerService: LoggerService,
+    private readonly userSetupService: UserSetupService,
   ) {}
 
   private async resolveUserId(
@@ -360,6 +362,43 @@ export class AuthIdentityResolverService {
     });
   }
 
+  private getMemberForOrganization(
+    organizationId: string,
+    members: MemberDocument[],
+  ): MemberDocument | null {
+    return (
+      members.find((member) => {
+        const memberOrganizationId =
+          getRecordId(asMemberRecord(member), 'organizationId') ||
+          getRecordId(asMemberRecord(member), 'organization');
+
+        return memberOrganizationId === organizationId;
+      }) ?? null
+    );
+  }
+
+  private async repairWorkspace(userId: string): Promise<{
+    brand: BrandDocument;
+    organization: OrganizationDocument;
+  }> {
+    const setupResult =
+      await this.userSetupService.initializeUserResources(userId);
+
+    this.loggerService.warn('Repaired incomplete auth workspace', {
+      brandId: getEntityId(setupResult.brand as Record<string, unknown>),
+      organizationId: getEntityId(
+        setupResult.organization as Record<string, unknown>,
+      ),
+      service: 'AuthIdentityResolverService',
+      userId,
+    });
+
+    return {
+      brand: setupResult.brand,
+      organization: setupResult.organization,
+    };
+  }
+
   async resolve(
     user: User,
     options?: { clerkOrgId?: string },
@@ -383,21 +422,33 @@ export class AuthIdentityResolverService {
       isDeleted: false,
       user: resolvedUser.userId,
     });
-    const organization = await this.resolveOrganization(
+    let organization = await this.resolveOrganization(
       publicMetadata,
       resolvedUser.userId,
       members,
       options?.clerkOrgId,
     );
-    const organizationId =
+    let organizationId =
       getEntityId(organization as Record<string, unknown> | null | undefined) ||
       undefined;
-    const brand = organizationId
+    let brand = organizationId
       ? await this.resolveBrand(publicMetadata, organizationId, members)
       : null;
-    const brandId =
+    let brandId =
       getEntityId(brand as Record<string, unknown> | null | undefined) ||
       undefined;
+    const member = organizationId
+      ? this.getMemberForOrganization(organizationId, members)
+      : null;
+
+    if (!organizationId || !brandId || !member) {
+      const repairedWorkspace = await this.repairWorkspace(resolvedUser.userId);
+      organization = repairedWorkspace.organization;
+      brand = repairedWorkspace.brand;
+      organizationId =
+        getEntityId(organization as Record<string, unknown>) || undefined;
+      brandId = getEntityId(brand as Record<string, unknown>) || undefined;
+    }
 
     const metadataPatch: Partial<IClerkPublicMetadata> = {
       brand: brandId,
