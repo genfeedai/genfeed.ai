@@ -34,16 +34,33 @@ if [[ -z "${1:-}" ]] && [[ "${CI:-}" == "true" || "${GITHUB_ACTIONS:-}" == "true
   exit 0
 fi
 
-# Skills to sync from shipshitdev (dev/build skills only)
+# Curated dev/build skills to sync from shipshitdev.
+# Keep repo-specific skills such as issue-prd-writing and prd-quality-gate out
+# of this list so syncs do not overwrite Genfeed-specific rules.
 SYNC_SKILLS=(
+  accessibility
+  agent-architecture-audit
+  ai-regression-testing
   api-design-expert
   biome-validator
   bun-validator
   component-library
+  design-consistency-auditor
   docker-expert
   error-handling-expert
+  git-safety
+  llm-structured-output
   mcp-builder
+  nestjs-expert
+  nestjs-queue-architect
+  nestjs-testing-expert
+  nextjs-validator
+  open-source-checker
+  package-architect
   performance-expert
+  production-audit
+  qa-reviewer
+  react-component-performance
   react-hook-form
   react-patterns
   react-testing-library
@@ -52,12 +69,14 @@ SYNC_SKILLS=(
   security-expert
   shadcn
   spec-first
+  systematic-debugging
   table-filters
   tailwind
   tailwind-validator
   testing-expert
   turborepo
   typescript-expert
+  verification-before-completion
 )
 
 generate_symlinks() {

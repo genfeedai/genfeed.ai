@@ -86,7 +86,8 @@ describe('AuthIdentityResolverService', () => {
 
   it('resolves legacy metadata via mongoId fields and repairs Clerk metadata', async () => {
     usersService.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
-      _id: 'user_current',
+      _id: '507f1f77bcf86cd799439011',
+      id: 'user_current',
     });
     membersService.find.mockResolvedValue([
       {
@@ -98,11 +99,13 @@ describe('AuthIdentityResolverService', () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
-        _id: 'org_current',
+        _id: '507f1f77bcf86cd799439012',
+        id: 'org_current',
         userId: 'user_current',
       });
     brandsService.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
-      _id: 'brand_current',
+      _id: '507f1f77bcf86cd799439013',
+      id: 'brand_current',
     });
     clerkService.updateUserPublicMetadata.mockResolvedValue(undefined);
 
@@ -240,14 +243,19 @@ describe('AuthIdentityResolverService', () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
-        _id: 'user_current',
+        _id: '507f1f77bcf86cd799439011',
+        id: 'user_current',
       });
     membersService.find.mockResolvedValue([]);
     organizationsService.findOne.mockResolvedValue(null);
     userSetupService.initializeUserResources.mockResolvedValueOnce({
-      brand: { _id: 'brand_repaired' },
+      brand: { _id: '507f1f77bcf86cd799439013', id: 'brand_repaired' },
       member: { _id: 'member_repaired', organizationId: 'org_repaired' },
-      organization: { _id: 'org_repaired', user: 'user_current' },
+      organization: {
+        _id: '507f1f77bcf86cd799439012',
+        id: 'org_repaired',
+        user: 'user_current',
+      },
       organizationSettings: {},
       userSettings: {},
     });
