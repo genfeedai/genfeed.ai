@@ -188,6 +188,20 @@ export default defineConfig({
         ),
       },
       {
+        find: '@genfeedai/workflows',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/workflows/src',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflows\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/workflows/src/$1',
+        ),
+      },
+      {
         find: /^@genfeedai\/cloud-serializers\/(.*)$/,
         replacement: path.resolve(
           serviceDir,

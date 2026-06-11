@@ -87,5 +87,6 @@ export class CreateApiKeyDto {
   })
   @IsObject()
   @IsOptional()
+  @IsObject()
   readonly metadata?: Record<string, unknown>;
 }
