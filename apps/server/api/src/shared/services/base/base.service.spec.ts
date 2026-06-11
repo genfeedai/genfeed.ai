@@ -2,8 +2,50 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { LoggerService } from '@libs/logger/logger.service';
 
-// Mock @genfeedai/prisma before importing BaseService so the module resolves cleanly in test env
-vi.mock('@genfeedai/prisma', () => ({ PrismaClient: class {} }));
+// Mock @genfeedai/prisma before importing BaseService so the module resolves cleanly in test env.
+vi.mock('@genfeedai/prisma', () => ({
+  ArticleStatus: {
+    ARCHIVED: 'ARCHIVED',
+    DRAFT: 'DRAFT',
+    PUBLISHED: 'PUBLISHED',
+  },
+  AssetScope: {
+    BRAND: 'BRAND',
+    ORGANIZATION: 'ORGANIZATION',
+    PUBLIC: 'PUBLIC',
+    USER: 'USER',
+  },
+  IngredientCategory: {
+    AUDIO: 'AUDIO',
+    AVATAR: 'AVATAR',
+    GIF: 'GIF',
+    IMAGE: 'IMAGE',
+    IMAGE_EDIT: 'IMAGE_EDIT',
+    INGREDIENT: 'INGREDIENT',
+    MUSIC: 'MUSIC',
+    SOURCE: 'SOURCE',
+    TEXT: 'TEXT',
+    VIDEO: 'VIDEO',
+    VIDEO_EDIT: 'VIDEO_EDIT',
+    VOICE: 'VOICE',
+  },
+  IngredientStatus: {
+    ARCHIVED: 'ARCHIVED',
+    DRAFT: 'DRAFT',
+    FAILED: 'FAILED',
+    GENERATED: 'GENERATED',
+    PROCESSING: 'PROCESSING',
+    REJECTED: 'REJECTED',
+    UPLOADED: 'UPLOADED',
+    VALIDATED: 'VALIDATED',
+  },
+  OrganizationCategory: {
+    AGENCY: 'AGENCY',
+    BUSINESS: 'BUSINESS',
+    CREATOR: 'CREATOR',
+  },
+  PrismaClient: class {},
+}));
 
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -22,7 +64,9 @@ describe('BaseService', () => {
     set: ReturnType<typeof vi.fn>;
     invalidateByTags: ReturnType<typeof vi.fn>;
   };
-  let setModelFields: (...fields: string[]) => void;
+  let setModelFields: (
+    ...fields: Array<{ kind?: string; name: string; type?: string } | string>
+  ) => void;
 
   beforeEach(() => {
     logger = {
@@ -67,20 +111,22 @@ describe('BaseService', () => {
       undefined,
       cacheService as never,
     );
-    setModelFields = (...fields: string[]) => {
+    setModelFields = (
+      ...fields: Array<{ kind?: string; name: string; type?: string } | string>
+    ) => {
       (
         prisma as PrismaService & {
           _runtimeDataModel: {
             models: {
               TestModel: {
-                fields: Array<{ name: string }>;
+                fields: Array<{ kind?: string; name: string; type?: string }>;
               };
             };
           };
         }
-      )._runtimeDataModel.models.TestModel.fields = fields.map((name) => ({
-        name,
-      }));
+      )._runtimeDataModel.models.TestModel.fields = fields.map((field) =>
+        typeof field === 'string' ? { name: field } : field,
+      );
     };
     setModelFields('id', 'organizationId', 'isDeleted');
   });
@@ -263,6 +309,111 @@ describe('BaseService', () => {
         },
       });
     });
+
+    it('normalizes app enum filters to Prisma enum values', async () => {
+      setModelFields(
+        'id',
+        'isDeleted',
+        { kind: 'enum', name: 'category', type: 'IngredientCategory' },
+        { kind: 'enum', name: 'scope', type: 'AssetScope' },
+        { kind: 'enum', name: 'status', type: 'IngredientStatus' },
+      );
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        {
+          where: {
+            AND: [
+              {
+                category: 'video',
+                scope: 'public',
+                status: {
+                  in: ['generated', 'processing', 'validated', 'completed'],
+                },
+              },
+            ],
+          },
+        },
+        { page: 1, limit: 30 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        orderBy: [{ createdAt: 'desc' }],
+        skip: 0,
+        take: 30,
+        where: {
+          AND: [
+            {
+              category: 'VIDEO',
+              scope: 'PUBLIC',
+              status: {
+                in: ['GENERATED', 'PROCESSING', 'VALIDATED', 'GENERATED'],
+              },
+            },
+          ],
+          isDeleted: false,
+        },
+      });
+    });
+
+    it('maps legacy public article status to Prisma PUBLISHED', async () => {
+      setModelFields('id', 'isDeleted', 'publishedAt', {
+        kind: 'enum',
+        name: 'status',
+        type: 'ArticleStatus',
+      });
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        {
+          where: {
+            publishedAt: { not: null },
+            status: 'public',
+          },
+        },
+        { page: 1, limit: 15 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            isDeleted: false,
+            publishedAt: { not: null },
+            status: 'PUBLISHED',
+          },
+        }),
+      );
+    });
+
+    it('does not normalize scalar status fields', async () => {
+      setModelFields('id', 'isDeleted', {
+        kind: 'scalar',
+        name: 'status',
+        type: 'String',
+      });
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        {
+          where: {
+            status: 'public',
+          },
+        },
+        { page: 1, limit: 10 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            isDeleted: false,
+            status: 'public',
+          },
+        }),
+      );
+    });
   });
 
   describe('find', () => {
@@ -289,6 +440,21 @@ describe('BaseService', () => {
         where: { id: 'id_1' },
       });
       expect(result).toEqual({ ...doc, _id: 'id_1' });
+    });
+
+    it('normalizes enum filters', async () => {
+      setModelFields('id', 'isDeleted', {
+        kind: 'enum',
+        name: 'status',
+        type: 'ArticleStatus',
+      });
+      delegate.findFirst.mockResolvedValue(null);
+
+      await service.findOne({ status: 'public' });
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { status: 'PUBLISHED' },
+      });
     });
 
     it('returns null when not found', async () => {
@@ -333,6 +499,22 @@ describe('BaseService', () => {
         data: { foo: 'updated' },
       });
       expect(result).toEqual({ ...updated, _id: 'id_1' });
+    });
+
+    it('normalizes enum update data', async () => {
+      setModelFields('id', 'isDeleted', {
+        kind: 'enum',
+        name: 'status',
+        type: 'ArticleStatus',
+      });
+      delegate.update.mockResolvedValue({ id: 'id_1', status: 'PUBLISHED' });
+
+      await service.patch('id_1', { status: 'public' });
+
+      expect(delegate.update).toHaveBeenCalledWith({
+        where: { id: 'id_1' },
+        data: { status: 'PUBLISHED' },
+      });
     });
 
     it('passes null field updates through as Prisma data', async () => {

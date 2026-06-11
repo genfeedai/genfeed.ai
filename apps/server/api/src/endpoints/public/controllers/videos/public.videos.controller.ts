@@ -16,7 +16,6 @@ import {
   IngredientCategory,
   IngredientFormat,
   IngredientStatus,
-  PostStatus,
 } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
@@ -112,7 +111,7 @@ export class PublicVideosController {
       _id: videoId,
       isDeleted: false,
       scope: AssetScope.PUBLIC,
-      status: PostStatus.PUBLIC,
+      status: IngredientStatus.GENERATED,
     });
 
     if (!video) {
@@ -135,7 +134,6 @@ export class PublicVideosController {
       _id: videoId,
       isDeleted: false,
       // scope: AssetScope.PUBLIC,
-      // status: PostStatus.PUBLIC,
     });
 
     if (!video) {

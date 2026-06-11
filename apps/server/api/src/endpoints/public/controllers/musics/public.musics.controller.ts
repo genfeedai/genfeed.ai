@@ -11,7 +11,11 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { AssetScope, PostStatus } from '@genfeedai/enums';
+import {
+  AssetScope,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -60,9 +64,10 @@ export class PublicMusicsController {
     };
 
     const matchQuery: PrismaWhereQuery = {
+      category: IngredientCategory.MUSIC,
       isDeleted: false,
       scope: AssetScope.PUBLIC,
-      status: PostStatus.PUBLIC,
+      status: IngredientStatus.GENERATED,
     };
 
     // Filter by brand if provided
@@ -101,9 +106,10 @@ export class PublicMusicsController {
     const music = await this.musicsService.findOne(
       {
         _id: musicId,
+        category: IngredientCategory.MUSIC,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
-        status: PostStatus.PUBLIC,
+        status: IngredientStatus.GENERATED,
       },
       ['metadata', 'brand'],
     );
@@ -122,9 +128,10 @@ export class PublicMusicsController {
   ): Promise<void> {
     const music = await this.musicsService.findOne({
       _id: musicId,
+      category: IngredientCategory.MUSIC,
       isDeleted: false,
       scope: AssetScope.PUBLIC,
-      status: PostStatus.PUBLIC,
+      status: IngredientStatus.GENERATED,
     });
 
     if (!music) {

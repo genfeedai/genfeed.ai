@@ -7,6 +7,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AggregationCacheUtil } from '@api/shared/utils/aggregation-cache/aggregation-cache.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import * as PrismaEnums from '@genfeedai/prisma';
 import { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -38,6 +39,21 @@ type PopulateInput = (string | PopulateOption)[] | 'none';
 type PrismaOrderDirection = 'asc' | 'desc' | number;
 type PrismaOrderByInput = Record<string, PrismaOrderDirection>;
 type PrismaOrderBy = Record<string, 'asc' | 'desc'>;
+type RuntimeModelField = {
+  kind?: string;
+  name: string;
+  type?: string;
+};
+
+const PRISMA_ENUM_ALIASES: Record<string, Record<string, string>> = {
+  ArticleStatus: {
+    public: 'PUBLISHED',
+    published: 'PUBLISHED',
+  },
+  IngredientStatus: {
+    completed: 'GENERATED',
+  },
+};
 
 export interface PrismaFindAllInput {
   where?: PrismaFilter;
@@ -190,11 +206,11 @@ export abstract class BaseService<
     )[this.modelName];
   }
 
-  private get runtimeModel(): { fields?: Array<{ name: string }> } | undefined {
+  private get runtimeModel(): { fields?: RuntimeModelField[] } | undefined {
     const runtimeModels = (
       this.prisma as PrismaService & {
         _runtimeDataModel?: {
-          models?: Record<string, { fields?: Array<{ name: string }> }>;
+          models?: Record<string, { fields?: RuntimeModelField[] }>;
         };
       }
     )._runtimeDataModel?.models;
@@ -214,6 +230,10 @@ export abstract class BaseService<
     }
 
     return fields.some((field) => field.name === fieldName);
+  }
+
+  private getRuntimeField(fieldName: string): RuntimeModelField | undefined {
+    return this.runtimeModel?.fields?.find((field) => field.name === fieldName);
   }
 
   /**
@@ -380,22 +400,93 @@ export abstract class BaseService<
     return Object.entries(sort).map(toEntry);
   }
 
-  private normalizeOperatorValue(value: unknown): unknown {
-    if (!this.isPlainObject(value)) {
+  private getPrismaEnumValues(
+    enumName: string | undefined,
+  ): Set<string> | null {
+    if (!enumName) {
+      return null;
+    }
+
+    const enumObject = (PrismaEnums as unknown as Record<string, unknown>)[
+      enumName
+    ];
+
+    if (!this.isPlainObject(enumObject)) {
+      return null;
+    }
+
+    const values = Object.values(enumObject).filter(
+      (value): value is string => typeof value === 'string',
+    );
+
+    return values.length > 0 ? new Set(values) : null;
+  }
+
+  private toPrismaEnumCandidate(enumName: string, value: string): string {
+    const trimmed = value.trim();
+    const alias = PRISMA_ENUM_ALIASES[enumName]?.[trimmed.toLowerCase()];
+
+    if (alias) {
+      return alias;
+    }
+
+    return trimmed.toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+  }
+
+  private normalizeEnumScalarValue(fieldName: string, value: unknown): unknown {
+    if (typeof value !== 'string') {
       return value;
+    }
+
+    const field = this.getRuntimeField(fieldName);
+    if (field?.kind !== 'enum' || !field.type) {
+      return value;
+    }
+
+    const enumValues = this.getPrismaEnumValues(field.type);
+    const candidate = this.toPrismaEnumCandidate(field.type, value);
+
+    if (!enumValues) {
+      return candidate;
+    }
+
+    if (enumValues.has(value)) {
+      return value;
+    }
+
+    return enumValues.has(candidate) ? candidate : value;
+  }
+
+  private normalizeOperatorValue(fieldName: string, value: unknown): unknown {
+    if (!this.isPlainObject(value)) {
+      return this.normalizeEnumScalarValue(fieldName, value);
     }
 
     const operators = value as Record<string, unknown>;
     const normalized: Record<string, unknown> = {};
+    const normalizeMaybeList = (operatorValue: unknown): unknown =>
+      Array.isArray(operatorValue)
+        ? operatorValue.map((entry) =>
+            this.normalizeEnumScalarValue(fieldName, entry),
+          )
+        : this.normalizeEnumScalarValue(fieldName, operatorValue);
 
+    if ('equals' in operators) {
+      normalized.equals = normalizeMaybeList(operators.equals);
+    }
+    if ('set' in operators) {
+      normalized.set = normalizeMaybeList(operators.set);
+    }
     if ('in' in operators) {
-      normalized.in = operators.in;
+      normalized.in = normalizeMaybeList(operators.in);
     }
     if ('notIn' in operators) {
-      normalized.notIn = operators.notIn;
+      normalized.notIn = normalizeMaybeList(operators.notIn);
     }
     if ('not' in operators) {
-      normalized.not = operators.not;
+      normalized.not = this.isPlainObject(operators.not)
+        ? this.normalizeOperatorValue(fieldName, operators.not)
+        : normalizeMaybeList(operators.not);
     }
     if ('gte' in operators) {
       normalized.gte = operators.gte;
@@ -408,9 +499,6 @@ export abstract class BaseService<
     }
     if ('lt' in operators) {
       normalized.lt = operators.lt;
-    }
-    if ('not' in operators) {
-      normalized.not = operators.not;
     }
     if ('contains' in operators) {
       normalized.contains = operators.contains;
@@ -452,10 +540,23 @@ export abstract class BaseService<
         continue;
       }
 
-      result[key] = this.normalizeOperatorValue(value);
+      result[key] = this.normalizeOperatorValue(key, value);
     }
 
     return result;
+  }
+
+  private normalizeData(data: unknown): PrismaUpdate {
+    if (!this.isPlainObject(data)) {
+      return data as PrismaUpdate;
+    }
+
+    return Object.fromEntries(
+      Object.entries(data).map(([key, value]) => [
+        key,
+        this.normalizeOperatorValue(key, value),
+      ]),
+    );
   }
 
   private extractOptionsWhere(options: AggregationOptions): PrismaFilter {
@@ -535,7 +636,7 @@ export abstract class BaseService<
 
       const include = populateToInclude(populate);
       const doc = await this.internalDelegate.create({
-        data: createDto,
+        data: this.normalizeData(createDto),
         ...(include ? { include } : {}),
       });
 
@@ -675,7 +776,7 @@ export abstract class BaseService<
   }
 
   async find(params: PrismaFilter, populate: PopulateInput = []): Promise<T[]> {
-    const where = this.processSearchParams(params);
+    const where = this.normalizeWhere(params);
     const include = populateToInclude(populate);
     const docs = await this.internalDelegate.findMany({
       where,
@@ -696,7 +797,7 @@ export abstract class BaseService<
 
       this.logger?.debug('Finding document', { params, populate });
 
-      const where = this.processSearchParams(params);
+      const where = this.normalizeWhere(params);
       const include = populateToInclude(populate);
 
       const result = await this.internalDelegate.findFirst({
@@ -736,7 +837,7 @@ export abstract class BaseService<
       }
 
       this.logger?.debug('Updating document', { id, populate, updateDto });
-      const data = updateDto as PrismaUpdate;
+      const data = this.normalizeData(updateDto);
 
       const include = populateToInclude(populate);
       const result = await this.internalDelegate.update({
@@ -788,8 +889,8 @@ export abstract class BaseService<
       this.logger?.debug('Bulk updating documents', { filter, update });
 
       const result = await this.internalDelegate.updateMany({
-        where: filter,
-        data: update,
+        where: this.normalizeWhere(filter),
+        data: this.normalizeData(update),
       });
 
       this.logger?.debug('Bulk update completed', {
@@ -975,7 +1076,7 @@ export abstract class BaseService<
       });
     }
 
-    const query = this.processSearchParams(filterBuilder.build());
+    const query = this.normalizeWhere(filterBuilder.build());
     const include = populateToInclude(populate);
 
     const orderBy = Object.entries(sort).map(([key, dir]) => ({
