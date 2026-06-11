@@ -17,6 +17,7 @@ import { OrganizationsModule } from '@api/collections/organizations/organization
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { StreaksModule } from '@api/collections/streaks/streaks.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
+import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
 import { ConfigModule } from '@api/config/config.module';
@@ -52,6 +53,7 @@ import { PassportModule } from '@nestjs/passport';
     forwardRef(() => PostsModule),
     forwardRef(() => StreaksModule),
     forwardRef(() => SubscriptionsModule),
+    forwardRef(() => UserSetupModule),
     forwardRef(() => UsersModule),
   ],
   providers: [
