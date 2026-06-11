@@ -7,10 +7,22 @@ import { DEPRECATED_ENV_KEYS, ENV_TARGETS } from './env-spec';
 const rootDir = process.cwd();
 
 function listTrackedEnvFiles(): string[] {
-  const stdout = execFileSync('git', ['ls-files'], {
-    cwd: rootDir,
-    encoding: 'utf8',
-  });
+  let stdout: string;
+
+  try {
+    stdout = execFileSync('git', ['ls-files'], {
+      cwd: rootDir,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } catch (error) {
+    if (process.env.VERCEL === '1') {
+      console.warn('Skipping tracked env file check outside a git worktree.');
+      return [];
+    }
+
+    throw error;
+  }
 
   return stdout
     .split('\n')
