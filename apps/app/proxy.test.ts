@@ -88,6 +88,40 @@ describe('proxy', () => {
     );
   });
 
+  it('redirects signed-in public auth routes to onboarding when no workspace exists', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            brands: [],
+            currentUser: { id: 'user_1' },
+          }),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/login' },
+        url: 'http://localhost:3000/login',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/onboarding',
+    );
+  });
+
   it('redirects signed-in root to workspace when single brand', async () => {
     const { default: proxy } = await import('./proxy');
 
@@ -103,6 +137,40 @@ describe('proxy', () => {
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
       'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
+  });
+
+  it('redirects signed-in root to onboarding when no workspace exists', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            brands: [],
+            currentUser: { id: 'user_1' },
+          }),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/' },
+        url: 'http://localhost:3000/',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/onboarding',
     );
   });
 
