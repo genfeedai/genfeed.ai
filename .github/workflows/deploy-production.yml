@@ -83,7 +83,10 @@ jobs:
             fi
           }
 
+          : "${CLERK_SECRET_KEY:?CLERK_SECRET_KEY GitHub secret is required}"
+
           clerk_publishable_key="pk_live_$(printf '%s$' "${CLERK_FRONTEND_API_DOMAIN}" | base64 | tr -d '\n')"
+          update_env CLERK_SECRET_KEY "${CLERK_SECRET_KEY}"
           update_env NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY "${clerk_publishable_key}"
           update_env NEXT_PUBLIC_GENFEED_CLOUD "true"
           update_env NEXT_PUBLIC_API_ENDPOINT "https://api.genfeed.ai/v1"
@@ -92,6 +95,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID_APP }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
           CLERK_FRONTEND_API_DOMAIN: clerk.genfeed.ai
       - run: npx vercel deploy --cwd . --archive=tgz --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:

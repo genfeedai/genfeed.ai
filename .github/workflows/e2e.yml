@@ -243,11 +243,7 @@ jobs:
           CI: true
           APP_BASE_URL: http://localhost:3000
           NEXT_PUBLIC_PLAYWRIGHT_TEST: "false"
-          # clerk.setup.ts reads CLERK_PUBLISHABLE_KEY first, then NEXT_PUBLIC_*.
-          # Set BOTH so the @clerk/backend provisioning client and the app under
-          # test resolve to the SAME Clerk instance as CLERK_SECRET_KEY.
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
           E2E_CLERK_USER_PASSWORD: ${{ secrets.E2E_CLERK_USER_PASSWORD }}
 

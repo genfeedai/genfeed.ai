@@ -9,7 +9,6 @@ export const ClerkClientProvider = {
     if (IS_LOCAL_MODE) return null;
 
     return createClerkClient({
-      publishableKey: configService.get('CLERK_PUBLISHABLE_KEY'),
       secretKey: configService.get('CLERK_SECRET_KEY'),
     });
   },
