@@ -4,7 +4,7 @@
 
 services:
   mcp:
-    image: ghcr.io/genfeedai/cloud/server:${IMAGE_TAG:-latest}
+    image: ghcr.io/genfeedai/genfeed.ai/server:${IMAGE_TAG:-latest}
     command: ["bun", "--filter", "@genfeedai/mcp", "start:prod"]
     container_name: genfeed-ai-mcp
     restart: unless-stopped

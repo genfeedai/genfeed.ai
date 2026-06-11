@@ -16,9 +16,10 @@ const helpersRoot = path.resolve(appDir, '../../packages/helpers');
 const serializersRoot = path.resolve(appDir, '../../packages/serializers');
 const desktopAuthRoot = path.resolve(appDir, './src/lib/desktop-auth');
 const isDesktopShellBuild = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
-const hasClerkKeys =
-  Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
-  Boolean(process.env.CLERK_SECRET_KEY);
+const clerkPublishableKey =
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
+const clerkSecretKey = process.env.CLERK_SECRET_KEY?.trim();
+const hasClerkKeys = Boolean(clerkPublishableKey) && Boolean(clerkSecretKey);
 const useClerkAuthShim = isDesktopShellBuild || !hasClerkKeys;
 
 const workflowUiAliases = {

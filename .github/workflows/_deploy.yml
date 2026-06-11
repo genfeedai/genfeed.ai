@@ -35,7 +35,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository_owner }}/cloud
+  IMAGE_PREFIX: ${{ github.repository }}
 
 jobs:
   # Detect what changed

@@ -1,6 +1,6 @@
 services:
   slack:
-    image: ghcr.io/genfeedai/cloud/server:${IMAGE_TAG:-latest}
+    image: ghcr.io/genfeedai/genfeed.ai/server:${IMAGE_TAG:-latest}
     command: ["bun", "--filter", "@genfeedai/slack", "start:prod"]
     container_name: genfeed-ai-slack
     restart: unless-stopped
