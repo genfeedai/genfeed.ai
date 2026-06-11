@@ -114,7 +114,7 @@ jobs:
 
   deploy-website:
     name: Deploy genfeed.ai
-    if: ${{ github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v') }}
+    if: ${{ vars.ENABLE_WEBSITE_VERCEL_DEPLOY == 'true' && (github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')) }}
     runs-on: ubuntu-latest
     needs: deploy-backend
     steps:
@@ -126,7 +126,7 @@ jobs:
 
   deploy-docs:
     name: Deploy docs.genfeed.ai
-    if: ${{ github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v') }}
+    if: ${{ vars.ENABLE_DOCS_VERCEL_DEPLOY == 'true' && (github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')) }}
     runs-on: ubuntu-latest
     needs: deploy-backend
     steps:
