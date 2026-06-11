@@ -1,7 +1,7 @@
 import type { ProviderModel, WorkflowNodeData } from '@genfeedai/types';
 import { useCallback } from 'react';
 import { getSchemaDefaults } from '../lib/schemaUtils';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 
 type ModelMap = Record<string, string>;
 

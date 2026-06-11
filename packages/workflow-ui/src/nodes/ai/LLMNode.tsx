@@ -18,7 +18,7 @@ import {
 } from '../../lib/models/registry';
 import { useWorkflowUIConfig } from '../../provider';
 import { useUIStore } from '../../stores/uiStore';
-import { useWorkflowStore } from '../../stores/workflowStore';
+import { useWorkflowStore } from '../../stores/workflow';
 import { Button } from '../../ui/button';
 import { Slider } from '../../ui/slider';
 import { BaseNode } from '../BaseNode';

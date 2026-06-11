@@ -3,8 +3,8 @@ import { useReactFlow } from '@xyflow/react';
 import { useCallback } from 'react';
 import { getLayoutedNodes } from '../lib/autoLayout';
 import { useSettingsStore } from '../stores/settingsStore';
+import { useWorkflowStore } from '../stores/workflow';
 import { selectAddNode } from '../stores/workflow/selectors';
-import { useWorkflowStore } from '../stores/workflowStore';
 
 export function usePaneActions() {
   const addNode = useWorkflowStore(selectAddNode);

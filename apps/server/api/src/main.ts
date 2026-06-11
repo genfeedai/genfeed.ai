@@ -113,6 +113,10 @@ async function main() {
       express.raw({ limit: '10mb', type: 'application/json' }),
     );
     app.use(
+      '/v1/webhooks/clerk',
+      express.raw({ limit: '10mb', type: 'application/json' }),
+    );
+    app.use(
       '/v1/webhooks/vercel',
       express.raw({ limit: '10mb', type: 'application/json' }),
     );

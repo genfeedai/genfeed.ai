@@ -3,8 +3,8 @@
 import { Pre } from '@genfeedai/ui';
 import { Bug, ChevronDown, ChevronRight, Copy, Trash2, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
+import { useExecutionStore } from '../stores/execution';
 import type { DebugPayload } from '../stores/execution/types';
-import { useExecutionStore } from '../stores/executionStore';
 import { useUIStore } from '../stores/uiStore';
 import { Button } from '../ui/button';
 import { PanelContainer } from './PanelContainer';

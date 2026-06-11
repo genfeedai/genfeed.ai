@@ -14,7 +14,7 @@ const stores = vi.hoisted(() => ({
   toggleAutoSave: vi.fn(),
 }));
 
-vi.mock('../stores/executionStore', () => ({
+vi.mock('../stores/execution', () => ({
   useExecutionStore: (
     selector?: (state: Record<string, unknown>) => unknown,
   ) => {
@@ -51,7 +51,7 @@ vi.mock('../stores/uiStore', () => ({
   },
 }));
 
-vi.mock('../stores/workflowStore', () => ({
+vi.mock('../stores/workflow', () => ({
   useWorkflowStore: Object.assign(
     (selector?: (state: Record<string, unknown>) => unknown) => {
       const state = {

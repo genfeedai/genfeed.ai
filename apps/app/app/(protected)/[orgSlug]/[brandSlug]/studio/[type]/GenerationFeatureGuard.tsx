@@ -1,6 +1,7 @@
 'use client';
 
 import { useEnabledCategories } from '@hooks/data/organization/use-enabled-categories/use-enabled-categories';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { GenerationFeatureGuardProps } from '@props/guards/generation-feature-guard.props';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -16,6 +17,7 @@ export default function GenerationFeatureGuard({
 }: GenerationFeatureGuardProps) {
   const { isEnabled, isLoading } = useEnabledCategories();
   const { replace } = useRouter();
+  const { href } = useOrgUrl();
 
   const categoryEnabled = isEnabled(category);
 
@@ -25,9 +27,9 @@ export default function GenerationFeatureGuard({
     }
 
     if (!categoryEnabled) {
-      replace('/studio');
+      replace(href('/studio'));
     }
-  }, [categoryEnabled, isLoading, replace]);
+  }, [categoryEnabled, href, isLoading, replace]);
 
   if (isLoading) {
     return (

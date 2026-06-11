@@ -3,6 +3,7 @@ import { CreditTransactionsService } from '@api/collections/credits/services/cre
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BusinessLogicException } from '@api/helpers/exceptions/business/business-logic.exception';
+import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -41,6 +42,15 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     @Optional() private readonly transactionUtil?: TransactionUtil,
   ) {}
+
+  /**
+   * Serializable isolation is required for the read-modify-write balance
+   * cores: at the default ReadCommitted level two concurrent transactions can
+   * both read the same balance and double-spend.
+   */
+  private static readonly BALANCE_TX_OPTIONS = {
+    isolationLevel: 'Serializable',
+  } as const;
 
   private async markOrganizationAsHavingCredits(
     organizationId: string,
@@ -92,9 +102,11 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       }
 
       // Core deduction logic — runs atomically inside a transaction when available
-      const deductCore = async () => {
-        const currentBalance =
-          await this.getOrganizationCreditsBalance(organizationId);
+      const deductCore = async (tx?: PrismaTransactionClient) => {
+        const currentBalance = await this.getOrganizationCreditsBalance(
+          organizationId,
+          tx,
+        );
 
         const maxOverdraftCredits = Math.max(
           0,
@@ -111,6 +123,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         await this.creditBalanceService.updateBalance(
           organizationId,
           newBalance,
+          tx,
         );
         await this.creditTransactionsService.createTransactionEntry(
           organizationId,
@@ -120,14 +133,19 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           newBalance,
           source,
           description,
+          undefined,
+          tx,
         );
 
         return newBalance;
       };
 
-      // Use transaction if available (requires replica set), otherwise fallback
+      // Use transaction if available, otherwise fallback
       const newBalance = this.transactionUtil
-        ? await this.transactionUtil.runInTransaction(() => deductCore())
+        ? await this.transactionUtil.runInTransaction(
+            (tx) => deductCore(tx),
+            CreditsUtilsService.BALANCE_TX_OPTIONS,
+          )
         : await deductCore();
 
       // Side effects outside transaction (idempotent, non-critical)
@@ -190,9 +208,14 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     return currentBalance >= requiredCredits;
   }
 
-  async getOrganizationCreditsBalance(organizationId: string): Promise<number> {
-    const balance =
-      await this.creditBalanceService.findByOrganization(organizationId);
+  async getOrganizationCreditsBalance(
+    organizationId: string,
+    tx?: PrismaTransactionClient,
+  ): Promise<number> {
+    const balance = await this.creditBalanceService.findByOrganization(
+      organizationId,
+      tx,
+    );
     return typeof balance?.balance === 'number' ? balance.balance : 0;
   }
 
@@ -224,15 +247,18 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       }
 
       // Core add logic — runs atomically inside a transaction when available
-      const addCore = async () => {
-        const currentBalance =
-          await this.getOrganizationCreditsBalance(organizationId);
+      const addCore = async (tx?: PrismaTransactionClient) => {
+        const currentBalance = await this.getOrganizationCreditsBalance(
+          organizationId,
+          tx,
+        );
 
         const newBalance = currentBalance + creditsToAdd;
 
         await this.creditBalanceService.updateBalance(
           organizationId,
           newBalance,
+          tx,
         );
         await this.creditTransactionsService.createTransactionEntry(
           organizationId,
@@ -243,14 +269,18 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           source,
           description,
           expiresAt,
+          tx,
         );
 
         return { currentBalance, newBalance };
       };
 
-      // Use transaction if available (requires replica set), otherwise fallback
+      // Use transaction if available, otherwise fallback
       const { currentBalance, newBalance } = this.transactionUtil
-        ? await this.transactionUtil.runInTransaction(() => addCore())
+        ? await this.transactionUtil.runInTransaction(
+            (tx) => addCore(tx),
+            CreditsUtilsService.BALANCE_TX_OPTIONS,
+          )
         : await addCore();
 
       if (creditsToAdd > 0) {
@@ -329,15 +359,18 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       }
 
       // Core refund logic — runs atomically inside a transaction when available
-      const refundCore = async () => {
-        const currentBalance =
-          await this.getOrganizationCreditsBalance(organizationId);
+      const refundCore = async (tx?: PrismaTransactionClient) => {
+        const currentBalance = await this.getOrganizationCreditsBalance(
+          organizationId,
+          tx,
+        );
 
         const newBalance = currentBalance + creditsToRefund;
 
         await this.creditBalanceService.updateBalance(
           organizationId,
           newBalance,
+          tx,
         );
         await this.creditTransactionsService.createTransactionEntry(
           organizationId,
@@ -348,14 +381,18 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           source,
           description,
           expiresAt,
+          tx,
         );
 
         return { currentBalance, newBalance };
       };
 
-      // Use transaction if available (requires replica set), otherwise fallback
+      // Use transaction if available, otherwise fallback
       const { currentBalance, newBalance } = this.transactionUtil
-        ? await this.transactionUtil.runInTransaction(() => refundCore())
+        ? await this.transactionUtil.runInTransaction(
+            (tx) => refundCore(tx),
+            CreditsUtilsService.BALANCE_TX_OPTIONS,
+          )
         : await refundCore();
 
       // Side effects outside transaction (idempotent, non-critical)
@@ -529,13 +566,16 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       }
 
       // Core reset logic — runs atomically inside a transaction when available
-      const resetCore = async () => {
-        const currentBalance =
-          await this.getOrganizationCreditsBalance(organizationId);
+      const resetCore = async (tx?: PrismaTransactionClient) => {
+        const currentBalance = await this.getOrganizationCreditsBalance(
+          organizationId,
+          tx,
+        );
 
         await this.creditBalanceService.updateBalance(
           organizationId,
           newCreditAmount,
+          tx,
         );
         await this.creditTransactionsService.createTransactionEntry(
           organizationId,
@@ -545,14 +585,19 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           newCreditAmount,
           source,
           description,
+          undefined,
+          tx,
         );
 
         return currentBalance;
       };
 
-      // Use transaction if available (requires replica set), otherwise fallback
+      // Use transaction if available, otherwise fallback
       const currentBalance = this.transactionUtil
-        ? await this.transactionUtil.runInTransaction(() => resetCore())
+        ? await this.transactionUtil.runInTransaction(
+            (tx) => resetCore(tx),
+            CreditsUtilsService.BALANCE_TX_OPTIONS,
+          )
         : await resetCore();
 
       if (newCreditAmount > 0) {
@@ -626,11 +671,13 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       }
 
       // Core remove-all logic — runs atomically inside a transaction when available
-      const removeAllCore = async () => {
-        const currentBalance =
-          await this.getOrganizationCreditsBalance(organizationId);
+      const removeAllCore = async (tx?: PrismaTransactionClient) => {
+        const currentBalance = await this.getOrganizationCreditsBalance(
+          organizationId,
+          tx,
+        );
 
-        await this.creditBalanceService.updateBalance(organizationId, 0);
+        await this.creditBalanceService.updateBalance(organizationId, 0, tx);
         await this.creditTransactionsService.createTransactionEntry(
           organizationId,
           CreditTransactionCategory.DEDUCT,
@@ -639,14 +686,19 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           0,
           source,
           description,
+          undefined,
+          tx,
         );
 
         return currentBalance;
       };
 
-      // Use transaction if available (requires replica set), otherwise fallback
+      // Use transaction if available, otherwise fallback
       const currentBalance = this.transactionUtil
-        ? await this.transactionUtil.runInTransaction(() => removeAllCore())
+        ? await this.transactionUtil.runInTransaction(
+            (tx) => removeAllCore(tx),
+            CreditsUtilsService.BALANCE_TX_OPTIONS,
+          )
         : await removeAllCore();
 
       // Side effects outside transaction (idempotent, non-critical)

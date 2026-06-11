@@ -222,9 +222,19 @@ export class ClipFactoryProcessor extends WorkerHost {
     organizationId: string,
     userId: string,
   ): Promise<string> {
-    const filesUrl =
-      this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL') ||
-      'http://localhost:3012';
+    const configuredFilesUrl = this.configService.get(
+      'GENFEEDAI_MICROSERVICES_FILES_URL',
+    ) as string | undefined;
+
+    // Silent localhost fallback posted audio jobs into the void on every
+    // cloud deployment. Fail loud outside local development.
+    if (!configuredFilesUrl && !this.configService.isDevelopment) {
+      throw new Error(
+        'GENFEEDAI_MICROSERVICES_FILES_URL is not configured — clip factory cannot reach the files service',
+      );
+    }
+
+    const filesUrl = configuredFilesUrl || 'http://localhost:3012';
 
     const response = await firstValueFrom(
       this.httpService.post(

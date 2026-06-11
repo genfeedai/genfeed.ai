@@ -14,7 +14,7 @@ export interface FileEntry {
 }
 
 export interface StorageProvider {
-  upload(file: Buffer, path: string): Promise<string>;
+  upload(file: Buffer, path: string, contentType?: string): Promise<string>;
   getUrl(path: string): string;
   delete(path: string): Promise<void>;
   list(prefix: string, options?: ListOptions): Promise<FileEntry[]>;

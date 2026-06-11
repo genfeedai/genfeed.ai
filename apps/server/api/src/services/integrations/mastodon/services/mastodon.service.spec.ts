@@ -26,7 +26,13 @@ describe('MastodonService', () => {
         MastodonService,
         {
           provide: ConfigService,
-          useValue: { get: vi.fn((k: string) => `mock-${k}`) },
+          useValue: {
+            get: vi.fn((k: string) =>
+              // default: no app URL configured → allowlist warn-skips;
+              // the redirectUri allowlist suite overrides per test
+              k === 'GENFEEDAI_APP_URL' ? undefined : `mock-${k}`,
+            ),
+          },
         },
         {
           provide: CredentialsService,
@@ -330,6 +336,38 @@ describe('MastodonService', () => {
         views: 0,
       });
       expect(loggerService.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('redirectUri allowlist', () => {
+    it('rejects redirect URIs outside the configured app origin', () => {
+      configService.get.mockImplementation((k: string) =>
+        k === 'GENFEEDAI_APP_URL' ? 'https://app.genfeed.ai' : `mock-${k}`,
+      );
+
+      expect(() =>
+        service.generateAuthUrl(
+          instanceUrl,
+          'client-id',
+          'https://evil.example.com/callback',
+          'state',
+        ),
+      ).toThrow('redirectUri is not allowed');
+    });
+
+    it('accepts redirect URIs under the configured app origin', () => {
+      configService.get.mockImplementation((k: string) =>
+        k === 'GENFEEDAI_APP_URL' ? 'https://app.genfeed.ai' : `mock-${k}`,
+      );
+
+      expect(() =>
+        service.generateAuthUrl(
+          instanceUrl,
+          'client-id',
+          'https://app.genfeed.ai/integrations/mastodon/callback',
+          'state',
+        ),
+      ).not.toThrow();
     });
   });
 });

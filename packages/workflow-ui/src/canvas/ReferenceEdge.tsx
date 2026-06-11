@@ -2,7 +2,7 @@
 
 import { BaseEdge, type EdgeProps, getBezierPath } from '@xyflow/react';
 import { useMemo } from 'react';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 
 const REFERENCE_COLOR = '#52525b';
 

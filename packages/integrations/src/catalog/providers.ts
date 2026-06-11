@@ -1,8 +1,8 @@
 import { CredentialPlatform } from '@genfeedai/enums';
 
 import type {
-  IntegrationProviderDefinition,
   IntegrationProviderCapability,
+  IntegrationProviderDefinition,
   IntegrationProviderKey,
 } from './provider.schema';
 import {

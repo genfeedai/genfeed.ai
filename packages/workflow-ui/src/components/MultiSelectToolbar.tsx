@@ -16,7 +16,7 @@ import {
   filterItemsByIdLookup,
   hasEveryId,
 } from '../lib/selection';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 import { Button } from '../ui/button';
 
 const NODE_GAP = 32;

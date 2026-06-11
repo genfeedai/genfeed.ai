@@ -45,6 +45,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brands: mocks.brands,
+    selectedBrand: null,
   }),
 }));
 
@@ -213,6 +214,7 @@ vi.mock('@ui/primitives/textarea', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'acme-creator', orgSlug: 'acme-org' }),
   useRouter: () => ({
     push: mocks.push,
   }),
@@ -334,7 +336,9 @@ describe('AgentWizardPage', () => {
       expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
         'Agent created successfully',
       );
-      expect(mocks.push).toHaveBeenCalledWith('/orchestration');
+      expect(mocks.push).toHaveBeenCalledWith(
+        '/acme-org/acme-creator/orchestration',
+      );
     });
   });
 

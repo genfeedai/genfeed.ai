@@ -1,5 +1,7 @@
+import process from 'node:process';
 import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
 import { ConfigService } from '@api/config/config.service';
+import { appendWebhookToken } from '@api/endpoints/webhooks/webhook-token.util';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { ApiKeyCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -18,12 +20,15 @@ export class HeyGenService {
   private readonly callbackUrl: string;
 
   constructor(
-    _configService: ConfigService,
+    private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly httpService: HttpService,
     private readonly apiKeyHelperService: ApiKeyHelperService,
   ) {
-    this.callbackUrl = `${process.env.GENFEEDAI_WEBHOOKS_URL ?? ''}/v1/webhooks/heygen/callback`;
+    this.callbackUrl = appendWebhookToken(
+      `${this.configService.get('GENFEEDAI_WEBHOOKS_URL') ?? ''}/v1/webhooks/heygen/callback`,
+      this.configService.get('HEYGEN_WEBHOOK_SECRET') as string | undefined,
+    );
   }
 
   private getApiKey(): string {

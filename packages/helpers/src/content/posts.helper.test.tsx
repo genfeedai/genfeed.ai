@@ -32,19 +32,19 @@ describe('PostsHelper', () => {
   });
 
   it('should build canonical publisher post hrefs', () => {
-    expect(PostsHelper.getPublisherPostsHref()).toBe('/content/posts');
+    expect(PostsHelper.getPublisherPostsHref()).toBe('/posts');
     expect(
       PostsHelper.getPublisherPostsHref({ platform: 'all', status: 'draft' }),
-    ).toBe('/content/posts');
+    ).toBe('/posts');
     expect(PostsHelper.getPublisherPostsHref({ status: 'scheduled' })).toBe(
-      '/content/posts?status=scheduled',
+      '/posts?status=scheduled',
     );
     expect(
       PostsHelper.getPublisherPostsHref({
         platform: Platform.YOUTUBE,
         status: 'public',
       }),
-    ).toBe('/content/posts?status=public&platform=youtube');
+    ).toBe('/posts?status=public&platform=youtube');
   });
 
   it('should get post platform tabs', () => {

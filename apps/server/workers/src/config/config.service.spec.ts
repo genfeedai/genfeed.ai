@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { ConfigService } from '@workers/config/config.service';
 
 describe('ConfigService (Workers)', () => {
@@ -21,6 +22,7 @@ describe('ConfigService (Workers)', () => {
     delete process.env.DATABASE_URL;
     delete process.env.NODE_ENV;
     delete process.env.PORT;
+    delete process.env.GENFEEDAI_CDN_URL;
   });
 
   describe('constructor', () => {
@@ -80,6 +82,20 @@ describe('ConfigService (Workers)', () => {
       configService = new ConfigService();
 
       expect(configService.isDevSchedulersEnabled).toBe(true);
+    });
+  });
+
+  describe('ingredientsEndpoint', () => {
+    // GENFEEDAI_CDN_URL is NOT in workers' schema (postgres/redis/sentry only);
+    // the getter reads it via BaseConfigService's allowUnknown passthrough.
+    // This guards that the factory migration preserved that passthrough.
+    it('builds the endpoint from the unschema-d GENFEEDAI_CDN_URL', () => {
+      process.env.GENFEEDAI_CDN_URL = 'https://cdn.example.com';
+      configService = new ConfigService();
+
+      expect(configService.ingredientsEndpoint).toBe(
+        'https://cdn.example.com/ingredients',
+      );
     });
   });
 });

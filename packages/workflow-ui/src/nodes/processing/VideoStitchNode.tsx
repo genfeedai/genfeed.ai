@@ -9,8 +9,8 @@ import { NodeStatusEnum } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { Layers, Loader2, RefreshCw, Zap } from 'lucide-react';
 import { memo, useCallback } from 'react';
-import { useExecutionStore } from '../../stores/executionStore';
-import { useWorkflowStore } from '../../stores/workflowStore';
+import { useExecutionStore } from '../../stores/execution';
+import { useWorkflowStore } from '../../stores/workflow';
 import { Button } from '../../ui/button';
 import { Checkbox } from '../../ui/checkbox';
 import {

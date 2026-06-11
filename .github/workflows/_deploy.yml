@@ -80,7 +80,6 @@ jobs:
         needs.detect-changes.outputs.telegram_changed == 'true' ||
         needs.detect-changes.outputs.discord_changed == 'true' ||
         needs.detect-changes.outputs.slack_changed == 'true' ||
-        needs.detect-changes.outputs.fanvue_changed == 'true' ||
         needs.detect-changes.outputs.workers_changed == 'true' ||
         needs.detect-changes.outputs.clips_changed == 'true'
       )
@@ -126,10 +125,6 @@ jobs:
             echo "Testing Slack service..."
             bun run test --filter=@genfeedai/slack
           fi
-          if [[ "${{ needs.detect-changes.outputs.fanvue_changed }}" == "true" ]]; then
-            echo "Testing Fanvue service..."
-            bun run test --filter=@genfeedai/fanvue
-          fi
           if [[ "${{ needs.detect-changes.outputs.workers_changed }}" == "true" || "${{ needs.detect-changes.outputs.api_changed }}" == "true" ]]; then
             echo "Testing Workers service..."
             bun run test --filter=@genfeedai/workers
@@ -156,7 +151,6 @@ jobs:
         needs.detect-changes.outputs.telegram_changed == 'true' ||
         needs.detect-changes.outputs.discord_changed == 'true' ||
         needs.detect-changes.outputs.slack_changed == 'true' ||
-        needs.detect-changes.outputs.fanvue_changed == 'true' ||
         needs.detect-changes.outputs.workers_changed == 'true' ||
         needs.detect-changes.outputs.clips_changed == 'true' ||
         inputs.force_all == true ||
@@ -200,7 +194,6 @@ jobs:
         needs.detect-changes.outputs.telegram_changed == 'true' ||
         needs.detect-changes.outputs.discord_changed == 'true' ||
         needs.detect-changes.outputs.slack_changed == 'true' ||
-        needs.detect-changes.outputs.fanvue_changed == 'true' ||
         needs.detect-changes.outputs.workers_changed == 'true' ||
         needs.detect-changes.outputs.clips_changed == 'true' ||
         inputs.force_all == true ||
@@ -290,7 +283,6 @@ jobs:
              [ "${{ needs.detect-changes.outputs.telegram_changed }}" = "true" ] || \
              [ "${{ needs.detect-changes.outputs.discord_changed }}" = "true" ] || \
              [ "${{ needs.detect-changes.outputs.slack_changed }}" = "true" ] || \
-             [ "${{ needs.detect-changes.outputs.fanvue_changed }}" = "true" ] || \
              [ "${{ needs.detect-changes.outputs.workers_changed }}" = "true" ] || \
              [ "${{ needs.detect-changes.outputs.clips_changed }}" = "true" ]; then
             CHANGED="$CHANGED redis"
@@ -319,9 +311,6 @@ jobs:
           fi
           if [ "$FORCE_ALL" = "true" ] || [ "$FORCE_BOTS" = "true" ] || [ "${{ needs.detect-changes.outputs.slack_changed }}" = "true" ]; then
             CHANGED="$CHANGED slack"
-          fi
-          if [ "$FORCE_ALL" = "true" ] || [ "$FORCE_BOTS" = "true" ] || [ "${{ needs.detect-changes.outputs.fanvue_changed }}" = "true" ]; then
-            CHANGED="$CHANGED fanvue"
           fi
           if [ "$FORCE_ALL" = "true" ] || [ "$FORCE_BOTS" = "true" ] || [ "${{ needs.detect-changes.outputs.clips_changed }}" = "true" ]; then
             CHANGED="$CHANGED clips"
@@ -366,6 +355,7 @@ jobs:
           scp $SSH_OPTS docker/${COMPOSE_FILE} ${EC2_USER}@${API_IP}:./cloud/docker/${COMPOSE_FILE}
           scp $SSH_OPTS docker/${DEPLOY_SCRIPT} ${EC2_USER}@${API_IP}:./cloud/docker/${DEPLOY_SCRIPT}
           scp $SSH_OPTS docker/render-ssm-env.sh ${EC2_USER}@${API_IP}:./cloud/docker/render-ssm-env.sh
+          scp $SSH_OPTS docker/deploy-common.sh ${EC2_USER}@${API_IP}:./cloud/docker/deploy-common.sh
           ssh $SSH_OPTS ${EC2_USER}@${API_IP} "chmod +x ./cloud/docker/${DEPLOY_SCRIPT}"
           ssh $SSH_OPTS ${EC2_USER}@${API_IP} "chmod +x ./cloud/docker/render-ssm-env.sh"
 
@@ -404,7 +394,7 @@ jobs:
         env:
           API_CHANGED: ${{ needs.detect-changes.outputs.api_changed }}
           BUILD_RESULT: ${{ needs.build-unified-image.result }}
-          BOTS_CHANGED: ${{ needs.detect-changes.outputs.telegram_changed == 'true' || needs.detect-changes.outputs.discord_changed == 'true' || needs.detect-changes.outputs.slack_changed == 'true' || needs.detect-changes.outputs.fanvue_changed == 'true' || needs.detect-changes.outputs.clips_changed == 'true' }}
+          BOTS_CHANGED: ${{ needs.detect-changes.outputs.telegram_changed == 'true' || needs.detect-changes.outputs.discord_changed == 'true' || needs.detect-changes.outputs.slack_changed == 'true' || needs.detect-changes.outputs.clips_changed == 'true' }}
           CHANGED_SERVICES: ${{ needs.deploy-services.outputs.changed_services }}
           DEPLOY_RESULT: ${{ needs.deploy-services.result }}
           FILES_CHANGED: ${{ needs.detect-changes.outputs.files_changed }}

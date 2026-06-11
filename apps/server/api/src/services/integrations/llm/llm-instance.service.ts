@@ -1,5 +1,4 @@
 import { ConfigService } from '@api/config/config.service';
-import { getErrorMessage } from '@api/helpers/utils/error/get-error-message.util';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import {
   DescribeInstancesCommand,
@@ -9,6 +8,7 @@ import {
 } from '@aws-sdk/client-ec2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 

@@ -83,6 +83,7 @@ export class WorkflowEngine {
     }
 
     const context: ExecutionContext = {
+      abortSignal: options.abortSignal,
       organizationId: workflow.organizationId,
       runId,
       userId: workflow.userId,
@@ -193,49 +194,107 @@ export class WorkflowEngine {
     const failedNodes = new Set<string>();
     let currentStatus: ExecutionStatus = 'running';
     let lastError: string | undefined;
+    let wasAborted = false;
 
-    for (const nodeId of executionOrder) {
-      if (!nodesToExecute.includes(nodeId)) {
-        continue;
-      }
-      if (completedNodes.has(nodeId)) {
-        continue;
+    // Bounded ready-set scheduler. Dispatches nodes in `executionOrder`
+    // priority, never running more than `maxConcurrency` at once, and only
+    // dispatching a node once `canExecuteNode` confirms its dependencies are
+    // satisfied. A cooperative `abortSignal` halts further dispatch and yields
+    // a `cancelled` status. With `maxConcurrency` of 1 this degrades to the
+    // previous strictly-sequential behavior.
+    const maxConcurrency = Math.max(1, this.config.maxConcurrency);
+    const remaining = executionOrder.filter(
+      (id) => nodesToExecute.includes(id) && !completedNodes.has(id),
+    );
+    const inFlight = new Map<
+      string,
+      Promise<{
+        node: ExecutableNode;
+        nodeId: string;
+        result: NodeExecutionResult;
+      }>
+    >();
+
+    while (inFlight.size > 0 || remaining.length > 0) {
+      // Dispatch phase — fill free slots while running and not aborted.
+      if (currentStatus !== 'failed' && !wasAborted) {
+        let index = 0;
+        while (index < remaining.length && inFlight.size < maxConcurrency) {
+          // Abort is checked before dispatching each node.
+          if (context.abortSignal?.aborted) {
+            wasAborted = true;
+            break;
+          }
+
+          const nodeId = remaining[index];
+          const node = workflow.nodes.find((n) => n.id === nodeId);
+          if (!node) {
+            lastError = `Node ${nodeId} not found`;
+            currentStatus = 'failed';
+            remaining.splice(index, 1);
+            break;
+          }
+
+          if (
+            !canExecuteNode(
+              nodeId,
+              workflow.nodes,
+              workflow.edges,
+              completedNodes,
+              nodeCache,
+            )
+          ) {
+            // Dependency still in flight — defer this node, try the next one.
+            index++;
+            continue;
+          }
+
+          remaining.splice(index, 1);
+          const inputs = this.gatherInputs(node, workflow.edges, nodeCache);
+
+          this.emitNodeStatusChange(options, {
+            newStatus: 'running',
+            nodeId,
+            previousStatus: 'pending',
+            runId,
+            timestamp: new Date(),
+            workflowId: workflow.id,
+          });
+
+          inFlight.set(
+            nodeId,
+            this.executeNode(node, inputs, context, options).then((result) => ({
+              node,
+              nodeId,
+              result,
+            })),
+          );
+        }
       }
 
-      const node = workflow.nodes.find((n) => n.id === nodeId);
-      if (!node) {
-        lastError = `Node ${nodeId} not found`;
+      if (inFlight.size === 0) {
+        if (currentStatus === 'failed' || wasAborted) {
+          break;
+        }
+        if (remaining.length === 0) {
+          break;
+        }
+        // Nothing in flight and nothing dispatchable: a dependency can never be
+        // satisfied. Fail the first stuck node rather than spin forever.
+        const stuckNodeId = remaining[0];
+        lastError = `Dependencies not satisfied for node ${stuckNodeId}`;
+        failedNodes.add(stuckNodeId);
         currentStatus = 'failed';
         break;
       }
 
-      if (
-        !canExecuteNode(
-          nodeId,
-          workflow.nodes,
-          workflow.edges,
-          completedNodes,
-          nodeCache,
-        )
-      ) {
-        lastError = `Dependencies not satisfied for node ${nodeId}`;
-        failedNodes.add(nodeId);
-        currentStatus = 'failed';
-        break;
-      }
+      // Wait for the next in-flight node to settle, then record its result.
+      // Already-dispatched nodes are always drained even after a failure or
+      // abort so their promises never reject unobserved.
+      const settled = await Promise.race(inFlight.values());
+      inFlight.delete(settled.nodeId);
 
-      const inputs = this.gatherInputs(node, workflow.edges, nodeCache);
-
-      this.emitNodeStatusChange(options, {
-        newStatus: 'running',
-        nodeId,
-        previousStatus: 'pending',
-        runId,
-        timestamp: new Date(),
-        workflowId: workflow.id,
-      });
-
-      const result = await this.executeNode(node, inputs, context, options);
+      const { node, nodeId, result } = settled;
       nodeResults.set(nodeId, result);
       totalCreditsUsed += result.creditsUsed;
 
@@ -243,6 +302,39 @@ export class WorkflowEngine {
         completedNodes.add(nodeId);
         if (result.output !== undefined) {
           nodeCache.set(nodeId, result.output);
+        }
+
+        // In-flight siblings drained after a failure or abort are still
+        // recorded in nodeResults/completedNodes (for observability and cache
+        // correctness), but they must not emit user-facing progress/status
+        // events on a run that is no longer healthy.
+        if (currentStatus !== 'failed' && !wasAborted) {
+          const totalNodes = nodesToExecute.length || 1;
+          // Only count completed nodes that are in the execution list for progress
+          const executedCount = nodesToExecute.filter((id) =>
+            completedNodes.has(id),
+          ).length;
+          const progress = Math.round((executedCount / totalNodes) * 100);
+          this.emitProgress(options, {
+            completedNodes: Array.from(completedNodes),
+            currentNodeId: nodeId,
+            currentNodeLabel: node.label,
+            failedNodes: Array.from(failedNodes),
+            progress,
+            runId,
+            timestamp: new Date(),
+            workflowId: workflow.id,
+          });
+
+          this.emitNodeStatusChange(options, {
+            newStatus: result.status,
+            nodeId,
+            output: result.output,
+            previousStatus: 'running',
+            runId,
+            timestamp: new Date(),
+            workflowId: workflow.id,
+          });
         }
       } else if (result.status === 'failed') {
         failedNodes.add(nodeId);
@@ -258,39 +350,15 @@ export class WorkflowEngine {
           timestamp: new Date(),
           workflowId: workflow.id,
         });
-
-        break;
       }
-
-      const totalNodes = nodesToExecute.length || 1;
-      // Only count completed nodes that are in the execution list for progress
-      const executedCount = nodesToExecute.filter((id) =>
-        completedNodes.has(id),
-      ).length;
-      const progress = Math.round((executedCount / totalNodes) * 100);
-      this.emitProgress(options, {
-        completedNodes: Array.from(completedNodes),
-        currentNodeId: nodeId,
-        currentNodeLabel: node.label,
-        failedNodes: Array.from(failedNodes),
-        progress,
-        runId,
-        timestamp: new Date(),
-        workflowId: workflow.id,
-      });
-
-      this.emitNodeStatusChange(options, {
-        newStatus: result.status,
-        nodeId,
-        output: result.output,
-        previousStatus: 'running',
-        runId,
-        timestamp: new Date(),
-        workflowId: workflow.id,
-      });
     }
 
-    if (currentStatus !== 'failed') {
+    // Abort takes priority over a concurrent in-flight failure: a run whose
+    // signal fired must report `cancelled`, even if a sibling node failed while
+    // the already-dispatched work was being drained.
+    if (wasAborted) {
+      currentStatus = 'cancelled';
+    } else if (currentStatus !== 'failed') {
       // Count only nodes that were in the execution list (not pre-skipped locked nodes)
       const executedOrSkipped = nodesToExecute.every((id) =>
         completedNodes.has(id),

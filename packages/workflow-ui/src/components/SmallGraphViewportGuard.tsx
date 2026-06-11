@@ -2,7 +2,7 @@
 
 import { useReactFlow } from '@xyflow/react';
 import { useEffect, useRef } from 'react';
-import { useWorkflowStore } from '../stores/workflowStore';
+import { useWorkflowStore } from '../stores/workflow';
 
 const SMALL_GRAPH_NODE_LIMIT = 2;
 const SMALL_GRAPH_MAX_ZOOM = 0.9;

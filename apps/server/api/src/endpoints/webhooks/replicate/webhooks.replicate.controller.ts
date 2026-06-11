@@ -62,9 +62,10 @@ export class ReplicateWebhookController {
 
     const secret = this.configService.get('REPLICATE_WEBHOOK_SIGNING_SECRET');
 
-    // If signing secret is set and we're in production, validate webhook.
-    // Otherwise, skip validation but continue processing.
-    if (secret && this.configService.isProduction) {
+    // Validate whenever a signing secret is configured. The old
+    // production-only gate left staging/preview deployments accepting
+    // forged callbacks even with the secret present.
+    if (secret) {
       const requestData = {
         body: request.body,
         id: request.headers['webhook-id'] as string,
@@ -79,9 +80,7 @@ export class ReplicateWebhookController {
         throw new HttpException('Webhook is invalid', HttpStatus.UNAUTHORIZED);
       }
     } else {
-      this.loggerService.warn(
-        `${url} validation skipped (missing secret or non-production environment)`,
-      );
+      this.loggerService.warn(`${url} validation skipped (missing secret)`);
     }
 
     this.loggerService.log(`${url} webhook validated`, payload);

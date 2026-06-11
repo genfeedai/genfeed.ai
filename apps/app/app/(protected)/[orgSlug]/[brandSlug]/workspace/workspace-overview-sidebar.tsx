@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IAgentRun } from '@genfeedai/interfaces';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task, TasksService } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
@@ -48,6 +49,7 @@ export function WorkspaceOverviewSidebar({
   replaceTaskSearchParam,
   setSelectedTaskId,
 }: WorkspaceOverviewSidebarProps) {
+  const { href, orgHref } = useOrgUrl();
   const taskStreamContent =
     inProgressTasks.length > 0 ? (
       <div className="divide-y divide-white/[0.06]">
@@ -194,7 +196,7 @@ export function WorkspaceOverviewSidebar({
             {LIBRARY_SNAPSHOT_LINKS.map((item) => (
               <Link
                 key={item.href}
-                href={item.href}
+                href={href(item.href)}
                 className="block py-4 first:pt-0 last:pb-0"
               >
                 <p className="text-sm font-semibold text-foreground">
@@ -219,7 +221,11 @@ export function WorkspaceOverviewSidebar({
             {ADVANCED_TOOLS.map((tool) => (
               <Link
                 key={tool.href}
-                href={tool.href}
+                href={
+                  tool.href.startsWith('/chat')
+                    ? orgHref(tool.href)
+                    : href(tool.href)
+                }
                 aria-label={tool.label}
                 className="block py-4 first:pt-0 last:pb-0"
               >

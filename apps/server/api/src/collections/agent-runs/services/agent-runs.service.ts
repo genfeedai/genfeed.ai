@@ -477,8 +477,8 @@ export class AgentRunsService extends BaseService<
     const trendStart = new Date(Date.now() - (timeRangeDays - 1) * DAY_IN_MS);
     trendStart.setHours(0, 0, 0, 0);
 
-    // TODO: Migrate MongoDB $facet aggregation to Prisma $queryRaw or multiple queries
-    // This is a complex multi-facet aggregation. Using raw SQL equivalent below.
+    // Four parallel Prisma count queries replace the legacy MongoDB $facet aggregation.
+    // Each count is scoped to organizationId + isDeleted: false with the relevant status filter.
     const [totalRuns, activeRuns, completedToday, failedToday] =
       await Promise.all([
         this.delegate.count({ where: { isDeleted: false, organizationId } }),

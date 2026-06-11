@@ -11,9 +11,9 @@ import {
   Scissors,
 } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
-import { useExecutionStore } from '../../stores/executionStore';
+import { useExecutionStore } from '../../stores/execution';
 import { useUIStore } from '../../stores/uiStore';
-import { useWorkflowStore } from '../../stores/workflowStore';
+import { useWorkflowStore } from '../../stores/workflow';
 import { Button } from '../../ui/button';
 import { Slider } from '../../ui/slider';
 import { BaseNode } from '../BaseNode';

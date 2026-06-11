@@ -157,7 +157,7 @@ vi.mock('@genfeedai/core', () => ({
 // Mock stores
 const mockUpdateNodeData = vi.fn();
 
-vi.mock('../../stores/workflowStore', () => ({
+vi.mock('../../stores/workflow', () => ({
   useWorkflowStore: Object.assign(
     (selector: (state: unknown) => unknown) => {
       const state = {
@@ -178,7 +178,7 @@ vi.mock('../../stores/workflowStore', () => ({
   ),
 }));
 
-vi.mock('../../stores/executionStore', () => ({
+vi.mock('../../stores/execution', () => ({
   useExecutionStore: (selector: (state: unknown) => unknown) => {
     const state = { executeNode: vi.fn(), isRunning: false };
     return selector(state);

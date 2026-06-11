@@ -27,12 +27,36 @@ export interface BaseNodeData extends CoreBaseNodeData {
   color?: CoreBaseNodeData['color'];
 }
 
-// Use public core contracts so private SaaS nodes extend the same shared model.
-export type {
-  ExtendedNodeCategory,
-  SaaSHandleDefinition,
-  SaaSHandleType,
-} from './workflows-contracts-shim';
+// Shared handle and category types — canonical copy lives in workflow-engine shim;
+// inlined here to avoid a cross-package dependency.
+export type SaaSHandleType =
+  | 'image'
+  | 'text'
+  | 'video'
+  | 'number'
+  | 'audio'
+  | 'brand'
+  | 'object'
+  | 'any';
+
+export interface SaaSHandleDefinition {
+  id: string;
+  type: SaaSHandleType;
+  label: string;
+  required?: boolean;
+  multiple?: boolean;
+}
+
+export type ExtendedNodeCategory =
+  | 'input'
+  | 'ai'
+  | 'processing'
+  | 'output'
+  | 'distribution'
+  | 'composition'
+  | 'automation'
+  | 'repurposing'
+  | 'saas';
 
 export interface WorkflowNodeData extends BaseNodeData {
   error?: string;

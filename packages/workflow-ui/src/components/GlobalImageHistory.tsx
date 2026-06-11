@@ -4,8 +4,8 @@ import { Clock3, X } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useWorkflowStore } from '../stores/workflow';
 import type { ImageHistoryItem } from '../stores/workflow/types';
-import { useWorkflowStore } from '../stores/workflowStore';
 import { Button } from '../ui/button';
 
 const EMPTY_HISTORY: ImageHistoryItem[] = [];

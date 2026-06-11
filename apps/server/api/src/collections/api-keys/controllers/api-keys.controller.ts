@@ -1,10 +1,10 @@
+import { ApiKeysQueryDto } from '@api/collections/api-keys/dto/api-keys-query.dto';
 import { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-key.dto';
 import { UpdateApiKeyDto } from '@api/collections/api-keys/dto/update-api-key.dto';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import {
   serializeCollection,
@@ -105,21 +105,20 @@ export class ApiKeysController {
   async findAll(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query() query: BaseQueryDto,
+    @Query() query: ApiKeysQueryDto,
   ) {
     const publicMetadata = getPublicMetadata(user);
-    const queryAny = query as unknown as Record<string, string | undefined>;
 
     const findAllQuery = {
       orderBy: { createdAt: -1 },
       where: {
         isRevoked: false,
         userId: publicMetadata.user,
-        ...(queryAny.label && {
-          label: { mode: 'insensitive', contains: queryAny.label },
+        ...(query.label && {
+          label: { mode: 'insensitive', contains: query.label },
         }),
-        ...(queryAny.description && {
-          description: { mode: 'insensitive', contains: queryAny.description },
+        ...(query.description && {
+          description: { mode: 'insensitive', contains: query.description },
         }),
       },
     };

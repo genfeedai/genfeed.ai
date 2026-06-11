@@ -1,7 +1,9 @@
 import { LoggerModule } from '@libs/logger/logger.module';
+import { S3Module } from '@libs/s3/s3.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@voices/config/config.module';
+import { ConfigService } from '@voices/config/config.service';
 import { HealthController } from '@voices/controllers/health.controller';
 import { TTSController } from '@voices/controllers/tts.controller';
 import { VoiceCloneController } from '@voices/controllers/voice-clone.controller';
@@ -9,7 +11,6 @@ import { VoiceDatasetController } from '@voices/controllers/voice-dataset.contro
 import { VoiceTrainingController } from '@voices/controllers/voice-training.controller';
 import { VoicesController } from '@voices/controllers/voices.controller';
 import { JobService } from '@voices/services/job.service';
-import { S3Service } from '@voices/services/s3.service';
 import { TTSService } from '@voices/services/tts.service';
 import { TTSInferenceService } from '@voices/services/tts-inference.service';
 import { VoiceCloneService } from '@voices/services/voice-clone.service';
@@ -26,10 +27,17 @@ import { VoiceTrainingService } from '@voices/services/voice-training.service';
     VoiceTrainingController,
     VoicesController,
   ],
-  imports: [ConfigModule, HttpModule, LoggerModule],
+  imports: [
+    ConfigModule,
+    HttpModule,
+    LoggerModule,
+    S3Module.forRoot({
+      configModule: ConfigModule,
+      configService: ConfigService,
+    }),
+  ],
   providers: [
     JobService,
-    S3Service,
     TTSInferenceService,
     TTSService,
     VoiceCloneService,

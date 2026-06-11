@@ -1,4 +1,5 @@
 import { ConfigService } from '@api/config/config.service';
+import { appendWebhookToken } from '@api/endpoints/webhooks/webhook-token.util';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { ApiKeyCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -20,7 +21,10 @@ export class OpusProService {
     private readonly httpService: HttpService,
     private readonly apiKeyHelperService: ApiKeyHelperService,
   ) {
-    this.callbackUrl = `${this.configService.get('GENFEEDAI_WEBHOOKS_URL')}/v1/webhooks/opuspro/callback`;
+    this.callbackUrl = appendWebhookToken(
+      `${this.configService.get('GENFEEDAI_WEBHOOKS_URL')}/v1/webhooks/opuspro/callback`,
+      this.configService.get('OPUSPRO_WEBHOOK_SECRET') as string | undefined,
+    );
   }
 
   private getApiKey(): string {

@@ -1,5 +1,7 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 
+export { getErrorMessage } from '@genfeedai/utils/error/error-handler.util';
+
 export const AGENT_REFRESH_CONVERSATIONS_EVENT = 'agent:threads:refresh';
 
 export function formatRelativeTime(timestamp?: string): string | null {
@@ -128,12 +130,4 @@ export function isAuthError(error: unknown): boolean {
   return (
     error.message.includes('401') || error.message.includes('Unauthorized')
   );
-}
-
-export function getErrorMessage(error: unknown, fallback: string): string {
-  if (!(error instanceof Error)) {
-    return fallback;
-  }
-  const trimmed = error.message.trim();
-  return trimmed.length > 0 ? trimmed : fallback;
 }

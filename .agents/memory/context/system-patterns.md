@@ -11,12 +11,12 @@ author: Claude Code PM System
 
 ### Multi-Tenancy (Enterprise Only)
 
-Multi-tenant organization isolation is an enterprise feature in `ee/packages/multi-tenancy/`. When enabled, MongoDB queries include `{ organization: orgId, isDeleted: false }` and the global `CombinedAuthGuard` (APP_GUARD) enforces org-scoped access. Use `@Public()` to opt out of auth.
+Multi-tenant organization isolation is an enterprise feature in `ee/packages/multi-tenancy/`. When enabled, Prisma queries include `{ organizationId, isDeleted: false }` and the global `CombinedAuthGuard` (APP_GUARD) enforces org-scoped access. Use `@Public()` to opt out of auth.
 
 Single-tenant (default self-hosted) deployments do NOT require `organization` in queries — only `{ isDeleted: false }`.
 
 ### Serializer Pipeline
-DB Document -> Serializer -> Client Response. Never return raw Mongoose documents.
+DB Record -> Serializer -> Client Response. Never return raw Prisma records.
 - File triplet: `{name}.attributes.ts` + `{name}.config.ts` + `{name}.serializer.ts`
 - Attributes use `createEntityAttributes()` (auto-adds timestamps + isDeleted)
 - Configs use `simpleConfig()` or spread `STANDARD_ENTITY_RELS` / `CONTENT_ENTITY_RELS`
@@ -70,4 +70,4 @@ Use `gen-*` design classes (`gen-card-spotlight`, `gen-contact-sheet`, `gen-divi
 Credits-based billing lives in `ee/packages/billing/`. Single balance pool per org. Transactions tracked with `source` field.
 
 ### Indexes
-Compound indexes in module `useFactory`, simple indexes via `@Prop` decorator.
+Indexes are defined in `packages/prisma/prisma/schema.prisma` via `@@index` directives on each model.

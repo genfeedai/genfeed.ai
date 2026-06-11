@@ -8,6 +8,7 @@ import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   PlatformTimeSeriesDataPoint,
   SocialPlatform,
@@ -165,11 +166,12 @@ function SectionSummaryCard({
 
 function buildSectionSummaries(
   analytics: Partial<IAnalytics>,
+  hrefFn: (path: string) => string,
 ): SectionSummaryCardProps[] {
   return [
     {
       color: 'bg-blue-500/12 text-blue-300',
-      href: getPublisherPostsHref(),
+      href: hrefFn(getPublisherPostsHref()),
       icon: HiOutlineDocumentText,
       kicker: 'Create',
       label: 'Content',
@@ -267,6 +269,7 @@ export default function OverviewPageContent({
   initialStats = null,
   initialTimeSeriesData = EMPTY_TIME_SERIES,
 }: OverviewPageContentProps) {
+  const { href } = useOrgUrl();
   const {
     activeRuns,
     analytics,
@@ -286,8 +289,8 @@ export default function OverviewPageContent({
   });
 
   const sectionSummaries = useMemo(
-    () => buildSectionSummaries(analytics),
-    [analytics],
+    () => buildSectionSummaries(analytics, href),
+    [analytics, href],
   );
 
   const topStats = useMemo(
