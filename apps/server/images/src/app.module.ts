@@ -13,6 +13,7 @@ import { JobService } from '@images/services/job.service';
 import { LoraService } from '@images/services/lora.service';
 import { TrainingService } from '@images/services/training.service';
 import { LoggerModule } from '@libs/logger/logger.module';
+import { RedisModule } from '@libs/redis/redis.module';
 import { S3Module } from '@libs/s3/s3.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
@@ -30,6 +31,10 @@ import { Module } from '@nestjs/common';
     ConfigModule,
     HttpModule,
     LoggerModule,
+    RedisModule.forRoot({
+      configModule: ConfigModule,
+      configService: ConfigService,
+    }),
     S3Module.forRoot({
       configModule: ConfigModule,
       configService: ConfigService,

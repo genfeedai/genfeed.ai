@@ -324,5 +324,7 @@ export class UpdateBrandAgentConfigDto {
     required: false,
     type: Object,
   })
+  @IsOptional()
+  @IsObject()
   platformOverrides?: Record<string, UpdateBrandAgentPlatformOverrideDto>;
 }
