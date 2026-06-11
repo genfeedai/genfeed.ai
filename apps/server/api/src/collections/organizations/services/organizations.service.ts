@@ -7,6 +7,43 @@ import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const PRISMA_ORGANIZATION_CATEGORIES = new Set([
+  'CREATOR',
+  'BUSINESS',
+  'AGENCY',
+]);
+
+function normalizeOrganizationCategory(value: unknown): unknown {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  const key = value.toUpperCase();
+  if (PRISMA_ORGANIZATION_CATEGORIES.has(key)) {
+    return key;
+  }
+
+  return value;
+}
+
+function normalizeOrganizationCategoryFields<T extends Record<string, unknown>>(
+  dto: T,
+): T {
+  const normalized = { ...dto };
+
+  if ('category' in normalized) {
+    normalized.category = normalizeOrganizationCategory(normalized.category);
+  }
+
+  if ('accountType' in normalized) {
+    normalized.accountType = normalizeOrganizationCategory(
+      normalized.accountType,
+    );
+  }
+
+  return normalized;
+}
+
 @Injectable()
 export class OrganizationsService extends BaseService<
   OrganizationDocument,
@@ -59,7 +96,11 @@ export class OrganizationsService extends BaseService<
   }
 
   create(createDto: CreateOrganizationDto): Promise<OrganizationDocument> {
-    return super.create(createDto, this.populate);
+    const normalizedDto = normalizeOrganizationCategoryFields(
+      createDto as unknown as Record<string, unknown>,
+    ) as unknown as CreateOrganizationDto;
+
+    return super.create(normalizedDto, this.populate);
   }
 
   findOne(
@@ -72,7 +113,11 @@ export class OrganizationsService extends BaseService<
     id: string,
     updateDto: Partial<UpdateOrganizationDto>,
   ): Promise<OrganizationDocument> {
-    return super.patch(id, updateDto, this.populate);
+    const normalizedDto = normalizeOrganizationCategoryFields(
+      updateDto as Record<string, unknown>,
+    ) as Partial<UpdateOrganizationDto>;
+
+    return super.patch(id, normalizedDto, this.populate);
   }
 
   /**
