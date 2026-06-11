@@ -29,6 +29,8 @@
       "@genfeedai/integrations/*": ["../../packages/integrations/src/*"],
       "@genfeedai/interfaces": ["../../packages/interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../../packages/interfaces/src/*"],
+      "@genfeedai/pricing": ["../../packages/pricing/src/index.ts"],
+      "@genfeedai/pricing/*": ["../../packages/pricing/src/*"],
       "@genfeedai/serializers": ["../../packages/serializers/src"],
       "@genfeedai/serializers/*": ["../../packages/serializers/src/*"],
       "@genfeedai/storage": ["../../packages/storage/src"],

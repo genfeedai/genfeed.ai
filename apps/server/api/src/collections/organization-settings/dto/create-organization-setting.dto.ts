@@ -12,6 +12,7 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  Allow,
   IsBoolean,
   IsEnum,
   IsIn,
@@ -144,6 +145,7 @@ export class OnboardingJourneyMissionStateDto {
   @ApiProperty({ required: true })
   readonly rewardCredits!: number;
 
+  @Allow()
   @IsOptional()
   @ApiProperty({ required: false })
   readonly completedAt?: Date | string | null;
@@ -162,6 +164,7 @@ export class CreateOrganizationSettingDto {
   })
   readonly onboardingJourneyMissions?: OnboardingJourneyMissionStateDto[];
 
+  @Allow()
   @IsOptional()
   @ApiProperty({
     description: 'Timestamp when the onboarding journey was fully completed',

@@ -1,7 +1,6 @@
 import {
-  BaseConfigService,
-  baseSchema,
   clerkMinimalSchema,
+  createServiceConfig,
   discordBotSchema,
   genfeedaiMinimalSchema,
   type IEnvConfig,
@@ -14,40 +13,36 @@ import {
 import { Injectable, Logger } from '@nestjs/common';
 import Joi from 'joi';
 
-/**
- * Notifications service specific schema
- */
-const notificationsSchema = Joi.object({
-  ...baseSchema,
-  ...redisSchema,
-  ...clerkMinimalSchema,
-  ...sentryOptionalSchema,
-  ...genfeedaiMinimalSchema,
-  ...discordBotSchema,
-  ...telegramBotSchema,
-  ...resendSchema,
-  ...twitchSchema,
-  API_BASE_URL: Joi.string().uri().default('http://localhost:3010'),
-  API_SECRET_KEY: Joi.string().optional().allow(''),
-  GENFEED_LOCAL_TERMINAL: Joi.string()
-    .valid('true', 'false')
-    .optional()
-    .allow(''),
-  GENFEEDAI_API_KEY: Joi.string().optional().allow(''),
-  // Notifications-specific
-  GENFEEDAI_APP_URL: Joi.string().uri().optional().allow(''),
-  GENFEED_TERMINAL_CWD: Joi.string().optional().allow(''),
-});
-
 @Injectable()
-export class ConfigService extends BaseConfigService<IEnvConfig> {
+export class ConfigService extends createServiceConfig<IEnvConfig>({
+  appName: 'notifications',
+  schemas: [
+    redisSchema,
+    clerkMinimalSchema,
+    sentryOptionalSchema,
+    genfeedaiMinimalSchema,
+    discordBotSchema,
+    telegramBotSchema,
+    resendSchema,
+    twitchSchema,
+  ],
+  extend: {
+    API_BASE_URL: Joi.string().uri().default('http://localhost:3010'),
+    API_SECRET_KEY: Joi.string().optional().allow(''),
+    GENFEED_LOCAL_TERMINAL: Joi.string()
+      .valid('true', 'false')
+      .optional()
+      .allow(''),
+    GENFEEDAI_API_KEY: Joi.string().optional().allow(''),
+    // Notifications-specific
+    GENFEEDAI_APP_URL: Joi.string().uri().optional().allow(''),
+    GENFEED_TERMINAL_CWD: Joi.string().optional().allow(''),
+  },
+}) {
   private readonly logger = new Logger(ConfigService.name);
 
   constructor() {
-    super(notificationsSchema, {
-      appName: 'notifications',
-      workingDir: 'apps/server',
-    });
+    super();
 
     this.logConfiguration();
   }

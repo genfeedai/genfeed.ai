@@ -13,6 +13,8 @@
     "paths": {
       "@genfeedai/constants": ["../constants/src/index.ts"],
       "@genfeedai/constants/*": ["../constants/src/*"],
+      "@genfeedai/pricing": ["../pricing/src/index.ts"],
+      "@genfeedai/pricing/*": ["../pricing/src/*"],
       "@genfeedai/serializers": ["../serializers/src/index.ts"],
       "@genfeedai/serializers/*": ["../serializers/src/*"],
       "@genfeedai/enums": ["../enums/src/index.ts"],
@@ -49,6 +51,9 @@
     },
     {
       "path": "../interfaces"
+    },
+    {
+      "path": "../pricing"
     }
   ]
 }

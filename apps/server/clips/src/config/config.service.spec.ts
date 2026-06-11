@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { ConfigService } from '@clips/config/config.service';
 
 describe('ConfigService (Clips)', () => {
@@ -20,6 +21,16 @@ describe('ConfigService (Clips)', () => {
 
   it('should be defined', () => {
     expect(configService).toBeDefined();
+  });
+
+  describe('startup validation', () => {
+    // Pre-migration, clips extended an unvalidated config (get => process.env[k] || '')
+    // and never threw. After consolidating onto createServiceConfig, baseSchema's
+    // required PORT is enforced at construction — proving validation now runs.
+    it('throws when a required base key (PORT) is missing', () => {
+      delete process.env.PORT;
+      expect(() => new ConfigService()).toThrow('Config validation error');
+    });
   });
 
   describe('API_URL', () => {

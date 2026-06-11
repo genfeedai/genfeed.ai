@@ -1,6 +1,5 @@
 import {
-  BaseConfigService,
-  baseSchema,
+  createServiceConfig,
   genfeedaiMinimalSchema,
   type IEnvConfig,
   redisSchema,
@@ -9,24 +8,12 @@ import {
 import { Injectable } from '@nestjs/common';
 import Joi from 'joi';
 
-/**
- * MCP service specific schema - minimal config for MCP server
- */
-const mcpSchema = Joi.object({
-  ...baseSchema,
-  ...redisSchema,
-  ...sentryOptionalSchema,
-  ...genfeedaiMinimalSchema,
-  // MCP-specific
-  GENFEEDAI_API_KEY: Joi.string().optional().allow(''),
-});
-
 @Injectable()
-export class ConfigService extends BaseConfigService<IEnvConfig> {
-  constructor() {
-    super(mcpSchema, {
-      appName: 'mcp',
-      workingDir: 'apps/server',
-    });
-  }
-}
+export class ConfigService extends createServiceConfig<IEnvConfig>({
+  appName: 'mcp',
+  schemas: [redisSchema, sentryOptionalSchema, genfeedaiMinimalSchema],
+  extend: {
+    // MCP-specific
+    GENFEEDAI_API_KEY: Joi.string().optional().allow(''),
+  },
+}) {}

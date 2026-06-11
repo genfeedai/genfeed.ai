@@ -5,6 +5,7 @@ import {
   IsBoolean,
   IsEnum,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   IsUrl,
@@ -104,6 +105,7 @@ export class AddCreatorDto {
   })
   niche?: string;
 
+  @IsObject()
   @IsOptional()
   @ApiProperty({
     description: 'Scrape configuration options',

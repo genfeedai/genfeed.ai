@@ -28,7 +28,7 @@ set -euo pipefail
 FAILED_SERVICES=()
 DEPLOYED_SERVICES=()
 SKIPPED_SERVICES=()
-DEFAULT_SERVER_IMAGE="ghcr.io/genfeedai/cloud/server:${IMAGE_TAG:-latest}"
+DEFAULT_SERVER_IMAGE="ghcr.io/genfeedai/genfeed.ai/server:${IMAGE_TAG:-latest}"
 
 # Wave definitions (dependency order) — identical for both environments
 WAVE_1=(redis)

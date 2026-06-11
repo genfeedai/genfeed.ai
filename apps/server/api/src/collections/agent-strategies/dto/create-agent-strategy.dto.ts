@@ -15,6 +15,7 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsDate,
   IsEnum,
   IsIn,
   IsNumber,
@@ -498,16 +499,19 @@ export class CreateAgentStrategyDto {
   })
   rankingPolicy?: RankingPolicyDto;
 
+  @IsDate()
   @Type(() => Date)
   @IsOptional()
   @ApiProperty({ description: 'Next scheduled run time', required: false })
   nextRunAt?: Date;
 
+  @IsDate()
   @Type(() => Date)
   @IsOptional()
   @ApiProperty({ description: 'Daily reset timestamp', required: false })
   dailyResetAt?: Date;
 
+  @IsDate()
   @Type(() => Date)
   @IsOptional()
   @ApiProperty({
@@ -516,6 +520,7 @@ export class CreateAgentStrategyDto {
   })
   dailyCreditResetAt?: Date;
 
+  @IsDate()
   @Type(() => Date)
   @IsOptional()
   @ApiProperty({ description: 'Monthly reset timestamp', required: false })

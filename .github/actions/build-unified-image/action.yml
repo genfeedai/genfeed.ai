@@ -15,7 +15,7 @@ inputs:
     required: false
     default: 'ghcr.io'
   image_prefix:
-    description: 'Image name prefix (e.g. genfeedai/cloud)'
+    description: 'Image name prefix (e.g. genfeedai/genfeed.ai)'
     required: true
   github_token:
     description: 'GitHub token for registry authentication'

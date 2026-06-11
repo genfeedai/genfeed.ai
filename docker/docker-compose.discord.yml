@@ -1,6 +1,6 @@
 services:
   discord:
-    image: ghcr.io/genfeedai/cloud/server:${IMAGE_TAG:-latest}
+    image: ghcr.io/genfeedai/genfeed.ai/server:${IMAGE_TAG:-latest}
     command: ["bun", "--filter", "@genfeedai/discord", "start:prod"]
     container_name: genfeed-ai-discord
     restart: unless-stopped

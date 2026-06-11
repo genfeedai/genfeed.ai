@@ -18,6 +18,8 @@
       "@genfeedai/contexts/*": ["../contexts/*"],
       "@genfeedai/helpers": ["../helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../helpers/src/*"],
+      "@genfeedai/pricing": ["../pricing/src/index.ts"],
+      "@genfeedai/pricing/*": ["../pricing/src/*"],
       "@genfeedai/hooks": ["../hooks/index.ts"],
       "@genfeedai/hooks/*": ["../hooks/*"],
       "@genfeedai/models": ["../models/index.ts"],

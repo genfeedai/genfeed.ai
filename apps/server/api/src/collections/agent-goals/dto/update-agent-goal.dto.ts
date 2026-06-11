@@ -6,6 +6,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsDate,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -35,11 +36,13 @@ export class UpdateAgentGoalDto {
   @ApiProperty({ description: 'Target metric value', required: false })
   targetValue?: number;
 
+  @IsDate()
   @Type(() => Date)
   @IsOptional()
   @ApiProperty({ description: 'Optional start date', required: false })
   startDate?: Date;
 
+  @IsDate()
   @Type(() => Date)
   @IsOptional()
   @ApiProperty({ description: 'Optional end date', required: false })

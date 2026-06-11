@@ -257,7 +257,9 @@ const OVERLAP_TOOLS: SourceTool[] = [
   },
   // generate_image: mcp params (4 props) > agent params (2 props); mcp desc longer
   {
-    creditCost: 0,
+    // Minimum charge per call (standard image; 4k costs more). Actual amount
+    // is billed dynamically by the generation endpoint (issue #482).
+    creditCost: 50,
     description:
       'Generate AI images with custom prompts, styles, and dimensions. Perfect for social media, blogs, and marketing materials.',
     name: 'generate_image',
@@ -308,7 +310,9 @@ const OVERLAP_TOOLS: SourceTool[] = [
   },
   // generate_music: mcp params (4 props) = agent params (2 props) → mcp wins; agent desc longer
   {
-    creditCost: 0,
+    // Minimum charge per call (cheapest music model). Actual amount is billed
+    // dynamically by the generation endpoint per model cost (issue #482).
+    creditCost: 10,
     description:
       'Generate music or audio using AI. Describe the desired music style, mood, instruments, and genre. Returns the audio URL.',
     name: 'generate_music',
@@ -360,7 +364,9 @@ const OVERLAP_TOOLS: SourceTool[] = [
   },
   // generate_video: agent and mcp both have 5 props → agent wins (equal, a is chosen); agent desc longer
   {
-    creditCost: 0,
+    // Minimum charge per call (shortest 4s clip). Actual amount is billed
+    // dynamically by the generation endpoint per duration (issue #482).
+    creditCost: 300,
     description:
       'Generate a video using AI. Provide a detailed prompt describing the desired video. For talking avatar videos, provide imageUrl (portrait image) and audioUrl (audio file) — the model will lip-sync the portrait to the audio. Returns the video URL.',
     name: 'generate_video',
@@ -1074,7 +1080,9 @@ const AGENT_ONLY_TOOLS: SourceTool[] = [
     surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
-    creditCost: 0,
+    // Minimum charge per call (one minute of speech). Actual amount is billed
+    // dynamically by the generation endpoint per audio length (issue #482).
+    creditCost: 17,
     description:
       'Generate speech audio from text using text-to-speech. Requires a voice ID from ElevenLabs. Returns the audio URL.',
     name: 'generate_voice',
@@ -1326,9 +1334,11 @@ const AGENT_ONLY_TOOLS: SourceTool[] = [
     surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
-    creditCost: 0,
+    // Minimum charge per call. Actual amount is billed dynamically by the
+    // generation endpoint per avatar video duration (issue #482).
+    creditCost: 100,
     description:
-      "Generate an avatar video using the user's identity (default avatar photo + cloned voice from org settings). Provide text for the voice to speak. Uses HeyGen photo avatar API. Credits handled by the endpoint's CreditsInterceptor.",
+      "Generate an avatar video using the user's identity (default avatar photo + cloned voice from org settings). Provide text for the voice to speak. Uses HeyGen photo avatar API. Credits are billed by the avatar video generation endpoint.",
     name: 'generate_as_identity',
     parameters: {
       properties: {

@@ -3,7 +3,13 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetScope } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class GifsQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -92,6 +98,7 @@ export class GifsQueryDto extends BaseQueryDto {
       'Use lightweight mode (skip expensive lookups for gallery views)',
     required: false,
   })
+  @IsBoolean()
   @IsOptional()
   @Transform(({ value }) => {
     if (value === undefined || value === null) {

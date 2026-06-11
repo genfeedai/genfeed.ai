@@ -22,14 +22,14 @@ export function isSelfHosted(): boolean {
 
 /** True when the local app has connected to Genfeed Cloud via Clerk */
 export function isCloudConnected(): boolean {
-  return !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  return !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
 }
 
 /** True when local app with optional Clerk cloud connection configured */
 export function isHybridMode(): boolean {
   return (
     !process.env.NEXT_PUBLIC_GENFEED_CLOUD &&
-    !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+    !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim()
   );
 }
 
@@ -37,6 +37,6 @@ export function isHybridMode(): boolean {
 export function isLocalOnly(): boolean {
   return (
     !process.env.NEXT_PUBLIC_GENFEED_CLOUD &&
-    !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+    !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim()
   );
 }

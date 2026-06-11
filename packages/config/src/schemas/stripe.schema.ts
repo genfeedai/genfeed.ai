@@ -1,3 +1,7 @@
+import {
+  BYOK_FEE_PERCENTAGE,
+  BYOK_FREE_THRESHOLD_CREDITS,
+} from '@genfeedai/pricing';
 import Joi from 'joi';
 
 import { conditionalRequired } from '../helpers';
@@ -7,8 +11,8 @@ import { conditionalRequired } from '../helpers';
  */
 export const stripeSchema = {
   STRIPE_API_VERSION: Joi.string().default('2026-01-28.clover'),
-  STRIPE_BYOK_FEE_PERCENTAGE: Joi.number().default(5),
-  STRIPE_BYOK_FREE_THRESHOLD: Joi.number().default(500),
+  STRIPE_BYOK_FEE_PERCENTAGE: Joi.number().default(BYOK_FEE_PERCENTAGE),
+  STRIPE_BYOK_FREE_THRESHOLD: Joi.number().default(BYOK_FREE_THRESHOLD_CREDITS),
   STRIPE_COUPON_CREDITS_PACKS_V2_ENTERPRISE: Joi.string().optional(),
   STRIPE_COUPON_CREDITS_PACKS_V2_PRO: Joi.string().optional(),
   STRIPE_MONTHLY_CREDITS: Joi.number().default(35_000),

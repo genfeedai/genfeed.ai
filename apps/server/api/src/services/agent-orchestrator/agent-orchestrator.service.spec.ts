@@ -842,6 +842,269 @@ describe('AgentOrchestratorService', () => {
     );
   });
 
+  it('should block a generation tool call when the org cannot afford its flat credit cost', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    creditsUtilsService.checkOrganizationCreditsAvailable
+      .mockResolvedValueOnce(true) // turn-cost pre-check
+      .mockResolvedValueOnce(false); // generate_music flat-cost gate
+
+    llmDispatcher.chatCompletion
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: null,
+              tool_calls: [
+                {
+                  function: {
+                    arguments: '{"prompt":"lofi beat"}',
+                    name: 'generate_music',
+                  },
+                  id: 'call-music-1',
+                },
+              ],
+            },
+          },
+        ],
+        usage: {
+          completion_tokens: 10,
+          prompt_tokens: 10,
+          total_tokens: 20,
+        },
+      } as never)
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'Done!' } }],
+        usage: {
+          completion_tokens: 5,
+          prompt_tokens: 15,
+          total_tokens: 20,
+        },
+      } as never);
+
+    await service.chat(
+      { content: 'Make me a song' },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith(ORG_ID, 10);
+    expect(toolExecutorService.executeTool).not.toHaveBeenCalled();
+    expect(llmDispatcher.chatCompletion).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            content: expect.stringContaining(
+              'Insufficient credits. This tool requires 10 credits.',
+            ),
+            role: 'tool',
+          }),
+        ]),
+      }),
+      ORG_ID,
+    );
+  });
+
+  it('should gate on the requested tool cost when the call is remapped to prepare_generation', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    creditsUtilsService.checkOrganizationCreditsAvailable
+      .mockResolvedValueOnce(true) // turn-cost pre-check
+      .mockResolvedValueOnce(false); // generate_image pre-remap flat-cost gate
+
+    llmDispatcher.chatCompletion
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: null,
+              tool_calls: [
+                {
+                  function: {
+                    arguments: '{"prompt":"a red fox"}',
+                    name: 'generate_image',
+                  },
+                  id: 'call-image-1',
+                },
+              ],
+            },
+          },
+        ],
+        usage: {
+          completion_tokens: 10,
+          prompt_tokens: 10,
+          total_tokens: 20,
+        },
+      } as never)
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'Done!' } }],
+        usage: {
+          completion_tokens: 5,
+          prompt_tokens: 15,
+          total_tokens: 20,
+        },
+      } as never);
+
+    await service.chat(
+      { content: 'Make me an image' },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    // generate_image is remapped to prepare_generation (cost 0); the gate
+    // must still use the requested tool's cost of 50.
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith(ORG_ID, 50);
+    expect(toolExecutorService.executeTool).not.toHaveBeenCalled();
+    expect(llmDispatcher.chatCompletion).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            content: expect.stringContaining(
+              'Insufficient credits. This tool requires 50 credits.',
+            ),
+            role: 'tool',
+          }),
+        ]),
+      }),
+      ORG_ID,
+    );
+  });
+
+  it('should not deduct the flat credit cost when the tool delegates billing to its endpoint', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+
+    llmDispatcher.chatCompletion
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: null,
+              tool_calls: [
+                {
+                  function: {
+                    arguments: '{"prompt":"lofi beat"}',
+                    name: 'generate_music',
+                  },
+                  id: 'call-music-2',
+                },
+              ],
+            },
+          },
+        ],
+        usage: {
+          completion_tokens: 10,
+          prompt_tokens: 10,
+          total_tokens: 20,
+        },
+      } as never)
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'Done!' } }],
+        usage: {
+          completion_tokens: 5,
+          prompt_tokens: 15,
+          total_tokens: 20,
+        },
+      } as never);
+
+    toolExecutorService.executeTool.mockResolvedValue({
+      creditsUsed: 0,
+      data: { id: 'music-1' },
+      isBillingDelegated: true,
+      success: true,
+    });
+
+    const result = await service.chat(
+      { content: 'Make me a song' },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    // Only the base turn cost is deducted; the endpoint bills the generation.
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalledWith(
+      ORG_ID,
+      USER_ID,
+      expect.anything(),
+      'Agent tool: generate_music',
+      expect.anything(),
+    );
+    expect(result.creditsUsed).toBe(1);
+  });
+
+  it('should deduct the flat credit cost exactly once when billing is not delegated', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+
+    llmDispatcher.chatCompletion
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: null,
+              tool_calls: [
+                {
+                  function: {
+                    arguments: '{"prompt":"lofi beat"}',
+                    name: 'generate_music',
+                  },
+                  id: 'call-music-3',
+                },
+              ],
+            },
+          },
+        ],
+        usage: {
+          completion_tokens: 10,
+          prompt_tokens: 10,
+          total_tokens: 20,
+        },
+      } as never)
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'Done!' } }],
+        usage: {
+          completion_tokens: 5,
+          prompt_tokens: 15,
+          total_tokens: 20,
+        },
+      } as never);
+
+    toolExecutorService.executeTool.mockResolvedValue({
+      creditsUsed: 0,
+      data: { id: 'music-1' },
+      success: true,
+    });
+
+    const result = await service.chat(
+      { content: 'Make me a song' },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledWith(
+      ORG_ID,
+      USER_ID,
+      10,
+      'Agent tool: generate_music',
+      expect.anything(),
+    );
+    // Base turn cost + the generate_music flat cost.
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledTimes(2);
+    expect(result.creditsUsed).toBe(11);
+  });
+
   it('should apply org agent policy defaults for strategy-driven runs', async () => {
     const strategyBrandId = 'test-object-id';
     organizationsService.findOne.mockResolvedValue({
