@@ -149,7 +149,7 @@ export class OnboardingService {
     }
 
     const entity = record as Record<string, unknown>;
-    const id = entity._id ?? entity.id;
+    const id = entity.id ?? entity._id;
 
     return typeof id === 'string' ? id : '';
   }

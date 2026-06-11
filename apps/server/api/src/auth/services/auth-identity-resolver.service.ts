@@ -23,7 +23,7 @@ function getRecordId(
 function getEntityId(
   record: Record<string, unknown> | null | undefined,
 ): string {
-  return getRecordId(record, '_id') || getRecordId(record, 'id');
+  return getRecordId(record, 'id') || getRecordId(record, '_id');
 }
 
 function asMemberRecord(member: MemberDocument): Record<string, unknown> {
