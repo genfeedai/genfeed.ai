@@ -1,6 +1,12 @@
+import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@genfeedai/pricing': path.resolve(__dirname, '../pricing/src/index.ts'),
+    },
+  },
   test: {
     coverage: {
       exclude: ['src/**/*.spec.ts', 'src/index.ts'],

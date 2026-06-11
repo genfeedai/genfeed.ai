@@ -87,7 +87,7 @@ export class ValidationPipe implements PipeTransform<unknown> {
       return;
     }
 
-    const errors = await validate(object);
+    const errors = await validate(object, { whitelist: true });
     if (errors.length > 0) {
       const messages = errors.map((error) => ({
         constraints: error.constraints,

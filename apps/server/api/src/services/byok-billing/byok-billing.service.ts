@@ -106,10 +106,12 @@ export class ByokBillingService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const feePercentage =
-        Number(this.configService.get('STRIPE_BYOK_FEE_PERCENTAGE')) || 5;
-      const globalFreeThreshold =
-        Number(this.configService.get('STRIPE_BYOK_FREE_THRESHOLD')) || 500;
+      const feePercentage = Number(
+        this.configService.get('STRIPE_BYOK_FEE_PERCENTAGE'),
+      );
+      const globalFreeThreshold = Number(
+        this.configService.get('STRIPE_BYOK_FREE_THRESHOLD'),
+      );
 
       // Get org settings for rollover and threshold override
       const orgSettings = await this.organizationSettingsService.findOne({
@@ -359,10 +361,12 @@ export class ByokBillingService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const feePercentage =
-        Number(this.configService.get('STRIPE_BYOK_FEE_PERCENTAGE')) || 5;
-      const globalFreeThreshold =
-        Number(this.configService.get('STRIPE_BYOK_FREE_THRESHOLD')) || 500;
+      const feePercentage = Number(
+        this.configService.get('STRIPE_BYOK_FEE_PERCENTAGE'),
+      );
+      const globalFreeThreshold = Number(
+        this.configService.get('STRIPE_BYOK_FREE_THRESHOLD'),
+      );
 
       const orgSettings = await this.organizationSettingsService.findOne({
         isDeleted: false,

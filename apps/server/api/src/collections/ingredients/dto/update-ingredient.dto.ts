@@ -1,7 +1,13 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  Allow,
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class UpdateIngredientDto extends PartialType(CreateIngredientDto) {
   @IsBoolean()
@@ -53,6 +59,7 @@ export class UpdateIngredientDto extends PartialType(CreateIngredientDto) {
   })
   readonly generationStage?: string;
 
+  @Allow()
   @IsOptional()
   @ApiProperty({
     description: 'Timestamp when generation completed',

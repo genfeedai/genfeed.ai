@@ -115,6 +115,7 @@ export class CreatePostDto {
     description: 'Whether this post should repeat on a schedule',
     required: false,
   })
+  @IsBoolean()
   @IsOptional()
   readonly isRepeat?: boolean;
 

@@ -67,7 +67,36 @@ describe('AppProviders', () => {
         appearance: expect.objectContaining({
           theme: expect.any(Object),
         }),
+        publishableKey: 'pk_test_fake',
         signInUrl: '/login',
+      }),
+    );
+  });
+
+  it('trims accidental whitespace from the Clerk publishable key', async () => {
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_fake\n';
+    vi.resetModules();
+
+    const module = await import('@ui/providers/AppProviders');
+    const WhitespaceAppProviders = module.default;
+
+    render(
+      <WhitespaceAppProviders
+        initialTheme="dark"
+        clerkProps={{ signInUrl: '/login' }}
+        includeLazyModalErrorDebug={false}
+        includeSpeedInsights={false}
+        includeToaster={false}
+        includeVercelAnalytics={false}
+      >
+        <div>Whitespace Clerk key</div>
+      </WhitespaceAppProviders>,
+    );
+
+    expect(screen.getByText('Whitespace Clerk key')).toBeInTheDocument();
+    expect(clerkProviderSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        publishableKey: 'pk_test_fake',
       }),
     );
   });
