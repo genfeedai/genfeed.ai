@@ -13,8 +13,9 @@ Dev and build skills for the Genfeed.ai monorepo. These guide AI agents when bui
 
 ## What does NOT belong here
 
-- Product/content skills (content creation, publishing) — those go in `skills/` at repo root
+- Product/content skills (content creation, publishing) — those go in `skills/` at repo root, preferably synced from `genfeedai/skills`
 - Personal/local skills — those go in `~/.agents/skills/` (not committed)
+- Generic business, outbound, hiring, fundraising, CRM, or growth-ops skills that do not help build this repository
 
 ## How `.claude/skills/` works
 
