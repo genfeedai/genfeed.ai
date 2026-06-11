@@ -34,18 +34,18 @@ describe('HealthController (videos)', () => {
   });
 
   describe('getHealth', () => {
-    it('returns status ok', () => {
-      const result = controller.getHealth();
+    it('returns status ok', async () => {
+      const result = await controller.getHealth();
       expect(result.status).toBe('ok');
     });
 
-    it('returns service name as videos', () => {
-      const result = controller.getHealth();
+    it('returns service name as videos', async () => {
+      const result = await controller.getHealth();
       expect(result.service).toBe('videos');
     });
 
-    it('includes job stats from JobService', () => {
-      const result = controller.getHealth();
+    it('includes job stats from JobService', async () => {
+      const result = await controller.getHealth();
       expect(result.jobs).toEqual({
         active: 2,
         completed: 7,
@@ -55,30 +55,30 @@ describe('HealthController (videos)', () => {
       });
     });
 
-    it('calls getStats once per request', () => {
-      controller.getHealth();
+    it('calls getStats once per request', async () => {
+      await controller.getHealth();
       expect(jobService.getStats).toHaveBeenCalledTimes(1);
     });
 
-    it('includes memory usage fields', () => {
-      const result = controller.getHealth();
+    it('includes memory usage fields', async () => {
+      const result = await controller.getHealth();
       expect(result.memory).toHaveProperty('heapUsed');
       expect(result.memory).toHaveProperty('heapTotal');
       expect(result.memory).toHaveProperty('rss');
     });
 
-    it('includes a valid ISO timestamp', () => {
-      const result = controller.getHealth();
+    it('includes a valid ISO timestamp', async () => {
+      const result = await controller.getHealth();
       expect(new Date(result.timestamp).toISOString()).toBe(result.timestamp);
     });
 
-    it('includes uptime as a non-negative number', () => {
-      const result = controller.getHealth();
+    it('includes uptime as a non-negative number', async () => {
+      const result = await controller.getHealth();
       expect(typeof result.uptime).toBe('number');
       expect(result.uptime).toBeGreaterThanOrEqual(0);
     });
 
-    it('reflects updated stats on subsequent calls', () => {
+    it('reflects updated stats on subsequent calls', async () => {
       jobService.getStats.mockReturnValueOnce({
         active: 0,
         completed: 20,
@@ -86,7 +86,7 @@ describe('HealthController (videos)', () => {
         queued: 0,
         total: 20,
       });
-      const result = controller.getHealth();
+      const result = await controller.getHealth();
       expect(result.jobs.total).toBe(20);
     });
   });

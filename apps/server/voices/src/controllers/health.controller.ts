@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { Controller, Get } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JobService } from '@voices/services/job.service';
@@ -13,11 +14,11 @@ export class HealthController {
 
   @Get()
   @ApiOperation({ summary: 'Voices service health' })
-  getHealth() {
+  async getHealth() {
     const mem = process.memoryUsage();
 
     return {
-      jobs: this.jobService.getStats(),
+      jobs: await this.jobService.getStats(),
       memory: {
         heapTotal: mem.heapTotal,
         heapUsed: mem.heapUsed,
