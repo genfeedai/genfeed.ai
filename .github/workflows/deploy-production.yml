@@ -78,8 +78,8 @@ jobs:
             local name="$1"
             local value="$2"
 
-            if ! npx vercel env update "$name" production --yes --value "$value" --cwd apps/app --token="${VERCEL_TOKEN}"; then
-              printf '%s' "$value" | npx vercel env add "$name" production --cwd apps/app --token="${VERCEL_TOKEN}"
+            if ! npx vercel env update "$name" production --yes --value "$value" --cwd . --token="${VERCEL_TOKEN}"; then
+              printf '%s' "$value" | npx vercel env add "$name" production --cwd . --token="${VERCEL_TOKEN}"
             fi
           }
 
@@ -93,7 +93,7 @@ jobs:
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID_APP }}
           CLERK_FRONTEND_API_DOMAIN: clerk.genfeed.ai
-      - run: npx vercel deploy --cwd apps/app --archive=tgz --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+      - run: npx vercel deploy --cwd . --archive=tgz --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID_APP }}
@@ -102,12 +102,12 @@ jobs:
   # Keep this skipped until the Vercel project is deliberately re-homed.
   deploy-admin:
     name: Deploy admin.genfeed.ai
-    if: ${{ false }}
+    if: ${{ vars.ENABLE_ADMIN_VERCEL_DEPLOY == 'true' }}
     runs-on: ubuntu-latest
     needs: deploy-backend
     steps:
       - uses: actions/checkout@v5
-      - run: npx vercel deploy --cwd apps/app --archive=tgz --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+      - run: npx vercel deploy --cwd . --archive=tgz --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID_ADMIN }}
@@ -119,7 +119,7 @@ jobs:
     needs: deploy-backend
     steps:
       - uses: actions/checkout@v5
-      - run: npx vercel deploy --cwd apps/website --archive=tgz --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+      - run: npx vercel deploy --cwd . --archive=tgz --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID_WEBSITE }}
@@ -131,7 +131,7 @@ jobs:
     needs: deploy-backend
     steps:
       - uses: actions/checkout@v5
-      - run: npx vercel deploy --cwd apps/docs --archive=tgz --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+      - run: npx vercel deploy --cwd . --archive=tgz --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID_DOCS }}
