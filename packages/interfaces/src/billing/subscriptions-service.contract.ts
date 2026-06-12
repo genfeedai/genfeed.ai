@@ -125,12 +125,17 @@ export interface ISubscriptionsService {
    *
    * `options` is **required**, not optional. `BaseService.findAll` (inherited
    * by the concrete `SubscriptionsService`) dereferences `options.pagination`
-   * unconditionally, so a Layer 2 no-op accepting a plain `findAll(pipeline)`
+   * unconditionally, so a Layer 2 no-op accepting a plain `findAll(input)`
    * would expose callers to a `TypeError` on the EE path. Greptile flagged
    * this as a P1 mismatch in PR #163 review — contract now matches runtime.
+   *
+   * `input` is `unknown` (not `unknown[]`): post-Prisma `BaseService.findAll`
+   * accepts a Prisma query object (`{ where }`), and the analytics consumer
+   * calls `findAll({ where: {} }, options)`. The legacy MongoDB pipeline array
+   * is still accepted at runtime but is no longer the typed shape.
    */
   findAll(
-    pipeline: unknown[],
+    input: unknown,
     options: ISubscriptionFindAllOptions,
   ): Promise<ISubscriptionFindAllResult>;
 }

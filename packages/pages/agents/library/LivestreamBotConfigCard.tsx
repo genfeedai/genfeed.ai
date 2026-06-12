@@ -38,7 +38,7 @@ export default function LivestreamBotConfigCard({
   isSaving,
   onFormChange,
   onSave,
-}: Props): JSX.Element {
+}: Props) {
   return (
     <Card className="p-6">
       <div className="grid gap-4 md:grid-cols-2">

@@ -10,7 +10,7 @@ const TWITTER_CONFIG_ITEMS = [
   { label: 'Tone', value: 'Professional' },
 ];
 
-export default function TwitterReplyBot(): JSX.Element {
+export default function TwitterReplyBot() {
   return (
     <BotToggle
       title="Twitter/X Reply Bot"
