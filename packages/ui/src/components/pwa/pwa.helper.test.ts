@@ -7,6 +7,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // Mock dependencies - inline the data in the factory to avoid TDZ hoisting issues
 vi.mock('@ui-constants/pwa/pwa-apps.constant', () => ({
   PWA_APPS: {
+    app: {
+      appId: 'app',
+      backgroundColor: '#101820',
+      description: 'Content hub',
+      displayName: 'Genfeed Content Hub',
+      scope: '/',
+      shortName: 'Content Hub',
+      startUrl: '/overview',
+      themeColorDark: '#101820',
+      themeColorLight: '#ffffff',
+    } as PWAAppConfig,
     manager: {
       appId: 'manager',
       backgroundColor: '#1a1a1a',
@@ -40,9 +51,11 @@ import {
 
 describe('pwa.helper', () => {
   const originalCdnUrl = process.env.NEXT_PUBLIC_CDN_URL;
+  const originalPWAAssetBaseUrl = process.env.NEXT_PUBLIC_PWA_ASSET_BASE_URL;
 
   beforeEach(() => {
     process.env.NEXT_PUBLIC_CDN_URL = 'https://cdn.genfeed.ai';
+    delete process.env.NEXT_PUBLIC_PWA_ASSET_BASE_URL;
     vi.clearAllMocks();
   });
 
@@ -52,6 +65,11 @@ describe('pwa.helper', () => {
       delete process.env.NEXT_PUBLIC_CDN_URL;
     } else {
       process.env.NEXT_PUBLIC_CDN_URL = originalCdnUrl;
+    }
+    if (originalPWAAssetBaseUrl === undefined) {
+      delete process.env.NEXT_PUBLIC_PWA_ASSET_BASE_URL;
+    } else {
+      process.env.NEXT_PUBLIC_PWA_ASSET_BASE_URL = originalPWAAssetBaseUrl;
     }
   });
 
@@ -104,6 +122,23 @@ describe('pwa.helper', () => {
       );
       expect(manifest.icons[1].src).toBe(
         'https://cdn.genfeed.ai/assets/pwa/studio/icon-512x512.png',
+      );
+    });
+
+    it('should use local app icons by default', () => {
+      const manifest = generatePWAManifest('app' as PWAAppNameKey);
+
+      expect(manifest.icons[0].src).toBe('/assets/pwa/app/icon-192x192.png');
+      expect(manifest.icons[1].src).toBe('/assets/pwa/app/icon-512x512.png');
+    });
+
+    it('should support an explicit PWA asset base URL', () => {
+      process.env.NEXT_PUBLIC_PWA_ASSET_BASE_URL = 'https://static.genfeed.ai/';
+
+      const manifest = generatePWAManifest('app' as PWAAppNameKey);
+
+      expect(manifest.icons[0].src).toBe(
+        'https://static.genfeed.ai/assets/pwa/app/icon-192x192.png',
       );
     });
 

@@ -46,8 +46,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate-production-ref:
+    name: Validate production ref
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require master for production deploys
+        run: |
+          set -euo pipefail
+
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] && [ "${GITHUB_REF_NAME}" != "master" ]; then
+            echo "::error::Production workflow_dispatch must run from master. Current ref: ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
+          if [ "${GITHUB_EVENT_NAME}" = "release" ] && [ "${RELEASE_TARGET_COMMITISH}" != "master" ]; then
+            echo "::error::Production releases must target master. Current target: ${RELEASE_TARGET_COMMITISH}"
+            exit 1
+          fi
+        env:
+          RELEASE_TARGET_COMMITISH: ${{ github.event.release.target_commitish || '' }}
+
   deploy-backend:
     if: ${{ github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v') }}
+    needs: validate-production-ref
     uses: ./.github/workflows/_deploy.yml
     with:
       environment: production

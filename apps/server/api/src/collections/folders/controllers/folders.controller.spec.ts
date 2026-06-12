@@ -130,6 +130,36 @@ describe('FoldersController', () => {
         }),
       });
     });
+
+    it('should not include impossible global folder filters for brand context', () => {
+      const result = controller.buildFindAllQuery(mockUser, {
+        brand: 'brand-1',
+      } as BaseQueryDto & { brand: string });
+
+      expect(result).toMatchObject({
+        where: expect.objectContaining({
+          OR: [
+            {
+              brand: null,
+              organization: '507f191e810c19729de860ee',
+            },
+            { brand: 'brand-1' },
+          ],
+        }),
+      });
+    });
+
+    it('should not include impossible global folder filters for organization context', () => {
+      const result = controller.buildFindAllQuery(mockUser, {
+        organization: 'org-1',
+      } as BaseQueryDto & { organization: string });
+
+      expect(result).toMatchObject({
+        where: expect.objectContaining({
+          OR: [{ organization: 'org-1' }],
+        }),
+      });
+    });
   });
 
   describe('create', () => {

@@ -29,19 +29,21 @@ function normalizeOrganizationCategory(value: unknown): unknown {
 function normalizeOrganizationCategoryFields<T extends Record<string, unknown>>(
   dto: T,
 ): T {
-  const normalized = { ...dto };
+  const normalized: Record<string, unknown> = { ...dto };
 
   if ('category' in normalized) {
-    normalized.category = normalizeOrganizationCategory(normalized.category);
-  }
-
-  if ('accountType' in normalized) {
-    normalized.accountType = normalizeOrganizationCategory(
-      normalized.accountType,
+    normalized['category'] = normalizeOrganizationCategory(
+      normalized['category'],
     );
   }
 
-  return normalized;
+  if ('accountType' in normalized) {
+    normalized['accountType'] = normalizeOrganizationCategory(
+      normalized['accountType'],
+    );
+  }
+
+  return normalized as T;
 }
 
 @Injectable()

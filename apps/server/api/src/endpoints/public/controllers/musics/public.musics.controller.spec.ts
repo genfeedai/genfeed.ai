@@ -4,7 +4,11 @@ import { PublicMusicsController } from '@api/endpoints/public/controllers/musics
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { AssetScope, PostStatus } from '@genfeedai/enums';
+import {
+  AssetScope,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type {
@@ -111,6 +115,13 @@ describe('PublicMusicsController', () => {
       const result = await controller.findPublicMusics(mockRequest, query);
 
       expect(musicsService.findAll).toHaveBeenCalled();
+      expect(musicsService.findAll.mock.calls[0][0]).toMatchObject({
+        where: {
+          category: IngredientCategory.MUSIC,
+          scope: AssetScope.PUBLIC,
+          status: IngredientStatus.GENERATED,
+        },
+      });
       expect(result).toEqual({ data: mockMusics.docs });
     });
 
@@ -159,7 +170,7 @@ describe('PublicMusicsController', () => {
       const musicId = '507f191e810c19729de860ee'.toString();
       const mockMusic = {
         _id: musicId,
-        status: PostStatus.PUBLIC,
+        status: IngredientStatus.GENERATED,
         title: 'Test Song',
       };
 
@@ -171,9 +182,10 @@ describe('PublicMusicsController', () => {
       expect(musicsService.findOne).toHaveBeenCalledWith(
         {
           _id: musicId,
+          category: IngredientCategory.MUSIC,
           isDeleted: false,
           scope: AssetScope.PUBLIC,
-          status: PostStatus.PUBLIC,
+          status: IngredientStatus.GENERATED,
         },
         ['metadata', 'brand'],
       );
@@ -228,7 +240,7 @@ describe('PublicMusicsController', () => {
       const musicId = '507f191e810c19729de860ee'.toString();
       const mockMusic = {
         _id: musicId,
-        status: PostStatus.PUBLIC,
+        status: IngredientStatus.GENERATED,
       };
 
       musicsService.findOne.mockResolvedValue(mockMusic);
@@ -239,9 +251,10 @@ describe('PublicMusicsController', () => {
 
       expect(musicsService.findOne).toHaveBeenCalledWith({
         _id: musicId,
+        category: IngredientCategory.MUSIC,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
-        status: PostStatus.PUBLIC,
+        status: IngredientStatus.GENERATED,
       });
       expect(filesClientService.getFileFromS3).toHaveBeenCalledWith(
         musicId,
@@ -272,7 +285,7 @@ describe('PublicMusicsController', () => {
       const musicId = '507f191e810c19729de860ee'.toString();
       const mockMusic = {
         _id: musicId,
-        status: PostStatus.PUBLIC,
+        status: IngredientStatus.GENERATED,
       };
 
       musicsService.findOne.mockResolvedValue(mockMusic);
