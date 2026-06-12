@@ -8,9 +8,13 @@
 # ==================================================
 FROM node:24-bookworm-slim AS base
 
-# Redis + tini
+# Redis + tini.
+# ca-certificates is required for HTTPS (bun.sh install below): node:*-slim ships
+# no CA bundle, and ca-certificates is only a *Recommends* of curl — so with
+# --no-install-recommends it must be listed explicitly or curl fails with
+# `curl: (77) error setting certificate file: /etc/ssl/certs/ca-certificates.crt`.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl redis-server tini && \
+    ca-certificates curl redis-server tini && \
     rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://bun.sh/install | bash -s "bun-v1.2.12" && \
