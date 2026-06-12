@@ -68,8 +68,8 @@ export class FoldersController extends BaseCRUDController<
 
   /**
    * Override the base pipeline to load folders with proper filtering:
-   * - If brand query param: folders without org + org folders without brand + brand folders
-   * - If organization query param (no brand): folders without org + org folders
+   * - If brand query param: org folders without brand + brand folders
+   * - If organization query param (no brand): org folders
    * - Default: user folders + organization folders
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
@@ -94,9 +94,8 @@ export class FoldersController extends BaseCRUDController<
     };
 
     if (brandId) {
-      // Brand context: show folders without org + org folders without brand + brand folders
+      // Brand context: show organization folders without brand + brand folders.
       matchStage.OR = [
-        { organization: null }, // Folders without organization
         {
           brand: null,
           organization: queryOrganizationId || organizationId,
@@ -104,11 +103,8 @@ export class FoldersController extends BaseCRUDController<
         { brand: brandId }, // Brand folders
       ];
     } else if (queryOrganizationId) {
-      // Organization context (no brand): show folders without org + org folders
-      matchStage.OR = [
-        { organization: null }, // Folders without organization
-        { organization: queryOrganizationId }, // Organization folders
-      ];
+      // Organization context (no brand): show organization folders.
+      matchStage.OR = [{ organization: queryOrganizationId }];
     } else {
       // Default: user folders + organization folders
       matchStage.OR = [

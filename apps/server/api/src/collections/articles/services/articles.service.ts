@@ -58,7 +58,10 @@ import {
   SystemPromptKey,
 } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
+import {
+  type Prisma,
+  ArticleStatus as PrismaArticleStatus,
+} from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -130,7 +133,9 @@ export class ArticlesService extends BaseService<
   }
 
   private isPublicArticleStatus(value: unknown): boolean {
-    return value === ArticleStatus.PUBLIC || value === 'PUBLISHED';
+    return (
+      value === ArticleStatus.PUBLIC || value === PrismaArticleStatus.PUBLISHED
+    );
   }
 
   /**
@@ -721,7 +726,7 @@ export class ArticlesService extends BaseService<
     const where: Record<string, unknown> = {
       isDeleted: false,
       publishedAt: { not: null },
-      status: ArticleStatus.PUBLIC,
+      status: PrismaArticleStatus.PUBLISHED,
     };
 
     if (search) {
@@ -778,7 +783,7 @@ export class ArticlesService extends BaseService<
     // In normal mode, only show published articles (PUBLISHED = public)
     if (!isPreview) {
       where.publishedAt = { not: null };
-      where.status = ArticleStatus.PUBLIC;
+      where.status = PrismaArticleStatus.PUBLISHED;
     }
 
     const article = await this.delegate.findFirst({ where });

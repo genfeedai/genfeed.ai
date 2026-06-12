@@ -8,8 +8,25 @@ import { PWA_APPS } from '@ui-constants/pwa/pwa-apps.constant';
 import type { Metadata, Viewport } from 'next';
 
 const DEFAULT_CDN_URL = 'https://cdn.genfeed.ai';
+const LOCAL_PWA_ASSET_APPS = new Set<PWAAppNameKey>(['app']);
 
-const getCdnUrl = () => process.env.NEXT_PUBLIC_CDN_URL || DEFAULT_CDN_URL;
+const withoutTrailingSlash = (url: string) => url.replace(/\/+$/, '');
+
+const getCdnUrl = () =>
+  withoutTrailingSlash(process.env.NEXT_PUBLIC_CDN_URL || DEFAULT_CDN_URL);
+
+const getPWAAssetUrl = (appName: PWAAppNameKey, fileName: string) => {
+  const explicitAssetBaseUrl = process.env.NEXT_PUBLIC_PWA_ASSET_BASE_URL;
+  if (explicitAssetBaseUrl) {
+    return `${withoutTrailingSlash(explicitAssetBaseUrl)}/assets/pwa/${appName}/${fileName}`;
+  }
+
+  if (LOCAL_PWA_ASSET_APPS.has(appName)) {
+    return `/assets/pwa/${appName}/${fileName}`;
+  }
+
+  return `${getCdnUrl()}/assets/pwa/${appName}/${fileName}`;
+};
 
 export function getPWAConfig(appName: PWAAppNameKey): PWAAppConfig {
   const config = PWA_APPS[appName];
@@ -21,7 +38,6 @@ export function getPWAConfig(appName: PWAAppNameKey): PWAAppConfig {
 
 export function generatePWAManifest(appName: PWAAppNameKey): PWAManifestConfig {
   const config = getPWAConfig(appName);
-  const cdnUrl = getCdnUrl();
 
   return {
     background_color: config.backgroundColor,
@@ -31,25 +47,25 @@ export function generatePWAManifest(appName: PWAAppNameKey): PWAManifestConfig {
       {
         purpose: 'any',
         sizes: '192x192',
-        src: `${cdnUrl}/assets/pwa/${appName}/icon-192x192.png`,
+        src: getPWAAssetUrl(appName, 'icon-192x192.png'),
         type: 'image/png',
       },
       {
         purpose: 'any',
         sizes: '512x512',
-        src: `${cdnUrl}/assets/pwa/${appName}/icon-512x512.png`,
+        src: getPWAAssetUrl(appName, 'icon-512x512.png'),
         type: 'image/png',
       },
       {
         purpose: 'maskable',
         sizes: '192x192',
-        src: `${cdnUrl}/assets/pwa/${appName}/icon-maskable-192x192.png`,
+        src: getPWAAssetUrl(appName, 'icon-maskable-192x192.png'),
         type: 'image/png',
       },
       {
         purpose: 'maskable',
         sizes: '512x512',
-        src: `${cdnUrl}/assets/pwa/${appName}/icon-maskable-512x512.png`,
+        src: getPWAAssetUrl(appName, 'icon-maskable-512x512.png'),
         type: 'image/png',
       },
     ],
@@ -63,7 +79,6 @@ export function generatePWAManifest(appName: PWAAppNameKey): PWAManifestConfig {
 
 export function generatePWAMetadata(appName: PWAAppNameKey): PWAMetadataConfig {
   const config = getPWAConfig(appName);
-  const cdnUrl = getCdnUrl();
 
   const metadata: Metadata = {
     appleWebApp: {
@@ -79,7 +94,7 @@ export function generatePWAMetadata(appName: PWAAppNameKey): PWAMetadataConfig {
       apple: [
         {
           sizes: '180x180',
-          url: `${cdnUrl}/assets/pwa/${appName}/apple-touch-icon.png`,
+          url: getPWAAssetUrl(appName, 'apple-touch-icon.png'),
         },
       ],
       icon: [
@@ -91,12 +106,12 @@ export function generatePWAMetadata(appName: PWAAppNameKey): PWAMetadataConfig {
         {
           sizes: '192x192',
           type: 'image/png',
-          url: `${cdnUrl}/assets/pwa/${appName}/icon-192x192.png`,
+          url: getPWAAssetUrl(appName, 'icon-192x192.png'),
         },
         {
           sizes: '512x512',
           type: 'image/png',
-          url: `${cdnUrl}/assets/pwa/${appName}/icon-512x512.png`,
+          url: getPWAAssetUrl(appName, 'icon-512x512.png'),
         },
       ],
       shortcut: '/favicon.ico',

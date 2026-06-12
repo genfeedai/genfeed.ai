@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "alias": ["app.genfeed.ai"],
-  "buildCommand": "cd ../../configs && sh ../scripts/sh/vercel-bun.sh run build && cd ../apps/app && sh ../../scripts/sh/vercel-bun.sh run build",
+  "buildCommand": "cd ../../ && sh scripts/sh/vercel-bun.sh run build:app",
   "git": {
     "deploymentEnabled": {
       "*": false,
