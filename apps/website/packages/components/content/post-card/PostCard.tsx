@@ -7,7 +7,6 @@ import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper'
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import Image from 'next/image';
-import Link from 'next/link';
 import { FaCalendarAlt } from 'react-icons/fa';
 import { FaCalendarCheck, FaPlay } from 'react-icons/fa6';
 import { HiArrowTopRightOnSquare } from 'react-icons/hi2';
@@ -134,14 +133,13 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
           </div>
           <div className="flex flex-wrap gap-2">
             {ingredients.map((ingredient) => (
-              <Link
+              <span
                 key={ingredient.id}
-                href={`/ingredients/${post.category}s/${ingredient.id}`}
-                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-current/20 hover:bg-primary hover:text-primary-foreground transition-colors"
-                title={ingredient.metadataLabel || 'View ingredient'}
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-current/20"
+                title={ingredient.metadataLabel || undefined}
               >
                 {ingredient.metadataLabel || 'Untitled'}
-              </Link>
+              </span>
             ))}
           </div>
         </div>

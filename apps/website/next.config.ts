@@ -59,11 +59,6 @@ const config = createAppNextConfig({
       permanent: true,
       source: '/for',
     },
-    {
-      destination: '/vs/canva',
-      permanent: true,
-      source: '/vs',
-    },
   ],
   sentryProject: 'genfeed-ai',
 });

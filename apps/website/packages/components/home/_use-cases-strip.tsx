@@ -14,7 +14,7 @@ import { LuArrowRight } from 'react-icons/lu';
 const USE_CASE_CARDS = [
   {
     description: 'Run approvals, publishing, and reporting across every client',
-    href: '/agencies',
+    href: '/use-cases/agencies',
     icon: HiBuildingOffice2,
     label: 'Agencies',
   },

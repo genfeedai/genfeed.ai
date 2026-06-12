@@ -8,16 +8,19 @@ const WEBSITE_SECTIONS: FooterSection[] = [
       { href: '/pricing', label: 'Cloud App' },
       { href: '/cloud', label: 'Cloud Teams' },
       { href: '/host', label: 'Self-Hosted Core' },
+      { href: '/core', label: 'Open Source' },
       { href: '/integrations', label: 'Integrations' },
       { href: '/features', label: 'Features' },
+      { href: '/intelligence', label: 'Analytics' },
     ],
     title: 'Products',
   },
   {
     links: [
-      { href: '/creators', label: 'For Creators' },
-      { href: '/agencies', label: 'For Agencies' },
-      { href: '/influencers', label: 'AI Influencers' },
+      { href: '/use-cases/creators', label: 'For Creators' },
+      { href: '/use-cases/agencies', label: 'For Agencies' },
+      { href: '/use-cases/ai-influencers', label: 'AI Influencers' },
+      { href: '/services', label: 'Services' },
       { href: '/pricing', label: 'Pricing' },
       { href: 'https://github.com/genfeedai/genfeed.ai', label: 'GitHub' },
     ],
@@ -29,12 +32,14 @@ const WEBSITE_SECTIONS: FooterSection[] = [
       { href: '/vs/runway', label: 'vs Runway' },
       { href: '/vs/buffer', label: 'vs Buffer' },
       { href: '/vs/jasper', label: 'vs Jasper' },
+      { href: '/vs', label: 'All Comparisons' },
     ],
     title: 'Compare',
   },
   {
     links: [
       { href: '/articles', label: 'Blog' },
+      { href: '/posts', label: 'Posts' },
       { href: '/faq', label: 'FAQ' },
       {
         external: true,
@@ -48,6 +53,7 @@ const WEBSITE_SECTIONS: FooterSection[] = [
   {
     links: [
       { href: '/about', label: 'About' },
+      { href: '/gen', label: '$GEN Token' },
       { external: true, href: EnvironmentService.github.org, label: 'GitHub' },
       { href: '/privacy', label: 'Privacy' },
       { href: '/terms', label: 'Terms' },

@@ -1,4 +1,4 @@
 export default {
-  overview: 'Overview',
-  reference: 'API Reference',
+  index: 'Overview',
+  reference: 'Endpoint Reference',
 };
