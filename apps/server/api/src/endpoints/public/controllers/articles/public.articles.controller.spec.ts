@@ -3,6 +3,7 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { PublicArticlesController } from '@api/endpoints/public/controllers/articles/public.articles.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ArticleCategory, ArticleStatus, AssetScope } from '@genfeedai/enums';
+import { ArticleStatus as PrismaArticleStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -117,6 +118,14 @@ describe('PublicArticlesController', () => {
 
       expect(articlesService.findAll).toHaveBeenCalled();
       expect(result.data).toEqual(articles);
+
+      // Regression guard (Sentry API-GENFEED-AI-5Z): the Prisma `status`
+      // column is the ArticleStatus enum (DRAFT|PUBLISHED|ARCHIVED). Passing
+      // the app-level ArticleStatus.PUBLIC ('public') triggers
+      // PrismaClientValidationError. Must filter by PUBLISHED.
+      const call = mockArticlesService.findAll.mock.calls[0];
+      const queryArg = call[0] as { where: Record<string, unknown> };
+      expect(queryArg.where.status).toBe(PrismaArticleStatus.PUBLISHED);
     });
 
     it('should filter by search term', async () => {
@@ -229,7 +238,7 @@ describe('PublicArticlesController', () => {
         expect.objectContaining({
           _id: id,
           isDeleted: false,
-          status: ArticleStatus.PUBLIC,
+          status: PrismaArticleStatus.PUBLISHED,
         }),
       );
       expect(result).toEqual(mockArticle);
