@@ -54,6 +54,9 @@ export type SubscriptionRefId = string | { toString(): string };
  */
 export interface ISubscriptionOssReadModel {
   _id?: SubscriptionRefId;
+  id?: SubscriptionRefId;
+  cancelAtPeriodEnd?: boolean | null;
+  customer?: SubscriptionRefId | null;
   customerId?: SubscriptionRefId | null;
   currentPeriodEnd?: Date | string | null;
   organization?: SubscriptionRefId;
@@ -76,6 +79,7 @@ export interface ISubscriptionFindOneFilter {
   _id?: SubscriptionRefId;
   organization?: SubscriptionRefId;
   user?: SubscriptionRefId;
+  stripeSubscriptionId?: string;
   isDeleted?: boolean;
 }
 
@@ -92,10 +96,16 @@ export interface ISubscriptionFindAllOptions {
 
 /**
  * Result of the `findAll` aggregation. OSS reads `.total` from the analytics
- * endpoint; enterprise call sites may read more, which is fine — the index
- * signature keeps the type open.
+ * endpoint and `.docs` from the Stripe webhook reconciliation path; enterprise
+ * call sites may read more, which is fine — the index signature keeps the type
+ * open.
+ *
+ * `docs` mirrors `AggregatePaginateResult<T>.docs` on the concrete EE service
+ * (`BaseService.findAll`). The webhook reads `data.docs` then guards
+ * `length === 0`, so the OSS no-op returns `{ docs: [], total: 0 }`.
  */
 export interface ISubscriptionFindAllResult {
+  docs?: ISubscriptionOssReadModel[];
   total?: number;
   [key: string]: unknown;
 }
@@ -125,12 +135,78 @@ export interface ISubscriptionsService {
    *
    * `options` is **required**, not optional. `BaseService.findAll` (inherited
    * by the concrete `SubscriptionsService`) dereferences `options.pagination`
-   * unconditionally, so a Layer 2 no-op accepting a plain `findAll(pipeline)`
+   * unconditionally, so a Layer 2 no-op accepting a plain `findAll(input)`
    * would expose callers to a `TypeError` on the EE path. Greptile flagged
    * this as a P1 mismatch in PR #163 review — contract now matches runtime.
+   *
+   * Signature mirrors `BaseService.findAll(input, options, enableCache = true)`:
+   * `input` is `unknown` (the analytics consumer passes a Prisma `{ where }`
+   * object; the Stripe webhook passes a legacy aggregation array — both are
+   * accepted at runtime), and `enableCache` is optional (third positional arg).
+   * The webhook calls `findAll(aggregate, options, false)` to bypass the read
+   * cache during reconciliation, so the third arg must be part of the contract.
    */
   findAll(
-    pipeline: unknown[],
+    input: unknown,
     options: ISubscriptionFindAllOptions,
+    enableCache?: boolean,
   ): Promise<ISubscriptionFindAllResult>;
+
+  /**
+   * Patch a subscription by id. Called from the always-on Stripe webhook
+   * handler (`endpoints/webhooks/stripe`) on hot paths — invoice.paid,
+   * customer.subscription.updated, etc. The OSS no-op returns `null` and must
+   * NOT throw: webhooks fire continuously and a throw here would 500 the
+   * webhook even on a self-hosted install that never provisioned billing.
+   *
+   * `data` is `unknown` so OSS never has to import the enterprise
+   * `UpdateSubscriptionDto`; the concrete EE service narrows it internally.
+   */
+  patch(id: string, data: unknown): Promise<ISubscriptionOssReadModel | null>;
+
+  /**
+   * Resolve a subscription from a Stripe customer id. Always-on webhook path.
+   * OSS no-op returns `null`.
+   */
+  findByStripeCustomerId(
+    stripeCustomerId: string,
+  ): Promise<ISubscriptionOssReadModel | null>;
+
+  /**
+   * Reconcile a local subscription against Stripe. Always-on webhook path.
+   * Takes and returns the OSS read model so neither side depends on the
+   * enterprise `SubscriptionDocument`. OSS no-op echoes its argument.
+   */
+  syncWithStripe(
+    subscription: ISubscriptionOssReadModel,
+  ): Promise<ISubscriptionOssReadModel>;
+
+  /**
+   * Provision a subscription for an organization. User-initiated billing
+   * (Stripe checkout controller). Unlike the webhook paths, the OSS no-op
+   * THROWS `ForbiddenException` here: self-hosted OSS has no managed billing,
+   * and surfacing that to a user clicking "subscribe" is correct, whereas
+   * silently returning a fake record would be a lie.
+   *
+   * `organization` is `unknown` so OSS never imports `OrganizationDocument`.
+   */
+  createForOrganization(
+    organization: unknown,
+    billingEmail: string,
+    userId: string,
+  ): Promise<ISubscriptionOssReadModel>;
+
+  /**
+   * Mirror subscription state into Clerk public metadata. Always-on webhook
+   * path. Returns `void`; the OSS no-op is a no-op (Clerk metadata sync is an
+   * enterprise concern). `subscription` is `unknown` so OSS never imports the
+   * enterprise Clerk-sync shape.
+   */
+  syncSubscriptionToClerkMetadata(
+    subscription: unknown,
+    stripeSubscriptionId?: string,
+    stripePriceId?: string,
+    status?: string,
+    subscriptionTier?: string,
+  ): Promise<void>;
 }

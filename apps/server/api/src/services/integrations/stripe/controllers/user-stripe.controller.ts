@@ -16,8 +16,11 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import type { User } from '@clerk/backend';
-import { UserSubscriptionsService } from '@genfeedai/ee-billing/user-subscriptions';
 import { OrganizationCategory } from '@genfeedai/enums';
+import {
+  type IUserSubscriptionsService,
+  USER_SUBSCRIPTIONS_SERVICE,
+} from '@genfeedai/interfaces/billing';
 import { StripeUrlSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -26,6 +29,7 @@ import {
   Controller,
   Get,
   HttpException,
+  Inject,
   Post,
   Req,
 } from '@nestjs/common';
@@ -47,7 +51,8 @@ export class UserStripeController {
   constructor(
     private readonly stripeService: StripeService,
     private readonly usersService: UsersService,
-    private readonly userSubscriptionsService: UserSubscriptionsService,
+    @Inject(USER_SUBSCRIPTIONS_SERVICE)
+    private readonly userSubscriptionsService: IUserSubscriptionsService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly organizationsService: OrganizationsService,
     private readonly loggerService: LoggerService,

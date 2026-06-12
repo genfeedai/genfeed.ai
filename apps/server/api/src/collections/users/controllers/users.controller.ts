@@ -33,8 +33,11 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import type { User } from '@clerk/backend';
-import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
+import {
+  type ISubscriptionsService,
+  SUBSCRIPTIONS_SERVICE,
+} from '@genfeedai/interfaces/billing';
 import {
   BrandSerializer,
   OrganizationSerializer,
@@ -49,6 +52,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Param,
   Patch,
   Post,
@@ -68,7 +72,8 @@ export class UsersController {
   constructor(
     private readonly brandsService: BrandsService,
     private readonly usersService: UsersService,
-    private readonly subscriptionsService: SubscriptionsService,
+    @Inject(SUBSCRIPTIONS_SERVICE)
+    private readonly subscriptionsService: ISubscriptionsService,
     private readonly organizationsService: OrganizationsService,
     private readonly settingsService: SettingsService,
     private readonly clerkService: ClerkService,

@@ -14,7 +14,10 @@ import {
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import type { User } from '@clerk/backend';
 import { isEEEnabled } from '@genfeedai/config';
-import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
+import {
+  type ISubscriptionsService,
+  SUBSCRIPTIONS_SERVICE,
+} from '@genfeedai/interfaces/billing';
 import { StripeUrlSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -23,6 +26,7 @@ import {
   Controller,
   Get,
   HttpException,
+  Inject,
   Post,
   Req,
   UseGuards,
@@ -37,7 +41,8 @@ export class StripeController {
 
   constructor(
     private readonly stripeService: StripeService,
-    private readonly subscriptionsService: SubscriptionsService,
+    @Inject(SUBSCRIPTIONS_SERVICE)
+    private readonly subscriptionsService: ISubscriptionsService,
     private readonly usersService: UsersService,
     private readonly loggerService: LoggerService,
     private readonly organizationsService: OrganizationsService,

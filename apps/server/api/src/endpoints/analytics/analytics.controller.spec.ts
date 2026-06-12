@@ -6,7 +6,6 @@ import { MembersService } from '@api/collections/members/services/members.servic
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
@@ -30,6 +29,10 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { IngredientCategory } from '@genfeedai/enums';
+import {
+  type ISubscriptionsService,
+  SUBSCRIPTIONS_SERVICE,
+} from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type {
@@ -54,7 +57,7 @@ describe('AnalyticsController', () => {
   let brandsService: vi.Mocked<BrandsService>;
   let ingredientsService: vi.Mocked<IngredientsService>;
   let postsService: vi.Mocked<PostsService>;
-  let subscriptionsService: vi.Mocked<SubscriptionsService>;
+  let subscriptionsService: vi.Mocked<ISubscriptionsService>;
   let usersService: vi.Mocked<UsersService>;
   let tiktokService: vi.Mocked<TiktokService>;
   let twitterService: vi.Mocked<TwitterService>;
@@ -110,7 +113,7 @@ describe('AnalyticsController', () => {
     } as unknown as vi.Mocked<PostsService>;
     subscriptionsService = {
       findAll: vi.fn(),
-    } as unknown as vi.Mocked<SubscriptionsService>;
+    } as unknown as vi.Mocked<ISubscriptionsService>;
     usersService = {
       findAll: vi.fn(),
     } as unknown as vi.Mocked<UsersService>;
@@ -195,7 +198,7 @@ describe('AnalyticsController', () => {
         { provide: BrandsService, useValue: brandsService },
         { provide: IngredientsService, useValue: ingredientsService },
         { provide: PostsService, useValue: postsService },
-        { provide: SubscriptionsService, useValue: subscriptionsService },
+        { provide: SUBSCRIPTIONS_SERVICE, useValue: subscriptionsService },
         { provide: UsersService, useValue: usersService },
         { provide: TiktokService, useValue: tiktokService },
         { provide: TwitterService, useValue: twitterService },

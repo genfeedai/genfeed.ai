@@ -1,5 +1,6 @@
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
+import type { ISubscriptionAttributionsService } from '@genfeedai/interfaces/billing';
 import { Injectable, Logger } from '@nestjs/common';
 import type { TrackSubscriptionDto } from '../dto/track-subscription.dto';
 import type { SubscriptionAttributionDocument } from '../schemas/subscription-attribution.schema';
@@ -49,7 +50,9 @@ type NormalizedSubscriptionAttribution = Omit<
 };
 
 @Injectable()
-export class SubscriptionAttributionsService {
+export class SubscriptionAttributionsService
+  implements ISubscriptionAttributionsService
+{
   private readonly logger = new Logger(SubscriptionAttributionsService.name);
 
   constructor(private readonly prisma: PrismaService) {}

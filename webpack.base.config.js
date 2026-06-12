@@ -65,23 +65,47 @@ module.exports = function createWebpackConfig({
   const enterprisePackagesRoot = path.resolve(workspaceRoot, 'ee/packages');
   const serverAppsRoot = path.resolve(workspaceRoot, 'apps/server');
   const eeBillingSrc = path.resolve(enterprisePackagesRoot, 'billing/src');
+  // Open-core build flavor. `ee/packages/billing` ships only with the SaaS
+  // image; the community (selfhosted) image excludes `ee/` entirely. Every
+  // billing coupling point below keys off this single fs probe so the api
+  // webpack graph never compile-time depends on AGPL-incompatible EE code.
+  const hasEE = fs.existsSync(eeBillingSrc);
+  const eeFlavor = hasEE ? 'ee' : 'oss';
+  // `@billing-providers` resolves to the billing DI fragment for this flavor:
+  // the EE provider module (controllers + real services) when EE is present,
+  // the OSS no-op fragment (string-token stubs only) otherwise.
+  const ossBillingProviders = path.resolve(
+    serverAppsRoot,
+    'api/src/common/subscriptions/billing.providers.oss.ts',
+  );
   const workspaceSourceAliases = {
     ...buildServerSourceAliases(serverAppsRoot),
     ...buildWorkspaceSourceAliases(cloudPackagesRoot),
     '@config': path.resolve(cloudPackagesRoot, 'config/src'),
-    '@genfeedai/ee-billing': eeBillingSrc,
-    '@genfeedai/ee-billing/subscription-attributions': path.resolve(
-      eeBillingSrc,
-      'subscription-attributions',
-    ),
-    '@genfeedai/ee-billing/subscriptions': path.resolve(
-      eeBillingSrc,
-      'subscriptions',
-    ),
-    '@genfeedai/ee-billing/user-subscriptions': path.resolve(
-      eeBillingSrc,
-      'user-subscriptions',
-    ),
+    '@billing-providers$': hasEE
+      ? path.resolve(eeBillingSrc, 'billing.providers.ee.ts')
+      : ossBillingProviders,
+    // Enterprise billing source aliases are wired only when the ee package is
+    // physically present. In the community image `ee/packages/billing` is
+    // absent, so these stay undefined and any stray `@genfeedai/ee-billing`
+    // import fails the build loudly instead of silently resolving to nothing.
+    ...(hasEE
+      ? {
+          '@genfeedai/ee-billing': eeBillingSrc,
+          '@genfeedai/ee-billing/subscription-attributions': path.resolve(
+            eeBillingSrc,
+            'subscription-attributions',
+          ),
+          '@genfeedai/ee-billing/subscriptions': path.resolve(
+            eeBillingSrc,
+            'subscriptions',
+          ),
+          '@genfeedai/ee-billing/user-subscriptions': path.resolve(
+            eeBillingSrc,
+            'user-subscriptions',
+          ),
+        }
+      : {}),
     '@genfeedai-types': path.resolve(cloudPackagesRoot, 'types/src'),
     '@helpers': path.resolve(cloudPackagesRoot, 'helpers/src'),
     '@integrations': path.resolve(cloudPackagesRoot, 'integrations/src'),
@@ -131,11 +155,15 @@ module.exports = function createWebpackConfig({
       cacheDirectory: path.resolve(
         nodeModulesDir,
         '.cache/webpack',
-        `${appName}-${isProduction ? 'production' : 'development'}`,
+        `${appName}-${eeFlavor}-${isProduction ? 'production' : 'development'}`,
       ),
       compression: isProduction ? 'gzip' : false, // Skip gzip in dev — write/read CPU > disk savings
       maxMemoryGenerations: isProduction ? 1 : 3, // Bound dev heap; keep last few rebuilds hot
-      name: `${appName}-${isProduction ? 'production' : 'development'}`,
+      name: `${appName}-${eeFlavor}-${isProduction ? 'production' : 'development'}`,
+      // Bust the cache when the EE billing graph appears/disappears: an ee build
+      // and an oss build resolve `@billing-providers` to different files, so they
+      // must never share a cached module graph.
+      version: eeFlavor,
       type: 'filesystem',
     },
     context: appDir,
@@ -146,6 +174,9 @@ module.exports = function createWebpackConfig({
       nodeExternals({
         // Allow workspace packages to be bundled
         allowlist: [
+          // `@billing-providers` is an alias to an in-tree source file, not a
+          // node_modules package — keep it bundled so the DI fragment is inlined.
+          /^@billing-providers$/,
           /^@genfeedai\//,
           /^@cloud\//,
           /^@api\//,

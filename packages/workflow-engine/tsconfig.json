@@ -8,6 +8,8 @@
     "outDir": "./dist",
     "rootDir": "..",
     "paths": {
+      "@genfeedai/enums": ["../enums/src/index.ts"],
+      "@genfeedai/enums/*": ["../enums/src/*"],
       "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../interfaces/src/*"],
       "@genfeedai/workflow-engine/*": ["./src/*"],
