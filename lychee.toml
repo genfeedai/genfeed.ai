@@ -1,0 +1,38 @@
+# lychee config — offline dead-link scan for repository documentation.
+#
+# Scope: Markdown/MDX docs and READMEs. lychee runs as a Docker action and
+# cannot crawl a rendered Next.js app (no recursion, no remote-HTML link
+# extraction, and its `localhost` is the container — not the runner host). The
+# website's runtime internal-link / redirect / orphan guard therefore lives in
+# apps/website/scripts/check-orphans.ts, which crawls a real running build.
+
+no_progress = true
+
+# Cache results between runs to cut external requests and flake.
+cache = true
+max_cache_age = "1d"
+
+# External links legitimately redirect (http→https, trailing-slash); allow a few
+# hops, and treat bot-blocking / rate-limit codes as success so the gate stays
+# non-flaky on third-party hosts.
+max_redirects = 5
+accept = ["200", "206", "429"]
+
+# Don't descend into dependencies or build output.
+exclude_path = ["node_modules", ".next", "dist", "build", ".turbo"]
+
+# What to skip:
+# - Root-relative app links ("/pricing", "/docs/...") resolve to Next.js/Nextra
+#   routes, not files on disk, so lychee can't verify them — apps/website's
+#   check-orphans.ts owns that guard against a real running build. Skip here to
+#   avoid false "dead link" reports.
+# - Loopback (no server runs during this offline scan).
+# - Hosts that aggressively block bots, producing false "dead link" reports.
+exclude = [
+  "^/",
+  "^https?://localhost",
+  "^https?://127\\.0\\.0\\.1",
+  "twitter\\.com",
+  "x\\.com",
+  "linkedin\\.com",
+]
