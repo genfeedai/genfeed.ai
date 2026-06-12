@@ -1,0 +1,79 @@
+# Dependabot configuration
+#
+# Branch policy: develop -> staging -> master (all via PR).
+# Version updates open PRs against `develop` (target-branch below).
+#
+# CAVEAT: Dependabot SECURITY updates ignore `target-branch` and always open
+# against the repository default branch (master). Bun security updates are not
+# yet supported by Dependabot (version updates only, GA 2025-02). Track upstream:
+# https://github.com/dependabot/dependabot-core/issues/6528
+version: 2
+
+updates:
+  # JS/TS dependencies — bun workspaces monorepo (reads text-based bun.lock).
+  - package-ecosystem: "npm"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+    groups:
+      # Collapse low-risk bumps into one PR per group to cut review noise.
+      production-minor-patch:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      development-minor-patch:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions — workflows in .github/workflows + composite actions.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+    groups:
+      actions-all:
+        patterns:
+          - "*"
+
+  # Docker base images — docker/Dockerfile, Dockerfile.server, Dockerfile.selfhosted.
+  - package-ecosystem: "docker"
+    directory: "/docker"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"
