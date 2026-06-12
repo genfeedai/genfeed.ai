@@ -1,0 +1,114 @@
+# Build Verify (Self-Hosted) — ensures the community all-in-one image builds on PRs
+# Mirror of build-verify.yml, but targets docker/Dockerfile.selfhosted (Redis +
+# NestJS services + Next.js in one container) instead of the microservice image.
+#
+# Why this exists: the self-hosted image is published ONLY on `release: published`
+# (see docker-publish.yml) — there is no per-PR build of it anywhere else. A break
+# in Dockerfile.selfhosted (e.g. a missing apt package, a failed `bun.sh` install)
+# is therefore invisible until a GitHub Release fails mid-publish. This guard builds
+# it on every staging/master PR (no push, just verify) so the community `docker run`
+# image can never silently break a release.
+name: Build Verify (Self-Hosted)
+
+on:
+  pull_request:
+    branches: [staging, master]
+    paths:
+      - 'apps/server/**'
+      - 'apps/app/**'
+      - 'packages/**'
+      - 'configs/**'
+      - 'docker/Dockerfile.selfhosted'
+      - 'docker/selfhosted-entrypoint.sh'
+      - 'package.json'
+      - 'bun.lock'
+
+concurrency:
+  group: build-verify-selfhosted-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_NAME: genfeed-selfhosted-verify
+
+jobs:
+  build-and-boot:
+    name: Build & Boot Check (Self-Hosted)
+    runs-on: ubuntu-latest
+    # Fatter than the server image: builds shared packages + 4 services + a full
+    # Next.js app in one shot, so it needs more headroom than build-verify.yml's 20.
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Log in to GHCR (for build cache)
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build self-hosted image (no push)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile.selfhosted
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:test
+          # Shares the gha cache scope with docker-publish.yml so a real release
+          # publish warms this guard and vice-versa.
+          cache-from: type=gha,scope=selfhosted
+          cache-to: type=gha,mode=max,scope=selfhosted
+          platforms: linux/amd64
+
+      - name: Verify build outputs exist
+        run: |
+          echo "Checking self-hosted image contents..."
+          docker run --rm --entrypoint sh ${{ env.IMAGE_NAME }}:test -c '
+            set -e
+            # Derive the service list from the ENTRYPOINT itself rather than a
+            # hardcoded list, so the guard catches drift in either direction —
+            # e.g. the entrypoint launching a service the Dockerfile never built
+            # (mcp), which fails silently at runtime because it is backgrounded.
+            SVCS=$(grep -oE "apps/server/dist/apps/[a-z-]+/main\.js" /entrypoint.sh | sort -u)
+            test -n "$SVCS" || { echo "❌ could not parse service bundles from /entrypoint.sh"; exit 1; }
+            for f in $SVCS; do
+              test -f "$f" || { echo "❌ entrypoint starts $f but the image never built it"; exit 1; }
+              SIZE=$(stat -c%s "$f" 2>/dev/null || echo 0)
+              [ "$SIZE" -ge 10000 ] || { echo "❌ $f suspiciously small (${SIZE} bytes)"; exit 1; }
+              echo "  ✅ $f ($(( SIZE / 1024 ))KB)"
+            done
+
+            # Next.js build artifacts
+            test -d apps/app/.next || { echo "❌ Next.js .next build missing"; exit 1; }
+            echo "  ✅ Next.js .next present"
+
+            # Runtime binaries baked into the base stage
+            command -v redis-server >/dev/null || { echo "❌ redis-server missing"; exit 1; }
+            command -v tini >/dev/null || { echo "❌ tini missing"; exit 1; }
+            echo "  ✅ redis-server + tini present"
+
+            # CA bundle — the exact thing whose absence broke the v0.1.x publish.
+            test -f /etc/ssl/certs/ca-certificates.crt || { echo "❌ CA bundle missing"; exit 1; }
+            echo "  ✅ CA bundle present"
+
+            echo ""
+            echo "Self-hosted image verified ✅"
+          '
+
+      - name: Build summary
+        if: success()
+        run: |
+          {
+            echo "## ✅ Self-Hosted Build Verification Passed"
+            echo ""
+            echo "\`docker/Dockerfile.selfhosted\` built successfully (no push). Services, Next.js, Redis, tini, and CA bundle all verified."
+          } >> "$GITHUB_STEP_SUMMARY"

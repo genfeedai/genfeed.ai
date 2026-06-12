@@ -13,11 +13,13 @@ FROM node:24-bookworm-slim AS base
 # no CA bundle, and ca-certificates is only a *Recommends* of curl — so with
 # --no-install-recommends it must be listed explicitly or curl fails with
 # `curl: (77) error setting certificate file: /etc/ssl/certs/ca-certificates.crt`.
+# unzip is required by the bun installer (>=1.3 ships its binary as a .zip):
+# without it the install below aborts with `error: unzip is required to install bun`.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl redis-server tini && \
+    ca-certificates curl redis-server tini unzip && \
     rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL https://bun.sh/install | bash -s "bun-v1.2.12" && \
+RUN curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.14" && \
     cp /root/.bun/bin/bun /usr/local/bin/bun
 ENV PATH="/usr/local/bin:${PATH}"
 
@@ -28,14 +30,33 @@ FROM base AS builder
 WORKDIR /app
 ENV NODE_OPTIONS=--max-old-space-size=4096
 
+# node-pty (a runtime dependency of @genfeedai/notifications' terminal service)
+# is a native addon that ships no prebuild for this Node ABI, so bun compiles it
+# from source during `bun install` and needs node-gyp plus a C/C++ toolchain on
+# PATH. Without these the install aborts with `node-gyp: command not found` /
+# `install script from "node-pty" exited with 127`. Installed in the builder
+# stage ONLY: the compiled .node binary travels to the runtime stage via the
+# `COPY --from=builder /app/node_modules/` below, so the runtime image stays
+# slim (no python3/g++). Mirrors the toolchain install in docker/Dockerfile.server.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ && \
+    npm install -g node-gyp && \
+    rm -rf /var/lib/apt/lists/*
+
 # Copy workspace manifests for dependency resolution
 COPY package.json bun.lock turbo.json ./
 
-# Narrow workspace to server + web app only
+# Narrow workspace to server + web app only.
+# 'configs' is deliberately NOT listed: it is a plain directory of shared config
+# files (vitest-warning-filter.ts), not a Bun workspace package — it has no
+# package.json and the root manifest never declares it. Bun <=1.2 silently
+# ignored the dangling entry; Bun >=1.3 hard-fails with
+# `error: Workspace not found "configs"`. The files still arrive via the
+# `COPY configs/ configs/` below; they just aren't a workspace.
 RUN node -e "\
   const fs=require('fs');\
   const p=JSON.parse(fs.readFileSync('package.json','utf8'));\
-  p.workspaces=['apps/server/*','apps/app','configs','packages/*'];\
+  p.workspaces=['apps/server/*','apps/app','packages/*'];\
   if(p.dependencies?.resend==='~6.9.3') p.dependencies.resend='6.9.3';\
   fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n');"
 
@@ -81,13 +102,28 @@ RUN set -e && \
     bun --filter @genfeedai/files build:prod & pid1=$! && \
     bun --filter @genfeedai/notifications build:prod & pid2=$! && \
     wait $pid1 $pid2
+# mcp is built here because selfhosted-entrypoint.sh starts it (MCP_PORT 3014,
+# proxying to the local api). Without this build the entrypoint would launch a
+# nonexistent bundle and the mcp tool surface would be silently dead. Kept on its
+# own serial RUN (like api/workers above) rather than folded into the parallel
+# files+notifications batch: that 2-way width is what the CI release publish runs
+# on a 7 GB ubuntu-latest runner, and a 3rd concurrent `nest build` risks OOM.
+RUN bun --filter @genfeedai/mcp build:prod
 
 # Copy and build Next.js web app
 COPY apps/app/ apps/app/
-ENV NEXT_PUBLIC_API_URL=/v1
-ENV NEXT_PUBLIC_API_ENDPOINT=http://localhost:3010/v1
-ENV NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3011
-ENV NEXT_PUBLIC_CDN_URL=http://localhost:3012
+# NEXT_PUBLIC_* are inlined into the Next.js bundle at build time, so they must be
+# build ARGs (overridable with --build-arg) — not just runtime ENV — for a
+# self-hoster behind a reverse proxy to point the web app at their own
+# API/WS/CDN origins. The defaults keep the zero-config localhost run working.
+ARG NEXT_PUBLIC_API_URL=/v1
+ARG NEXT_PUBLIC_API_ENDPOINT=http://localhost:3010/v1
+ARG NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3011
+ARG NEXT_PUBLIC_CDN_URL=http://localhost:3012
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_ENDPOINT=$NEXT_PUBLIC_API_ENDPOINT
+ENV NEXT_PUBLIC_WS_ENDPOINT=$NEXT_PUBLIC_WS_ENDPOINT
+ENV NEXT_PUBLIC_CDN_URL=$NEXT_PUBLIC_CDN_URL
 RUN bun --filter @genfeedai/app build
 
 # ==================================================
@@ -118,7 +154,8 @@ COPY --chown=appuser docker/selfhosted-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 VOLUME /data
-EXPOSE 3000 3010
+# 3000 web · 3010 api · 3014 mcp (started by the entrypoint, proxies to the api)
+EXPOSE 3000 3010 3014
 USER appuser
 
 ENTRYPOINT ["tini", "--", "/entrypoint.sh"]
