@@ -1,0 +1,30 @@
+# Hermetic docker build context.
+#
+# Both Dockerfile.selfhosted and Dockerfile.server rebuild every workspace
+# package from source inside the image (`bun --filter @genfeedai/<pkg> build`).
+# A clean CI checkout has no build artifacts (dist/, *.tsbuildinfo, node_modules
+# are all gitignored), so the in-image source builds are the source of truth.
+#
+# On a developer machine those artifacts DO exist on disk, and without this file
+# `COPY packages/ packages/` would drag stale host artifacts into the image,
+# diverging from CI. The concrete failure: @genfeedai/enums is a composite
+# `tsc --build` project whose buildinfo lives at packages/enums/tsconfig.tsbuildinfo
+# (outside dist/). A leaked, "up to date" buildinfo makes `tsc --build` skip the
+# dist emit, so @genfeedai/integrations' `references: [{ path: "../enums" }]`
+# resolves to a missing packages/enums/dist/index.d.ts and aborts with TS6305.
+# Excluding the artifacts below keeps the context identical to a fresh checkout.
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+**/*.tsbuildinfo
+
+# VCS metadata and local env / secrets must never enter the build context.
+.git
+.gitignore
+**/.env
+**/.env.*
+
+# Editor / OS cruft
+**/.DS_Store

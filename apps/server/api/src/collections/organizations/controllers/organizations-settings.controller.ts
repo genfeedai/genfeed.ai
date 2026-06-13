@@ -22,12 +22,15 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
-import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
 import { ByokProvider, MemberRole } from '@genfeedai/enums';
 import type {
   IByokProviderStatus,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
+import {
+  type ISubscriptionsService,
+  SUBSCRIPTIONS_SERVICE,
+} from '@genfeedai/interfaces/billing';
 import {
   DarkroomCapabilitiesSerializer,
   OrganizationSettingSerializer,
@@ -42,6 +45,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Param,
   ParseEnumPipe,
   Patch,
@@ -64,7 +68,8 @@ export class OrganizationsSettingsController {
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly brandsService: BrandsService,
     private readonly ingredientsService: IngredientsService,
-    private readonly subscriptionsService: SubscriptionsService,
+    @Inject(SUBSCRIPTIONS_SERVICE)
+    private readonly subscriptionsService: ISubscriptionsService,
     private readonly byokService: ByokService,
     private readonly fleetService: FleetService,
     private readonly configService: ConfigService,

@@ -45,6 +45,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      # Open-core boundary guard. The self-hosted image is the AGPL community build
+      # and must never re-couple to the commercial-licensed ee/ source. Comment
+      # prose may mention ee/ (the Dockerfile explains WHY it is excluded), so this
+      # only fails on ACTIVE directives — any non-comment line that names ee/packages,
+      # ee-billing, or ee-harness (a COPY, a workspace entry, a manifest path). Runs
+      # before the 30-min build so a re-coupling fails in seconds.
+      - name: Guard — no ee/ coupling in self-hosted build inputs
+        run: |
+          ACTIVE=$(grep -nE 'ee/packages|ee-billing|ee-harness' \
+            docker/Dockerfile.selfhosted docker/selfhosted-entrypoint.sh \
+            | grep -vE ':[[:space:]]*#' || true)
+          if [ -n "$ACTIVE" ]; then
+            echo "❌ Active ee/ reference in the community self-hosted build path:"
+            echo "$ACTIVE"
+            echo ""
+            echo "The self-hosted image must stay free of commercial-licensed ee/ source."
+            echo "The api resolves @billing-providers to the in-tree OSS fragment via the"
+            echo "webpack alias — no ee/packages/billing copy or workspace entry is needed."
+            exit 1
+          fi
+          echo "✅ no active ee/ reference in Dockerfile.selfhosted or entrypoint"
+
       - name: Log in to GHCR (for build cache)
         uses: docker/login-action@v4
         with:
@@ -99,6 +121,16 @@ jobs:
             # CA bundle — the exact thing whose absence broke the v0.1.x publish.
             test -f /etc/ssl/certs/ca-certificates.crt || { echo "❌ CA bundle missing"; exit 1; }
             echo "  ✅ CA bundle present"
+
+            # Open-core boundary — prove the built community image carries NO ee/
+            # source and no @genfeedai/ee-billing package. This is the runtime proof
+            # behind the static guard: even if a future COPY slipped ee/ in, the
+            # shipped image stays clean or this fails.
+            test ! -e /app/ee || { echo "❌ /app/ee present — community image must not ship ee/ source"; exit 1; }
+            if find /app/node_modules -maxdepth 4 -path "*@genfeedai/ee-billing*" 2>/dev/null | grep -q .; then
+              echo "❌ @genfeedai/ee-billing present in node_modules — ee/ leaked into the community image"; exit 1;
+            fi
+            echo "  ✅ no ee/ source or @genfeedai/ee-billing package in image"
 
             echo ""
             echo "Self-hosted image verified ✅"

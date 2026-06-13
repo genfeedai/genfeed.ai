@@ -26,11 +26,14 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
-import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { ConfigService } from '@api/config/config.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ByokService } from '@api/services/byok/byok.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
+import {
+  type ISubscriptionsService,
+  SUBSCRIPTIONS_SERVICE,
+} from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import axios from 'axios';
@@ -39,7 +42,7 @@ import type { Request } from 'express';
 describe('OrganizationsSettingsController', () => {
   let controller: OrganizationsSettingsController;
   let organizationSettingsService: OrganizationSettingsService;
-  let subscriptionsService: SubscriptionsService;
+  let subscriptionsService: ISubscriptionsService;
   let mockReq: Request;
 
   const mockOrganizationSettings = {
@@ -131,7 +134,7 @@ describe('OrganizationsSettingsController', () => {
           useValue: mockIngredientsService,
         },
         {
-          provide: SubscriptionsService,
+          provide: SUBSCRIPTIONS_SERVICE,
           useValue: mockSubscriptionsService,
         },
         {
@@ -158,8 +161,9 @@ describe('OrganizationsSettingsController', () => {
     organizationSettingsService = module.get<OrganizationSettingsService>(
       OrganizationSettingsService,
     );
-    subscriptionsService =
-      module.get<SubscriptionsService>(SubscriptionsService);
+    subscriptionsService = module.get<ISubscriptionsService>(
+      SUBSCRIPTIONS_SERVICE,
+    );
   });
 
   afterEach(() => {

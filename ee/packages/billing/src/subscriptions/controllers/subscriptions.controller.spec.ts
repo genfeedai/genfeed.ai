@@ -1,4 +1,5 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { ConfigService } from '@api/config/config.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { User } from '@clerk/backend';
@@ -121,12 +122,21 @@ describe('SubscriptionsController', () => {
         ...mockSubscription,
         priceId: 'price_new',
       };
+      const mockRequest = {
+        context: {
+          organizationId: mockUser.publicMetadata.organization as string,
+        },
+      } as RequestWithContext;
 
       mockSubscriptionsService.changeSubscriptionPlan.mockResolvedValue(
         updatedSubscription,
       );
 
-      const result = await controller.changePlan(mockUser, changeData);
+      const result = await controller.changePlan(
+        mockRequest,
+        mockUser,
+        changeData,
+      );
 
       expect(subscriptionsService.changeSubscriptionPlan).toHaveBeenCalledWith(
         mockUser.publicMetadata.organization,
