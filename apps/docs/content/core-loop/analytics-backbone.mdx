@@ -6,36 +6,36 @@ This page documents the OSS v1 analytics surface tracked by `#160`.
 
 The repo currently has these active OSS analytics-facing surfaces that matter for v1:
 
-- [`apps/server/api/src/app.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/app.module.ts)
+- [`apps/server/api/src/app.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/app.module.ts)
   - imports `PostsModule`
   - imports `ContentPerformanceModule`
   - imports `BusinessAnalyticsModule`
   - imports `AnalyticsModule`
 - Provider metric ingestion and publication analytics:
-  - [`apps/server/api/src/collections/posts/posts.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/posts/posts.module.ts)
-  - [`apps/server/api/src/collections/posts/controllers/analytics/posts-analytics.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/posts/controllers/analytics/posts-analytics.controller.ts)
-  - [`apps/server/api/src/collections/posts/services/post-analytics.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/posts/services/post-analytics.service.ts)
-  - [`apps/server/api/src/collections/posts/services/analytics-aggregation.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/posts/services/analytics-aggregation.service.ts)
+  - [`apps/server/api/src/collections/posts/posts.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/posts/posts.module.ts)
+  - [`apps/server/api/src/collections/posts/controllers/analytics/posts-analytics.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/posts/controllers/analytics/posts-analytics.controller.ts)
+  - [`apps/server/api/src/collections/posts/services/post-analytics.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/posts/services/post-analytics.service.ts)
+  - [`apps/server/api/src/collections/posts/services/analytics-aggregation.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/posts/services/analytics-aggregation.service.ts)
 - Brand-facing analytics rollups:
-  - [`apps/server/api/src/collections/brands/controllers/relationships/brands-relationships.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/brands/controllers/relationships/brands-relationships.controller.ts)
-  - [`apps/server/api/src/collections/posts/services/analytics-aggregation.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/posts/services/analytics-aggregation.service.ts)
+  - [`apps/server/api/src/collections/brands/controllers/relationships/brands-relationships.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/brands/controllers/relationships/brands-relationships.controller.ts)
+  - [`apps/server/api/src/collections/posts/services/analytics-aggregation.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/posts/services/analytics-aggregation.service.ts)
 - Content-performance feedback loop:
-  - [`apps/server/api/src/collections/content-performance/content-performance.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/content-performance/content-performance.module.ts)
-  - [`apps/server/api/src/collections/content-performance/controllers/performance-summary.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/content-performance/controllers/performance-summary.controller.ts)
-  - [`apps/server/api/src/collections/content-performance/services/performance-summary.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/content-performance/services/performance-summary.service.ts)
-  - [`apps/server/api/src/collections/content-performance/services/analytics-sync.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/content-performance/services/analytics-sync.service.ts)
+  - [`apps/server/api/src/collections/content-performance/content-performance.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/content-performance/content-performance.module.ts)
+  - [`apps/server/api/src/collections/content-performance/controllers/performance-summary.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/content-performance/controllers/performance-summary.controller.ts)
+  - [`apps/server/api/src/collections/content-performance/services/performance-summary.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/content-performance/services/performance-summary.service.ts)
+  - [`apps/server/api/src/collections/content-performance/services/analytics-sync.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/content-performance/services/analytics-sync.service.ts)
 - Collection-facing business analytics:
-  - [`apps/server/api/src/collections/business-analytics/business-analytics.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/business-analytics/business-analytics.module.ts)
-  - [`apps/server/api/src/collections/business-analytics/services/business-analytics.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/business-analytics/services/business-analytics.service.ts)
-  - [`apps/server/api/src/collections/business-analytics/controllers/business-analytics.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/business-analytics/controllers/business-analytics.controller.ts)
+  - [`apps/server/api/src/collections/business-analytics/business-analytics.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/business-analytics/business-analytics.module.ts)
+  - [`apps/server/api/src/collections/business-analytics/services/business-analytics.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/business-analytics/services/business-analytics.service.ts)
+  - [`apps/server/api/src/collections/business-analytics/controllers/business-analytics.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/business-analytics/controllers/business-analytics.controller.ts)
 - Endpoint-level organization and brand analytics:
-  - [`apps/server/api/src/endpoints/analytics/analytics.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/endpoints/analytics/analytics.module.ts)
-  - [`apps/server/api/src/endpoints/analytics/analytics.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/endpoints/analytics/analytics.service.ts)
-  - [`apps/server/api/src/endpoints/analytics/analytics.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/endpoints/analytics/analytics.controller.ts)
-  - [`apps/server/api/src/endpoints/analytics/business-analytics.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/endpoints/analytics/business-analytics.service.ts)
+  - [`apps/server/api/src/endpoints/analytics/analytics.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/endpoints/analytics/analytics.module.ts)
+  - [`apps/server/api/src/endpoints/analytics/analytics.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/endpoints/analytics/analytics.service.ts)
+  - [`apps/server/api/src/endpoints/analytics/analytics.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/endpoints/analytics/analytics.controller.ts)
+  - [`apps/server/api/src/endpoints/analytics/business-analytics.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/endpoints/analytics/business-analytics.service.ts)
 - Thin consumers of the same analytics services:
-  - [`apps/server/api/src/endpoints/mcp/mcp.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/endpoints/mcp/mcp.controller.ts)
-  - [`apps/server/api/src/collections/agent-goals/services/agent-goals.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/agent-goals/services/agent-goals.service.ts)
+  - [`apps/server/api/src/endpoints/mcp/mcp.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/endpoints/mcp/mcp.controller.ts)
+  - [`apps/server/api/src/collections/agent-goals/services/agent-goals.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/agent-goals/services/agent-goals.service.ts)
 
 ## Ownership Notes For V1
 
@@ -128,7 +128,7 @@ flowchart LR
 
 The narrow business-analytics verification path for v1 is in:
 
-- [`apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts)
+- [`apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts)
 
 The smoke test proves that representative aggregate inputs are converted into a complete dashboard response with:
 
@@ -143,7 +143,7 @@ That is enough to show the ingestion-to-dashboard contract is still wired withou
 
 The provider-ingestion smoke path for v1 is in:
 
-- [`apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts)
+- [`apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts)
 
 It verifies the representative media analytics path:
 

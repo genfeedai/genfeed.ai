@@ -6,22 +6,22 @@ This page documents the V1 simplification target tracked by `#187`.
 
 The repo has a real agent runtime, but the ownership model is hard to read because several modules still look like competing orchestrators:
 
-- [`apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts)
+- [`apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts)
   - owns the chat entrypoint, tool loop, model selection, stream start, and credit checks
   - imports a broad graph of collections, integrations, workflow modules, and agent helpers through `forwardRef`
-- [`apps/server/api/src/services/agent-threading/agent-threading.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/agent-threading/agent-threading.module.ts)
+- [`apps/server/api/src/services/agent-threading/agent-threading.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/agent-threading/agent-threading.module.ts)
   - owns the event log, projected thread snapshot, runtime session binding, input requests, and per-thread execution lane
-- [`apps/server/api/src/services/agent-spawn/agent-spawn.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/agent-spawn/agent-spawn.module.ts)
+- [`apps/server/api/src/services/agent-spawn/agent-spawn.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/agent-spawn/agent-spawn.module.ts)
   - delegates work to sub-agents by reaching back into the main orchestrator
-- [`apps/server/api/src/services/agent-campaign/agent-campaign-orchestrator.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/agent-campaign/agent-campaign-orchestrator.module.ts)
+- [`apps/server/api/src/services/agent-campaign/agent-campaign-orchestrator.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/agent-campaign/agent-campaign-orchestrator.module.ts)
   - owns recurring campaign queues, trigger evaluation, campaign memory extraction, and an older `ContentEngineService`
-- [`apps/server/api/src/services/content-engine/content-engine.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/content-engine/content-engine.module.ts)
+- [`apps/server/api/src/services/content-engine/content-engine.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/content-engine/content-engine.module.ts)
   - owns content plans, drafts, execution, review, and skill-driven content work
-- [`apps/server/api/src/services/content-orchestration/content-orchestration.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/content-orchestration/content-orchestration.module.ts)
+- [`apps/server/api/src/services/content-orchestration/content-orchestration.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/content-orchestration/content-orchestration.module.ts)
   - owns deterministic media pipeline execution and queueing
-- [`apps/server/api/src/services/workflow-executor/workflow-executor.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/workflow-executor/workflow-executor.module.ts)
+- [`apps/server/api/src/services/workflow-executor/workflow-executor.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/workflow-executor/workflow-executor.module.ts)
   - owns older workflow processors for persona media, sound overlay, and trend inspiration
-- [`apps/server/api/src/services/skill-executor/skill-executor.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/skill-executor/skill-executor.module.ts)
+- [`apps/server/api/src/services/skill-executor/skill-executor.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/skill-executor/skill-executor.module.ts)
   - owns deterministic skill handlers for trend discovery, content writing, and image generation
 
 The pain is not that these modules exist. The pain is that their names and dependencies make it unclear which layer is allowed to own long-running agent state, which layer owns deterministic execution, and which layer is just scheduling or adaptation.

@@ -6,18 +6,18 @@ This page documents the OSS v1 trend-ingestion surface tracked by `#159`.
 
 The current repo has a real Step 1 ingestion path, not a placeholder:
 
-- [`apps/server/api/src/app.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/app.module.ts)
+- [`apps/server/api/src/app.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/app.module.ts)
   - imports `TrendsModule`
   - imports `TwitterPipelineModule`
-- [`apps/server/api/src/collections/trends/trends.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/trends/trends.module.ts)
+- [`apps/server/api/src/collections/trends/trends.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/trends/trends.module.ts)
   - owns the `Trend`, `TrendingVideo`, `TrendingHashtag`, `TrendingSound`, and reference schemas
   - wires `TrendFetchService`, `TrendFilteringService`, `TrendAnalysisService`, `TrendContentIdeasService`, `TrendVideoService`, `TrendReferenceCorpusService`, and `TrendsService`
-- [`apps/server/api/src/collections/trends/services/trends.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/trends/services/trends.service.ts)
+- [`apps/server/api/src/collections/trends/services/trends.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/trends/services/trends.service.ts)
   - provides the canonical cached/live-fetch read path
   - hydrates source previews
   - syncs trend references
   - invalidates trend-content cache after fetch
-- [`apps/server/api/src/services/twitter-pipeline/twitter-pipeline.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/twitter-pipeline/twitter-pipeline.service.ts)
+- [`apps/server/api/src/services/twitter-pipeline/twitter-pipeline.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/twitter-pipeline/twitter-pipeline.service.ts)
   - provides a focused Twitter-specific search -> draft -> publish path used by the broader trend workflow
 
 ## Stable OSS Surface
@@ -141,8 +141,8 @@ flowchart LR
 
 The narrow Step 1 verification paths for v1 are in:
 
-- [`apps/server/api/src/collections/trends/services/trends.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/trends/services/trends.service.spec.ts)
-- [`apps/server/api/src/collections/trends/services/modules/trend-fetch.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/collections/trends/services/modules/trend-fetch.service.spec.ts)
+- [`apps/server/api/src/collections/trends/services/trends.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/trends/services/trends.service.spec.ts)
+- [`apps/server/api/src/collections/trends/services/modules/trend-fetch.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/trends/services/modules/trend-fetch.service.spec.ts)
 
 The orchestrator smoke test proves the cache-miss path is wired:
 

@@ -6,29 +6,29 @@ This page documents the OSS v1 generation surface tracked by `#161`.
 
 The generation story in the current repo spans a small set of stable entrypoints plus provider packages:
 
-- [`apps/server/api/src/app.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/app.module.ts)
+- [`apps/server/api/src/app.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/app.module.ts)
   - imports `BatchGenerationModule`
   - imports the provider-facing integration modules used by generation flows
-- [`apps/server/api/src/services/batch-generation/batch-generation.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/batch-generation/batch-generation.module.ts)
+- [`apps/server/api/src/services/batch-generation/batch-generation.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/batch-generation/batch-generation.module.ts)
   - owns the batch-generation controller/service pair
   - persists batch jobs on the cloud connection
-- [`apps/server/api/src/services/batch-generation/batch-generation.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/batch-generation/batch-generation.controller.ts)
+- [`apps/server/api/src/services/batch-generation/batch-generation.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/batch-generation/batch-generation.controller.ts)
   - exposes the stable batch entrypoints under `batches`
   - routes create/process/review operations into the service layer
-- [`apps/server/api/src/services/batch-generation/batch-generation.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/batch-generation/batch-generation.service.ts)
+- [`apps/server/api/src/services/batch-generation/batch-generation.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/batch-generation/batch-generation.service.ts)
   - builds batch plans
   - delegates actual generation to `ContentGeneratorService`
-- [`packages/tools/src/registry/source.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/packages/tools/src/registry/source.ts)
+- [`packages/tools/src/registry/source.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/tools/src/registry/source.ts)
   - defines the canonical agent-visible generation tools
-- [`packages/tools/src/registry/tool-registry.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/packages/tools/src/registry/tool-registry.ts)
+- [`packages/tools/src/registry/tool-registry.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/tools/src/registry/tool-registry.ts)
   - assigns generation tool categories and UI action cards
-- [`apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts)
+- [`apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts)
   - dispatches generation tools to the internal media APIs
-- [`packages/services/ai/enhanced-models.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/packages/services/ai/enhanced-models.service.ts)
+- [`packages/services/ai/enhanced-models.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/services/ai/enhanced-models.service.ts)
   - merges base catalog models with provider-discovered models
 - Provider packages:
-  - [`packages/services/ai/providers/fal/fal-provider.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/packages/services/ai/providers/fal/fal-provider.service.ts)
-  - [`packages/services/ai/providers/huggingface/huggingface-provider.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/packages/services/ai/providers/huggingface/huggingface-provider.service.ts)
+  - [`packages/services/ai/providers/fal/fal-provider.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/services/ai/providers/fal/fal-provider.service.ts)
+  - [`packages/services/ai/providers/huggingface/huggingface-provider.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/services/ai/providers/huggingface/huggingface-provider.service.ts)
 
 ## Stable Generation Surface
 
@@ -83,7 +83,7 @@ flowchart LR
 
 The representative media verification path for v1 is in:
 
-- [`apps/server/api/src/services/skill-executor/stable-provider-path.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/develop/apps/server/api/src/services/skill-executor/stable-provider-path.spec.ts)
+- [`apps/server/api/src/services/skill-executor/stable-provider-path.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/skill-executor/stable-provider-path.spec.ts)
 
 The test uses mocked provider services so it can run in CI without live credentials, but it keeps the production service wiring:
 
