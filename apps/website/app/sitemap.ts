@@ -70,19 +70,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       lastModified: new Date(),
       priority: 0.8,
-      url: 'https://genfeed.ai/creators',
+      url: 'https://genfeed.ai/use-cases/creators',
     },
     {
       changeFrequency: 'weekly',
       lastModified: new Date(),
       priority: 0.8,
-      url: 'https://genfeed.ai/agencies',
+      url: 'https://genfeed.ai/use-cases/agencies',
     },
     {
       changeFrequency: 'weekly',
       lastModified: new Date(),
       priority: 0.9,
-      url: 'https://genfeed.ai/influencers',
+      url: 'https://genfeed.ai/use-cases/ai-influencers',
     },
     {
       changeFrequency: 'weekly',

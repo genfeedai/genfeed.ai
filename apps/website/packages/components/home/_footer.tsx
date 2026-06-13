@@ -15,9 +15,9 @@ const WEBSITE_SECTIONS: FooterSection[] = [
   },
   {
     links: [
-      { href: '/creators', label: 'For Creators' },
-      { href: '/agencies', label: 'For Agencies' },
-      { href: '/influencers', label: 'AI Influencers' },
+      { href: '/use-cases/creators', label: 'For Creators' },
+      { href: '/use-cases/agencies', label: 'For Agencies' },
+      { href: '/use-cases/ai-influencers', label: 'AI Influencers' },
       { href: '/pricing', label: 'Pricing' },
       { href: 'https://github.com/genfeedai/genfeed.ai', label: 'GitHub' },
     ],
