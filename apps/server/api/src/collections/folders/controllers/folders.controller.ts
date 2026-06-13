@@ -71,21 +71,24 @@ export class FoldersController extends BaseCRUDController<
    * - If brand query param: org folders without brand + brand folders
    * - If organization query param (no brand): org folders
    * - Default: user folders + organization folders
+   *
+   * The OR branches are built with scalar foreign-key fields (`brandId`,
+   * `organizationId`, `userId`) rather than Prisma relation accessors
+   * (`brand`, `organization`, `user`). Relation accessors expect a nested
+   * filter object, so emitting `{ brand: null }` reached Prisma as an invalid
+   * relation filter and crashed list queries in production (#565). Scalar FKs
+   * keep this query valid at the source, independent of downstream normalization.
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const publicMetadata = getPublicMetadata(user);
     const organizationId = publicMetadata.organization;
 
     // Check if brand or organization query params are provided
-    const brandId = (query as unknown as Record<string, string | undefined>)
-      .brand
-      ? (query as unknown as Record<string, string | undefined>).brand
-      : null;
-    const queryOrganizationId = (
-      query as unknown as Record<string, string | undefined>
-    ).organization
-      ? (query as unknown as Record<string, string | undefined>).organization
-      : null;
+    const requestedBrandId =
+      (query as unknown as Record<string, string | undefined>).brand || null;
+    const requestedOrganizationId =
+      (query as unknown as Record<string, string | undefined>).organization ||
+      null;
 
     const matchStage: Record<string, unknown> & {
       OR?: Array<Record<string, unknown>>;
@@ -93,24 +96,21 @@ export class FoldersController extends BaseCRUDController<
       isDeleted: query.isDeleted ?? false,
     };
 
-    if (brandId) {
+    if (requestedBrandId) {
       // Brand context: show organization folders without brand + brand folders.
       matchStage.OR = [
         {
-          brand: null,
-          organization: queryOrganizationId || organizationId,
+          brandId: null,
+          organizationId: requestedOrganizationId || organizationId,
         }, // Organization folders without brand
-        { brand: brandId }, // Brand folders
+        { brandId: requestedBrandId }, // Brand folders
       ];
-    } else if (queryOrganizationId) {
+    } else if (requestedOrganizationId) {
       // Organization context (no brand): show organization folders.
-      matchStage.OR = [{ organization: queryOrganizationId }];
+      matchStage.OR = [{ organizationId: requestedOrganizationId }];
     } else {
       // Default: user folders + organization folders
-      matchStage.OR = [
-        { user: publicMetadata.user },
-        { organization: organizationId },
-      ];
+      matchStage.OR = [{ userId: publicMetadata.user }, { organizationId }];
     }
 
     return { where: matchStage, orderBy: { createdAt: -1, label: 1 } };
