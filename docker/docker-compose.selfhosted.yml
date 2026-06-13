@@ -17,13 +17,17 @@ services:
       start_period: 30s
 
   genfeed:
-    image: ghcr.io/genfeedai/genfeed.ai:latest
+    # Default :latest for real self-host users. The release E2E workflow overrides
+    # GENFEED_IMAGE_TAG to pin the exact published tag under test.
+    image: ghcr.io/genfeedai/genfeed.ai:${GENFEED_IMAGE_TAG:-latest}
     depends_on:
       postgres:
         condition: service_healthy
     ports:
-      - "${SELFHOSTED_APP_PORT:-3000}:${SELFHOSTED_APP_PORT:-3000}"  # Web UI
-      - "${SELFHOSTED_API_PORT:-3010}:${SELFHOSTED_API_PORT:-3010}"  # API
+      # Host side overridable; container side is FIXED — the entrypoint always
+      # starts the app on 3000 and the API on 3010 regardless of these vars.
+      - "${SELFHOSTED_APP_PORT:-3000}:3000"  # Web UI
+      - "${SELFHOSTED_API_PORT:-3010}:3010"  # API
     volumes:
       - genfeed_data:/data
 

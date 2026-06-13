@@ -1,0 +1,215 @@
+name: Self-Hosted Release E2E
+
+# Tests the RELEASED self-hosted image — the exact artifact users `docker run`,
+# produced by "Docker Publish (Self-Hosted)" on release (ghcr :latest). Boots it
+# against a throwaway Postgres in LOCAL mode (no Clerk, no secrets), then drives
+# Playwright critical-path specs through the live API + frontend + DB stack.
+#
+# This is the only suite that proves real API ↔ frontend ↔ Postgres integration.
+# The weekly e2e.yml runs the frontend against a MOCKED backend; this runs the
+# shipped container end to end.
+
+on:
+  # Run right after a publish so :latest is the freshly-released artifact.
+  workflow_run:
+    workflows: ["Docker Publish (Self-Hosted)"]
+    types: [completed]
+  # Every 3 days, 05:23 UTC (off-:00 hygiene; */3 resets at month boundaries).
+  schedule:
+    - cron: "23 5 */3 * *"
+  # Manual / CI dry-run against an explicit tag.
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Published image tag to test (e.g. latest, v0.1.2)"
+        required: false
+        default: "latest"
+
+concurrency:
+  group: e2e-selfhosted-release
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: read
+  issues: write
+
+env:
+  COMPOSE_FILE: docker/docker-compose.selfhosted.yml
+  # workflow_dispatch supplies image_tag; schedule/workflow_run fall back to latest.
+  IMAGE_TAG: ${{ github.event.inputs.image_tag || 'latest' }}
+  APP_BASE_URL: http://localhost:3000
+  API_BASE_URL: http://localhost:3010
+
+jobs:
+  release-e2e:
+    name: Release E2E (LOCAL mode)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # On a workflow_run trigger, only proceed if the publish actually succeeded.
+    # schedule / workflow_dispatch always proceed.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Boot released image + Postgres
+        run: |
+          echo "Testing image tag: ${IMAGE_TAG}"
+          GENFEED_IMAGE_TAG="${IMAGE_TAG}" docker compose -f "${COMPOSE_FILE}" up -d --quiet-pull
+
+      # Readiness gate — the #1 false-green risk. Migrate + seed run async on
+      # boot, so liveness can be green before the DB is usable. Fail loud on
+      # timeout; never let the specs run against a half-booted stack.
+      - name: Readiness — stage 1 (liveness, <=120s)
+        run: |
+          deadline=$((SECONDS + 120))
+          until curl -fsS "${API_BASE_URL}/v1/health/ready" >/dev/null \
+             && curl -fsS "${APP_BASE_URL}/playwright-ready" >/dev/null; do
+            if (( SECONDS >= deadline )); then
+              echo "::error::Liveness gate timed out after 120s — processes not answering"
+              exit 1
+            fi
+            sleep 3
+          done
+          echo "Liveness OK — API + app processes answering."
+
+      - name: Readiness — stage 2 (DB + seed + auth gate, <=180s)
+        run: |
+          # Poll bootstrap until it returns the SEEDED admin. This drives
+          # LOCAL-mode auth injection -> Prisma -> SelfHostedSeedService rows,
+          # so it only greens once DB + migrations + seed + auth are ALL live.
+          deadline=$((SECONDS + 180))
+          until curl -fsS "${API_BASE_URL}/v1/auth/bootstrap" | grep -q 'admin@localhost'; do
+            if (( SECONDS >= deadline )); then
+              echo "::error::Bootstrap/seed gate timed out after 180s — DB + migrate + seed + auth not all ready"
+              exit 1
+            fi
+            sleep 3
+          done
+          echo "Bootstrap + seed OK — seeded admin@localhost reachable."
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: "1.3.14"
+          install-command: "bun install"
+          cache-playwright: "true"
+
+      - name: Run release E2E specs
+        run: bun run test:e2e:release
+        env:
+          CI: true
+
+      - name: Dump container logs (on failure)
+        if: failure()
+        run: |
+          docker compose -f "${COMPOSE_FILE}" logs --no-color > compose-logs.txt 2>&1 || true
+          echo "===== compose logs (tail) ====="
+          tail -n 200 compose-logs.txt || true
+
+      - name: Upload container logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-e2e-compose-logs
+          path: compose-logs.txt
+          retention-days: 14
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-e2e-playwright-report
+          path: playwright/artifacts/report/
+          retention-days: 14
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose -f "${COMPOSE_FILE}" down -v
+
+  # File a deduped tracking issue when the release E2E fails, so a broken
+  # shipped image is visible without watching the Actions tab.
+  report-failure:
+    name: Report failure
+    runs-on: ubuntu-latest
+    needs: [release-e2e]
+    if: failure()
+    steps:
+      - name: Open or update tracking issue
+        uses: actions/github-script@v8
+        env:
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+        with:
+          script: |
+            const label = 'release-e2e';
+            const imageTag = process.env.IMAGE_TAG || 'latest';
+            const date = new Date().toISOString().slice(0, 10);
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              `**Self-hosted release E2E failed** on \`${date}\`.`,
+              ``,
+              `- Image tag under test: \`ghcr.io/genfeedai/genfeed.ai:${imageTag}\``,
+              `- Failed run: ${runUrl}`,
+              `- Artifacts: \`release-e2e-playwright-report\`, \`release-e2e-compose-logs\``,
+              ``,
+              `This means the shipped container does not boot + serve cleanly in LOCAL mode.`,
+              `Triage to **P0 status** on the project board (P0 is a status, not a label).`,
+            ].join('\n');
+
+            // Dedupe: comment on the existing open issue if one exists.
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: label,
+              per_page: 1,
+            });
+
+            if (existing.data.length > 0) {
+              const number = existing.data[0].number;
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: number,
+                body,
+              });
+              core.info(`Commented on existing issue #${number}`);
+              return;
+            }
+
+            // Ensure the label exists before creating the issue.
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label,
+              });
+            } catch (error) {
+              if (error.status === 404) {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label,
+                  color: 'b60205',
+                  description: 'Self-hosted release E2E failures',
+                });
+              } else {
+                throw error;
+              }
+            }
+
+            const created = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚦 Self-hosted release E2E failed — ${date}`,
+              body,
+              labels: [label],
+            });
+            core.info(`Created issue #${created.data.number}`);

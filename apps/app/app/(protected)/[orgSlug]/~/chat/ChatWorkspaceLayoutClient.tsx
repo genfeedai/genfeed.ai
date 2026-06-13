@@ -34,9 +34,7 @@ import { ChatWorkspaceContext } from './chat-workspace-context';
 
 const UNSET_THREAD_BASELINE = Symbol('chat-new-route-baseline');
 
-function ChatWorkspaceLayoutClientContent({
-  children,
-}: PropsWithChildren): JSX.Element {
+function ChatWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
   const rawPathname = usePathname();
   const pathname = useMemo(
     () => normalizeProtectedPathname(rawPathname),
@@ -233,9 +231,7 @@ function ChatWorkspaceLayoutClientContent({
   );
 }
 
-export function ChatWorkspaceLayoutClient({
-  children,
-}: PropsWithChildren): JSX.Element {
+export function ChatWorkspaceLayoutClient({ children }: PropsWithChildren) {
   return (
     <Suspense fallback={null}>
       <ChatWorkspaceLayoutClientContent>

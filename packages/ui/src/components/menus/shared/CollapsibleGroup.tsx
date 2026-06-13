@@ -5,10 +5,11 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 
 import { Button } from '@ui/primitives/button';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 import { HiChevronDown } from 'react-icons/hi2';
 
 const COLLAPSED_GROUPS_KEY = 'genfeed:sidebar:collapsed';
+const COLLAPSED_GROUPS_CHANGED_EVENT = 'genfeed:sidebar:collapsed-changed';
 
 function getCollapsedGroups(): Set<string> {
   if (typeof window === 'undefined') {
@@ -25,9 +26,34 @@ function getCollapsedGroups(): Set<string> {
 function persistCollapsedGroups(groups: Set<string>): void {
   try {
     localStorage.setItem(COLLAPSED_GROUPS_KEY, JSON.stringify([...groups]));
+    window.dispatchEvent(new Event(COLLAPSED_GROUPS_CHANGED_EVENT));
   } catch {
     // Silently ignore localStorage errors
   }
+}
+
+function subscribeCollapsedGroups(onStoreChange: () => void): () => void {
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+
+  const handleLocalChange = () => onStoreChange();
+  const handleStorageChange = (event: StorageEvent) => {
+    if (event.key === COLLAPSED_GROUPS_KEY) {
+      onStoreChange();
+    }
+  };
+
+  window.addEventListener(COLLAPSED_GROUPS_CHANGED_EVENT, handleLocalChange);
+  window.addEventListener('storage', handleStorageChange);
+
+  return () => {
+    window.removeEventListener(
+      COLLAPSED_GROUPS_CHANGED_EVENT,
+      handleLocalChange,
+    );
+    window.removeEventListener('storage', handleStorageChange);
+  };
 }
 
 /** Collapsible group with label header and toggle */
@@ -53,29 +79,23 @@ export default function CollapsibleGroup({
   onCollapsedChange?: (isCollapsed: boolean) => void;
 }) {
   const key = storageKey ?? label;
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  useEffect(() => {
-    const collapsed = getCollapsedGroups().has(key);
-    if (collapsed) {
-      setIsCollapsed(true);
-    }
-  }, [key]);
+  const isCollapsed = useSyncExternalStore(
+    subscribeCollapsedGroups,
+    () => getCollapsedGroups().has(key),
+    () => false,
+  );
 
   const toggleMenuShared = useCallback(() => {
-    setIsCollapsed((prev) => {
-      const next = !prev;
-      const groups = getCollapsedGroups();
-      if (next) {
-        groups.add(key);
-      } else {
-        groups.delete(key);
-      }
-      persistCollapsedGroups(groups);
-      onCollapsedChange?.(next);
-      return next;
-    });
-  }, [key, onCollapsedChange]);
+    const next = !isCollapsed;
+    const groups = getCollapsedGroups();
+    if (next) {
+      groups.add(key);
+    } else {
+      groups.delete(key);
+    }
+    persistCollapsedGroups(groups);
+    onCollapsedChange?.(next);
+  }, [isCollapsed, key, onCollapsedChange]);
 
   // DrillDown groups render their own row — no separate label needed
   if (isDrillDown) {

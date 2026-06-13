@@ -13,6 +13,21 @@ function enterpriseBillingUnavailable(): never {
   );
 }
 
+/**
+ * OSS no-op implementation of {@link ISubscriptionsService}.
+ *
+ * Bound to the `SUBSCRIPTIONS_SERVICE` token when no enterprise license is
+ * present. Two behavioural rules, enforced by the contract docs:
+ *
+ * - **Always-on webhook paths** (`findOne`, `patch`, `findByStripeCustomerId`,
+ *   `syncWithStripe`, `syncSubscriptionToClerkMetadata`, `findAll`,
+ *   `findByOrganizationId`) return domain-safe values and NEVER throw — the
+ *   Stripe webhook fires continuously and a throw would 500 it on a
+ *   self-hosted install that never provisioned billing.
+ * - **User-initiated billing** (`createForOrganization`) THROWS
+ *   `ForbiddenException` — surfacing "billing unavailable" to a user clicking
+ *   subscribe is correct; fabricating a record would be a lie.
+ */
 @Injectable()
 export class OssSubscriptionsService implements ISubscriptionsService {
   async findOne(
@@ -28,31 +43,37 @@ export class OssSubscriptionsService implements ISubscriptionsService {
   }
 
   async findAll(
-    _pipeline: unknown[],
+    _input: unknown,
     _options: ISubscriptionFindAllOptions,
+    _enableCache?: boolean,
   ): Promise<ISubscriptionFindAllResult> {
-    return { total: 0 };
+    return { docs: [], total: 0 };
+  }
+
+  async patch(
+    _id: string,
+    _data: unknown,
+  ): Promise<ISubscriptionOssReadModel | null> {
+    return null;
+  }
+
+  async findByStripeCustomerId(
+    _stripeCustomerId: string,
+  ): Promise<ISubscriptionOssReadModel | null> {
+    return null;
+  }
+
+  async syncWithStripe(
+    subscription: ISubscriptionOssReadModel,
+  ): Promise<ISubscriptionOssReadModel> {
+    return subscription;
   }
 
   async createForOrganization(
     _organization: unknown,
     _billingEmail: string,
     _userId: string,
-  ): Promise<never> {
-    return enterpriseBillingUnavailable();
-  }
-
-  async changeSubscriptionPlan(
-    _organizationId: string,
-    _newPriceId: string,
-  ): Promise<never> {
-    return enterpriseBillingUnavailable();
-  }
-
-  async previewSubscriptionChange(
-    _organizationId: string,
-    _newPriceId: string,
-  ): Promise<never> {
+  ): Promise<ISubscriptionOssReadModel> {
     return enterpriseBillingUnavailable();
   }
 

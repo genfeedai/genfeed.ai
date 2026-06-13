@@ -79,6 +79,7 @@ function ElementsProviderContent({
     userId: null,
   });
 
+  /* eslint-disable react-doctor/no-adjust-state-on-prop-change -- Async provider resource loading updates state from fetch lifecycle callbacks, not prop mirroring. */
   const findAllElements = useCallback(async () => {
     if (!isSignedIn || !enabled) {
       return;
@@ -132,6 +133,7 @@ function ElementsProviderContent({
       setIsLoading(false);
     }
   }, [isSignedIn, enabled, findAllElementsService, userId, orgId, sessionId]);
+  /* eslint-enable react-doctor/no-adjust-state-on-prop-change */
 
   useEffect(() => {
     if (!isAuthLoaded || !enabled) {
@@ -139,23 +141,13 @@ function ElementsProviderContent({
     }
 
     if (!isSignedIn) {
-      setMoods([]);
-      setStyles([]);
-      setCameras([]);
-      setBlacklists([]);
-      setSounds([]);
-      setScenes([]);
-      setLightings([]);
-      setLenses([]);
-      setCameraMovements([]);
       lastSessionRef.current = {
         orgId: null,
         sessionId: null,
         userId: null,
       };
       isLoadingRef.current = false;
-      setIsLoading(false);
-      return setError(null);
+      return;
     }
     const sessionChanged =
       lastSessionRef.current.userId !== (userId ?? null) ||
@@ -174,6 +166,10 @@ function ElementsProviderContent({
     sessionId,
     findAllElements,
   ]);
+
+  const hasActiveSession = enabled && isSignedIn;
+  const exposedIsLoading =
+    enabled && !isAuthLoaded ? true : hasActiveSession ? isLoading : false;
 
   const refetch = useCallback(async () => {
     setIsRefreshing(true);
@@ -207,25 +203,25 @@ function ElementsProviderContent({
   }, []);
 
   const value: ElementsContextValue = {
-    blacklists,
-    cameraMovements,
-    cameras,
-    error,
+    blacklists: hasActiveSession ? blacklists : [],
+    cameraMovements: hasActiveSession ? cameraMovements : [],
+    cameras: hasActiveSession ? cameras : [],
+    error: hasActiveSession ? error : null,
     filters,
-    isLoading,
+    isLoading: exposedIsLoading,
     isRefreshing,
-    lenses,
-    lightings,
-    moods,
+    lenses: hasActiveSession ? lenses : [],
+    lightings: hasActiveSession ? lightings : [],
+    moods: hasActiveSession ? moods : [],
     onRefresh,
     query,
     refetch,
-    scenes,
+    scenes: hasActiveSession ? scenes : [],
     setFilters,
     setIsRefreshing,
     setQuery,
-    sounds,
-    styles,
+    sounds: hasActiveSession ? sounds : [],
+    styles: hasActiveSession ? styles : [],
   };
 
   return (

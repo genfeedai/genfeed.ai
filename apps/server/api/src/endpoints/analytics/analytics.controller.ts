@@ -44,13 +44,16 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import type { User } from '@clerk/backend';
-import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
 import {
   CredentialPlatform,
   IngredientCategory,
   PostStatus,
   WorkflowStatus,
 } from '@genfeedai/enums';
+import {
+  type ISubscriptionsService,
+  SUBSCRIPTIONS_SERVICE,
+} from '@genfeedai/interfaces/billing';
 import {
   AnalyticSerializer,
   AnalyticsBrandLeaderboardSerializer,
@@ -73,6 +76,7 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  Inject,
   Query,
   Req,
   Res,
@@ -118,7 +122,8 @@ export class AnalyticsController {
     private readonly modelsService: ModelsService,
     private readonly organizationsService: OrganizationsService,
     private readonly postsService: PostsService,
-    private readonly subscriptionsService: SubscriptionsService,
+    @Inject(SUBSCRIPTIONS_SERVICE)
+    private readonly subscriptionsService: ISubscriptionsService,
     private readonly usersService: UsersService,
     private readonly workflowsService: WorkflowsService,
     private readonly tiktokService: TiktokService,

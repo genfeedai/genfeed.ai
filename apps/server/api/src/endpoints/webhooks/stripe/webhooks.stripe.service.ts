@@ -4,8 +4,6 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { SubscriptionEntity } from '@api/collections/subscriptions/entities/subscription.entity';
-import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -31,9 +29,6 @@ import {
 } from '@api/services/integrations/stripe/stripe.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
-import { SubscriptionAttributionsService } from '@genfeedai/ee-billing/subscription-attributions';
-import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
-import { UserSubscriptionsService } from '@genfeedai/ee-billing/user-subscriptions';
 import {
   ActivityKey,
   ActivitySource,
@@ -44,8 +39,18 @@ import {
   SubscriptionStatus,
   SubscriptionTier,
 } from '@genfeedai/enums';
+import {
+  type ISubscriptionAttributionsService,
+  type ISubscriptionOssReadModel,
+  type ISubscriptionsService,
+  type IUserSubscriptionsService,
+  SUBSCRIPTION_ATTRIBUTIONS_SERVICE,
+  SUBSCRIPTIONS_SERVICE,
+  type SubscriptionRefId,
+  USER_SUBSCRIPTIONS_SERVICE,
+} from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { nanoid } from 'nanoid';
 
 type StripeEvent = {
@@ -65,7 +70,8 @@ export class StripeWebhookService {
 
     private readonly apiKeysService: ApiKeysService,
     private readonly brandsService: BrandsService,
-    private readonly subscriptionsService: SubscriptionsService,
+    @Inject(SUBSCRIPTIONS_SERVICE)
+    private readonly subscriptionsService: ISubscriptionsService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly activitiesService: ActivitiesService,
     private readonly usersService: UsersService,
@@ -73,8 +79,10 @@ export class StripeWebhookService {
     private readonly stripeService: StripeService,
     private readonly managedStripeCheckoutService: ManagedStripeCheckoutService,
     private readonly organizationsService: OrganizationsService,
-    private readonly subscriptionAttributionsService: SubscriptionAttributionsService,
-    private readonly userSubscriptionsService: UserSubscriptionsService,
+    @Inject(SUBSCRIPTION_ATTRIBUTIONS_SERVICE)
+    private readonly subscriptionAttributionsService: ISubscriptionAttributionsService,
+    @Inject(USER_SUBSCRIPTIONS_SERVICE)
+    private readonly userSubscriptionsService: IUserSubscriptionsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly prisma: PrismaService,
     private readonly requestContextCacheService: RequestContextCacheService,
@@ -183,17 +191,17 @@ export class StripeWebhookService {
       const currentPeriodEnd = subscription.items.data[0]?.current_period_end;
 
       // Update subscription in our database
-      const subscriptionData = new SubscriptionEntity({
+      const subscriptionData = {
         cancelAtPeriodEnd: subscription.cancel_at_period_end,
         currentPeriodEnd: currentPeriodEnd && new Date(currentPeriodEnd * 1000),
         status: subscription.status as SubscriptionStatus,
         stripePriceId: subscription.items.data[0].price.id,
         stripeSubscriptionId: subscription.id,
         type: subscriptionType,
-      });
+      };
 
       const updatedSubscription = await this.subscriptionsService.patch(
-        existingSubscription._id.toString(),
+        String(existingSubscription._id),
         subscriptionData,
       );
 
@@ -209,7 +217,7 @@ export class StripeWebhookService {
       const tier = this.resolveTierFromPriceId(stripePriceId);
       if (tier) {
         await this.updateOrganizationTierAndModels(
-          existingSubscription.organization.toString(),
+          String(existingSubscription.organization),
           tier,
           url,
         );
@@ -264,7 +272,7 @@ export class StripeWebhookService {
       };
 
       const updatedSubscription = await this.subscriptionsService.patch(
-        existingSubscription._id,
+        String(existingSubscription._id),
         updateData,
       );
 
@@ -304,7 +312,7 @@ export class StripeWebhookService {
         const tier = this.resolveTierFromPriceId(newPriceId);
         if (tier) {
           await this.updateOrganizationTierAndModels(
-            existingSubscription.organization.toString(),
+            String(existingSubscription.organization),
             tier,
             url,
           );
@@ -344,7 +352,7 @@ export class StripeWebhookService {
 
       // Soft delete subscription and update cancellation details
       const updatedSubscription = await this.subscriptionsService.patch(
-        existingSubscription._id.toString(),
+        String(existingSubscription._id),
         {
           cancelAtPeriodEnd: subscription.cancel_at_period_end,
           isDeleted: true,
@@ -355,7 +363,7 @@ export class StripeWebhookService {
       // If subscription was canceled immediately (not at period end), remove all credits
       if (!subscription.cancel_at_period_end) {
         await this.creditsUtilsService.removeAllOrganizationCredits(
-          existingSubscription.organization.toString(),
+          String(existingSubscription.organization),
           'subscription_canceled',
           'All credits removed due to immediate subscription cancellation',
         );
@@ -401,7 +409,7 @@ export class StripeWebhookService {
 
       // Clear organization tier (BYOK = free tier after subscription canceled)
       await this.updateOrganizationTierAndModels(
-        existingSubscription.organization.toString(),
+        String(existingSubscription.organization),
         SubscriptionTier.BYOK,
         url,
       );
@@ -521,7 +529,7 @@ export class StripeWebhookService {
 
         // Add credits using new credit system
         await this.creditsUtilsService.addOrganizationCreditsWithExpiration(
-          subscription.organization.toString(),
+          String(subscription.organization),
           creditsToAdd,
           'pay-as-you-go',
           `Credit pack purchase (${creditsToAdd} credits)`,
@@ -530,7 +538,7 @@ export class StripeWebhookService {
 
         const newBalance =
           await this.creditsUtilsService.getOrganizationCreditsBalance(
-            subscription.organization.toString(),
+            String(subscription.organization),
           );
 
         const dbUser = await this.usersService.findOne({
@@ -563,11 +571,11 @@ export class StripeWebhookService {
         }
 
         await this.activitiesService.create({
-          brand: subscription.organization,
+          brand: String(subscription.organization),
           key: ActivityKey.CREDITS_ADD,
-          organization: subscription.organization,
+          organization: String(subscription.organization),
           source: ActivitySource.PAY_AS_YOU_GO,
-          user: subscription.user,
+          user: String(subscription.user),
           value: String(creditsToAdd),
         });
 
@@ -1095,7 +1103,7 @@ export class StripeWebhookService {
 
   private async trackSubscriptionAttributionFromSession(
     session: StripeCheckoutSession,
-    subscription: SubscriptionDocument,
+    subscription: ISubscriptionOssReadModel,
     url: string,
   ) {
     if (!session.subscription || !session.customer) {
@@ -1329,7 +1337,7 @@ export class StripeWebhookService {
     });
   }
 
-  private normalizeObjectId(value: string | undefined): string {
+  private normalizeObjectId(value: SubscriptionRefId | undefined): string {
     if (!value) {
       return 'unknown';
     }
@@ -1526,7 +1534,7 @@ export class StripeWebhookService {
 
         // Update subscription status
         const updatedSubscription = await this.subscriptionsService.patch(
-          subscription._id,
+          String(subscription._id),
           {
             status: 'active',
           },
@@ -1553,7 +1561,7 @@ export class StripeWebhookService {
           if (subscription.type === SubscriptionPlan.MONTHLY) {
             // Monthly: 3-month rollover with expiration
             await this.creditsUtilsService.addOrganizationCreditsWithExpiration(
-              subscription.organization.toString(),
+              String(subscription.organization),
               creditsToAdd,
               subscription.type,
               `${subscription.type} subscription billing period`,
@@ -1562,7 +1570,7 @@ export class StripeWebhookService {
           } else if (subscription.type === SubscriptionPlan.YEARLY) {
             // Yearly: reset credits (no rollover)
             await this.creditsUtilsService.resetOrganizationCredits(
-              subscription.organization.toString(),
+              String(subscription.organization),
               creditsToAdd,
               subscription.type,
               `${subscription.type} subscription billing period reset`,
@@ -1576,17 +1584,17 @@ export class StripeWebhookService {
               : ActivityKey.CREDITS_RESET;
 
           await this.activitiesService.create({
-            brand: subscription.organization,
+            brand: String(subscription.organization),
             key: activityKey,
-            organization: subscription.organization,
+            organization: String(subscription.organization),
             source: ActivitySource.SUBSCRIPTION,
-            user: subscription.user,
+            user: String(subscription.user),
             value: String(creditsToAdd),
           });
 
           const currentBalance =
             await this.creditsUtilsService.getOrganizationCreditsBalance(
-              subscription.organization.toString(),
+              String(subscription.organization),
             );
 
           this.loggerService.log(
@@ -1608,7 +1616,7 @@ export class StripeWebhookService {
           try {
             const orgSetting = await this.organizationSettingsService.findOne({
               isDeleted: false,
-              organization: subscription.organization.toString(),
+              organization: String(subscription.organization),
             });
             if (orgSetting) {
               await this.organizationSettingsService.patch(
@@ -1726,7 +1734,7 @@ export class StripeWebhookService {
 
         // Update subscription status to past_due so the app can show
         // a banner prompting the user to update their payment method
-        await this.subscriptionsService.patch(subscription._id.toString(), {
+        await this.subscriptionsService.patch(String(subscription._id), {
           status: 'past_due',
         });
 
@@ -1930,7 +1938,7 @@ export class StripeWebhookService {
             );
 
             // Update subscription in database
-            await this.subscriptionsService.patch(subscription._id.toString(), {
+            await this.subscriptionsService.patch(String(subscription._id), {
               cancelAtPeriodEnd: false,
               isDeleted: true,
               status: 'canceled',

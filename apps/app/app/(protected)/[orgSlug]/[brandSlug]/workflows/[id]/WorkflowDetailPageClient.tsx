@@ -24,7 +24,7 @@ import {
   selectNodes,
   useWorkflowStore,
 } from '@genfeedai/workflow-ui/stores';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import '@genfeedai/workflow-ui/styles';
 import '@/features/workflows/styles/workflow-scope.css';
 
@@ -62,10 +62,14 @@ export default function WorkflowDetailPageClient({
   initialExecutionId,
 }: WorkflowDetailPageClientProps) {
   const { href } = useOrgUrl();
-  const [activeExecutionId, setActiveExecutionId] =
-    useState(initialExecutionId);
+  const [activeExecutionId, setActiveExecutionId] = useState<string | null>(
+    null,
+  );
   const [isRunning, setIsRunning] = useState(false);
   const [showExecutionPanel, setShowExecutionPanel] = useState(false);
+  const [closedInitialExecutionId, setClosedInitialExecutionId] = useState<
+    string | null
+  >(null);
   const getWorkflowService = useAuthedService(createWorkflowApiService);
 
   const {
@@ -79,14 +83,22 @@ export default function WorkflowDetailPageClient({
   } = useCloudWorkflow({ autoSave: true, workflowId });
   const currentWorkflowId = useWorkflowStore((state) => state.workflowId);
 
-  useEffect(() => {
-    if (isLoading || !initialExecutionId) {
-      return;
-    }
+  const initialExecutionPanelOpen =
+    !isLoading &&
+    Boolean(initialExecutionId) &&
+    closedInitialExecutionId !== initialExecutionId;
+  const visibleExecutionPanelId = showExecutionPanel
+    ? activeExecutionId
+    : initialExecutionPanelOpen
+      ? initialExecutionId
+      : null;
 
-    setActiveExecutionId(initialExecutionId);
-    setShowExecutionPanel(true);
-  }, [initialExecutionId, isLoading]);
+  const handleCloseExecutionPanel = useCallback(() => {
+    if (initialExecutionId) {
+      setClosedInitialExecutionId(initialExecutionId);
+    }
+    setShowExecutionPanel(false);
+  }, [initialExecutionId]);
 
   const nodes = useWorkflowStore(selectNodes);
   const edges = useWorkflowStore(selectEdges);
@@ -194,11 +206,11 @@ export default function WorkflowDetailPageClient({
           <WorkflowEditorShell
             nodeTypes={cloudNodeTypes}
             rightPanel={
-              showExecutionPanel ? (
+              visibleExecutionPanelId ? (
                 <ExecutionPanel
                   workflowId={currentWorkflowId ?? workflowId ?? 'new'}
-                  onClose={() => setShowExecutionPanel(false)}
-                  runId={activeExecutionId}
+                  onClose={handleCloseExecutionPanel}
+                  runId={visibleExecutionPanelId}
                 />
               ) : null
             }

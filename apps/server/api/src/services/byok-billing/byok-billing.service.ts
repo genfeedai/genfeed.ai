@@ -2,11 +2,14 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { ConfigService } from '@api/config/config.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
 import { ByokBillingStatus, CreditTransactionCategory } from '@genfeedai/enums';
+import {
+  type ISubscriptionsService,
+  SUBSCRIPTIONS_SERVICE,
+} from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
 interface ByokInvoiceMetadata {
   billableCredits: string;
@@ -49,7 +52,8 @@ export class ByokBillingService {
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly stripeService: StripeService,
-    private readonly subscriptionsService: SubscriptionsService,
+    @Inject(SUBSCRIPTIONS_SERVICE)
+    private readonly subscriptionsService: ISubscriptionsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
   ) {}
 

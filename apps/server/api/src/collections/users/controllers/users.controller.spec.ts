@@ -2,13 +2,13 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
-import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { UsersController } from '@api/collections/users/controllers/users.controller';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
+import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('UsersController', () => {
@@ -91,7 +91,7 @@ describe('UsersController', () => {
     controller = new UsersController(
       brandsService as unknown as BrandsService,
       usersService as unknown as UsersService,
-      subscriptionsService as unknown as SubscriptionsService,
+      subscriptionsService as unknown as ISubscriptionsService,
       organizationsService as unknown as OrganizationsService,
       settingsService as unknown as SettingsService,
       clerkService as unknown as ClerkService,

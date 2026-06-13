@@ -1,6 +1,7 @@
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SubscriptionStatus } from '@genfeedai/enums';
+import type { IUserSubscriptionsService } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import type StripeConstructor from 'stripe';
@@ -13,7 +14,7 @@ type CheckoutSession = Awaited<
 >;
 
 @Injectable()
-export class UserSubscriptionsService {
+export class UserSubscriptionsService implements IUserSubscriptionsService {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(

@@ -11,10 +11,13 @@ import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interfa
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { User } from '@clerk/backend';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
-import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
+import {
+  type ISubscriptionsService,
+  SUBSCRIPTIONS_SERVICE,
+} from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
-import { Injectable, type NestMiddleware } from '@nestjs/common';
+import { Inject, Injectable, type NestMiddleware } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 
 export interface RequestWithContext extends Request {
@@ -32,7 +35,8 @@ export class RequestContextMiddleware implements NestMiddleware {
     private readonly redisService: RedisService,
     private readonly logger: LoggerService,
     private readonly organizationSettingsService: OrganizationSettingsService,
-    private readonly subscriptionsService: SubscriptionsService,
+    @Inject(SUBSCRIPTIONS_SERVICE)
+    private readonly subscriptionsService: ISubscriptionsService,
     private readonly prisma: PrismaService,
   ) {}
 
