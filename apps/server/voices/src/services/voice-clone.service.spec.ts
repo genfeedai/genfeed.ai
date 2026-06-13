@@ -1,8 +1,8 @@
 import { LoggerService } from '@libs/logger/logger.service';
+import { S3Service } from '@libs/s3/s3.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@voices/config/config.service';
-import { S3Service } from '@voices/services/s3.service';
 import { VoiceCloneService } from '@voices/services/voice-clone.service';
 
 // Mock node:fs/promises
@@ -69,11 +69,13 @@ describe('VoiceCloneService', () => {
       });
 
       expect(result.voiceId).toBe('my-voice');
-      expect(result.s3Key).toBe('trainings/voice-clones/my-voice/model.pth');
+      expect(result.s3Key).toBe(
+        'ingredients/trainings/voice-clones/my-voice/model.pth',
+      );
       expect(result.uploaded).toBe(true);
       expect(mockS3Service.uploadFile).toHaveBeenCalledWith(
         'test-bucket',
-        'trainings/voice-clones/my-voice/model.pth',
+        'ingredients/trainings/voice-clones/my-voice/model.pth',
         '/models/voices/my-voice/model.pth',
       );
     });
@@ -121,7 +123,7 @@ describe('VoiceCloneService', () => {
     it('should download clone files from S3', async () => {
       mockS3Service.listObjects.mockResolvedValue([
         {
-          key: 'trainings/voice-clones/my-voice/model.pth',
+          key: 'ingredients/trainings/voice-clones/my-voice/model.pth',
           lastModified: '2024-01-01T00:00:00.000Z',
           size: 1024,
         },
@@ -173,7 +175,7 @@ describe('VoiceCloneService', () => {
       mockReaddir.mockResolvedValue([]);
       mockS3Service.listObjects.mockResolvedValue([
         {
-          key: 'trainings/voice-clones/s3-voice/model.pth',
+          key: 'ingredients/trainings/voice-clones/s3-voice/model.pth',
           lastModified: '2024-02-01T00:00:00.000Z',
           size: 2048,
         },
@@ -195,7 +197,7 @@ describe('VoiceCloneService', () => {
         .mockResolvedValueOnce({ mtime: new Date('2024-01-01'), size: 1024 });
       mockS3Service.listObjects.mockResolvedValue([
         {
-          key: 'trainings/voice-clones/shared-voice/model.pth',
+          key: 'ingredients/trainings/voice-clones/shared-voice/model.pth',
           lastModified: '2024-02-01T00:00:00.000Z',
           size: 2048,
         },
@@ -211,7 +213,7 @@ describe('VoiceCloneService', () => {
       mockReaddir.mockRejectedValue(new Error('ENOENT'));
       mockS3Service.listObjects.mockResolvedValue([
         {
-          key: 'trainings/voice-clones/s3-voice/model.pth',
+          key: 'ingredients/trainings/voice-clones/s3-voice/model.pth',
           lastModified: '2024-02-01T00:00:00.000Z',
           size: 2048,
         },

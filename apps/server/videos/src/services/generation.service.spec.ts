@@ -1,11 +1,11 @@
 import { LoggerService } from '@libs/logger/logger.service';
+import { S3Service } from '@libs/s3/s3.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@videos/config/config.service';
 import type { GenerateVideoRequest } from '@videos/interfaces/videos.interfaces';
 import { ComfyUIService } from '@videos/services/comfyui.service';
 import { GenerationService } from '@videos/services/generation.service';
 import { JobService } from '@videos/services/job.service';
-import { S3Service } from '@videos/services/s3.service';
 import { WorkflowService } from '@videos/services/workflow.service';
 
 describe('GenerationService', () => {
@@ -159,7 +159,7 @@ describe('GenerationService', () => {
 
       expect(s3Service.uploadFile).toHaveBeenCalledWith(
         'test-bucket',
-        expect.stringContaining('videos/generated/job-abc-123'),
+        expect.stringContaining('ingredients/videos/generated/job-abc-123'),
         expect.stringContaining('output-video.mp4'),
         'video/mp4',
       );
