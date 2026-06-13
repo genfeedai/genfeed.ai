@@ -12,6 +12,7 @@ const WEBSITE_SECTIONS: FooterSection[] = [
       { href: '/integrations', label: 'Integrations' },
       { href: '/features', label: 'Features' },
       { href: '/intelligence', label: 'Analytics' },
+      { href: '/mobile', label: 'Mobile App' },
     ],
     title: 'Products',
   },
@@ -20,11 +21,25 @@ const WEBSITE_SECTIONS: FooterSection[] = [
       { href: '/use-cases/creators', label: 'For Creators' },
       { href: '/use-cases/agencies', label: 'For Agencies' },
       { href: '/use-cases/ai-influencers', label: 'AI Influencers' },
+      { href: '/use-cases/ecommerce', label: 'For E-Commerce' },
+      { href: '/use-cases/marketers', label: 'For Marketers' },
+      { href: '/use-cases/founders', label: 'For Founders' },
       { href: '/services', label: 'Services' },
       { href: '/pricing', label: 'Pricing' },
       { href: 'https://github.com/genfeedai/genfeed.ai', label: 'GitHub' },
     ],
     title: 'Solutions',
+  },
+  {
+    links: [
+      { href: '/mcp', label: 'MCP Server' },
+      { href: '/cursor', label: 'Cursor Extension' },
+      { href: '/extension', label: 'Chrome Extension' },
+      { href: '/chatgpt', label: 'ChatGPT' },
+      { href: '/skills', label: 'Skills' },
+      { href: '/docs', label: 'Docs' },
+    ],
+    title: 'Developers',
   },
   {
     links: [
