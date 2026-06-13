@@ -41,6 +41,7 @@
   "scripts": {
     "build": "echo 'Source-level package — consumed via path aliases, no build needed'",
     "clean": "echo 'Nothing to clean'",
+    "test": "vitest run --config vitest.config.ts",
     "type-check": "tsc --noEmit"
   },
   "sideEffects": false,

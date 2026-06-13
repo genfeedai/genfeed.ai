@@ -1111,6 +1111,18 @@ export class StripeWebhookService {
       const organizationId = this.normalizeObjectId(subscription.organization);
       const userId = this.normalizeObjectId(subscription.user);
 
+      if (organizationId === null || userId === null) {
+        this.loggerService.warn(
+          `${url} skipping attribution: resolved null org/user id`,
+          {
+            organization: subscription.organization,
+            stripeSubscriptionId: session.subscription,
+            user: subscription.user,
+          },
+        );
+        return;
+      }
+
       const user = await this.usersService.findOne({
         _id: subscription.user,
       });
@@ -1329,13 +1341,9 @@ export class StripeWebhookService {
     });
   }
 
-  private normalizeObjectId(value: string | undefined): string {
-    if (!value) {
-      return 'unknown';
-    }
-
-    if (value === '__never__') {
-      return value.toString();
+  private normalizeObjectId(value: string | undefined): string | null {
+    if (!value || value === '__never__') {
+      return null;
     }
 
     return String(value);

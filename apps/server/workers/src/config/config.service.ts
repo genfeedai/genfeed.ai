@@ -1,5 +1,6 @@
 import {
   createServiceConfig,
+  genfeedaiUrlsSchema,
   type IEnvConfig,
   postgresSchema,
   redisSchema,
@@ -15,7 +16,12 @@ interface WorkersEnvConfig extends IEnvConfig {
 @Injectable()
 export class ConfigService extends createServiceConfig<WorkersEnvConfig>({
   appName: 'workers',
-  schemas: [postgresSchema, redisSchema, sentryOptionalSchema],
+  schemas: [
+    postgresSchema,
+    redisSchema,
+    sentryOptionalSchema,
+    genfeedaiUrlsSchema,
+  ],
   extend: {
     GF_DEV_ENABLE_SCHEDULERS: Joi.string()
       .valid('true', 'false')

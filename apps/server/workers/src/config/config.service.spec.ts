@@ -86,16 +86,22 @@ describe('ConfigService (Workers)', () => {
   });
 
   describe('ingredientsEndpoint', () => {
-    // GENFEEDAI_CDN_URL is NOT in workers' schema (postgres/redis/sentry only);
-    // the getter reads it via BaseConfigService's allowUnknown passthrough.
-    // This guards that the factory migration preserved that passthrough.
-    it('builds the endpoint from the unschema-d GENFEEDAI_CDN_URL', () => {
+    // GENFEEDAI_CDN_URL is declared in genfeedaiUrlsSchema (added to workers'
+    // schema) so Joi validates it. In self-hosted / test mode it is optional;
+    // in cloud mode (GENFEED_CLOUD set) it is required.
+    it('builds the correct endpoint from GENFEEDAI_CDN_URL', () => {
       process.env.GENFEEDAI_CDN_URL = 'https://cdn.example.com';
       configService = new ConfigService();
 
       expect(configService.ingredientsEndpoint).toBe(
         'https://cdn.example.com/ingredients',
       );
+    });
+
+    it('rejects a non-URI GENFEEDAI_CDN_URL value', () => {
+      process.env.GENFEEDAI_CDN_URL = 'not-a-url';
+
+      expect(() => new ConfigService()).toThrow(/GENFEEDAI_CDN_URL/);
     });
   });
 });

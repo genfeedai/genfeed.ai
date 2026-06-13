@@ -6,7 +6,7 @@ import { SubscriptionsService } from '@genfeedai/ee-billing/subscriptions';
 import { ByokBillingStatus, CreditTransactionCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
 interface ByokInvoiceMetadata {
   billableCredits: string;
@@ -52,6 +52,20 @@ export class ByokBillingService {
     private readonly subscriptionsService: SubscriptionsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
   ) {}
+
+  private parseRequiredNumberConfig(key: string): number {
+    const value = Number(this.configService.get(key));
+    if (Number.isNaN(value)) {
+      this.loggerService.error(
+        `ByokBillingService missing or malformed config key: ${key}`,
+        { key },
+      );
+      throw new InternalServerErrorException(
+        `Configuration error: "${key}" is missing or not a valid number`,
+      );
+    }
+    return value;
+  }
 
   async aggregateByokUsage(
     organizationId: string,
@@ -106,11 +120,11 @@ export class ByokBillingService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const feePercentage = Number(
-        this.configService.get('STRIPE_BYOK_FEE_PERCENTAGE'),
+      const feePercentage = this.parseRequiredNumberConfig(
+        'STRIPE_BYOK_FEE_PERCENTAGE',
       );
-      const globalFreeThreshold = Number(
-        this.configService.get('STRIPE_BYOK_FREE_THRESHOLD'),
+      const globalFreeThreshold = this.parseRequiredNumberConfig(
+        'STRIPE_BYOK_FREE_THRESHOLD',
       );
 
       // Get org settings for rollover and threshold override
@@ -361,11 +375,11 @@ export class ByokBillingService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const feePercentage = Number(
-        this.configService.get('STRIPE_BYOK_FEE_PERCENTAGE'),
+      const feePercentage = this.parseRequiredNumberConfig(
+        'STRIPE_BYOK_FEE_PERCENTAGE',
       );
-      const globalFreeThreshold = Number(
-        this.configService.get('STRIPE_BYOK_FREE_THRESHOLD'),
+      const globalFreeThreshold = this.parseRequiredNumberConfig(
+        'STRIPE_BYOK_FREE_THRESHOLD',
       );
 
       const orgSettings = await this.organizationSettingsService.findOne({

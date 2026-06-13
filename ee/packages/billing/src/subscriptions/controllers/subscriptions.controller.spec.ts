@@ -1,4 +1,5 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { ConfigService } from '@api/config/config.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { User } from '@clerk/backend';
@@ -115,7 +116,10 @@ describe('SubscriptionsController', () => {
   });
 
   describe('changePlan', () => {
-    it('should change subscription plan', async () => {
+    it('should change subscription plan using request context organizationId', async () => {
+      const request = {
+        context: { organizationId: mockUser.publicMetadata.organization },
+      } as RequestWithContext;
       const changeData = { newPriceId: 'price_new' };
       const updatedSubscription = {
         ...mockSubscription,
@@ -126,7 +130,7 @@ describe('SubscriptionsController', () => {
         updatedSubscription,
       );
 
-      const result = await controller.changePlan(mockUser, changeData);
+      const result = await controller.changePlan(request, mockUser, changeData);
 
       expect(subscriptionsService.changeSubscriptionPlan).toHaveBeenCalledWith(
         mockUser.publicMetadata.organization,
@@ -134,6 +138,27 @@ describe('SubscriptionsController', () => {
       );
       expect(result.success).toBe(true);
       expect(result.data).toEqual(updatedSubscription);
+    });
+
+    it('falls back to user publicMetadata organization when request context is absent', async () => {
+      const request = {} as RequestWithContext;
+      const changeData = { newPriceId: 'price_new' };
+      const updatedSubscription = {
+        ...mockSubscription,
+        priceId: 'price_new',
+      };
+
+      mockSubscriptionsService.changeSubscriptionPlan.mockResolvedValue(
+        updatedSubscription,
+      );
+
+      const result = await controller.changePlan(request, mockUser, changeData);
+
+      expect(subscriptionsService.changeSubscriptionPlan).toHaveBeenCalledWith(
+        mockUser.publicMetadata.organization,
+        changeData.newPriceId,
+      );
+      expect(result.success).toBe(true);
     });
   });
 
