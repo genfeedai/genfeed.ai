@@ -19,7 +19,7 @@ interface LivestreamChatBotPageProps {
 
 export default function LivestreamChatBotPage({
   defaultPlatform,
-}: LivestreamChatBotPageProps): JSX.Element {
+}: LivestreamChatBotPageProps) {
   const {
     form,
     handleApplyOverride,

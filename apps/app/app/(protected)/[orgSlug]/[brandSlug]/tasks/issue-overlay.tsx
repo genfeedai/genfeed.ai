@@ -71,10 +71,32 @@ interface IssueOverlayProps {
   onClose?: () => void;
 }
 
+interface IssueCommentVisibility {
+  issueId: string | null;
+  showAll: boolean;
+}
+
+interface IssueCommentsState {
+  comments: IssueComment[];
+  issueId: string | null;
+}
+
 export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
   const { push } = useRouter();
-  const [comments, setComments] = useState<IssueComment[]>([]);
-  const [showAllComments, setShowAllComments] = useState(false);
+  const issueId = issue?.id ?? null;
+  const [commentsState, setCommentsState] = useState<IssueCommentsState>({
+    comments: [],
+    issueId,
+  });
+  const comments =
+    commentsState.issueId === issueId ? commentsState.comments : [];
+  const [commentVisibility, setCommentVisibility] =
+    useState<IssueCommentVisibility>({
+      issueId,
+      showAll: false,
+    });
+  const showAllComments =
+    commentVisibility.issueId === issueId ? commentVisibility.showAll : false;
   const controllerRef = useRef<AbortController | null>(null);
 
   const getCommentsService = useAuthedService((token) =>
@@ -92,18 +114,17 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
       const service = await getCommentsService();
       const data = await service.list();
       if (!controller.signal.aborted) {
-        setComments(data);
+        setCommentsState({ comments: data, issueId });
       }
     } catch {
       if (!controller.signal.aborted) {
-        setComments([]);
+        setCommentsState({ comments: [], issueId });
       }
     }
-  }, [getCommentsService, issue]);
+  }, [getCommentsService, issue, issueId]);
 
   useEffect(() => {
     if (issue) {
-      setShowAllComments(false);
       loadComments();
     }
     const controller = controllerRef.current;
@@ -209,7 +230,9 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
                   variant={ButtonVariant.GHOST}
                   withWrapper={false}
                   className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-[11px] text-white/40 transition-colors hover:bg-white/[0.02] hover:text-white/60"
-                  onClick={() => setShowAllComments(true)}
+                  onClick={() =>
+                    setCommentVisibility({ issueId, showAll: true })
+                  }
                 >
                   <HiChevronDown className="size-3" />
                   Show {hiddenCommentCount} earlier{' '}

@@ -140,11 +140,13 @@ export interface ISubscriptionsService {
    * this as a P1 mismatch in PR #163 review — contract now matches runtime.
    *
    * Signature mirrors `BaseService.findAll(input, options, enableCache = true)`:
-   * `input` is `unknown` (the analytics consumer passes a Prisma `{ where }`
-   * object; the Stripe webhook passes a legacy aggregation array — both are
-   * accepted at runtime), and `enableCache` is optional (third positional arg).
-   * The webhook calls `findAll(aggregate, options, false)` to bypass the read
-   * cache during reconciliation, so the third arg must be part of the contract.
+   * `input` is `unknown`, not `unknown[]` — post-Prisma `BaseService.findAll`
+   * accepts a Prisma query object (`{ where }`), and the analytics consumer
+   * calls `findAll({ where: {} }, options)`. The Stripe webhook passes a legacy
+   * MongoDB aggregation array, still accepted at runtime but no longer the typed
+   * shape. `enableCache` is optional (third positional arg): the webhook calls
+   * `findAll(aggregate, options, false)` to bypass the read cache during
+   * reconciliation, so the third arg must be part of the contract.
    */
   findAll(
     input: unknown,

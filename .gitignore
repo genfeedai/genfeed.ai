@@ -39,6 +39,11 @@ apps/desktop/app/release/
 .env.production
 .env.staging
 .env.local
+# Local env/DB backups & dumps — contain live secrets, never commit
+*.rdsbak
+*.sqlbak
+*.dump
+.env.*.bak
 .claude/worktrees/
 .claude/skills/
 .worktrees/

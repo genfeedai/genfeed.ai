@@ -1,10 +1,14 @@
 import type { ChangeEvent } from 'react';
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { HiCalendar, HiClock } from 'react-icons/hi2';
 
 interface DateTimeResult {
   date: string;
   time: string;
+}
+
+interface DateTimeDraft extends DateTimeResult {
+  sourceKey: string;
 }
 
 export interface DateTimePickerProps {
@@ -32,6 +36,7 @@ const DATETIME_PARTS_FORMAT: Intl.DateTimeFormatOptions = {
 const dateFormatterCache = new Map<string, Intl.DateTimeFormat>();
 const timeFormatterCache = new Map<string, Intl.DateTimeFormat>();
 const datetimePartsFormatterCache = new Map<string, Intl.DateTimeFormat>();
+const EMPTY_DATETIME: DateTimeResult = { date: '', time: '' };
 
 function getDateFormatter(timezone: string): Intl.DateTimeFormat {
   let formatter = dateFormatterCache.get(timezone);
@@ -159,6 +164,63 @@ function createDateFromTimezone(
   return new Date(baseUtcDate.getTime() + dayDiffMs + timeDiffMs);
 }
 
+function getDateTimeSourceKey(
+  value: string | Date | undefined,
+  timezone: string | undefined,
+): string {
+  const displayTimezone = timezone || 'UTC';
+
+  if (value instanceof Date) {
+    return `${displayTimezone}:${Number.isNaN(value.getTime()) ? 'invalid-date' : value.toISOString()}`;
+  }
+
+  return `${displayTimezone}:${typeof value === 'string' ? value : ''}`;
+}
+
+function resolveDateTimeResult(
+  value: string | Date | undefined,
+  timezone: string | undefined,
+): DateTimeResult {
+  if (!value || value === '') {
+    return EMPTY_DATETIME;
+  }
+
+  let isoString: string;
+
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      return EMPTY_DATETIME;
+    }
+
+    isoString = value.toISOString();
+  } else if (typeof value === 'string') {
+    isoString = value.trim();
+  } else {
+    return EMPTY_DATETIME;
+  }
+
+  const utcDate = new Date(isoString);
+  if (Number.isNaN(utcDate.getTime())) {
+    return EMPTY_DATETIME;
+  }
+
+  const displayTimezone = timezone || 'UTC';
+
+  if (displayTimezone === 'UTC' || !timezone) {
+    return (
+      extractDateTimeFromISO(isoString) || extractDateTimeFromUTCDate(utcDate)
+    );
+  }
+
+  try {
+    return extractDateTimeFromTimezone(utcDate, displayTimezone);
+  } catch {
+    return (
+      extractDateTimeFromISO(isoString) || extractDateTimeFromUTCDate(utcDate)
+    );
+  }
+}
+
 export default function DateTimePicker({
   label = '',
   value = '',
@@ -170,65 +232,19 @@ export default function DateTimePicker({
   helpText,
   timezone,
 }: DateTimePickerProps) {
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
-
-  useEffect(() => {
-    if (!value || value === '') {
-      setSelectedDate('');
-      setSelectedTime('');
-      return;
-    }
-
-    let isoString: string;
-
-    if (value instanceof Date) {
-      if (Number.isNaN(value.getTime())) {
-        setSelectedDate('');
-        setSelectedTime('');
-        return;
-      }
-
-      isoString = value.toISOString();
-    } else if (typeof value === 'string') {
-      isoString = value.trim();
-    } else {
-      setSelectedDate('');
-      setSelectedTime('');
-      return;
-    }
-
-    const utcDate = new Date(isoString);
-    if (Number.isNaN(utcDate.getTime())) {
-      setSelectedDate('');
-      setSelectedTime('');
-      return;
-    }
-
-    const displayTimezone = timezone || 'UTC';
-    let result: DateTimeResult;
-
-    if (displayTimezone === 'UTC' || !timezone) {
-      result =
-        extractDateTimeFromISO(isoString) ||
-        extractDateTimeFromUTCDate(utcDate);
-    } else {
-      try {
-        result = extractDateTimeFromTimezone(utcDate, displayTimezone);
-      } catch {
-        result =
-          extractDateTimeFromISO(isoString) ||
-          extractDateTimeFromUTCDate(utcDate);
-      }
-    }
-
-    setSelectedDate((previous) =>
-      previous !== result.date ? result.date : previous,
-    );
-    setSelectedTime((previous) =>
-      previous !== result.time ? result.time : previous,
-    );
-  }, [value, timezone]);
+  const sourceKey = getDateTimeSourceKey(value, timezone);
+  const derivedDateTime = useMemo(
+    () => resolveDateTimeResult(value, timezone),
+    [timezone, value],
+  );
+  const [draft, setDraft] = useState<DateTimeDraft>(() => ({
+    ...derivedDateTime,
+    sourceKey,
+  }));
+  const selectedDate =
+    draft.sourceKey === sourceKey ? draft.date : derivedDateTime.date;
+  const selectedTime =
+    draft.sourceKey === sourceKey ? draft.time : derivedDateTime.time;
 
   const getMinDateString = () => {
     const now = minDate || new Date();
@@ -333,7 +349,7 @@ export default function DateTimePicker({
 
   const handleDateChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextDate = event.target.value;
-    setSelectedDate(nextDate);
+    setDraft({ date: nextDate, sourceKey, time: selectedTime });
 
     if (!selectedTime) {
       onChange(null);
@@ -343,7 +359,7 @@ export default function DateTimePicker({
     if (nextDate === getMinDateString()) {
       const minTime = getMinTime();
       if (selectedTime < minTime) {
-        setSelectedTime(minTime);
+        setDraft({ date: nextDate, sourceKey, time: minTime });
         updateDateTime(nextDate, minTime);
         return;
       }
@@ -354,7 +370,7 @@ export default function DateTimePicker({
 
   const handleTimeChange = (event: ChangeEvent<HTMLSelectElement>) => {
     const nextTime = event.target.value;
-    setSelectedTime(nextTime);
+    setDraft({ date: selectedDate, sourceKey, time: nextTime });
 
     if (selectedDate && nextTime) {
       updateDateTime(selectedDate, nextTime);

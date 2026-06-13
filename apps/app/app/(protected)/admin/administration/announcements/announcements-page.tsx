@@ -37,7 +37,9 @@ export default function AnnouncementsPage({
   const [form, setForm] = useState<AnnouncementComposeFormState>(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [announcements, setAnnouncements] = useState<IAnnouncement[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(
+    defaultTab === 'history',
+  );
 
   const notificationsService = NotificationsService.getInstance();
 
@@ -47,8 +49,6 @@ export default function AnnouncementsPage({
 
   const loadHistory = useCallback(
     async (signal: AbortSignal) => {
-      setIsLoadingHistory(true);
-
       try {
         const service = await getAnnouncementsService();
         const data = await service.getAnnouncements();
@@ -82,6 +82,13 @@ export default function AnnouncementsPage({
 
     return () => controller.abort();
   }, [activeTab, loadHistory]);
+
+  const handleTabChange = useCallback((tab: string) => {
+    if (tab === 'history') {
+      setIsLoadingHistory(true);
+    }
+    setActiveTab(tab);
+  }, []);
 
   function handleFieldChange(
     field: keyof AnnouncementComposeFormState,
@@ -131,6 +138,7 @@ export default function AnnouncementsPage({
 
       notificationsService.success('Announcement published');
       setForm(INITIAL_FORM);
+      setIsLoadingHistory(true);
       setActiveTab('history');
 
       logger.info('Announcement broadcast successful');
@@ -152,7 +160,7 @@ export default function AnnouncementsPage({
       icon={HiOutlineMegaphone}
       tabs={TABS}
       activeTab={activeTab}
-      onTabChange={setActiveTab}
+      onTabChange={handleTabChange}
     >
       {activeTab === 'compose' && (
         <AnnouncementComposeForm

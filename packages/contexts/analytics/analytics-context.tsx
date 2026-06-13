@@ -5,14 +5,7 @@ import type { AnalyticsContextType } from '@genfeedai/interfaces/analytics/analy
 import type { DateRange } from '@genfeedai/interfaces/utils/date.interface';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { subDays } from 'date-fns';
-import {
-  createContext,
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { createContext, use, useCallback, useMemo, useState } from 'react';
 
 const AnalyticsContext = createContext<AnalyticsContextType | undefined>(
   undefined,
@@ -20,6 +13,11 @@ const AnalyticsContext = createContext<AnalyticsContextType | undefined>(
 
 interface AnalyticsProviderProps extends LayoutProps {
   syncWithBrandContext?: boolean;
+}
+
+interface BrandIdOverride {
+  contextBrandId: string | undefined;
+  value: string | undefined;
 }
 
 export function AnalyticsProvider({
@@ -34,15 +32,24 @@ export function AnalyticsProvider({
   });
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [brandId, setBrandId] = useState<string | undefined>(undefined);
 
   const brandContext = useBrand();
+  const contextBrandId = syncWithBrandContext
+    ? brandContext.brandId
+    : undefined;
+  const [brandIdOverride, setBrandIdOverride] =
+    useState<BrandIdOverride | null>(null);
+  const brandId =
+    brandIdOverride && brandIdOverride.contextBrandId === contextBrandId
+      ? brandIdOverride.value
+      : contextBrandId;
 
-  useEffect(() => {
-    if (syncWithBrandContext && brandContext.brandId) {
-      setBrandId(brandContext.brandId);
-    }
-  }, [syncWithBrandContext, brandContext.brandId]);
+  const setBrandId = useCallback(
+    (value: string | undefined) => {
+      setBrandIdOverride({ contextBrandId, value });
+    },
+    [contextBrandId],
+  );
 
   const triggerRefresh = useCallback(() => {
     setIsRefreshing(true);
@@ -60,8 +67,14 @@ export function AnalyticsProvider({
       setDateRange,
       triggerRefresh,
     }),
-    // setBrandId, setDateRange are stable useState setters — omitted from deps
-    [brandId, dateRange, isRefreshing, refreshTrigger, triggerRefresh],
+    [
+      brandId,
+      dateRange,
+      isRefreshing,
+      refreshTrigger,
+      triggerRefresh,
+      setBrandId,
+    ],
   );
 
   return (

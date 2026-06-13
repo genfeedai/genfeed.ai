@@ -21,7 +21,7 @@ import OnboardingStepProcessing from '@ui/modals/onboarding/steps/OnboardingStep
 import OnboardingStepReview from '@ui/modals/onboarding/steps/OnboardingStepReview';
 import OnboardingStepWelcome from '@ui/modals/onboarding/steps/OnboardingStepWelcome';
 import { Button } from '@ui/primitives/button';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 function getOnboardingStepContent(
   step: OnboardingStep,
@@ -65,6 +65,25 @@ export default function ModalOnboarding({
   onComplete,
   onSkip,
 }: ModalOnboardingProps) {
+  const resetKey = isOpen ? 'open' : 'closed';
+
+  useModalAutoOpen(ModalEnum.ONBOARDING, {
+    isOpen,
+  });
+
+  return (
+    <ModalOnboardingContent
+      key={resetKey}
+      onComplete={onComplete}
+      onSkip={onSkip}
+    />
+  );
+}
+
+function ModalOnboardingContent({
+  onComplete,
+  onSkip,
+}: Omit<ModalOnboardingProps, 'isOpen'>) {
   const [step, setStep] = useState<OnboardingStep>(OnboardingStep.WELCOME);
   const [brandUrl, setBrandUrl] = useState('');
   const [extractedData, setExtractedData] =
@@ -76,21 +95,6 @@ export default function ModalOnboarding({
   const getOnboardingService = useAuthedService((token: string) =>
     OnboardingService.getInstance(token),
   );
-
-  useModalAutoOpen(ModalEnum.ONBOARDING, {
-    isOpen,
-  });
-
-  // Reset state when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setStep(OnboardingStep.WELCOME);
-      setBrandUrl('');
-      setExtractedData(null);
-      setBrandId(null);
-      setError(null);
-    }
-  }, [isOpen]);
 
   const isSkippingRef = useRef(false);
 
