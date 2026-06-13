@@ -60,12 +60,10 @@ describe('PostCard', () => {
     );
     expect(externalLink.closest('a')).toHaveAttribute('target', '_blank');
 
-    const ingredientLink = screen.getByText('Test Ingredient');
-    expect(ingredientLink).toBeInTheDocument();
-    expect(ingredientLink.closest('a')).toHaveAttribute(
-      'href',
-      '/ingredients/videos/ingredient-1',
-    );
+    const ingredient = screen.getByText('Test Ingredient');
+    expect(ingredient).toBeInTheDocument();
+    // Ingredient chips are non-navigational: no ingredient detail route exists.
+    expect(ingredient.closest('a')).toBeNull();
   });
 
   it('should apply correct styles and classes', () => {

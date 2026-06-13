@@ -201,23 +201,23 @@ export default function ServicesContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
             {[
               {
-                href: '/services/done-for-you',
+                href: '/done-for-you',
                 label: 'Done-For-You Content',
               },
               {
-                href: '/services/founder-content',
+                href: '/founder-content',
                 label: 'Founder Content',
               },
               {
-                href: '/services/linkedin-content',
+                href: '/linkedin-content',
                 label: 'LinkedIn Content',
               },
               {
-                href: '/services/podcast-to-content',
+                href: '/podcast-to-content',
                 label: 'Podcast to Content',
               },
               {
-                href: '/services/launch-content',
+                href: '/launch-content',
                 label: 'Launch Content',
               },
             ].map((item) => (

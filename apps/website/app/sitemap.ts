@@ -163,6 +163,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: 'https://genfeed.ai/gen',
     },
     {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.7,
+      url: 'https://genfeed.ai/skills',
+    },
+    {
+      changeFrequency: 'monthly',
+      lastModified: new Date(),
+      priority: 0.7,
+      url: 'https://genfeed.ai/vs',
+    },
+    {
       changeFrequency: 'yearly',
       lastModified: new Date(),
       priority: 0.3,
@@ -217,7 +229,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: 'monthly',
     lastModified: new Date(),
     priority: 0.8,
-    url: `https://genfeed.ai/for/${slug}`,
+    url: `https://genfeed.ai/use-cases/${slug}`,
   }));
 
   let articleRoutes: MetadataRoute.Sitemap = [];
