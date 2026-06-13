@@ -162,7 +162,7 @@ export class S3Service {
     localPath: string,
   ): Promise<{ s3Key: string; sizeBytes: number }> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const s3Key = `trainings/loras/${loraName}.safetensors`;
+    const s3Key = `ingredients/trainings/loras/${loraName}.safetensors`;
 
     this.loggerService.log(caller, {
       bucket,

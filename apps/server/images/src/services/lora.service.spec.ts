@@ -1,7 +1,7 @@
 import { ConfigService } from '@images/config/config.service';
 import { LoraService } from '@images/services/lora.service';
-import { S3Service } from '@images/services/s3.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { S3Service } from '@libs/s3/s3.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -69,11 +69,13 @@ describe('LoraService', () => {
       });
 
       expect(result.loraName).toBe('my-lora');
-      expect(result.s3Key).toBe('trainings/loras/my-lora.safetensors');
+      expect(result.s3Key).toBe(
+        'ingredients/trainings/loras/my-lora.safetensors',
+      );
       expect(result.uploaded).toBe(true);
       expect(mockS3Service.uploadFile).toHaveBeenCalledWith(
         'test-bucket',
-        'trainings/loras/my-lora.safetensors',
+        'ingredients/trainings/loras/my-lora.safetensors',
         '/comfyui/models/loras/my-lora.safetensors',
       );
     });
@@ -141,7 +143,7 @@ describe('LoraService', () => {
       mockReaddir.mockResolvedValue([]);
       mockS3Service.listObjects.mockResolvedValue([
         {
-          key: 'trainings/loras/s3-model.safetensors',
+          key: 'ingredients/trainings/loras/s3-model.safetensors',
           lastModified: '2024-02-01T00:00:00.000Z',
           size: 2048,
         },
@@ -153,7 +155,7 @@ describe('LoraService', () => {
       expect(result.loras[0].name).toBe('s3-model');
       expect(result.loras[0].source).toBe('s3');
       expect(result.loras[0].s3Key).toBe(
-        'trainings/loras/s3-model.safetensors',
+        'ingredients/trainings/loras/s3-model.safetensors',
       );
     });
 
@@ -165,7 +167,7 @@ describe('LoraService', () => {
       });
       mockS3Service.listObjects.mockResolvedValue([
         {
-          key: 'trainings/loras/shared-model.safetensors',
+          key: 'ingredients/trainings/loras/shared-model.safetensors',
           lastModified: '2024-02-01T00:00:00.000Z',
           size: 2048,
         },
@@ -181,7 +183,7 @@ describe('LoraService', () => {
       mockReaddir.mockRejectedValue(new Error('ENOENT'));
       mockS3Service.listObjects.mockResolvedValue([
         {
-          key: 'trainings/loras/s3-model.safetensors',
+          key: 'ingredients/trainings/loras/s3-model.safetensors',
           lastModified: '2024-02-01T00:00:00.000Z',
           size: 2048,
         },
