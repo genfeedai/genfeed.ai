@@ -5,7 +5,7 @@
 #          clips, mcp, discord, slack, telegram, images, videos, voices
 
 # ─── Base ───────────────────────────────────────────────────────────
-FROM oven/bun:1.2.12 AS base
+FROM oven/bun:1.3.14 AS base
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ && rm -rf /var/lib/apt/lists/*
 

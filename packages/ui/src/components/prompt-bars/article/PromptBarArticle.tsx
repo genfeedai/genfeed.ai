@@ -14,7 +14,7 @@ import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   HiArrowUp,
   HiBookmark,
@@ -31,25 +31,13 @@ export default function PromptBarArticle({
 }: PromptBarContentProps) {
   const [prompt, setPrompt] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [selectedPresetKey, setSelectedPresetKey] = useState('');
-  const prevIsEnhancingRef = useRef(isEnhancing);
+  const [selectedPresetKeyState, setSelectedPresetKey] = useState('');
 
-  useEffect(() => {
-    if (prevIsEnhancingRef.current && !isEnhancing) {
-      setPrompt('');
-    }
-    prevIsEnhancingRef.current = isEnhancing;
-  }, [isEnhancing]);
-
-  useEffect(() => {
-    if (
-      !presets.find(
-        (preset: { key: string }) => preset.key === selectedPresetKey,
-      )
-    ) {
-      setSelectedPresetKey('');
-    }
-  }, [presets, selectedPresetKey]);
+  const selectedPresetKey = presets.some(
+    (preset: { key: string }) => preset.key === selectedPresetKeyState,
+  )
+    ? selectedPresetKeyState
+    : '';
 
   const presetOptions = useMemo(
     () =>
@@ -74,6 +62,7 @@ export default function PromptBarArticle({
     e.preventDefault();
     if (prompt.trim() && !isEnhancing) {
       await onSubmit(prompt.trim());
+      setPrompt('');
     }
   }
 

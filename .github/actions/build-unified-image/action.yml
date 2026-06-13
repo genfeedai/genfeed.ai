@@ -24,6 +24,10 @@ inputs:
     description: 'Sentry auth token for sourcemap injection/upload during build'
     required: false
     default: ''
+  environment:
+    description: 'Deploy environment (staging|production) — gates the floating production/latest registry tags so a staging build cannot clobber them'
+    required: false
+    default: 'production'
 
 outputs:
   image_tags:
@@ -63,10 +67,15 @@ runs:
       uses: docker/metadata-action@v5
       with:
         images: ${{ inputs.registry }}/${{ inputs.image_prefix }}/server
+        # github.sha is the immutable tag every deploy actually pulls (see
+        # _deploy.yml IMAGE_TAG). The floating production/latest tags are
+        # human-facing pointers, so gate them to production — otherwise a
+        # staging build relabels :production/:latest onto a non-prod image.
         tags: |
           type=raw,value=${{ github.sha }}
-          type=raw,value=latest
-          type=raw,value=production
+          type=raw,value=staging,enable=${{ inputs.environment == 'staging' }}
+          type=raw,value=production,enable=${{ inputs.environment == 'production' }}
+          type=raw,value=latest,enable=${{ inputs.environment == 'production' }}
           type=ref,event=tag
         labels: |
           org.opencontainers.image.title=Genfeed Server

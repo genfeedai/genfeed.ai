@@ -1,0 +1,133 @@
+# Link Check
+#
+# Two complementary guards against dead links and orphan pages, split because no
+# single tool covers both surfaces:
+#
+#   website-links — builds the marketing site, serves the production build, then
+#     crawls it with apps/website/scripts/check-orphans.ts. Catches (a) internal
+#     links that 3xx-redirect instead of pointing at the canonical URL — the bug
+#     class fixed in PR #559 — and (b) orphan pages: URLs in sitemap.xml with no
+#     inbound internal link. lychee cannot do either: it does not crawl rendered
+#     HTML and, as a Docker action, cannot reach the runner's localhost.
+#
+#   docs-links — lychee scans Markdown/MDX docs + READMEs for dead external and
+#     relative-file links. Root-relative app routes are excluded in lychee.toml
+#     (the crawler above owns those).
+#
+# A paths-filter detect job runs each guard only when its surface changed.
+
+name: Link Check
+
+on:
+  pull_request:
+    branches: [develop, staging, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TZ: UTC
+
+jobs:
+  detect:
+    name: Detect Link-Check Scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      website: ${{ steps.changes.outputs.website }}
+      docs: ${{ steps.changes.outputs.docs }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v4
+        id: changes
+        with:
+          filters: |
+            website:
+              - 'apps/website/**'
+              - 'packages/**'
+              - 'bun.lock'
+              - '.github/workflows/link-check.yml'
+              - '.github/actions/setup-bun-env/**'
+            docs:
+              - 'apps/docs/content/**'
+              - 'lychee.toml'
+              - '.github/workflows/link-check.yml'
+              - '**/*.md'
+              - '**/*.mdx'
+
+  website-links:
+    name: Website Links + Orphans
+    runs-on: ubuntu-latest
+    needs: detect
+    if: needs.detect.outputs.website == 'true'
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: '1.3.14'
+
+      - name: Build website
+        run: bunx turbo run build --filter=@genfeedai/website
+
+      - name: Start website
+        run: |
+          cd apps/website
+          PORT=3000 bun run start &
+          echo "SERVER_PID=$!" >> "$GITHUB_ENV"
+          for _ in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/ >/dev/null 2>&1; then
+              echo "Website is serving on :3000"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Website did not become ready on :3000 within 120s"
+          exit 1
+
+      - name: Check internal links + orphan pages
+        run: cd apps/website && bun run check:orphans
+        env:
+          BASE_URL: http://localhost:3000
+
+      - name: Stop website
+        if: always()
+        run: kill "$SERVER_PID" 2>/dev/null || true
+
+  docs-links:
+    name: Docs + Markdown Dead Links
+    runs-on: ubuntu-latest
+    needs: detect
+    if: needs.detect.outputs.docs == 'true'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Run lychee
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --config lychee.toml
+            'apps/docs/content/**/*.md'
+            'apps/docs/content/**/*.mdx'
+            'README.md'
+            'apps/website/README.md'
+          fail: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

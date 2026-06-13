@@ -868,7 +868,8 @@ export const products: Product[] = [
         title: 'Open Source',
       },
     ],
-    githubUrl: 'https://github.com/genfeedai/cursor.genfeed.ai',
+    githubUrl:
+      'https://github.com/genfeedai/genfeed.ai/tree/master/apps/extensions/ide',
     headline: 'Genfeed Studio in Cursor IDE',
     icon: '',
     integrations: ['Cursor IDE', 'Genfeed Studio'],
@@ -1051,15 +1052,15 @@ export const products: Product[] = [
       },
       {
         description:
-          'Built with Docusaurus. Open source and open to community contributions.',
+          'Built with Nextra. Open source and open to community contributions.',
         icon: '',
         title: 'Open Source',
       },
     ],
-    githubUrl: 'https://github.com/genfeedai/docs.genfeed.ai',
+    githubUrl: 'https://github.com/genfeedai/genfeed.ai/tree/master/apps/docs',
     headline: 'Genfeed.ai Documentation',
     icon: '',
-    integrations: ['Docusaurus', 'GitHub Pages'],
+    integrations: ['Nextra', 'Next.js'],
     name: 'Documentation',
     pricing: {
       recommended: 'Free',

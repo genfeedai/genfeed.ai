@@ -12,7 +12,7 @@ import { Textarea } from '@ui/primitives/textarea';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import PromptBarShell from '@ui/prompt-bars/components/shell/PromptBarShell';
 import type { ChangeEvent, FormEvent, KeyboardEvent, ReactNode } from 'react';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import {
   HiArrowUp,
   HiBookmark,
@@ -107,18 +107,8 @@ function usePromptBarPostController({
   const [count, setCount] = useState(3);
   const [isThread, setIsThread] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [selectedPresetKey, setSelectedPresetKey] = useState('');
-  const prevIsEnhancingRef = useRef(isEnhancing);
-  const prevPlatformRef = useRef(platform);
-
-  useEffect(() => {
-    if (prevPlatformRef.current !== platform) {
-      if (platform !== Platform.TWITTER) {
-        setIsThread(false);
-      }
-      prevPlatformRef.current = platform;
-    }
-  }, [platform]);
+  const [selectedPresetKeyState, setSelectedPresetKey] = useState('');
+  const effectiveIsThread = platform === Platform.TWITTER ? isThread : false;
 
   const platformOptions = useMemo<PlatformOption[]>(
     () =>
@@ -188,15 +178,11 @@ function usePromptBarPostController({
     );
   }, [platform, showCountDropdown]);
 
-  useEffect(() => {
-    if (
-      !presets.find(
-        (preset: { key: string }) => preset.key === selectedPresetKey,
-      )
-    ) {
-      setSelectedPresetKey('');
-    }
-  }, [presets, selectedPresetKey]);
+  const selectedPresetKey = presets.some(
+    (preset: { key: string }) => preset.key === selectedPresetKeyState,
+  )
+    ? selectedPresetKeyState
+    : '';
 
   const presetOptions = useMemo<PresetOption[]>(
     () =>
@@ -217,13 +203,6 @@ function usePromptBarPostController({
     }
   };
 
-  useEffect(() => {
-    if (prevIsEnhancingRef.current && !isEnhancing) {
-      setPrompt('');
-    }
-    prevIsEnhancingRef.current = isEnhancing;
-  }, [isEnhancing]);
-
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (prompt.trim() && !isEnhancing) {
@@ -234,8 +213,9 @@ function usePromptBarPostController({
         prompt.trim(),
         showCountDropdown ? count : undefined,
         selectedPlatform,
-        showThreadToggle ? isThread : undefined,
+        showThreadToggle ? effectiveIsThread : undefined,
       );
+      setPrompt('');
     }
   };
 
@@ -257,7 +237,7 @@ function usePromptBarPostController({
     handleSubmit,
     isCollapsed,
     isEnhancing,
-    isThread,
+    isThread: effectiveIsThread,
     onPlatformChange,
     platform,
     platformOptions,

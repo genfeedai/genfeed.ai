@@ -8,13 +8,27 @@
 # ==================================================
 FROM node:24-bookworm-slim AS base
 
-# Redis + tini
+# Redis + tini.
+# ca-certificates is required for HTTPS (bun.sh install below): node:*-slim ships
+# no CA bundle, and ca-certificates is only a *Recommends* of curl — so with
+# --no-install-recommends it must be listed explicitly or curl fails with
+# `curl: (77) error setting certificate file: /etc/ssl/certs/ca-certificates.crt`.
+# unzip is required by the bun installer (>=1.3 ships its binary as a .zip):
+# without it the install below aborts with `error: unzip is required to install bun`.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl redis-server tini && \
+    ca-certificates curl redis-server tini unzip && \
     rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL https://bun.sh/install | bash -s "bun-v1.2.12" && \
-    cp /root/.bun/bin/bun /usr/local/bin/bun
+# Copy BOTH bun and bunx onto PATH. bunx is a distinct binary (not derived from
+# bun at call time), and it is needed in both stages: the builder runs it via
+# package build scripts (e.g. @genfeedai/serializers' `bunx tsc-alias`), and the
+# runtime entrypoint runs `bunx prisma migrate deploy` on startup. Copying only
+# bun leaves both with `bunx: command not found` (exit 127). Mirrors
+# docker/Dockerfile.server.
+RUN curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.14" && \
+    cp /root/.bun/bin/bun /usr/local/bin/bun && \
+    cp /root/.bun/bin/bunx /usr/local/bin/bunx && \
+    chmod +x /usr/local/bin/bun /usr/local/bin/bunx
 ENV PATH="/usr/local/bin:${PATH}"
 
 # ==================================================
@@ -24,14 +38,58 @@ FROM base AS builder
 WORKDIR /app
 ENV NODE_OPTIONS=--max-old-space-size=4096
 
+# node-pty (a runtime dependency of @genfeedai/notifications' terminal service)
+# is a native addon that ships no prebuild for this Node ABI, so bun compiles it
+# from source during `bun install` and needs node-gyp plus a C/C++ toolchain on
+# PATH. Without these the install aborts with `node-gyp: command not found` /
+# `install script from "node-pty" exited with 127`. Installed in the builder
+# stage ONLY: the compiled .node binary travels to the runtime stage via the
+# `COPY --from=builder /app/node_modules/` below, so the runtime image stays
+# slim (no python3/g++). Mirrors the toolchain install in docker/Dockerfile.server.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ && \
+    npm install -g node-gyp && \
+    rm -rf /var/lib/apt/lists/*
+
 # Copy workspace manifests for dependency resolution
 COPY package.json bun.lock turbo.json ./
 
-# Narrow workspace to server + web app only
+# Narrow the workspace to the server services + web app.
+# 'configs' is deliberately NOT listed: it is a plain directory of shared config
+# files (vitest-warning-filter.ts), not a Bun workspace package — it has no
+# package.json and the root manifest never declares it. Bun <=1.2 silently
+# ignored the dangling entry; Bun >=1.3 hard-fails with
+# `error: Workspace not found "configs"`. The files still arrive via the
+# `COPY configs/ configs/` below; they just aren't a workspace.
+#
+# '!packages/desktop-prisma' excludes ONE package from the packages/* glob. Its
+# postinstall runs `prisma generate`, which needs a schema we never copy (it
+# belongs to the Electron desktop app, not the server or web studio). Nothing in
+# this image's graph depends on it — only apps/desktop does — so dropping it is
+# safe. The broader packages/* stays because the web app (apps/app) does pull
+# other workspace packages, including @genfeedai/desktop-contracts. Bun honors
+# the negative glob (verified on 1.3.14).
+#
+# `delete p.scripts.postinstall` drops the root postinstall (scripts/setup-skills.sh,
+# which generates .claude/skills symlinks) — pointless in the image and its
+# script dir isn't copied before install. Mirrors docker/Dockerfile.server.
+#
+# 'ee/packages/*' is deliberately EXCLUDED — this is what makes the self-hosted
+# image the AGPL community build, carrying none of the commercial-licensed ee/
+# source. The api no longer imports @genfeedai/ee-billing as values (Phase C
+# decouple): its billing collection modules compose `@billing-providers`, which the
+# webpack alias in webpack.base.config.js resolves to the in-tree OSS fragment
+# (apps/server/api/src/common/subscriptions/billing.providers.oss.ts) whenever
+# ee/packages/billing is absent from the build — exactly this image. The runtime
+# string-token bindings then fall to the OSS stubs (no license key present), so the
+# always-on webhook/stripe read paths stay safe and user-initiated billing returns
+# 403. @genfeedai/ee-harness is likewise imported type-only and erased at compile,
+# so no ee/ source needs to be listed or copied.
 RUN node -e "\
   const fs=require('fs');\
   const p=JSON.parse(fs.readFileSync('package.json','utf8'));\
-  p.workspaces=['apps/server/*','apps/app','configs','packages/*'];\
+  p.workspaces=['apps/server/*','apps/app','packages/*','!packages/desktop-prisma'];\
+  if(p.scripts) delete p.scripts.postinstall;\
   if(p.dependencies?.resend==='~6.9.3') p.dependencies.resend='6.9.3';\
   fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n');"
 
@@ -47,8 +105,23 @@ RUN --mount=type=bind,source=.,target=/ctx \
       mkdir -p "$dir" && cp "$f" "$dir/package.json"; \
     done
 
+# @genfeedai/prisma runs `prisma generate` in its postinstall during bun install,
+# so its schema + config must be present before the install — only the package.json
+# manifests are copied above, and `prisma generate` aborts with `Could not find
+# Prisma Schema` otherwise. Mirrors docker/Dockerfile.server.
+COPY packages/prisma/prisma.config.mjs ./packages/prisma/prisma.config.mjs
+COPY packages/prisma/prisma/ ./packages/prisma/prisma/
+
+# --linker hoisted: bun 1.3 flipped the default workspace linker from hoisted to
+# isolated (per-package node_modules symlinked into a root .bun store). The runtime
+# stage below ships ONLY the root node_modules (and not apps/app/node_modules), yet
+# every runtime entrypoint resolves through it: `node apps/server/dist/apps/*/main.js`
+# walks up to /app/node_modules for externals, `bunx prisma migrate deploy` needs
+# prisma there, and `cd apps/app && bun run start` needs next there. Under the
+# isolated layout those resolutions die with MODULE_NOT_FOUND. Hoisting restores the
+# flat root node_modules the pre-1.3 image relied on. Mirrors docker/Dockerfile.server.
 RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
-    HUSKY=0 bun install
+    HUSKY=0 bun install --linker hoisted
 
 # Copy source
 COPY tsconfig.json tsconfig.server.decorators.json webpack.base.config.js ./
@@ -56,7 +129,30 @@ COPY configs/ configs/
 COPY packages/ packages/
 COPY apps/server/ apps/server/
 
-# Build shared workspace packages
+# Build @genfeedai/enums FIRST. It is a composite `tsc --build` project that many
+# downstream packages reference via `references: [{ "path": "../enums" }]`
+# (@genfeedai/integrations, helpers, serializers). A `references` entry makes
+# tsc redirect every `@genfeedai/enums` import to enums' BUILD OUTPUT
+# (packages/enums/dist/index.d.ts) and abort with
+# `TS6305: Output file '/app/packages/enums/dist/index.d.ts' has not been built
+# from source file '/app/packages/enums/src/index.ts'` if that output does not
+# already exist. In a clean build context (no host-built packages/*/dist) nothing
+# else in this block guarantees enums/dist before the serial tail — `config`'s
+# `tsc --build` references only ../pricing, not enums — so @genfeedai/integrations
+# (a plain `tsc`, no --build) fails on its very first import. Building enums up
+# front makes its dist present for every referencer; the downstream `tsc --build`
+# packages (helpers, serializers) then see it up-to-date and skip rebuilding it.
+RUN bun --filter @genfeedai/enums build
+
+# Build the remaining shared workspace packages.
+#
+# @genfeedai/workflow-engine and @genfeedai/workflow-saas build with plain `tsc`
+# (not `tsc --build`) and path-map @genfeedai/interfaces to source, so tsc pulls
+# the interfaces *.ts into their program. Those interface files import
+# @genfeedai/enums, so both tsconfigs path-map @genfeedai/enums to ../enums/src
+# (mirroring @genfeedai/integrations) — resolving enums from source for their own
+# compile, independent of the enums/dist built above. Without that path-map a
+# clean context fails with `TS2307: Cannot find module '@genfeedai/enums'`.
 RUN set -e && \
     bun --filter @genfeedai/types build & pid1=$! && \
     bun --filter @genfeedai/config build & pid2=$! && \
@@ -77,13 +173,28 @@ RUN set -e && \
     bun --filter @genfeedai/files build:prod & pid1=$! && \
     bun --filter @genfeedai/notifications build:prod & pid2=$! && \
     wait $pid1 $pid2
+# mcp is built here because selfhosted-entrypoint.sh starts it (MCP_PORT 3014,
+# proxying to the local api). Without this build the entrypoint would launch a
+# nonexistent bundle and the mcp tool surface would be silently dead. Kept on its
+# own serial RUN (like api/workers above) rather than folded into the parallel
+# files+notifications batch: that 2-way width is what the CI release publish runs
+# on a 7 GB ubuntu-latest runner, and a 3rd concurrent `nest build` risks OOM.
+RUN bun --filter @genfeedai/mcp build:prod
 
 # Copy and build Next.js web app
 COPY apps/app/ apps/app/
-ENV NEXT_PUBLIC_API_URL=/v1
-ENV NEXT_PUBLIC_API_ENDPOINT=http://localhost:3010/v1
-ENV NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3011
-ENV NEXT_PUBLIC_CDN_URL=http://localhost:3012
+# NEXT_PUBLIC_* are inlined into the Next.js bundle at build time, so they must be
+# build ARGs (overridable with --build-arg) — not just runtime ENV — for a
+# self-hoster behind a reverse proxy to point the web app at their own
+# API/WS/CDN origins. The defaults keep the zero-config localhost run working.
+ARG NEXT_PUBLIC_API_URL=/v1
+ARG NEXT_PUBLIC_API_ENDPOINT=http://localhost:3010/v1
+ARG NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3011
+ARG NEXT_PUBLIC_CDN_URL=http://localhost:3012
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_ENDPOINT=$NEXT_PUBLIC_API_ENDPOINT
+ENV NEXT_PUBLIC_WS_ENDPOINT=$NEXT_PUBLIC_WS_ENDPOINT
+ENV NEXT_PUBLIC_CDN_URL=$NEXT_PUBLIC_CDN_URL
 RUN bun --filter @genfeedai/app build
 
 # ==================================================
@@ -109,12 +220,22 @@ COPY --from=builder --chown=appuser /app/apps/app/package.json apps/app/package.
 COPY --from=builder --chown=appuser /app/node_modules/ node_modules/
 COPY --from=builder --chown=appuser /app/package.json .
 
+# packages/prisma must ship to runtime: unlike docker/Dockerfile.server (whose SaaS
+# entrypoints only `node main.js` and migrate as a separate deploy step), this
+# all-in-one entrypoint runs `prisma migrate deploy` on boot, which needs the schema,
+# the migrations dir, AND prisma.config.mjs (the datasource url lives only there) on
+# disk. It also restores the @genfeedai/prisma workspace symlink target
+# (node_modules/@genfeedai/prisma -> ../../packages/prisma) and the prisma-v7
+# generated client (packages/prisma/generated) the services resolve at runtime.
+COPY --from=builder --chown=appuser /app/packages/prisma/ packages/prisma/
+
 # Copy entrypoint
 COPY --chown=appuser docker/selfhosted-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 VOLUME /data
-EXPOSE 3000 3010
+# 3000 web · 3010 api · 3014 mcp (started by the entrypoint, proxies to the api)
+EXPOSE 3000 3010 3014
 USER appuser
 
 ENTRYPOINT ["tini", "--", "/entrypoint.sh"]

@@ -178,7 +178,7 @@ function buildLlmsIndex(): string {
   lines.push('');
   for (const uc of useCases) {
     lines.push(
-      `- [${uc.title}](${BASE_URL}/for/${uc.slug}): ${uc.description}`,
+      `- [${uc.title}](${BASE_URL}/use-cases/${uc.slug}): ${uc.description}`,
     );
   }
   lines.push('');
@@ -215,7 +215,7 @@ function buildLlmsIndex(): string {
   lines.push('');
   lines.push(`- [About](${BASE_URL}/about): Company mission and team`);
   lines.push(`- [Blog](${BASE_URL}/articles): Articles and updates`);
-  lines.push(`- [Contact](${BASE_URL}/contact): Get in touch`);
+  lines.push(`- [Demo](${BASE_URL}/demo): Book a personalized demo`);
   lines.push(`- [Privacy Policy](${BASE_URL}/privacy): Privacy policy`);
   lines.push(`- [Terms of Service](${BASE_URL}/terms): Terms of service`);
   lines.push(
@@ -423,7 +423,7 @@ function buildLlmsFull(): string {
 
     s.push(`Recommended plan: ${uc.pricing.recommended} — ${uc.pricing.why}`);
     s.push('');
-    s.push(`URL: ${BASE_URL}/for/${uc.slug}`);
+    s.push(`URL: ${BASE_URL}/use-cases/${uc.slug}`);
     s.push('');
   }
 

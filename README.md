@@ -44,7 +44,7 @@ The web UI will be available at `http://localhost:3000` and the API at `http://l
 
 ## Architecture
 
-Turborepo + Bun monorepo. NestJS backend split into 12 microservices. Next.js frontend. MongoDB for persistence. Redis + BullMQ for queuing and caching.
+Turborepo + Bun monorepo. NestJS backend split into 12 microservices. Next.js frontend. PostgreSQL via Prisma for persistence. Redis + BullMQ for queuing and caching.
 
 ```
 genfeed.ai/
@@ -70,7 +70,7 @@ genfeed.ai/
     extensions/       -- browser and IDE extensions
   packages/           -- shared packages (@genfeedai/*)
     core/             -- domain logic
-    db/               -- database schemas and migrations
+    prisma/           -- Prisma schema and migrations
     workflows/        -- workflow engine and node definitions
     integrations/     -- platform connectors
     ui/               -- shared component library

@@ -84,6 +84,7 @@ function PromptBarProviderContent({
     userId: null,
   });
 
+  /* eslint-disable react-doctor/no-adjust-state-on-prop-change -- Async provider resource loading updates state from fetch lifecycle callbacks, not prop mirroring. */
   const findAllPromptBarData = useCallback(async () => {
     if (!isSignedIn || !enabled) {
       return;
@@ -212,6 +213,7 @@ function PromptBarProviderContent({
     getTagsService,
     orgSettings,
   ]);
+  /* eslint-enable react-doctor/no-adjust-state-on-prop-change */
 
   useEffect(() => {
     if (!isAuthLoaded || !enabled) {
@@ -219,19 +221,13 @@ function PromptBarProviderContent({
     }
 
     if (!isSignedIn) {
-      setAllModels([]);
-      setPresets([]);
-      setFontFamilies([]);
-      setTags([]);
-      setTrainings([]);
       lastSessionRef.current = {
         organizationId: null,
         orgId: null,
         userId: null,
       };
       isLoadingRef.current = false;
-      setIsLoading(false);
-      return setError(null);
+      return;
     }
 
     const sessionChanged =
@@ -273,8 +269,12 @@ function PromptBarProviderContent({
     };
   }, []);
 
+  const hasActiveSession = enabled && isSignedIn;
+  const exposedIsLoading =
+    enabled && !isAuthLoaded ? true : hasActiveSession ? isLoading : false;
+
   const models = useMemo(() => {
-    if (isLoading) {
+    if (exposedIsLoading || !hasActiveSession) {
       return [];
     }
 
@@ -297,18 +297,24 @@ function PromptBarProviderContent({
         enabledModels.includes(model.id) ||
         enabledModels.includes(model.key),
     );
-  }, [allModels, orgSettings, isLoading, organizationId]);
+  }, [
+    allModels,
+    orgSettings,
+    exposedIsLoading,
+    hasActiveSession,
+    organizationId,
+  ]);
 
   const value: PromptBarContextValue = {
-    error,
-    fontFamilies,
-    isLoading,
+    error: hasActiveSession ? error : null,
+    fontFamilies: hasActiveSession ? fontFamilies : [],
+    isLoading: exposedIsLoading,
     models,
     onRefresh,
-    presets,
+    presets: hasActiveSession ? presets : [],
     refetch,
-    tags,
-    trainings,
+    tags: hasActiveSession ? tags : [],
+    trainings: hasActiveSession ? trainings : [],
   };
 
   return (

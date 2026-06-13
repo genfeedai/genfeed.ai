@@ -28,6 +28,11 @@ interface ExecutionPanelProps {
   onClose: () => void;
 }
 
+interface ExecutionLoadState {
+  isLoading: boolean;
+  runId: string | null;
+}
+
 const POLL_INTERVAL_MS = 2500;
 const TERMINAL_STATUSES: ReadonlySet<string> = new Set([
   'completed',
@@ -43,10 +48,16 @@ export function ExecutionPanel({
   runId,
   onClose,
 }: ExecutionPanelProps) {
+  const currentRunId = runId ?? null;
   const [execution, setExecution] = useState<ExecutionResult | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loadState, setLoadState] = useState<ExecutionLoadState>({
+    isLoading: Boolean(runId),
+    runId: currentRunId,
+  });
   const [error, setError] = useState<string | null>(null);
   const updateNodeData = useWorkflowStore(selectUpdateNodeData);
+  const isLoading =
+    loadState.runId === currentRunId ? loadState.isLoading : Boolean(runId);
 
   const getService = useAuthedService(
     createWorkflowApiService,
@@ -62,7 +73,7 @@ export function ExecutionPanel({
   const fetchExecution = useCallback(
     async (signal: AbortSignal) => {
       if (!runId) {
-        setIsLoading(false);
+        setLoadState({ isLoading: false, runId: currentRunId });
         return;
       }
 
@@ -98,11 +109,11 @@ export function ExecutionPanel({
         return null;
       } finally {
         if (!signal.aborted) {
-          setIsLoading(false);
+          setLoadState({ isLoading: false, runId: currentRunId });
         }
       }
     },
-    [runId, getService, updateNodeData],
+    [currentRunId, runId, getService, updateNodeData],
   );
 
   useEffect(() => {
@@ -122,7 +133,6 @@ export function ExecutionPanel({
       }
     };
 
-    setIsLoading(true);
     poll();
 
     return () => {
@@ -161,7 +171,7 @@ export function ExecutionPanel({
               variant={ButtonVariant.OUTLINE}
               onClick={() => {
                 const controller = new AbortController();
-                setIsLoading(true);
+                setLoadState({ isLoading: true, runId: currentRunId });
                 fetchExecution(controller.signal);
               }}
               className="w-full"

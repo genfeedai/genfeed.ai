@@ -42,12 +42,20 @@ export GENFEEDAI_PUBLIC_URL=${GENFEEDAI_PUBLIC_URL:-http://localhost:3000}
 # Start infrastructure
 redis-server --dir /data/redis --appendonly yes --daemonize yes
 
-# Run Prisma migrations before starting services (DB may still be initialising)
+# Run Prisma migrations before starting services (DB may still be initialising).
+# Must run from packages/prisma, NOT /app with --schema: the schema's datasource
+# block carries no url (`provider = "postgresql"` only) — the connection url lives
+# solely in prisma.config.mjs (`datasource.url = process.env.DATABASE_URL`). Prisma 7
+# auto-discovers prisma.config.{mjs,ts} from the CWD, so running `migrate deploy`
+# from /app loads the schema but never the config and aborts with
+# `The datasource.url property is required in your Prisma config file`. cd-ing into
+# the package lets prisma find the config and resolve its `./prisma/...` relative
+# paths — the same cwd `prisma generate` uses during the image build.
 echo "[entrypoint] Running Prisma migrations..."
 MIGRATE_RETRIES=5
 MIGRATE_DELAY=5
 for i in $(seq 1 $MIGRATE_RETRIES); do
-  if bunx prisma migrate deploy --schema packages/prisma/prisma/schema.prisma; then
+  if (cd packages/prisma && bunx prisma migrate deploy); then
     echo "[entrypoint] Prisma migrations applied successfully"
     break
   fi

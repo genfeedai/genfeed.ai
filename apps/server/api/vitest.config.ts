@@ -113,6 +113,17 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, './src'),
       },
       {
+        // Mirrors the webpack/tsconfig `@billing-providers` alias for the api's
+        // own unit tests: with ee/packages/billing out of the api graph, the
+        // billing collection modules resolve to the in-tree OSS fragment. The EE
+        // fragment is exercised by ee/packages/billing's own vitest run.
+        find: '@billing-providers',
+        replacement: path.resolve(
+          serviceDir,
+          './src/common/subscriptions/billing.providers.oss.ts',
+        ),
+      },
+      {
         find: '@credits',
         replacement: path.resolve(serviceDir, './src/collections/credits'),
       },
@@ -134,6 +145,24 @@ export default defineConfig({
       {
         find: '@genfeedai/types',
         replacement: path.resolve(serviceDir, '../../../packages/types/src'),
+      },
+      {
+        // api now imports billing DI tokens (value exports, not just types) from
+        // @genfeedai/interfaces/billing. The package only ships a dist exports
+        // map, so point vitest at src like every other @genfeedai/* workspace
+        // alias. Subpath regex must precede the bare alias so subpaths win.
+        find: /^@genfeedai\/interfaces\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/interfaces/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/interfaces',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/interfaces/src',
+        ),
       },
       {
         find: '@genfeedai/config',

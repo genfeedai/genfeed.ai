@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
     g++ \
-    && curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.10" \
+    && curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.14" \
     && cp /root/.bun/bin/bun /usr/local/bin/bun \
     && cp /root/.bun/bin/bunx /usr/local/bin/bunx \
     && chmod +x /usr/local/bin/bun /usr/local/bin/bunx \
@@ -207,7 +207,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install bun for running production scripts
-RUN curl -fsSL https://bun.sh/install | bash && \
+RUN curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.14" && \
     cp /root/.bun/bin/bun /usr/local/bin/bun && \
     chmod +x /usr/local/bin/bun
 ENV PATH="/usr/local/bin:${PATH}"

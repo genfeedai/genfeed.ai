@@ -27,6 +27,13 @@ interface WorkflowExecuteCardProps {
 
 type CardStatus = 'idle' | 'executing' | 'done' | 'error';
 
+interface WorkflowInterfaceState {
+  formValues: Record<string, unknown>;
+  isLoading: boolean;
+  workflowId: string | null;
+  workflowInterface: WorkflowInterfaceSchema | null;
+}
+
 function getInitialValue(field: WorkflowInterfaceField): unknown {
   if (field.defaultValue !== undefined) {
     return field.defaultValue;
@@ -59,39 +66,49 @@ export function WorkflowExecuteCard({
 }: WorkflowExecuteCardProps): ReactElement {
   const { href } = useOrgUrl();
   const workflowId = action.workflowId;
+  const currentWorkflowId = workflowId ?? null;
   const workflowName = action.workflowName ?? 'Workflow';
   const [status, setStatus] = useState<CardStatus>('idle');
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [workflowInterface, setWorkflowInterface] =
-    useState<WorkflowInterfaceSchema | null>(null);
-  const [isLoadingInterface, setIsLoadingInterface] = useState(false);
-  const [formValues, setFormValues] = useState<Record<string, unknown>>({});
+  const [interfaceState, setInterfaceState] = useState<WorkflowInterfaceState>({
+    formValues: {},
+    isLoading: Boolean(workflowId),
+    workflowId: currentWorkflowId,
+    workflowInterface: null,
+  });
   const abortRef = useRef<AbortController | null>(null);
+  const isCurrentInterface = interfaceState.workflowId === currentWorkflowId;
+  const workflowInterface = isCurrentInterface
+    ? interfaceState.workflowInterface
+    : null;
+  const isLoadingInterface = isCurrentInterface
+    ? interfaceState.isLoading
+    : Boolean(workflowId);
+  const formValues = isCurrentInterface ? interfaceState.formValues : {};
 
   useEffect(() => {
     if (!workflowId) {
-      setWorkflowInterface(null);
-      setFormValues({});
       return;
     }
 
     const controller = new AbortController();
-    setIsLoadingInterface(true);
 
     void runAgentApiEffect(
       apiService.getWorkflowInterfaceEffect(workflowId, controller.signal),
     )
       .then((schema) => {
-        setWorkflowInterface(schema);
-        setFormValues(
-          Object.fromEntries(
+        setInterfaceState({
+          formValues: Object.fromEntries(
             Object.entries(schema.inputs ?? {}).map(([key, field]) => [
               key,
               getInitialValue(field),
             ]),
           ),
-        );
+          isLoading: false,
+          workflowId,
+          workflowInterface: schema,
+        });
       })
       .catch((err: unknown) => {
         if (!controller.signal.aborted) {
@@ -100,16 +117,21 @@ export function WorkflowExecuteCard({
               ? err.message
               : 'Failed to load workflow interface',
           );
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setIsLoadingInterface(false);
+          setInterfaceState((prev) =>
+            prev.workflowId === currentWorkflowId
+              ? { ...prev, isLoading: false }
+              : {
+                  formValues: {},
+                  isLoading: false,
+                  workflowId: currentWorkflowId,
+                  workflowInterface: null,
+                },
+          );
         }
       });
 
     return () => controller.abort();
-  }, [apiService, workflowId]);
+  }, [apiService, currentWorkflowId, workflowId]);
 
   const workflowInputs = workflowInterface?.inputs ?? {};
   const inputEntries = useMemo(
@@ -118,9 +140,19 @@ export function WorkflowExecuteCard({
   );
   const hasInputs = inputEntries.length > 0;
 
-  const handleChange = useCallback((key: string, value: unknown) => {
-    setFormValues((prev) => ({ ...prev, [key]: value }));
-  }, []);
+  const handleChange = useCallback(
+    (key: string, value: unknown) => {
+      setInterfaceState((prev) => ({
+        ...prev,
+        formValues:
+          prev.workflowId === currentWorkflowId
+            ? { ...prev.formValues, [key]: value }
+            : { [key]: value },
+        workflowId: currentWorkflowId,
+      }));
+    },
+    [currentWorkflowId],
+  );
 
   const handleTextChange = useCallback(
     (key: string) =>
