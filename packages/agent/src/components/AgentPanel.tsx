@@ -174,6 +174,7 @@ export function AgentPanel({
       currentThread?.runtimeKey === draftRuntime.key &&
       (currentThread?.requestedModel || '') === draftRuntime.requestedModel
     ) {
+      // eslint-disable-next-line react-doctor/no-adjust-state-on-prop-change -- Clears a consumed pending runtime command once the active thread reflects it.
       setDraftRuntime(null);
       return;
     }

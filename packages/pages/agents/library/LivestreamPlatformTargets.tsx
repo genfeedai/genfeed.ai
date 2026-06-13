@@ -34,7 +34,7 @@ export default function LivestreamPlatformTargets({
   onFormChange,
   youtubeLastPostedAt,
   twitchLastPostedAt,
-}: Props): JSX.Element {
+}: Props) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card className="p-6">

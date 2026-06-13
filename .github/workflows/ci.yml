@@ -121,7 +121,7 @@ jobs:
         if: steps.changed.outputs.files != ''
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: '1.3.13'
+          bun-version: '1.3.14'
           cache-turbo: 'false'
 
       - name: Run secretlint on changed files
@@ -179,7 +179,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: '1.3.13'
+          bun-version: '1.3.14'
           cache-turbo: 'false'
       - run: bun run check:architecture
 
@@ -195,7 +195,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: '1.3.13'
+          bun-version: '1.3.14'
           cache-turbo: 'false'
       - run: bun run check:ui-guards
 
@@ -211,7 +211,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: '1.3.13'
+          bun-version: '1.3.14'
           cache-turbo: 'false'
       - run: bun run format:check
 
@@ -227,7 +227,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: '1.3.13'
+          bun-version: '1.3.14'
       - name: Run lint
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -248,7 +248,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: '1.3.13'
+          bun-version: '1.3.14'
           cache-turbo: 'false'
       - run: bun run design:check
 
@@ -264,7 +264,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: '1.3.13'
+          bun-version: '1.3.14'
       - name: Run typecheck
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -320,7 +320,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: '1.3.13'
+          bun-version: '1.3.14'
       - name: Run tests
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -341,7 +341,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: '1.3.13'
+          bun-version: '1.3.14'
       - name: Run server service tests
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -362,7 +362,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: '1.3.13'
+          bun-version: '1.3.14'
       - name: Run web, desktop, and mobile tests
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -383,7 +383,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: '1.3.13'
+          bun-version: '1.3.14'
       - name: Run extension tests
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -408,7 +408,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: '1.3.13'
+          bun-version: '1.3.14'
       - name: Build app workspace
         run: bunx turbo run build --filter='./apps/app...'
       - name: Run app test shard
@@ -432,7 +432,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: '1.3.13'
+          bun-version: '1.3.14'
       - name: Build API dependencies
         run: bunx turbo run build --filter=./packages/**
       - name: Run API test shard
@@ -453,7 +453,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: '1.3.13'
+          bun-version: '1.3.14'
       - name: Run build
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then

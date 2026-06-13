@@ -19,8 +19,33 @@ permissions:
   packages: write
 
 jobs:
+  # The community self-hosted image is what users `docker run`. Only master may
+  # produce it — a release cut from develop/staging, or a manual dispatch off a
+  # feature branch, would otherwise ship pre-release code as the public image.
+  # Mirrors deploy-production.yml's validate-production-ref gate.
+  validate-master-ref:
+    name: Validate master ref
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require master for self-hosted publish
+        run: |
+          set -euo pipefail
+
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] && [ "${GITHUB_REF_NAME}" != "master" ]; then
+            echo "::error::Self-hosted publish via workflow_dispatch must run from master. Current ref: ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
+          if [ "${GITHUB_EVENT_NAME}" = "release" ] && [ "${RELEASE_TARGET_COMMITISH}" != "master" ]; then
+            echo "::error::Self-hosted releases must target master. Current target: ${RELEASE_TARGET_COMMITISH}"
+            exit 1
+          fi
+        env:
+          RELEASE_TARGET_COMMITISH: ${{ github.event.release.target_commitish || '' }}
+
   build-and-push:
     name: Build & Push Self-Hosted Image
+    needs: validate-master-ref
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

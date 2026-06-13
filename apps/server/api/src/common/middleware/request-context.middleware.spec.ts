@@ -24,13 +24,6 @@ vi.mock(
   }),
 );
 
-vi.mock(
-  '@api/collections/subscriptions/services/subscriptions.service',
-  () => ({
-    SubscriptionsService: vi.fn(),
-  }),
-);
-
 import { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { RedisService } from '@libs/redis/redis.service';

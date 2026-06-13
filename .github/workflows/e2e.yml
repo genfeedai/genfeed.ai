@@ -68,7 +68,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: "1.3.13"
+          bun-version: "1.3.14"
           install-command: "bun install"
 
       - name: Build packages
@@ -111,7 +111,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: "1.3.13"
+          bun-version: "1.3.14"
           cache-playwright: "true"
 
       - name: Build app
@@ -159,7 +159,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: "1.3.13"
+          bun-version: "1.3.14"
           cache-turbo: "false"
 
       - name: Download all blob reports
@@ -220,7 +220,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: "1.3.13"
+          bun-version: "1.3.14"
           install-command: "bun install"
           cache-playwright: "true"
 

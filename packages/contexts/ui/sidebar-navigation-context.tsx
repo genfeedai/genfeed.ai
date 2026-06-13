@@ -3,14 +3,7 @@
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
-import {
-  createContext,
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { createContext, use, useCallback, useMemo, useState } from 'react';
 
 interface GroupedMenu {
   group: string;
@@ -110,6 +103,11 @@ interface SidebarNavigationProviderProps {
   items: MenuItemConfig[];
 }
 
+interface NestedGroupOverride {
+  activeGroupId: string;
+  nestedGroupId: string | null;
+}
+
 export function SidebarNavigationProvider({
   children,
   items,
@@ -148,25 +146,35 @@ export function SidebarNavigationProvider({
     };
   }, [groups, pathname]);
 
-  const [nestedGroupId, setNestedGroupId] = useState<string | null>(null);
-
-  // Auto-enter nested mode only for drill-down groups
-  useEffect(() => {
+  const autoNestedGroupId = useMemo(() => {
     const activeGroup = groups.find((g) => g.group === derivedGroupId);
-    if (activeGroup?.items[0]?.drillDown) {
-      setNestedGroupId(derivedGroupId);
-    } else {
-      setNestedGroupId(null);
-    }
+    return activeGroup?.items[0]?.drillDown ? derivedGroupId : null;
   }, [derivedGroupId, groups]);
 
-  const enterNestedGroup = useCallback((groupId: string) => {
-    setNestedGroupId(groupId);
-  }, []);
+  const [nestedGroupOverride, setNestedGroupOverride] =
+    useState<NestedGroupOverride | null>(null);
+
+  const nestedGroupId =
+    nestedGroupOverride?.activeGroupId === derivedGroupId
+      ? nestedGroupOverride.nestedGroupId
+      : autoNestedGroupId;
+
+  const enterNestedGroup = useCallback(
+    (groupId: string) => {
+      setNestedGroupOverride({
+        activeGroupId: derivedGroupId,
+        nestedGroupId: groupId,
+      });
+    },
+    [derivedGroupId],
+  );
 
   const exitNestedGroup = useCallback(() => {
-    setNestedGroupId(null);
-  }, []);
+    setNestedGroupOverride({
+      activeGroupId: derivedGroupId,
+      nestedGroupId: null,
+    });
+  }, [derivedGroupId]);
 
   const value = useMemo<SidebarNavigationContextType>(
     () => ({

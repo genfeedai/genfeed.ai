@@ -30,6 +30,7 @@
     "analyze:browser": "ANALYZE=true BUNDLE_ANALYZE=browser next build",
     "analyze:server": "ANALYZE=true BUNDLE_ANALYZE=server next build",
     "build": "next build --turbopack",
+    "check:orphans": "bun run scripts/check-orphans.ts",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "NODE_OPTIONS='--max-old-space-size=4096 --disable-warning=DEP0169' next dev --turbopack",
     "dev:direct": "NODE_OPTIONS='--max-old-space-size=4096 --disable-warning=DEP0169' next dev --turbopack",

@@ -302,7 +302,12 @@ import { SentryModule } from '@sentry/nestjs/setup';
     SettingsModule,
     SpeechModule,
     StreaksModule,
+    // Billing collection modules — OSS-native (compose from `@billing-providers`,
+    // which the webpack alias swaps to the EE fragment at build time). Registered
+    // in every flavor: their string tokens back always-on webhook/stripe paths.
+    SubscriptionAttributionsModule,
     SubscriptionsModule,
+    UserSubscriptionsModule,
     TagsModule,
     TemplatesModule,
     TrainingsModule,
@@ -357,7 +362,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     TiktokModule,
     TwitterModule,
     UnipileModule,
-    // UserSubscriptionsModule — EE (gated below)
     VideoCompletionModule,
     WebhooksModule,
     WhatsappModule,
@@ -439,14 +443,10 @@ import { SentryModule } from '@sentry/nestjs/setup';
     // Dev-only modules (only registered in development)
     ...(process.env.NODE_ENV === 'development' ? [DevModule] : []),
 
-    // EE-only modules (require GENFEED_LICENSE_KEY)
-    ...(isEEEnabled()
-      ? [
-          UserSubscriptionsModule,
-          BusinessAnalyticsModule,
-          SubscriptionAttributionsModule,
-        ]
-      : []),
+    // EE-only modules (require GENFEED_LICENSE_KEY). The billing collection
+    // modules above are OSS-native and always registered; only superadmin
+    // business metrics remain license-gated.
+    ...(isEEEnabled() ? [BusinessAnalyticsModule] : []),
   ],
   providers: [
     ClerkClientProvider,
