@@ -117,7 +117,7 @@ describe('PublicMusicsController', () => {
       expect(musicsService.findAll).toHaveBeenCalled();
       expect(musicsService.findAll.mock.calls[0][0]).toMatchObject({
         where: {
-          category: IngredientCategory.MUSIC,
+          category: 'MUSIC',
           scope: AssetScope.PUBLIC,
           status: IngredientStatus.GENERATED,
         },
@@ -182,7 +182,7 @@ describe('PublicMusicsController', () => {
       expect(musicsService.findOne).toHaveBeenCalledWith(
         {
           _id: musicId,
-          category: IngredientCategory.MUSIC,
+          category: 'MUSIC',
           isDeleted: false,
           scope: AssetScope.PUBLIC,
           status: IngredientStatus.GENERATED,
@@ -251,7 +251,7 @@ describe('PublicMusicsController', () => {
 
       expect(musicsService.findOne).toHaveBeenCalledWith({
         _id: musicId,
-        category: IngredientCategory.MUSIC,
+        category: 'MUSIC',
         isDeleted: false,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
