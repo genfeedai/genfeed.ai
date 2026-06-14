@@ -140,7 +140,7 @@ describe('PublicImagesController', () => {
       expect(imagesService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            category: IngredientCategory.IMAGE,
+            category: 'IMAGE',
             isDeleted: false,
             scope: AssetScope.PUBLIC,
             status: {
@@ -257,7 +257,7 @@ describe('PublicImagesController', () => {
       expect(imagesService.findOne).toHaveBeenCalledWith(
         {
           _id: imageId,
-          category: IngredientCategory.IMAGE,
+          category: 'IMAGE',
           isDeleted: false,
           scope: AssetScope.PUBLIC,
           status: IngredientStatus.GENERATED,
@@ -323,7 +323,7 @@ describe('PublicImagesController', () => {
 
       expect(imagesService.findOne).toHaveBeenCalledWith({
         _id: imageId,
-        category: IngredientCategory.IMAGE,
+        category: 'IMAGE',
         isDeleted: false,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
