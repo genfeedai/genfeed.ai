@@ -7,13 +7,13 @@ last_verified: 2026-06-11
 topics: [deployment, production, git, ci]
 ---
 
-**Rule:** Never promote or deploy `develop` or `staging` to production unless Vincent explicitly says to do that exact exception. Production deploys must come from GitHub CI on `master`.
+**Rule:** Never promote or deploy any non-`master` ref to production unless Vincent explicitly says to do that exact exception. Production deploys must come from GitHub CI on `master`.
 
-**Why:** Vincent corrected this after a manual `workflow_dispatch` production deploy was run from `develop`. Genfeed.ai is an open-source app with a clean GitHub CI release flow; production must reflect the release branch, not an arbitrary local or selected dispatch ref.
+**Why:** Vincent corrected this after a manual `workflow_dispatch` production deploy was run from a non-`master` ref. Genfeed.ai is an open-source app with a clean GitHub CI release flow; production must reflect the trunk, not an arbitrary local or selected dispatch ref.
 
 **How to apply:**
-- Default release flow remains `develop` -> `staging` -> `master` -> production deploy.
-- Do not run `Deploy Production` from `develop` or `staging`.
+- Release flow is trunk-based: short-lived branch -> PR -> `master` -> production deploy via GitHub CI. `staging`/`production` are deploy environments driven by CI/tags, NOT branches.
+- Do not run `Deploy Production` from any ref other than `master`.
 - Do not deploy production from local Vercel CLI unless Vincent explicitly asks for that emergency exception.
-- If production needs a hotfix, land or cherry-pick it onto `master`, then deploy from GitHub CI.
+- If production needs a hotfix, land it on `master` via `hotfix/xxx` PR, then deploy from GitHub CI.
 - When touching deployment workflows, preserve or strengthen the master-only production guard.
