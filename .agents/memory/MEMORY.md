@@ -14,7 +14,7 @@
 ## Feedback (user corrections — permanent)
 
 - [Never lose code](feedback_never_lose_code.md) — Always branch+push WIP before destructive git ops
-- [Never commit/push to master](feedback_never_commit_to_master.md) — Feature branches: commit freely. Master: always ask.
+- [Ship autonomously; master is PR-only](feedback_never_commit_to_master.md) — Trunk-based: commit/push/PR freely when work done. Never push direct to master. Secret-scan every commit.
 - [proxy.ts is middleware](feedback_proxy_middleware.md) — Next.js 16 renamed middleware.ts → proxy.ts
 - [Use @ui/primitives](feedback_ui_primitives.md) — Never raw HTML elements — blocked by lint-no-raw-html.sh
 - [Codex adversarial review](feedback_codex_adversarial_review.md) — MANDATORY before ExitPlanMode

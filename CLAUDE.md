@@ -91,7 +91,9 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 
 ### Files & Git (ALWAYS)
 - **Research the codebase before editing. Never change code you haven't read.**
-- Never commit/push without explicit user approval
+- **When session work is complete, ship it autonomously**: commit, push the short-lived branch, and open a PR to `master`. Review is gated by the PR (reviewers + required CI), not by a per-commit approval dance.
+- **NEVER push directly to `master`** — PR only, always (see Git Workflow above).
+- **Scan staged content for secrets before every commit** (`.env*`, `secrets/`, tokens, private keys, provider credentials). If found, STOP and flag — never commit it even if explicitly staged. This repo is public; a leak is indexed before rotation.
 - Search 3+ similar implementations before writing new code
 - Use conventional commits: `fix:`, `feat:`, `refactor:`, `chore:`
 
