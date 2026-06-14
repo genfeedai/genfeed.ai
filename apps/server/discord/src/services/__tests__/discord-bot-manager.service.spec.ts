@@ -132,13 +132,15 @@ describe('DiscordBotManager', () => {
       );
     });
 
-    it('should subscribe to all three Redis events', async () => {
+    it('should subscribe to the three integration events plus the channel event', async () => {
       (httpService.get as ReturnType<typeof vi.fn>).mockReturnValue(
         of({ data: [] }),
       );
       await service.initialize();
 
-      expect(redisService.subscribe).toHaveBeenCalledTimes(3);
+      // 3 integration events (created/updated/deleted) + the
+      // discord:send-to-channel event = 4 subscriptions.
+      expect(redisService.subscribe).toHaveBeenCalledTimes(4);
       expect(redisService.subscribe).toHaveBeenCalledWith(
         REDIS_EVENTS.INTEGRATION_CREATED,
         expect.any(Function),
@@ -149,6 +151,10 @@ describe('DiscordBotManager', () => {
       );
       expect(redisService.subscribe).toHaveBeenCalledWith(
         REDIS_EVENTS.INTEGRATION_DELETED,
+        expect.any(Function),
+      );
+      expect(redisService.subscribe).toHaveBeenCalledWith(
+        REDIS_EVENTS.DISCORD_SEND_TO_CHANNEL,
         expect.any(Function),
       );
     });
@@ -272,8 +278,8 @@ describe('DiscordBotManager', () => {
 
       await service.destroyBotInstance(mockInstance);
 
-      expect(service.logger.warn).toHaveBeenCalledWith(
-        `Error stopping bot ${mockIntegration.id}:`,
+      expect(service.logger.error).toHaveBeenCalledWith(
+        `Error stopping bot ${mockIntegration.id}`,
         error,
       );
     });

@@ -9,17 +9,25 @@ vi.mock('discord.js', () => {
     once: vi.fn(),
   };
   return {
-    ActionRowBuilder: vi.fn().mockImplementation(() => ({
-      addComponents: vi.fn().mockReturnThis(),
-    })),
+    // vitest v4 cannot `new` a vi.fn() whose implementation is an arrow
+    // function (arrows have no [[Construct]]). Use normal function expressions
+    // so the mocked discord.js classes are constructable — mirrors the pattern
+    // in __tests__/discord-bot-manager.service.spec.ts.
+    ActionRowBuilder: vi.fn(function () {
+      return { addComponents: vi.fn().mockReturnThis() };
+    }),
     BaseGuildTextChannel: class BaseGuildTextChannel {},
-    ButtonBuilder: vi.fn().mockImplementation(() => ({
-      setCustomId: vi.fn().mockReturnThis(),
-      setLabel: vi.fn().mockReturnThis(),
-      setStyle: vi.fn().mockReturnThis(),
-    })),
+    ButtonBuilder: vi.fn(function () {
+      return {
+        setCustomId: vi.fn().mockReturnThis(),
+        setLabel: vi.fn().mockReturnThis(),
+        setStyle: vi.fn().mockReturnThis(),
+      };
+    }),
     ButtonStyle: { Danger: 4, Primary: 1, Secondary: 2, Success: 3 },
-    Client: vi.fn().mockImplementation(() => mockClient),
+    Client: vi.fn(function () {
+      return mockClient;
+    }),
     Events: { ClientReady: 'ready' },
     GatewayIntentBits: {
       DirectMessages: 8,
@@ -27,22 +35,22 @@ vi.mock('discord.js', () => {
       Guilds: 1,
       MessageContent: 4,
     },
-    REST: vi.fn().mockImplementation(() => ({
-      put: vi.fn().mockResolvedValue(undefined),
-      setToken: vi.fn().mockReturnThis(),
-    })),
+    REST: vi.fn(function () {
+      return {
+        put: vi.fn().mockResolvedValue(undefined),
+        setToken: vi.fn().mockReturnThis(),
+      };
+    }),
     Routes: { applicationCommands: vi.fn().mockReturnValue('/commands') },
-    SlashCommandBuilder: vi.fn().mockImplementation(() => ({
-      setDescription: vi.fn().mockReturnThis(),
-      setName: vi.fn().mockReturnThis(),
-      toJSON: vi.fn().mockReturnValue({}),
-    })),
+    SlashCommandBuilder: vi.fn(function () {
+      return {
+        setDescription: vi.fn().mockReturnThis(),
+        setName: vi.fn().mockReturnThis(),
+        toJSON: vi.fn().mockReturnValue({}),
+      };
+    }),
   };
 });
-
-vi.mock('rxjs', () => ({
-  firstValueFrom: vi.fn(),
-}));
 
 vi.mock('@genfeedai/integrations', () => ({
   BaseBotManager: class {
@@ -101,7 +109,6 @@ vi.mock('@genfeedai/integrations', () => ({
   isWorkflowExecutionTerminalStatus: vi.fn().mockReturnValue(false),
 }));
 
-import { firstValueFrom } from 'rxjs';
 import { DiscordBotManager } from './discord-bot-manager.service';
 
 const mockConfigService = {
@@ -143,9 +150,6 @@ describe('DiscordBotManager', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (firstValueFrom as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: [],
-    });
     manager = createManager();
   });
 
@@ -160,10 +164,17 @@ describe('DiscordBotManager', () => {
 
   it('should fetch active integrations during init', async () => {
     await manager.initialize();
-    // BotInternalApiClient.fetchActiveIntegrations is called internally;
-    // firstValueFrom is no longer invoked directly by the manager.
     expect(mockRedisService.subscribe).toHaveBeenCalled();
     expect(manager.getActiveCount()).toBe(0);
+    expect(
+      (
+        manager as unknown as Record<string, unknown> & {
+          internalApiClient: {
+            fetchActiveIntegrations: ReturnType<typeof vi.fn>;
+          };
+        }
+      ).internalApiClient.fetchActiveIntegrations,
+    ).toHaveBeenCalled();
   });
 
   it('should return 0 active bots initially', () => {
@@ -188,18 +199,36 @@ describe('DiscordBotManager', () => {
   });
 
   it('should handle empty integrations array from API', async () => {
-    (firstValueFrom as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: [],
-    });
+    (
+      manager as unknown as Record<string, unknown> & {
+        internalApiClient: {
+          fetchActiveIntegrations: ReturnType<typeof vi.fn>;
+        };
+      }
+    ).internalApiClient.fetchActiveIntegrations.mockResolvedValue([]);
     await manager.initialize();
     expect(manager.getActiveCount()).toBe(0);
   });
 
-  it('should handle API failure during fetchActiveIntegrations gracefully', async () => {
-    (firstValueFrom as ReturnType<typeof vi.fn>).mockRejectedValue(
-      new Error('ECONNREFUSED'),
-    );
-    await manager.initialize();
+  it('should log and rethrow when fetchActiveIntegrations fails during init', async () => {
+    // BotInternalApiClient.fetchActiveIntegrations propagates transport errors
+    // (ECONNREFUSED, 401, etc.). initialize() logs the failure and rethrows so
+    // the module-init failure is visible rather than silently swallowed.
+    const error = new Error('ECONNREFUSED');
+    (
+      manager as unknown as Record<string, unknown> & {
+        internalApiClient: {
+          fetchActiveIntegrations: ReturnType<typeof vi.fn>;
+        };
+      }
+    ).internalApiClient.fetchActiveIntegrations.mockRejectedValue(error);
+
+    await expect(manager.initialize()).rejects.toThrow('ECONNREFUSED');
+
+    expect(
+      (manager as unknown as { logger: { error: ReturnType<typeof vi.fn> } })
+        .logger.error,
+    ).toHaveBeenCalledWith('Failed to initialize Discord Bot Manager:', error);
     expect(manager.getActiveCount()).toBe(0);
   });
 

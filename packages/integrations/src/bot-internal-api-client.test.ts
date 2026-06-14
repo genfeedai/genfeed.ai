@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   type BotHttpAdapter,
@@ -102,6 +102,29 @@ describe('BotInternalApiClient', () => {
       const result = await client.fetchActiveIntegrations();
       expect(result).toHaveLength(1);
     });
+
+    it('propagates transport errors (ECONNREFUSED) to the caller', async () => {
+      const { adapter, get } = makeMockAdapter();
+      get.mockRejectedValue(new Error('ECONNREFUSED'));
+      const client = makeClient('discord', adapter);
+
+      await expect(client.fetchActiveIntegrations()).rejects.toThrow(
+        'ECONNREFUSED',
+      );
+    });
+
+    it('propagates 401 HTTP errors to the caller', async () => {
+      const { adapter, get } = makeMockAdapter();
+      const err = Object.assign(new Error('Unauthorized'), {
+        response: { status: 401 },
+      });
+      get.mockRejectedValue(err);
+      const client = makeClient('discord', adapter);
+
+      await expect(client.fetchActiveIntegrations()).rejects.toThrow(
+        'Unauthorized',
+      );
+    });
   });
 
   describe('fetchIntegration', () => {
@@ -117,7 +140,7 @@ describe('BotInternalApiClient', () => {
         { Authorization: 'Bearer test-key' },
       );
       expect(result).not.toBeNull();
-      expect(result!.id).toBe('int-1');
+      expect(result?.id).toBe('int-1');
     });
 
     it('returns null when payload cannot be normalized', async () => {
