@@ -17,7 +17,7 @@ import {
 } from '@nestjs/common';
 
 const SAFETENSORS_EXT = '.safetensors';
-const S3_LORA_PREFIX = 'trainings/loras/';
+const S3_LORA_PREFIX = 'ingredients/trainings/loras/';
 
 @Injectable()
 export class LoraService {

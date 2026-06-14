@@ -100,7 +100,7 @@ export class GenerationService {
 
       if (outputFilename) {
         // Upload to S3 and build CDN URL
-        const s3Key = `videos/generated/${jobId}/${outputFilename}`;
+        const s3Key = `ingredients/videos/generated/${jobId}/${outputFilename}`;
         const localPath = join(
           this.configService.COMFYUI_OUTPUT_PATH,
           outputFilename,
