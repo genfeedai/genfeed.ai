@@ -52,6 +52,12 @@ export class AssetQueryDto extends BaseQueryDto {
     if (value === 'false' || value === false) {
       return false;
     }
+    if (value === '0' || value === 0) {
+      return false;
+    }
+    if (value === '') {
+      return false;
+    }
     return Boolean(value);
   })
   lightweight?: boolean;

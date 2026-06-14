@@ -9,11 +9,11 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ArticleStatus } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
+import { ArticleStatus as PrismaArticleStatus } from '@genfeedai/prisma';
 import { ArticleSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
 import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
@@ -63,7 +63,7 @@ export class PublicArticlesController {
     const matchQuery: PrismaWhereQuery = {
       isDeleted: false,
       publishedAt: { not: null },
-      status: ArticleStatus.PUBLIC,
+      status: PrismaArticleStatus.PUBLISHED,
     };
 
     // Add search filter
@@ -145,7 +145,7 @@ export class PublicArticlesController {
       _id: articleId,
       isDeleted: false,
       publishedAt: { not: null },
-      status: ArticleStatus.PUBLIC,
+      status: PrismaArticleStatus.PUBLISHED,
     });
 
     if (!article) {

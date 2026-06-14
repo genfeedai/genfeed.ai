@@ -64,20 +64,35 @@ export class TrainingService implements OnModuleInit {
 
     for (const record of records) {
       const isAlive = this.isProcessAlive(record.pid);
+      const job = this.jobs.get(record.jobId);
+      const isTerminal =
+        job?.status === 'completed' || job?.status === 'failed';
+
       this.loggerService.warn(caller, {
         isAlive,
+        isTerminal,
         jobId: record.jobId,
         message: 'Orphaned training process detected on startup',
         pid: record.pid,
         startedAt: record.startedAt,
       });
-      await this.updateJob(record.jobId, {
-        completedAt: new Date().toISOString(),
-        error: `Process orphaned by service restart (pid ${record.pid}, ${isAlive ? 'still running' : 'no longer running'})`,
-        stage: 'failed',
-        status: 'failed',
-      });
-      await this.trainingStateStore.deleteProcessRecord(record.jobId);
+
+      if (isTerminal) {
+        // Job already reached a terminal state — do not overwrite; just clean up the stale record.
+        await this.trainingStateStore.deleteProcessRecord(record.jobId);
+      } else if (isAlive) {
+        // Process is still running — leave it in its current state; do not mark failed.
+        // The process record remains so a future restart can re-evaluate.
+      } else {
+        // Process is gone and the job is not yet terminal — mark it failed.
+        await this.updateJob(record.jobId, {
+          completedAt: new Date().toISOString(),
+          error: `Process orphaned by service restart (pid ${record.pid}, no longer running)`,
+          stage: 'failed',
+          status: 'failed',
+        });
+        await this.trainingStateStore.deleteProcessRecord(record.jobId);
+      }
     }
   }
 
@@ -295,19 +310,13 @@ export class TrainingService implements OnModuleInit {
           this.handleTrainingComplete(jobId, params).catch((error: unknown) => {
             const errorMessage =
               error instanceof Error ? error.message : String(error);
-            void this.updateJob(jobId, {
-              completedAt: new Date().toISOString(),
-              error: errorMessage,
-              stage: 'failed',
-              status: 'failed',
-            });
             this.loggerService.error(
               `Post-training S3 upload failed for job ${jobId}`,
               error instanceof Error ? error : new Error(errorMessage),
             );
             void this.updateJob(jobId, {
               completedAt: new Date().toISOString(),
-              error: `Post-training upload failed: ${error instanceof Error ? error.message : String(error)}`,
+              error: `Post-training upload failed: ${errorMessage}`,
               stage: 'failed',
               status: 'failed',
             });

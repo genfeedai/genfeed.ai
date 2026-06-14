@@ -6,6 +6,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  Matches,
   Max,
   Min,
 } from 'class-validator';
@@ -104,6 +105,10 @@ export class BotPublishingSettingsDto {
 
   @IsArray()
   @IsString({ each: true })
+  @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, {
+    each: true,
+    message: 'scheduledTimes must be HH:mm (24h)',
+  })
   @IsOptional()
   @ApiProperty({
     default: [],

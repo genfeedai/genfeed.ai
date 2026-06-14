@@ -1,6 +1,20 @@
 import type { IntegrationPlatform } from '@genfeedai/enums';
 import type { OrgIntegration } from './types';
 
+/** Returns a valid Date parsed from value, or new Date() as a fallback. */
+function parseDateOrNow(value: unknown): Date {
+  if (value === undefined || value === null) {
+    return new Date();
+  }
+  const d = new Date(value as string | number);
+  return Number.isNaN(d.getTime()) ? new Date() : d;
+}
+
+/** Returns value only when it is a plain (non-null, non-array) object. */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 /**
  * Normalize a raw API payload into an OrgIntegration.
  *
@@ -29,13 +43,15 @@ export function normalizeIntegration(
 
   return {
     botToken: String(rawToken),
-    config: (raw.config as OrgIntegration['config']) || {},
-    createdAt: raw.createdAt ? new Date(raw.createdAt as string) : new Date(),
+    config: isPlainObject(raw.config)
+      ? (raw.config as OrgIntegration['config'])
+      : {},
+    createdAt: parseDateOrNow(raw.createdAt),
     id: String(rawId),
     orgId: String(rawOrgId),
     platform,
     status: (raw.status as OrgIntegration['status'] | undefined) || 'active',
-    updatedAt: raw.updatedAt ? new Date(raw.updatedAt as string) : new Date(),
+    updatedAt: parseDateOrNow(raw.updatedAt),
   };
 }
 

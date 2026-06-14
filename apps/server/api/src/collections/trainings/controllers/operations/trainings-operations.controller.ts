@@ -194,9 +194,7 @@ export class TrainingsOperationsController {
       await Promise.all(
         sourceImages.map((img) =>
           this.ingredientsService.patch(img._id, {
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.SOURCE,
-            ),
+            category: IngredientCategory.SOURCE,
             training: newTraining._id as string,
           }),
         ),
