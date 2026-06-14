@@ -32,12 +32,12 @@ describe('normalizeIntegration', () => {
 
     const result = normalizeIntegration(payload, 'discord');
     expect(result).not.toBeNull();
-    expect(result!.id).toBe('int-1');
-    expect(result!.orgId).toBe('org-1');
-    expect(result!.botToken).toBe('tok-abc');
-    expect(result!.platform).toBe('discord');
-    expect(result!.status).toBe('active');
-    expect(result!.config.allowedUserIds).toContain('u1');
+    expect(result?.id).toBe('int-1');
+    expect(result?.orgId).toBe('org-1');
+    expect(result?.botToken).toBe('tok-abc');
+    expect(result?.platform).toBe('discord');
+    expect(result?.status).toBe('active');
+    expect(result?.config.allowedUserIds).toContain('u1');
   });
 
   it('normalizes a MongoDB-style payload with _id and organization', () => {
@@ -51,9 +51,9 @@ describe('normalizeIntegration', () => {
 
     const result = normalizeIntegration(payload, 'telegram');
     expect(result).not.toBeNull();
-    expect(result!.id).toBe('mongo-id-123');
-    expect(result!.orgId).toBe('org-mongo-1');
-    expect(result!.platform).toBe('telegram');
+    expect(result?.id).toBe('mongo-id-123');
+    expect(result?.orgId).toBe('org-mongo-1');
+    expect(result?.platform).toBe('telegram');
   });
 
   it('prefers Prisma id over _id when both present', () => {
@@ -65,7 +65,7 @@ describe('normalizeIntegration', () => {
     };
 
     const result = normalizeIntegration(payload, 'slack');
-    expect(result!.id).toBe('prisma-id');
+    expect(result?.id).toBe('prisma-id');
   });
 
   it('defaults status to "active" when absent', () => {
@@ -76,7 +76,7 @@ describe('normalizeIntegration', () => {
     };
 
     const result = normalizeIntegration(payload, 'slack');
-    expect(result!.status).toBe('active');
+    expect(result?.status).toBe('active');
   });
 
   it('defaults createdAt/updatedAt to now when absent', () => {
@@ -85,14 +85,67 @@ describe('normalizeIntegration', () => {
     const result = normalizeIntegration(payload, 'discord');
     const after = Date.now();
 
-    expect(result!.createdAt.getTime()).toBeGreaterThanOrEqual(before);
-    expect(result!.createdAt.getTime()).toBeLessThanOrEqual(after);
+    expect(result?.createdAt.getTime()).toBeGreaterThanOrEqual(before);
+    expect(result?.createdAt.getTime()).toBeLessThanOrEqual(after);
   });
 
   it('defaults config to empty object when absent', () => {
     const payload = { id: 'int-1', orgId: 'org-1', botToken: 'tok' };
     const result = normalizeIntegration(payload, 'telegram');
-    expect(result!.config).toEqual({});
+    expect(result?.config).toEqual({});
+  });
+
+  it('defaults config to {} when raw.config is a primitive (number)', () => {
+    const payload = {
+      id: 'int-1',
+      orgId: 'org-1',
+      botToken: 'tok',
+      config: 42,
+    };
+    const result = normalizeIntegration(payload, 'discord');
+    expect(result?.config).toEqual({});
+  });
+
+  it('defaults config to {} when raw.config is a primitive (string)', () => {
+    const payload = {
+      id: 'int-1',
+      orgId: 'org-1',
+      botToken: 'tok',
+      config: 'bad',
+    };
+    const result = normalizeIntegration(payload, 'discord');
+    expect(result?.config).toEqual({});
+  });
+
+  it('defaults config to {} when raw.config is an array', () => {
+    const payload = {
+      id: 'int-1',
+      orgId: 'org-1',
+      botToken: 'tok',
+      config: ['a', 'b'],
+    };
+    const result = normalizeIntegration(payload, 'discord');
+    expect(result?.config).toEqual({});
+  });
+
+  it('returns a valid Date when createdAt/updatedAt is an unparseable string', () => {
+    const before = Date.now();
+    const payload = {
+      id: 'int-1',
+      orgId: 'org-1',
+      botToken: 'tok',
+      createdAt: 'not-a-date',
+      updatedAt: 'also-not-a-date',
+    };
+    const result = normalizeIntegration(payload, 'slack');
+    const after = Date.now();
+
+    expect(Number.isNaN(result?.createdAt.getTime())).toBe(false);
+    expect(result?.createdAt.getTime()).toBeGreaterThanOrEqual(before);
+    expect(result?.createdAt.getTime()).toBeLessThanOrEqual(after);
+    expect(Number.isNaN(result?.updatedAt.getTime())).toBe(false);
+    expect(result?.updatedAt.getTime()).toBeGreaterThanOrEqual(before);
+    expect(result?.updatedAt.getTime()).toBeLessThanOrEqual(after);
   });
 
   it('uses the platform argument passed in', () => {
@@ -100,9 +153,9 @@ describe('normalizeIntegration', () => {
     const discord = normalizeIntegration(payload, 'discord');
     const slack = normalizeIntegration(payload, 'slack');
     const telegram = normalizeIntegration(payload, 'telegram');
-    expect(discord!.platform).toBe('discord');
-    expect(slack!.platform).toBe('slack');
-    expect(telegram!.platform).toBe('telegram');
+    expect(discord?.platform).toBe('discord');
+    expect(slack?.platform).toBe('slack');
+    expect(telegram?.platform).toBe('telegram');
   });
 });
 

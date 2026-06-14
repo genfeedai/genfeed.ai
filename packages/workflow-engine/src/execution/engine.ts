@@ -285,6 +285,17 @@ export class WorkflowEngine {
         lastError = `Dependencies not satisfied for node ${stuckNodeId}`;
         failedNodes.add(stuckNodeId);
         currentStatus = 'failed';
+        const stuckAt = new Date();
+        const stuckResult: NodeExecutionResult = {
+          completedAt: stuckAt,
+          creditsUsed: 0,
+          error: lastError,
+          nodeId: stuckNodeId,
+          retryCount: 0,
+          startedAt: stuckAt,
+          status: 'failed',
+        };
+        nodeResults.set(stuckNodeId, stuckResult);
         break;
       }
 

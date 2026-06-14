@@ -299,6 +299,52 @@ describe('WorkflowEngine', () => {
 
       expect(result.status).toBe('failed');
     });
+
+    it('should record a failed NodeExecutionResult for the stuck node on deadlock', async () => {
+      // Exercise the deadlock-detection branch: after n1 completes its
+      // executor removes n1 from workflow.nodes so that canExecuteNode('n2')
+      // returns false (n1 dep lookup → undefined → false). With nothing in
+      // flight and n2 still in `remaining`, the engine hits the stuck-node
+      // path. The fix must insert a failed NodeExecutionResult for n2 before
+      // breaking, matching the shape used in every other failure path.
+      const n1Node = makeNode('n1', 'generate');
+      const n2Node = makeNode('n2', 'upscale');
+      const deadlockWorkflow = makeWorkflow(
+        [n1Node, n2Node],
+        [makeEdge('n1', 'n2')],
+      );
+
+      let n1Ran = false;
+      engine.registerExecutor(
+        'generate',
+        vi.fn(async () => {
+          n1Ran = true;
+          // After n1 completes, remove n1 from the nodes array so that when the
+          // engine tries to dispatch n2, canExecuteNode('n2') looks up n1 as a
+          // dependency, finds depNode=undefined (n1 is gone), and returns false.
+          deadlockWorkflow.nodes = deadlockWorkflow.nodes.filter(
+            (n) => n.id !== 'n1',
+          );
+          return 'n1-output';
+        }),
+      );
+
+      const result = await engine.execute(deadlockWorkflow);
+
+      expect(n1Ran).toBe(true);
+      expect(result.status).toBe('failed');
+      expect(result.error).toContain('Dependencies not satisfied for node n2');
+      // The stuck node MUST have a nodeResults entry (the bug being fixed).
+      expect(result.nodeResults.has('n2')).toBe(true);
+      const stuckResult = result.nodeResults.get('n2');
+      expect(stuckResult?.status).toBe('failed');
+      expect(stuckResult?.error).toContain(
+        'Dependencies not satisfied for node n2',
+      );
+      expect(stuckResult?.creditsUsed).toBe(0);
+      expect(stuckResult?.retryCount).toBe(0);
+      expect(stuckResult?.nodeId).toBe('n2');
+    });
   });
 
   describe('execute — locked nodes', () => {

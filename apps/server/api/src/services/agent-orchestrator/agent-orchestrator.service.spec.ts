@@ -897,7 +897,7 @@ describe('AgentOrchestratorService', () => {
         messages: expect.arrayContaining([
           expect.objectContaining({
             content: expect.stringContaining(
-              'Insufficient credits. This tool requires 10 credits.',
+              'Insufficient credits. This tool requires at least 10 credits to start.',
             ),
             role: 'tool',
           }),
@@ -964,7 +964,7 @@ describe('AgentOrchestratorService', () => {
         messages: expect.arrayContaining([
           expect.objectContaining({
             content: expect.stringContaining(
-              'Insufficient credits. This tool requires 50 credits.',
+              'Insufficient credits. This tool requires at least 50 credits to start.',
             ),
             role: 'tool',
           }),

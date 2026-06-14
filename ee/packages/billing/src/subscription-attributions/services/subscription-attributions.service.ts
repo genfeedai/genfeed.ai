@@ -396,15 +396,22 @@ export class SubscriptionAttributionsService
     stripeSubscriptionId: string,
     status: string,
   ): Promise<void> {
-    const attributions = await this.prisma.subscriptionAttribution.findMany();
+    // organizationId is intentionally absent: this method is invoked from a
+    // Stripe webhook keyed only by stripeSubscriptionId, with no org context
+    // available. Scoping by stripeSubscriptionId in the JSON metadata is the
+    // tightest safe filter possible — this model has no isDeleted field.
+    const attributions = await this.prisma.subscriptionAttribution.findMany({
+      where: {
+        metadata: {
+          path: ['stripeSubscriptionId'],
+          equals: stripeSubscriptionId,
+        },
+      },
+    });
 
     await Promise.all(
       attributions
         .map((attribution) => this.normalizeAttribution(attribution))
-        .filter(
-          (attribution) =>
-            attribution.stripeSubscriptionId === stripeSubscriptionId,
-        )
         .map((attribution) =>
           this.prisma.subscriptionAttribution.update({
             data: {
