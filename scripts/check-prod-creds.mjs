@@ -26,9 +26,15 @@ const out = [];
 
 try {
   const creds = process.env.__AWS_ID
-    ? { accessKeyId: process.env.__AWS_ID, secretAccessKey: process.env.__AWS_SECRET }
+    ? {
+        accessKeyId: process.env.__AWS_ID,
+        secretAccessKey: process.env.__AWS_SECRET,
+      }
     : undefined;
-  const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-west-1', credentials: creds });
+  const s3 = new S3Client({
+    region: process.env.AWS_REGION || 'us-west-1',
+    credentials: creds,
+  });
   const r = await s3.send(new ListBucketsCommand({}));
   out.push(['AWS S3', true, `${(r.Buckets ?? []).length} buckets visible`]);
 } catch (e) {
@@ -37,7 +43,9 @@ try {
 
 try {
   if (!process.env.__MONGO) throw new Error('no MONGODB_URL');
-  const m = new MongoClient(process.env.__MONGO, { serverSelectionTimeoutMS: 10000 });
+  const m = new MongoClient(process.env.__MONGO, {
+    serverSelectionTimeoutMS: 10000,
+  });
   await m.connect();
   await m.db().command({ ping: 1 });
   const db = m.db().databaseName;
@@ -53,8 +61,13 @@ try {
   if (!pg) throw new Error('pg module not found under node_modules/.bun');
   const u = new URL(process.env.__PG);
   const sm = u.searchParams.get('sslmode');
-  if (sm && sm !== 'disable' && sm !== 'no-verify') u.searchParams.set('sslmode', 'no-verify');
-  const c = new pg.Client({ connectionString: u.toString(), ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 10000 });
+  if (sm && sm !== 'disable' && sm !== 'no-verify')
+    u.searchParams.set('sslmode', 'no-verify');
+  const c = new pg.Client({
+    connectionString: u.toString(),
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 10000,
+  });
   await c.connect();
   await c.query('select 1 as ok');
   await c.end();
@@ -63,8 +76,13 @@ try {
   out.push(['Postgres', false, e?.message]);
 }
 
-console.log('\n=== PROD CREDENTIAL SMOKE TEST (from SSM — no secrets printed) ===');
-for (const [sys, ok, info] of out) console.log(`  ${ok ? '✅' : '❌'} ${sys.padEnd(9)} ${(ok ? 'PASS' : 'FAIL').padEnd(5)} ${info}`);
+console.log(
+  '\n=== PROD CREDENTIAL SMOKE TEST (from SSM — no secrets printed) ===',
+);
+for (const [sys, ok, info] of out)
+  console.log(
+    `  ${ok ? '✅' : '❌'} ${sys.padEnd(9)} ${(ok ? 'PASS' : 'FAIL').padEnd(5)} ${info}`,
+  );
 const all = out.every((r) => r[1]);
 console.log(all ? '\nALL CREDS GOOD ✅\n' : '\nSOME FAILED ❌\n');
 process.exit(all ? 0 : 1);
