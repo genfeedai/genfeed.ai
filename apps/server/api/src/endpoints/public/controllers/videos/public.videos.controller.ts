@@ -2,6 +2,7 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -66,7 +67,9 @@ export class PublicVideosController {
     };
 
     const match: PrismaWhereQuery = {
-      category: IngredientCategory.VIDEO,
+      category: CategoryPrismaUtil.toIngredientCategory(
+        IngredientCategory.VIDEO,
+      ),
       isDeleted: false,
       scope: AssetScope.PUBLIC,
       status: {

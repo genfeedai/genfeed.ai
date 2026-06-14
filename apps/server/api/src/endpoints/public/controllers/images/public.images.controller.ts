@@ -2,6 +2,7 @@ import { ImagesService } from '@api/collections/images/services/images.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -67,7 +68,9 @@ export class PublicImagesController {
     };
 
     const matchQuery: PrismaWhereQuery = {
-      category: IngredientCategory.IMAGE,
+      category: CategoryPrismaUtil.toIngredientCategory(
+        IngredientCategory.IMAGE,
+      ),
       isDeleted: false,
       scope: AssetScope.PUBLIC,
       status: {
@@ -111,7 +114,9 @@ export class PublicImagesController {
     const image = await this.imagesService.findOne(
       {
         _id: imageId,
-        category: IngredientCategory.IMAGE,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.IMAGE,
+        ),
         isDeleted: false,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
@@ -133,7 +138,9 @@ export class PublicImagesController {
   ): Promise<void> {
     const image = await this.imagesService.findOne({
       _id: imageId,
-      category: IngredientCategory.IMAGE,
+      category: CategoryPrismaUtil.toIngredientCategory(
+        IngredientCategory.IMAGE,
+      ),
       isDeleted: false,
       scope: AssetScope.PUBLIC,
       status: IngredientStatus.GENERATED,

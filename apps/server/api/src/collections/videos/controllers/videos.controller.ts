@@ -38,6 +38,7 @@ import {
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import {
@@ -184,7 +185,9 @@ export class VideosController {
         AND: [
           {
             brand,
-            category: IngredientCategory.VIDEO,
+            category: CategoryPrismaUtil.toIngredientCategory(
+              IngredientCategory.VIDEO,
+            ),
             isDeleted,
             scope,
             // Exclude training source videos by default
@@ -272,7 +275,9 @@ export class VideosController {
           },
           {
             brand,
-            category: IngredientCategory.VIDEO,
+            category: CategoryPrismaUtil.toIngredientCategory(
+              IngredientCategory.VIDEO,
+            ),
             isDeleted,
             scope,
             status,
@@ -757,7 +762,9 @@ export class VideosController {
           ? (createVideoDto.bookmark as string)
           : undefined,
         brand: brand._id,
-        category: IngredientCategory.VIDEO,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.VIDEO,
+        ),
         extension: MetadataExtension.MP4,
         height,
         model,
@@ -938,7 +945,9 @@ export class VideosController {
               return this.sharedService.saveDocuments(user, {
                 ...createVideoDto,
                 brand: brand._id,
-                category: IngredientCategory.VIDEO,
+                category: CategoryPrismaUtil.toIngredientCategory(
+                  IngredientCategory.VIDEO,
+                ),
                 extension: MetadataExtension.MP4,
                 height,
                 model,
@@ -1033,7 +1042,9 @@ export class VideosController {
             } = await this.sharedService.saveDocuments(user, {
               ...createVideoDto,
               brand: brand._id,
-              category: IngredientCategory.VIDEO,
+              category: CategoryPrismaUtil.toIngredientCategory(
+                IngredientCategory.VIDEO,
+              ),
               extension: MetadataExtension.MP4,
               height,
               model,
