@@ -27,6 +27,7 @@ import {
 } from '@api/helpers/guards/models/models.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import {
   returnNotFound,
@@ -134,7 +135,9 @@ export class ImagesTransformationsController {
       const { metadataData, ingredientData } =
         await this.sharedService.saveDocuments(user, {
           brand: publicMetadata.brand,
-          category: IngredientCategory.IMAGE,
+          category: CategoryPrismaUtil.toIngredientCategory(
+            IngredientCategory.IMAGE,
+          ),
           extension: MetadataExtension.JPG,
           organization: publicMetadata.organization,
           parent: imageId,
@@ -213,7 +216,9 @@ export class ImagesTransformationsController {
     const parent = await this.imagesService.findOne(
       {
         _id: imageId,
-        category: IngredientCategory.IMAGE,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.IMAGE,
+        ),
         user: publicMetadata.user,
       },
       [PopulatePatterns.metadataFull],
@@ -274,7 +279,9 @@ export class ImagesTransformationsController {
       await this.sharedService.saveDocuments(user, {
         ...createImageDto,
         brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
-        category: IngredientCategory.IMAGE,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.IMAGE,
+        ),
         extension: MetadataExtension.JPEG,
         height: targetHeight,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
@@ -427,7 +434,9 @@ export class ImagesTransformationsController {
           { user: publicMetadata.user },
           { organization: publicMetadata.organization },
         ],
-        category: IngredientCategory.IMAGE,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.IMAGE,
+        ),
       },
       [PopulatePatterns.metadataFull],
     );
@@ -456,7 +465,9 @@ export class ImagesTransformationsController {
       await this.sharedService.saveDocuments(user, {
         ...imageEditDto,
         brand: isEntityId(parent.brand) ? parent.brand : null,
-        category: IngredientCategory.IMAGE,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.IMAGE,
+        ),
         extension: imageEditDto.outputFormat || 'jpg',
         model,
         organization: isEntityId(parent.organization)

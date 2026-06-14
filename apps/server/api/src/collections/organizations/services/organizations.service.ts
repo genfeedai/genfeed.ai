@@ -23,7 +23,7 @@ function normalizeOrganizationCategory(value: unknown): unknown {
     return key;
   }
 
-  return value;
+  throw new BadRequestException(`Unknown OrganizationCategory: ${value}`);
 }
 
 function normalizeOrganizationCategoryFields<T extends Record<string, unknown>>(

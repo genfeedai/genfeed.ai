@@ -177,7 +177,9 @@ describe('S3Service (shared @libs/s3)', () => {
         '/tmp/my-lora.safetensors',
       );
 
-      expect(result.s3Key).toBe('trainings/loras/my-lora.safetensors');
+      expect(result.s3Key).toBe(
+        'ingredients/trainings/loras/my-lora.safetensors',
+      );
       expect(result.sizeBytes).toBe(9);
       expect(mockSend).toHaveBeenCalledTimes(1);
       expect(mockLoggerService.log).toHaveBeenCalledTimes(2);
@@ -189,12 +191,12 @@ describe('S3Service (shared @libs/s3)', () => {
       mockSend.mockResolvedValue({
         Contents: [
           {
-            Key: 'trainings/loras/model-a.safetensors',
+            Key: 'ingredients/trainings/loras/model-a.safetensors',
             LastModified: new Date('2024-01-01'),
             Size: 1024,
           },
           {
-            Key: 'trainings/loras/model-b.safetensors',
+            Key: 'ingredients/trainings/loras/model-b.safetensors',
             LastModified: new Date('2024-01-02'),
             Size: 2048,
           },
@@ -204,11 +206,13 @@ describe('S3Service (shared @libs/s3)', () => {
 
       const result = await service.listObjects(
         'test-bucket',
-        'trainings/loras/',
+        'ingredients/trainings/loras/',
       );
 
       expect(result).toHaveLength(2);
-      expect(result[0].key).toBe('trainings/loras/model-a.safetensors');
+      expect(result[0].key).toBe(
+        'ingredients/trainings/loras/model-a.safetensors',
+      );
       expect(result[0].size).toBe(1024);
     });
 

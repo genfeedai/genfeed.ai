@@ -18,6 +18,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
@@ -301,7 +302,9 @@ export class TrainingsController extends BaseCRUDController<
                 organization: publicMetadata.organization,
               },
             ],
-            category: IngredientCategory.IMAGE,
+            category: CategoryPrismaUtil.toIngredientCategory(
+              IngredientCategory.IMAGE,
+            ),
           },
         },
         {
@@ -378,7 +381,9 @@ export class TrainingsController extends BaseCRUDController<
       await Promise.all(
         sourceImages.map((img) =>
           this.ingredientsService.patch(img._id, {
-            category: IngredientCategory.SOURCE,
+            category: CategoryPrismaUtil.toIngredientCategory(
+              IngredientCategory.SOURCE,
+            ),
             training: training._id as string,
           }),
         ),

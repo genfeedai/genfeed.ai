@@ -23,6 +23,9 @@ describe('ConfigService (Workers)', () => {
     delete process.env.NODE_ENV;
     delete process.env.PORT;
     delete process.env.GENFEEDAI_CDN_URL;
+    delete process.env.GENFEEDAI_APP_URL;
+    delete process.env.GENFEEDAI_WEBHOOKS_URL;
+    delete process.env.GENFEEDAI_MICROSERVICES_FILES_URL;
   });
 
   describe('constructor', () => {
@@ -86,15 +89,58 @@ describe('ConfigService (Workers)', () => {
   });
 
   describe('ingredientsEndpoint', () => {
-    // GENFEEDAI_CDN_URL is NOT in workers' schema (postgres/redis/sentry only);
-    // the getter reads it via BaseConfigService's allowUnknown passthrough.
-    // This guards that the factory migration preserved that passthrough.
-    it('builds the endpoint from the unschema-d GENFEEDAI_CDN_URL', () => {
+    // GENFEEDAI_CDN_URL is now part of workers' schema (#484): the getter
+    // consumes it, so it is validated at startup instead of silently passing
+    // through whatever (or nothing) is in the environment.
+    it('builds the endpoint from the validated GENFEEDAI_CDN_URL', () => {
       process.env.GENFEEDAI_CDN_URL = 'https://cdn.example.com';
       configService = new ConfigService();
 
       expect(configService.ingredientsEndpoint).toBe(
         'https://cdn.example.com/ingredients',
+      );
+    });
+  });
+
+  describe('consumed env-var validation (#484)', () => {
+    // The workers service consumes these genfeed URLs (ingredientsEndpoint,
+    // the workspace-task webhook fallback, and the trend-summary cron) but
+    // previously validated none of them, so a malformed value silently
+    // produced a broken URL in production. They are validated here as
+    // optional-but-well-formed: absence is tolerated (self-hosted/poll
+    // fallbacks handle it), a malformed value fails fast at boot.
+    it('rejects a malformed GENFEEDAI_CDN_URL at startup', () => {
+      process.env.GENFEEDAI_CDN_URL = 'not-a-url';
+
+      expect(() => new ConfigService()).toThrow(/GENFEEDAI_CDN_URL/);
+    });
+
+    it('rejects a malformed GENFEEDAI_WEBHOOKS_URL at startup', () => {
+      process.env.GENFEEDAI_WEBHOOKS_URL = 'not-a-url';
+
+      expect(() => new ConfigService()).toThrow(/GENFEEDAI_WEBHOOKS_URL/);
+    });
+
+    it('rejects a malformed GENFEEDAI_APP_URL at startup', () => {
+      process.env.GENFEEDAI_APP_URL = 'not-a-url';
+
+      expect(() => new ConfigService()).toThrow(/GENFEEDAI_APP_URL/);
+    });
+
+    it('tolerates absent consumed URL vars (optional in self-hosted)', () => {
+      delete process.env.GENFEEDAI_CDN_URL;
+      delete process.env.GENFEEDAI_APP_URL;
+      delete process.env.GENFEEDAI_WEBHOOKS_URL;
+
+      expect(() => new ConfigService()).not.toThrow();
+    });
+
+    it('defaults GENFEEDAI_MICROSERVICES_FILES_URL to localhost in self-hosted', () => {
+      delete process.env.GENFEEDAI_MICROSERVICES_FILES_URL;
+      configService = new ConfigService();
+
+      expect(configService.get('GENFEEDAI_MICROSERVICES_FILES_URL')).toBe(
+        'http://localhost:3012',
       );
     });
   });

@@ -44,7 +44,7 @@ describe('LoraController', () => {
 
       const result: LoraUploadResult = {
         loraName: 'my-lora',
-        s3Key: 'trainings/loras/my-lora.safetensors',
+        s3Key: 'ingredients/trainings/loras/my-lora.safetensors',
         uploaded: true,
       };
 
@@ -64,7 +64,7 @@ describe('LoraController', () => {
 
       mockLoraService.uploadLora.mockResolvedValue({
         loraName: 'lora-v2',
-        s3Key: 'trainings/loras/lora-v2.safetensors',
+        s3Key: 'ingredients/trainings/loras/lora-v2.safetensors',
         uploaded: true,
       });
 
@@ -131,7 +131,7 @@ describe('LoraController', () => {
           {
             filename: 's3-lora.safetensors',
             name: 's3-lora',
-            s3Key: 'trainings/loras/s3-lora.safetensors',
+            s3Key: 'ingredients/trainings/loras/s3-lora.safetensors',
             source: 's3',
           },
         ],
