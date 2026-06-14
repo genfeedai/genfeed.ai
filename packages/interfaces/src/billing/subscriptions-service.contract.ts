@@ -106,6 +106,13 @@ export interface ISubscriptionFindAllOptions {
  */
 export interface ISubscriptionFindAllResult {
   docs?: ISubscriptionOssReadModel[];
+  /**
+   * Optional, not required: the concrete EE `findAll` returns
+   * `AggregatePaginateResult<SubscriptionDocument>`, which exposes `totalDocs`
+   * rather than a statically-guaranteed `total`, while the OSS no-op returns
+   * `{ total: 0 }`. Keeping this optional lets both producers satisfy the
+   * contract without either lying about its shape; OSS reads it defensively.
+   */
   total?: number;
   [key: string]: unknown;
 }
