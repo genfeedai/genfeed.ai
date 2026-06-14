@@ -5,7 +5,6 @@
  * since unit tests should mock all database operations.
  */
 import 'reflect-metadata';
-import process from 'node:process';
 import { vi } from 'vitest';
 
 // Mock @genfeedai/prisma so unit tests never need the generated Prisma client
@@ -21,14 +20,7 @@ vi.mock('@genfeedai/prisma', () => {
         Array.isArray(arg) ? Promise.all(arg) : arg(new PrismaClient()),
       );
   }
-  return {
-    ArticleStatus: {
-      ARCHIVED: 'ARCHIVED',
-      DRAFT: 'DRAFT',
-      PUBLISHED: 'PUBLISHED',
-    },
-    PrismaClient,
-  };
+  return { PrismaClient };
 });
 
 // Mock @prisma/adapter-pg so PrismaService constructor doesn't require DATABASE_URL

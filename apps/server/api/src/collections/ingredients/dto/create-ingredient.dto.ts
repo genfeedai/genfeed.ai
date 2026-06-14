@@ -1,4 +1,5 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import type { PrismaIngredientCategoryValue } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import {
   AssetScope,
   ContentRating,
@@ -103,7 +104,10 @@ export class CreateIngredientDto {
     enum: IngredientCategory,
     enumName: 'IngredientCategory',
   })
-  readonly category?: IngredientCategory;
+  // Accepts the Prisma UPPERCASE value too: internal write-boundary callers
+  // (CategoryPrismaUtil.toIngredientCategory) pass the persisted form, while
+  // HTTP input is still validated as the app enum by @IsEnum above (#564).
+  readonly category?: IngredientCategory | PrismaIngredientCategoryValue;
 
   @IsString()
   @IsOptional()

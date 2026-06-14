@@ -1,8 +1,6 @@
 import { ConfigService } from '@discord/config/config.service';
 import {
   BaseBotManager,
-  type BotHttpAdapter,
-  BotInternalApiClient,
   DiscordSendToChannelEvent,
   extractWorkflowExecutionSnapshot,
   extractWorkflowOutputsFromExecution,
@@ -57,31 +55,6 @@ interface WorkflowNode {
   };
 }
 
-/**
- * Build the BotHttpAdapter that wraps NestJS HttpService + RxJS firstValueFrom
- * into the framework-agnostic interface BotInternalApiClient expects.
- */
-function makeBotHttpAdapter(httpService: HttpService): BotHttpAdapter {
-  return {
-    async get<T>(url: string, headers?: Record<string, string>): Promise<T> {
-      const response = await firstValueFrom(
-        httpService.get<T>(url, headers ? { headers } : undefined),
-      );
-      return response.data;
-    },
-    async post<T>(
-      url: string,
-      body: unknown,
-      headers?: Record<string, string>,
-    ): Promise<T> {
-      const response = await firstValueFrom(
-        httpService.post<T>(url, body, headers ? { headers } : undefined),
-      );
-      return response.data;
-    },
-  };
-}
-
 @Injectable()
 export class DiscordBotManager
   extends BaseBotManager<DiscordBotInstance>
@@ -99,7 +72,6 @@ export class DiscordBotManager
   private channelEventSubscribed = false;
   private readonly sessions = new Map<string, WorkflowSession>();
   private readonly userSettings = new Map<string, UserSettings>();
-  private readonly internalApiClient: BotInternalApiClient;
 
   constructor(
     private readonly configService: ConfigService,
@@ -107,12 +79,6 @@ export class DiscordBotManager
     private readonly redisService: RedisService,
   ) {
     super();
-    this.internalApiClient = new BotInternalApiClient({
-      apiUrl: this.configService.API_URL,
-      apiKey: this.configService.API_KEY,
-      platform: this.platform,
-      http: makeBotHttpAdapter(this.httpService),
-    });
   }
 
   async onModuleInit() {
@@ -1225,14 +1191,88 @@ export class DiscordBotManager
 
   // --- API fetch methods ---
 
+  private normalizeIntegration(payload: unknown): OrgIntegration | null {
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+
+    const raw = payload as Record<string, unknown>;
+    const rawId = raw.id ?? raw._id;
+    const rawOrgId = raw.orgId ?? raw.organization;
+    const rawToken = raw.botToken;
+
+    if (!rawId || !rawOrgId || !rawToken) {
+      return null;
+    }
+
+    return {
+      botToken: String(rawToken),
+      config: (raw.config as OrgIntegration['config']) || {},
+      createdAt: raw.createdAt ? new Date(raw.createdAt as string) : new Date(),
+      id: String(rawId),
+      orgId: String(rawOrgId),
+      platform: this.platform,
+      status: (raw.status as OrgIntegration['status'] | undefined) || 'active',
+      updatedAt: raw.updatedAt ? new Date(raw.updatedAt as string) : new Date(),
+    };
+  }
+
+  private normalizeIntegrations(payload: unknown): OrgIntegration[] {
+    if (!Array.isArray(payload)) {
+      return [];
+    }
+
+    return payload
+      .map((integration) => this.normalizeIntegration(integration))
+      .filter(
+        (integration): integration is OrgIntegration => integration !== null,
+      );
+  }
+
   private async fetchActiveIntegrations(): Promise<OrgIntegration[]> {
-    return this.internalApiClient.fetchActiveIntegrations();
+    try {
+      const apiKey = this.configService.API_KEY;
+      const response = await firstValueFrom(
+        this.httpService.get(
+          `${this.configService.API_URL}/v1/internal/integrations/discord`,
+          {
+            headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
+          },
+        ),
+      );
+      return this.normalizeIntegrations(response.data);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const status = (error as { response?: { status?: number } })?.response
+        ?.status;
+
+      if (message.includes('ECONNREFUSED')) {
+        this.logger.warn(
+          `API unavailable at ${this.configService.API_URL} — starting with 0 bots. Start the API service first.`,
+        );
+      } else if (status === 401) {
+        this.logger.warn(
+          'API returned 401 — set GENFEEDAI_API_KEY in your .env to authenticate with the API.',
+        );
+      } else {
+        this.logger.error('Failed to fetch integrations:', error);
+      }
+      return [];
+    }
   }
 
   protected async fetchAndAddIntegration(integrationId: string): Promise<void> {
     try {
-      const integration =
-        await this.internalApiClient.fetchIntegration(integrationId);
+      const apiKey = this.configService.API_KEY;
+      const response = await firstValueFrom(
+        this.httpService.get(
+          `${this.configService.API_URL}/v1/internal/integrations/discord/${integrationId}`,
+          {
+            headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
+          },
+        ),
+      );
+      const integration = this.normalizeIntegration(response.data);
       if (!integration) {
         this.logger.warn(
           `Unable to normalize Discord integration payload: ${integrationId}`,
@@ -1252,8 +1292,16 @@ export class DiscordBotManager
     integrationId: string,
   ): Promise<void> {
     try {
-      const integration =
-        await this.internalApiClient.fetchIntegration(integrationId);
+      const apiKey = this.configService.API_KEY;
+      const response = await firstValueFrom(
+        this.httpService.get(
+          `${this.configService.API_URL}/v1/internal/integrations/discord/${integrationId}`,
+          {
+            headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
+          },
+        ),
+      );
+      const integration = this.normalizeIntegration(response.data);
       if (!integration) {
         this.logger.warn(
           `Unable to normalize Discord integration payload: ${integrationId}`,
@@ -1273,7 +1321,12 @@ export class DiscordBotManager
     orgId: string,
   ): Promise<WorkflowDefinition[]> {
     try {
-      return await this.internalApiClient.fetchOrgWorkflows(orgId);
+      const response = await firstValueFrom(
+        this.httpService.get(
+          `${this.configService.API_URL}/v1/orgs/${orgId}/workflows`,
+        ),
+      );
+      return response.data;
     } catch (error) {
       this.logger.error('Failed to fetch workflows:', error);
       return [];

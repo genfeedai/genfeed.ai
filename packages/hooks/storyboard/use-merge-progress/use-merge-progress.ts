@@ -32,6 +32,11 @@ interface VideoProgressEvent {
   room?: string;
 }
 
+interface VideoCompleteEvent {
+  path: string;
+  error?: string;
+}
+
 interface PathBasedWebSocketEvent {
   status: 'processing' | 'completed' | 'success' | 'failed';
   progress?: JobProgress;
@@ -303,15 +308,23 @@ export function useMergeProgress({
       },
     );
 
-    // Subscribe to video-complete for success — the channel itself signals completion
-    const unsubscribeComplete = socketManager.subscribe(
+    // Subscribe to video-complete for success/error
+    const unsubscribeComplete = socketManager.subscribe<VideoCompleteEvent>(
       'video-complete',
-      () => {
+      (data) => {
         logger.info('useMergeProgress: Received video-complete event', {
+          eventPath: data.path,
+          hasError: !!data.error,
           websocketPath,
         });
 
-        markComplete();
+        if (data.path === websocketPath) {
+          if (data.error) {
+            markFailed(data.error);
+          } else {
+            markComplete();
+          }
+        }
       },
     );
 

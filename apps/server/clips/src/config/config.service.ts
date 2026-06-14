@@ -17,8 +17,6 @@ export class ConfigService extends createServiceConfig<IEnvConfig>({
   },
 }) {
   get API_URL(): string {
-    // Self-hosted fallback: GENFEEDAI_API_URL is optional when GENFEED_CLOUD is unset.
-    // In cloud mode the constructor schema validates it as required and throws before this runs.
     return this.get('GENFEEDAI_API_URL') || 'http://localhost:3010';
   }
 
