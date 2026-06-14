@@ -381,7 +381,9 @@ export class TrainingsController extends BaseCRUDController<
       await Promise.all(
         sourceImages.map((img) =>
           this.ingredientsService.patch(img._id, {
-            category: IngredientCategory.SOURCE,
+            category: CategoryPrismaUtil.toIngredientCategory(
+              IngredientCategory.SOURCE,
+            ),
             training: training._id as string,
           }),
         ),

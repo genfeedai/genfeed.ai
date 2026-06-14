@@ -50,11 +50,8 @@ export class BotInternalApiClient {
 
   /**
    * Fetch all active integrations for this platform.
-   * Propagates transport errors (ECONNREFUSED, 401, etc.) to the caller — bot
-   * managers wrap this in their own try/catch so the failure is logged with the
-   * underlying error and the manager stays up. Returns `[]` only when the API
-   * responds with a non-array/unnormalizable payload (a genuine "0 bots" state),
-   * mirroring `fetchIntegration` returning `null` on bad payloads.
+   * Returns an empty array on any error (ECONNREFUSED, 401, etc.) — callers
+   * should handle the "0 bots" case themselves and log appropriately.
    */
   async fetchActiveIntegrations(): Promise<OrgIntegration[]> {
     const data = await this.http.get<unknown>(

@@ -30,7 +30,6 @@
     "build": "tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
-    "test": "vitest run --config vitest.config.ts",
     "type-check": "tsc --noEmit"
   },
   "sideEffects": false,
