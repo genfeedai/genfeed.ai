@@ -7,7 +7,7 @@
  * To change a price, edit the files in this package:
  *   - provider-pricing.ts  — AI provider costs, model types, node-type sets, UI option arrays
  *   - plans-pricing.ts     — BYOK constants, credit costs, website plans, credit packs, services
- *   - pricing-config.ts    — PricingConfig interface + getPricingConfig env reader
+ *   - pricing-config.ts    — PricingConfig re-export + getPricingConfig env reader
  *
  * Propagation is verified by:
  *   packages/core/src/pricing.spec.ts
