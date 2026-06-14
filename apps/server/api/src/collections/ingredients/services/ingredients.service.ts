@@ -3,6 +3,7 @@ import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ing
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
@@ -389,7 +390,7 @@ export class IngredientsService extends BaseService<
       where.brandId = params.brandId;
     }
     if (params.category) {
-      where.category = params.category;
+      where.category = CategoryPrismaUtil.toIngredientCategory(params.category);
     }
 
     const limit = params.limit ?? 10;
@@ -442,7 +443,7 @@ export class IngredientsService extends BaseService<
       const baseWhere: Record<string, unknown> = {
         isDeleted: false,
         organizationId,
-        ...(category ? { category } : {}),
+        ...CategoryPrismaUtil.toIngredientCategoryFilter(category),
       };
 
       if (category) {
