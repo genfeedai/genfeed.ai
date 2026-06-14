@@ -311,9 +311,19 @@ export class IngredientsService extends BaseService<
     try {
       this.logger.debug(`${this.constructorName} patch`, { id, updateDto });
 
+      // Convert the app category enum to its Prisma UPPERCASE form at the write
+      // boundary (#564): patch persists updateDto verbatim and the Prisma 7
+      // adapter does not normalize enum scalars at runtime. toIngredientCategory
+      // is idempotent, so an already-UPPERCASE value passes through unchanged.
+      const data = { ...updateDto } as Record<string, unknown>;
+      if (data.category !== undefined) {
+        data.category = CategoryPrismaUtil.toIngredientCategory(
+          data.category as string,
+        );
+      }
       const updated = await this.prisma.ingredient.update({
         where: { id },
-        data: updateDto as never,
+        data: data as never,
       });
 
       if (!updated) {
