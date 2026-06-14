@@ -14,6 +14,14 @@
  * @updated 2026-01-21
  */
 
+import type {
+  CreditPackTier,
+  ServiceOfferingProps,
+  TrainingPackageProps,
+} from '@genfeedai/interfaces';
+
+export type { CreditPackTier, ServiceOfferingProps, TrainingPackageProps };
+
 interface PricingOutputsProps {
   /** Video generation in minutes per month */
   videoMinutes?: number;
@@ -48,32 +56,6 @@ interface PricingPlanProps {
   target?: string;
   /** Value proposition one-liner */
   valueProposition?: string;
-}
-
-export interface ServiceOfferingProps {
-  /** Service name */
-  name: string;
-  /** Short description */
-  description: string;
-  /** What's included */
-  includes: string[];
-  /** How it works — ordered steps */
-  process: { step: string; description: string }[];
-  /** CTA link (Calendly) */
-  ctaHref: string;
-}
-
-export interface TrainingPackageProps {
-  /** Package name */
-  name: string;
-  /** Short description */
-  description: string;
-  /** What's included */
-  includes: string[];
-  /** Price label (e.g. "$499", "Custom") */
-  priceLabel: string;
-  /** CTA link (Calendly) */
-  ctaHref: string;
 }
 
 const CALENDLY_URL =
@@ -434,15 +416,6 @@ export const dedicatedServerPlan: PricingPlanProps = {
  * Stripe charges base credits × $0.01. Bonus credits delivered via metadata.
  * Exchange rate: 1 credit = $0.01
  */
-export interface CreditPackTier {
-  /** Display label */
-  label: string;
-  /** Number of base credits in pack */
-  credits: number;
-  /** Bonus credits (null = no bonus) */
-  bonus: number | null;
-}
-
 export const PAYG_CREDIT_PACKS: CreditPackTier[] = [
   { bonus: null, credits: 9_900, label: 'Starter' },
   { bonus: null, credits: 49_900, label: 'Creator' },

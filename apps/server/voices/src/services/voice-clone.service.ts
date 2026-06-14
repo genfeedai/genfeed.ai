@@ -16,7 +16,7 @@ import type {
   VoiceCloneUploadResult,
 } from '@voices/interfaces/voice-clone.interfaces';
 
-const S3_VOICE_CLONE_PREFIX = 'trainings/voice-clones/';
+const S3_VOICE_CLONE_PREFIX = 'ingredients/trainings/voice-clones/';
 const MODEL_EXTENSIONS = new Set(['.pth', '.onnx', '.bin', '.safetensors']);
 
 @Injectable()

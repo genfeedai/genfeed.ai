@@ -1,5 +1,6 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsDate,
@@ -8,6 +9,7 @@ import {
   IsOptional,
   IsString,
   Matches,
+  Min,
 } from 'class-validator';
 
 export class CreateSubscriptionPreviewDto {
@@ -36,7 +38,9 @@ export class CreateCheckoutSessionDto {
   readonly stripePriceId!: string;
 
   @IsNumber()
+  @Min(1000)
   @IsOptional()
+  @Type(() => Number)
   @ApiProperty({
     default: 1000,
     description: 'The quantity/amount for the checkout session',

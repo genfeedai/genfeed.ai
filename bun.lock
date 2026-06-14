@@ -1021,6 +1021,9 @@
     "packages/pricing": {
       "name": "@genfeedai/pricing",
       "version": "0.1.0",
+      "dependencies": {
+        "@genfeedai/interfaces": "workspace:*",
+      },
       "devDependencies": {
         "@types/node": "25.9.1",
         "typescript": "6.0.2",

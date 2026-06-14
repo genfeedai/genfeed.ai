@@ -8,6 +8,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { UserExtractionUtil } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { resolveRoom } from '@api/helpers/utils/websocket-room/websocket-room.util';
@@ -197,7 +198,9 @@ export class AutoMergeService {
   ): Promise<IngredientDocument[]> {
     const groupAggregate = {
       where: {
-        category: IngredientCategory.VIDEO,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.VIDEO,
+        ),
         groupId,
         isDeleted: false,
       },
@@ -234,7 +237,9 @@ export class AutoMergeService {
 
   private async mergeAlreadyExists(groupId: string): Promise<boolean> {
     const existingMerge = await this.ingredientsService.findOne({
-      category: IngredientCategory.VIDEO,
+      category: CategoryPrismaUtil.toIngredientCategory(
+        IngredientCategory.VIDEO,
+      ),
       groupId,
       isDeleted: false,
       transformations: { in: [TransformationCategory.MERGED] },
@@ -315,7 +320,9 @@ export class AutoMergeService {
 
     const ingredientData = await this.ingredientsService.create({
       brand: this.getRefId(ingredient.brand),
-      category: IngredientCategory.VIDEO,
+      category: CategoryPrismaUtil.toIngredientCategory(
+        IngredientCategory.VIDEO,
+      ),
       groupId,
       metadata: metadataId,
       order: 1,

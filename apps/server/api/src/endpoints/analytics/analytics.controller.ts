@@ -32,6 +32,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
@@ -187,11 +188,23 @@ export class AnalyticsController {
       this.postsService.findAll({ where: {} }, options),
       this.brandsService.findAll({ where: {} }, options),
       this.ingredientsService.findAll(
-        { where: { category: IngredientCategory.VIDEO } },
+        {
+          where: {
+            category: CategoryPrismaUtil.toIngredientCategory(
+              IngredientCategory.VIDEO,
+            ),
+          },
+        },
         options,
       ),
       this.ingredientsService.findAll(
-        { where: { category: IngredientCategory.IMAGE } },
+        {
+          where: {
+            category: CategoryPrismaUtil.toIngredientCategory(
+              IngredientCategory.IMAGE,
+            ),
+          },
+        },
         options,
       ),
       this.organizationsService.findAll(
