@@ -32,7 +32,6 @@ import { OssSubscriptionAttributionsService } from '@api/common/subscriptions/os
 import { OssSubscriptionsService } from '@api/common/subscriptions/oss-subscriptions.service';
 import { OssUserSubscriptionsService } from '@api/common/subscriptions/oss-user-subscriptions.service';
 import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
-import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
 import { isEEEnabled } from '@genfeedai/config';
 import {
   SUBSCRIPTION_ATTRIBUTIONS_SERVICE,
@@ -54,7 +53,21 @@ export const subscriptions: BillingProviderFragment = {
     forwardRef(() => CreditsModule),
     forwardRef(() => CustomersModule),
     forwardRef(() => OrganizationsModule),
-    forwardRef(() => StripeModule),
+    // StripeModule is resolved lazily (NOT a top-level import) to break an ESM
+    // eval-time circular dependency that crashes the EE/SaaS bundle on boot:
+    //   billing.providers.ee → stripe.module → user-subscriptions.module
+    //   → @Module(userSubscriptions) reads this file's exports before its body
+    //   has run → TDZ "Cannot access 'userSubscriptions' before initialization".
+    // A lazy require defers stripe.module's evaluation to DI-resolution time,
+    // after this module body has fully initialized. See issue #574.
+    // Do NOT convert back to a top-level `import { StripeModule }` — it
+    // reintroduces the boot crash (community/OSS bundle is unaffected either way).
+    forwardRef(
+      () =>
+        (
+          require('@api/services/integrations/stripe/stripe.module') as typeof import('@api/services/integrations/stripe/stripe.module')
+        ).StripeModule,
+    ),
     forwardRef(() => UsersModule),
   ],
   providers: [

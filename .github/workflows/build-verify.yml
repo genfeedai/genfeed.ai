@@ -90,9 +90,38 @@ jobs:
               done
             '
 
+      - name: Boot-check EE/SaaS api bundle (#574 circular-dep regression guard)
+        run: |
+          echo "Booting the EE/SaaS api bundle to prove the module graph initializes..."
+          # The bundle-exists check above never RUNS the bundle. The EE billing
+          # decouple (#563) introduced an ESM eval-time circular dependency that
+          # crashed api on boot with a TDZ ("Cannot access 'userSubscriptions'
+          # before initialization") — invisible to typecheck/lint/vitest (which
+          # resolve @billing-providers to the OSS stub) and to the self-hosted E2E
+          # (community image). This boots the actual EE bundle that prod runs.
+          docker run --rm -e NODE_ENV=production ${{ env.IMAGE_NAME }}:test \
+            sh -c '
+              set +e
+              # It will fail shortly after on missing PORT/DB/Redis env — that is
+              # EXPECTED and proves the module graph (DI container) initialized.
+              OUT=$(timeout 40 node apps/server/dist/apps/api/main.js 2>&1)
+              echo "----- boot output (tail) -----"
+              echo "$OUT" | tail -n 60
+              echo "------------------------------"
+              if echo "$OUT" | grep -qiE "Cannot access .* before initialization|ReferenceError"; then
+                echo "❌ #574 regression: EE api bundle crashed at module init (circular-dep TDZ)"
+                exit 1
+              fi
+              if [ -z "$OUT" ]; then
+                echo "❌ EE api bundle produced no output — cannot confirm module init"
+                exit 1
+              fi
+              echo "✅ EE api bundle initialized past the module graph (no TDZ)"
+            '
+
       - name: Build summary
         if: success()
         run: |
           echo "## ✅ Build Verification Passed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Docker image built successfully. All 12 service bundles verified." >> $GITHUB_STEP_SUMMARY
+          echo "Docker image built + all 12 bundles verified; EE api bundle booted past module init (#574 guard)." >> $GITHUB_STEP_SUMMARY
