@@ -112,8 +112,8 @@ describe('FoldersController', () => {
         where: expect.objectContaining({
           isDeleted: false,
           OR: [
-            { user: '507f191e810c19729de860ee' },
-            { organization: '507f191e810c19729de860ee' },
+            { userId: '507f191e810c19729de860ee' },
+            { organizationId: '507f191e810c19729de860ee' },
           ],
         }),
       });
@@ -140,10 +140,10 @@ describe('FoldersController', () => {
         where: expect.objectContaining({
           OR: [
             {
-              brand: null,
-              organization: '507f191e810c19729de860ee',
+              brandId: null,
+              organizationId: '507f191e810c19729de860ee',
             },
-            { brand: 'brand-1' },
+            { brandId: 'brand-1' },
           ],
         }),
       });
@@ -156,9 +156,33 @@ describe('FoldersController', () => {
 
       expect(result).toMatchObject({
         where: expect.objectContaining({
-          OR: [{ organization: 'org-1' }],
+          OR: [{ organizationId: 'org-1' }],
         }),
       });
+    });
+
+    it('should use scalar FK keys and never Prisma relation accessors (#565)', () => {
+      // Relation accessors (brand/organization/user) expect a nested filter
+      // object; emitting them with bare scalars crashed Prisma in prod (#565).
+      // Every branch of every OR clause must use scalar FK keys only.
+      const relationAccessorKeys = ['brand', 'organization', 'user'];
+      const scenarios: Array<BaseQueryDto & Record<string, unknown>> = [
+        {},
+        { brand: 'brand-1' } as BaseQueryDto & { brand: string },
+        { organization: 'org-1' } as BaseQueryDto & { organization: string },
+      ];
+
+      for (const query of scenarios) {
+        const { where } = controller.buildFindAllQuery(mockUser, query);
+        const orClauses = (where as { OR?: Array<Record<string, unknown>> }).OR;
+
+        expect(orClauses).toBeDefined();
+        for (const clause of orClauses ?? []) {
+          for (const key of relationAccessorKeys) {
+            expect(clause).not.toHaveProperty(key);
+          }
+        }
+      }
     });
   });
 
