@@ -29,4 +29,4 @@ Genfeed.ai is an open-source AI operating system for content creation — a self
 
 ## Current State
 
-Migrated and consolidated from separate cloud + core repositories into this single monorepo. CI/CD runs on GitHub Actions. Branch flow: `develop` -> `staging` -> `master`. Assigned GitHub issue work should use isolated worktrees branched from `develop`, then PR back to `develop`.
+Migrated and consolidated from separate cloud + core repositories into this single monorepo. CI/CD runs on GitHub Actions. Branch flow: trunk-based — `master` is the single trunk. Assigned GitHub issue work should use isolated worktrees branched from `master`, then PR back to `master`.

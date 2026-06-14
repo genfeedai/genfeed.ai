@@ -19,7 +19,7 @@ author: Claude Code PM System
 - GitHub Actions configured for CI/CD pipeline
 - Blacksmith runners removed — using standard GitHub Actions runners
 - Secret scanning set up
-- Branch flow: `develop` -> `staging` -> `master` via PR
+- Branch flow: trunk-based — short-lived branches off `master` → PR → `master`
 
 ### Recent Milestones
 - PR #116: Migrated raw HTML to UI primitives across the codebase
