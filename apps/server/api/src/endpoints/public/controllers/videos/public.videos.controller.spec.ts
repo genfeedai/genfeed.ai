@@ -117,7 +117,7 @@ describe('PublicVideosController', () => {
       where?: Record<string, unknown>;
     };
     expect(aggregateArg.where).toMatchObject({
-      category: 'video',
+      category: 'VIDEO',
       isDeleted: false,
       scope: 'public',
     });

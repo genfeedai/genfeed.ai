@@ -170,7 +170,7 @@ describe('TrainingsOperationsController', () => {
 
       const pipelineArg = mockServices.ingredientsService.findAll.mock
         .calls[0][0] as { where: Record<string, unknown> };
-      expect(pipelineArg.where.category).toBe('source');
+      expect(pipelineArg.where.category).toBe('SOURCE');
     });
   });
 });

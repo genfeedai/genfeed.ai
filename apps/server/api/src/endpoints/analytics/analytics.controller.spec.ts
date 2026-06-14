@@ -240,10 +240,10 @@ describe('AnalyticsController', () => {
       expect(brandsService.findAll).toHaveBeenCalled();
       expect(ingredientsService.findAll).toHaveBeenCalledTimes(2);
       expect(ingredientsService.findAll.mock.calls[0][0]).toEqual({
-        where: { category: IngredientCategory.VIDEO },
+        where: { category: 'VIDEO' },
       });
       expect(ingredientsService.findAll.mock.calls[1][0]).toEqual({
-        where: { category: IngredientCategory.IMAGE },
+        where: { category: 'IMAGE' },
       });
       expect(result).toBeDefined();
     });
