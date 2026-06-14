@@ -1,6 +1,5 @@
 import { ContentIntelligencePlatform } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -13,7 +12,6 @@ import {
   Max,
   MaxLength,
   Min,
-  ValidateNested,
 } from 'class-validator';
 
 export class ScrapeConfigDto {
@@ -109,8 +107,6 @@ export class AddCreatorDto {
 
   @IsObject()
   @IsOptional()
-  @ValidateNested()
-  @Type(() => ScrapeConfigDto)
   @ApiProperty({
     description: 'Scrape configuration options',
     required: false,

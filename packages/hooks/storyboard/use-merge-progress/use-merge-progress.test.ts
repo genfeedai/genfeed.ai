@@ -95,7 +95,7 @@ describe('useMergeProgress', () => {
     expect(result.current.steps[0].label).toBe('Downloading files');
   });
 
-  it('marks steps complete on video-complete event', () => {
+  it('marks steps complete on success event', () => {
     const onComplete = vi.fn();
     const { result } = renderHook(() =>
       useMergeProgress({
@@ -107,7 +107,7 @@ describe('useMergeProgress', () => {
     const completeHandler = subscriptions.get('video-complete');
 
     act(() => {
-      completeHandler?.({});
+      completeHandler?.({ path: '/videos/video-1' });
     });
 
     expect(result.current.overallProgress).toBe(100);
@@ -117,27 +117,37 @@ describe('useMergeProgress', () => {
     expect(onComplete).toHaveBeenCalled();
   });
 
-  it('marks steps complete on video-complete even when event has no path or error fields', () => {
-    const onComplete = vi.fn();
+  it('marks current step as failed on video-complete error events', () => {
+    const onError = vi.fn();
     const { result } = renderHook(() =>
       useMergeProgress({
         ingredientId: 'video-1',
-        onComplete,
+        onError,
       }),
     );
 
+    const pathHandler = subscriptions.get('/videos/video-1');
     const completeHandler = subscriptions.get('video-complete');
 
-    // Simulate the actual channel contract: no path, no error fields
     act(() => {
-      completeHandler?.({ result: 'some-url', userId: 'user-1' });
+      pathHandler?.({
+        progress: {
+          step: 'downloading',
+          stepProgress: 10,
+        },
+        status: 'processing',
+      });
     });
 
-    expect(result.current.overallProgress).toBe(100);
-    expect(
-      result.current.steps.every((step) => step.status === 'completed'),
-    ).toBe(true);
-    expect(onComplete).toHaveBeenCalled();
+    act(() => {
+      completeHandler?.({
+        error: 'Merge failed',
+        path: '/videos/video-1',
+      });
+    });
+
+    expect(result.current.steps[0].status).toBe('failed');
+    expect(onError).toHaveBeenCalledWith('Merge failed');
   });
 
   it('marks current step as failed and calls onError', () => {

@@ -1139,7 +1139,7 @@ export class AgentOrchestratorService {
 
               messages.push({
                 content: JSON.stringify({
-                  error: `Insufficient credits. This tool requires at least ${preflightCreditCost} credits to start.`,
+                  error: `Insufficient credits. This tool requires ${preflightCreditCost} credits.`,
                   success: false,
                 }),
                 role: 'tool' as const,
@@ -1908,7 +1908,7 @@ export class AgentOrchestratorService {
 
               messages.push({
                 content: JSON.stringify({
-                  error: `Insufficient credits. This tool requires at least ${preflightCreditCost} credits to start.`,
+                  error: `Insufficient credits. This tool requires ${preflightCreditCost} credits.`,
                   success: false,
                 }),
                 role: 'tool' as const,
