@@ -11,20 +11,20 @@ Stack: Next.js + NestJS + PostgreSQL (Prisma) + Redis + BullMQ
 
 ## Git Workflow
 
-**Branch flow: `develop` → `staging` → `master`. Always via PR. No exceptions.**
+**Trunk-based: `master` is the single trunk. Short-lived branches → PR → `master`. Always via PR. No exceptions.**
 
 ### Rules
-- **NEVER push directly to staging or master** — always create a PR
-- **NEVER merge to staging until develop CI is green**
-- **NEVER merge to master until staging CI is green**
-- **Hotfix flow**: `hotfix/xxx` off `master` → fix → PR to `master` → merge back into `develop`
-- **Feature work**: `feat/xxx` off `develop` → work → PR to `develop`
+- **NEVER push directly to `master`** — always create a PR
+- **NEVER merge until `master`'s required CI checks are green**
+- **Feature work**: `feat/xxx` off `master` → work → PR to `master`
+- **Hotfix**: `hotfix/xxx` off `master` → fix → PR to `master`
+- **Releases** are cut from `master` (semver tag + GitHub release via `/release`); `staging`/`production` are deploy environments driven by CI/tags, not branches
 - **bun.lock is `merge=binary`** — on conflicts: `rm bun.lock && bun install`
 
 ### Pre-Push Checklist (MANDATORY)
 
 ```bash
-npx biome check --write .
+bunx biome check --write .
 bunx turbo lint
 bun type-check
 bun run test --filter=@genfeedai/[changed-package]
@@ -48,7 +48,7 @@ bunx turbo run build --filter=@genfeedai/[name]      # Build specific app/packag
 # Quality
 bun type-check                           # Type-check all packages
 bunx turbo lint                          # Lint all packages
-npx biome check --write .                # Format all files
+bunx biome check --write .               # Format all files
 
 # Testing
 bun run test --filter=@genfeedai/[name]  # Run specific package tests

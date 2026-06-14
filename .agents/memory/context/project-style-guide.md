@@ -25,8 +25,8 @@ author: Claude Code PM System
 ## Git Conventions
 
 - **Conventional commits**: `fix:`, `feat:`, `refactor:`, `chore:`, `test:`, `build:`
-- **Branch flow**: `develop` -> `staging` -> `master` via PR
-- **Feature branches**: `feat/xxx` off `develop`
+- **Branch flow**: trunk-based — short-lived branches off `master` → PR → `master`
+- **Feature branches**: `feat/xxx` off `master`
 - **Never commit secrets**
 
 ## Formatting
