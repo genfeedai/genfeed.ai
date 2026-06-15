@@ -393,14 +393,14 @@ jobs:
           fi
 
   test-app:
-    name: Test App (Shard ${{ matrix.shard }}/6)
+    name: Test App (Shard ${{ matrix.shard }}/12)
     runs-on: ubuntu-latest
     needs: [trust, test-scope]
     if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.app == 'true' && ((github.event_name == 'pull_request' && github.base_ref == 'master') || (github.event_name != 'pull_request' && github.ref_name == 'master'))
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -412,20 +412,26 @@ jobs:
       - name: Build app workspace
         run: bunx turbo run build --filter='./apps/app...'
       - name: Run app test shard
-        run: cd apps/app && bunx vitest run --config ./vitest.config.mts --maxWorkers=2 --shard=${{ matrix.shard }}/6
+        run: cd apps/app && bunx vitest run --config ./vitest.config.mts --maxWorkers=2 --shard=${{ matrix.shard }}/12
         env:
           NODE_ENV: test
           # apps/app's vitest 'forks' pool reuses one worker process across every
-          # file in a shard, so jsdom/native heap accumulates as the shard runs.
-          # With 4 shards the last bucket (~108 files, incl. the heavy
-          # packages/components/app-protected-layout.test.tsx — 23 RTL renders)
-          # outgrew even a 6 GB heap and OOMed, while shards 1-3 passed under the
-          # default heap. Splitting into 6 shards (~72 files each) keeps every
-          # bucket below the per-shard envelope the passing shards already proved
-          # safe; vmForks was rejected (its node:vm contexts lack web-stream
-          # globals like TransformStream, breaking transitive imports). The 6 GB
-          # ceiling is kept as headroom: maxWorkers=2 → 2 × 6 GB = 12 GB < 16 GB.
-          NODE_OPTIONS: --max-old-space-size=6144
+          # file in a shard, so jsdom/native heap accumulates as the shard runs —
+          # isolate:true resets the module registry but does NOT reclaim retained
+          # references (mock call-arg trees, stubbed globals, detached jsdom nodes).
+          # apps/app/vitest.config.mts adds per-file hygiene (clearMocks +
+          # unstubGlobals/unstubEnvs + an explicit RTL cleanup/DOM-reset afterEach)
+          # to bound that residue, but the dominant cost is files-per-worker: at 6
+          # shards (~72 files/shard → ~36/worker) shards 1-5 passed, yet the single
+          # bucket holding the heavy packages/components/app-protected-layout.test.tsx
+          # (~3 GB module-graph working set, 23 RTL renders) stacked that file on top
+          # of ~36 files of residue and OOMed at the 6 GB cap. 12 shards (~36
+          # files/shard → ~18/worker) halve the proven-safe residue, leaving room for
+          # the heavy file's working set. vmForks was rejected (its node:vm contexts
+          # lack web-stream globals like TransformStream, breaking transitive imports).
+          # Cap raised 6 → 7 GB for extra headroom on the heavy bucket; still safe at
+          # maxWorkers=2 → 2 × 7 GB = 14 GB < 16 GB runner RAM.
+          NODE_OPTIONS: --max-old-space-size=7168
 
   test-api:
     name: Test API (Shard ${{ matrix.shard }}/4)
