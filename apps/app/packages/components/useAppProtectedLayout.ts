@@ -1,6 +1,7 @@
 import { ADMIN_MENU_ITEMS } from '@app-config/admin-menu-items.config';
 import { ANALYTICS_MENU_ITEMS } from '@app-config/analytics-menu-items.config';
 import { COMPOSE_MENU_ITEMS } from '@app-config/compose-menu-items.config';
+import { LIBRARY_MENU_ITEMS } from '@app-config/library-menu-items.config';
 import {
   APP_MENU_ITEMS,
   getAppSecondaryMenuItems,
@@ -383,6 +384,17 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
+  const libraryMenuItems = useMemo(
+    () =>
+      LIBRARY_MENU_ITEMS.map(
+        (item): MenuItemConfig => ({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        }),
+      ),
+    [taskContextSearchParams],
+  );
+
   const workflowsMenuItems = useMemo(
     () =>
       WORKFLOWS_MENU_ITEMS.map(
@@ -456,6 +468,7 @@ export function useAppProtectedLayout(
     isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryLandingRoute,
+    isLibraryRoute,
     isOrgRoute,
     isPromptBarRoute,
     isSettingsRoute,
@@ -477,6 +490,7 @@ export function useAppProtectedLayout(
     adminMenuItems,
     analyticsMenuItems,
     composeMenuItems,
+    libraryMenuItems,
     menuItems,
     orgMenuItems,
     secondaryMenuItems,
