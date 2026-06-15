@@ -26,11 +26,7 @@ function getVoiceSourceLabel(voice: Voice): string {
     return 'Cloned';
   }
 
-  if (voice.voiceSource === 'generated') {
-    return 'Generated';
-  }
-
-  return 'Catalog';
+  return 'Generated';
 }
 
 function getProviderMeta(voice: Voice): string | null {

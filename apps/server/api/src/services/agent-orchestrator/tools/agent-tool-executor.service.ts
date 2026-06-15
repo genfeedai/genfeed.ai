@@ -7825,8 +7825,7 @@ export class AgentToolExecutorService {
             where: {
               isCloned: true,
               isDeleted: false,
-              organization: ctx.organizationId,
-              type: 'voice',
+              organizationId: ctx.organizationId,
             },
             orderBy: { createdAt: -1 },
           },
