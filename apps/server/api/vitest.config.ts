@@ -81,11 +81,40 @@ function createVitestWarningLogger() {
 installVitestWarningFilter();
 const customLogger = createVitestWarningLogger();
 const isCoverageRun = process.argv.includes('--coverage');
+const isShardRun = process.argv.some(
+  (arg) => arg === '--shard' || arg.startsWith('--shard='),
+);
 const coverageDirectory = path.resolve(serviceDir, './coverage');
 
 if (isCoverageRun) {
   fs.mkdirSync(path.join(coverageDirectory, '.tmp'), { recursive: true });
 }
+
+// Full-repo coverage gate. Enforced ONLY on the merged run; skipped on
+// per-shard runs. Each `--shard=N/4` executes a quarter of the suite, so
+// checking full-repo thresholds against a single shard is mathematically
+// guaranteed to fail (~16% lines vs 50%). That failure also aborts the run
+// with exit 1, which removes the `.vitest-reports/` blob before the upload
+// step can grab it — starving the merge job (ENOENT). The merge job runs
+// `vitest --merge-reports --coverage` (no --shard), reconstructs the full
+// coverage from all 4 blobs, and re-evaluates these thresholds there.
+const coverageThresholds = isShardRun
+  ? undefined
+  : {
+      branches: 50,
+      functions: 50,
+      lines: 50,
+      // Ratchet floor for integration code (current actual ~67.5% lines /
+      // ~56% branches). Raise these toward 100 as integration test gaps fill.
+      'src/{services/integrations,endpoints/integrations,marketplace-integration}/**':
+        {
+          branches: 55,
+          functions: 65,
+          lines: 65,
+          statements: 65,
+        },
+      statements: 50,
+    };
 
 export default defineConfig({
   customLogger,
@@ -348,21 +377,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
       reportsDirectory: coverageDirectory,
-      thresholds: {
-        branches: 50,
-        functions: 50,
-        lines: 50,
-        // Ratchet floor for integration code (current actual ~67.5% lines /
-        // ~56% branches). Raise these toward 100 as integration test gaps fill.
-        'src/{services/integrations,endpoints/integrations,marketplace-integration}/**':
-          {
-            branches: 55,
-            functions: 65,
-            lines: 65,
-            statements: 65,
-          },
-        statements: 50,
-      },
+      thresholds: coverageThresholds,
     },
     environment: 'node',
     exclude: ['**/node_modules/**', '**/dist/**'],

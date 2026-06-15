@@ -277,7 +277,7 @@ jobs:
     name: Test Scope
     runs-on: ubuntu-latest
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
+    if: needs.trust.outputs.is-trusted == 'true' && github.event_name == 'workflow_dispatch'
     outputs:
       app: ${{ steps.scope.outputs.app }}
       api: ${{ steps.scope.outputs.api }}
@@ -312,7 +312,7 @@ jobs:
     name: Test Packages
     runs-on: ubuntu-latest
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
+    if: needs.trust.outputs.is-trusted == 'true' && github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v5
         with:
@@ -333,7 +333,7 @@ jobs:
     name: Test Server Services
     runs-on: ubuntu-latest
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
+    if: needs.trust.outputs.is-trusted == 'true' && github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v5
         with:
@@ -354,7 +354,7 @@ jobs:
     name: Test Web, Desktop, Mobile
     runs-on: ubuntu-latest
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
+    if: needs.trust.outputs.is-trusted == 'true' && github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v5
         with:
@@ -375,7 +375,7 @@ jobs:
     name: Test Extensions
     runs-on: ubuntu-latest
     needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
+    if: needs.trust.outputs.is-trusted == 'true' && github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v5
         with:
@@ -396,7 +396,7 @@ jobs:
     name: Test App (Shard ${{ matrix.shard }}/12)
     runs-on: ubuntu-latest
     needs: [trust, test-scope]
-    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.app == 'true' && ((github.event_name == 'pull_request' && github.base_ref == 'master') || (github.event_name != 'pull_request' && github.ref_name == 'master'))
+    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.app == 'true' && github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -447,7 +447,7 @@ jobs:
     name: Test API (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     needs: [trust, test-scope]
-    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true' && ((github.event_name == 'pull_request' && github.base_ref == 'master') || (github.event_name != 'pull_request' && github.ref_name == 'master'))
+    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true' && github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:

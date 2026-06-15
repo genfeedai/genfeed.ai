@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { createClerkClient } from '@clerk/backend';
@@ -26,8 +27,12 @@ import { expect, test as setup } from '@playwright/test';
  * REQUIRES (no mock fallback):
  *   - CLERK_SECRET_KEY              real test-instance secret (sk_test_...)
  *   - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
- *   - E2E_CLERK_USER_PASSWORD       password for the provisioned test user
- * The instance must have email + password sign-in enabled.
+ * OPTIONAL:
+ *   - E2E_CLERK_USER_PASSWORD       only consumed by createUser. Sign-in uses the
+ *     @clerk/testing ticket strategy (no password), so when unset a throwaway
+ *     random password is generated — the dev-instance flow needs no extra secret
+ *     beyond the Clerk keys (run locally via `bun run test:e2e:authed:local`,
+ *     which loads them from apps/app/.env.local).
  */
 
 const AUTH_DIR = path.join(process.cwd(), 'playwright', 'artifacts', '.clerk');
@@ -38,7 +43,12 @@ const MOCK_SECRET = 'test-mock-clerk-key';
 
 const secretKey = process.env.CLERK_SECRET_KEY ?? '';
 const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
-const testUserPassword = process.env.E2E_CLERK_USER_PASSWORD ?? '';
+// Sign-in is ticket-based (no password), so this value is throwaway — only
+// createUser consumes it, with skipPasswordChecks. Generate a strong random one
+// when E2E_CLERK_USER_PASSWORD is unset so no extra secret is required.
+const testUserPassword =
+  process.env.E2E_CLERK_USER_PASSWORD?.trim() ||
+  `Gf-e2e-${randomBytes(18).toString('base64url')}`;
 
 function assertRealClerkEnv(): void {
   const problems: string[] = [];
@@ -50,11 +60,6 @@ function assertRealClerkEnv(): void {
   if (!publishableKey?.startsWith('pk_')) {
     problems.push(
       'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is missing or not a pk_ key.',
-    );
-  }
-  if (!testUserPassword) {
-    problems.push(
-      'E2E_CLERK_USER_PASSWORD is required to sign the test user in.',
     );
   }
   if (problems.length > 0) {
