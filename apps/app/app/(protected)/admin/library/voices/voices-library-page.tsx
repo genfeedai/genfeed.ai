@@ -2,7 +2,7 @@
 
 import type { VoiceProvider } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { Voice } from '@models/ingredients/voice.model';
+import type { ExternalVoice } from '@models/elements/external-voice.model';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { VoicesService } from '@services/ingredients/voices.service';
@@ -31,7 +31,7 @@ export default function VoicesLibraryPage() {
     VoicesService.getInstance(token),
   );
 
-  const [voices, setVoices] = useState<Voice[]>([]);
+  const [voices, setVoices] = useState<ExternalVoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
   const [syncingProvider, setSyncingProvider] = useState<VoiceProvider | null>(
@@ -46,16 +46,13 @@ export default function VoicesLibraryPage() {
 
     try {
       const service = await getVoicesService();
-      const data = await service.findAll({
-        pagination: false,
-        providers: providerFilter === 'all' ? undefined : [providerFilter],
+      const data = await service.findCatalog({
+        provider: providerFilter === 'all' ? undefined : providerFilter,
         search: search.trim() || undefined,
-        sort: 'provider: 1, metadata.label: 1',
-        voiceSource: ['catalog'],
       });
       setVoices(data);
     } catch (error) {
-      logger.error('GET /voices failed', error);
+      logger.error('GET /voices/catalog failed', error);
       notifications.error('Failed to load voice catalog');
       setVoices([]);
     } finally {
@@ -81,9 +78,11 @@ export default function VoicesLibraryPage() {
 
       try {
         const service = await getVoicesService();
-        const syncedVoices = await service.importCatalogVoices(providers);
-        setVoices(syncedVoices);
-        notifications.success('Voice catalog synced');
+        const result = await service.importCatalogVoices(providers);
+        notifications.success(
+          `Voice catalog synced — ${result.created} created, ${result.updated} updated`,
+        );
+        await loadVoices();
       } catch (error) {
         logger.error('POST /voices/import failed', error);
         notifications.error('Failed to sync voice catalog');
@@ -92,12 +91,12 @@ export default function VoicesLibraryPage() {
         setIsSyncingAll(false);
       }
     },
-    [getVoicesService, notifications],
+    [getVoicesService, loadVoices, notifications],
   );
 
   const handleToggle = useCallback(
     async (
-      voice: Voice,
+      voice: ExternalVoice,
       field: 'isActive' | 'isDefaultSelectable' | 'isFeatured',
       value: boolean,
     ) => {
@@ -105,15 +104,15 @@ export default function VoicesLibraryPage() {
 
       try {
         const service = await getVoicesService();
-        const updatedVoice = await service.patch(voice.id, {
+        const updatedVoice = await service.patchCatalogVoice(voice.id, {
           [field]: value,
-        } as Partial<Voice>);
+        });
 
         setVoices((current) =>
           current.map((item) => (item.id === voice.id ? updatedVoice : item)),
         );
       } catch (error) {
-        logger.error(`PATCH /voices/${voice.id} failed`, error);
+        logger.error(`PATCH /voices/catalog/${voice.id} failed`, error);
         notifications.error('Failed to update voice');
       } finally {
         setTogglingKey(null);

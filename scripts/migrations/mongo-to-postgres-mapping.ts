@@ -75,6 +75,22 @@ export function toPostgresEnum(
   return mongoValue.toUpperCase().replace(/-/g, '_');
 }
 
+// Legacy Mongo `status` values `merged`/`resized` were RECLASSIFIED in the new
+// schema: they are TransformationCategory operations, not IngredientStatus
+// values. So we map the status to GENERATED (a "ready/produced" state) and
+// separately record the operation in the ingredient's transformations[] (see
+// the transform below). Keyed by lowercased Mongo value.
+const INGREDIENT_STATUS_REMAP: Record<string, string> = {
+  merged: 'GENERATED',
+  resized: 'GENERATED',
+};
+
+// Legacy status → TransformationCategory enum value (recorded in transformations[]).
+const LEGACY_STATUS_AS_TRANSFORMATION: Record<string, string> = {
+  merged: 'MERGED',
+  resized: 'RESIZED',
+};
+
 /** Resolve a MongoDB ObjectId ref (ObjectId or string) to a CUID via the idMap. */
 export function resolveRef(
   idMap: MongoIdToCuidMap,
@@ -587,8 +603,8 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
         idMap,
         'organizations',
       );
-      const _brandId = resolveDocRef(doc, 'brand', idMap, 'brands');
-      const _userId = resolveDocRef(doc, 'user', idMap, 'users');
+      const brandId = resolveDocRef(doc, 'brand', idMap, 'brands');
+      const userId = resolveDocRef(doc, 'user', idMap, 'users');
       // tags is M2M — handled in Phase 4
 
       return {
@@ -743,7 +759,9 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
         text: doc.text ?? null,
         fontFamily:
           toPostgresEnum(doc.fontFamily as string | undefined | null) ??
-          'INTER',
+          // MONTSERRAT_BLACK is the schema default for Brand.fontFamily.
+          // INTER is not a valid FontFamily enum value.
+          'MONTSERRAT_BLACK',
         primaryColor: doc.primaryColor ?? '#000000',
         secondaryColor: doc.secondaryColor ?? '#000000',
         backgroundColor: doc.backgroundColor ?? '#ffffff',
@@ -819,6 +837,11 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
       phase: 3,
       categoryOverride,
       transform: (doc, idMap) => {
+        // Voice catalog entries live in the ExternalVoice table (seeded from
+        // providers), NOT in ingredients. Skip them here so the asset migration
+        // imports only real generated content (image/video/source/music) and
+        // does NOT recreate the voice "shells" that voice-junk-cleanup removes.
+        if ((doc.category as string) === 'voice') return null;
         const mongoId = (doc._id as { toString(): string }).toString();
         const organizationId = resolveDocRef(
           doc,
@@ -865,8 +888,15 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
           category:
             categoryOverride ??
             toPostgresEnum(doc.category as string | undefined | null),
+          // Mongo has `merged`/`resized` statuses that the PG IngredientStatus
+          // enum doesn't define — map them to the nearest valid "ready" state
+          // so the batch doesn't reject. All other statuses map 1:1.
           status:
-            toPostgresEnum(doc.status as string | undefined | null) ?? 'DRAFT',
+            INGREDIENT_STATUS_REMAP[
+              ((doc.status as string | undefined | null) ?? '').toLowerCase()
+            ] ??
+            toPostgresEnum(doc.status as string | undefined | null) ??
+            'DRAFT',
           scope:
             toPostgresEnum(doc.scope as string | undefined | null) ?? 'USER',
           qualityStatus:
@@ -887,11 +917,21 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
           cloneStatus: toPostgresEnum(
             doc.cloneStatus as string | undefined | null,
           ),
-          transformations: Array.isArray(doc.transformations)
-            ? (doc.transformations as string[])
-                .map((t) => toPostgresEnum(t))
-                .filter(Boolean)
-            : [],
+          transformations: (() => {
+            const list = Array.isArray(doc.transformations)
+              ? (doc.transformations as string[])
+                  .map((t) => toPostgresEnum(t))
+                  .filter((t): t is string => Boolean(t))
+              : [];
+            // Preserve the legacy `merged`/`resized` status as its new-model
+            // transformation (the op was only recorded in `status` in the old app).
+            const op =
+              LEGACY_STATUS_AS_TRANSFORMATION[
+                ((doc.status as string | undefined | null) ?? '').toLowerCase()
+              ];
+            if (op && !list.includes(op)) list.push(op);
+            return list;
+          })(),
           postedTo: Array.isArray(doc.postedTo)
             ? (doc.postedTo as string[])
             : [],
@@ -1052,6 +1092,8 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
         idMap,
         'organizations',
       );
+      const brandId = resolveDocRef(doc, 'brand', idMap, 'brands');
+      const userId = resolveDocRef(doc, 'user', idMap, 'users');
       return {
         mongoId,
         organizationId,
@@ -1950,8 +1992,7 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
         idMap,
         'organizations',
       );
-      const _brandId = resolveDocRef(doc, 'brand', idMap, 'brands');
-      const _userId = resolveDocRef(doc, 'user', idMap, 'users');
+      // Template model has no brandId/userId columns — brand/user refs intentionally omitted.
       return {
         mongoId,
         organizationId,

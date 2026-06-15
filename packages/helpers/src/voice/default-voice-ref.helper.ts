@@ -6,6 +6,7 @@ export interface DefaultVoiceCandidate {
   id: string;
   provider?: string;
   externalVoiceId?: string;
+  externalVoiceCatalogId?: string;
   isCloned?: boolean;
   metadataLabel?: string;
   sampleAudioUrl?: string | null;
@@ -91,6 +92,16 @@ export function buildDefaultVoiceRefFromVoice(
     return null;
   }
 
+  if (voice.externalVoiceCatalogId) {
+    return {
+      externalVoiceId: voice.externalVoiceId,
+      label: voice.metadataLabel ?? voice.externalVoiceId ?? voice.id,
+      preview: voice.sampleAudioUrl ?? null,
+      provider: voice.provider as VoiceProvider | undefined,
+      source: 'catalog',
+    };
+  }
+
   if (
     voice.isCloned ||
     voice.voiceSource === 'cloned' ||
@@ -104,17 +115,7 @@ export function buildDefaultVoiceRefFromVoice(
     };
   }
 
-  if (!voice.provider || !voice.externalVoiceId) {
-    return null;
-  }
-
-  return {
-    externalVoiceId: voice.externalVoiceId,
-    label: voice.metadataLabel ?? voice.externalVoiceId ?? voice.id,
-    preview: voice.sampleAudioUrl ?? null,
-    provider: voice.provider as VoiceProvider,
-    source: 'catalog',
-  };
+  return null;
 }
 
 export function matchesDefaultVoice(

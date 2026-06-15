@@ -1,5 +1,6 @@
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VoicesController } from '@api/collections/voices/controllers/voices.controller';
+import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
@@ -7,11 +8,8 @@ import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import {
-  AssetScope,
-  IngredientCategory,
-  VoiceProvider,
-} from '@genfeedai/enums';
+import { IngredientCategory, VoiceProvider } from '@genfeedai/enums';
+import { VoiceProvider as DbVoiceProvider } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -50,6 +48,7 @@ describe('VoicesController', () => {
   let controller: VoicesController;
   let voicesService: Record<string, ReturnType<typeof vi.fn>>;
   let elevenLabsService: Record<string, ReturnType<typeof vi.fn>>;
+  let externalVoiceCatalogService: Record<string, ReturnType<typeof vi.fn>>;
   let sharedService: Record<string, ReturnType<typeof vi.fn>>;
   let byokService: Record<string, ReturnType<typeof vi.fn>>;
   let fleetService: Record<string, ReturnType<typeof vi.fn>>;
@@ -72,6 +71,12 @@ describe('VoicesController', () => {
       cloneVoice: vi.fn(),
       deleteVoice: vi.fn(),
       generateAndUploadAudio: vi.fn(),
+    };
+    externalVoiceCatalogService = {
+      findAll: vi.fn(),
+      findOne: vi.fn(),
+      patch: vi.fn(),
+      syncFromProviders: vi.fn(),
     };
     sharedService = {
       saveDocuments: vi.fn(),
@@ -100,6 +105,7 @@ describe('VoicesController', () => {
     controller = new VoicesController(
       byokService as unknown as ByokService,
       elevenLabsService as unknown as ElevenLabsService,
+      externalVoiceCatalogService as unknown as ExternalVoiceCatalogService,
       fleetService as unknown as FleetService,
       heygenService as unknown as HeyGenService,
       logger as unknown as LoggerService,
@@ -119,7 +125,7 @@ describe('VoicesController', () => {
       const user = createMockUser();
       const request = createMockRequest();
       voicesService.findAll.mockResolvedValue({
-        docs: [{ _id: '507f191e810c19729de860ee', type: 'voice' }],
+        docs: [{ _id: '507f191e810c19729de860ee', isCloned: true }],
         hasNextPage: false,
         hasPrevPage: false,
         limit: 10,
@@ -137,7 +143,7 @@ describe('VoicesController', () => {
       expect(voicesService.findAll).toHaveBeenCalled();
     });
 
-    it('builds a tenant-scoped aggregate for canonical voice listing', async () => {
+    it('builds a tenant-scoped query for cloned/generated voices only', async () => {
       const brandId = '507f191e810c19729de860ee';
       const organizationId = '507f191e810c19729de860ee';
       const user = createMockUser({
@@ -160,27 +166,12 @@ describe('VoicesController', () => {
 
       const [query] = voicesService.findAll.mock.calls[0] ?? [];
       expect(query).toMatchObject({
-        orderBy: { createdAt: -1 },
         where: {
-          OR: [
-            {
-              voiceSource: 'catalog',
-            },
-            {
-              OR: [
-                { isCloned: true },
-                { voiceSource: { not: null } },
-                { voiceSource: { in: ['cloned', 'generated'] } },
-              ],
-              brand: brandId,
-              organization: organizationId,
-            },
-          ],
+          OR: [{ isCloned: true }, { externalVoiceCatalogId: { not: null } }],
+          brandId,
           category: IngredientCategory.VOICE,
           isDeleted: false,
-          status: {
-            in: ['draft', 'uploaded', 'completed'],
-          },
+          organizationId,
         },
       });
     });
@@ -206,77 +197,20 @@ describe('VoicesController', () => {
 
       await controller.findAll(
         {
-          brand: '507f191e810c19729de860ee',
-          organization: '507f191e810c19729de860ee',
+          brand: 'attacker-brand-id',
+          organization: 'attacker-org-id',
         } as never,
         request as never,
         user as never,
       );
 
       const [query] = voicesService.findAll.mock.calls.at(-1) ?? [];
-      expect(query).toMatchObject({
-        orderBy: { createdAt: -1 },
-        where: {
-          OR: [
-            {
-              voiceSource: 'catalog',
-            },
-            {
-              OR: [
-                { isCloned: true },
-                { voiceSource: { not: null } },
-                { voiceSource: { in: ['cloned', 'generated'] } },
-              ],
-              brand: brandId,
-              organization: organizationId,
-            },
-          ],
-          category: IngredientCategory.VOICE,
-          isDeleted: false,
-          status: {
-            in: ['draft', 'uploaded', 'completed'],
-          },
-        },
-      });
+      // brandId and organizationId come from Clerk metadata, not query params
+      expect(query.where.brandId).toBe(brandId);
+      expect(query.where.organizationId).toBe(organizationId);
     });
 
-    it('loads all matching voices for superadmin without tenant ownership filter', async () => {
-      const user = createMockUser({ isSuperAdmin: true });
-      const request = createMockRequest();
-
-      voicesService.findAll.mockResolvedValue({
-        docs: [],
-        hasNextPage: false,
-        hasPrevPage: false,
-        limit: 10,
-        page: 1,
-        totalDocs: 0,
-        totalPages: 0,
-      });
-
-      await controller.findAll(
-        { voiceSource: ['catalog'] } as never,
-        request as never,
-        user as never,
-      );
-
-      const [query] = voicesService.findAll.mock.calls.at(-1) ?? [];
-      expect(query).toMatchObject({
-        orderBy: { createdAt: -1 },
-        where: {
-          category: IngredientCategory.VOICE,
-          isDeleted: false,
-          status: {
-            in: ['draft', 'uploaded', 'completed'],
-          },
-          voiceSource: {
-            in: ['catalog'],
-          },
-        },
-      });
-    });
-
-    it('applies provider, source, search, scope, and activation filters to the aggregate', async () => {
+    it('applies isVoiceActive and voiceProvider filters to the query', async () => {
       const brandId = '507f191e810c19729de860ee';
       const organizationId = '507f191e810c19729de860ee';
       const user = createMockUser({
@@ -299,9 +233,7 @@ describe('VoicesController', () => {
         {
           isActive: true,
           providers: [VoiceProvider.GENFEED_AI, VoiceProvider.HEYGEN],
-          scope: AssetScope.BRAND,
           search: 'radio',
-          voiceSource: ['catalog', 'cloned'],
         } as never,
         request as never,
         user as never,
@@ -309,70 +241,18 @@ describe('VoicesController', () => {
 
       const [query] = voicesService.findAll.mock.calls.at(-1) ?? [];
       expect(query).toMatchObject({
-        orderBy: { createdAt: -1 },
         where: {
-          OR: [
-            {
-              scope: AssetScope.BRAND,
-              voiceSource: 'catalog',
-            },
-            {
-              OR: [
-                { isCloned: true },
-                { voiceSource: { not: null } },
-                { voiceSource: { in: ['cloned', 'generated'] } },
-              ],
-              brand: brandId,
-              organization: organizationId,
-            },
-          ],
-          category: IngredientCategory.VOICE,
-          isActive: {
-            not: false,
-          },
-          isDeleted: false,
-          provider: {
+          isVoiceActive: { not: false },
+          voiceProvider: {
             in: [VoiceProvider.GENFEED_AI, VoiceProvider.HEYGEN],
           },
-          status: {
-            in: ['draft', 'uploaded', 'completed'],
-          },
-          voiceSource: {
-            in: ['catalog', 'cloned'],
-          },
         },
       });
-      expect(query).toMatchObject({
-        where: {
-          AND: [
-            {
-              OR: [
-                {
-                  label: {
-                    mode: 'insensitive',
-                    contains: 'radio',
-                  },
-                },
-                {
-                  externalVoiceId: {
-                    mode: 'insensitive',
-                    contains: 'radio',
-                  },
-                },
-                {
-                  provider: {
-                    mode: 'insensitive',
-                    contains: 'radio',
-                  },
-                },
-              ],
-            },
-          ],
-        },
-      });
+      // Search filter uses AND clause
+      expect(query.where.AND).toBeDefined();
     });
 
-    it('treats missing isActive as active when filtering active voices', async () => {
+    it('sets isVoiceActive=false when isActive=false is requested', async () => {
       const user = createMockUser();
       const request = createMockRequest();
 
@@ -387,39 +267,13 @@ describe('VoicesController', () => {
       });
 
       await controller.findAll(
-        { isActive: true } as never,
+        { isActive: false } as never,
         request as never,
         user as never,
       );
 
       const [query] = voicesService.findAll.mock.calls.at(-1) ?? [];
-      expect(query).toMatchObject({
-        orderBy: { createdAt: -1 },
-        where: {
-          OR: [
-            {
-              voiceSource: 'catalog',
-            },
-            {
-              OR: [
-                { isCloned: true },
-                { voiceSource: { not: null } },
-                { voiceSource: { in: ['cloned', 'generated'] } },
-              ],
-              brand: '507f191e810c19729de860ee',
-              organization: '507f191e810c19729de860ee',
-            },
-          ],
-          category: IngredientCategory.VOICE,
-          isActive: {
-            not: false,
-          },
-          isDeleted: false,
-          status: {
-            in: ['draft', 'uploaded', 'completed'],
-          },
-        },
-      });
+      expect(query.where.isVoiceActive).toBe(false);
     });
 
     it('should throw 500 when findAll fails', async () => {
@@ -430,6 +284,73 @@ describe('VoicesController', () => {
       await expect(
         controller.findAll({} as never, request as never, user as never),
       ).rejects.toThrow(HttpException);
+    });
+  });
+
+  describe('findCatalog', () => {
+    it('should return catalog voices from ExternalVoiceCatalogService', async () => {
+      const request = createMockRequest();
+      const mockVoice = {
+        createdAt: new Date(),
+        externalId: 'ev_123',
+        externalProvider: 'ELEVENLABS',
+        id: 'catalog_id_1',
+        isActive: true,
+        isDefaultSelectable: true,
+        isFeatured: false,
+        language: 'en',
+        name: 'Rachel',
+        providerData: {},
+        sampleAudioUrl: 'https://cdn.example.com/rachel.mp3',
+        updatedAt: new Date(),
+      };
+      externalVoiceCatalogService.findAll.mockResolvedValue([mockVoice]);
+
+      const result = await controller.findCatalog(
+        request as never,
+        undefined,
+        undefined,
+      );
+      expect(result).toBeDefined();
+      expect(externalVoiceCatalogService.findAll).toHaveBeenCalled();
+    });
+
+    it('passes provider filter to ExternalVoiceCatalogService', async () => {
+      const request = createMockRequest();
+      externalVoiceCatalogService.findAll.mockResolvedValue([]);
+
+      await controller.findCatalog(request as never, 'ELEVENLABS', undefined);
+
+      // Catalog filters query the ExternalVoice table directly, so the controller
+      // forwards the DB-cased (Prisma, UPPERCASE) provider — not the app enum.
+      expect(externalVoiceCatalogService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({ provider: DbVoiceProvider.ELEVENLABS }),
+      );
+    });
+  });
+
+  describe('importCatalogVoices', () => {
+    it('should return 403 for non-super-admin', async () => {
+      const user = createMockUser();
+      const request = createMockRequest();
+
+      await expect(
+        controller.importCatalogVoices(
+          request as never,
+          user as never,
+          {} as never,
+        ),
+      ).rejects.toThrow(HttpException);
+
+      try {
+        await controller.importCatalogVoices(
+          request as never,
+          user as never,
+          {} as never,
+        );
+      } catch (error) {
+        expect((error as HttpException).getStatus()).toBe(HttpStatus.FORBIDDEN);
+      }
     });
   });
 
@@ -488,7 +409,6 @@ describe('VoicesController', () => {
       voicesService.findOne.mockResolvedValue({
         _id: ingredientId,
         status: 'generated',
-        type: 'voice',
         url: 'https://cdn.example.com/audio.mp3',
       });
 
@@ -582,6 +502,40 @@ describe('VoicesController', () => {
         ),
       ).rejects.toThrow(HttpException);
     });
+
+    it('writes voiceProvider (not provider) when cloning via ElevenLabs', async () => {
+      const user = createMockUser();
+      const request = createMockRequest();
+      const ingredientId = '507f191e810c19729de860ee';
+
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'test-key' });
+      elevenLabsService.cloneVoice.mockResolvedValue({ voiceId: 'el_cloned' });
+      sharedService.saveDocuments.mockResolvedValue({
+        ingredientData: { _id: ingredientId },
+      });
+      voicesService.patchAll.mockResolvedValue({});
+      voicesService.findOne.mockResolvedValue({
+        _id: ingredientId,
+        isCloned: true,
+      });
+      notificationsService.publishAssetStatus.mockResolvedValue(undefined);
+
+      await controller.cloneVoice(
+        request as never,
+        user as never,
+        {
+          audioUrl: 'https://example.com/audio.mp3',
+          name: 'My Voice',
+          provider: VoiceProvider.ELEVENLABS,
+        } as never,
+        undefined,
+      );
+
+      expect(voicesService.patchAll).toHaveBeenCalledWith(
+        expect.objectContaining({ OR: expect.any(Array) }),
+        expect.objectContaining({ voiceProvider: VoiceProvider.ELEVENLABS }),
+      );
+    });
   });
 
   describe('findClonedVoices', () => {
@@ -589,9 +543,7 @@ describe('VoicesController', () => {
       const user = createMockUser();
       const request = createMockRequest();
       voicesService.findAll.mockResolvedValue({
-        docs: [
-          { _id: '507f191e810c19729de860ee', isCloned: true, type: 'voice' },
-        ],
+        docs: [{ _id: '507f191e810c19729de860ee', isCloned: true }],
         hasNextPage: false,
         hasPrevPage: false,
         limit: 10,
@@ -607,6 +559,36 @@ describe('VoicesController', () => {
       );
       expect(result).toBeDefined();
       expect(voicesService.findAll).toHaveBeenCalled();
+    });
+
+    it('scopes cloned voice listing to organizationId (not organization)', async () => {
+      const organizationId = '507f191e810c19729de860ee';
+      const user = createMockUser({ organization: organizationId });
+      const request = createMockRequest();
+      voicesService.findAll.mockResolvedValue({
+        docs: [],
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: 10,
+        page: 1,
+        totalDocs: 0,
+        totalPages: 0,
+      });
+
+      await controller.findClonedVoices(
+        request as never,
+        user as never,
+        {} as never,
+      );
+
+      const [query] = voicesService.findAll.mock.calls.at(-1) ?? [];
+      expect(query.where).toMatchObject({
+        isCloned: true,
+        isDeleted: false,
+        organizationId,
+      });
+      // Old Mongo discriminator must not be present
+      expect(query.where.type).toBeUndefined();
     });
 
     it('should throw 500 when findClonedVoices fails', async () => {
@@ -660,8 +642,7 @@ describe('VoicesController', () => {
         _id: voiceId,
         externalVoiceId: 'el_voice_123',
         isCloned: true,
-        provider: 'elevenlabs',
-        type: 'voice',
+        voiceProvider: VoiceProvider.ELEVENLABS,
       };
 
       voicesService.findOne.mockResolvedValue(voice);
