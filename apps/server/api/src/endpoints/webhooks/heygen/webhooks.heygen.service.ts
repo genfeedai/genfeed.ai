@@ -97,7 +97,7 @@ export class HeygenWebhookService {
       if (!ingredient && metadata?._id) {
         ingredient = await this.ingredientsService.findOne({
           isDeleted: false,
-          metadata: metadata._id,
+          metadataId: metadata._id,
         });
       }
 
