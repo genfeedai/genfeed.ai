@@ -9,6 +9,7 @@ import { HeyGenService } from '@api/services/integrations/heygen/services/heygen
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { IngredientCategory, VoiceProvider } from '@genfeedai/enums';
+import { VoiceProvider as DbVoiceProvider } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -320,8 +321,10 @@ describe('VoicesController', () => {
 
       await controller.findCatalog(request as never, 'ELEVENLABS', undefined);
 
+      // Catalog filters query the ExternalVoice table directly, so the controller
+      // forwards the DB-cased (Prisma, UPPERCASE) provider — not the app enum.
       expect(externalVoiceCatalogService.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({ provider: VoiceProvider.ELEVENLABS }),
+        expect.objectContaining({ provider: DbVoiceProvider.ELEVENLABS }),
       );
     });
   });
