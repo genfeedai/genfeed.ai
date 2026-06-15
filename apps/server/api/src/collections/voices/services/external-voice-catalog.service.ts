@@ -25,6 +25,17 @@ export interface SyncResult {
 }
 
 /**
+ * Providers that expose a remote catalog we can sync from.
+ *
+ * Prisma 7 generates `VoiceProvider` as a const object + union type rather than
+ * a TS `enum`, so its members are only usable as values. `typeof X.MEMBER`
+ * recovers the literal type for use in type positions.
+ */
+type SyncableProvider =
+  | typeof VoiceProvider.ELEVENLABS
+  | typeof VoiceProvider.HEYGEN;
+
+/**
  * Service managing the ExternalVoice provider catalog.
  * Catalog entries are reference data synced from ElevenLabs/HeyGen — they are
  * NOT user-owned assets and carry no brand/org/isDeleted scope.
@@ -96,13 +107,9 @@ export class ExternalVoiceCatalogService {
     return this.prisma.externalVoice.update({ data, where: { id } });
   }
 
-  async syncFromProviders(
-    providers?: Array<VoiceProvider.ELEVENLABS | VoiceProvider.HEYGEN>,
-  ): Promise<SyncResult> {
+  async syncFromProviders(providers?: SyncableProvider[]): Promise<SyncResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const targetProviders: Array<
-      VoiceProvider.ELEVENLABS | VoiceProvider.HEYGEN
-    > =
+    const targetProviders: SyncableProvider[] =
       providers && providers.length > 0
         ? providers
         : [VoiceProvider.ELEVENLABS, VoiceProvider.HEYGEN];

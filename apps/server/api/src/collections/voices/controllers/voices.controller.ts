@@ -51,7 +51,10 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
-import type { ExternalVoice } from '@genfeedai/prisma';
+import {
+  type ExternalVoice,
+  VoiceProvider as DbVoiceProvider,
+} from '@genfeedai/prisma';
 import {
   VoiceCatalogEntrySerializer,
   VoiceCloneSerializer,
@@ -97,6 +100,32 @@ interface VoiceCatalogEntryDocument {
   updatedAt: Date;
 }
 
+/**
+ * Catalog rows live in the ExternalVoice table, whose `externalProvider` column
+ * is the Prisma `VoiceProvider` (UPPERCASE member values). The rest of the app —
+ * wire format, DTOs, Ingredient records, frontend labels — uses the
+ * `@genfeedai/enums` `VoiceProvider` (lowercase values). These exhaustive maps
+ * bridge the two domains so neither casing leaks across the boundary.
+ */
+const APP_TO_DB_PROVIDER: Record<VoiceProvider, DbVoiceProvider> = {
+  [VoiceProvider.ELEVENLABS]: DbVoiceProvider.ELEVENLABS,
+  [VoiceProvider.GENFEED_AI]: DbVoiceProvider.GENFEED_AI,
+  [VoiceProvider.HEDRA]: DbVoiceProvider.HEDRA,
+  [VoiceProvider.HEYGEN]: DbVoiceProvider.HEYGEN,
+};
+
+const DB_TO_APP_PROVIDER: Record<DbVoiceProvider, VoiceProvider> = {
+  [DbVoiceProvider.ELEVENLABS]: VoiceProvider.ELEVENLABS,
+  [DbVoiceProvider.GENFEED_AI]: VoiceProvider.GENFEED_AI,
+  [DbVoiceProvider.HEDRA]: VoiceProvider.HEDRA,
+  [DbVoiceProvider.HEYGEN]: VoiceProvider.HEYGEN,
+};
+
+/** Providers whose remote catalog we can sync into ExternalVoice. */
+type SyncableDbProvider =
+  | typeof DbVoiceProvider.ELEVENLABS
+  | typeof DbVoiceProvider.HEYGEN;
+
 function toWireFormat(voice: ExternalVoice): VoiceCatalogEntryDocument {
   return {
     _id: voice.id,
@@ -108,7 +137,7 @@ function toWireFormat(voice: ExternalVoice): VoiceCatalogEntryDocument {
     language: voice.language,
     name: voice.name,
     providerData: voice.providerData,
-    provider: voice.externalProvider,
+    provider: DB_TO_APP_PROVIDER[voice.externalProvider],
     sampleAudioUrl: voice.sampleAudioUrl,
     updatedAt: voice.updatedAt,
   };
@@ -660,16 +689,18 @@ export class VoicesController {
     }
   }
 
-  private parseSingleProvider(value?: string): VoiceProvider | undefined {
+  private parseSingleProvider(value?: string): SyncableDbProvider | undefined {
     if (!value) {
       return undefined;
     }
-    const upper = value.trim().toUpperCase() as VoiceProvider;
-    const allowed: VoiceProvider[] = [
-      VoiceProvider.ELEVENLABS,
-      VoiceProvider.HEYGEN,
+    // Query param arrives in app (lowercase) casing; the catalog column is the
+    // Prisma enum (UPPERCASE), so normalize to UPPERCASE before matching.
+    const normalized = value.trim().toUpperCase();
+    const allowed: SyncableDbProvider[] = [
+      DbVoiceProvider.ELEVENLABS,
+      DbVoiceProvider.HEYGEN,
     ];
-    return allowed.includes(upper) ? upper : undefined;
+    return allowed.find((provider) => provider === normalized);
   }
 
   private parseProviders(
@@ -702,24 +733,30 @@ export class VoicesController {
 
   private parseCatalogProviders(
     providers?: VoiceProvider[],
-  ): Array<VoiceProvider.ELEVENLABS | VoiceProvider.HEYGEN> {
-    const allowedProviders = new Set([
-      VoiceProvider.ELEVENLABS,
-      VoiceProvider.HEYGEN,
-    ]);
+  ): SyncableDbProvider[] {
+    const fallback: SyncableDbProvider[] = [
+      DbVoiceProvider.ELEVENLABS,
+      DbVoiceProvider.HEYGEN,
+    ];
 
     if (!providers || providers.length === 0) {
-      return [VoiceProvider.ELEVENLABS, VoiceProvider.HEYGEN];
+      return fallback;
     }
 
-    const parsed = providers.filter(
-      (provider): provider is VoiceProvider.ELEVENLABS | VoiceProvider.HEYGEN =>
-        allowedProviders.has(provider),
-    );
+    const catalogProviders = new Set<DbVoiceProvider>([
+      DbVoiceProvider.ELEVENLABS,
+      DbVoiceProvider.HEYGEN,
+    ]);
 
-    return parsed.length > 0
-      ? parsed
-      : [VoiceProvider.ELEVENLABS, VoiceProvider.HEYGEN];
+    // App-domain providers (lowercase) → Prisma catalog providers (UPPERCASE),
+    // dropping any that aren't syncable catalog sources (e.g. GENFEED_AI).
+    const parsed = providers
+      .map((provider) => APP_TO_DB_PROVIDER[provider])
+      .filter((provider): provider is SyncableDbProvider =>
+        catalogProviders.has(provider),
+      );
+
+    return parsed.length > 0 ? parsed : fallback;
   }
 
   private async cloneVoiceElevenLabs(
