@@ -587,8 +587,8 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
         idMap,
         'organizations',
       );
-      const _brandId = resolveDocRef(doc, 'brand', idMap, 'brands');
-      const _userId = resolveDocRef(doc, 'user', idMap, 'users');
+      const brandId = resolveDocRef(doc, 'brand', idMap, 'brands');
+      const userId = resolveDocRef(doc, 'user', idMap, 'users');
       // tags is M2M — handled in Phase 4
 
       return {
@@ -743,7 +743,9 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
         text: doc.text ?? null,
         fontFamily:
           toPostgresEnum(doc.fontFamily as string | undefined | null) ??
-          'INTER',
+          // MONTSERRAT_BLACK is the schema default for Brand.fontFamily.
+          // INTER is not a valid FontFamily enum value.
+          'MONTSERRAT_BLACK',
         primaryColor: doc.primaryColor ?? '#000000',
         secondaryColor: doc.secondaryColor ?? '#000000',
         backgroundColor: doc.backgroundColor ?? '#ffffff',
@@ -1052,6 +1054,8 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
         idMap,
         'organizations',
       );
+      const brandId = resolveDocRef(doc, 'brand', idMap, 'brands');
+      const userId = resolveDocRef(doc, 'user', idMap, 'users');
       return {
         mongoId,
         organizationId,
@@ -1950,8 +1954,7 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
         idMap,
         'organizations',
       );
-      const _brandId = resolveDocRef(doc, 'brand', idMap, 'brands');
-      const _userId = resolveDocRef(doc, 'user', idMap, 'users');
+      // Template model has no brandId/userId columns — brand/user refs intentionally omitted.
       return {
         mongoId,
         organizationId,

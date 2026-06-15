@@ -28,6 +28,15 @@
  *   bun run scripts/migrations/mongo-to-postgres.ts --collection=brands       # specific collection
  *   bun run scripts/migrations/mongo-to-postgres.ts --db=cloud                # specific MongoDB DB
  *   bun run scripts/migrations/mongo-to-postgres.ts --live --truncate         # truncate before insert
+ *   bun run scripts/migrations/mongo-to-postgres.ts --live --merge            # merge into non-empty tables
+ *
+ * --merge flag:
+ *   Bypasses the skip-if-target-nonempty guard and instead relies on
+ *   skipDuplicates:true (keyed on mongoId) for tables where a partial
+ *   merge is intended.  Use this on second+ runs when some rows are already
+ *   present in PG (e.g. tenants pre-populated by tenant-recreate.ts).
+ *   The guard skip only applies to the table-level existence check; the
+ *   per-row skipDuplicates safety is always active regardless of this flag.
  */
 
 import { resolve } from 'node:path';
@@ -77,6 +86,10 @@ if (!DATABASE_URL && !DRY_RUN) {
   );
 }
 const TRUNCATE = process.argv.includes('--truncate');
+// --merge: bypass the skip-if-target-nonempty guard; rely on skipDuplicates
+// keyed on mongoId for tables that already have rows from a prior partial run
+// (e.g. tenants pre-populated by tenant-recreate.ts).
+const MERGE = process.argv.includes('--merge');
 const AUTO_YES = process.argv.includes('--yes');
 const BATCH_SIZE = 1000;
 
@@ -391,7 +404,8 @@ async function migrateCollection(
     }
 
     // Guard: check if target table is empty
-    if (!TRUNCATE) {
+    // Bypassed when --truncate (full overwrite) or --merge (skipDuplicates merge) is set.
+    if (!TRUNCATE && !MERGE) {
       const prismaModel = (
         prisma as unknown as Record<string, { count: () => Promise<number> }>
       )[mapping.prismaModel];
@@ -399,11 +413,23 @@ async function migrateCollection(
         const existingCount = await prismaModel.count();
         if (existingCount > 0) {
           logger.warn(
-            `    Target table "${mapping.pgTable}" already has ${existingCount} rows — skipping. Use --truncate to overwrite.`,
+            `    Target table "${mapping.pgTable}" already has ${existingCount} rows — skipping. Use --truncate to overwrite or --merge to insert missing rows.`,
           );
           result.status = 'SKIPPED';
           result.targetDocs = existingCount;
           return result;
+        }
+      }
+    } else if (MERGE && !TRUNCATE) {
+      const prismaModel = (
+        prisma as unknown as Record<string, { count: () => Promise<number> }>
+      )[mapping.prismaModel];
+      if (prismaModel) {
+        const existingCount = await prismaModel.count();
+        if (existingCount > 0) {
+          logger.log(
+            `    [MERGE] Target table "${mapping.pgTable}" has ${existingCount} existing rows — will insert missing rows via skipDuplicates.`,
+          );
         }
       }
     }
@@ -523,6 +549,90 @@ async function migrateCollection(
   }
 
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// hydrateIdMap — pre-populate idMap from existing PG rows
+// ---------------------------------------------------------------------------
+
+/**
+ * Reads every row that has a non-null mongoId from the key entity tables and
+ * registers their mongoId → PG cuid in the global idMap.
+ *
+ * This is required when the migration runs in two separate invocations (e.g.
+ * tenant-recreate.ts ran first and inserted users/orgs/brands, then this
+ * script runs with --merge to insert ingredients).  Without this call the
+ * FK resolution phase would find empty idMap entries for any entities that
+ * were not inserted in THIS process invocation.
+ *
+ * Called immediately before Phase 4 (back-fill) when --merge is active, so
+ * that all FK refs accumulated across prior runs are available for resolution.
+ */
+async function hydrateIdMap(prisma: PrismaClientType): Promise<void> {
+  logger.log(`\n${'─'.repeat(70)}`);
+  logger.log('hydrateIdMap: pre-loading existing PG mongoId → cuid mappings');
+  logger.log('─'.repeat(70));
+
+  // Tables that carry mongoId and are referenced by FK columns in other tables.
+  const HYDRATABLE_TABLES: Array<{ prismaModel: string; pgTable: string }> = [
+    { prismaModel: 'user', pgTable: 'users' },
+    { prismaModel: 'organization', pgTable: 'organizations' },
+    { prismaModel: 'brand', pgTable: 'brands' },
+    { prismaModel: 'ingredient', pgTable: 'ingredients' },
+    { prismaModel: 'metadata', pgTable: 'metadata' },
+    { prismaModel: 'prompt', pgTable: 'prompts' },
+    { prismaModel: 'folder', pgTable: 'folders' },
+    { prismaModel: 'tag', pgTable: 'tags' },
+    { prismaModel: 'training', pgTable: 'trainings' },
+    { prismaModel: 'persona', pgTable: 'personas' },
+    { prismaModel: 'workflow', pgTable: 'workflows' },
+    { prismaModel: 'credential', pgTable: 'credentials' },
+    { prismaModel: 'apiKey', pgTable: 'api_keys' },
+    { prismaModel: 'agentStrategy', pgTable: 'agent_strategies' },
+  ];
+
+  let totalHydrated = 0;
+
+  for (const { prismaModel, pgTable } of HYDRATABLE_TABLES) {
+    const model = (
+      prisma as unknown as Record<
+        string,
+        {
+          findMany: (args: {
+            where: Record<string, unknown>;
+            select: Record<string, boolean>;
+          }) => Promise<Array<{ id: string; mongoId: string }>>;
+        }
+      >
+    )[prismaModel];
+
+    if (!model) {
+      logger.warn(`  [SKIP] prismaModel "${prismaModel}" not found on client`);
+      continue;
+    }
+
+    try {
+      const rows = await model.findMany({
+        where: { mongoId: { not: null } },
+        select: { id: true, mongoId: true },
+      });
+
+      let count = 0;
+      for (const row of rows) {
+        if (!row.mongoId) continue;
+        registerMapping(pgTable, row.mongoId, row.id);
+        count++;
+      }
+
+      totalHydrated += count;
+      logger.log(`  ${pgTable}: hydrated ${count} mongoId→cuid mappings`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.warn(`  [WARN] Could not hydrate ${pgTable}: ${msg}`);
+    }
+  }
+
+  logger.log(`hydrateIdMap complete: ${totalHydrated} total mappings loaded`);
 }
 
 // ---------------------------------------------------------------------------
@@ -838,6 +948,7 @@ async function main(): Promise<void> {
   if (collectionFilter) logger.log(`Collection filter: ${collectionFilter}`);
   if (dbFilter) logger.log(`DB filter       : ${dbFilter}`);
   if (TRUNCATE && !DRY_RUN) logger.log(`Truncate        : YES`);
+  if (MERGE && !DRY_RUN) logger.log(`Merge           : YES (--merge)`);
   logger.log('='.repeat(78));
 
   if (DRY_RUN) {
@@ -949,6 +1060,12 @@ async function main(): Promise<void> {
 
   // Phase 4: back-fills and join tables
   if (!collectionFilter && !dbFilter) {
+    // When --merge is active, pre-populate the idMap from existing PG rows so
+    // that FK references from entities inserted by prior runs (e.g. via
+    // tenant-recreate.ts) are resolved correctly.
+    if (MERGE && !DRY_RUN) {
+      await hydrateIdMap(prisma);
+    }
     await runBackfills(mongoClient, prisma, DRY_RUN);
     await runJoinTables(mongoClient, prisma, DRY_RUN);
   }

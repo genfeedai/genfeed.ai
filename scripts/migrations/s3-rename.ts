@@ -62,7 +62,8 @@ if (!DATABASE_URL) {
 }
 
 const S3_BUCKET = process.env.AWS_S3_BUCKET ?? 'cdn.genfeed.ai';
-const S3_REGION = process.env.AWS_REGION ?? 'us-east-1';
+// cdn.genfeed.ai is hosted in us-west-1 — not us-east-1.
+const S3_REGION = process.env.AWS_REGION ?? 'us-west-1';
 
 const DRY_RUN = !process.argv.includes('--live');
 const CONCURRENCY = 50;
