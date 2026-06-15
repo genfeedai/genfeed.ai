@@ -124,7 +124,7 @@
     "test:e2e:authed:failed": "bunx playwright test --config=playwright/configs/playwright.config.ts --project=app-authed --last-failed",
     "test:e2e:smoke": "bunx playwright test --config=playwright/configs/playwright.config.ts playwright/e2e/tests/smoke/all-app-pages.spec.ts --project=app-core",
     "test:e2e:full": "bunx playwright test --config=playwright/configs/playwright-full.config.ts",
-    "test:e2e:coverage": "E2E_COVERAGE=1 bunx playwright test --config=playwright/configs/playwright-coverage.config.ts",
+    "test:e2e:coverage": "E2E_COVERAGE=1 bunx playwright test --config=playwright/configs/playwright-coverage.config.ts playwright/e2e/tests/smoke playwright/e2e/tests/core",
     "test:e2e:routes": "node scripts/e2e-route-coverage.mjs",
     "test:e2e:release": "bunx playwright test --config=playwright/configs/playwright-release-e2e.config.ts",
     "type-check": "bunx turbo run type-check",

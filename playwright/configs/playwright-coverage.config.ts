@@ -8,8 +8,14 @@ import baseConfig from './playwright.config';
  * Reuses the canonical `playwright.config.ts` (same webServer, auth bypass and
  * API mocking) and layers in monocart-reporter's V8 coverage collection.
  *
+ * Scope: the mock-safe `smoke` + `core` app-core subset only (see the
+ * `test:e2e:coverage` script, which passes those dirs). The broad feature suite
+ * stays gated by `e2e.yml`; running it here under V8 instrumentation cannot
+ * finish inside the coverage job's per-shard timeout, so it would surface as
+ * timeouts rather than real signal.
+ *
  * Usage:
- *   bun run test:e2e:coverage           # full suite + coverage report
+ *   bun run test:e2e:coverage           # scoped smoke+core suite + coverage report
  *   E2E_COVERAGE=1 bunx playwright test --config=playwright-coverage.config.ts
  *
  * Output:
@@ -29,6 +35,11 @@ const COVERAGE_THRESHOLD = Number(process.env.E2E_COVERAGE_THRESHOLD ?? '80');
 
 export default defineConfig({
   ...baseConfig,
+  // Coverage is a measurement pass, not a flake-gate — e2e.yml is the gate.
+  // V8 instrumentation already ~3x's page-load time, so inheriting baseConfig's
+  // CI retries (2) would triple a failing test's wall-clock and push the shard
+  // past its timeout. A genuine failure should fail fast and visibly here.
+  retries: 0,
   // Coverage runs the mocked app-core suite only — never clerk-setup (real
   // Clerk) or app-authed (depends on clerk-setup). Inheriting them would make
   // assertRealClerkEnv() throw when CLERK_SECRET_KEY is the CI mock placeholder,

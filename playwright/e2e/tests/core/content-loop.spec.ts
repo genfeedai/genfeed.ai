@@ -62,15 +62,18 @@ test.describe('Core Content Loop', () => {
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Operator tools' }),
     ).toBeVisible();
+    // Operator-tool links are brand-scoped via useOrgUrl().href(), e.g.
+    // `/{orgSlug}/{brandSlug}/studio/image`, so assert on the route suffix
+    // rather than a bare path. "Open Inbox" is an unscoped literal Link.
     await expect(
       authenticatedPage.getByRole('link', { name: 'Studio Image' }),
-    ).toHaveAttribute('href', '/studio/image');
+    ).toHaveAttribute('href', /\/studio\/image$/);
     await expect(
       authenticatedPage.getByRole('link', { name: 'Open Inbox' }),
     ).toHaveAttribute('href', '/workspace/inbox/unread');
     await expect(
       authenticatedPage.getByRole('link', { name: 'Workflows' }),
-    ).toHaveAttribute('href', '/orchestration/workflows');
+    ).toHaveAttribute('href', /\/workflows$/);
   });
 
   test('studio supports content-type switching and prompt entry', async ({
