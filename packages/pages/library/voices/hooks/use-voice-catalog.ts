@@ -24,7 +24,6 @@ interface UseVoiceCatalogOptions {
   providers?: VoiceProvider[];
   search?: string;
   status?: string[];
-  voiceSource?: Array<'catalog' | 'cloned' | 'generated'>;
 }
 
 export function useVoiceCatalog({
@@ -35,7 +34,6 @@ export function useVoiceCatalog({
   providers,
   search,
   status = DEFAULT_VOICE_CATALOG_STATUS,
-  voiceSource,
 }: UseVoiceCatalogOptions = {}) {
   const getVoicesService = useAuthedService((token: string) =>
     VoicesService.getInstance(token),
@@ -57,7 +55,6 @@ export function useVoiceCatalog({
         providers,
         search,
         status,
-        voiceSource,
       });
       setVoices(nextVoices);
     } catch (error) {
@@ -75,7 +72,6 @@ export function useVoiceCatalog({
     providers,
     search,
     status,
-    voiceSource,
   ]);
 
   useEffect(() => {
