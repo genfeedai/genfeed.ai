@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [master, develop, staging]
+    branches: [master]
   pull_request:
-    branches: [master, develop, staging]
+    branches: [master]
   # Allow this gate to be run as a reusable workflow (e.g. by full-suite.yml,
   # which chains CI → E2E on demand). No inputs needed; secrets are inherited.
   workflow_call:
@@ -396,7 +396,7 @@ jobs:
     name: Test App (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     needs: [trust, test-scope]
-    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.app == 'true' && ((github.event_name == 'pull_request' && (github.base_ref == 'staging' || github.base_ref == 'master')) || (github.event_name != 'pull_request' && (github.ref_name == 'staging' || github.ref_name == 'master')))
+    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.app == 'true' && ((github.event_name == 'pull_request' && github.base_ref == 'master') || (github.event_name != 'pull_request' && github.ref_name == 'master'))
     strategy:
       fail-fast: false
       matrix:
@@ -420,7 +420,7 @@ jobs:
     name: Test API (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     needs: [trust, test-scope]
-    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true' && ((github.event_name == 'pull_request' && (github.base_ref == 'staging' || github.base_ref == 'master')) || (github.event_name != 'pull_request' && (github.ref_name == 'staging' || github.ref_name == 'master')))
+    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true' && ((github.event_name == 'pull_request' && github.base_ref == 'master') || (github.event_name != 'pull_request' && github.ref_name == 'master'))
     strategy:
       fail-fast: false
       matrix:
