@@ -30,6 +30,14 @@ import {
   HiUser,
 } from 'react-icons/hi2';
 
+function formatDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 interface SocialLinkItemProps {
   url: string;
   icon: IconType;
@@ -71,14 +79,6 @@ export default function ArticleDetail({
     [article?.content],
   );
   const [copied, setCopied] = useState(false);
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-  };
 
   const handleShare = async () => {
     try {

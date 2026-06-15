@@ -62,21 +62,30 @@ function handleTopOffset(index: number, total: number): string {
   return `${((index + 1) * 100) / (total + 1)}%`;
 }
 
-function renderHandles(
-  handles: CompatibilityHandleDefinition[],
-  position: Position,
-): React.JSX.Element[] {
-  return handles.map((handle, index) => (
-    <Handle
-      key={`${position}-${handle.id}`}
-      id={handle.id}
-      type={position === Position.Left ? 'target' : 'source'}
-      position={position}
-      className="!h-3 !w-3 !border-border !bg-primary"
-      style={{ top: handleTopOffset(index, handles.length) }}
-      title={handle.label}
-    />
-  ));
+interface NodeHandlesProps {
+  handles: CompatibilityHandleDefinition[];
+  position: Position;
+}
+
+function NodeHandles({
+  handles,
+  position,
+}: NodeHandlesProps): React.JSX.Element {
+  return (
+    <>
+      {handles.map((handle, index) => (
+        <Handle
+          key={`${position}-${handle.id}`}
+          id={handle.id}
+          type={position === Position.Left ? 'target' : 'source'}
+          position={position}
+          className="!h-3 !w-3 !border-border !bg-primary"
+          style={{ top: handleTopOffset(index, handles.length) }}
+          title={handle.label}
+        />
+      ))}
+    </>
+  );
 }
 
 function TemplateCompatibilityNodeComponent(
@@ -90,8 +99,8 @@ function TemplateCompatibilityNodeComponent(
 
   return (
     <div className="relative min-w-[280px] space-y-3 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
-      {renderHandles(definition.inputs, Position.Left)}
-      {renderHandles(definition.outputs, Position.Right)}
+      <NodeHandles handles={definition.inputs} position={Position.Left} />
+      <NodeHandles handles={definition.outputs} position={Position.Right} />
 
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">

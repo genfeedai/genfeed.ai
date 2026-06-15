@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -190,6 +191,17 @@ function EngagementBreakdown({
 export default function AnalyticsScreen() {
   const { data, isLoading, error, refetch } = useAnalytics();
 
+  const refreshControl = useMemo(
+    () => (
+      <RefreshControl
+        refreshing={isLoading}
+        onRefresh={refetch}
+        tintColor={colors.indigo}
+      />
+    ),
+    [isLoading, refetch],
+  );
+
   if (isLoading && !data.overview) {
     return (
       <LoadingScreen message="Loading analytics..." color={colors.indigo} />
@@ -212,13 +224,7 @@ export default function AnalyticsScreen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
-      refreshControl={
-        <RefreshControl
-          refreshing={isLoading}
-          onRefresh={refetch}
-          tintColor={colors.indigo}
-        />
-      }
+      refreshControl={refreshControl}
     >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Analytics</Text>

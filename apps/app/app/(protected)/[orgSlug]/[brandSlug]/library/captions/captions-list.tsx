@@ -23,8 +23,7 @@ function CaptionsListContent() {
     useCallback((token: string) => CaptionsService.getInstance(token), []),
   );
 
-  const [captions, setCaptions] = useState<Caption[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [captions, setCaptions] = useState<Caption[] | null>(null);
 
   const columns: TableColumn<Caption>[] = [
     { header: 'Label', key: 'label' },
@@ -42,7 +41,7 @@ function CaptionsListContent() {
   ];
 
   const findAllCaptions = useCallback(async () => {
-    setIsLoading(true);
+    setCaptions(null);
 
     try {
       const service = await getCaptionsService();
@@ -57,8 +56,7 @@ function CaptionsListContent() {
     } catch (error) {
       logger.error('GET /captions failed', error);
       notificationsService.error('Failed to load captions');
-    } finally {
-      setIsLoading(false);
+      setCaptions([]);
     }
   }, [currentPage, getCaptionsService, notificationsService]);
 
@@ -69,10 +67,10 @@ function CaptionsListContent() {
   return (
     <>
       <AppTable<Caption>
-        items={captions}
+        items={captions ?? []}
         columns={columns}
         actions={[]}
-        isLoading={isLoading}
+        isLoading={captions === null}
         getRowKey={(item) => item.id}
         emptyLabel="No captions found"
       />

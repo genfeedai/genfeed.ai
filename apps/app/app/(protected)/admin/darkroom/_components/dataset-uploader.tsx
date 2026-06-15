@@ -75,20 +75,21 @@ export default function DatasetUploader({
       }
     }
 
-    // Read caption text files and pair with images
-    const readPromises = images.map(async (imageFile) => {
-      const stem = imageFile.name.replace(/\.[^.]+$/, '').toLowerCase();
-      const captionFile = captionTexts.get(stem);
-      let caption: string | undefined;
-
-      if (captionFile) {
-        caption = await captionFile.text();
-      }
-
-      return { caption, filenameStem: stem, image: imageFile };
-    });
-
-    Promise.all(readPromises)
+    // Read caption text files and pair with images in parallel
+    Promise.all(
+      images.map((imageFile) => {
+        const stem = imageFile.name.replace(/\.[^.]+$/, '').toLowerCase();
+        const captionFile = captionTexts.get(stem);
+        const captionPromise = captionFile
+          ? captionFile.text()
+          : Promise.resolve(undefined);
+        return captionPromise.then((caption) => ({
+          caption,
+          filenameStem: stem,
+          image: imageFile,
+        }));
+      }),
+    )
       .then((newPairs) => {
         setPairedFiles((prev) => [...prev, ...newPairs]);
       })

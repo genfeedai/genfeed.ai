@@ -16,7 +16,7 @@ import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useRouter } from 'next/navigation';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useReducer } from 'react';
 import {
   HiArrowPathRoundedSquare,
   HiClipboardDocument,
@@ -66,30 +66,108 @@ function applyDraftSuggestionToHtml(
   return `${currentContent}${paragraph}`;
 }
 
+type ComposerState = {
+  topic: string;
+  angle: string;
+  instructions: string;
+  label: string;
+  summary: string;
+  content: string;
+  newsletterId: string;
+  isGenerating: boolean;
+  isSaving: boolean;
+};
+
+type ComposerAction =
+  | {
+      type: 'SET_FIELD';
+      field: keyof Pick<
+        ComposerState,
+        | 'topic'
+        | 'angle'
+        | 'instructions'
+        | 'label'
+        | 'summary'
+        | 'content'
+        | 'newsletterId'
+      >;
+      value: string;
+    }
+  | { type: 'SET_GENERATING'; value: boolean }
+  | { type: 'SET_SAVING'; value: boolean }
+  | {
+      type: 'APPLY_DRAFT';
+      newsletterId: string;
+      label: string;
+      summary: string;
+      content: string;
+    };
+
+const initialComposerState: ComposerState = {
+  topic: '',
+  angle: '',
+  instructions: '',
+  label: '',
+  summary: '',
+  content: '',
+  newsletterId: '',
+  isGenerating: false,
+  isSaving: false,
+};
+
+function composerReducer(
+  state: ComposerState,
+  action: ComposerAction,
+): ComposerState {
+  switch (action.type) {
+    case 'SET_FIELD':
+      return { ...state, [action.field]: action.value };
+    case 'SET_GENERATING':
+      return { ...state, isGenerating: action.value };
+    case 'SET_SAVING':
+      return { ...state, isSaving: action.value };
+    case 'APPLY_DRAFT':
+      return {
+        ...state,
+        newsletterId: action.newsletterId,
+        label: action.label,
+        summary: action.summary,
+        content: action.content,
+      };
+    default:
+      return state;
+  }
+}
+
 export default function NewsletterComposerPanel() {
   const { push } = useRouter();
   const notificationsService = NotificationsService.getInstance();
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
-  const [topic, setTopic] = useState('');
-  const [angle, setAngle] = useState('');
-  const [instructions, setInstructions] = useState('');
-  const [label, setLabel] = useState('');
-  const [summary, setSummary] = useState('');
-  const [content, setContent] = useState('');
-  const [newsletterId, setNewsletterId] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [state, dispatch] = useReducer(composerReducer, initialComposerState);
+  const {
+    topic,
+    angle,
+    instructions,
+    label,
+    summary,
+    content,
+    newsletterId,
+    isGenerating,
+    isSaving,
+  } = state;
 
   const getService = useAuthedService((token: string) =>
     NewslettersService.getInstance(token),
   );
   const handleApplyDraftSuggestion = useCallback(
     (payload: AgentDraftSuggestionPayload) => {
-      setContent((currentContent) =>
-        applyDraftSuggestionToHtml(currentContent, payload),
-      );
+      dispatch({
+        type: 'SET_FIELD',
+        field: 'content',
+        value: applyDraftSuggestionToHtml(content, payload),
+      });
     },
-    [],
+    [content],
   );
 
   useAgentDraftContext({
@@ -108,7 +186,7 @@ export default function NewsletterComposerPanel() {
       return;
     }
 
-    setIsGenerating(true);
+    dispatch({ type: 'SET_GENERATING', value: true });
 
     try {
       const service = await getService();
@@ -118,16 +196,19 @@ export default function NewsletterComposerPanel() {
         topic: topic.trim(),
       });
 
-      setNewsletterId(draft.id);
-      setLabel(draft.label ?? '');
-      setSummary(draft.summary ?? '');
-      setContent(draft.content ?? '');
+      dispatch({
+        type: 'APPLY_DRAFT',
+        newsletterId: draft.id,
+        label: draft.label ?? '',
+        summary: draft.summary ?? '',
+        content: draft.content ?? '',
+      });
       notificationsService.success('Newsletter draft ready');
     } catch (error) {
       logger.error('Failed to generate newsletter draft', error);
       notificationsService.error('Failed to generate newsletter draft');
     } finally {
-      setIsGenerating(false);
+      dispatch({ type: 'SET_GENERATING', value: false });
     }
   }
 
@@ -142,7 +223,7 @@ export default function NewsletterComposerPanel() {
       return;
     }
 
-    setIsSaving(true);
+    dispatch({ type: 'SET_SAVING', value: true });
 
     try {
       const service = await getService();
@@ -159,7 +240,7 @@ export default function NewsletterComposerPanel() {
       logger.error('Failed to save newsletter draft', error);
       notificationsService.error('Failed to save newsletter draft');
     } finally {
-      setIsSaving(false);
+      dispatch({ type: 'SET_SAVING', value: false });
     }
   }
 
@@ -210,7 +291,13 @@ export default function NewsletterComposerPanel() {
             <Input
               id="newsletter-topic"
               value={topic}
-              onChange={(event) => setTopic(event.target.value)}
+              onChange={(event) =>
+                dispatch({
+                  type: 'SET_FIELD',
+                  field: 'topic',
+                  value: event.target.value,
+                })
+              }
               placeholder="What should this issue cover?"
               className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-white/20"
             />
@@ -224,7 +311,13 @@ export default function NewsletterComposerPanel() {
             <Input
               id="newsletter-angle"
               value={angle}
-              onChange={(event) => setAngle(event.target.value)}
+              onChange={(event) =>
+                dispatch({
+                  type: 'SET_FIELD',
+                  field: 'angle',
+                  value: event.target.value,
+                })
+              }
               placeholder="Optional framing or thesis"
               className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-white/20"
             />
@@ -235,7 +328,13 @@ export default function NewsletterComposerPanel() {
             rows={4}
             placeholder="Tone, structure, exclusions, recurring sections, or audience notes..."
             value={instructions}
-            onChange={(event) => setInstructions(event.target.value)}
+            onChange={(event) =>
+              dispatch({
+                type: 'SET_FIELD',
+                field: 'instructions',
+                value: event.target.value,
+              })
+            }
             className="min-h-28 rounded-xl border-white/10 bg-black/20"
           />
 
@@ -247,7 +346,13 @@ export default function NewsletterComposerPanel() {
             <Input
               id="newsletter-draft-label"
               value={label}
-              onChange={(event) => setLabel(event.target.value)}
+              onChange={(event) =>
+                dispatch({
+                  type: 'SET_FIELD',
+                  field: 'label',
+                  value: event.target.value,
+                })
+              }
               placeholder="Newsletter title"
               className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-white/20"
             />
@@ -258,7 +363,13 @@ export default function NewsletterComposerPanel() {
             rows={3}
             placeholder="Short summary or teaser"
             value={summary}
-            onChange={(event) => setSummary(event.target.value)}
+            onChange={(event) =>
+              dispatch({
+                type: 'SET_FIELD',
+                field: 'summary',
+                value: event.target.value,
+              })
+            }
             className="rounded-xl border-white/10 bg-black/20"
           />
 
@@ -266,7 +377,9 @@ export default function NewsletterComposerPanel() {
             <span>Content</span>
             <LazyRichTextEditor
               value={content}
-              onChange={setContent}
+              onChange={(value) =>
+                dispatch({ type: 'SET_FIELD', field: 'content', value })
+              }
               placeholder="Generate a draft or write your newsletter manually..."
               toolbarMode="minimal"
               minHeight={{ desktop: 480, mobile: 320 }}

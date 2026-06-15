@@ -2,14 +2,21 @@
 
 import { SignUp } from '@clerk/nextjs';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
-import { useEffect, useState } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { persistOnboardingHandoffParams } from '@/lib/onboarding/onboarding-access.util';
 
+function subscribe() {
+  return () => {};
+}
+
 export default function SignUpForm() {
-  const [isMounted, setIsMounted] = useState(false);
+  const isMounted = useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false,
+  );
 
   useEffect(() => {
-    setIsMounted(true);
     persistOnboardingHandoffParams(window.location.search);
   }, []);
 

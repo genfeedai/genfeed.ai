@@ -5,41 +5,48 @@ import Badge from '@ui/display/badge/Badge';
 import { VStack } from '@ui/layout/stack';
 import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
-import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
-import { FaCheck, FaGithub } from 'react-icons/fa6';
+import { FaCheck } from 'react-icons/fa6';
+import { GitHubLink } from './github-link';
 import ProductAgentLibrary from './product-agent-library';
 import ProductBenefits from './product-benefits';
 import ProductFinalCTA from './product-final-cta';
 import ProductPricingCTA from './product-pricing-cta';
 
-export function GitHubLink({
-  href,
-  children,
-  variant = ButtonVariant.OUTLINE,
-  className,
-}: {
-  href: string;
-  children: React.ReactNode;
-  variant?: ButtonVariant;
-  className?: string;
-}) {
-  return (
-    <Button variant={variant} asChild className={className}>
-      <Link href={href} target="_blank" rel="noopener noreferrer">
-        <FaGithub className="size-5" />
-        {children}
-      </Link>
-    </Button>
-  );
-}
-
 export default function ProductPage({ product }: { product: Product }) {
   const relatedProducts = getRelatedProducts(product.slug);
+
+  const heroProof = (
+    <HeroProofRail
+      title="Why teams switch"
+      items={product.benefits.slice(0, 3).map((benefit) => ({
+        label: benefit.problem,
+        value: benefit.solution,
+      }))}
+    />
+  );
+
+  const heroVisual = (
+    <EditorialPoster
+      eyebrow={product.tagline}
+      title={product.headline}
+      detail={product.description}
+      items={product.features.slice(0, 4).map((feature) => ({
+        label: feature.title,
+        value: feature.description,
+      }))}
+      footer={
+        <>
+          <span>{product.category}</span>
+          <span>{product.pricing.recommended} plan recommended</span>
+        </>
+      }
+    />
+  );
 
   return (
     <PageLayout
@@ -79,32 +86,8 @@ export default function ProductPage({ product }: { product: Product }) {
           ) : null}
         </div>
       }
-      heroProof={
-        <HeroProofRail
-          title="Why teams switch"
-          items={product.benefits.slice(0, 3).map((benefit) => ({
-            label: benefit.problem,
-            value: benefit.solution,
-          }))}
-        />
-      }
-      heroVisual={
-        <EditorialPoster
-          eyebrow={product.tagline}
-          title={product.headline}
-          detail={product.description}
-          items={product.features.slice(0, 4).map((feature) => ({
-            label: feature.title,
-            value: feature.description,
-          }))}
-          footer={
-            <>
-              <span>{product.category}</span>
-              <span>{product.pricing.recommended} plan recommended</span>
-            </>
-          }
-        />
-      }
+      heroProof={heroProof}
+      heroVisual={heroVisual}
     >
       <section className="max-w-6xl mx-auto pb-20">
         <Heading size="2xl" className="text-center mb-12">

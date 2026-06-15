@@ -12,16 +12,16 @@ import { LuCheck, LuCopy, LuTerminal } from 'react-icons/lu';
 const INSTALL_COMMAND =
   'npx @genfeedai/skills-pro install --receipt sk_rcpt_xxx';
 
+async function handleCopy() {
+  try {
+    await navigator.clipboard.writeText(INSTALL_COMMAND);
+  } catch {
+    // Clipboard write failed — silent fallback
+  }
+}
+
 export default function SkillsSuccessContent() {
   const containerRef = useMarketingEntrance({ cards: false });
-
-  async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(INSTALL_COMMAND);
-    } catch {
-      // Clipboard write failed — silent fallback
-    }
-  }
 
   return (
     <div ref={containerRef}>

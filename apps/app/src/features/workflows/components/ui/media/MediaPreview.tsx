@@ -40,7 +40,9 @@ export function MediaPreview({
           muted={muted}
           loop={loop}
           playsInline
-        />
+        >
+          <track kind="captions" />
+        </video>
       </div>
     );
   }

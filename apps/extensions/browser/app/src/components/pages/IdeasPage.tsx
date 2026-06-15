@@ -21,18 +21,16 @@ interface SavedIdea {
 }
 
 export default function IdeasPage() {
-  const [ideas, setIdeas] = useState<SavedIdea[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [ideas, setIdeas] = useState<SavedIdea[] | null>(null);
 
   const loadIdeas = useCallback(async () => {
-    setIsLoading(true);
     try {
       const stored = (await storage.get('saved_ideas')) as SavedIdea[] | null;
       setIdeas(stored || []);
     } catch (err) {
       logger.error('Error loading ideas', err);
+      setIdeas([]);
     }
-    setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -53,17 +51,19 @@ export default function IdeasPage() {
         url: tab.url,
       };
 
-      const updated = [newIdea, ...ideas].slice(0, MAX_IDEAS);
+      const updated = [newIdea, ...(ideas ?? [])].slice(0, MAX_IDEAS);
       await storage.set('saved_ideas', updated);
       setIdeas(updated);
     });
   }
 
   async function removeIdea(id: string): Promise<void> {
-    const updated = ideas.filter((idea) => idea.id !== id);
+    const updated = (ideas ?? []).filter((idea) => idea.id !== id);
     await storage.set('saved_ideas', updated);
     setIdeas(updated);
   }
+
+  const isLoading = ideas === null;
 
   if (isLoading) {
     return <LoadingPage />;

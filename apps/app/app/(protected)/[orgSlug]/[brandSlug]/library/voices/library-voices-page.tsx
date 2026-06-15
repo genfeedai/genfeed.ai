@@ -313,14 +313,18 @@ function LibraryVoicesContent() {
             <VoiceLibraryRowItem
               key={voice.id}
               brandDefaultContext={brandDefaultContext}
-              hasBrandContext={Boolean(selectedBrandState)}
-              isSavingBrandDefault={isSavingBrandDefault}
-              isSavingOrgDefault={isSavingOrgDefault}
               isVoiceRemovable={isVoiceRemovable}
               onDeleteVoice={handleDeleteVoice}
-              onSaveBrandDefault={saveBrandDefault}
+              onSaveBrandDefault={selectedBrandState ? saveBrandDefault : null}
               onSaveOrganizationDefault={saveOrganizationDefault}
               orgDefaultContext={orgDefaultContext}
+              savingDefault={
+                isSavingBrandDefault
+                  ? 'brand'
+                  : isSavingOrgDefault
+                    ? 'org'
+                    : null
+              }
               selectedBrandLabel={selectedBrandState?.label}
               voice={voice}
             />

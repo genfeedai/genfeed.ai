@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -80,18 +80,23 @@ export default function Ideas() {
     setIsModalVisible(false);
   };
 
+  const refreshControl = useMemo(
+    () => (
+      <RefreshControl
+        refreshing={isRefreshing}
+        onRefresh={refresh}
+        tintColor={colors.agent}
+      />
+    ),
+    [isRefreshing, refresh],
+  );
+
   return (
     <>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={refresh}
-            tintColor={colors.agent}
-          />
-        }
+        refreshControl={refreshControl}
       >
         <View style={styles.header}>
           <Text style={styles.kicker}>Idea Lab</Text>

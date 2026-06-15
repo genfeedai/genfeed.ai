@@ -14,7 +14,7 @@ type Props = {
 
 export default function ChatSidebarContent({
   conversationActions,
-  renderConversations,
+  renderConversations: RenderConversations,
 }: Props) {
   const { href, orgHref } = useOrgUrl();
 
@@ -46,7 +46,9 @@ export default function ChatSidebarContent({
           </Link>
         </div>
 
-        <div className="min-h-0 flex-1">{renderConversations()}</div>
+        <div className="min-h-0 flex-1">
+          <RenderConversations />
+        </div>
       </div>
     </div>
   );

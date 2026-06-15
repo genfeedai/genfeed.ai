@@ -18,28 +18,24 @@ type BrandDefaultContext = {
 
 export type VoiceLibraryRowItemProps = {
   brandDefaultContext: BrandDefaultContext;
-  hasBrandContext: boolean;
-  isSavingBrandDefault: boolean;
-  isSavingOrgDefault: boolean;
   isVoiceRemovable: (voice: Voice) => boolean;
   onDeleteVoice: (voice: Voice) => Promise<void>;
-  onSaveBrandDefault: (voice: Voice) => Promise<void>;
+  onSaveBrandDefault?: ((voice: Voice) => Promise<void>) | null;
   onSaveOrganizationDefault: (voice: Voice) => Promise<void>;
   orgDefaultContext: OrgDefaultContext;
+  savingDefault: 'brand' | 'org' | null;
   selectedBrandLabel?: string;
   voice: Voice;
 };
 
 export default function VoiceLibraryRowItem({
   brandDefaultContext,
-  hasBrandContext,
-  isSavingBrandDefault,
-  isSavingOrgDefault,
   isVoiceRemovable,
   onDeleteVoice,
   onSaveBrandDefault,
   onSaveOrganizationDefault,
   orgDefaultContext,
+  savingDefault,
   selectedBrandLabel,
   voice,
 }: VoiceLibraryRowItemProps) {
@@ -50,8 +46,8 @@ export default function VoiceLibraryRowItem({
     <VoiceCatalogRow
       isBrandDefault={isBrandDefault}
       isOrgDefault={isOrgDefault}
-      isSavingBrandDefault={isSavingBrandDefault}
-      isSavingOrgDefault={isSavingOrgDefault}
+      isSavingBrandDefault={savingDefault === 'brand'}
+      isSavingOrgDefault={savingDefault === 'org'}
       onDelete={
         isVoiceRemovable(voice)
           ? () => {
@@ -62,7 +58,7 @@ export default function VoiceLibraryRowItem({
           : null
       }
       onSaveBrandDefault={
-        hasBrandContext
+        onSaveBrandDefault
           ? () => {
               onSaveBrandDefault(voice).catch((error) => {
                 logger.error('Failed to save brand default voice', error);

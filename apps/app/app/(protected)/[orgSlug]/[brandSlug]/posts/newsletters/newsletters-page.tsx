@@ -226,11 +226,19 @@ function NewslettersPageContent() {
               <NewsletterEditor
                 editorDirty={editorDirty}
                 editorState={editorState}
-                isApproving={isApproving}
-                isArchiving={isArchiving}
-                isGeneratingDraft={isGeneratingDraft}
-                isPublishing={isPublishing}
-                isSaving={isSaving}
+                loadingAction={
+                  isApproving
+                    ? 'approving'
+                    : isArchiving
+                      ? 'archiving'
+                      : isGeneratingDraft
+                        ? 'generatingDraft'
+                        : isPublishing
+                          ? 'publishing'
+                          : isSaving
+                            ? 'saving'
+                            : null
+                }
                 selectedNewsletter={selectedNewsletter}
                 onApprove={handleApprove}
                 onArchive={handleArchive}

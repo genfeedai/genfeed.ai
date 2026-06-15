@@ -24,10 +24,61 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
-  useState,
 } from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
+
+type BlacklistsState = {
+  blacklists: ElementBlacklist[];
+  isLoading: boolean;
+  updatingIds: Set<string>;
+  selectedBlacklist: ElementBlacklist | null;
+  adminOrg: string;
+  adminBrand: string;
+};
+
+type BlacklistsAction =
+  | { type: 'FETCH_START'; isRefresh: boolean }
+  | { type: 'FETCH_SUCCESS'; blacklists: ElementBlacklist[] }
+  | { type: 'FETCH_DONE' }
+  | { type: 'SET_SELECTED'; blacklist: ElementBlacklist | null }
+  | { type: 'UPDATING_ADD'; id: string }
+  | { type: 'UPDATING_REMOVE'; id: string }
+  | { type: 'SET_ADMIN_ORG'; org: string }
+  | { type: 'SET_ADMIN_BRAND'; brand: string };
+
+function blacklistsReducer(
+  state: BlacklistsState,
+  action: BlacklistsAction,
+): BlacklistsState {
+  switch (action.type) {
+    case 'FETCH_START':
+      return { ...state, isLoading: !action.isRefresh };
+    case 'FETCH_SUCCESS':
+      return { ...state, blacklists: action.blacklists };
+    case 'FETCH_DONE':
+      return { ...state, isLoading: false };
+    case 'SET_SELECTED':
+      return { ...state, selectedBlacklist: action.blacklist };
+    case 'UPDATING_ADD': {
+      const next = new Set(state.updatingIds);
+      next.add(action.id);
+      return { ...state, updatingIds: next };
+    }
+    case 'UPDATING_REMOVE': {
+      const next = new Set(state.updatingIds);
+      next.delete(action.id);
+      return { ...state, updatingIds: next };
+    }
+    case 'SET_ADMIN_ORG':
+      return { ...state, adminOrg: action.org, adminBrand: '' };
+    case 'SET_ADMIN_BRAND':
+      return { ...state, adminBrand: action.brand };
+    default:
+      return state;
+  }
+}
 
 function BlacklistsListContent({
   scope = PageScope.BRAND,
@@ -51,25 +102,28 @@ function BlacklistsListContent({
     [searchParamsString],
   );
 
-  const [blacklists, setBlacklists] = useState<ElementBlacklist[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
-  const [selectedBlacklist, setSelectedBlacklist] =
-    useState<ElementBlacklist | null>(null);
+  const [state, dispatch] = useReducer(blacklistsReducer, undefined, () => ({
+    adminBrand: parsedSearchParams.get('brand') || '',
+    adminOrg: parsedSearchParams.get('organization') || '',
+    blacklists: [] as ElementBlacklist[],
+    isLoading: true,
+    selectedBlacklist: null,
+    updatingIds: new Set<string>(),
+  }));
 
-  // Admin org/brand filter state (superadmin only)
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
-  );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
+  const {
+    blacklists,
+    isLoading,
+    updatingIds,
+    selectedBlacklist,
+    adminOrg,
+    adminBrand,
+  } = state;
 
   // Admin filter URL sync handlers
   const handleAdminOrgChange = useCallback(
     (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
+      dispatch({ type: 'SET_ADMIN_ORG', org: orgId });
       const params = new URLSearchParams(searchParamsString);
       if (orgId) {
         params.set('organization', orgId);
@@ -88,7 +142,7 @@ function BlacklistsListContent({
 
   const handleAdminBrandChange = useCallback(
     (brandId: string) => {
-      setAdminBrand(brandId);
+      dispatch({ type: 'SET_ADMIN_BRAND', brand: brandId });
       const params = new URLSearchParams(searchParamsString);
       if (brandId) {
         params.set('brand', brandId);
@@ -160,7 +214,7 @@ function BlacklistsListContent({
           {
             icon: <HiTrash />,
             onClick: (blacklist: ElementBlacklist) => {
-              setSelectedBlacklist(blacklist);
+              dispatch({ type: 'SET_SELECTED', blacklist });
               openConfirm({
                 confirmLabel: 'Delete',
                 isError: true,
@@ -179,14 +233,11 @@ function BlacklistsListContent({
 
   const findAllBlacklists = useCallback(
     async (isRefresh = false) => {
-      const newIsRefreshing = isRefresh;
-      const newIsLoading = !isRefresh;
-
-      setIsLoading(newIsLoading);
+      dispatch({ type: 'FETCH_START', isRefresh });
 
       // Notify parent of state changes
-      onRefreshingChangeRef.current?.(newIsRefreshing);
-      onLoadingChangeRef.current?.(newIsLoading);
+      onRefreshingChangeRef.current?.(isRefresh);
+      onLoadingChangeRef.current?.(!isRefresh);
 
       try {
         const service = await getBlacklistsService();
@@ -207,7 +258,7 @@ function BlacklistsListContent({
         }
 
         const data = await service.findAll(query);
-        setBlacklists(data);
+        dispatch({ type: 'FETCH_SUCCESS', blacklists: data });
 
         if (isRefresh) {
           notificationsService.success('Blacklists refreshed');
@@ -218,7 +269,7 @@ function BlacklistsListContent({
         logger.error('GET /blacklists failed', error);
         notificationsService.error('Failed to load blacklists');
       } finally {
-        setIsLoading(false);
+        dispatch({ type: 'FETCH_DONE' });
         onLoadingChangeRef.current?.(false);
         onRefreshingChangeRef.current?.(false);
       }
@@ -250,12 +301,12 @@ function BlacklistsListContent({
     modalId: ModalEnum,
     blacklist?: ElementBlacklist,
   ) => {
-    setSelectedBlacklist(blacklist || null);
+    dispatch({ type: 'SET_SELECTED', blacklist: blacklist || null });
     openModal(modalId);
   };
 
   const handleToggleDefault = async (blacklist: ElementBlacklist) => {
-    setUpdatingIds((prev) => new Set([...prev, blacklist.id]));
+    dispatch({ type: 'UPDATING_ADD', id: blacklist.id });
     try {
       const service = await getBlacklistsService();
       await service.patch(blacklist.id, { isDefault: !blacklist.isDefault });
@@ -265,11 +316,7 @@ function BlacklistsListContent({
       logger.error('Failed to update blacklist', error);
       notificationsService.error('Failed to update blacklist');
     } finally {
-      setUpdatingIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(blacklist.id);
-        return newSet;
-      });
+      dispatch({ type: 'UPDATING_REMOVE', id: blacklist.id });
     }
   };
 
@@ -278,12 +325,12 @@ function BlacklistsListContent({
       const service = await getBlacklistsService();
       await service.delete(blacklist.id);
       notificationsService.success('Blacklist deleted');
-      setSelectedBlacklist(null);
+      dispatch({ type: 'SET_SELECTED', blacklist: null });
       findAllBlacklists(true);
     } catch (error) {
       logger.error('Failed to delete blacklist', error);
       notificationsService.error('Failed to delete blacklist');
-      setSelectedBlacklist(null);
+      dispatch({ type: 'SET_SELECTED', blacklist: null });
     }
   };
 
@@ -312,9 +359,9 @@ function BlacklistsListContent({
       {scope === PageScope.SUPERADMIN && (
         <LazyModalBlacklist
           item={selectedBlacklist}
-          onClose={() => setSelectedBlacklist(null)}
+          onClose={() => dispatch({ type: 'SET_SELECTED', blacklist: null })}
           onConfirm={() => {
-            setSelectedBlacklist(null);
+            dispatch({ type: 'SET_SELECTED', blacklist: null });
             findAllBlacklists(true);
           }}
         />

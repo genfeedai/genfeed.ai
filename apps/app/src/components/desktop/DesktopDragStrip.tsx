@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
 const IS_DESKTOP_SHELL = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
 
@@ -21,12 +21,12 @@ function detectMac(): boolean {
   return /mac/i.test(platform);
 }
 
-export default function DesktopDragStrip() {
-  const [isMac, setIsMac] = useState(false);
+function subscribe(): () => void {
+  return () => {};
+}
 
-  useEffect(() => {
-    setIsMac(detectMac());
-  }, []);
+export default function DesktopDragStrip() {
+  const isMac = useSyncExternalStore(subscribe, detectMac, () => false);
 
   return IS_DESKTOP_SHELL && isMac ? (
     <div

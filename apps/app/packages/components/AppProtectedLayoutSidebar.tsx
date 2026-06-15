@@ -25,20 +25,24 @@ type ShellChromeVariant = 'default';
 
 type TaskContextSearchParams = URLSearchParams;
 
+export type RouteVariant =
+  | 'admin'
+  | 'analytics'
+  | 'compose'
+  | 'conversation'
+  | 'editor'
+  | 'focusedOnboarding'
+  | 'org'
+  | 'settings'
+  | 'studio'
+  | 'workflows'
+  | 'default';
+
 type Props = {
   shellChromeVariant: ShellChromeVariant;
   taskContextSearchParams: TaskContextSearchParams;
   currentApp?: MenuSharedProps['currentApp'];
-  isAdminRoute: boolean;
-  isAnalyticsRoute: boolean;
-  isComposeRoute: boolean;
-  isConversationRoute: boolean;
-  isEditorRoute: boolean;
-  isFocusedOnboardingRoute: boolean;
-  isOrgRoute: boolean;
-  isSettingsRoute: boolean;
-  isStudioRoute: boolean;
-  isWorkflowsRoute: boolean;
+  routeVariant: RouteVariant;
   adminMenuItems: MenuItemConfig[];
   analyticsMenuItems: MenuItemConfig[];
   composeMenuItems: MenuItemConfig[];
@@ -57,16 +61,7 @@ export default function AppProtectedLayoutSidebar({
   shellChromeVariant,
   taskContextSearchParams,
   currentApp,
-  isAdminRoute,
-  isAnalyticsRoute,
-  isComposeRoute,
-  isConversationRoute,
-  isEditorRoute,
-  isFocusedOnboardingRoute,
-  isOrgRoute,
-  isSettingsRoute,
-  isStudioRoute,
-  isWorkflowsRoute,
+  routeVariant,
   adminMenuItems,
   analyticsMenuItems,
   composeMenuItems,
@@ -82,11 +77,11 @@ export default function AppProtectedLayoutSidebar({
 }: Props) {
   const { href: buildHref, orgHref } = useOrgUrl();
 
-  if (isFocusedOnboardingRoute) {
+  if (routeVariant === 'focusedOnboarding') {
     return null;
   }
 
-  if (isStudioRoute) {
+  if (routeVariant === 'studio') {
     return (
       <AppSidebar
         backHref={withTaskContextHref(
@@ -106,7 +101,7 @@ export default function AppProtectedLayoutSidebar({
     );
   }
 
-  if (isAdminRoute) {
+  if (routeVariant === 'admin') {
     return (
       <AdminSidebar
         items={adminMenuItems}
@@ -115,7 +110,7 @@ export default function AppProtectedLayoutSidebar({
     );
   }
 
-  if (isComposeRoute) {
+  if (routeVariant === 'compose') {
     return (
       <AppSidebar
         items={composeMenuItems}
@@ -130,7 +125,7 @@ export default function AppProtectedLayoutSidebar({
     );
   }
 
-  if (isWorkflowsRoute) {
+  if (routeVariant === 'workflows') {
     return (
       <AppSidebar
         items={workflowsMenuItems}
@@ -145,7 +140,7 @@ export default function AppProtectedLayoutSidebar({
     );
   }
 
-  if (isEditorRoute) {
+  if (routeVariant === 'editor') {
     return (
       <AppSidebar
         items={[]}
@@ -160,7 +155,7 @@ export default function AppProtectedLayoutSidebar({
     );
   }
 
-  if (isAnalyticsRoute) {
+  if (routeVariant === 'analytics') {
     return (
       <AppSidebar
         items={analyticsMenuItems}
@@ -175,7 +170,7 @@ export default function AppProtectedLayoutSidebar({
     );
   }
 
-  if (isOrgRoute) {
+  if (routeVariant === 'org') {
     return (
       <AppSidebar
         items={orgMenuItems}
@@ -190,7 +185,7 @@ export default function AppProtectedLayoutSidebar({
     );
   }
 
-  if (isSettingsRoute) {
+  if (routeVariant === 'settings') {
     return (
       <AppSidebar
         items={settingsMenuItems}
@@ -204,6 +199,8 @@ export default function AppProtectedLayoutSidebar({
       />
     );
   }
+
+  const isConversationRoute = routeVariant === 'conversation';
 
   return (
     <AppSidebar

@@ -56,19 +56,13 @@ function CamerasListContent({
     null,
   );
 
-  // Admin org/brand filter state (superadmin only)
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
-  );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
+  // Admin org/brand filter values derived from URL (superadmin only)
+  const adminOrg = parsedSearchParams.get('organization') ?? '';
+  const adminBrand = parsedSearchParams.get('brand') ?? '';
 
   // Admin filter URL sync handlers
   const handleAdminOrgChange = useCallback(
     (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
       const params = new URLSearchParams(searchParamsString);
       if (orgId) {
         params.set('organization', orgId);
@@ -87,7 +81,6 @@ function CamerasListContent({
 
   const handleAdminBrandChange = useCallback(
     (brandId: string) => {
-      setAdminBrand(brandId);
       const params = new URLSearchParams(searchParamsString);
       if (brandId) {
         params.set('brand', brandId);

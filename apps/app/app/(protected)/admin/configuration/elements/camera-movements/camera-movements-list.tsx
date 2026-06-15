@@ -25,10 +25,57 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
-  useState,
 } from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
+
+type CameraMovementsState = {
+  cameraMovements: ElementCameraMovement[];
+  isLoading: boolean;
+  selectedCameraMovement: IElementCameraMovement | null;
+  adminOrg: string;
+  adminBrand: string;
+};
+
+type CameraMovementsAction =
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_CAMERA_MOVEMENTS'; payload: ElementCameraMovement[] }
+  | { type: 'SET_SELECTED'; payload: IElementCameraMovement | null }
+  | { type: 'SET_ADMIN_ORG'; payload: string }
+  | { type: 'SET_ADMIN_BRAND'; payload: string }
+  | { type: 'SET_ADMIN_ORG_AND_CLEAR_BRAND'; payload: string }
+  | { type: 'FETCH_START'; payload: { isRefresh: boolean } }
+  | { type: 'FETCH_DONE'; payload: ElementCameraMovement[] }
+  | { type: 'FETCH_ERROR' };
+
+function cameraMovementsReducer(
+  state: CameraMovementsState,
+  action: CameraMovementsAction,
+): CameraMovementsState {
+  switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_CAMERA_MOVEMENTS':
+      return { ...state, cameraMovements: action.payload };
+    case 'SET_SELECTED':
+      return { ...state, selectedCameraMovement: action.payload };
+    case 'SET_ADMIN_ORG':
+      return { ...state, adminOrg: action.payload };
+    case 'SET_ADMIN_BRAND':
+      return { ...state, adminBrand: action.payload };
+    case 'SET_ADMIN_ORG_AND_CLEAR_BRAND':
+      return { ...state, adminOrg: action.payload, adminBrand: '' };
+    case 'FETCH_START':
+      return { ...state, isLoading: !action.payload.isRefresh };
+    case 'FETCH_DONE':
+      return { ...state, isLoading: false, cameraMovements: action.payload };
+    case 'FETCH_ERROR':
+      return { ...state, isLoading: false };
+    default:
+      return state;
+  }
+}
 
 function CameraMovementsListContent({
   scope = PageScope.BRAND,
@@ -54,28 +101,30 @@ function CameraMovementsListContent({
     ),
   );
 
-  const [cameraMovements, setCameraMovements] = useState<
-    ElementCameraMovement[]
-  >([]);
-
-  const [isLoading, setIsLoading] = useState(true);
-
-  const [selectedCameraMovement, setSelectedCameraMovement] =
-    useState<IElementCameraMovement | null>(null);
-
-  // Admin org/brand filter state (superadmin only)
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
+  const [state, dispatch] = useReducer(
+    cameraMovementsReducer,
+    undefined,
+    () => ({
+      cameraMovements: [],
+      isLoading: true,
+      selectedCameraMovement: null,
+      adminOrg: parsedSearchParams.get('organization') || '',
+      adminBrand: parsedSearchParams.get('brand') || '',
+    }),
   );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
+
+  const {
+    cameraMovements,
+    isLoading,
+    selectedCameraMovement,
+    adminOrg,
+    adminBrand,
+  } = state;
 
   // Admin filter URL sync handlers
   const handleAdminOrgChange = useCallback(
     (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
+      dispatch({ type: 'SET_ADMIN_ORG_AND_CLEAR_BRAND', payload: orgId });
       const params = new URLSearchParams(searchParamsString);
       if (orgId) {
         params.set('organization', orgId);
@@ -94,7 +143,7 @@ function CameraMovementsListContent({
 
   const handleAdminBrandChange = useCallback(
     (brandId: string) => {
-      setAdminBrand(brandId);
+      dispatch({ type: 'SET_ADMIN_BRAND', payload: brandId });
       const params = new URLSearchParams(searchParamsString);
       if (brandId) {
         params.set('brand', brandId);
@@ -141,7 +190,7 @@ function CameraMovementsListContent({
           {
             icon: <HiTrash />,
             onClick: (movement: ElementCameraMovement) => {
-              setSelectedCameraMovement(movement);
+              dispatch({ type: 'SET_SELECTED', payload: movement });
               openConfirm({
                 confirmLabel: 'Delete',
                 isError: true,
@@ -163,7 +212,7 @@ function CameraMovementsListContent({
       const newIsRefreshing = isRefresh;
       const newIsLoading = !isRefresh;
 
-      setIsLoading(newIsLoading);
+      dispatch({ type: 'FETCH_START', payload: { isRefresh } });
 
       // Notify parent of state changes
       onRefreshingChangeRef.current?.(newIsRefreshing);
@@ -188,7 +237,7 @@ function CameraMovementsListContent({
         }
 
         const data = await service.findAll(query);
-        setCameraMovements(data);
+        dispatch({ type: 'FETCH_DONE', payload: data });
 
         if (isRefresh) {
           notificationsService.success('Camera movements refreshed');
@@ -198,8 +247,8 @@ function CameraMovementsListContent({
       } catch (error) {
         logger.error('GET /camera-movements failed', error);
         notificationsService.error('Failed to load camera movements');
+        dispatch({ type: 'FETCH_ERROR' });
       } finally {
-        setIsLoading(false);
         onLoadingChangeRef.current?.(false);
         onRefreshingChangeRef.current?.(false);
       }
@@ -224,7 +273,7 @@ function CameraMovementsListContent({
     modalId: ModalEnum,
     movement?: IElementCameraMovement,
   ) => {
-    setSelectedCameraMovement(movement || null);
+    dispatch({ type: 'SET_SELECTED', payload: movement || null });
     openModal(modalId);
   };
 
@@ -233,12 +282,12 @@ function CameraMovementsListContent({
       const service = await getCameraMovementsService();
       await service.delete(movement.id);
       notificationsService.success('Camera movement deleted');
-      setSelectedCameraMovement(null);
+      dispatch({ type: 'SET_SELECTED', payload: null });
       findAllCameraMovements(true);
     } catch (error) {
       logger.error('Failed to delete camera movement', error);
       notificationsService.error('Failed to delete camera movement');
-      setSelectedCameraMovement(null);
+      dispatch({ type: 'SET_SELECTED', payload: null });
     }
   };
 
@@ -267,9 +316,9 @@ function CameraMovementsListContent({
       {scope === PageScope.SUPERADMIN && (
         <LazyModalCameraMovement
           item={selectedCameraMovement}
-          onClose={() => setSelectedCameraMovement(null)}
+          onClose={() => dispatch({ type: 'SET_SELECTED', payload: null })}
           onConfirm={() => {
-            setSelectedCameraMovement(null);
+            dispatch({ type: 'SET_SELECTED', payload: null });
             findAllCameraMovements(true);
           }}
         />

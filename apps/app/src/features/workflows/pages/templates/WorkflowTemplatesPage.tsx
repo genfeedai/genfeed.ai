@@ -7,7 +7,7 @@ import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
 import {
   createWorkflowApiService,
   type WorkflowTemplate,
@@ -24,16 +24,57 @@ const TEMPLATE_CATEGORIES = [
   { id: 'real-estate', label: 'Real Estate' },
 ];
 
+type PageState = {
+  templates: WorkflowTemplate[];
+  selectedCategory: string;
+  isLoading: boolean;
+  error: string | null;
+  isBootstrapping: boolean;
+};
+
+type PageAction =
+  | { type: 'LOAD_START' }
+  | { type: 'LOAD_SUCCESS'; templates: WorkflowTemplate[] }
+  | { type: 'LOAD_ERROR'; error: string }
+  | { type: 'SET_CATEGORY'; category: string }
+  | { type: 'BOOTSTRAP_START' }
+  | { type: 'BOOTSTRAP_ERROR'; error: string };
+
+const initialState: PageState = {
+  templates: [],
+  selectedCategory: 'all',
+  isLoading: true,
+  error: null,
+  isBootstrapping: false,
+};
+
+function pageReducer(state: PageState, action: PageAction): PageState {
+  switch (action.type) {
+    case 'LOAD_START':
+      return { ...state, isLoading: true, error: null };
+    case 'LOAD_SUCCESS':
+      return { ...state, isLoading: false, templates: action.templates };
+    case 'LOAD_ERROR':
+      return { ...state, isLoading: false, error: action.error };
+    case 'SET_CATEGORY':
+      return { ...state, selectedCategory: action.category };
+    case 'BOOTSTRAP_START':
+      return { ...state, isBootstrapping: true, error: null };
+    case 'BOOTSTRAP_ERROR':
+      return { ...state, isBootstrapping: false, error: action.error };
+    default:
+      return state;
+  }
+}
+
 /**
  * Template Gallery - Pre-built workflow templates
  */
 function WorkflowTemplatesPageContent() {
   const { href } = useOrgUrl();
-  const [templates, setTemplates] = useState<WorkflowTemplate[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isBootstrapping, setIsBootstrapping] = useState(false);
+  const [state, dispatch] = useReducer(pageReducer, initialState);
+  const { templates, selectedCategory, isLoading, error, isBootstrapping } =
+    state;
 
   const mountedRef = useRef(true);
   const getService = useAuthedService(createWorkflowApiService);
@@ -42,8 +83,7 @@ function WorkflowTemplatesPageContent() {
   const templateId = searchParams.get('template');
 
   const loadTemplates = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+    dispatch({ type: 'LOAD_START' });
 
     try {
       if (!mountedRef.current) {
@@ -54,17 +94,16 @@ function WorkflowTemplatesPageContent() {
       const data = await service.listTemplates();
 
       if (mountedRef.current) {
-        setTemplates(data);
+        dispatch({ type: 'LOAD_SUCCESS', templates: data });
       }
     } catch (err) {
       logger.error('Failed to load workflow templates', { error: err });
 
       if (mountedRef.current) {
-        setError('Failed to load templates. Please try again.');
-      }
-    } finally {
-      if (mountedRef.current) {
-        setIsLoading(false);
+        dispatch({
+          type: 'LOAD_ERROR',
+          error: 'Failed to load templates. Please try again.',
+        });
       }
     }
   }, [getService]);
@@ -94,8 +133,7 @@ function WorkflowTemplatesPageContent() {
     let isCancelled = false;
 
     const bootstrapTemplate = async () => {
-      setIsBootstrapping(true);
-      setError(null);
+      dispatch({ type: 'BOOTSTRAP_START' });
 
       try {
         const service = await getService();
@@ -119,12 +157,13 @@ function WorkflowTemplatesPageContent() {
         logger.error('Failed to bootstrap workflow template', { error: err });
 
         if (!isCancelled) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : 'Failed to install workflow template',
-          );
-          setIsBootstrapping(false);
+          dispatch({
+            type: 'BOOTSTRAP_ERROR',
+            error:
+              err instanceof Error
+                ? err.message
+                : 'Failed to install workflow template',
+          });
         }
       }
     };
@@ -215,7 +254,9 @@ function WorkflowTemplatesPageContent() {
               key={category.id}
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
-              onClick={() => setSelectedCategory(category.id)}
+              onClick={() =>
+                dispatch({ type: 'SET_CATEGORY', category: category.id })
+              }
               className={`px-4 py-2 text-sm transition-colors ${
                 selectedCategory === category.id
                   ? 'bg-primary text-primary-foreground'
@@ -241,7 +282,9 @@ function WorkflowTemplatesPageContent() {
             {selectedCategory !== 'all' && (
               <Button
                 variant={ButtonVariant.OUTLINE}
-                onClick={() => setSelectedCategory('all')}
+                onClick={() =>
+                  dispatch({ type: 'SET_CATEGORY', category: 'all' })
+                }
               >
                 View All Templates
               </Button>

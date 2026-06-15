@@ -9,7 +9,7 @@ import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 
 import AdvancedRoutingCard from './advanced-routing-card';
 import AgentPolicyCard from './agent-policy-card';
@@ -48,21 +48,94 @@ function toNumberOrNull(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+type PolicyFormState = {
+  agentDailyCreditCap: string;
+  allowAdvancedOverrides: boolean;
+  autonomyDefault: AgentAutonomyMode;
+  brandDailyCreditCap: string;
+  generationModelOverride: string;
+  isSaving: boolean;
+  qualityTierDefault: NonNullable<AgentPolicyState['qualityTierDefault']>;
+  reviewModelOverride: string;
+  thinkingModelOverride: string;
+};
+
+type PolicyFormAction =
+  | { payload: PolicyFormState; type: 'INIT_FROM_SETTINGS' }
+  | { payload: string; type: 'SET_AGENT_DAILY_CREDIT_CAP' }
+  | { payload: boolean; type: 'SET_ALLOW_ADVANCED_OVERRIDES' }
+  | { payload: AgentAutonomyMode; type: 'SET_AUTONOMY_DEFAULT' }
+  | { payload: string; type: 'SET_BRAND_DAILY_CREDIT_CAP' }
+  | { payload: string; type: 'SET_GENERATION_MODEL_OVERRIDE' }
+  | { payload: boolean; type: 'SET_IS_SAVING' }
+  | {
+      payload: NonNullable<AgentPolicyState['qualityTierDefault']>;
+      type: 'SET_QUALITY_TIER_DEFAULT';
+    }
+  | { payload: string; type: 'SET_REVIEW_MODEL_OVERRIDE' }
+  | { payload: string; type: 'SET_THINKING_MODEL_OVERRIDE' };
+
+const initialPolicyFormState: PolicyFormState = {
+  agentDailyCreditCap: '',
+  allowAdvancedOverrides: false,
+  autonomyDefault: AgentAutonomyMode.SUPERVISED,
+  brandDailyCreditCap: '',
+  generationModelOverride: '',
+  isSaving: false,
+  qualityTierDefault: 'balanced',
+  reviewModelOverride: '',
+  thinkingModelOverride: '',
+};
+
+function policyFormReducer(
+  state: PolicyFormState,
+  action: PolicyFormAction,
+): PolicyFormState {
+  switch (action.type) {
+    case 'INIT_FROM_SETTINGS':
+      return { ...state, ...action.payload };
+    case 'SET_AGENT_DAILY_CREDIT_CAP':
+      return { ...state, agentDailyCreditCap: action.payload };
+    case 'SET_ALLOW_ADVANCED_OVERRIDES':
+      return { ...state, allowAdvancedOverrides: action.payload };
+    case 'SET_AUTONOMY_DEFAULT':
+      return { ...state, autonomyDefault: action.payload };
+    case 'SET_BRAND_DAILY_CREDIT_CAP':
+      return { ...state, brandDailyCreditCap: action.payload };
+    case 'SET_GENERATION_MODEL_OVERRIDE':
+      return { ...state, generationModelOverride: action.payload };
+    case 'SET_IS_SAVING':
+      return { ...state, isSaving: action.payload };
+    case 'SET_QUALITY_TIER_DEFAULT':
+      return { ...state, qualityTierDefault: action.payload };
+    case 'SET_REVIEW_MODEL_OVERRIDE':
+      return { ...state, reviewModelOverride: action.payload };
+    case 'SET_THINKING_MODEL_OVERRIDE':
+      return { ...state, thinkingModelOverride: action.payload };
+    default:
+      return state;
+  }
+}
+
 export default function SettingsAgentsPage() {
   const { organizationId } = useBrand();
   const { refresh, settings } = useOrganization();
-  const [qualityTierDefault, setQualityTierDefault] =
-    useState<NonNullable<AgentPolicyState['qualityTierDefault']>>('balanced');
-  const [autonomyDefault, setAutonomyDefault] = useState(
-    AgentAutonomyMode.SUPERVISED,
+  const [state, dispatch] = useReducer(
+    policyFormReducer,
+    initialPolicyFormState,
   );
-  const [brandDailyCreditCap, setBrandDailyCreditCap] = useState('');
-  const [agentDailyCreditCap, setAgentDailyCreditCap] = useState('');
-  const [allowAdvancedOverrides, setAllowAdvancedOverrides] = useState(false);
-  const [thinkingModelOverride, setThinkingModelOverride] = useState('');
-  const [generationModelOverride, setGenerationModelOverride] = useState('');
-  const [reviewModelOverride, setReviewModelOverride] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
+
+  const {
+    agentDailyCreditCap,
+    allowAdvancedOverrides,
+    autonomyDefault,
+    brandDailyCreditCap,
+    generationModelOverride,
+    isSaving,
+    qualityTierDefault,
+    reviewModelOverride,
+    thinkingModelOverride,
+  } = state;
 
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
@@ -70,21 +143,24 @@ export default function SettingsAgentsPage() {
 
   useEffect(() => {
     const agentPolicy = settings?.agentPolicy;
-    setQualityTierDefault(agentPolicy?.qualityTierDefault ?? 'balanced');
-    setAutonomyDefault(
-      (agentPolicy?.autonomyDefault as AgentAutonomyMode | undefined) ??
-        AgentAutonomyMode.SUPERVISED,
-    );
-    setBrandDailyCreditCap(
-      agentPolicy?.creditGovernance?.brandDailyCreditCap?.toString() ?? '',
-    );
-    setAgentDailyCreditCap(
-      agentPolicy?.creditGovernance?.agentDailyCreditCap?.toString() ?? '',
-    );
-    setAllowAdvancedOverrides(agentPolicy?.allowAdvancedOverrides ?? false);
-    setThinkingModelOverride(agentPolicy?.thinkingModelOverride ?? '');
-    setGenerationModelOverride(agentPolicy?.generationModelOverride ?? '');
-    setReviewModelOverride(agentPolicy?.reviewModelOverride ?? '');
+    dispatch({
+      payload: {
+        agentDailyCreditCap:
+          agentPolicy?.creditGovernance?.agentDailyCreditCap?.toString() ?? '',
+        allowAdvancedOverrides: agentPolicy?.allowAdvancedOverrides ?? false,
+        autonomyDefault:
+          (agentPolicy?.autonomyDefault as AgentAutonomyMode | undefined) ??
+          AgentAutonomyMode.SUPERVISED,
+        brandDailyCreditCap:
+          agentPolicy?.creditGovernance?.brandDailyCreditCap?.toString() ?? '',
+        generationModelOverride: agentPolicy?.generationModelOverride ?? '',
+        isSaving: false,
+        qualityTierDefault: agentPolicy?.qualityTierDefault ?? 'balanced',
+        reviewModelOverride: agentPolicy?.reviewModelOverride ?? '',
+        thinkingModelOverride: agentPolicy?.thinkingModelOverride ?? '',
+      },
+      type: 'INIT_FROM_SETTINGS',
+    });
   }, [settings?.agentPolicy]);
 
   const handleSave = useCallback(async () => {
@@ -92,7 +168,7 @@ export default function SettingsAgentsPage() {
       return;
     }
 
-    setIsSaving(true);
+    dispatch({ payload: true, type: 'SET_IS_SAVING' });
     try {
       const service = await getOrganizationsService();
       await service.patchSettings(organizationId, {
@@ -123,7 +199,7 @@ export default function SettingsAgentsPage() {
     } catch (error) {
       logger.error('Failed to update agent policy settings', error);
     } finally {
-      setIsSaving(false);
+      dispatch({ payload: false, type: 'SET_IS_SAVING' });
     }
   }, [
     agentDailyCreditCap,
@@ -146,8 +222,12 @@ export default function SettingsAgentsPage() {
       <AgentPolicyCard
         autonomyDefault={autonomyDefault}
         isSaving={isSaving}
-        onAutonomyDefaultChange={setAutonomyDefault}
-        onQualityTierDefaultChange={setQualityTierDefault}
+        onAutonomyDefaultChange={(value) =>
+          dispatch({ payload: value, type: 'SET_AUTONOMY_DEFAULT' })
+        }
+        onQualityTierDefaultChange={(value) =>
+          dispatch({ payload: value, type: 'SET_QUALITY_TIER_DEFAULT' })
+        }
         qualityTierDefault={qualityTierDefault}
         qualityTierOptions={QUALITY_TIER_OPTIONS}
       />
@@ -155,8 +235,12 @@ export default function SettingsAgentsPage() {
       <CreditGovernanceCard
         agentDailyCreditCap={agentDailyCreditCap}
         brandDailyCreditCap={brandDailyCreditCap}
-        onAgentDailyCreditCapChange={setAgentDailyCreditCap}
-        onBrandDailyCreditCapChange={setBrandDailyCreditCap}
+        onAgentDailyCreditCapChange={(value) =>
+          dispatch({ payload: value, type: 'SET_AGENT_DAILY_CREDIT_CAP' })
+        }
+        onBrandDailyCreditCapChange={(value) =>
+          dispatch({ payload: value, type: 'SET_BRAND_DAILY_CREDIT_CAP' })
+        }
       />
 
       <AdvancedRoutingCard
@@ -164,10 +248,18 @@ export default function SettingsAgentsPage() {
         enabledModels={enabledModels}
         generationModelOverride={generationModelOverride}
         isSaving={isSaving}
-        onAllowAdvancedOverridesChange={setAllowAdvancedOverrides}
-        onGenerationModelOverrideChange={setGenerationModelOverride}
-        onReviewModelOverrideChange={setReviewModelOverride}
-        onThinkingModelOverrideChange={setThinkingModelOverride}
+        onAllowAdvancedOverridesChange={(value) =>
+          dispatch({ payload: value, type: 'SET_ALLOW_ADVANCED_OVERRIDES' })
+        }
+        onGenerationModelOverrideChange={(value) =>
+          dispatch({ payload: value, type: 'SET_GENERATION_MODEL_OVERRIDE' })
+        }
+        onReviewModelOverrideChange={(value) =>
+          dispatch({ payload: value, type: 'SET_REVIEW_MODEL_OVERRIDE' })
+        }
+        onThinkingModelOverrideChange={(value) =>
+          dispatch({ payload: value, type: 'SET_THINKING_MODEL_OVERRIDE' })
+        }
         reviewModelOverride={reviewModelOverride}
         thinkingModelOverride={thinkingModelOverride}
       />

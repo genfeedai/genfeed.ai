@@ -5,6 +5,12 @@ import type { IDarkroomAsset } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogOverlay,
+  DialogPortal,
+} from '@ui/primitives/dialog';
 import Image from 'next/image';
 import { useCallback, useMemo, useState } from 'react';
 import {
@@ -248,44 +254,41 @@ export default function ImageGrid({
       )}
 
       {/* Lightbox Modal */}
-      {lightboxAsset && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
-          onClick={() => setLightboxAsset(null)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              setLightboxAsset(null);
-            }
-          }}
-          role="dialog"
-          tabIndex={-1}
-        >
-          <Button
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-            className="absolute top-4 right-4 p-2 text-white/80 hover:text-white transition-colors"
-            onClick={() => setLightboxAsset(null)}
+      <Dialog
+        open={lightboxAsset !== null}
+        onOpenChange={(open) => {
+          if (!open) setLightboxAsset(null);
+        }}
+      >
+        <DialogPortal>
+          <DialogOverlay className="bg-black/80" />
+          <DialogContent
+            showCloseButton={false}
+            className="flex items-center justify-center border-0 bg-transparent p-0 shadow-none max-w-none w-auto"
+            aria-label={lightboxAsset?.label || 'Darkroom asset lightbox'}
           >
-            <HiXMark className="size-8" />
-          </Button>
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              className="absolute top-4 right-4 p-2 text-white/80 hover:text-white transition-colors"
+              onClick={() => setLightboxAsset(null)}
+            >
+              <HiXMark className="size-8" />
+            </Button>
 
-          <div
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-            role="document"
-            tabIndex={-1}
-          >
-            <Image
-              unoptimized
-              alt={lightboxAsset.label || 'Darkroom asset'}
-              className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
-              src={lightboxAsset.url}
-              width={800}
-              height={600}
-            />
-          </div>
-        </div>
-      )}
+            {lightboxAsset && (
+              <Image
+                unoptimized
+                alt={lightboxAsset.label || 'Darkroom asset'}
+                className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+                src={lightboxAsset.url}
+                width={800}
+                height={600}
+              />
+            )}
+          </DialogContent>
+        </DialogPortal>
+      </Dialog>
     </div>
   );
 }

@@ -17,6 +17,10 @@ export interface ITagsPageProps {
   filter: 'all' | 'default' | 'organization' | 'account';
 }
 
+function handleAddTag() {
+  openModal(ModalEnum.TAG);
+}
+
 export default function TagsPage({ scope, filter }: ITagsPageProps) {
   const [filters, setFilters] = useState<IFiltersState>({
     format: '',
@@ -36,10 +40,6 @@ export default function TagsPage({ scope, filter }: ITagsPageProps) {
     setRefreshTrigger((prev) => prev + 1);
     // Reset after a short delay
     setTimeout(() => setIsRefreshing(false), 500);
-  };
-
-  const handleAddTag = () => {
-    openModal(ModalEnum.TAG);
   };
 
   const rightActions = (

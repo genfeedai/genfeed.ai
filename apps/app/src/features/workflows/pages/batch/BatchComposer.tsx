@@ -27,18 +27,26 @@ type UploadedFile = {
   ingredientId?: string;
 };
 
+type BatchRunState = {
+  canRun: boolean;
+  isStarting: boolean;
+};
+
+type DropzoneState = {
+  hasPendingUploads: boolean;
+  isDragActive: boolean;
+};
+
 type Props = {
   workflows: WorkflowSummary[];
   selectedWorkflowId: string;
   onWorkflowChange: (workflowId: string) => void;
   files: UploadedFile[];
-  hasPendingUploads: boolean;
-  canRunBatch: boolean;
-  isStartingBatch: boolean;
+  batchRunState: BatchRunState;
   onRunBatch: () => void;
   getRootProps: (props?: DropzoneRootProps) => DropzoneRootProps;
   getInputProps: (props?: DropzoneInputProps) => DropzoneInputProps;
-  isDragActive: boolean;
+  dropzoneState: DropzoneState;
   onClearFiles: () => void;
   onRemoveFile: (index: number) => void;
   recentJobs: BatchJobSummary[];
@@ -80,19 +88,19 @@ export default function BatchComposer({
   selectedWorkflowId,
   onWorkflowChange,
   files,
-  hasPendingUploads,
-  canRunBatch,
-  isStartingBatch,
+  batchRunState,
   onRunBatch,
   getRootProps,
   getInputProps,
-  isDragActive,
+  dropzoneState,
   onClearFiles,
   onRemoveFile,
   recentJobs,
   workflowsById,
   onOpenRecentJob,
 }: Props) {
+  const { canRun: canRunBatch, isStarting: isStartingBatch } = batchRunState;
+  const { hasPendingUploads, isDragActive } = dropzoneState;
   return (
     <div className="space-y-8">
       <Card

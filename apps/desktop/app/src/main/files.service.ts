@@ -162,15 +162,34 @@ export class DesktopFilesService {
     targetDirectory: string,
     fileName: string,
   ): Promise<string> {
-    const parsed = path.parse(fileName);
-    let candidate = path.join(targetDirectory, fileName);
+    // Guard against path traversal: strip to basename only and reject names
+    // that could escape the target directory after normalization.
+    const safeBasename = path.basename(fileName);
+    const parsed = path.parse(safeBasename);
+
+    const resolvedBase = path.resolve(targetDirectory);
+    let candidate = path.resolve(resolvedBase, safeBasename);
+
+    if (
+      !candidate.startsWith(resolvedBase + path.sep) &&
+      candidate !== resolvedBase
+    ) {
+      throw new Error('Invalid file name: path traversal detected.');
+    }
+
     let index = 1;
 
     while (await pathExists(candidate)) {
-      candidate = path.join(
-        targetDirectory,
-        `${parsed.name}-${String(index)}${parsed.ext}`,
-      );
+      const nextName = `${parsed.name}-${String(index)}${parsed.ext}`;
+      candidate = path.resolve(resolvedBase, nextName);
+
+      if (
+        !candidate.startsWith(resolvedBase + path.sep) &&
+        candidate !== resolvedBase
+      ) {
+        throw new Error('Invalid file name: path traversal detected.');
+      }
+
       index += 1;
     }
 

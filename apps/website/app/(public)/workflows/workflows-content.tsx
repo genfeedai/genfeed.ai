@@ -131,6 +131,56 @@ const HOW_IT_WORKS = [
   },
 ];
 
+const HERO_PROOF_ITEMS = BEFORE_AFTER.map((item) => ({
+  label: item.label,
+  value: (
+    <>
+      <span className="text-foreground/40 line-through">{item.before}</span>{' '}
+      {'->'} {item.after}
+    </>
+  ),
+}));
+
+const HERO_PROOF = (
+  <HeroProofRail items={HERO_PROOF_ITEMS} title="Why deterministic wins" />
+);
+
+const HERO_VISUAL = (
+  <EditorialPoster
+    detail="Agents can trigger the run, but the logic stays explicit, inspectable, and schedulable."
+    eyebrow="Workflow Canvas"
+    footer={<span>{STATS.map((stat) => stat.label).join(' / ')}</span>}
+    items={[
+      {
+        label: 'Author',
+        value: 'Define each step, branch, gate, and retry path yourself.',
+      },
+      {
+        label: 'Inspect',
+        value: 'Every input, output, and handoff stays visible on the canvas.',
+      },
+      {
+        label: 'Trigger',
+        value: 'Manual starts, schedules, events, and agent-triggered runs.',
+      },
+      {
+        label: 'Operate',
+        value: 'Deterministic execution with human control over the loop.',
+      },
+    ]}
+    subtitle="Deterministic control for agentic systems"
+    title={
+      <>
+        Workflows for
+        <br />
+        systems that
+        <br />
+        must stay legible.
+      </>
+    }
+  />
+);
+
 export default function WorkflowsContent() {
   const containerRef = useMarketingEntrance();
 
@@ -161,61 +211,8 @@ export default function WorkflowsContent() {
             </ButtonTracked>
           </>
         }
-        heroProof={
-          <HeroProofRail
-            items={BEFORE_AFTER.map((item) => ({
-              label: item.label,
-              value: (
-                <>
-                  <span className="text-foreground/40 line-through">
-                    {item.before}
-                  </span>{' '}
-                  {'->'} {item.after}
-                </>
-              ),
-            }))}
-            title="Why deterministic wins"
-          />
-        }
-        heroVisual={
-          <EditorialPoster
-            detail="Agents can trigger the run, but the logic stays explicit, inspectable, and schedulable."
-            eyebrow="Workflow Canvas"
-            footer={<span>{STATS.map((stat) => stat.label).join(' / ')}</span>}
-            items={[
-              {
-                label: 'Author',
-                value:
-                  'Define each step, branch, gate, and retry path yourself.',
-              },
-              {
-                label: 'Inspect',
-                value:
-                  'Every input, output, and handoff stays visible on the canvas.',
-              },
-              {
-                label: 'Trigger',
-                value:
-                  'Manual starts, schedules, events, and agent-triggered runs.',
-              },
-              {
-                label: 'Operate',
-                value:
-                  'Deterministic execution with human control over the loop.',
-              },
-            ]}
-            subtitle="Deterministic control for agentic systems"
-            title={
-              <>
-                Workflows for
-                <br />
-                systems that
-                <br />
-                must stay legible.
-              </>
-            }
-          />
-        }
+        heroProof={HERO_PROOF}
+        heroVisual={HERO_VISUAL}
         title="Workflows"
         description="Deterministic workflow control for agentic execution."
       >

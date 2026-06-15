@@ -260,19 +260,19 @@ function ClipBlock({
       {/* Resize handles */}
       {!isLocked && (
         <>
-          {/* biome-ignore lint/a11y/useSemanticElements: drag handle for timeline resize */}
-          <div
-            role="button"
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             tabIndex={-1}
-            aria-label="Resize clip start"
+            ariaLabel="Resize clip start"
             className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/20"
             onMouseDown={(e) => handleMouseDown(e, 'resize-start')}
           />
-          {/* biome-ignore lint/a11y/useSemanticElements: drag handle for timeline resize */}
-          <div
-            role="button"
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             tabIndex={-1}
-            aria-label="Resize clip end"
+            ariaLabel="Resize clip end"
             className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/20"
             onMouseDown={(e) => handleMouseDown(e, 'resize-end')}
           />
@@ -370,7 +370,7 @@ function EditorTimeline({
           withWrapper={false}
           className="flex-1 relative text-left"
           onClick={handleTimelineClick}
-          aria-label="Timeline ruler - click to seek"
+          ariaLabel="Timeline ruler - click to seek"
         >
           <TimeRuler totalFrames={totalFrames} fps={fps} zoom={zoom} />
         </Button>
@@ -393,17 +393,17 @@ function EditorTimeline({
         ))}
 
         {/* Playhead */}
-        {/* biome-ignore lint/a11y/useSemanticElements: draggable timeline playhead */}
-        <div
-          role="button"
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           tabIndex={-1}
-          aria-label="Timeline playhead"
+          ariaLabel="Timeline playhead"
           className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10 cursor-ew-resize"
           style={{ left: `${192 + currentFrame * zoom}px` }}
           onMouseDown={handlePlayheadDrag}
         >
           <div className="absolute -top-1 left-1/2 -translate-x-1/2 size-3 bg-red-500 rounded-full" />
-        </div>
+        </Button>
       </div>
 
       {/* Empty state */}

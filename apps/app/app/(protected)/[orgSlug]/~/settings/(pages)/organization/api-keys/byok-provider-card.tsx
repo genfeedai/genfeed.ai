@@ -7,14 +7,18 @@ import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { HiTrash } from 'react-icons/hi2';
 
-type Props = {
-  providerStatus: IByokProviderStatus;
+type ByokProviderCardState = {
   isExpanded: boolean;
-  apiKeyValue: string;
-  apiSecretValue: string;
   isRemoving: boolean;
   isValidating: boolean;
   isSaving: boolean;
+};
+
+type Props = {
+  providerStatus: IByokProviderStatus;
+  cardState: ByokProviderCardState;
+  apiKeyValue: string;
+  apiSecretValue: string;
   onToggleExpand: () => void;
   onApiKeyChange: (value: string) => void;
   onApiSecretChange: (value: string) => void;
@@ -24,18 +28,16 @@ type Props = {
 
 export default function ByokProviderCard({
   providerStatus,
-  isExpanded,
+  cardState,
   apiKeyValue,
   apiSecretValue,
-  isRemoving,
-  isValidating,
-  isSaving,
   onToggleExpand,
   onApiKeyChange,
   onApiSecretChange,
   onValidateAndSave,
   onRemoveKey,
 }: Props) {
+  const { isExpanded, isRemoving, isValidating, isSaving } = cardState;
   const isConnected = providerStatus.hasKey && providerStatus.isEnabled;
 
   const isSaveDisabled =

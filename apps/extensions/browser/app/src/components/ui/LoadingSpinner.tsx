@@ -22,26 +22,3 @@ export function LoadingSpinner({
     />
   );
 }
-
-export function LoadingPage(): ReactElement {
-  return (
-    <div className="flex items-center justify-center py-8">
-      <LoadingSpinner size="md" className="text-blue-500" />
-    </div>
-  );
-}
-
-interface ButtonSpinnerProps {
-  text?: string;
-}
-
-export function ButtonSpinner({
-  text = 'Loading...',
-}: ButtonSpinnerProps): ReactElement {
-  return (
-    <span className="flex items-center justify-center">
-      <LoadingSpinner size="sm" className="-ml-1 mr-3 text-white" />
-      {text}
-    </span>
-  );
-}

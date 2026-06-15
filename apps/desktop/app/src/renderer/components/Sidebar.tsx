@@ -9,7 +9,6 @@ import type { NavView } from '@renderer/nav-view';
 import { Button } from '@ui/primitives/button';
 import type { ComponentType } from 'react';
 import {
-  HiArrowRightOnRectangle,
   HiBolt,
   HiChartBar,
   HiCpuChip,
@@ -24,6 +23,9 @@ import {
   HiRocketLaunch,
   HiSquares2X2,
 } from 'react-icons/hi2';
+import SidebarFooter from './SidebarFooter';
+import SidebarThreadList from './SidebarThreadList';
+import SidebarWorkspaceList from './SidebarWorkspaceList';
 
 interface NavItem {
   id: NavView;
@@ -71,17 +73,6 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-function timeAgo(dateStr: string): string {
-  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${String(minutes)}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${String(hours)}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${String(days)}d ago`;
-}
-
 interface SidebarProps {
   activeView: NavView;
   activeThreadId: string | null;
@@ -103,7 +94,7 @@ interface SidebarProps {
   workspaces: IDesktopWorkspace[];
 }
 
-export const Sidebar = ({
+export function Sidebar({
   activeView,
   activeThreadId,
   activeWorkspaceId,
@@ -122,21 +113,7 @@ export const Sidebar = ({
   syncState,
   threads,
   workspaces,
-}: SidebarProps) => {
-  // Group threads by workspace
-  const threadsByWorkspace = new Map<string, IDesktopThread[]>();
-  const ungrouped: IDesktopThread[] = [];
-
-  for (const thread of threads) {
-    if (thread.workspaceId) {
-      const existing = threadsByWorkspace.get(thread.workspaceId) ?? [];
-      existing.push(thread);
-      threadsByWorkspace.set(thread.workspaceId, existing);
-    } else {
-      ungrouped.push(thread);
-    }
-  }
-
+}: SidebarProps) {
   return (
     <aside className={`sidebar ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
       {!isCollapsed && (
@@ -181,41 +158,12 @@ export const Sidebar = ({
         </Button>
       )}
 
-      {!isCollapsed && workspaces.length > 0 && (
-        <div className="sidebar-workspace-card">
-          <span className="sidebar-section-label">Active Workspace</span>
-          <div className="workspace-switch-list">
-            {workspaces.slice(0, 5).map((workspace) => {
-              const isActive = workspace.id === activeWorkspaceId;
-
-              return (
-                <Button
-                  ariaLabel={`Select ${workspace.name}`}
-                  className={`workspace-switch-item ${
-                    isActive ? 'active' : ''
-                  }`}
-                  key={workspace.id}
-                  onClick={() => onSelectWorkspace(workspace.id)}
-                  type="button"
-                  variant={ButtonVariant.UNSTYLED}
-                >
-                  <HiOutlineFolderOpen className="nav-icon-svg" />
-                  <span className="workspace-switch-copy">
-                    <strong>{workspace.name}</strong>
-                    <span className="muted-text">{workspace.path}</span>
-                  </span>
-                  <span
-                    className={`status-dot ${
-                      workspace.linkedProjectId
-                        ? 'status-active'
-                        : 'status-pending'
-                    }`}
-                  />
-                </Button>
-              );
-            })}
-          </div>
-        </div>
+      {!isCollapsed && (
+        <SidebarWorkspaceList
+          activeWorkspaceId={activeWorkspaceId}
+          onSelectWorkspace={onSelectWorkspace}
+          workspaces={workspaces}
+        />
       )}
 
       {/* Nav items */}
@@ -245,167 +193,26 @@ export const Sidebar = ({
           {/* Divider */}
           <div className="sidebar-divider" />
 
-          {/* Conversations section */}
-          <div className="sidebar-threads">
-            <span className="sidebar-section-label">Conversations</span>
-
-            {/* Grouped by workspace */}
-            {workspaces.map((ws) => {
-              const wsThreads = threadsByWorkspace.get(ws.id);
-              if (!wsThreads || wsThreads.length === 0) return null;
-
-              return (
-                <div className="thread-group" key={ws.id}>
-                  <span className="thread-group-label">
-                    <HiFolderOpen className="nav-icon-svg" /> {ws.name}
-                  </span>
-                  {wsThreads.map((thread) => (
-                    <Button
-                      className={`thread-item ${
-                        activeView === 'conversation' &&
-                        activeThreadId === thread.id
-                          ? 'active'
-                          : ''
-                      }`}
-                      key={thread.id}
-                      onClick={() => onSelectThread(thread.id)}
-                      type="button"
-                      variant={ButtonVariant.UNSTYLED}
-                    >
-                      <span className="thread-title">{thread.title}</span>
-                      <span className="thread-meta">
-                        <span className="thread-time">
-                          {timeAgo(thread.updatedAt)}
-                        </span>
-                        {thread.status === 'awaiting-response' && (
-                          <span className="thread-status-badge">Awaiting</span>
-                        )}
-                      </span>
-                    </Button>
-                  ))}
-                </div>
-              );
-            })}
-
-            {/* Ungrouped threads */}
-            {ungrouped.length > 0 && (
-              <div className="thread-group">
-                {workspaces.length > 0 && (
-                  <span className="thread-group-label">General</span>
-                )}
-                {ungrouped.map((thread) => (
-                  <Button
-                    className={`thread-item ${
-                      activeView === 'conversation' &&
-                      activeThreadId === thread.id
-                        ? 'active'
-                        : ''
-                    }`}
-                    key={thread.id}
-                    onClick={() => onSelectThread(thread.id)}
-                    type="button"
-                    variant={ButtonVariant.UNSTYLED}
-                  >
-                    <span className="thread-title">{thread.title}</span>
-                    <span className="thread-meta">
-                      <span className="thread-time">
-                        {timeAgo(thread.updatedAt)}
-                      </span>
-                      {thread.status === 'awaiting-response' && (
-                        <span className="thread-status-badge">Awaiting</span>
-                      )}
-                    </span>
-                  </Button>
-                ))}
-              </div>
-            )}
-
-            {threads.length === 0 && (
-              <p className="empty-state sidebar-empty">
-                No conversations yet. Click &quot;New thread&quot; to start.
-              </p>
-            )}
-          </div>
+          <SidebarThreadList
+            activeThreadId={activeThreadId}
+            activeView={activeView}
+            onSelectThread={onSelectThread}
+            threads={threads}
+            workspaces={workspaces}
+          />
         </>
       )}
 
-      {/* Footer */}
-      <div className="sidebar-footer">
-        {/* Cloud sync status */}
-        {!isCollapsed && isSyncing && (
-          <div className="sync-indicator">
-            <span className="sync-dot sync-dot-active" />
-            Syncing…
-          </div>
-        )}
-        {!isCollapsed && !isSyncing && syncErrors.length > 0 && (
-          <div className="sync-indicator sync-indicator-error">
-            <span>Sync error</span>
-            <Button
-              className="sync-retry-btn"
-              onClick={onTriggerSync}
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-            >
-              Retry
-            </Button>
-          </div>
-        )}
-        {!isCollapsed &&
-          !isSyncing &&
-          syncErrors.length === 0 &&
-          lastSyncAt && (
-            <div className="sync-indicator sync-indicator-success">
-              <span>Synced {timeAgo(lastSyncAt)}</span>
-              <Button
-                className="sync-manual-btn"
-                onClick={onTriggerSync}
-                title="Sync now"
-                type="button"
-                variant={ButtonVariant.UNSTYLED}
-              >
-                ⟳
-              </Button>
-            </div>
-          )}
-
-        {/* Local job queue indicator */}
-        {!isCollapsed && syncState.pendingCount > 0 && (
-          <div className="sync-indicator">
-            <span className="sync-dot" />
-            {syncState.pendingCount} pending
-          </div>
-        )}
-
-        {!isCollapsed && (
-          <div className="user-info">
-            <span className="user-avatar">
-              {session
-                ? (session.userName ??
-                    session.userEmail ??
-                    'U')[0].toUpperCase()
-                : '?'}
-            </span>
-            <div className="user-details">
-              <span className="user-name">
-                {session?.userName ?? (session ? 'User' : 'Offline')}
-              </span>
-              <span className="user-email">{session?.userEmail ?? ''}</span>
-            </div>
-          </div>
-        )}
-
-        <Button
-          className="nav-item logout-btn"
-          onClick={onLogout}
-          type="button"
-          variant={ButtonVariant.UNSTYLED}
-          ariaLabel={isCollapsed ? 'Sign Out' : undefined}
-        >
-          <HiArrowRightOnRectangle className="nav-icon-svg" />
-          {!isCollapsed && <span className="nav-label">Sign Out</span>}
-        </Button>
-      </div>
+      <SidebarFooter
+        isCollapsed={isCollapsed}
+        isSyncing={isSyncing}
+        lastSyncAt={lastSyncAt}
+        onLogout={onLogout}
+        onTriggerSync={onTriggerSync}
+        session={session}
+        syncErrors={syncErrors}
+        syncState={syncState}
+      />
     </aside>
   );
-};
+}

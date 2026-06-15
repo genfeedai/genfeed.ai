@@ -10,7 +10,7 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
-import { Suspense, startTransition } from 'react';
+import { Suspense, startTransition, useMemo } from 'react';
 import { HiOutlineSquares2X2 } from 'react-icons/hi2';
 import { useWorkspacePageContent } from './use-workspace-page-content';
 import { WorkspaceDashboard } from './workspace-dashboard';
@@ -99,23 +99,31 @@ function WorkspacePageContentContent({
     section,
   });
 
-  const workspaceHeaderActions = (
-    <div className="flex flex-wrap gap-2">
-      {shouldShowComposer ? (
-        <Button
-          data-testid="workspace-new-task"
-          size={ButtonSize.SM}
-          variant={ButtonVariant.DEFAULT}
-          onClick={() => setTaskComposerOpen(true)}
-        >
-          New Task
-        </Button>
-      ) : null}
-      <ButtonRefresh
-        onClick={() => void refreshWorkspaceTasks()}
-        isRefreshing={isWorkspaceRefreshing}
-      />
-    </div>
+  const workspaceHeaderActions = useMemo(
+    () => (
+      <div className="flex flex-wrap gap-2">
+        {shouldShowComposer ? (
+          <Button
+            data-testid="workspace-new-task"
+            size={ButtonSize.SM}
+            variant={ButtonVariant.DEFAULT}
+            onClick={() => setTaskComposerOpen(true)}
+          >
+            New Task
+          </Button>
+        ) : null}
+        <ButtonRefresh
+          onClick={() => void refreshWorkspaceTasks()}
+          isRefreshing={isWorkspaceRefreshing}
+        />
+      </div>
+    ),
+    [
+      shouldShowComposer,
+      setTaskComposerOpen,
+      refreshWorkspaceTasks,
+      isWorkspaceRefreshing,
+    ],
   );
 
   return (

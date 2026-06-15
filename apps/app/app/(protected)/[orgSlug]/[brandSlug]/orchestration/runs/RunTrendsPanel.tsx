@@ -10,20 +10,22 @@ function formatPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
-function renderSeries(
-  points: AgentRunTrendPoint[],
-  key: 'autoRoutedRate' | 'webEnabledRate',
-) {
-  const maxValue = Math.max(...points.map((point) => point[key]), 0.01);
+interface RunSeriesProps {
+  points: AgentRunTrendPoint[];
+  seriesKey: 'autoRoutedRate' | 'webEnabledRate';
+}
+
+function RunSeries({ points, seriesKey }: RunSeriesProps) {
+  const maxValue = Math.max(...points.map((point) => point[seriesKey]), 0.01);
 
   return (
     <div className="grid grid-cols-[repeat(auto-fit,minmax(28px,1fr))] gap-2">
       {points.map((point) => {
-        const value = point[key];
+        const value = point[seriesKey];
 
         return (
           <div
-            key={`${key}:${point.bucket}`}
+            key={`${seriesKey}:${point.bucket}`}
             className="flex flex-col items-center gap-2"
           >
             <div className="flex h-24 w-full items-end rounded bg-muted/50 px-1">
@@ -77,13 +79,13 @@ export default function RunTrendsPanel({ stats }: RunTrendsPanelProps) {
             <span className="text-xs uppercase tracking-wider text-muted-foreground">
               Auto-routed rate
             </span>
-            {renderSeries(trends, 'autoRoutedRate')}
+            <RunSeries points={trends} seriesKey="autoRoutedRate" />
           </div>
           <div className="flex flex-col gap-2">
             <span className="text-xs uppercase tracking-wider text-muted-foreground">
               Web-enabled rate
             </span>
-            {renderSeries(trends, 'webEnabledRate')}
+            <RunSeries points={trends} seriesKey="webEnabledRate" />
           </div>
         </div>
       )}

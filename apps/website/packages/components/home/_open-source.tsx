@@ -7,7 +7,7 @@ import { VStack } from '@ui/layout/stack';
 import { Button } from '@ui/primitives/button';
 import { SectionHeader } from '@ui/sections/header';
 import { Text } from '@ui/typography/text';
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer } from 'react';
 import { FaGithub } from 'react-icons/fa6';
 import { HiCheckCircle, HiCodeBracket } from 'react-icons/hi2';
 
@@ -24,23 +24,55 @@ const TERMINAL_COMMANDS = [
   { command: 'bun dev', isComment: false },
 ] as const;
 
+type TerminalState = {
+  currentLine: number;
+  showProgress: boolean;
+  showSuccess: boolean;
+};
+
+type TerminalAction =
+  | { type: 'ADVANCE_LINE' }
+  | { type: 'SHOW_PROGRESS' }
+  | { type: 'SHOW_SUCCESS' };
+
+function terminalReducer(
+  state: TerminalState,
+  action: TerminalAction,
+): TerminalState {
+  switch (action.type) {
+    case 'ADVANCE_LINE':
+      return { ...state, currentLine: state.currentLine + 1 };
+    case 'SHOW_PROGRESS':
+      return { ...state, showProgress: true };
+    case 'SHOW_SUCCESS':
+      return { ...state, showSuccess: true };
+    default:
+      return state;
+  }
+}
+
 function TerminalWindow(): React.ReactElement {
-  const [currentLine, setCurrentLine] = useState(0);
-  const [showProgress, setShowProgress] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [{ currentLine, showProgress, showSuccess }, dispatch] = useReducer(
+    terminalReducer,
+    {
+      currentLine: 0,
+      showProgress: false,
+      showSuccess: false,
+    },
+  );
 
   useEffect(() => {
     if (currentLine < TERMINAL_COMMANDS.length) {
       const delay = TERMINAL_COMMANDS[currentLine].isComment ? 400 : 800;
-      const timer = setTimeout(() => setCurrentLine((prev) => prev + 1), delay);
+      const timer = setTimeout(() => dispatch({ type: 'ADVANCE_LINE' }), delay);
       return () => clearTimeout(timer);
     }
     if (currentLine === TERMINAL_COMMANDS.length && !showProgress) {
-      const timer = setTimeout(() => setShowProgress(true), 500);
+      const timer = setTimeout(() => dispatch({ type: 'SHOW_PROGRESS' }), 500);
       return () => clearTimeout(timer);
     }
     if (showProgress && !showSuccess) {
-      const timer = setTimeout(() => setShowSuccess(true), 1500);
+      const timer = setTimeout(() => dispatch({ type: 'SHOW_SUCCESS' }), 1500);
       return () => clearTimeout(timer);
     }
   }, [currentLine, showProgress, showSuccess]);

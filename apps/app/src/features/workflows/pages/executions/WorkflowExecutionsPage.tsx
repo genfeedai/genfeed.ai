@@ -14,7 +14,7 @@ import {
   TableRow,
 } from '@ui/primitives/table';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { ExecutionResult } from '@/features/workflows/services/workflow-api';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
@@ -24,6 +24,63 @@ import {
   getStatusIcon,
 } from '@/features/workflows/utils/status-helpers';
 
+function getWorkflowLabel(workflow: ExecutionResult['workflow']): string {
+  if (typeof workflow === 'object' && workflow.label) {
+    return workflow.label;
+  }
+  const id = typeof workflow === 'string' ? workflow : workflow._id;
+  return `${id.slice(0, 8)}...`;
+}
+
+function getWorkflowId(workflow: ExecutionResult['workflow']): string {
+  return typeof workflow === 'string' ? workflow : workflow._id;
+}
+
+type ExecutionsState = {
+  executions: ExecutionResult[];
+  isLoading: boolean;
+  error: string | null;
+  offset: number;
+  hasMore: boolean;
+};
+
+type ExecutionsAction =
+  | { type: 'FETCH_START' }
+  | { type: 'FETCH_SUCCESS'; executions: ExecutionResult[]; hasMore: boolean }
+  | { type: 'FETCH_ERROR'; error: string }
+  | { type: 'SET_OFFSET'; offset: number };
+
+const initialState: ExecutionsState = {
+  executions: [],
+  isLoading: true,
+  error: null,
+  offset: 0,
+  hasMore: false,
+};
+
+function executionsReducer(
+  state: ExecutionsState,
+  action: ExecutionsAction,
+): ExecutionsState {
+  switch (action.type) {
+    case 'FETCH_START':
+      return { ...state, isLoading: true, error: null };
+    case 'FETCH_SUCCESS':
+      return {
+        ...state,
+        isLoading: false,
+        executions: action.executions,
+        hasMore: action.hasMore,
+      };
+    case 'FETCH_ERROR':
+      return { ...state, isLoading: false, error: action.error };
+    case 'SET_OFFSET':
+      return { ...state, offset: action.offset };
+    default:
+      return state;
+  }
+}
+
 const EXECUTIONS_PER_PAGE = 20;
 
 /**
@@ -31,18 +88,14 @@ const EXECUTIONS_PER_PAGE = 20;
  */
 export default function WorkflowExecutionsPage() {
   const { href } = useOrgUrl();
-  const [executions, setExecutions] = useState<ExecutionResult[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [offset, setOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
+  const [state, dispatch] = useReducer(executionsReducer, initialState);
+  const { executions, isLoading, error, offset, hasMore } = state;
 
   const getService = useAuthedService(createWorkflowApiService);
 
   const loadExecutions = useCallback(
     async (signal: AbortSignal, pageOffset = 0) => {
-      setIsLoading(true);
-      setError(null);
+      dispatch({ type: 'FETCH_START' });
 
       try {
         const service = await getService();
@@ -58,8 +111,11 @@ export default function WorkflowExecutionsPage() {
           return;
         }
 
-        setExecutions(data);
-        setHasMore(data.length === EXECUTIONS_PER_PAGE);
+        dispatch({
+          type: 'FETCH_SUCCESS',
+          executions: data,
+          hasMore: data.length === EXECUTIONS_PER_PAGE,
+        });
       } catch (err) {
         if (signal.aborted) {
           return;
@@ -67,11 +123,7 @@ export default function WorkflowExecutionsPage() {
         const message =
           err instanceof Error ? err.message : 'Failed to load executions';
         logger.error('Failed to load executions', { error: err });
-        setError(message);
-      } finally {
-        if (!signal.aborted) {
-          setIsLoading(false);
-        }
+        dispatch({ type: 'FETCH_ERROR', error: message });
       }
     },
     [getService],
@@ -82,18 +134,6 @@ export default function WorkflowExecutionsPage() {
     loadExecutions(controller.signal, offset);
     return () => controller.abort();
   }, [loadExecutions, offset]);
-
-  const getWorkflowLabel = (workflow: ExecutionResult['workflow']): string => {
-    if (typeof workflow === 'object' && workflow.label) {
-      return workflow.label;
-    }
-    const id = typeof workflow === 'string' ? workflow : workflow._id;
-    return `${id.slice(0, 8)}...`;
-  };
-
-  const getWorkflowId = (workflow: ExecutionResult['workflow']): string => {
-    return typeof workflow === 'string' ? workflow : workflow._id;
-  };
 
   if (isLoading && executions.length === 0) {
     return (
@@ -301,7 +341,10 @@ export default function WorkflowExecutionsPage() {
                 variant={ButtonVariant.OUTLINE}
                 disabled={offset === 0}
                 onClick={() =>
-                  setOffset((prev) => Math.max(0, prev - EXECUTIONS_PER_PAGE))
+                  dispatch({
+                    type: 'SET_OFFSET',
+                    offset: Math.max(0, offset - EXECUTIONS_PER_PAGE),
+                  })
                 }
               >
                 Previous
@@ -312,7 +355,12 @@ export default function WorkflowExecutionsPage() {
               <Button
                 variant={ButtonVariant.OUTLINE}
                 disabled={!hasMore}
-                onClick={() => setOffset((prev) => prev + EXECUTIONS_PER_PAGE)}
+                onClick={() =>
+                  dispatch({
+                    type: 'SET_OFFSET',
+                    offset: offset + EXECUTIONS_PER_PAGE,
+                  })
+                }
               >
                 Next
               </Button>

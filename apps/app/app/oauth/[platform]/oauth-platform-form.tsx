@@ -11,12 +11,17 @@ interface OAuthPlatformFormProps {
   platform: string;
 }
 
-type VerifyStatus = 'loading' | 'success' | 'error';
+type VerifyResult =
+  | { status: 'loading' }
+  | { status: 'success' }
+  | { status: 'error'; errorMessage: string };
 
 const OAUTH1_PLATFORMS: string[] = [];
 
 const REDIRECT_DELAY_MS = 3000;
 const DEFAULT_RETURN_PATH = '/settings/api-keys';
+
+const INITIAL_STATE: VerifyResult = { status: 'loading' };
 
 function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
   const searchParams = useSearchParams();
@@ -26,8 +31,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
   const returnTo = searchParams.get('return_to');
   const state = searchParams.get('state');
   const { push } = useRouter();
-  const [status, setStatus] = useState<VerifyStatus>('loading');
-  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [result, setResult] = useState<VerifyResult>(INITIAL_STATE);
   const hasVerified = useRef(false);
 
   const getServicesService = useAuthedService(
@@ -60,15 +64,17 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
       await service.postVerify(body);
 
       logger.info(`${url} success`);
-      setStatus('success');
+      setResult({ status: 'success' });
 
       setTimeout(() => {
         push(returnTo || DEFAULT_RETURN_PATH);
       }, REDIRECT_DELAY_MS);
     } catch (error) {
       logger.error(`${url} failed`, error);
-      setStatus('error');
-      setErrorMessage('Failed to verify your account. Please try again.');
+      setResult({
+        status: 'error',
+        errorMessage: 'Failed to verify your account. Please try again.',
+      });
     }
   }, [
     code,
@@ -90,7 +96,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="w-full max-w-md text-center">
-        {status === 'loading' && (
+        {result.status === 'loading' && (
           <div className="space-y-4">
             <div className="mx-auto size-16">
               <div className="size-16 animate-spin rounded-full border-b-2 border-primary" />
@@ -101,7 +107,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
           </div>
         )}
 
-        {status === 'success' && (
+        {result.status === 'success' && (
           <div className="space-y-4">
             <HiCheckCircle className="mx-auto text-5xl text-green-500" />
             <h2 className="text-lg font-semibold">{platformLabel} Connected</h2>
@@ -111,11 +117,13 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
           </div>
         )}
 
-        {status === 'error' && (
+        {result.status === 'error' && (
           <div className="space-y-4">
             <HiXCircle className="mx-auto text-5xl text-red-500" />
             <h2 className="text-lg font-semibold">Connection Failed</h2>
-            <p className="text-sm text-muted-foreground">{errorMessage}</p>
+            <p className="text-sm text-muted-foreground">
+              {result.errorMessage}
+            </p>
             <a
               href={returnTo || DEFAULT_RETURN_PATH}
               className="inline-block text-sm text-primary underline"

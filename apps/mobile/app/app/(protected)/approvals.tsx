@@ -2,7 +2,7 @@ import { FlashList } from '@shopify/flash-list';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -280,6 +280,17 @@ export default function Approvals() {
 
   const keyExtractor = useCallback((item: Approval) => item.id, []);
 
+  const refreshControl = useMemo(
+    () => (
+      <RefreshControl
+        refreshing={isRefreshing}
+        onRefresh={refresh}
+        tintColor={colors.agent}
+      />
+    ),
+    [isRefreshing, refresh],
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: Approval }) => (
       <ApprovalCard
@@ -385,13 +396,7 @@ export default function Approvals() {
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={refresh}
-              tintColor={colors.agent}
-            />
-          }
+          refreshControl={refreshControl}
         />
       )}
     </View>

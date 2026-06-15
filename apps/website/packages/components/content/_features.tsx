@@ -8,43 +8,43 @@ import {
   HiOutlineVideoCamera,
 } from 'react-icons/hi2';
 
-export default function ContentFeatures() {
-  const features = [
-    {
-      description:
-        'Launch and control networks of brand-owned profiles automatically.',
-      icon: <HiOutlineGlobeAlt />,
-      label: 'Satellite Account Manager',
-    },
-    {
-      description:
-        'Generate AI personalities that engage your audience at scale.',
-      icon: <HiOutlineSparkles />,
-      label: 'Virtual Influencers',
-    },
-    {
-      description: 'From script to post, every step handled by AI.',
-      icon: <HiOutlineVideoCamera />,
-      label: 'Automated Content Pipeline',
-    },
-    {
-      description:
-        'Measure performance across all accounts in a single dashboard.',
-      icon: <HiOutlineChartBar />,
-      label: 'Unified Analytics',
-    },
-    {
-      description: 'Plan posts for every profile with one click.',
-      icon: <HiOutlineCalendar />,
-      label: 'Centralized Scheduling',
-    },
-    {
-      description: 'Keep messaging consistent with built-in compliance checks.',
-      icon: <HiOutlineSwatch />,
-      label: 'Brand Controls',
-    },
-  ];
+const features = [
+  {
+    description:
+      'Launch and control networks of brand-owned profiles automatically.',
+    icon: <HiOutlineGlobeAlt />,
+    label: 'Satellite Account Manager',
+  },
+  {
+    description:
+      'Generate AI personalities that engage your audience at scale.',
+    icon: <HiOutlineSparkles />,
+    label: 'Virtual Influencers',
+  },
+  {
+    description: 'From script to post, every step handled by AI.',
+    icon: <HiOutlineVideoCamera />,
+    label: 'Automated Content Pipeline',
+  },
+  {
+    description:
+      'Measure performance across all accounts in a single dashboard.',
+    icon: <HiOutlineChartBar />,
+    label: 'Unified Analytics',
+  },
+  {
+    description: 'Plan posts for every profile with one click.',
+    icon: <HiOutlineCalendar />,
+    label: 'Centralized Scheduling',
+  },
+  {
+    description: 'Keep messaging consistent with built-in compliance checks.',
+    icon: <HiOutlineSwatch />,
+    label: 'Brand Controls',
+  },
+];
 
+export default function ContentFeatures() {
   return (
     <>
       {features.map((feature) => (

@@ -7,13 +7,81 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import Container from '@ui/layout/container/Container';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { HiOutlineVideoCamera } from 'react-icons/hi2';
 import LipSyncConfigForm from './lip-sync-config-form';
 import LipSyncProcessingStatus from './lip-sync-processing-status';
 import LipSyncResultVideo from './lip-sync-result-video';
 
 type AudioSourceType = 'upload' | 'tts';
+
+type LipSyncState = {
+  selectedCharacter: string;
+  imageUrl: string;
+  audioSource: AudioSourceType;
+  audioUrl: string;
+  ttsText: string;
+  isGenerating: boolean;
+  jobId: string | null;
+  videoUrl: string | null;
+};
+
+type LipSyncAction =
+  | { type: 'SET_SELECTED_CHARACTER'; payload: string }
+  | { type: 'SET_IMAGE_URL'; payload: string }
+  | { type: 'SET_AUDIO_SOURCE'; payload: AudioSourceType }
+  | { type: 'SET_AUDIO_URL'; payload: string }
+  | { type: 'SET_TTS_TEXT'; payload: string }
+  | { type: 'START_GENERATING'; payload: string }
+  | { type: 'JOB_COMPLETED'; payload: string }
+  | { type: 'JOB_FAILED' };
+
+const initialState: LipSyncState = {
+  selectedCharacter: '',
+  imageUrl: '',
+  audioSource: 'upload',
+  audioUrl: '',
+  ttsText: '',
+  isGenerating: false,
+  jobId: null,
+  videoUrl: null,
+};
+
+function lipSyncReducer(
+  state: LipSyncState,
+  action: LipSyncAction,
+): LipSyncState {
+  switch (action.type) {
+    case 'SET_SELECTED_CHARACTER':
+      return { ...state, selectedCharacter: action.payload };
+    case 'SET_IMAGE_URL':
+      return { ...state, imageUrl: action.payload };
+    case 'SET_AUDIO_SOURCE':
+      return { ...state, audioSource: action.payload };
+    case 'SET_AUDIO_URL':
+      return { ...state, audioUrl: action.payload };
+    case 'SET_TTS_TEXT':
+      return { ...state, ttsText: action.payload };
+    case 'START_GENERATING':
+      return {
+        ...state,
+        isGenerating: true,
+        videoUrl: null,
+        jobId: action.payload,
+      };
+    case 'JOB_COMPLETED':
+      return {
+        ...state,
+        isGenerating: false,
+        jobId: null,
+        videoUrl: action.payload,
+      };
+    case 'JOB_FAILED':
+      return { ...state, isGenerating: false, jobId: null };
+    default:
+      return state;
+  }
+}
 
 export default function LipSyncPage() {
   const notificationsService = NotificationsService.getInstance();
@@ -22,14 +90,17 @@ export default function LipSyncPage() {
     AdminDarkroomService.getInstance(token),
   );
 
-  const [selectedCharacter, setSelectedCharacter] = useState<string>('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [audioSource, setAudioSource] = useState<AudioSourceType>('upload');
-  const [audioUrl, setAudioUrl] = useState('');
-  const [ttsText, setTtsText] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(lipSyncReducer, initialState);
+  const {
+    selectedCharacter,
+    imageUrl,
+    audioSource,
+    audioUrl,
+    ttsText,
+    isGenerating,
+    jobId,
+    videoUrl,
+  } = state;
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: characters, error: charactersError } = useQuery<
@@ -63,9 +134,6 @@ export default function LipSyncPage() {
       return;
     }
 
-    setIsGenerating(true);
-    setVideoUrl(null);
-
     try {
       const service = await getDarkroomService();
       const result = await service.generateLipSync({
@@ -75,12 +143,11 @@ export default function LipSyncPage() {
         text: audioSource === 'tts' ? ttsText : undefined,
       });
 
-      setJobId(result.jobId);
+      dispatch({ type: 'START_GENERATING', payload: result.jobId });
       notificationsService.success('Lip sync job started');
     } catch (error) {
       logger.error('POST /admin/darkroom/lip-sync failed', error);
       notificationsService.error('Failed to start lip sync');
-      setIsGenerating(false);
     }
   }, [
     selectedCharacter,
@@ -110,9 +177,7 @@ export default function LipSyncPage() {
         const status = await service.getLipSyncStatus(jobId);
 
         if (status.status === 'completed' && status.videoUrl) {
-          setVideoUrl(status.videoUrl);
-          setJobId(null);
-          setIsGenerating(false);
+          dispatch({ type: 'JOB_COMPLETED', payload: status.videoUrl });
           notificationsService.success('Lip sync video ready');
 
           if (pollingRef.current) {
@@ -120,8 +185,7 @@ export default function LipSyncPage() {
             pollingRef.current = null;
           }
         } else if (status.status === 'failed') {
-          setJobId(null);
-          setIsGenerating(false);
+          dispatch({ type: 'JOB_FAILED' });
           notificationsService.error('Lip sync generation failed');
 
           if (pollingRef.current) {
@@ -158,15 +222,25 @@ export default function LipSyncPage() {
       <LipSyncConfigForm
         characters={characters}
         selectedCharacter={selectedCharacter}
-        onSelectedCharacterChange={setSelectedCharacter}
+        onSelectedCharacterChange={(value) =>
+          dispatch({ type: 'SET_SELECTED_CHARACTER', payload: value })
+        }
         audioSource={audioSource}
-        onAudioSourceChange={setAudioSource}
+        onAudioSourceChange={(value) =>
+          dispatch({ type: 'SET_AUDIO_SOURCE', payload: value })
+        }
         imageUrl={imageUrl}
-        onImageUrlChange={setImageUrl}
+        onImageUrlChange={(value) =>
+          dispatch({ type: 'SET_IMAGE_URL', payload: value })
+        }
         audioUrl={audioUrl}
-        onAudioUrlChange={setAudioUrl}
+        onAudioUrlChange={(value) =>
+          dispatch({ type: 'SET_AUDIO_URL', payload: value })
+        }
         ttsText={ttsText}
-        onTtsTextChange={setTtsText}
+        onTtsTextChange={(value) =>
+          dispatch({ type: 'SET_TTS_TEXT', payload: value })
+        }
         isGenerating={isGenerating}
         onGenerate={handleGenerate}
       />

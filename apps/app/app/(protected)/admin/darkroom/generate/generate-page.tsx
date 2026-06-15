@@ -11,7 +11,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import Container from '@ui/layout/container/Container';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { HiOutlinePhoto } from 'react-icons/hi2';
 import GeneratedImagesGrid from './generated-images-grid';
 import GenerationForm from './generation-form';
@@ -48,6 +48,90 @@ const ASPECT_RATIO_OPTIONS = [
   { label: '3:4', value: '3:4' },
 ];
 
+interface FormState {
+  selectedCharacter: string;
+  prompt: string;
+  negativePrompt: string;
+  model: string;
+  aspectRatio: string;
+  steps: number;
+  isUseLora: boolean;
+  isGenerating: boolean;
+  generatedImages: GeneratedImage[];
+  activeJobId: string | null;
+}
+
+type FormAction =
+  | { type: 'SET_SELECTED_CHARACTER'; payload: string }
+  | { type: 'SET_PROMPT'; payload: string }
+  | { type: 'SET_NEGATIVE_PROMPT'; payload: string }
+  | { type: 'SET_MODEL'; payload: string }
+  | { type: 'SET_ASPECT_RATIO'; payload: string }
+  | { type: 'SET_STEPS'; payload: number }
+  | { type: 'SET_IS_USE_LORA'; payload: boolean }
+  | { type: 'SET_IS_GENERATING'; payload: boolean }
+  | { type: 'ADD_GENERATED_IMAGE'; payload: GeneratedImage }
+  | {
+      type: 'UPDATE_GENERATED_IMAGE';
+      payload: Partial<GeneratedImage> & { jobId: string };
+    }
+  | { type: 'CLEAR_GENERATED_IMAGES' }
+  | { type: 'SET_ACTIVE_JOB_ID'; payload: string | null };
+
+function formReducer(state: FormState, action: FormAction): FormState {
+  switch (action.type) {
+    case 'SET_SELECTED_CHARACTER':
+      return { ...state, selectedCharacter: action.payload };
+    case 'SET_PROMPT':
+      return { ...state, prompt: action.payload };
+    case 'SET_NEGATIVE_PROMPT':
+      return { ...state, negativePrompt: action.payload };
+    case 'SET_MODEL':
+      return { ...state, model: action.payload };
+    case 'SET_ASPECT_RATIO':
+      return { ...state, aspectRatio: action.payload };
+    case 'SET_STEPS':
+      return { ...state, steps: action.payload };
+    case 'SET_IS_USE_LORA':
+      return { ...state, isUseLora: action.payload };
+    case 'SET_IS_GENERATING':
+      return { ...state, isGenerating: action.payload };
+    case 'ADD_GENERATED_IMAGE':
+      return {
+        ...state,
+        generatedImages: [action.payload, ...state.generatedImages],
+      };
+    case 'UPDATE_GENERATED_IMAGE':
+      return {
+        ...state,
+        generatedImages: state.generatedImages.map((image) =>
+          image.jobId === action.payload.jobId
+            ? { ...image, ...action.payload }
+            : image,
+        ),
+      };
+    case 'CLEAR_GENERATED_IMAGES':
+      return { ...state, generatedImages: [] };
+    case 'SET_ACTIVE_JOB_ID':
+      return { ...state, activeJobId: action.payload };
+    default:
+      return state;
+  }
+}
+
+const INITIAL_FORM_STATE: FormState = {
+  selectedCharacter: '',
+  prompt: '',
+  negativePrompt: '',
+  model: MODEL_OPTIONS[0].value,
+  aspectRatio: '1:1',
+  steps: 30,
+  isUseLora: false,
+  isGenerating: false,
+  generatedImages: [],
+  activeJobId: null,
+};
+
 export default function GeneratePage() {
   const notificationsService = NotificationsService.getInstance();
 
@@ -55,18 +139,22 @@ export default function GeneratePage() {
     AdminDarkroomService.getInstance(token),
   );
 
-  const [selectedCharacter, setSelectedCharacter] = useState<string>('');
-  const [prompt, setPrompt] = useState('');
-  const [negativePrompt, setNegativePrompt] = useState('');
-  const [model, setModel] = useState(MODEL_OPTIONS[0].value);
-  const [aspectRatio, setAspectRatio] = useState('1:1');
-  const [steps, setSteps] = useState(30);
-  const [isUseLora, setIsUseLora] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
-  const [activeJob, setActiveJob] = useState<IDarkroomGenerationJob | null>(
-    null,
-  );
+  const [state, dispatch] = useReducer(formReducer, INITIAL_FORM_STATE);
+  const {
+    selectedCharacter,
+    prompt,
+    negativePrompt,
+    model,
+    aspectRatio,
+    steps,
+    isUseLora,
+    isGenerating,
+    generatedImages,
+    activeJobId,
+  } = state;
+
+  // activeJob is only used for polling — never rendered — so keep it in a ref
+  const activeJobRef = useRef<IDarkroomGenerationJob | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: characters, error: charactersError } = useQuery<
@@ -101,7 +189,7 @@ export default function GeneratePage() {
       return;
     }
 
-    setIsGenerating(true);
+    dispatch({ type: 'SET_IS_GENERATING', payload: true });
 
     try {
       const service = await getDarkroomService();
@@ -115,8 +203,9 @@ export default function GeneratePage() {
         steps,
       });
 
-      setGeneratedImages((prev) => [
-        {
+      dispatch({
+        type: 'ADD_GENERATED_IMAGE',
+        payload: {
           cdnUrl: '',
           createdAt: new Date().toISOString(),
           id: result.jobId,
@@ -127,16 +216,16 @@ export default function GeneratePage() {
           stage: result.stage,
           status: result.status,
         },
-        ...prev,
-      ]);
-      setActiveJob(result);
+      });
+      activeJobRef.current = result;
+      dispatch({ type: 'SET_ACTIVE_JOB_ID', payload: result.jobId });
 
       notificationsService.success('Image generation started');
     } catch (error) {
       logger.error('POST /admin/darkroom/generate failed', error);
       notificationsService.error('Failed to generate image');
     } finally {
-      setIsGenerating(false);
+      dispatch({ type: 'SET_IS_GENERATING', payload: false });
     }
   }, [
     selectedCharacter,
@@ -152,36 +241,35 @@ export default function GeneratePage() {
   ]);
 
   useEffect(() => {
-    if (!activeJob?.jobId) {
+    if (!activeJobId) {
       return;
     }
 
     const poll = async () => {
       try {
         const service = await getDarkroomService();
-        const nextJob = await service.getGenerationJob(activeJob.jobId);
+        const nextJob = await service.getGenerationJob(activeJobId);
 
-        setActiveJob(nextJob);
-        setGeneratedImages((prev) =>
-          prev.map((image) =>
-            image.jobId === nextJob.jobId
-              ? {
-                  ...image,
-                  cdnUrl: nextJob.cdnUrl || image.cdnUrl,
-                  error: nextJob.error,
-                  progress: nextJob.progress,
-                  stage: nextJob.stage,
-                  status: nextJob.status,
-                }
-              : image,
-          ),
-        );
+        const prevCdnUrl = activeJobRef.current?.cdnUrl ?? '';
+        activeJobRef.current = nextJob;
+        dispatch({
+          type: 'UPDATE_GENERATED_IMAGE',
+          payload: {
+            jobId: nextJob.jobId,
+            cdnUrl: nextJob.cdnUrl || prevCdnUrl,
+            error: nextJob.error,
+            progress: nextJob.progress,
+            stage: nextJob.stage,
+            status: nextJob.status,
+          },
+        });
 
         if (nextJob.status === 'completed' || nextJob.status === 'failed') {
           if (pollingRef.current) {
             clearInterval(pollingRef.current);
             pollingRef.current = null;
           }
+          dispatch({ type: 'SET_ACTIVE_JOB_ID', payload: null });
 
           if (nextJob.status === 'completed') {
             notificationsService.success('Image generated successfully');
@@ -206,7 +294,7 @@ export default function GeneratePage() {
         pollingRef.current = null;
       }
     };
-  }, [activeJob?.jobId, getDarkroomService, notificationsService]);
+  }, [activeJobId, getDarkroomService, notificationsService]);
 
   return (
     <Container
@@ -215,7 +303,7 @@ export default function GeneratePage() {
       icon={HiOutlinePhoto}
       right={
         <ButtonRefresh
-          onClick={() => setGeneratedImages([])}
+          onClick={() => dispatch({ type: 'CLEAR_GENERATED_IMAGES' })}
           isRefreshing={false}
         />
       }
@@ -223,21 +311,29 @@ export default function GeneratePage() {
       <GenerationForm
         characters={characters || []}
         selectedCharacter={selectedCharacter}
-        onSelectedCharacterChange={setSelectedCharacter}
+        onSelectedCharacterChange={(v) =>
+          dispatch({ type: 'SET_SELECTED_CHARACTER', payload: v })
+        }
         model={model}
-        onModelChange={setModel}
+        onModelChange={(v) => dispatch({ type: 'SET_MODEL', payload: v })}
         modelOptions={MODEL_OPTIONS}
         aspectRatio={aspectRatio}
-        onAspectRatioChange={setAspectRatio}
+        onAspectRatioChange={(v) =>
+          dispatch({ type: 'SET_ASPECT_RATIO', payload: v })
+        }
         aspectRatioOptions={ASPECT_RATIO_OPTIONS}
         steps={steps}
-        onStepsChange={setSteps}
+        onStepsChange={(v) => dispatch({ type: 'SET_STEPS', payload: v })}
         prompt={prompt}
-        onPromptChange={setPrompt}
+        onPromptChange={(v) => dispatch({ type: 'SET_PROMPT', payload: v })}
         negativePrompt={negativePrompt}
-        onNegativePromptChange={setNegativePrompt}
+        onNegativePromptChange={(v) =>
+          dispatch({ type: 'SET_NEGATIVE_PROMPT', payload: v })
+        }
         isUseLora={isUseLora}
-        onIsUseLoraChange={setIsUseLora}
+        onIsUseLoraChange={(v) =>
+          dispatch({ type: 'SET_IS_USE_LORA', payload: v })
+        }
         isGenerating={isGenerating}
         onGenerate={handleGenerate}
       />

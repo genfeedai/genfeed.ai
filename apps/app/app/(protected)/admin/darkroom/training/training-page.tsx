@@ -16,7 +16,7 @@ import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { HiOutlineCpuChip } from 'react-icons/hi2';
 import TrainingConfigForm from './training-config-form';
 import TrainingProgressPanel from './training-progress-panel';
@@ -30,6 +30,57 @@ const TRAINING_STATUS_COLORS = {
   queued: 'bg-foreground/5 text-foreground/60',
 } as const;
 
+type TrainingState = {
+  selectedCharacter: string;
+  baseModel: string;
+  steps: number;
+  loraRank: number;
+  learningRate: number;
+  isStarting: boolean;
+  activeTraining: IDarkroomTraining | null;
+};
+
+type TrainingAction =
+  | { type: 'SET_CHARACTER'; payload: string }
+  | { type: 'SET_BASE_MODEL'; payload: string }
+  | { type: 'SET_STEPS'; payload: number }
+  | { type: 'SET_LORA_RANK'; payload: number }
+  | { type: 'SET_LEARNING_RATE'; payload: number }
+  | { type: 'SET_IS_STARTING'; payload: boolean }
+  | { type: 'SET_ACTIVE_TRAINING'; payload: IDarkroomTraining | null };
+
+const INITIAL_TRAINING_STATE: TrainingState = {
+  selectedCharacter: '',
+  baseModel: 'genfeed-ai/z-image-turbo',
+  steps: 1000,
+  loraRank: 16,
+  learningRate: 0.0001,
+  isStarting: false,
+  activeTraining: null,
+};
+
+function trainingReducer(
+  state: TrainingState,
+  action: TrainingAction,
+): TrainingState {
+  switch (action.type) {
+    case 'SET_CHARACTER':
+      return { ...state, selectedCharacter: action.payload };
+    case 'SET_BASE_MODEL':
+      return { ...state, baseModel: action.payload };
+    case 'SET_STEPS':
+      return { ...state, steps: action.payload };
+    case 'SET_LORA_RANK':
+      return { ...state, loraRank: action.payload };
+    case 'SET_LEARNING_RATE':
+      return { ...state, learningRate: action.payload };
+    case 'SET_IS_STARTING':
+      return { ...state, isStarting: action.payload };
+    case 'SET_ACTIVE_TRAINING':
+      return { ...state, activeTraining: action.payload };
+  }
+}
+
 export default function TrainingPage() {
   const notificationsService = NotificationsService.getInstance();
 
@@ -37,25 +88,29 @@ export default function TrainingPage() {
     AdminDarkroomService.getInstance(token),
   );
 
-  const [selectedCharacter, setSelectedCharacter] = useState<string>('');
-  const [baseModel, setBaseModel] = useState<string>(
-    'genfeed-ai/z-image-turbo',
-  );
-  const [steps, setSteps] = useState(1000);
-  const [loraRank, setLoraRank] = useState(16);
-  const [learningRate, setLearningRate] = useState(0.0001);
-  const [isStarting, setIsStarting] = useState(false);
-  const [activeTraining, setActiveTraining] =
-    useState<IDarkroomTraining | null>(null);
+  const [state, dispatch] = useReducer(trainingReducer, INITIAL_TRAINING_STATE);
+  const {
+    selectedCharacter,
+    baseModel,
+    steps,
+    loraRank,
+    learningRate,
+    isStarting,
+    activeTraining,
+  } = state;
+
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { data: characters, error: charactersError } = useQuery<
-    IDarkroomCharacter[]
-  >({
+  const { data: characters } = useQuery<IDarkroomCharacter[]>({
     queryKey: ['darkroom-characters'],
     queryFn: async () => {
       const service = await getDarkroomService();
-      return service.getCharacters();
+      try {
+        return await service.getCharacters();
+      } catch (error) {
+        logger.error('GET /admin/darkroom/characters failed', error);
+        throw error;
+      }
     },
   });
 
@@ -63,29 +118,21 @@ export default function TrainingPage() {
     data: trainings,
     isLoading,
     isFetching,
-    error: trainingsError,
     refetch: refresh,
   } = useQuery<IDarkroomTraining[]>({
     queryKey: ['darkroom-trainings', selectedCharacter],
     queryFn: async () => {
       const service = await getDarkroomService();
-      return service.getTrainings(selectedCharacter || undefined);
+      try {
+        return await service.getTrainings(selectedCharacter || undefined);
+      } catch (error) {
+        logger.error('GET /admin/darkroom/trainings failed', error);
+        throw error;
+      }
     },
   });
 
   const isRefreshing = isFetching && !isLoading;
-
-  useEffect(() => {
-    if (charactersError) {
-      logger.error('GET /admin/darkroom/characters failed', charactersError);
-    }
-  }, [charactersError]);
-
-  useEffect(() => {
-    if (trainingsError) {
-      logger.error('GET /admin/darkroom/trainings failed', trainingsError);
-    }
-  }, [trainingsError]);
 
   const selectedChar = (characters || []).find(
     (c) => c.slug === selectedCharacter,
@@ -99,7 +146,7 @@ export default function TrainingPage() {
       return;
     }
 
-    setIsStarting(true);
+    dispatch({ type: 'SET_IS_STARTING', payload: true });
 
     try {
       const service = await getDarkroomService();
@@ -113,14 +160,14 @@ export default function TrainingPage() {
         steps,
       });
 
-      setActiveTraining(training);
+      dispatch({ type: 'SET_ACTIVE_TRAINING', payload: training });
       notificationsService.success('Training started');
       refresh();
     } catch (error) {
       logger.error('POST /admin/darkroom/trainings failed', error);
       notificationsService.error('Failed to start training');
     } finally {
-      setIsStarting(false);
+      dispatch({ type: 'SET_IS_STARTING', payload: false });
     }
   }, [
     selectedCharacter,
@@ -144,7 +191,7 @@ export default function TrainingPage() {
         const service = await getDarkroomService();
         const updated = await service.getTraining(activeTraining.id);
 
-        setActiveTraining(updated);
+        dispatch({ type: 'SET_ACTIVE_TRAINING', payload: updated });
 
         if (updated.status === 'completed' || updated.status === 'failed') {
           if (pollingRef.current) {
@@ -237,11 +284,24 @@ export default function TrainingPage() {
         learningRate={learningRate}
         hasMinImages={hasMinImages}
         isStarting={isStarting}
-        onCharacterChange={setSelectedCharacter}
-        onBaseModelChange={setBaseModel}
-        onStepsChange={(e) => setSteps(Number(e.target.value))}
-        onLoraRankChange={(e) => setLoraRank(Number(e.target.value))}
-        onLearningRateChange={(e) => setLearningRate(Number(e.target.value))}
+        onCharacterChange={(v) =>
+          dispatch({ type: 'SET_CHARACTER', payload: v })
+        }
+        onBaseModelChange={(v) =>
+          dispatch({ type: 'SET_BASE_MODEL', payload: v })
+        }
+        onStepsChange={(e) =>
+          dispatch({ type: 'SET_STEPS', payload: Number(e.target.value) })
+        }
+        onLoraRankChange={(e) =>
+          dispatch({ type: 'SET_LORA_RANK', payload: Number(e.target.value) })
+        }
+        onLearningRateChange={(e) =>
+          dispatch({
+            type: 'SET_LEARNING_RATE',
+            payload: Number(e.target.value),
+          })
+        }
         onStartTraining={handleStartTraining}
       />
 

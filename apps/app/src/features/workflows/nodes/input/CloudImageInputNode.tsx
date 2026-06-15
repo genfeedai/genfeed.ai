@@ -7,7 +7,7 @@ import {
 } from '@genfeedai/workflow-ui/stores';
 import type { NodeProps } from '@xyflow/react';
 import Image from 'next/image';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { NodeButton } from '@/features/workflows/components/ui/button';
 import {
   NodeInput,
@@ -63,10 +63,6 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
     [data],
   );
   const [urlValue, setUrlValue] = useState(mediaConfig.url ?? '');
-
-  useEffect(() => {
-    setUrlValue(mediaConfig.url ?? '');
-  }, [mediaConfig.url]);
 
   const applyConfig = useCallback(
     (nextConfig: ReturnType<typeof getWorkflowMediaConfig>) => {
@@ -161,7 +157,7 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
         </NodeSelect>
 
         {mediaConfig.source === 'url' ? (
-          <div className="space-y-2">
+          <div key={mediaConfig.url ?? ''} className="space-y-2">
             <NodeInput
               aria-label="Image URL"
               label="Image URL"

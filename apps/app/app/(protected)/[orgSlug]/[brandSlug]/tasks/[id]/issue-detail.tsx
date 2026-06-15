@@ -16,7 +16,7 @@ import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { HiArrowLeft, HiOutlineExclamationTriangle } from 'react-icons/hi2';
 import IssueCommentsCard from './issue-comments-card';
 import IssueHeader from './issue-header';
@@ -86,6 +86,76 @@ const ENTITY_MODEL_COLORS: Record<TaskLinkedEntityModel, string> = {
 
 const VISIBLE_COMMENT_COUNT = 3;
 
+interface IssueDetailState {
+  issue: Task | null;
+  comments: IssueComment[];
+  children: Task[];
+  isLoading: boolean;
+  commentBody: string;
+  isSubmitting: boolean;
+  showAllComments: boolean;
+}
+
+type IssueDetailAction =
+  | { type: 'LOAD_START' }
+  | {
+      type: 'LOAD_SUCCESS';
+      payload: { issue: Task; comments: IssueComment[]; children: Task[] };
+    }
+  | { type: 'LOAD_ERROR' }
+  | { type: 'LOAD_DONE' }
+  | { type: 'SET_ISSUE'; payload: Task }
+  | { type: 'APPEND_COMMENT'; payload: IssueComment }
+  | { type: 'SET_COMMENT_BODY'; payload: string }
+  | { type: 'SUBMIT_START' }
+  | { type: 'SUBMIT_END' }
+  | { type: 'SHOW_ALL_COMMENTS' };
+
+const initialIssueDetailState: IssueDetailState = {
+  issue: null,
+  comments: [],
+  children: [],
+  isLoading: true,
+  commentBody: '',
+  isSubmitting: false,
+  showAllComments: false,
+};
+
+function issueDetailReducer(
+  state: IssueDetailState,
+  action: IssueDetailAction,
+): IssueDetailState {
+  switch (action.type) {
+    case 'LOAD_START':
+      return { ...state, isLoading: true };
+    case 'LOAD_SUCCESS':
+      return {
+        ...state,
+        issue: action.payload.issue,
+        comments: action.payload.comments,
+        children: action.payload.children,
+      };
+    case 'LOAD_ERROR':
+      return { ...state, issue: null };
+    case 'LOAD_DONE':
+      return { ...state, isLoading: false };
+    case 'SET_ISSUE':
+      return { ...state, issue: action.payload };
+    case 'APPEND_COMMENT':
+      return { ...state, comments: [...state.comments, action.payload] };
+    case 'SET_COMMENT_BODY':
+      return { ...state, commentBody: action.payload };
+    case 'SUBMIT_START':
+      return { ...state, isSubmitting: true };
+    case 'SUBMIT_END':
+      return { ...state, isSubmitting: false };
+    case 'SHOW_ALL_COMMENTS':
+      return { ...state, showAllComments: true };
+    default:
+      return state;
+  }
+}
+
 interface IssueDetailProps {
   issueId: string;
   /** If true, treat issueId as a human-readable identifier (e.g., GEN-42) */
@@ -96,13 +166,19 @@ export default function IssueDetail({
   issueId,
   useIdentifier,
 }: IssueDetailProps) {
-  const [issue, setIssue] = useState<Task | null>(null);
-  const [comments, setComments] = useState<IssueComment[]>([]);
-  const [children, setChildren] = useState<Task[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [commentBody, setCommentBody] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showAllComments, setShowAllComments] = useState(false);
+  const [state, dispatch] = useReducer(
+    issueDetailReducer,
+    initialIssueDetailState,
+  );
+  const {
+    issue,
+    comments,
+    children,
+    isLoading,
+    commentBody,
+    isSubmitting,
+    showAllComments,
+  } = state;
   const controllerRef = useRef<AbortController | null>(null);
   const lastCommentRef = useRef<HTMLDivElement | null>(null);
 
@@ -124,7 +200,7 @@ export default function IssueDetail({
     const controller = new AbortController();
     controllerRef.current = controller;
 
-    setIsLoading(true);
+    dispatch({ type: 'LOAD_START' });
     try {
       const issuesService = await getTasksService();
 
@@ -141,17 +217,22 @@ export default function IssueDetail({
       ]);
 
       if (!controller.signal.aborted) {
-        setIssue(issueData);
-        setComments(commentsData);
-        setChildren(childrenData);
+        dispatch({
+          type: 'LOAD_SUCCESS',
+          payload: {
+            issue: issueData,
+            comments: commentsData,
+            children: childrenData,
+          },
+        });
       }
     } catch {
       if (!controller.signal.aborted) {
-        setIssue(null);
+        dispatch({ type: 'LOAD_ERROR' });
       }
     } finally {
       if (!controller.signal.aborted) {
-        setIsLoading(false);
+        dispatch({ type: 'LOAD_DONE' });
       }
     }
   }, [getTasksService, getCommentsService, issueId, useIdentifier]);
@@ -173,7 +254,7 @@ export default function IssueDetail({
         const updated = await issuesService.updateTask(issue.id, {
           status: newStatus,
         });
-        setIssue(updated);
+        dispatch({ type: 'SET_ISSUE', payload: updated });
       } catch {
         // Status update failed
       }
@@ -186,16 +267,16 @@ export default function IssueDetail({
       return;
     }
 
-    setIsSubmitting(true);
+    dispatch({ type: 'SUBMIT_START' });
     try {
       const commentsService = await getCommentsService();
       const newComment = await commentsService.addComment(commentBody.trim());
-      setComments((prev) => [...prev, newComment]);
-      setCommentBody('');
+      dispatch({ type: 'APPEND_COMMENT', payload: newComment });
+      dispatch({ type: 'SET_COMMENT_BODY', payload: '' });
     } catch {
       // Comment failed silently
     } finally {
-      setIsSubmitting(false);
+      dispatch({ type: 'SUBMIT_END' });
     }
   }, [commentBody, getCommentsService, isSubmitting]);
 
@@ -297,9 +378,11 @@ export default function IssueDetail({
             isSubmitting={isSubmitting}
             lastCommentRef={lastCommentRef}
             visibleCommentCount={VISIBLE_COMMENT_COUNT}
-            onShowAllComments={() => setShowAllComments(true)}
+            onShowAllComments={() => dispatch({ type: 'SHOW_ALL_COMMENTS' })}
             onScrollToLatest={scrollToLatestComment}
-            onCommentBodyChange={setCommentBody}
+            onCommentBodyChange={(body) =>
+              dispatch({ type: 'SET_COMMENT_BODY', payload: body })
+            }
             onAddComment={handleAddComment}
           />
         </div>

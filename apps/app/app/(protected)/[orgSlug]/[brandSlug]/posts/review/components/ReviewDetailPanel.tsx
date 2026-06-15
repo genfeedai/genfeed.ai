@@ -8,7 +8,7 @@ import {
 } from '@helpers/formatting/timezone/timezone.helper';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import Image from 'next/image';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { HiOutlineClock, HiPhoto, HiSparkles } from 'react-icons/hi2';
 import ReviewDetailPanelAside from './ReviewDetailPanelAside';
 import ReviewDetailPanelEmpty from './ReviewDetailPanelEmpty';
@@ -75,11 +75,6 @@ export default function ReviewDetailPanel({
   onToggleSelect,
 }: ReviewDetailPanelProps) {
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
-  const [feedback, setFeedback] = useState('');
-
-  useEffect(() => {
-    setFeedback(item?.reviewFeedback ?? '');
-  }, [item?.reviewFeedback]);
 
   if (!item) {
     return <ReviewDetailPanelEmpty />;
@@ -150,8 +145,8 @@ export default function ReviewDetailPanel({
         </div>
 
         <ReviewDetailPanelAside
+          key={item.id}
           browserTimezone={browserTimezone}
-          feedback={feedback}
           formattedCreatedDate={formattedCreatedDate}
           formattedScheduledDate={formattedScheduledDate}
           isActioning={isActioning}
@@ -163,7 +158,6 @@ export default function ReviewDetailPanel({
           onRequestChanges={onRequestChanges}
           onToggleSelect={onToggleSelect}
           reviewEvents={reviewEvents}
-          setFeedback={setFeedback}
           statusLabel={statusLabel}
         />
       </div>

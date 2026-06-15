@@ -10,7 +10,7 @@ import { AdminAnnouncementsService } from '@services/admin/announcements.service
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Container from '@ui/layout/container/Container';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 import { HiOutlineMegaphone } from 'react-icons/hi2';
 import AnnouncementComposeForm from './announcement-compose-form';
 import AnnouncementHistoryList from './announcement-history-list';
@@ -30,16 +30,71 @@ const INITIAL_FORM: AnnouncementComposeFormState = {
 
 const TWEET_MAX_CHARS = 280;
 
+type PageState = {
+  activeTab: string;
+  form: AnnouncementComposeFormState;
+  isSubmitting: boolean;
+  announcements: IAnnouncement[];
+  isLoadingHistory: boolean;
+};
+
+type PageAction =
+  | { type: 'SET_TAB'; tab: string }
+  | {
+      type: 'SET_FIELD';
+      field: keyof AnnouncementComposeFormState;
+      value: string | boolean;
+    }
+  | { type: 'SET_SUBMITTING'; isSubmitting: boolean }
+  | { type: 'SET_ANNOUNCEMENTS'; announcements: IAnnouncement[] }
+  | { type: 'SET_LOADING_HISTORY'; isLoadingHistory: boolean }
+  | { type: 'SUBMIT_SUCCESS' };
+
+function pageReducer(state: PageState, action: PageAction): PageState {
+  switch (action.type) {
+    case 'SET_TAB':
+      return {
+        ...state,
+        activeTab: action.tab,
+        isLoadingHistory:
+          action.tab === 'history' ? true : state.isLoadingHistory,
+      };
+    case 'SET_FIELD':
+      return {
+        ...state,
+        form: { ...state.form, [action.field]: action.value },
+      };
+    case 'SET_SUBMITTING':
+      return { ...state, isSubmitting: action.isSubmitting };
+    case 'SET_ANNOUNCEMENTS':
+      return { ...state, announcements: action.announcements };
+    case 'SET_LOADING_HISTORY':
+      return { ...state, isLoadingHistory: action.isLoadingHistory };
+    case 'SUBMIT_SUCCESS':
+      return {
+        ...state,
+        form: INITIAL_FORM,
+        isLoadingHistory: true,
+        activeTab: 'history',
+      };
+    default:
+      return state;
+  }
+}
+
 export default function AnnouncementsPage({
   defaultTab = 'compose',
 }: AnnouncementsPageProps) {
-  const [activeTab, setActiveTab] = useState<string>(defaultTab);
-  const [form, setForm] = useState<AnnouncementComposeFormState>(INITIAL_FORM);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [announcements, setAnnouncements] = useState<IAnnouncement[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(
-    defaultTab === 'history',
-  );
+  const [state, dispatch] = useReducer(pageReducer, {
+    activeTab: defaultTab,
+    form: INITIAL_FORM,
+    isSubmitting: false,
+    announcements: [],
+    isLoadingHistory: defaultTab === 'history',
+  });
+
+  const { activeTab, form, isSubmitting, announcements, isLoadingHistory } =
+    state;
 
   const notificationsService = NotificationsService.getInstance();
 
@@ -54,7 +109,7 @@ export default function AnnouncementsPage({
         const data = await service.getAnnouncements();
 
         if (!signal.aborted) {
-          setAnnouncements(data);
+          dispatch({ type: 'SET_ANNOUNCEMENTS', announcements: data });
           logger.info('Announcements loaded', { count: data.length });
         }
       } catch (error) {
@@ -65,7 +120,7 @@ export default function AnnouncementsPage({
         notificationsService.error('Failed to load announcements');
       } finally {
         if (!signal.aborted) {
-          setIsLoadingHistory(false);
+          dispatch({ type: 'SET_LOADING_HISTORY', isLoadingHistory: false });
         }
       }
     },
@@ -84,17 +139,14 @@ export default function AnnouncementsPage({
   }, [activeTab, loadHistory]);
 
   const handleTabChange = useCallback((tab: string) => {
-    if (tab === 'history') {
-      setIsLoadingHistory(true);
-    }
-    setActiveTab(tab);
+    dispatch({ type: 'SET_TAB', tab });
   }, []);
 
   function handleFieldChange(
     field: keyof AnnouncementComposeFormState,
     value: string | boolean,
   ): void {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    dispatch({ type: 'SET_FIELD', field, value });
   }
 
   async function handleSubmit(
@@ -119,7 +171,7 @@ export default function AnnouncementsPage({
       return;
     }
 
-    setIsSubmitting(true);
+    dispatch({ type: 'SET_SUBMITTING', isSubmitting: true });
 
     try {
       const service = await getAnnouncementsService();
@@ -137,16 +189,14 @@ export default function AnnouncementsPage({
       });
 
       notificationsService.success('Announcement published');
-      setForm(INITIAL_FORM);
-      setIsLoadingHistory(true);
-      setActiveTab('history');
+      dispatch({ type: 'SUBMIT_SUCCESS' });
 
       logger.info('Announcement broadcast successful');
     } catch (error) {
       logger.error('Failed to broadcast announcement', error);
       notificationsService.error('Failed to publish announcement');
     } finally {
-      setIsSubmitting(false);
+      dispatch({ type: 'SET_SUBMITTING', isSubmitting: false });
     }
   }
 

@@ -75,9 +75,10 @@ function formatRelativeTime(dateStr: string): string {
 
 export default function EditorProjectsPage() {
   const _brandId = useBrandId();
-  const [projects, setProjects] = useState<IEditorProject[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [projects, setProjects] = useState<IEditorProject[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const isLoading = projects === null && error === null;
 
   const getEditorService = useAuthedService((token: string) =>
     EditorProjectsService.getInstance(token),
@@ -85,15 +86,13 @@ export default function EditorProjectsPage() {
 
   const loadProjects = useCallback(async () => {
     try {
-      setIsLoading(true);
+      setProjects(null);
       setError(null);
       const service = await getEditorService();
       const allProjects = await service.findAll();
       setProjects(allProjects);
     } catch (_err) {
       setError('Failed to load projects');
-    } finally {
-      setIsLoading(false);
     }
   }, [getEditorService]);
 
@@ -109,7 +108,7 @@ export default function EditorProjectsPage() {
       try {
         const service = await getEditorService();
         await service.delete(projectId);
-        setProjects((prev) => prev.filter((p) => p.id !== projectId));
+        setProjects((prev) => (prev ?? []).filter((p) => p.id !== projectId));
       } catch {
         // Silently fail
       }
@@ -179,7 +178,7 @@ export default function EditorProjectsPage() {
             Try again
           </Button>
         </Card>
-      ) : projects.length > 0 ? (
+      ) : projects !== null && projects.length > 0 ? (
         <>
           <h3 className="mb-4 text-lg font-semibold">
             Your Projects ({projects.length})

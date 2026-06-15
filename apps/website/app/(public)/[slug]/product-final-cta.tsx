@@ -8,7 +8,7 @@ import { Text } from '@ui/typography/text';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import Link from 'next/link';
 import { FaGithub } from 'react-icons/fa6';
-import { GitHubLink } from './product-page';
+import { GitHubLink } from './github-link';
 
 type Props = {
   cta: Product['cta'];

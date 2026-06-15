@@ -17,15 +17,23 @@ import {
 
 type ViewMode = 'edit' | 'preview';
 
-type ArticleDetailHeaderProps = {
+type ArticleDetailHeaderState = {
   isNew: boolean;
-  viewMode: ViewMode;
-  setViewMode: (mode: ViewMode) => void;
-  canPublish: boolean;
-  canArchive: boolean;
   hasXArticleSections: boolean;
   isDirty: boolean;
   isSaving: boolean;
+};
+
+type ArticleDetailHeaderPermissions = {
+  canPublish: boolean;
+  canArchive: boolean;
+};
+
+type ArticleDetailHeaderProps = {
+  state: ArticleDetailHeaderState;
+  permissions: ArticleDetailHeaderPermissions;
+  viewMode: ViewMode;
+  setViewMode: (mode: ViewMode) => void;
   formLabel: string;
   plainTextContent: string;
   openConfirm: GlobalModalsContextValue['openConfirm'];
@@ -38,14 +46,10 @@ type ArticleDetailHeaderProps = {
 };
 
 export default function ArticleDetailHeader({
-  isNew,
+  state,
+  permissions,
   viewMode,
   setViewMode,
-  canPublish,
-  canArchive,
-  hasXArticleSections,
-  isDirty,
-  isSaving,
   formLabel,
   plainTextContent,
   openConfirm,
@@ -56,6 +60,8 @@ export default function ArticleDetailHeader({
   onCopyFullArticle,
   clipboardService,
 }: ArticleDetailHeaderProps) {
+  const { isNew, hasXArticleSections, isDirty, isSaving } = state;
+  const { canPublish, canArchive } = permissions;
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div>

@@ -25,10 +25,50 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
-  useState,
 } from 'react';
 import { HiPencil, HiPlus, HiTrash } from 'react-icons/hi2';
+
+type FetchStatus = 'idle' | 'loading' | 'refreshing';
+
+type State = {
+  fontFamilies: FontFamily[];
+  fetchStatus: FetchStatus;
+  selectedFontFamily: IFontFamily | null;
+  adminOrg: string;
+  adminBrand: string;
+};
+
+type Action =
+  | { type: 'FETCH_START'; isRefreshing: boolean }
+  | { type: 'FETCH_SUCCESS'; fontFamilies: FontFamily[] }
+  | { type: 'FETCH_DONE' }
+  | { type: 'SET_SELECTED'; fontFamily: IFontFamily | null }
+  | { type: 'SET_ADMIN_ORG'; orgId: string }
+  | { type: 'SET_ADMIN_BRAND'; brandId: string };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case 'FETCH_START':
+      return {
+        ...state,
+        fetchStatus: action.isRefreshing ? 'refreshing' : 'loading',
+      };
+    case 'FETCH_SUCCESS':
+      return { ...state, fontFamilies: action.fontFamilies };
+    case 'FETCH_DONE':
+      return { ...state, fetchStatus: 'idle' };
+    case 'SET_SELECTED':
+      return { ...state, selectedFontFamily: action.fontFamily };
+    case 'SET_ADMIN_ORG':
+      return { ...state, adminOrg: action.orgId, adminBrand: '' };
+    case 'SET_ADMIN_BRAND':
+      return { ...state, adminBrand: action.brandId };
+    default:
+      return state;
+  }
+}
 
 function FontFamiliesListContent({
   scope = PageScope.BRAND,
@@ -52,26 +92,30 @@ function FontFamiliesListContent({
     useCallback((token: string) => FontFamiliesService.getInstance(token), []),
   );
 
-  const [fontFamilies, setFontFamilies] = useState<FontFamily[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [state, dispatch] = useReducer(reducer, {
+    fontFamilies: [],
+    fetchStatus: 'loading',
+    selectedFontFamily: null,
+    adminOrg: parsedSearchParams.get('organization') || '',
+    adminBrand: parsedSearchParams.get('brand') || '',
+  });
 
-  const [selectedFontFamily, setSelectedFontFamily] =
-    useState<IFontFamily | null>(null);
+  const {
+    fontFamilies,
+    fetchStatus,
+    selectedFontFamily,
+    adminOrg,
+    adminBrand,
+  } = state;
 
-  // Admin org/brand filter state (superadmin only)
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
-  );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
+  // Derive isLoading and isRefreshing from fetchStatus
+  const isLoading = fetchStatus === 'loading';
+  const isRefreshing = fetchStatus === 'refreshing';
 
   // Admin filter URL sync handlers
   const handleAdminOrgChange = useCallback(
     (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
+      dispatch({ type: 'SET_ADMIN_ORG', orgId });
       const params = new URLSearchParams(searchParamsString);
       if (orgId) {
         params.set('organization', orgId);
@@ -90,7 +134,7 @@ function FontFamiliesListContent({
 
   const handleAdminBrandChange = useCallback(
     (brandId: string) => {
-      setAdminBrand(brandId);
+      dispatch({ type: 'SET_ADMIN_BRAND', brandId });
       const params = new URLSearchParams(searchParamsString);
       if (brandId) {
         params.set('brand', brandId);
@@ -137,7 +181,7 @@ function FontFamiliesListContent({
           {
             icon: <HiTrash />,
             onClick: (fontFamily: FontFamily) => {
-              setSelectedFontFamily(fontFamily);
+              dispatch({ type: 'SET_SELECTED', fontFamily });
               openConfirm({
                 confirmLabel: 'Delete',
                 isError: true,
@@ -155,18 +199,14 @@ function FontFamiliesListContent({
   const currentPage = Number(searchParams.get('page')) || 1;
 
   const findAllFontFamilies = useCallback(
-    async (isRefreshing = false) => {
+    async (isRefreshingArg = false) => {
       const url = 'GET /font-families';
 
-      const newIsRefreshing = isRefreshing;
-      const newIsLoading = !isRefreshing;
-
-      setIsRefreshing(newIsRefreshing);
-      setIsLoading(newIsLoading);
+      dispatch({ type: 'FETCH_START', isRefreshing: isRefreshingArg });
 
       // Notify parent of state changes
-      onRefreshingChangeRef.current?.(newIsRefreshing);
-      onLoadingChangeRef.current?.(newIsLoading);
+      onRefreshingChangeRef.current?.(isRefreshingArg);
+      onLoadingChangeRef.current?.(!isRefreshingArg);
 
       try {
         const service = await getFontFamiliesService();
@@ -187,9 +227,9 @@ function FontFamiliesListContent({
         }
 
         const data = await service.findAll(query);
-        setFontFamilies(data);
+        dispatch({ type: 'FETCH_SUCCESS', fontFamilies: data });
 
-        if (isRefreshing) {
+        if (isRefreshingArg) {
           notificationsService.success('Font families refreshed');
         }
 
@@ -198,8 +238,7 @@ function FontFamiliesListContent({
         logger.error(`${url} failed`, error);
         notificationsService.error('Failed to load font families');
       } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
+        dispatch({ type: 'FETCH_DONE' });
         onLoadingChangeRef.current?.(false);
         onRefreshingChangeRef.current?.(false);
       }
@@ -231,7 +270,7 @@ function FontFamiliesListContent({
     modalId: ModalEnum,
     fontFamily?: IFontFamily,
   ) => {
-    setSelectedFontFamily(fontFamily || null);
+    dispatch({ type: 'SET_SELECTED', fontFamily: fontFamily || null });
     openModal(modalId);
   };
 
@@ -240,12 +279,12 @@ function FontFamiliesListContent({
       const service = await getFontFamiliesService();
       await service.delete(fontFamily.id);
       notificationsService.success('Font family deleted');
-      setSelectedFontFamily(null);
+      dispatch({ type: 'SET_SELECTED', fontFamily: null });
       findAllFontFamilies(true);
     } catch (error) {
       logger.error('Failed to delete font family', error);
       notificationsService.error('Failed to delete font family');
-      setSelectedFontFamily(null);
+      dispatch({ type: 'SET_SELECTED', fontFamily: null });
     }
   };
 
@@ -294,9 +333,9 @@ function FontFamiliesListContent({
       {scope === PageScope.SUPERADMIN && (
         <LazyModalFontFamily
           item={selectedFontFamily}
-          onClose={() => setSelectedFontFamily(null)}
+          onClose={() => dispatch({ type: 'SET_SELECTED', fontFamily: null })}
           onConfirm={() => {
-            setSelectedFontFamily(null);
+            dispatch({ type: 'SET_SELECTED', fontFamily: null });
             findAllFontFamilies(true);
           }}
         />

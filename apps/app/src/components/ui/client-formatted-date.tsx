@@ -1,7 +1,6 @@
 'use client';
 
 import { formatDistanceToNow } from 'date-fns';
-import { useEffect, useState } from 'react';
 
 type DateInput = Date | number | string;
 
@@ -44,13 +43,13 @@ function formatDateValue({
 
 export function ClientFormattedDate(props: ClientFormattedDateProps) {
   const { className, fallback = '', format, locales, options, value } = props;
-  const [formatted, setFormatted] = useState(fallback);
-
-  useEffect(() => {
-    setFormatted(
-      formatDateValue({ fallback, format, locales, options, value }),
-    );
-  }, [fallback, format, locales, options, value]);
+  const formatted = formatDateValue({
+    fallback,
+    format,
+    locales,
+    options,
+    value,
+  });
 
   return <span className={className}>{formatted}</span>;
 }

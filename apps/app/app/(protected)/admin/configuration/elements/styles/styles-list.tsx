@@ -23,10 +23,55 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
-  useState,
 } from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
+
+type StylesListState = {
+  styles: ElementStyle[];
+  isLoading: boolean;
+  selectedStyle: ElementStyle | null;
+  adminOrg: string;
+  adminBrand: string;
+};
+
+type StylesListAction =
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_STYLES'; payload: ElementStyle[] }
+  | { type: 'SET_SELECTED_STYLE'; payload: ElementStyle | null }
+  | { type: 'SET_ADMIN_ORG'; payload: string }
+  | { type: 'SET_ADMIN_BRAND'; payload: string }
+  | {
+      type: 'SET_ADMIN_FILTER';
+      payload: { adminOrg: string; adminBrand: string };
+    };
+
+function stylesListReducer(
+  state: StylesListState,
+  action: StylesListAction,
+): StylesListState {
+  switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_STYLES':
+      return { ...state, styles: action.payload, isLoading: false };
+    case 'SET_SELECTED_STYLE':
+      return { ...state, selectedStyle: action.payload };
+    case 'SET_ADMIN_ORG':
+      return { ...state, adminOrg: action.payload, adminBrand: '' };
+    case 'SET_ADMIN_BRAND':
+      return { ...state, adminBrand: action.payload };
+    case 'SET_ADMIN_FILTER':
+      return {
+        ...state,
+        adminOrg: action.payload.adminOrg,
+        adminBrand: action.payload.adminBrand,
+      };
+    default:
+      return state;
+  }
+}
 
 function StylesListContent({
   scope = PageScope.BRAND,
@@ -50,24 +95,20 @@ function StylesListContent({
     [searchParamsString],
   );
 
-  const [styles, setStyles] = useState<ElementStyle[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [state, dispatch] = useReducer(stylesListReducer, {
+    styles: [],
+    isLoading: true,
+    selectedStyle: null,
+    adminOrg: parsedSearchParams.get('organization') ?? '',
+    adminBrand: parsedSearchParams.get('brand') ?? '',
+  });
 
-  const [selectedStyle, setSelectedStyle] = useState<ElementStyle | null>(null);
-
-  // Admin org/brand filter state (superadmin only)
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
-  );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
+  const { styles, isLoading, selectedStyle, adminOrg, adminBrand } = state;
 
   // Admin filter URL sync handlers
   const handleAdminOrgChange = useCallback(
     (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
+      dispatch({ type: 'SET_ADMIN_ORG', payload: orgId });
       const params = new URLSearchParams(searchParamsString);
       if (orgId) {
         params.set('organization', orgId);
@@ -86,7 +127,7 @@ function StylesListContent({
 
   const handleAdminBrandChange = useCallback(
     (brandId: string) => {
-      setAdminBrand(brandId);
+      dispatch({ type: 'SET_ADMIN_BRAND', payload: brandId });
       const params = new URLSearchParams(searchParamsString);
       if (brandId) {
         params.set('brand', brandId);
@@ -162,7 +203,7 @@ function StylesListContent({
 
   const findAllStyles = useCallback(
     async (isRefresh = false) => {
-      setIsLoading(!isRefresh);
+      dispatch({ type: 'SET_LOADING', payload: !isRefresh });
 
       // Notify parent of state changes
       onRefreshingChangeRef.current?.(isRefresh);
@@ -187,7 +228,7 @@ function StylesListContent({
         }
 
         const data = await service.findAll(query);
-        setStyles(data);
+        dispatch({ type: 'SET_STYLES', payload: data });
 
         if (isRefresh) {
           notificationsService.success('Styles refreshed');
@@ -198,7 +239,7 @@ function StylesListContent({
         logger.error('GET /styles failed', error);
         notificationsService.error('Failed to load styles');
       } finally {
-        setIsLoading(false);
+        dispatch({ type: 'SET_LOADING', payload: false });
         onLoadingChangeRef.current?.(false);
         onRefreshingChangeRef.current?.(false);
       }
@@ -227,7 +268,7 @@ function StylesListContent({
   }, [onRefresh, findAllStyles]);
 
   const openStyleModal = (modalId: ModalEnum, style?: IElementStyle) => {
-    setSelectedStyle(style || null);
+    dispatch({ type: 'SET_SELECTED_STYLE', payload: style ?? null });
 
     if (modalId === ModalEnum.CONFIRM && style) {
       return openConfirm({
@@ -247,12 +288,12 @@ function StylesListContent({
       const service = await getStylesService();
       await service.delete(style.id);
       notificationsService.success('Style deleted');
-      setSelectedStyle(null);
+      dispatch({ type: 'SET_SELECTED_STYLE', payload: null });
       findAllStyles(true);
     } catch (error) {
       logger.error('Failed to delete style', error);
       notificationsService.error('Failed to delete style');
-      setSelectedStyle(null);
+      dispatch({ type: 'SET_SELECTED_STYLE', payload: null });
     }
   };
 
@@ -282,9 +323,11 @@ function StylesListContent({
         <>
           <LazyModalStyle
             item={selectedStyle}
-            onClose={() => setSelectedStyle(null)}
+            onClose={() =>
+              dispatch({ type: 'SET_SELECTED_STYLE', payload: null })
+            }
             onConfirm={() => {
-              setSelectedStyle(null);
+              dispatch({ type: 'SET_SELECTED_STYLE', payload: null });
               findAllStyles(true);
             }}
           />

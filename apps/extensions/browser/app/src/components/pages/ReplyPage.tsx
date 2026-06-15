@@ -2,7 +2,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import { type ReactElement, useEffect, useState } from 'react';
+import { type ReactElement, useEffect, useReducer, useRef } from 'react';
 import { LoadingSpinner } from '~components/ui';
 import { authService } from '~services/auth.service';
 import { apiEndpoint } from '~services/environment.service';
@@ -57,70 +57,131 @@ const TONE_PROMPT_MAP: Record<ReplyTone, string> = {
     'Write a professional, business-focused reply that adds credibility.',
 };
 
+interface ReplyState {
+  postContent: string;
+  author: string;
+  tone: ReplyTone;
+  step: ReplyStep;
+  replies: ReplyOption[];
+  error: string | null;
+  copiedIndex: number | null;
+}
+
+type ReplyAction =
+  | { type: 'SET_POST_CONTENT'; payload: string }
+  | { type: 'SET_AUTHOR'; payload: string }
+  | { type: 'SET_TONE'; payload: ReplyTone }
+  | { type: 'SET_STEP'; payload: ReplyStep }
+  | { type: 'SET_REPLIES'; payload: ReplyOption[] }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'SET_COPIED_INDEX'; payload: number | null }
+  | { type: 'LOADING' }
+  | { type: 'RESULT'; payload: ReplyOption[] }
+  | { type: 'RESET_TO_INPUT' }
+  | { type: 'SYNC_PROPS'; payload: { content: string; author: string } };
+
+function replyReducer(state: ReplyState, action: ReplyAction): ReplyState {
+  switch (action.type) {
+    case 'SET_POST_CONTENT':
+      return { ...state, postContent: action.payload };
+    case 'SET_AUTHOR':
+      return { ...state, author: action.payload };
+    case 'SET_TONE':
+      return { ...state, tone: action.payload };
+    case 'SET_STEP':
+      return { ...state, step: action.payload };
+    case 'SET_REPLIES':
+      return { ...state, replies: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
+    case 'SET_COPIED_INDEX':
+      return { ...state, copiedIndex: action.payload };
+    case 'LOADING':
+      return { ...state, step: 'loading', error: null };
+    case 'RESULT':
+      return { ...state, step: 'result', replies: action.payload };
+    case 'RESET_TO_INPUT':
+      return { ...state, step: 'input', replies: [] };
+    case 'SYNC_PROPS':
+      return {
+        ...state,
+        author: action.payload.author || state.author,
+        postContent: action.payload.content || state.postContent,
+      };
+    default:
+      return state;
+  }
+}
+
 export function ReplyPage({
   initialContent = '',
   initialUrl = '',
   initialAuthor = '',
 }: ReplyPageProps): ReactElement {
-  const [postContent, setPostContent] = useState(initialContent);
-  const [url, setUrl] = useState(initialUrl);
-  const [author, setAuthor] = useState(initialAuthor);
-  const [tone, setTone] = useState<ReplyTone>('add-value');
-  const [step, setStep] = useState<ReplyStep>('input');
-  const [replies, setReplies] = useState<ReplyOption[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const urlRef = useRef<string>(initialUrl);
+  const [state, dispatch] = useReducer(replyReducer, {
+    author: initialAuthor,
+    copiedIndex: null,
+    error: null,
+    postContent: initialContent,
+    replies: [],
+    step: 'input',
+    tone: 'add-value',
+  });
+  const { author, copiedIndex, error, postContent, replies, step, tone } =
+    state;
 
-  // Sync props when triggered by keyboard shortcut
+  // Sync props when triggered by keyboard shortcut (e.g. user activates extension on a new page)
   useEffect(() => {
-    if (initialContent) {
-      setPostContent(initialContent);
-    }
-    if (initialUrl) {
-      setUrl(initialUrl);
-    }
-    if (initialAuthor) {
-      setAuthor(initialAuthor);
-    }
+    urlRef.current = initialUrl;
+    dispatch({
+      payload: { author: initialAuthor, content: initialContent },
+      type: 'SYNC_PROPS',
+    });
   }, [initialContent, initialUrl, initialAuthor]);
 
   async function handleGenerate(): Promise<void> {
     if (!postContent.trim()) {
-      setError('Add a post to reply to first.');
+      dispatch({ payload: 'Add a post to reply to first.', type: 'SET_ERROR' });
       return;
     }
 
-    setError(null);
-    setStep('loading');
+    dispatch({ type: 'LOADING' });
 
     try {
       const token = await authService.getToken();
       if (!token) {
-        setError('Sign in first to generate replies.');
-        setStep('input');
+        dispatch({
+          payload: 'Sign in first to generate replies.',
+          type: 'SET_ERROR',
+        });
+        dispatch({ payload: 'input', type: 'SET_STEP' });
         return;
       }
 
+      const currentUrl = urlRef.current;
       const toneInstruction = TONE_PROMPT_MAP[tone];
 
       // Generate 3 replies via the background message handler
       const response = await chrome.runtime.sendMessage({
         event: 'generateReply',
-        platform: url ? detectPlatformFromUrl(url) : 'twitter',
+        platform: currentUrl ? detectPlatformFromUrl(currentUrl) : 'twitter',
         postAuthor: author,
         postContent,
         postId: `reply_${Date.now()}`,
-        url,
+        url: currentUrl,
       });
 
       if (response?.success && response.reply) {
         // We got 1 reply; use it plus tone-specific variations
         const baseReply = response.reply as string;
-        setReplies([
-          { text: baseReply },
-          ...generateToneVariations(baseReply, tone, toneInstruction),
-        ]);
-        setStep('result');
+        dispatch({
+          payload: [
+            { text: baseReply },
+            ...generateToneVariations(baseReply, tone, toneInstruction),
+          ],
+          type: 'RESULT',
+        });
       } else {
         // Fallback: direct API call
         const apiResponse = await fetch(`${apiEndpoint}/ai/generate`, {
@@ -128,7 +189,7 @@ export function ReplyPage({
             count: 3,
             post: postContent,
             postAuthor: author,
-            postUrl: url,
+            postUrl: currentUrl,
             task: `${toneInstruction} The reply should be concise, natural, and ready to post. Return only the reply text.`,
             tone,
             type: 'social-reply',
@@ -163,26 +224,33 @@ export function ReplyPage({
           throw new Error('No replies returned from API');
         }
 
-        setReplies(replyTexts.map((text) => ({ text })));
-        setStep('result');
+        dispatch({
+          payload: replyTexts.map((text) => ({ text })),
+          type: 'RESULT',
+        });
       }
     } catch (err) {
       logger.error('Reply generation error', err);
-      setError(
-        err instanceof Error ? err.message : 'Failed to generate replies',
-      );
-      setStep('input');
+      dispatch({
+        payload:
+          err instanceof Error ? err.message : 'Failed to generate replies',
+        type: 'SET_ERROR',
+      });
+      dispatch({ payload: 'input', type: 'SET_STEP' });
     }
   }
 
   async function handleCopy(text: string, index: number): Promise<void> {
     try {
       await navigator.clipboard.writeText(text);
-      setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 2000);
-    } catch (error) {
-      logger.error('Failed to copy reply text', error);
-      setError('Failed to copy reply text');
+      dispatch({ payload: index, type: 'SET_COPIED_INDEX' });
+      setTimeout(
+        () => dispatch({ payload: null, type: 'SET_COPIED_INDEX' }),
+        2000,
+      );
+    } catch (err) {
+      logger.error('Failed to copy reply text', err);
+      dispatch({ payload: 'Failed to copy reply text', type: 'SET_ERROR' });
     }
   }
 
@@ -205,10 +273,7 @@ export function ReplyPage({
           <Button
             type="button"
             variant={ButtonVariant.GHOST}
-            onClick={() => {
-              setStep('input');
-              setReplies([]);
-            }}
+            onClick={() => dispatch({ type: 'RESET_TO_INPUT' })}
             className="text-xs"
           >
             ← Back
@@ -243,10 +308,7 @@ export function ReplyPage({
         <Button
           type="button"
           variant={ButtonVariant.OUTLINE}
-          onClick={() => {
-            setStep('input');
-            setReplies([]);
-          }}
+          onClick={() => dispatch({ type: 'RESET_TO_INPUT' })}
           className="mt-auto"
         >
           Generate more
@@ -277,7 +339,9 @@ export function ReplyPage({
         <Textarea
           id="reply-post-content"
           value={postContent}
-          onChange={(e) => setPostContent(e.target.value)}
+          onChange={(e) =>
+            dispatch({ payload: e.target.value, type: 'SET_POST_CONTENT' })
+          }
           placeholder="Paste the post content here…"
           rows={5}
           className="resize-none"
@@ -296,7 +360,9 @@ export function ReplyPage({
             id="reply-author"
             type="text"
             value={author}
-            onChange={(e) => setAuthor(e.target.value)}
+            onChange={(e) =>
+              dispatch({ payload: e.target.value, type: 'SET_AUTHOR' })
+            }
             placeholder="@username"
           />
         </div>
@@ -314,7 +380,7 @@ export function ReplyPage({
                   ? ButtonVariant.SECONDARY
                   : ButtonVariant.OUTLINE
               }
-              onClick={() => setTone(t.value)}
+              onClick={() => dispatch({ payload: t.value, type: 'SET_TONE' })}
               title={t.description}
               className="text-xs"
             >

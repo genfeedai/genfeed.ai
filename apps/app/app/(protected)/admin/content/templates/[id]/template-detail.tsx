@@ -34,11 +34,12 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
     TemplateService.getInstance(token),
   );
 
-  const [template, setTemplate] = useState<IContentTemplate | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [template, setTemplate] = useState<IContentTemplate | null | undefined>(
+    undefined,
+  );
 
   const loadTemplate = useCallback(async () => {
-    setIsLoading(true);
+    setTemplate(undefined);
 
     try {
       const service = await getTemplatesService();
@@ -50,14 +51,14 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
       logger.error('Failed to load template', error);
       notificationsService.error('Failed to load template');
       push('/content/templates');
-    } finally {
-      setIsLoading(false);
     }
   }, [templateId, getTemplatesService, notificationsService, push]);
 
   useEffect(() => {
     loadTemplate();
   }, [loadTemplate]);
+
+  const isLoading = template === undefined;
 
   if (isLoading) {
     return (

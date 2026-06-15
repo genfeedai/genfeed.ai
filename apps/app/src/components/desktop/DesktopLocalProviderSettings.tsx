@@ -6,7 +6,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 
 const PROVIDER_PRESETS: Record<
@@ -44,18 +44,121 @@ interface DesktopLocalProviderSettingsProps {
   variant?: 'card' | 'compact';
 }
 
+type ProviderState = {
+  provider: DesktopGenerationProviderKind;
+  baseUrl: string;
+  model: string;
+  apiKey: string;
+  isApiKeyConfigured: boolean;
+  status: string | null;
+  isSaving: boolean;
+  isTesting: boolean;
+};
+
+type ProviderAction =
+  | {
+      type: 'LOAD';
+      payload: {
+        provider: DesktopGenerationProviderKind;
+        baseUrl: string;
+        model: string;
+        isApiKeyConfigured: boolean;
+      };
+    }
+  | { type: 'SET_BASE_URL'; payload: string }
+  | { type: 'SET_MODEL'; payload: string }
+  | { type: 'SET_API_KEY'; payload: string }
+  | { type: 'APPLY_PRESET'; payload: DesktopGenerationProviderKind }
+  | { type: 'SAVE_START' }
+  | {
+      type: 'SAVE_SUCCESS';
+      payload: { isApiKeyConfigured: boolean; statusMessage: string };
+    }
+  | { type: 'SAVE_ERROR'; payload: string }
+  | { type: 'TEST_START' }
+  | { type: 'TEST_SUCCESS'; payload: string }
+  | { type: 'TEST_ERROR'; payload: string }
+  | { type: 'SET_STATUS'; payload: string | null };
+
+const initialState: ProviderState = {
+  provider: 'ollama',
+  baseUrl: PROVIDER_PRESETS.ollama.baseUrl,
+  model: PROVIDER_PRESETS.ollama.model,
+  apiKey: '',
+  isApiKeyConfigured: false,
+  status: null,
+  isSaving: false,
+  isTesting: false,
+};
+
+function providerReducer(
+  state: ProviderState,
+  action: ProviderAction,
+): ProviderState {
+  switch (action.type) {
+    case 'LOAD':
+      return {
+        ...state,
+        provider: action.payload.provider,
+        baseUrl: action.payload.baseUrl,
+        model: action.payload.model,
+        isApiKeyConfigured: action.payload.isApiKeyConfigured,
+      };
+    case 'SET_BASE_URL':
+      return { ...state, baseUrl: action.payload };
+    case 'SET_MODEL':
+      return { ...state, model: action.payload };
+    case 'SET_API_KEY':
+      return { ...state, apiKey: action.payload };
+    case 'APPLY_PRESET': {
+      const preset = PROVIDER_PRESETS[action.payload];
+      return {
+        ...state,
+        provider: action.payload,
+        baseUrl: preset.baseUrl,
+        model: preset.model,
+        status: null,
+      };
+    }
+    case 'SAVE_START':
+      return { ...state, isSaving: true, status: null };
+    case 'SAVE_SUCCESS':
+      return {
+        ...state,
+        isSaving: false,
+        apiKey: '',
+        isApiKeyConfigured: action.payload.isApiKeyConfigured,
+        status: action.payload.statusMessage,
+      };
+    case 'SAVE_ERROR':
+      return { ...state, isSaving: false, status: action.payload };
+    case 'TEST_START':
+      return { ...state, isTesting: true, status: null };
+    case 'TEST_SUCCESS':
+      return { ...state, isTesting: false, status: action.payload };
+    case 'TEST_ERROR':
+      return { ...state, isTesting: false, status: action.payload };
+    case 'SET_STATUS':
+      return { ...state, status: action.payload };
+    default:
+      return state;
+  }
+}
+
 export default function DesktopLocalProviderSettings({
   variant = 'compact',
 }: DesktopLocalProviderSettingsProps) {
-  const [provider, setProvider] =
-    useState<DesktopGenerationProviderKind>('ollama');
-  const [baseUrl, setBaseUrl] = useState(PROVIDER_PRESETS.ollama.baseUrl);
-  const [model, setModel] = useState(PROVIDER_PRESETS.ollama.model);
-  const [apiKey, setApiKey] = useState('');
-  const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
+  const [state, dispatch] = useReducer(providerReducer, initialState);
+  const {
+    provider,
+    baseUrl,
+    model,
+    apiKey,
+    isApiKeyConfigured,
+    status,
+    isSaving,
+    isTesting,
+  } = state;
 
   const isCard = variant === 'card';
 
@@ -66,28 +169,31 @@ export default function DesktopLocalProviderSettings({
     const config = await bridge.generation.getProviderConfig();
     if (!config) return;
 
-    setProvider(config.provider);
-    setBaseUrl(config.baseUrl);
-    setModel(config.model);
-    setApiKeyConfigured(config.apiKeyConfigured);
+    dispatch({
+      type: 'LOAD',
+      payload: {
+        provider: config.provider,
+        baseUrl: config.baseUrl,
+        model: config.model,
+        isApiKeyConfigured: config.apiKeyConfigured,
+      },
+    });
   }, []);
 
   useEffect(() => {
     void loadProvider().catch((error: unknown) => {
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : 'Failed to load local provider.',
-      );
+      dispatch({
+        type: 'SET_STATUS',
+        payload:
+          error instanceof Error
+            ? error.message
+            : 'Failed to load local provider.',
+      });
     });
   }, [loadProvider]);
 
   const applyPreset = (nextProvider: DesktopGenerationProviderKind) => {
-    const preset = PROVIDER_PRESETS[nextProvider];
-    setProvider(nextProvider);
-    setBaseUrl(preset.baseUrl);
-    setModel(preset.model);
-    setStatus(null);
+    dispatch({ type: 'APPLY_PRESET', payload: nextProvider });
   };
 
   const providerPayload = () => ({
@@ -102,21 +208,24 @@ export default function DesktopLocalProviderSettings({
     const bridge = getDesktopBridge();
     if (!bridge) return;
 
-    setIsSaving(true);
-    setStatus(null);
+    dispatch({ type: 'SAVE_START' });
     try {
       const config = await bridge.generation.saveProviderConfig(
         providerPayload(),
       );
-      setApiKey('');
-      setApiKeyConfigured(config.apiKeyConfigured);
-      setStatus(`Using ${config.displayName ?? config.model}.`);
+      dispatch({
+        type: 'SAVE_SUCCESS',
+        payload: {
+          isApiKeyConfigured: config.apiKeyConfigured,
+          statusMessage: `Using ${config.displayName ?? config.model}.`,
+        },
+      });
     } catch (error) {
-      setStatus(
-        error instanceof Error ? error.message : 'Failed to save provider.',
-      );
-    } finally {
-      setIsSaving(false);
+      dispatch({
+        type: 'SAVE_ERROR',
+        payload:
+          error instanceof Error ? error.message : 'Failed to save provider.',
+      });
     }
   };
 
@@ -124,19 +233,21 @@ export default function DesktopLocalProviderSettings({
     const bridge = getDesktopBridge();
     if (!bridge) return;
 
-    setIsTesting(true);
-    setStatus(null);
+    dispatch({ type: 'TEST_START' });
     try {
       const result = await bridge.generation.testProviderConfig(
         providerPayload(),
       );
-      setStatus(`Connected in ${String(result.latencyMs)}ms.`);
+      dispatch({
+        type: 'TEST_SUCCESS',
+        payload: `Connected in ${String(result.latencyMs)}ms.`,
+      });
     } catch (error) {
-      setStatus(
-        error instanceof Error ? error.message : 'Provider test failed.',
-      );
-    } finally {
-      setIsTesting(false);
+      dispatch({
+        type: 'TEST_ERROR',
+        payload:
+          error instanceof Error ? error.message : 'Provider test failed.',
+      });
     }
   };
 
@@ -178,23 +289,29 @@ export default function DesktopLocalProviderSettings({
         <Input
           aria-label="Local provider base URL"
           className="h-8 text-xs"
-          onChange={(event) => setBaseUrl(event.target.value)}
+          onChange={(event) =>
+            dispatch({ type: 'SET_BASE_URL', payload: event.target.value })
+          }
           placeholder="http://localhost:11434/v1"
           value={baseUrl}
         />
         <Input
           aria-label="Local provider model"
           className="h-8 text-xs"
-          onChange={(event) => setModel(event.target.value)}
+          onChange={(event) =>
+            dispatch({ type: 'SET_MODEL', payload: event.target.value })
+          }
           placeholder="llama3.1"
           value={model}
         />
         <Input
           aria-label="Local provider API key"
           className="h-8 text-xs"
-          onChange={(event) => setApiKey(event.target.value)}
+          onChange={(event) =>
+            dispatch({ type: 'SET_API_KEY', payload: event.target.value })
+          }
           placeholder={
-            apiKeyConfigured ? 'API key saved' : 'Optional local API key'
+            isApiKeyConfigured ? 'API key saved' : 'Optional local API key'
           }
           type="password"
           value={apiKey}

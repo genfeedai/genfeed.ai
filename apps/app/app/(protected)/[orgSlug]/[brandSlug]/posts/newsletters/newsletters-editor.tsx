@@ -23,14 +23,18 @@ function statusLabel(status: Newsletter['status']): string {
   }
 }
 
+type NewsletterEditorLoadingAction =
+  | 'approving'
+  | 'archiving'
+  | 'generatingDraft'
+  | 'publishing'
+  | 'saving'
+  | null;
+
 type Props = {
   editorDirty: boolean;
   editorState: NewsletterEditorState;
-  isApproving: boolean;
-  isArchiving: boolean;
-  isGeneratingDraft: boolean;
-  isPublishing: boolean;
-  isSaving: boolean;
+  loadingAction: NewsletterEditorLoadingAction;
   selectedNewsletter: Newsletter;
   onApprove: (id: string) => void;
   onArchive: (id: string) => void;
@@ -43,11 +47,7 @@ type Props = {
 export default function NewsletterEditor({
   editorDirty,
   editorState,
-  isApproving,
-  isArchiving,
-  isGeneratingDraft,
-  isPublishing,
-  isSaving,
+  loadingAction,
   selectedNewsletter,
   onApprove,
   onArchive,
@@ -77,21 +77,21 @@ export default function NewsletterEditor({
           <Button
             label="Save"
             variant={ButtonVariant.SOFT}
-            isLoading={isSaving}
+            isLoading={loadingAction === 'saving'}
             isDisabled={!editorDirty}
             onClick={onSave}
           />
           <Button
             label="Regenerate"
             variant={ButtonVariant.SOFT}
-            isLoading={isGeneratingDraft}
+            isLoading={loadingAction === 'generatingDraft'}
             onClick={onRegenerate}
           />
           <Button
             label="Approve"
             variant={ButtonVariant.SOFT}
             icon={<HiCheckCircle />}
-            isLoading={isApproving}
+            isLoading={loadingAction === 'approving'}
             isDisabled={selectedNewsletter.status === 'published'}
             onClick={() => onApprove(selectedNewsletter.id)}
           />
@@ -99,7 +99,7 @@ export default function NewsletterEditor({
             label="Publish"
             variant={ButtonVariant.SOFT}
             icon={<HiSparkles />}
-            isLoading={isPublishing}
+            isLoading={loadingAction === 'publishing'}
             isDisabled={selectedNewsletter.status === 'published'}
             onClick={() => onPublish(selectedNewsletter.id)}
           />
@@ -108,7 +108,7 @@ export default function NewsletterEditor({
             variant={ButtonVariant.UNSTYLED}
             icon={<HiArchiveBox />}
             className="rounded-lg border border-border px-3 py-2 text-sm"
-            isLoading={isArchiving}
+            isLoading={loadingAction === 'archiving'}
             onClick={() => onArchive(selectedNewsletter.id)}
           />
         </div>

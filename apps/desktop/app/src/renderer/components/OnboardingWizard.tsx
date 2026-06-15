@@ -8,7 +8,7 @@ import type {
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer } from 'react';
 
 interface OnboardingWizardProps {
   onComplete: () => void;
@@ -49,22 +49,96 @@ const PROVIDER_PRESETS: Record<
   },
 };
 
+interface OnboardingState {
+  step: 1 | 2 | 3;
+  isConnecting: boolean;
+  isTestingProvider: boolean;
+  providerStatus: string | null;
+  providerKind: DesktopGenerationProviderKind;
+  providerBaseUrl: string;
+  providerModel: string;
+  providerApiKey: string;
+}
+
+type OnboardingAction =
+  | { type: 'SET_STEP'; step: 1 | 2 | 3 }
+  | { type: 'SET_CONNECTING'; isConnecting: boolean }
+  | { type: 'BEGIN_TEST' }
+  | { type: 'TEST_SUCCESS'; status: string }
+  | { type: 'TEST_FAILURE'; status: string }
+  | { type: 'TEST_DONE' }
+  | { type: 'APPLY_PRESET'; kind: DesktopGenerationProviderKind }
+  | { type: 'SET_PROVIDER_BASE_URL'; baseUrl: string }
+  | { type: 'SET_PROVIDER_MODEL'; model: string }
+  | { type: 'SET_PROVIDER_API_KEY'; apiKey: string };
+
+const initialOnboardingState: OnboardingState = {
+  step: 1,
+  isConnecting: false,
+  isTestingProvider: false,
+  providerStatus: null,
+  providerKind: 'ollama',
+  providerBaseUrl: PROVIDER_PRESETS.ollama.baseUrl,
+  providerModel: PROVIDER_PRESETS.ollama.model,
+  providerApiKey: '',
+};
+
+function onboardingReducer(
+  state: OnboardingState,
+  action: OnboardingAction,
+): OnboardingState {
+  switch (action.type) {
+    case 'SET_STEP':
+      return { ...state, step: action.step };
+    case 'SET_CONNECTING':
+      return { ...state, isConnecting: action.isConnecting };
+    case 'BEGIN_TEST':
+      return { ...state, isTestingProvider: true, providerStatus: null };
+    case 'TEST_SUCCESS':
+      return { ...state, providerStatus: action.status };
+    case 'TEST_FAILURE':
+      return { ...state, providerStatus: action.status };
+    case 'TEST_DONE':
+      return { ...state, isTestingProvider: false };
+    case 'APPLY_PRESET': {
+      const preset = PROVIDER_PRESETS[action.kind];
+      return {
+        ...state,
+        providerKind: action.kind,
+        providerBaseUrl: preset.baseUrl,
+        providerModel: preset.model,
+        providerStatus: null,
+      };
+    }
+    case 'SET_PROVIDER_BASE_URL':
+      return { ...state, providerBaseUrl: action.baseUrl };
+    case 'SET_PROVIDER_MODEL':
+      return { ...state, providerModel: action.model };
+    case 'SET_PROVIDER_API_KEY':
+      return { ...state, providerApiKey: action.apiKey };
+    default:
+      return state;
+  }
+}
+
 export default function OnboardingWizard({
   onComplete,
 }: OnboardingWizardProps) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isTestingProvider, setIsTestingProvider] = useState(false);
-  const [providerStatus, setProviderStatus] = useState<string | null>(null);
-  const [providerKind, setProviderKind] =
-    useState<DesktopGenerationProviderKind>('ollama');
-  const [providerBaseUrl, setProviderBaseUrl] = useState(
-    PROVIDER_PRESETS.ollama.baseUrl,
+  const [state, dispatch] = useReducer(
+    onboardingReducer,
+    initialOnboardingState,
   );
-  const [providerModel, setProviderModel] = useState(
-    PROVIDER_PRESETS.ollama.model,
-  );
-  const [providerApiKey, setProviderApiKey] = useState('');
+
+  const {
+    step,
+    isConnecting,
+    isTestingProvider,
+    providerStatus,
+    providerKind,
+    providerBaseUrl,
+    providerModel,
+    providerApiKey,
+  } = state;
 
   // Subscribe to session changes — when a session arrives, complete onboarding
   useEffect(() => {
@@ -79,18 +153,14 @@ export default function OnboardingWizard({
   }, [onComplete]);
 
   const handleConnectToCloud = async () => {
-    setIsConnecting(true);
+    dispatch({ type: 'SET_CONNECTING', isConnecting: true });
     await window.genfeedDesktop.auth.login();
   };
 
   const applyProviderPreset = (
     nextProviderKind: DesktopGenerationProviderKind,
   ) => {
-    const preset = PROVIDER_PRESETS[nextProviderKind];
-    setProviderKind(nextProviderKind);
-    setProviderBaseUrl(preset.baseUrl);
-    setProviderModel(preset.model);
-    setProviderStatus(null);
+    dispatch({ type: 'APPLY_PRESET', kind: nextProviderKind });
   };
 
   const buildProviderPayload = (): IDesktopGenerationProviderConfig => ({
@@ -102,8 +172,7 @@ export default function OnboardingWizard({
   });
 
   const handleTestAndContinue = async () => {
-    setIsTestingProvider(true);
-    setProviderStatus(null);
+    dispatch({ type: 'BEGIN_TEST' });
 
     try {
       const payload = buildProviderPayload();
@@ -112,20 +181,23 @@ export default function OnboardingWizard({
       const config =
         await window.genfeedDesktop.generation.saveProviderConfig(payload);
 
-      setProviderStatus(
-        `Connected to ${config.displayName ?? config.model} in ${String(
+      dispatch({
+        type: 'TEST_SUCCESS',
+        status: `Connected to ${config.displayName ?? config.model} in ${String(
           result.latencyMs,
         )}ms.`,
-      );
+      });
       onComplete();
     } catch (error) {
-      setProviderStatus(
-        error instanceof Error
-          ? error.message
-          : 'Provider test failed. Check the endpoint, model, and key.',
-      );
+      dispatch({
+        type: 'TEST_FAILURE',
+        status:
+          error instanceof Error
+            ? error.message
+            : 'Provider test failed. Check the endpoint, model, and key.',
+      });
     } finally {
-      setIsTestingProvider(false);
+      dispatch({ type: 'TEST_DONE' });
     }
   };
 
@@ -147,7 +219,7 @@ export default function OnboardingWizard({
             </div>
             <Button
               className="w-full"
-              onClick={() => setStep(2)}
+              onClick={() => dispatch({ type: 'SET_STEP', step: 2 })}
               type="button"
               variant={ButtonVariant.DEFAULT}
             >
@@ -180,7 +252,7 @@ export default function OnboardingWizard({
               </Button>
               <Button
                 className="w-full text-gray-400 hover:text-white"
-                onClick={() => setStep(3)}
+                onClick={() => dispatch({ type: 'SET_STEP', step: 3 })}
                 type="button"
                 variant={ButtonVariant.UNSTYLED}
               >
@@ -228,21 +300,36 @@ export default function OnboardingWizard({
               <Input
                 aria-label="Local provider base URL"
                 className="h-10 text-sm"
-                onChange={(event) => setProviderBaseUrl(event.target.value)}
+                onChange={(event) =>
+                  dispatch({
+                    type: 'SET_PROVIDER_BASE_URL',
+                    baseUrl: event.target.value,
+                  })
+                }
                 placeholder="http://localhost:11434/v1"
                 value={providerBaseUrl}
               />
               <Input
                 aria-label="Local provider model"
                 className="h-10 text-sm"
-                onChange={(event) => setProviderModel(event.target.value)}
+                onChange={(event) =>
+                  dispatch({
+                    type: 'SET_PROVIDER_MODEL',
+                    model: event.target.value,
+                  })
+                }
                 placeholder="llama3.1"
                 value={providerModel}
               />
               <Input
                 aria-label="Local provider API key"
                 className="h-10 text-sm"
-                onChange={(event) => setProviderApiKey(event.target.value)}
+                onChange={(event) =>
+                  dispatch({
+                    type: 'SET_PROVIDER_API_KEY',
+                    apiKey: event.target.value,
+                  })
+                }
                 placeholder="Optional API key"
                 type="password"
                 value={providerApiKey}
@@ -268,7 +355,7 @@ export default function OnboardingWizard({
               <Button
                 className="w-full text-gray-400 hover:text-white"
                 disabled={isTestingProvider}
-                onClick={() => setStep(2)}
+                onClick={() => dispatch({ type: 'SET_STEP', step: 2 })}
                 type="button"
                 variant={ButtonVariant.UNSTYLED}
               >

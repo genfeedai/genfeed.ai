@@ -19,9 +19,11 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
+const NOW = Date.now();
+
 const baseRun = {
   completedAt: null,
-  createdAt: new Date(Date.now() - 30_000).toISOString(),
+  createdAt: new Date(NOW - 30_000).toISOString(),
   creditsUsed: 0,
   durationMs: undefined,
   error: null,
@@ -53,7 +55,7 @@ describe('AgentRunCard', () => {
             requestedModel: 'fast-route',
             routingPolicy: 'balanced',
           },
-          startedAt: new Date(Date.now() - 90 * 60_000).toISOString(),
+          startedAt: new Date(NOW - 90 * 60_000).toISOString(),
           status: AgentExecutionStatus.RUNNING,
           toolCalls: [
             { toolName: 'search' },
@@ -88,9 +90,7 @@ describe('AgentRunCard', () => {
       <AgentRunCard
         run={{
           ...baseRun,
-          completedAt: new Date(
-            Date.now() - 3 * 24 * 60 * 60_000,
-          ).toISOString(),
+          completedAt: new Date(NOW - 3 * 24 * 60 * 60_000).toISOString(),
           durationMs: 750,
           metadata: { requestedModel: 'claude-sonnet' },
           status: AgentExecutionStatus.COMPLETED,

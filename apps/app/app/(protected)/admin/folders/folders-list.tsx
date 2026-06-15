@@ -24,10 +24,66 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useReducer } from 'react';
 import { HiFolderOpen, HiPencil, HiPlus, HiTrash } from 'react-icons/hi2';
 import { buildFoldersColumns } from './folders-list-columns';
 import FoldersListModals from './folders-list-modals';
+
+const FOLDER_SORT_OPTIONS = [
+  { label: 'Default Sort', value: '' },
+  { label: 'Label (A-Z)', value: 'label: 1' },
+  { label: 'Label (Z-A)', value: 'label: -1' },
+  { label: 'Newest First', value: 'createdAt: -1' },
+  { label: 'Oldest First', value: 'createdAt: 1' },
+];
+
+type FoldersListState = {
+  selectedFolder: IFolder | null;
+  adminOrg: string;
+  adminBrand: string;
+  query: IFilters;
+  filters: IFiltersState;
+};
+
+type FoldersListAction =
+  | { type: 'SET_SELECTED_FOLDER'; payload: IFolder | null }
+  | { type: 'SET_ADMIN_ORG'; payload: string }
+  | { type: 'SET_ADMIN_BRAND'; payload: string }
+  | { type: 'SET_ORG_AND_CLEAR_BRAND'; payload: string }
+  | { type: 'SET_QUERY'; payload: IFilters }
+  | { type: 'SET_FILTERS'; payload: IFiltersState }
+  | {
+      type: 'SET_FILTERS_AND_QUERY';
+      payload: { filters: IFiltersState; query: IFilters };
+    };
+
+function foldersListReducer(
+  state: FoldersListState,
+  action: FoldersListAction,
+): FoldersListState {
+  switch (action.type) {
+    case 'SET_SELECTED_FOLDER':
+      return { ...state, selectedFolder: action.payload };
+    case 'SET_ADMIN_ORG':
+      return { ...state, adminOrg: action.payload };
+    case 'SET_ADMIN_BRAND':
+      return { ...state, adminBrand: action.payload };
+    case 'SET_ORG_AND_CLEAR_BRAND':
+      return { ...state, adminOrg: action.payload, adminBrand: '' };
+    case 'SET_QUERY':
+      return { ...state, query: action.payload };
+    case 'SET_FILTERS':
+      return { ...state, filters: action.payload };
+    case 'SET_FILTERS_AND_QUERY':
+      return {
+        ...state,
+        filters: action.payload.filters,
+        query: action.payload.query,
+      };
+    default:
+      return state;
+  }
+}
 
 function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
   const { isSignedIn } = useAuth();
@@ -47,21 +103,27 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
     FoldersService.getInstance(token),
   );
 
-  const [selectedFolder, setSelectedFolder] = useState<IFolder | null>(null);
+  const [state, dispatch] = useReducer(foldersListReducer, undefined, () => ({
+    selectedFolder: null,
+    adminOrg: parsedSearchParams.get('organization') || '',
+    adminBrand: parsedSearchParams.get('brand') || '',
+    query: {} as IFilters,
+    filters: {
+      format: '',
+      provider: '',
+      search: '',
+      sort: 'label: 1', // Default sort
+      status: '',
+      type: '',
+    } as IFiltersState,
+  }));
 
-  // Admin org/brand filter state (superadmin only)
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
-  );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
+  const { selectedFolder, adminOrg, adminBrand, query, filters } = state;
 
   // Admin filter URL sync handlers
   const handleAdminOrgChange = useCallback(
     (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
+      dispatch({ type: 'SET_ORG_AND_CLEAR_BRAND', payload: orgId });
       const params = new URLSearchParams(searchParamsString);
       if (orgId) {
         params.set('organization', orgId);
@@ -80,7 +142,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
 
   const handleAdminBrandChange = useCallback(
     (brandId: string) => {
-      setAdminBrand(brandId);
+      dispatch({ type: 'SET_ADMIN_BRAND', payload: brandId });
       const params = new URLSearchParams(searchParamsString);
       if (brandId) {
         params.set('brand', brandId);
@@ -95,17 +157,6 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
     },
     [pathname, replace, searchParamsString],
   );
-
-  // Filters state
-  const [query, setQuery] = useState<IFilters>({});
-  const [filters, setFilters] = useState<IFiltersState>({
-    format: '',
-    provider: '',
-    search: '',
-    sort: 'label: 1', // Default sort
-    status: '',
-    type: '',
-  });
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
@@ -186,12 +237,12 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
         const service = await getFoldersService();
         await service.delete(folder.id);
         notificationsService.success('Folder deleted');
-        setSelectedFolder(null);
+        dispatch({ type: 'SET_SELECTED_FOLDER', payload: null });
         refreshFolders();
       } catch (error) {
         logger.error('Failed to delete folder', error);
         notificationsService.error('Failed to delete folder');
-        setSelectedFolder(null);
+        dispatch({ type: 'SET_SELECTED_FOLDER', payload: null });
       }
     },
     [getFoldersService, notificationsService, refreshFolders],
@@ -199,7 +250,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
 
   const openFoldersModal = useCallback(
     (modalId: ModalEnum, folder?: IFolder) => {
-      setSelectedFolder(folder || null);
+      dispatch({ type: 'SET_SELECTED_FOLDER', payload: folder || null });
       openModal(modalId);
     },
     [],
@@ -220,7 +271,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
       {
         icon: <HiTrash />,
         onClick: (folder: Folder) => {
-          setSelectedFolder(folder);
+          dispatch({ type: 'SET_SELECTED_FOLDER', payload: folder });
           openConfirm({
             confirmLabel: 'Delete',
             isError: true,
@@ -235,15 +286,6 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
     [openConfirm, openFoldersModal, handleDelete],
   );
 
-  // Custom sort options for folders
-  const FOLDER_SORT_OPTIONS = [
-    { label: 'Default Sort', value: '' },
-    { label: 'Label (A-Z)', value: 'label: 1' },
-    { label: 'Label (Z-A)', value: 'label: -1' },
-    { label: 'Newest First', value: 'createdAt: -1' },
-    { label: 'Oldest First', value: 'createdAt: 1' },
-  ];
-
   return (
     <Container
       label="Folders"
@@ -254,8 +296,10 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
           <FiltersButton
             filters={filters}
             onFiltersChange={(f: IFiltersState, q: IFilters) => {
-              setFilters(f);
-              setQuery(q);
+              dispatch({
+                type: 'SET_FILTERS_AND_QUERY',
+                payload: { filters: f, query: q },
+              });
             }}
             visibleFilters={{
               format: false,

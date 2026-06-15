@@ -21,7 +21,15 @@ const mocks = vi.hoisted(() => ({
   notificationsSuccess: vi.fn(),
   openConfirm: vi.fn(),
   openModal: vi.fn(),
+  refetch: vi.fn(),
   replace: vi.fn(),
+  useQuery: vi.fn(),
+}));
+
+vi.mock('@clerk/nextjs', () => ({
+  useAuth: () => ({
+    isSignedIn: true,
+  }),
 }));
 
 vi.mock('@helpers/ui/modal/modal.helper', () => ({
@@ -29,7 +37,8 @@ vi.mock('@helpers/ui/modal/modal.helper', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => mocks.getLightingsService,
+  useAuthedService: (factory: (token: string) => unknown) => async () =>
+    factory('token-1'),
 }));
 
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
@@ -61,6 +70,13 @@ vi.mock('@services/elements/lightings.service', () => ({
       findAll: mocks.findAll,
     }),
   },
+}));
+
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: (options: {
+    queryFn: () => Promise<unknown>;
+    queryKey: unknown[];
+  }) => mocks.useQuery(options),
 }));
 
 vi.mock('@ui/content/admin-filters/AdminOrgBrandFilter', () => ({
@@ -209,36 +225,46 @@ function mockLightings(
     makeLighting({ id: 'lighting-2', label: 'Golden Hour' }),
   ],
 ) {
-  mocks.findAll.mockResolvedValue(data);
+  mocks.useQuery.mockImplementation(
+    (options: { queryFn: () => Promise<unknown> }) => {
+      void options.queryFn();
+      return {
+        data,
+        error: null,
+        isFetching: false,
+        isLoading: false,
+        refetch: mocks.refetch,
+      };
+    },
+  );
 }
 
 describe('LightingsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.deleteLighting.mockResolvedValue({ ok: true });
-    mocks.getLightingsService.mockResolvedValue({
-      delete: mocks.deleteLighting,
-      findAll: mocks.findAll,
-    });
+    mocks.findAll.mockResolvedValue([]);
+    mocks.refetch.mockResolvedValue(undefined);
     mockLightings();
   });
 
   it('loads superadmin lightings and syncs admin filters to the URL', async () => {
     render(<LightingsList scope={PageScope.SUPERADMIN} />);
 
-    expect(screen.getByText('Loading lightings')).toBeInTheDocument();
-    expect(await screen.findByText('Softbox')).toBeInTheDocument();
+    expect(screen.getByText('Softbox')).toBeInTheDocument();
     expect(screen.getByText('Golden Hour')).toBeInTheDocument();
     expect(screen.getByText('Admin org: org-1')).toBeInTheDocument();
     expect(screen.getByText('Admin brand: brand-1')).toBeInTheDocument();
 
-    expect(mocks.findAll).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brand: 'brand-1',
-        organization: 'org-1',
-        page: 2,
-      }),
-    );
+    await waitFor(() => {
+      expect(mocks.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brand: 'brand-1',
+          organization: 'org-1',
+          page: 2,
+        }),
+      );
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Pick Org' }));
     expect(mocks.replace).toHaveBeenCalledWith(
@@ -256,7 +282,7 @@ describe('LightingsList', () => {
   it('opens edit and delete flows with the clicked lighting', async () => {
     render(<LightingsList scope={PageScope.SUPERADMIN} />);
 
-    await screen.findByText('Golden Hour');
+    expect(screen.getByText('Golden Hour')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Edit Golden Hour' }));
     expect(mocks.openModal).toHaveBeenCalled();
     expect(screen.getByTestId('lighting-modal')).toHaveTextContent(
@@ -284,8 +310,15 @@ describe('LightingsList', () => {
     const onLoadingChange = vi.fn();
     const onRefreshingChange = vi.fn();
 
-    mocks.findAll.mockRejectedValueOnce(new Error('load failed'));
-    const { unmount } = render(
+    mocks.useQuery.mockReturnValue({
+      data: [],
+      error: new Error('load failed'),
+      isFetching: false,
+      isLoading: false,
+      refetch: mocks.refetch,
+    });
+
+    render(
       <LightingsList
         scope={PageScope.SUPERADMIN}
         onLoadingChange={onLoadingChange}
@@ -304,18 +337,14 @@ describe('LightingsList', () => {
       expect(onLoadingChange).toHaveBeenCalledWith(false);
       expect(onRefreshingChange).toHaveBeenCalledWith(false);
     });
-    unmount();
 
-    vi.clearAllMocks();
-    mocks.getLightingsService.mockResolvedValue({
-      delete: mocks.deleteLighting,
-      findAll: mocks.findAll,
-    });
-    mockLightings();
+    mockLightings([makeLighting()]);
     mocks.deleteLighting.mockRejectedValueOnce(new Error('delete failed'));
     render(<LightingsList scope={PageScope.SUPERADMIN} />);
-    await screen.findByText('Softbox');
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Softbox' }));
+    expect(screen.getAllByText('Softbox')[0]).toBeInTheDocument();
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Delete Softbox' })[0],
+    );
 
     await act(async () => {
       await mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm();
@@ -331,13 +360,19 @@ describe('LightingsList', () => {
   });
 
   it('supports empty and brand scoped states', async () => {
-    mockLightings([]);
+    mocks.useQuery.mockReturnValue({
+      data: [],
+      error: null,
+      isFetching: false,
+      isLoading: false,
+      refetch: mocks.refetch,
+    });
     const registerRefresh = vi.fn();
     render(
       <LightingsList scope={PageScope.BRAND} onRefresh={registerRefresh} />,
     );
 
-    expect(await screen.findByText('No lightings found')).toBeInTheDocument();
+    expect(screen.getByText('No lightings found')).toBeInTheDocument();
     expect(screen.queryByText('Admin org: org-1')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit Softbox' })).toBeNull();
     expect(registerRefresh).toHaveBeenCalled();
@@ -345,6 +380,7 @@ describe('LightingsList', () => {
     await act(async () => {
       await registerRefresh.mock.calls[0][0]();
     });
+    expect(mocks.refetch).toHaveBeenCalled();
     expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
       'Lightings refreshed',
     );

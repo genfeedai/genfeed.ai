@@ -73,6 +73,15 @@ const quickActionCards: OverviewCard[] = [
 
 // ActivityChart is lazy-loaded via dynamic import (see top of file)
 
+// Organization type labels for metadata display
+const orgTypes = [
+  'Enterprise AI',
+  'Creative Node',
+  'Digital Studio',
+  'Content Lab',
+  'Media Network',
+];
+
 interface LeaderboardCardProps {
   data: {
     rank: number;
@@ -84,15 +93,6 @@ interface LeaderboardCardProps {
 }
 
 function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
-  // Organization type labels for metadata display
-  const orgTypes = [
-    'Enterprise AI',
-    'Creative Node',
-    'Digital Studio',
-    'Content Lab',
-    'Media Network',
-  ];
-
   return (
     <WorkspaceSurface
       eyebrow="Volume Ranking"

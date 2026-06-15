@@ -109,6 +109,59 @@ const STEPS = [
 
 const HIGHLIGHT_TAGS = ['Video', 'Images', 'Voice', 'Music'];
 
+const HERO_PROOF = (
+  <HeroProofRail
+    items={METRICS.map((metric) => ({
+      label: metric.label,
+      value: (
+        <>
+          <span className="text-foreground/40 line-through">
+            {metric.before}
+          </span>{' '}
+          {'->'} {metric.after}
+        </>
+      ),
+    }))}
+    title="Operational shift"
+  />
+);
+
+const HERO_VISUAL = (
+  <EditorialPoster
+    detail="Video, image, voice, and music generation all live inside one production workspace."
+    eyebrow="Studio Canvas"
+    footer={<span>Models live inside one system</span>}
+    items={[
+      {
+        label: 'Models',
+        value: AI_MODELS.slice(0, 4).join(' / '),
+      },
+      {
+        label: 'Formats',
+        value: 'Videos, images, voice, music, and export packs.',
+      },
+      {
+        label: 'Workflow',
+        value: 'Prompt -> generate -> enhance -> publish.',
+      },
+      {
+        label: 'Outcome',
+        value: 'Create faster without juggling subscriptions or tabs.',
+      },
+    ]}
+    subtitle="Generation, refinement, and packaging"
+    title={
+      <>
+        One workspace
+        <br />
+        for every AI
+        <br />
+        content format.
+      </>
+    }
+  />
+);
+
 export default function StudioContent() {
   const containerRef = useMarketingEntrance();
 
@@ -139,57 +192,8 @@ export default function StudioContent() {
             </ButtonTracked>
           </>
         }
-        heroProof={
-          <HeroProofRail
-            items={METRICS.map((metric) => ({
-              label: metric.label,
-              value: (
-                <>
-                  <span className="text-foreground/40 line-through">
-                    {metric.before}
-                  </span>{' '}
-                  {'->'} {metric.after}
-                </>
-              ),
-            }))}
-            title="Operational shift"
-          />
-        }
-        heroVisual={
-          <EditorialPoster
-            detail="Video, image, voice, and music generation all live inside one production workspace."
-            eyebrow="Studio Canvas"
-            footer={<span>Models live inside one system</span>}
-            items={[
-              {
-                label: 'Models',
-                value: AI_MODELS.slice(0, 4).join(' / '),
-              },
-              {
-                label: 'Formats',
-                value: 'Videos, images, voice, music, and export packs.',
-              },
-              {
-                label: 'Workflow',
-                value: 'Prompt -> generate -> enhance -> publish.',
-              },
-              {
-                label: 'Outcome',
-                value: 'Create faster without juggling subscriptions or tabs.',
-              },
-            ]}
-            subtitle="Generation, refinement, and packaging"
-            title={
-              <>
-                One workspace
-                <br />
-                for every AI
-                <br />
-                content format.
-              </>
-            }
-          />
-        }
+        heroProof={HERO_PROOF}
+        heroVisual={HERO_VISUAL}
         title="Studio"
         description="Create AI content in minutes, not hours."
       >

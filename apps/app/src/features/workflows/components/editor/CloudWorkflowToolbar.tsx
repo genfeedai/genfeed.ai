@@ -11,7 +11,7 @@ import { SaveIndicator, Toolbar } from '@genfeedai/workflow-ui/toolbar';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import type { KeyboardEvent, ReactNode } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 interface CloudWorkflowToolbarProps {
   isSaving: boolean;
@@ -42,24 +42,12 @@ export function CloudWorkflowToolbar({
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!isEditing) {
-      setEditedName(workflowName || 'Untitled Workflow');
-    }
-  }, [isEditing, workflowName]);
-
-  useEffect(() => {
-    if (isEditing) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }
-  }, [isEditing]);
-
   const commitRename = useCallback(async () => {
     const trimmedName = editedName.trim();
     const nextName = trimmedName || 'Untitled Workflow';
 
     setIsEditing(false);
+    setEditedName(workflowName || 'Untitled Workflow');
 
     if (nextName === workflowName) {
       return;
@@ -83,6 +71,15 @@ export function CloudWorkflowToolbar({
     },
     [commitRename, workflowName],
   );
+
+  const handleStartEditing = useCallback(() => {
+    setIsEditing(true);
+    // Focus and select after state update, so the input is rendered
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 0);
+  }, []);
 
   return (
     <div className="workflow-topbar-shell">
@@ -117,7 +114,7 @@ export function CloudWorkflowToolbar({
                   type="button"
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
-                  onClick={() => setIsEditing(true)}
+                  onClick={handleStartEditing}
                   className="cloud-workflow-title block max-w-full truncate text-left text-sm font-medium text-foreground transition hover:text-white"
                   tooltip="Rename workflow"
                 >

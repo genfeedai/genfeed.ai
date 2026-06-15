@@ -13,7 +13,7 @@ import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
 import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import HarnessHeader from './HarnessHeader';
 import HarnessIdentityCard from './HarnessIdentityCard';
@@ -122,7 +122,7 @@ export default function BrandSettingsHarnessPage() {
     HarnessProfilesService.getInstance(token),
   );
 
-  const [profile, setProfile] = useState<IHarnessProfile | null>(null);
+  const profileRef = useRef<IHarnessProfile | null>(null);
   const [draft, setDraft] = useState<ICreateHarnessProfilePayload>(() =>
     createDraft('', 'Brand'),
   );
@@ -152,7 +152,7 @@ export default function BrandSettingsHarnessPage() {
           profiles[0] ??
           null;
 
-        setProfile(activeProfile as IHarnessProfile | null);
+        profileRef.current = activeProfile as IHarnessProfile | null;
         setDraft(createDraft(brandId, brandLabel, activeProfile));
       } catch (error) {
         if (!controller.signal.aborted) {
@@ -239,11 +239,11 @@ export default function BrandSettingsHarnessPage() {
         profileType: 'harness' as const,
         status: draft.status ?? 'active',
       };
-      const saved = profile?.id
-        ? await service.updateProfile(profile.id, payload)
+      const saved = profileRef.current?.id
+        ? await service.updateProfile(profileRef.current.id, payload)
         : await service.createForBrand(payload);
 
-      setProfile(saved as IHarnessProfile);
+      profileRef.current = saved as IHarnessProfile;
       setDraft(createDraft(brandId, brand?.label ?? 'Brand', saved));
       toast.success('Harness profile saved.');
     } catch (error) {
@@ -252,7 +252,7 @@ export default function BrandSettingsHarnessPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [brand?.label, brandId, draft, getHarnessProfilesService, profile?.id]);
+  }, [brand?.label, brandId, draft, getHarnessProfilesService]);
 
   if (!hasBrandId || isLoading || isFetching) {
     return <Loading isFullSize={false} />;

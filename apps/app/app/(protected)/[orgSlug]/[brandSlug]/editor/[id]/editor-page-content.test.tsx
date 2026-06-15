@@ -11,8 +11,9 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { forwardRef, useImperativeHandle } from 'react';
+import { type Ref, useImperativeHandle } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { EditorPreviewRef } from './EditorPreview';
 import EditorPageContent from './editor-page-content';
 
 const mocks = vi.hoisted(() => ({
@@ -186,35 +187,32 @@ vi.mock('./EditorToolbar', () => ({
 }));
 
 vi.mock('./EditorPreview', () => ({
-  default: forwardRef(
-    (
-      {
-        onFrameChange,
-        onPlayingChange,
-      }: {
-        onFrameChange: (frame: number) => void;
-        onPlayingChange: (isPlaying: boolean) => void;
-      },
-      ref,
-    ) => {
-      useImperativeHandle(ref, () => ({
-        pause: mocks.pause,
-        play: mocks.play,
-        seekToFrame: mocks.seekToFrame,
-      }));
+  default: ({
+    onFrameChange,
+    onPlayingChange,
+    ref,
+  }: {
+    onFrameChange: (frame: number) => void;
+    onPlayingChange: (isPlaying: boolean) => void;
+    ref?: Ref<EditorPreviewRef>;
+  }) => {
+    useImperativeHandle(ref, () => ({
+      pause: mocks.pause,
+      play: mocks.play,
+      seekToFrame: mocks.seekToFrame,
+    }));
 
-      return (
-        <section aria-label="preview">
-          <button type="button" onClick={() => onFrameChange(42)}>
-            Preview Frame
-          </button>
-          <button type="button" onClick={() => onPlayingChange(true)}>
-            Preview Playing
-          </button>
-        </section>
-      );
-    },
-  ),
+    return (
+      <section aria-label="preview">
+        <button type="button" onClick={() => onFrameChange(42)}>
+          Preview Frame
+        </button>
+        <button type="button" onClick={() => onPlayingChange(true)}>
+          Preview Playing
+        </button>
+      </section>
+    );
+  },
 }));
 
 vi.mock('./EditorTextPanel', () => ({
