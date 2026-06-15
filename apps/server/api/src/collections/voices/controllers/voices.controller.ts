@@ -5,6 +5,7 @@ import { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto
 import { ImportVoicesDto } from '@api/collections/voices/dto/import-voices.dto';
 import { UpdateVoiceCatalogDto } from '@api/collections/voices/dto/update-voice-catalog.dto';
 import { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dto';
+import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -39,7 +40,6 @@ import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { User } from '@clerk/backend';
 import {
   ActivitySource,
-  AssetScope,
   ByokProvider,
   IngredientCategory,
   IngredientStatus,
@@ -51,7 +51,15 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
-import { VoiceCloneSerializer, VoiceSerializer } from '@genfeedai/serializers';
+import {
+  VoiceProvider as DbVoiceProvider,
+  type ExternalVoice,
+} from '@genfeedai/prisma';
+import {
+  VoiceCatalogEntrySerializer,
+  VoiceCloneSerializer,
+  VoiceSerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -73,6 +81,68 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 
+/**
+ * Wire-format document shape expected by VoiceCatalogEntrySerializer.
+ * Maps ExternalVoice Prisma field names to backward-compatible wire names.
+ */
+interface VoiceCatalogEntryDocument {
+  _id: string;
+  provider: string;
+  externalVoiceId: string;
+  name: string;
+  sampleAudioUrl: string | null;
+  language: string | null;
+  isActive: boolean;
+  isDefaultSelectable: boolean;
+  isFeatured: boolean;
+  providerData: unknown;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Catalog rows live in the ExternalVoice table, whose `externalProvider` column
+ * is the Prisma `VoiceProvider` (UPPERCASE member values). The rest of the app —
+ * wire format, DTOs, Ingredient records, frontend labels — uses the
+ * `@genfeedai/enums` `VoiceProvider` (lowercase values). These exhaustive maps
+ * bridge the two domains so neither casing leaks across the boundary.
+ */
+const APP_TO_DB_PROVIDER: Record<VoiceProvider, DbVoiceProvider> = {
+  [VoiceProvider.ELEVENLABS]: DbVoiceProvider.ELEVENLABS,
+  [VoiceProvider.GENFEED_AI]: DbVoiceProvider.GENFEED_AI,
+  [VoiceProvider.HEDRA]: DbVoiceProvider.HEDRA,
+  [VoiceProvider.HEYGEN]: DbVoiceProvider.HEYGEN,
+};
+
+const DB_TO_APP_PROVIDER: Record<DbVoiceProvider, VoiceProvider> = {
+  [DbVoiceProvider.ELEVENLABS]: VoiceProvider.ELEVENLABS,
+  [DbVoiceProvider.GENFEED_AI]: VoiceProvider.GENFEED_AI,
+  [DbVoiceProvider.HEDRA]: VoiceProvider.HEDRA,
+  [DbVoiceProvider.HEYGEN]: VoiceProvider.HEYGEN,
+};
+
+/** Providers whose remote catalog we can sync into ExternalVoice. */
+type SyncableDbProvider =
+  | typeof DbVoiceProvider.ELEVENLABS
+  | typeof DbVoiceProvider.HEYGEN;
+
+function toWireFormat(voice: ExternalVoice): VoiceCatalogEntryDocument {
+  return {
+    _id: voice.id,
+    createdAt: voice.createdAt,
+    externalVoiceId: voice.externalId,
+    isActive: voice.isActive,
+    isDefaultSelectable: voice.isDefaultSelectable,
+    isFeatured: voice.isFeatured,
+    language: voice.language,
+    name: voice.name,
+    providerData: voice.providerData,
+    provider: DB_TO_APP_PROVIDER[voice.externalProvider],
+    sampleAudioUrl: voice.sampleAudioUrl,
+    updatedAt: voice.updatedAt,
+  };
+}
+
 @AutoSwagger()
 @Controller('voices')
 export class VoicesController {
@@ -81,6 +151,7 @@ export class VoicesController {
   constructor(
     private readonly byokService: ByokService,
     private readonly elevenLabsService: ElevenLabsService,
+    private readonly externalVoiceCatalogService: ExternalVoiceCatalogService,
     private readonly fleetService: FleetService,
     private readonly heygenService: HeyGenService,
     private readonly loggerService: LoggerService,
@@ -90,6 +161,12 @@ export class VoicesController {
     private readonly voicesService: VoicesService,
   ) {}
 
+  /**
+   * GET /voices
+   * Returns user-owned voice ingredients (cloned + generated), scoped to the
+   * calling user's brand and organization. Catalog voices are served by
+   * GET /voices/catalog instead.
+   */
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
@@ -103,57 +180,32 @@ export class VoicesController {
     };
 
     try {
-      const isSuperAdmin = getIsSuperAdmin(user, request);
       const publicMetadata = getPublicMetadata(user);
       const brand = publicMetadata.brand;
       const organization = publicMetadata.organization;
-      const requestedProviders = this.parseProviders(query.providers);
-      const requestedSources = query.voiceSource;
       const normalizedSearch = query.search?.trim();
-      const status = QueryDefaultsUtil.parseStatusFilter(query.status);
       const sort = query.sort || 'metadata.label: 1, createdAt: -1';
-      const catalogFilter: Record<string, unknown> = {
-        voiceSource: 'catalog',
-      };
+
+      // Only cloned/generated voices — catalog lives in ExternalVoice, not here.
       const match: Record<string, unknown> = {
+        OR: [{ isCloned: true }, { externalVoiceCatalogId: { not: null } }],
+        brandId: brand,
         category: IngredientCategory.VOICE,
-        isDeleted: QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted),
-        status,
+        isDeleted: false,
+        organizationId: organization,
       };
-
-      if (query.scope) {
-        catalogFilter.scope = query.scope;
-      }
-
-      if (!isSuperAdmin) {
-        match.OR = [
-          catalogFilter,
-          {
-            OR: [
-              { isCloned: true },
-              { voiceSource: { not: null } },
-              { voiceSource: { in: ['cloned', 'generated'] } },
-            ],
-            brand,
-            organization,
-          },
-        ];
-      }
 
       if (query.isDefault !== undefined) {
         match.isDefault = Boolean(query.isDefault);
       }
 
       if (query.isActive !== undefined) {
-        match.isActive = query.isActive ? { not: false } : false;
+        match.isVoiceActive = query.isActive ? { not: false } : false;
       }
 
+      const requestedProviders = this.parseProviders(query.providers);
       if (requestedProviders.length > 0) {
-        match.provider = { in: requestedProviders };
-      }
-
-      if (requestedSources && requestedSources.length > 0) {
-        match.voiceSource = { in: requestedSources };
+        match.voiceProvider = { in: requestedProviders };
       }
 
       if (normalizedSearch) {
@@ -162,20 +214,20 @@ export class VoicesController {
             OR: [
               {
                 label: {
-                  mode: 'insensitive',
                   contains: normalizedSearch,
+                  mode: 'insensitive',
                 },
               },
               {
                 externalVoiceId: {
-                  mode: 'insensitive',
                   contains: normalizedSearch,
+                  mode: 'insensitive',
                 },
               },
               {
-                provider: {
-                  mode: 'insensitive',
+                voiceProvider: {
                   contains: normalizedSearch,
+                  mode: 'insensitive',
                 },
               },
             ],
@@ -200,73 +252,54 @@ export class VoicesController {
     }
   }
 
-  @Post('import')
+  /**
+   * GET /voices/catalog
+   * Returns the ExternalVoice provider catalog (ElevenLabs, HeyGen).
+   * No brand/org scope — catalog is global reference data.
+   */
+  @Get('catalog')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async importCatalogVoices(
+  async findCatalog(
     @Req() request: Request,
-    @CurrentUser() user: User,
-    @Body() dto: ImportVoicesDto,
+    @Query('provider') providerQuery?: string,
+    @Query('search') search?: string,
   ): Promise<JsonApiCollectionResponse> {
-    if (!getIsSuperAdmin(user, request)) {
-      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    try {
+      const provider = this.parseSingleProvider(providerQuery);
+
+      const voices = await this.externalVoiceCatalogService.findAll({
+        provider,
+        search,
+      });
+
+      const wireDocuments = voices.map(toWireFormat);
+
+      return serializeCollection(request, VoiceCatalogEntrySerializer, {
+        docs: wireDocuments,
+        page: 1,
+        limit: wireDocuments.length,
+        totalDocs: wireDocuments.length,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+        pagingCounter: 1,
+        nextPage: null,
+        prevPage: null,
+      });
+    } catch (_error: unknown) {
+      throw new HttpException(
+        'Failed to find catalog voices',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
-
-    const providers = this.parseCatalogProviders(dto.providers);
-    const publicMetadata = getPublicMetadata(user);
-
-    for (const provider of providers) {
-      if (provider === VoiceProvider.ELEVENLABS) {
-        const voices = await this.elevenLabsService.getVoices();
-        for (const voice of voices) {
-          await this.upsertCatalogVoice(user, publicMetadata, {
-            externalVoiceId: voice.voiceId,
-            label: voice.name,
-            provider,
-            providerData: {},
-            sampleAudioUrl: voice.preview ?? null,
-          });
-        }
-      }
-
-      if (provider === VoiceProvider.HEYGEN) {
-        const voices = await this.heygenService.getVoices();
-        for (const voice of voices) {
-          await this.upsertCatalogVoice(user, publicMetadata, {
-            externalVoiceId: voice.voiceId,
-            label: voice.name,
-            provider,
-            providerData: {
-              index: voice.index,
-            },
-            sampleAudioUrl: voice.preview || null,
-          });
-        }
-      }
-    }
-
-    const findAllQuery = {
-      orderBy: {
-        createdAt: -1,
-        provider: 1,
-      },
-      where: {
-        isDeleted: false,
-        type: 'voice',
-        voiceSource: 'catalog',
-      },
-    };
-
-    const data = await this.voicesService.findAll(findAllQuery, {
-      customLabels,
-      limit: 500,
-      page: 1,
-      pagination: false,
-    });
-
-    return serializeCollection(request, VoiceSerializer, data);
   }
 
-  @Patch(':id')
+  /**
+   * PATCH /voices/catalog/:id
+   * Update catalog voice flags (isActive, isDefaultSelectable, isFeatured).
+   * Super-admin only.
+   */
+  @Patch('catalog/:id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async patchCatalogVoice(
     @Req() request: Request,
@@ -280,37 +313,22 @@ export class VoicesController {
 
     if (!isEntityId(id)) {
       throw new HttpException(
-        { detail: 'Invalid voice ID', title: 'Validation failed' },
+        { detail: 'Invalid catalog voice ID', title: 'Validation failed' },
         HttpStatus.BAD_REQUEST,
       );
     }
 
-    const voice = await this.voicesService.findOne({
-      _id: id,
-      isDeleted: false,
-      type: 'voice',
-      voiceSource: 'catalog',
-    });
+    const existing = await this.externalVoiceCatalogService.findOne(id);
 
-    if (!voice) {
+    if (!existing) {
       return returnNotFound(this.constructorName, id);
     }
 
-    const updates: Record<string, unknown> = {};
-
-    if (dto.isActive !== undefined) {
-      updates.isActive = dto.isActive;
-    }
-
-    if (dto.isDefaultSelectable !== undefined) {
-      updates.isDefaultSelectable = dto.isDefaultSelectable;
-    }
-
-    if (dto.isFeatured !== undefined) {
-      updates.isFeatured = dto.isFeatured;
-    }
-
-    if (Object.keys(updates).length === 0) {
+    if (
+      dto.isActive === undefined &&
+      dto.isDefaultSelectable === undefined &&
+      dto.isFeatured === undefined
+    ) {
       throw new HttpException(
         {
           detail: 'At least one catalog voice field must be provided',
@@ -320,20 +338,40 @@ export class VoicesController {
       );
     }
 
-    await this.voicesService.patchAll(
-      { OR: [{ id: String(id) }, { mongoId: String(id) }] },
-      updates,
+    const updated = await this.externalVoiceCatalogService.patch(id, {
+      isActive: dto.isActive,
+      isDefaultSelectable: dto.isDefaultSelectable,
+      isFeatured: dto.isFeatured,
+    });
+
+    return serializeSingle(
+      request,
+      VoiceCatalogEntrySerializer,
+      toWireFormat(updated),
     );
+  }
 
-    const updatedVoice = await this.voicesService.findOne({ _id: id }, [
-      PopulatePatterns.metadataFull,
-    ]);
-
-    if (!updatedVoice) {
-      return returnNotFound(this.constructorName, id);
+  /**
+   * POST /voices/import
+   * Synchronously syncs the provider voice catalog into ExternalVoice.
+   * Super-admin only.
+   */
+  @Post('import')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async importCatalogVoices(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() dto: ImportVoicesDto,
+  ): Promise<{ data: { created: number; updated: number; total: number } }> {
+    if (!getIsSuperAdmin(user, request)) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
 
-    return serializeSingle(request, VoiceSerializer, updatedVoice);
+    const providers = this.parseCatalogProviders(dto.providers);
+    const result =
+      await this.externalVoiceCatalogService.syncFromProviders(providers);
+
+    return { data: result };
   }
 
   @Post('generate')
@@ -450,181 +488,6 @@ export class VoicesController {
     }
   }
 
-  private parseProviders(
-    providers?: string | VoiceProvider[],
-  ): VoiceProvider[] {
-    const supportedProviders = new Set<VoiceProvider>([
-      VoiceProvider.ELEVENLABS,
-      VoiceProvider.HEYGEN,
-      VoiceProvider.GENFEED_AI,
-    ]);
-
-    if (!providers) {
-      return [...supportedProviders];
-    }
-
-    const rawProviders = Array.isArray(providers)
-      ? providers
-      : providers.split(',');
-
-    const parsedProviders = rawProviders
-      .map((value) => value.trim())
-      .filter((value): value is VoiceProvider =>
-        supportedProviders.has(value as VoiceProvider),
-      );
-
-    return parsedProviders.length > 0
-      ? parsedProviders
-      : [...supportedProviders];
-  }
-
-  private parseCatalogProviders(
-    providers?: VoiceProvider[],
-  ): Array<VoiceProvider.ELEVENLABS | VoiceProvider.HEYGEN> {
-    const allowedProviders = new Set([
-      VoiceProvider.ELEVENLABS,
-      VoiceProvider.HEYGEN,
-    ]);
-
-    if (!providers || providers.length === 0) {
-      return [VoiceProvider.ELEVENLABS, VoiceProvider.HEYGEN];
-    }
-
-    const parsed = providers.filter(
-      (provider): provider is VoiceProvider.ELEVENLABS | VoiceProvider.HEYGEN =>
-        allowedProviders.has(provider),
-    );
-
-    return parsed.length > 0
-      ? parsed
-      : [VoiceProvider.ELEVENLABS, VoiceProvider.HEYGEN];
-  }
-
-  private async upsertCatalogVoice(
-    user: User,
-    publicMetadata: { brand: string; organization: string; user: string },
-    input: {
-      externalVoiceId: string;
-      label: string;
-      provider: VoiceProvider.ELEVENLABS | VoiceProvider.HEYGEN;
-      providerData: Record<string, unknown>;
-      sampleAudioUrl: string | null;
-    },
-  ): Promise<void> {
-    const existingVoice = (await this.voicesService.findOne(
-      {
-        externalVoiceId: input.externalVoiceId,
-        isDeleted: false,
-        provider: input.provider,
-        type: 'voice',
-        voiceSource: 'catalog',
-      },
-      [PopulatePatterns.metadataFull],
-    )) as
-      | (IngredientDocument & {
-          _id: string;
-          metadata?: { _id?: string | string } | string;
-        })
-      | null;
-
-    const catalogPatch = {
-      externalVoiceId: input.externalVoiceId,
-      isCloned: false,
-      provider: input.provider,
-      providerData: input.providerData,
-      sampleAudioUrl: input.sampleAudioUrl ?? undefined,
-      scope: AssetScope.ORGANIZATION,
-      voiceSource: 'catalog' as const,
-    };
-
-    if (existingVoice?._id) {
-      await this.voicesService.patchAll(
-        {
-          OR: [
-            { id: String(existingVoice._id) },
-            { mongoId: String(existingVoice._id) },
-          ],
-        },
-        catalogPatch,
-      );
-
-      const metadataId =
-        existingVoice.metadata &&
-        typeof existingVoice.metadata === 'object' &&
-        '_id' in existingVoice.metadata
-          ? existingVoice.metadata._id
-          : existingVoice.metadata;
-
-      if (metadataId && isEntityId(String(metadataId))) {
-        await this.metadataService.patch(String(metadataId), {
-          externalId: input.externalVoiceId,
-          externalProvider: input.provider,
-          label: input.label,
-        });
-      }
-
-      return;
-    }
-
-    const { ingredientData, metadataData } =
-      await this.sharedService.saveDocuments(user, {
-        brand: publicMetadata.brand,
-        category: IngredientCategory.VOICE,
-        extension: MetadataExtension.MP3,
-        label: input.label,
-        organization: publicMetadata.organization,
-        scope: AssetScope.ORGANIZATION,
-        status: IngredientStatus.UPLOADED,
-      });
-
-    await this.metadataService.patch(String(metadataData._id), {
-      externalId: input.externalVoiceId,
-      externalProvider: input.provider,
-      label: input.label,
-    });
-
-    await this.voicesService.patchAll(
-      {
-        OR: [
-          { id: String(ingredientData._id) },
-          { mongoId: String(ingredientData._id) },
-        ],
-      },
-      {
-        ...catalogPatch,
-        isActive: true,
-        isDefaultSelectable: true,
-        isFeatured: false,
-        status: IngredientStatus.UPLOADED,
-      },
-    );
-  }
-
-  async updateVoice(
-    @Req() request: Request,
-    @Param('id') id: string,
-  ): Promise<JsonApiSingleResponse> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(url, { params: { id } });
-
-    const voice = (await this.voicesService.findOne(
-      {
-        _id: id,
-        type: 'voice',
-      },
-      [PopulatePatterns.metadataFull],
-    )) as unknown as {
-      _id: string;
-      metadata: { externalId: string };
-    };
-
-    if (!voice) {
-      return returnNotFound(this.constructorName, id);
-    }
-
-    return serializeSingle(request, VoiceSerializer, voice);
-  }
-
   @Post('clone')
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @UseInterceptors(
@@ -736,12 +599,11 @@ export class VoicesController {
       const publicMetadata = getPublicMetadata(user);
 
       const findAllQuery = {
-        orderBy: { createdAt: -1 },
+        orderBy: { createdAt: -1 as const },
         where: {
           isCloned: true,
           isDeleted: false,
-          organization: publicMetadata.organization,
-          type: 'voice',
+          organizationId: publicMetadata.organization,
         },
       };
 
@@ -777,8 +639,7 @@ export class VoicesController {
       _id: id,
       isCloned: true,
       isDeleted: false,
-      organization: publicMetadata.organization,
-      type: 'voice',
+      organizationId: publicMetadata.organization,
     });
 
     if (!voice) {
@@ -788,14 +649,14 @@ export class VoicesController {
     const voiceDoc = voice as unknown as {
       _id: string;
       externalVoiceId?: string;
-      provider?: VoiceProvider;
+      voiceProvider?: VoiceProvider;
     };
 
     try {
       // Delete from provider if external ID exists
       if (
         voiceDoc.externalVoiceId &&
-        voiceDoc.provider === VoiceProvider.ELEVENLABS
+        voiceDoc.voiceProvider === VoiceProvider.ELEVENLABS
       ) {
         const byokKey = await this.byokService.resolveApiKey(
           publicMetadata.organization,
@@ -826,6 +687,76 @@ export class VoicesController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  private parseSingleProvider(value?: string): SyncableDbProvider | undefined {
+    if (!value) {
+      return undefined;
+    }
+    // Query param arrives in app (lowercase) casing; the catalog column is the
+    // Prisma enum (UPPERCASE), so normalize to UPPERCASE before matching.
+    const normalized = value.trim().toUpperCase();
+    const allowed: SyncableDbProvider[] = [
+      DbVoiceProvider.ELEVENLABS,
+      DbVoiceProvider.HEYGEN,
+    ];
+    return allowed.find((provider) => provider === normalized);
+  }
+
+  private parseProviders(
+    providers?: string | VoiceProvider[],
+  ): VoiceProvider[] {
+    const supportedProviders = new Set<VoiceProvider>([
+      VoiceProvider.ELEVENLABS,
+      VoiceProvider.HEYGEN,
+      VoiceProvider.GENFEED_AI,
+    ]);
+
+    if (!providers) {
+      return [...supportedProviders];
+    }
+
+    const rawProviders = Array.isArray(providers)
+      ? providers
+      : providers.split(',');
+
+    const parsedProviders = rawProviders
+      .map((value) => value.trim())
+      .filter((value): value is VoiceProvider =>
+        supportedProviders.has(value as VoiceProvider),
+      );
+
+    return parsedProviders.length > 0
+      ? parsedProviders
+      : [...supportedProviders];
+  }
+
+  private parseCatalogProviders(
+    providers?: VoiceProvider[],
+  ): SyncableDbProvider[] {
+    const fallback: SyncableDbProvider[] = [
+      DbVoiceProvider.ELEVENLABS,
+      DbVoiceProvider.HEYGEN,
+    ];
+
+    if (!providers || providers.length === 0) {
+      return fallback;
+    }
+
+    const catalogProviders = new Set<DbVoiceProvider>([
+      DbVoiceProvider.ELEVENLABS,
+      DbVoiceProvider.HEYGEN,
+    ]);
+
+    // App-domain providers (lowercase) → Prisma catalog providers (UPPERCASE),
+    // dropping any that aren't syncable catalog sources (e.g. GENFEED_AI).
+    const parsed = providers
+      .map((provider) => APP_TO_DB_PROVIDER[provider])
+      .filter((provider): provider is SyncableDbProvider =>
+        catalogProviders.has(provider),
+      );
+
+    return parsed.length > 0 ? parsed : fallback;
   }
 
   private async cloneVoiceElevenLabs(
@@ -878,10 +809,10 @@ export class VoicesController {
       {
         cloneStatus: VoiceCloneStatus.READY,
         externalVoiceId: result.voiceId,
-        isActive: true,
         isCloned: true,
+        isVoiceActive: true,
         isDefaultSelectable: true,
-        provider: VoiceProvider.ELEVENLABS,
+        voiceProvider: VoiceProvider.ELEVENLABS,
         voiceSource: 'cloned',
       },
     );
@@ -961,10 +892,10 @@ export class VoicesController {
       },
       {
         cloneStatus: VoiceCloneStatus.CLONING,
-        isActive: true,
         isCloned: true,
+        isVoiceActive: true,
         isDefaultSelectable: true,
-        provider: VoiceProvider.GENFEED_AI,
+        voiceProvider: VoiceProvider.GENFEED_AI,
         sampleAudioUrl: dto.audioUrl,
         voiceSource: 'cloned',
       },

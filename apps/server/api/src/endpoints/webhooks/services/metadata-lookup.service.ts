@@ -85,7 +85,7 @@ export class MetadataLookupService {
       }
 
       const ingredient = await this.ingredientsService.findOne(
-        { metadata: foundMetadata._id },
+        { metadataId: foundMetadata._id },
         [PopulatePatterns.userMinimal],
       );
 
@@ -160,7 +160,7 @@ export class MetadataLookupService {
     await this.metadataService.patch(metadata._id, { result: url });
 
     const ingredient = await this.ingredientsService.findOne(
-      { metadata: metadata._id },
+      { metadataId: metadata._id },
       [PopulatePatterns.userMinimal],
     );
 

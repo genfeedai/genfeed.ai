@@ -37,7 +37,7 @@ describe('useVoiceCatalog', () => {
     );
   });
 
-  it('fetches voices from the db-backed voices service with query options', async () => {
+  it('fetches cloned/generated voices from the ingredients service with query options', async () => {
     const voices = [{ id: 'voice-1', provider: VoiceProvider.ELEVENLABS }];
     mockFindAll.mockResolvedValue(voices);
 
@@ -49,7 +49,6 @@ describe('useVoiceCatalog', () => {
         pagination: true,
         providers: [VoiceProvider.ELEVENLABS],
         search: 'rachel',
-        voiceSource: ['catalog'],
       }),
     );
 
@@ -70,7 +69,6 @@ describe('useVoiceCatalog', () => {
         'failed',
         'completed',
       ],
-      voiceSource: ['catalog'],
     });
     expect(result.current.voices).toEqual(voices);
   });
@@ -112,7 +110,6 @@ describe('useVoiceCatalog', () => {
       providers: undefined,
       search: undefined,
       status: ['completed'],
-      voiceSource: undefined,
     });
     expect(result.current.voices).toEqual([
       { id: 'voice-2' },
