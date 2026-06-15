@@ -75,12 +75,20 @@ export function toPostgresEnum(
   return mongoValue.toUpperCase().replace(/-/g, '_');
 }
 
-// Mongo ingredient statuses with no PG IngredientStatus enum equivalent →
-// nearest valid "ready" state (PG enum: DRAFT/PROCESSING/UPLOADED/GENERATED/
-// VALIDATED/FAILED/ARCHIVED/REJECTED). Keyed by lowercased Mongo value.
+// Legacy Mongo `status` values `merged`/`resized` were RECLASSIFIED in the new
+// schema: they are TransformationCategory operations, not IngredientStatus
+// values. So we map the status to GENERATED (a "ready/produced" state) and
+// separately record the operation in the ingredient's transformations[] (see
+// the transform below). Keyed by lowercased Mongo value.
 const INGREDIENT_STATUS_REMAP: Record<string, string> = {
   merged: 'GENERATED',
-  resized: 'UPLOADED',
+  resized: 'GENERATED',
+};
+
+// Legacy status → TransformationCategory enum value (recorded in transformations[]).
+const LEGACY_STATUS_AS_TRANSFORMATION: Record<string, string> = {
+  merged: 'MERGED',
+  resized: 'RESIZED',
 };
 
 /** Resolve a MongoDB ObjectId ref (ObjectId or string) to a CUID via the idMap. */
@@ -909,11 +917,21 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
           cloneStatus: toPostgresEnum(
             doc.cloneStatus as string | undefined | null,
           ),
-          transformations: Array.isArray(doc.transformations)
-            ? (doc.transformations as string[])
-                .map((t) => toPostgresEnum(t))
-                .filter(Boolean)
-            : [],
+          transformations: (() => {
+            const list = Array.isArray(doc.transformations)
+              ? (doc.transformations as string[])
+                  .map((t) => toPostgresEnum(t))
+                  .filter((t): t is string => Boolean(t))
+              : [];
+            // Preserve the legacy `merged`/`resized` status as its new-model
+            // transformation (the op was only recorded in `status` in the old app).
+            const op =
+              LEGACY_STATUS_AS_TRANSFORMATION[
+                ((doc.status as string | undefined | null) ?? '').toLowerCase()
+              ];
+            if (op && !list.includes(op)) list.push(op);
+            return list;
+          })(),
           postedTo: Array.isArray(doc.postedTo)
             ? (doc.postedTo as string[])
             : [],
