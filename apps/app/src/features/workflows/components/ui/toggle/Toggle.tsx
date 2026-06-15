@@ -11,6 +11,21 @@ export interface ToggleProps {
   className?: string;
 }
 
+const sizeClasses = {
+  md: {
+    knob: 'h-6 w-6',
+    track: 'h-8 w-14',
+    translateActive: 'translate-x-7',
+    translateInactive: 'translate-x-1',
+  },
+  sm: {
+    knob: 'h-3 w-3',
+    track: 'h-5 w-9',
+    translateActive: 'translate-x-5',
+    translateInactive: 'translate-x-1',
+  },
+};
+
 /**
  * Reusable toggle switch component
  * Extracted from repeated inline toggle patterns across node components
@@ -22,21 +37,6 @@ export default function Toggle({
   size = 'sm',
   className,
 }: ToggleProps): React.JSX.Element {
-  const sizeClasses = {
-    md: {
-      knob: 'h-6 w-6',
-      track: 'h-8 w-14',
-      translateActive: 'translate-x-7',
-      translateInactive: 'translate-x-1',
-    },
-    sm: {
-      knob: 'h-3 w-3',
-      track: 'h-5 w-9',
-      translateActive: 'translate-x-5',
-      translateInactive: 'translate-x-1',
-    },
-  };
-
   const sizes = sizeClasses[size];
 
   return (

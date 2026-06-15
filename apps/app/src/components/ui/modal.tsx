@@ -4,7 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import type { LucideIcon } from 'lucide-react';
 import { X } from 'lucide-react';
-import { memo, type ReactNode, useEffect } from 'react';
+import { memo, type ReactNode, useEffect, useEffectEvent } from 'react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -31,14 +31,15 @@ function ModalComponent({
   className,
 }: ModalProps) {
   // ESC key handler
+  const onCloseEvent = useEffectEvent(onClose);
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseEvent();
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

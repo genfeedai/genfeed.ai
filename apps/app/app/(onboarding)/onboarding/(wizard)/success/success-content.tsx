@@ -12,7 +12,7 @@ import { OnboardingFunnelService } from '@services/onboarding/onboarding-funnel.
 import { UsersService } from '@services/organization/users.service';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { BsPersonBoundingBox } from 'react-icons/bs';
 import {
   HiCheckCircle,
@@ -75,15 +75,11 @@ export default function SuccessContent() {
   const { currentUser } = useCurrentUser();
   const { selectedBrand } = useBrand();
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrl] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(ONBOARDING_STORAGE_KEYS.previewUrl);
+  });
   const [selected, setSelected] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    const preview = localStorage.getItem(ONBOARDING_STORAGE_KEYS.previewUrl);
-    if (preview) {
-      setPreviewUrl(preview);
-    }
-  }, []);
 
   const toggleType = (id: string) => {
     setSelected((prev) => {

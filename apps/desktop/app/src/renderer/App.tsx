@@ -3,66 +3,19 @@ import type {
   IDesktopSession,
   IDesktopTrendHandoff,
 } from '@genfeedai/desktop-contracts';
-import {
-  lazy,
-  Suspense,
-  startTransition,
-  useCallback,
-  useEffect,
-  useState,
-} from 'react';
+import { startTransition, useCallback, useEffect, useReducer } from 'react';
 import { AuthScreen } from './auth/AuthScreen';
 import OnboardingWizard from './components/OnboardingWizard';
 import ReconnectBanner from './components/ReconnectBanner';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
 import { useThreads } from './hooks/useThreads';
+import MainView from './MainView';
 import type { NavView } from './nav-view';
 import OfflineShell from './offline/OfflineShell';
 import { useSyncEngine } from './sync/useSyncEngine';
 import { initializeRendererTelemetry } from './telemetry';
 import type { DesktopAgentRunHandoff } from './views/AgentsView';
-
-const AgentsView = lazy(() =>
-  import('./views/AgentsView').then((module) => ({
-    default: module.AgentsView,
-  })),
-);
-const AnalyticsView = lazy(() =>
-  import('./views/AnalyticsView').then((module) => ({
-    default: module.AnalyticsView,
-  })),
-);
-const ConversationView = lazy(() =>
-  import('./views/ConversationView').then((module) => ({
-    default: module.ConversationView,
-  })),
-);
-const LibraryView = lazy(() =>
-  import('./views/LibraryView').then((module) => ({
-    default: module.LibraryView,
-  })),
-);
-const MissionControlView = lazy(() =>
-  import('./views/MissionControlView').then((module) => ({
-    default: module.MissionControlView,
-  })),
-);
-const TerminalView = lazy(() =>
-  import('./views/TerminalView').then((module) => ({
-    default: module.TerminalView,
-  })),
-);
-const TrendsView = lazy(() =>
-  import('./views/TrendsView').then((module) => ({
-    default: module.TrendsView,
-  })),
-);
-const WorkflowsView = lazy(() =>
-  import('./views/WorkflowsView').then((module) => ({
-    default: module.WorkflowsView,
-  })),
-);
 
 const emptyBootstrap: IDesktopBootstrap = {
   clerkId: null,
@@ -101,29 +54,84 @@ const emptyBootstrap: IDesktopBootstrap = {
   workspaces: [],
 };
 
-interface OnboardingState {
-  completed: boolean;
-  loaded: boolean;
+interface AppState {
+  bootstrap: IDesktopBootstrap;
+  activeView: NavView;
+  isOnline: boolean;
+  pendingTrend: IDesktopTrendHandoff | null;
+  onboardingCompleted: boolean;
+  onboardingLoaded: boolean;
+  isDismissedReconnect: boolean;
+  isSidebarCollapsed: boolean;
+}
+
+type AppAction =
+  | { type: 'SET_BOOTSTRAP'; payload: IDesktopBootstrap }
+  | { type: 'SET_SESSION'; payload: IDesktopSession | null }
+  | { type: 'SET_ACTIVE_VIEW'; payload: NavView }
+  | { type: 'SET_ONLINE'; payload: boolean }
+  | { type: 'SET_PENDING_TREND'; payload: IDesktopTrendHandoff | null }
+  | { type: 'SET_ONBOARDING'; payload: { completed: boolean; loaded: boolean } }
+  | { type: 'DISMISS_RECONNECT' }
+  | { type: 'TOGGLE_SIDEBAR' };
+
+const initialState: AppState = {
+  bootstrap: emptyBootstrap,
+  activeView: 'conversation',
+  isOnline: typeof navigator === 'undefined' ? true : navigator.onLine,
+  pendingTrend: null,
+  onboardingCompleted: false,
+  onboardingLoaded: false,
+  isDismissedReconnect: false,
+  isSidebarCollapsed: false,
+};
+
+function appReducer(state: AppState, action: AppAction): AppState {
+  switch (action.type) {
+    case 'SET_BOOTSTRAP':
+      return { ...state, bootstrap: action.payload };
+    case 'SET_SESSION':
+      return {
+        ...state,
+        bootstrap: { ...state.bootstrap, session: action.payload },
+      };
+    case 'SET_ACTIVE_VIEW':
+      return { ...state, activeView: action.payload };
+    case 'SET_ONLINE':
+      return { ...state, isOnline: action.payload };
+    case 'SET_PENDING_TREND':
+      return { ...state, pendingTrend: action.payload };
+    case 'SET_ONBOARDING':
+      return {
+        ...state,
+        onboardingCompleted: action.payload.completed,
+        onboardingLoaded: action.payload.loaded,
+      };
+    case 'DISMISS_RECONNECT':
+      return { ...state, isDismissedReconnect: true };
+    case 'TOGGLE_SIDEBAR':
+      return { ...state, isSidebarCollapsed: !state.isSidebarCollapsed };
+    default:
+      return state;
+  }
 }
 
 export const App = () => {
-  const [bootstrap, setBootstrap] = useState<IDesktopBootstrap>(emptyBootstrap);
-  const [activeView, setActiveView] = useState<NavView>('conversation');
-  const [isOnline, setIsOnline] = useState(
-    typeof navigator === 'undefined' ? true : navigator.onLine,
-  );
-  const [pendingTrend, setPendingTrend] = useState<IDesktopTrendHandoff | null>(
-    null,
-  );
-  const [onboardingState, setOnboardingState] = useState<OnboardingState>({
-    completed: false,
-    loaded: false,
-  });
-  const [isDismissedReconnect, setIsDismissedReconnect] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [state, dispatch] = useReducer(appReducer, initialState);
+
+  const {
+    bootstrap,
+    activeView,
+    isOnline,
+    pendingTrend,
+    onboardingCompleted,
+    onboardingLoaded,
+    isDismissedReconnect,
+    isSidebarCollapsed,
+  } = state;
 
   const handleToggleSidebarCollapse = useCallback(() => {
-    setIsSidebarCollapsed((prev) => !prev);
+    dispatch({ type: 'TOGGLE_SIDEBAR' });
   }, []);
 
   const localUserId = bootstrap.localUserId || null;
@@ -161,7 +169,7 @@ export const App = () => {
   const loadBootstrap = useCallback(async () => {
     try {
       const data = await window.genfeedDesktop.app.getBootstrap();
-      setBootstrap(data);
+      dispatch({ type: 'SET_BOOTSTRAP', payload: data });
     } catch (err) {
       console.error('Failed to load bootstrap:', err);
     }
@@ -178,9 +186,9 @@ export const App = () => {
         onboardingStatePromise,
       ]);
 
-      setOnboardingState({
-        completed: onboardingData.completed,
-        loaded: true,
+      dispatch({
+        type: 'SET_ONBOARDING',
+        payload: { completed: onboardingData.completed, loaded: true },
       });
     };
 
@@ -189,7 +197,7 @@ export const App = () => {
     const disposeSession = window.genfeedDesktop.auth.onDidChangeSession(
       (session: IDesktopSession | null) => {
         startTransition(() => {
-          setBootstrap((prev) => ({ ...prev, session }));
+          dispatch({ type: 'SET_SESSION', payload: session });
         });
       },
     );
@@ -197,17 +205,17 @@ export const App = () => {
     const disposeBootstrap = window.genfeedDesktop.app.onDidBootstrapChange(
       (next: IDesktopBootstrap) => {
         startTransition(() => {
-          setBootstrap(next);
+          dispatch({ type: 'SET_BOOTSTRAP', payload: next });
         });
       },
     );
 
     const disposeSidebar = window.genfeedDesktop.app.onToggleSidebar(() => {
-      setIsSidebarCollapsed((prev) => !prev);
+      dispatch({ type: 'TOGGLE_SIDEBAR' });
     });
 
     const disposeQuickGenerate = window.genfeedDesktop.onQuickGenerate(() => {
-      setActiveView('conversation');
+      dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'conversation' });
       createThread();
     });
 
@@ -220,8 +228,9 @@ export const App = () => {
   }, [loadBootstrap, createThread]);
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = () => dispatch({ type: 'SET_ONLINE', payload: true });
+    const handleOffline = () =>
+      dispatch({ type: 'SET_ONLINE', payload: false });
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -240,7 +249,10 @@ export const App = () => {
 
   const handleOnboardingComplete = useCallback(async () => {
     await window.genfeedDesktop.onboarding.setCompleted();
-    setOnboardingState({ completed: true, loaded: true });
+    dispatch({
+      type: 'SET_ONBOARDING',
+      payload: { completed: true, loaded: true },
+    });
   }, []);
 
   /* ─── Auth ─── */
@@ -256,7 +268,7 @@ export const App = () => {
   /* ─── Navigation ─── */
 
   const handleNavigate = useCallback((view: NavView) => {
-    setActiveView(view);
+    dispatch({ type: 'SET_ACTIVE_VIEW', payload: view });
   }, []);
 
   const handleOpenWorkspace = useCallback(async () => {
@@ -269,19 +281,19 @@ export const App = () => {
 
   const handleSelectThread = useCallback(
     (threadId: string) => {
-      setActiveView('conversation');
+      dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'conversation' });
       setActiveThreadId(threadId);
     },
     [setActiveThreadId],
   );
 
   const handleNewThread = useCallback(() => {
-    setActiveView('conversation');
+    dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'conversation' });
     createThread();
   }, [createThread]);
 
   const handleOpenTerminal = useCallback(() => {
-    setActiveView('terminal');
+    dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'terminal' });
   }, []);
 
   const handleOpenSettings = useCallback(() => {
@@ -290,8 +302,8 @@ export const App = () => {
 
   const handleGenerateFromTrend = useCallback(
     (trend: IDesktopTrendHandoff) => {
-      setActiveView('conversation');
-      setPendingTrend(trend);
+      dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'conversation' });
+      dispatch({ type: 'SET_PENDING_TREND', payload: trend });
       const thread = createThread();
       const message = {
         content: `Draft a ${trend.platform} brief from trend: ${trend.topic}`,
@@ -306,7 +318,7 @@ export const App = () => {
 
   const handleAgentRunHandoff = useCallback(
     ({ agentName, run }: DesktopAgentRunHandoff) => {
-      setActiveView('conversation');
+      dispatch({ type: 'SET_ACTIVE_VIEW', payload: 'conversation' });
       const thread = createThread();
       const outputParts = [
         run.outputSummary,
@@ -335,11 +347,15 @@ export const App = () => {
     [addMessage, createThread],
   );
 
+  const handleTrendConsumed = useCallback(() => {
+    dispatch({ type: 'SET_PENDING_TREND', payload: null });
+  }, []);
+
   /* ─── Derived state ─── */
 
   const shouldShowWizard =
-    onboardingState.loaded &&
-    !onboardingState.completed &&
+    onboardingLoaded &&
+    !onboardingCompleted &&
     !bootstrap.clerkId &&
     bootstrap.session !== null;
 
@@ -351,7 +367,7 @@ export const App = () => {
   /* ─── Render ─── */
 
   // Loading state — wait for onboarding IPC
-  if (!onboardingState.loaded) {
+  if (!onboardingLoaded) {
     return <div className="desktop-loading" />;
   }
 
@@ -370,70 +386,6 @@ export const App = () => {
     return <AuthScreen />;
   }
 
-  const renderMainView = () => {
-    switch (activeView) {
-      case 'conversation':
-        return (
-          <ConversationView
-            onCreateThread={createThread}
-            onSendMessage={addMessage}
-            onSetStatus={setThreadStatus}
-            onTrendConsumed={() => setPendingTrend(null)}
-            pendingTrend={pendingTrend}
-            thread={activeThread}
-            workspaceId={selectedWorkspaceId}
-          />
-        );
-      case 'terminal':
-        return <TerminalView workspaceId={selectedWorkspaceId} />;
-      case 'workflows':
-        return <WorkflowsView isOnline={isOnline} />;
-      case 'agents':
-        return (
-          <AgentsView
-            isOnline={isOnline}
-            onRunHandoff={handleAgentRunHandoff}
-          />
-        );
-      case 'mission-control':
-        return <MissionControlView onStartNewThread={handleNewThread} />;
-      case 'analytics':
-        return (
-          <AnalyticsView
-            isOnline={isOnline}
-            workspaceId={selectedWorkspaceId}
-          />
-        );
-      case 'library':
-        return (
-          <LibraryView
-            isOnline={isOnline}
-            workspace={selectedWorkspace}
-            workspaceId={selectedWorkspaceId}
-          />
-        );
-      case 'trends':
-        return (
-          <TrendsView
-            isOnline={isOnline}
-            onGenerateFromTrend={handleGenerateFromTrend}
-          />
-        );
-      default:
-        return (
-          <ConversationView
-            onCreateThread={createThread}
-            onSendMessage={addMessage}
-            onSetStatus={setThreadStatus}
-            onTrendConsumed={() => setPendingTrend(null)}
-            pendingTrend={pendingTrend}
-            thread={activeThread}
-            workspaceId={selectedWorkspaceId}
-          />
-        );
-    }
-  };
-
   return (
     <div className="desktop-layout two-pane">
       {!isOnline && (
@@ -444,7 +396,7 @@ export const App = () => {
       )}
       {shouldShowReconnect && (
         <ReconnectBanner
-          onDismiss={() => setIsDismissedReconnect(true)}
+          onDismiss={() => dispatch({ type: 'DISMISS_RECONNECT' })}
           onReconnect={() => void handleReconnect()}
         />
       )}
@@ -478,9 +430,21 @@ export const App = () => {
           onOpenTerminal={handleOpenTerminal}
         />
         <main className="main-area">
-          <Suspense fallback={<div className="desktop-loading" />}>
-            {renderMainView()}
-          </Suspense>
+          <MainView
+            activeView={activeView}
+            activeThread={activeThread}
+            isOnline={isOnline}
+            pendingTrend={pendingTrend}
+            selectedWorkspace={selectedWorkspace}
+            selectedWorkspaceId={selectedWorkspaceId}
+            onCreateThread={createThread}
+            onSendMessage={addMessage}
+            onSetStatus={setThreadStatus}
+            onTrendConsumed={handleTrendConsumed}
+            onNewThread={handleNewThread}
+            onRunHandoff={handleAgentRunHandoff}
+            onGenerateFromTrend={handleGenerateFromTrend}
+          />
         </main>
       </div>
     </div>

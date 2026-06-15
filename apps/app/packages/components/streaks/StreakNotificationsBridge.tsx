@@ -92,13 +92,17 @@ export default function StreakNotificationsBridge({
     const state = readState(scopeKey);
     const nextState = { ...state };
 
-    const latestMilestone = [...(streak.milestoneStates ?? [])]
+    const latestMilestone = (streak.milestoneStates ?? [])
       .filter((item) => item.isAchieved && item.achievedAt)
-      .sort(
-        (left, right) =>
-          new Date(right.achievedAt ?? 0).getTime() -
-          new Date(left.achievedAt ?? 0).getTime(),
-      )[0];
+      .reduce<(typeof streak.milestoneStates)[number] | undefined>(
+        (best, item) =>
+          best === undefined ||
+          new Date(item.achievedAt ?? 0).getTime() >
+            new Date(best.achievedAt ?? 0).getTime()
+            ? item
+            : best,
+        undefined,
+      );
 
     if (latestMilestone?.achievedAt) {
       const milestoneKey = `${latestMilestone.days}:${new Date(

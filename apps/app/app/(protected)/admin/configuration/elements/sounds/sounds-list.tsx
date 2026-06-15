@@ -20,12 +20,68 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
-  useState,
 } from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
 import { buildSoundsColumns } from './sounds-list-columns.helpers';
 import SoundsListModals from './sounds-list-modals';
+
+type FetchStatus = 'loading' | 'refreshing' | 'idle';
+
+type SoundsListState = {
+  sounds: Sound[];
+  fetchStatus: FetchStatus;
+  updatingIds: Set<string>;
+  selectedSound: Sound | null;
+  adminOrg: string;
+  adminBrand: string;
+};
+
+type SoundsListAction =
+  | { type: 'FETCH_START'; isRefresh: boolean }
+  | { type: 'FETCH_SUCCESS'; sounds: Sound[]; isRefresh: boolean }
+  | { type: 'FETCH_FINALLY' }
+  | { type: 'ADD_UPDATING_ID'; id: string }
+  | { type: 'REMOVE_UPDATING_ID'; id: string }
+  | { type: 'SET_SELECTED_SOUND'; sound: Sound | null }
+  | { type: 'SET_ADMIN_ORG'; orgId: string }
+  | { type: 'SET_ADMIN_BRAND'; brandId: string };
+
+function soundsListReducer(
+  state: SoundsListState,
+  action: SoundsListAction,
+): SoundsListState {
+  switch (action.type) {
+    case 'FETCH_START':
+      return {
+        ...state,
+        fetchStatus: action.isRefresh ? 'refreshing' : 'loading',
+      };
+    case 'FETCH_SUCCESS':
+      return { ...state, sounds: action.sounds };
+    case 'FETCH_FINALLY':
+      return { ...state, fetchStatus: 'idle' };
+    case 'ADD_UPDATING_ID': {
+      const next = new Set(state.updatingIds);
+      next.add(action.id);
+      return { ...state, updatingIds: next };
+    }
+    case 'REMOVE_UPDATING_ID': {
+      const next = new Set(state.updatingIds);
+      next.delete(action.id);
+      return { ...state, updatingIds: next };
+    }
+    case 'SET_SELECTED_SOUND':
+      return { ...state, selectedSound: action.sound };
+    case 'SET_ADMIN_ORG':
+      return { ...state, adminOrg: action.orgId, adminBrand: '' };
+    case 'SET_ADMIN_BRAND':
+      return { ...state, adminBrand: action.brandId };
+    default:
+      return state;
+  }
+}
 
 function SoundsListContent({
   scope = PageScope.BRAND,
@@ -48,25 +104,31 @@ function SoundsListContent({
     [searchParamsString],
   );
 
-  const [sounds, setSounds] = useState<Sound[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
+  const [state, dispatch] = useReducer(soundsListReducer, undefined, () => ({
+    sounds: [],
+    fetchStatus: 'loading' as FetchStatus,
+    updatingIds: new Set<string>(),
+    selectedSound: null,
+    adminOrg: parsedSearchParams.get('organization') || '',
+    adminBrand: parsedSearchParams.get('brand') || '',
+  }));
 
-  const [selectedSound, setSelectedSound] = useState<Sound | null>(null);
+  const {
+    sounds,
+    fetchStatus,
+    updatingIds,
+    selectedSound,
+    adminOrg,
+    adminBrand,
+  } = state;
 
-  // Admin org/brand filter state (superadmin only)
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
-  );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
+  // Derive isLoading from fetchStatus instead of storing it in separate state
+  const isLoading = fetchStatus === 'loading';
 
   // Admin filter URL sync handlers
   const handleAdminOrgChange = useCallback(
     (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
+      dispatch({ type: 'SET_ADMIN_ORG', orgId });
       const params = new URLSearchParams(searchParamsString);
       if (orgId) {
         params.set('organization', orgId);
@@ -85,7 +147,7 @@ function SoundsListContent({
 
   const handleAdminBrandChange = useCallback(
     (brandId: string) => {
-      setAdminBrand(brandId);
+      dispatch({ type: 'SET_ADMIN_BRAND', brandId });
       const params = new URLSearchParams(searchParamsString);
       if (brandId) {
         params.set('brand', brandId);
@@ -115,14 +177,11 @@ function SoundsListContent({
 
   const findAllSounds = useCallback(
     async (isRefresh = false) => {
-      const newIsRefreshing = isRefresh;
-      const newIsLoading = !isRefresh;
-
-      setIsLoading(newIsLoading);
+      dispatch({ type: 'FETCH_START', isRefresh });
 
       // Notify parent of state changes
-      onRefreshingChangeRef.current?.(newIsRefreshing);
-      onLoadingChangeRef.current?.(newIsLoading);
+      onRefreshingChangeRef.current?.(isRefresh);
+      onLoadingChangeRef.current?.(!isRefresh);
 
       try {
         const service = await getSoundsService();
@@ -143,7 +202,7 @@ function SoundsListContent({
         }
 
         const data = await service.findAll(query);
-        setSounds(data);
+        dispatch({ type: 'FETCH_SUCCESS', sounds: data, isRefresh });
 
         if (isRefresh) {
           notificationsService.success('Sounds refreshed');
@@ -154,7 +213,7 @@ function SoundsListContent({
         logger.error('GET /sounds failed', error);
         notificationsService.error('Failed to load sounds');
       } finally {
-        setIsLoading(false);
+        dispatch({ type: 'FETCH_FINALLY' });
         onLoadingChangeRef.current?.(false);
         onRefreshingChangeRef.current?.(false);
       }
@@ -175,12 +234,12 @@ function SoundsListContent({
     findAllSounds();
   }, [findAllSounds]);
   const openSoundModal = (modalId: ModalEnum, sound?: Sound) => {
-    setSelectedSound(sound || null);
+    dispatch({ type: 'SET_SELECTED_SOUND', sound: sound || null });
     openModal(modalId);
   };
 
   const handleToggleActive = async (sound: Sound) => {
-    setUpdatingIds((prev) => new Set([...prev, sound.id]));
+    dispatch({ type: 'ADD_UPDATING_ID', id: sound.id });
     try {
       const service = await getSoundsService();
       await service.patch(sound.id, { isActive: !sound.isActive });
@@ -190,16 +249,12 @@ function SoundsListContent({
       logger.error('Failed to update sound', error);
       notificationsService.error('Failed to update sound');
     } finally {
-      setUpdatingIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(sound.id);
-        return newSet;
-      });
+      dispatch({ type: 'REMOVE_UPDATING_ID', id: sound.id });
     }
   };
 
   const handleToggleDefault = async (sound: Sound) => {
-    setUpdatingIds((prev) => new Set([...prev, sound.id]));
+    dispatch({ type: 'ADD_UPDATING_ID', id: sound.id });
     try {
       const service = await getSoundsService();
       await service.patch(sound.id, { isDefault: !sound.isDefault });
@@ -209,11 +264,7 @@ function SoundsListContent({
       logger.error('Failed to update sound', error);
       notificationsService.error('Failed to update sound');
     } finally {
-      setUpdatingIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(sound.id);
-        return newSet;
-      });
+      dispatch({ type: 'REMOVE_UPDATING_ID', id: sound.id });
     }
   };
 
@@ -222,12 +273,12 @@ function SoundsListContent({
       const service = await getSoundsService();
       await service.delete(sound.id);
       notificationsService.success('Sound deleted');
-      setSelectedSound(null);
+      dispatch({ type: 'SET_SELECTED_SOUND', sound: null });
       findAllSounds(true);
     } catch (error) {
       logger.error('Failed to delete sound', error);
       notificationsService.error('Failed to delete sound');
-      setSelectedSound(null);
+      dispatch({ type: 'SET_SELECTED_SOUND', sound: null });
     }
   };
 
@@ -249,7 +300,7 @@ function SoundsListContent({
           {
             icon: <HiTrash />,
             onClick: (sound: Sound) => {
-              setSelectedSound(sound);
+              dispatch({ type: 'SET_SELECTED_SOUND', sound });
               openConfirm({
                 confirmLabel: 'Delete',
                 isError: true,
@@ -289,7 +340,7 @@ function SoundsListContent({
         scope={scope}
         selectedSound={selectedSound}
         onConfirm={() => {
-          setSelectedSound(null);
+          dispatch({ type: 'SET_SELECTED_SOUND', sound: null });
           findAllSounds(true);
         }}
       />

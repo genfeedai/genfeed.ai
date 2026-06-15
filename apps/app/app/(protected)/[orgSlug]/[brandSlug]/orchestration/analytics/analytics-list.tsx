@@ -16,11 +16,85 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import { BrandsService } from '@services/social/brands.service';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 import { HiArrowDownTray, HiOutlineChartBar } from 'react-icons/hi2';
 import AnalyticsKPISection from './analytics-kpi-section';
 import AnalyticsRecentVideos from './analytics-recent-videos';
 import AnalyticsViewsChart from './analytics-views-chart';
+
+type AnalyticsState = {
+  isLoading: boolean;
+  isTimeSeriesLoading: boolean;
+  recentVideos: Video[];
+  timeSeriesData: ITimeSeriesDataPoint[];
+  stats: IAnalytics;
+};
+
+type AnalyticsAction =
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_TIME_SERIES_LOADING'; payload: boolean }
+  | { type: 'SET_RECENT_VIDEOS'; payload: Video[] }
+  | { type: 'SET_TIME_SERIES_DATA'; payload: ITimeSeriesDataPoint[] }
+  | { type: 'SET_STATS'; payload: IAnalytics }
+  | {
+      type: 'ANALYTICS_SUCCESS';
+      payload: { stats: IAnalytics; isLoading: false };
+    }
+  | {
+      type: 'TIME_SERIES_SUCCESS';
+      payload: {
+        timeSeriesData: ITimeSeriesDataPoint[];
+        isTimeSeriesLoading: false;
+      };
+    };
+
+const initialAnalyticsState: AnalyticsState = {
+  isLoading: true,
+  isTimeSeriesLoading: true,
+  recentVideos: [],
+  timeSeriesData: [],
+  stats: {
+    monthlyGrowth: 0,
+    totalCredentialsConnected: 0,
+    totalPosts: 0,
+    totalViews: 0,
+    viewsGrowth: 0,
+  },
+};
+
+function analyticsReducer(
+  state: AnalyticsState,
+  action: AnalyticsAction,
+): AnalyticsState {
+  switch (action.type) {
+    case 'SET_LOADING':
+      // Bail out (preserve reference) when unchanged, mirroring useState
+      // equality so a no-op toggle never forces a re-render.
+      return state.isLoading === action.payload
+        ? state
+        : { ...state, isLoading: action.payload };
+    case 'SET_TIME_SERIES_LOADING':
+      return state.isTimeSeriesLoading === action.payload
+        ? state
+        : { ...state, isTimeSeriesLoading: action.payload };
+    case 'SET_RECENT_VIDEOS':
+      return { ...state, recentVideos: action.payload };
+    case 'SET_TIME_SERIES_DATA':
+      return { ...state, timeSeriesData: action.payload };
+    case 'SET_STATS':
+      return { ...state, stats: action.payload };
+    case 'ANALYTICS_SUCCESS':
+      return { ...state, stats: action.payload.stats, isLoading: false };
+    case 'TIME_SERIES_SUCCESS':
+      return {
+        ...state,
+        timeSeriesData: action.payload.timeSeriesData,
+        isTimeSeriesLoading: false,
+      };
+    default:
+      return state;
+  }
+}
 
 export default function AnalyticsList(_props: ContentProps) {
   const { isSignedIn } = useAuth();
@@ -45,24 +119,21 @@ export default function AnalyticsList(_props: ContentProps) {
     OrganizationsService.getInstance(token),
   );
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [isTimeSeriesLoading, setIsTimeSeriesLoading] = useState(true);
-
-  const [recentVideos, setRecentVideos] = useState<Video[]>([]);
-  const [timeSeriesData, setTimeSeriesData] = useState<ITimeSeriesDataPoint[]>(
-    [],
+  const [analyticsState, dispatch] = useReducer(
+    analyticsReducer,
+    initialAnalyticsState,
   );
 
-  const [stats, setStats] = useState<IAnalytics>({
-    monthlyGrowth: 0,
-    totalCredentialsConnected: 0,
-    totalPosts: 0,
-    totalViews: 0,
-    viewsGrowth: 0,
-  });
+  const {
+    isLoading,
+    isTimeSeriesLoading,
+    recentVideos,
+    timeSeriesData,
+    stats,
+  } = analyticsState;
 
   const findAnalytics = useCallback(async () => {
-    setIsLoading(true);
+    dispatch({ type: 'SET_LOADING', payload: true });
 
     const url = 'GET /analytics';
 
@@ -85,11 +156,13 @@ export default function AnalyticsList(_props: ContentProps) {
         data = await service.findOrganizationAnalytics(organizationId);
       }
 
-      setStats(data);
-      setIsLoading(false);
+      dispatch({
+        type: 'ANALYTICS_SUCCESS',
+        payload: { stats: data, isLoading: false },
+      });
     } catch (error) {
       logger.error(`${url} failed`, error);
-      setIsLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, [brandId, organizationId, getBrandsService, getOrganizationsService]);
 
@@ -120,14 +193,14 @@ export default function AnalyticsList(_props: ContentProps) {
       const data = await service.findAll(query);
       logger.info(`${url} success`, data);
 
-      setRecentVideos(data);
+      dispatch({ type: 'SET_RECENT_VIDEOS', payload: data });
     } catch (error) {
       logger.error(`${url} failed`, error);
     }
   }, [brandId, organizationId, getVideosService]);
 
   const findTimeSeries = useCallback(async () => {
-    setIsTimeSeriesLoading(true);
+    dispatch({ type: 'SET_TIME_SERIES_LOADING', payload: true });
 
     const url = 'GET /analytics/timeseries';
 
@@ -159,11 +232,13 @@ export default function AnalyticsList(_props: ContentProps) {
       }
 
       logger.info(`${url} success`, data);
-      setTimeSeriesData(data);
-      setIsTimeSeriesLoading(false);
+      dispatch({
+        type: 'TIME_SERIES_SUCCESS',
+        payload: { timeSeriesData: data, isTimeSeriesLoading: false },
+      });
     } catch (error) {
       logger.error(`${url} failed`, error);
-      setIsTimeSeriesLoading(false);
+      dispatch({ type: 'SET_TIME_SERIES_LOADING', payload: false });
     }
   }, [brandId, organizationId, getBrandsService, getOrganizationsService]);
 

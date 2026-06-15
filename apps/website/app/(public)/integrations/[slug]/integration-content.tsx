@@ -5,6 +5,7 @@ import HeroProofRail from '@ui/marketing/HeroProofRail';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
+import { useMemo } from 'react';
 import { FaCheck } from 'react-icons/fa6';
 
 export default function IntegrationContent({
@@ -12,6 +13,47 @@ export default function IntegrationContent({
 }: {
   integration: Integration;
 }) {
+  const heroProof = useMemo(
+    () => (
+      <HeroProofRail
+        title="Channel fit"
+        items={[
+          {
+            label: 'Workflow steps',
+            value: String(integration.workflow.length),
+          },
+          {
+            label: 'Core features',
+            value: String(integration.features.length),
+          },
+          { label: 'Positioning', value: integration.tagline },
+        ]}
+      />
+    ),
+    [integration],
+  );
+
+  const heroVisual = useMemo(
+    () => (
+      <EditorialPoster
+        eyebrow={integration.tagline}
+        title={`Build for ${integration.name}`}
+        detail={integration.description}
+        items={integration.workflow.slice(0, 4).map((step) => ({
+          label: `Step ${step.step}`,
+          value: step.title,
+        }))}
+        footer={
+          <>
+            <span>{integration.features.length} workflow advantages</span>
+            <span>{integration.cta}</span>
+          </>
+        }
+      />
+    ),
+    [integration],
+  );
+
   return (
     <PageLayout
       title={integration.name}
@@ -24,39 +66,8 @@ export default function IntegrationContent({
           </Link>
         </>
       }
-      heroProof={
-        <HeroProofRail
-          title="Channel fit"
-          items={[
-            {
-              label: 'Workflow steps',
-              value: String(integration.workflow.length),
-            },
-            {
-              label: 'Core features',
-              value: String(integration.features.length),
-            },
-            { label: 'Positioning', value: integration.tagline },
-          ]}
-        />
-      }
-      heroVisual={
-        <EditorialPoster
-          eyebrow={integration.tagline}
-          title={`Build for ${integration.name}`}
-          detail={integration.description}
-          items={integration.workflow.slice(0, 4).map((step) => ({
-            label: `Step ${step.step}`,
-            value: step.title,
-          }))}
-          footer={
-            <>
-              <span>{integration.features.length} workflow advantages</span>
-              <span>{integration.cta}</span>
-            </>
-          }
-        />
-      }
+      heroProof={heroProof}
+      heroVisual={heroVisual}
     >
       <section className="max-w-6xl mx-auto pb-20">
         <h2 className="text-3xl font-semibold text-center mb-12">Features</h2>

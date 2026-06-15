@@ -12,7 +12,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useState,
+  useReducer,
 } from 'react';
 import SkillCatalogCard from './SkillCatalogCard';
 import SkillDetailCard from './SkillDetailCard';
@@ -34,6 +34,105 @@ function buildSkillTestPrompt(skill: Skill): string {
   return `Use my ${skill.name} setup to create a small sample for ${skill.channels[0] ?? 'this channel'}. Explain how the skill affects the output.`;
 }
 
+function emptyDraft(): SkillDraft {
+  return {
+    defaultInstructions: '',
+    description: '',
+    name: '',
+    systemPromptTemplate: '',
+  };
+}
+
+function draftFromSkill(skill: Skill | null): SkillDraft {
+  return {
+    defaultInstructions: skill?.defaultInstructions ?? '',
+    description: skill?.description ?? '',
+    name: skill?.name ?? '',
+    systemPromptTemplate: skill?.systemPromptTemplate ?? '',
+  };
+}
+
+type PageState = {
+  skills: Skill[];
+  selectedSkillId: string;
+  sourceFilter: SourceFilterValue;
+  modalityFilter: ModalityFilterValue;
+  stageFilter: StageFilterValue;
+  isLoading: boolean;
+  isSavingSkill: boolean;
+  isCustomizing: boolean;
+  error: string | null;
+  skillDraft: SkillDraft;
+};
+
+type PageAction =
+  | { type: 'LOAD_START' }
+  | { type: 'LOAD_SUCCESS'; skills: Skill[] }
+  | { type: 'LOAD_ERROR'; message: string }
+  | { type: 'SELECT_SKILL'; id: string; draft: SkillDraft }
+  | { type: 'SET_SOURCE_FILTER'; value: SourceFilterValue }
+  | { type: 'SET_MODALITY_FILTER'; value: ModalityFilterValue }
+  | { type: 'SET_STAGE_FILTER'; value: StageFilterValue }
+  | { type: 'SAVE_START' }
+  | { type: 'SAVE_SUCCESS' }
+  | { type: 'SAVE_ERROR'; message: string }
+  | { type: 'CUSTOMIZE_START' }
+  | { type: 'CUSTOMIZE_SUCCESS'; newSkillId: string }
+  | { type: 'CUSTOMIZE_ERROR'; message: string }
+  | { type: 'SET_SKILL_DRAFT'; draft: SkillDraft };
+
+const initialState: PageState = {
+  skills: [],
+  selectedSkillId: '',
+  sourceFilter: 'all',
+  modalityFilter: 'all',
+  stageFilter: 'all',
+  isLoading: true,
+  isSavingSkill: false,
+  isCustomizing: false,
+  error: null,
+  skillDraft: emptyDraft(),
+};
+
+function pageReducer(state: PageState, action: PageAction): PageState {
+  switch (action.type) {
+    case 'LOAD_START':
+      return { ...state, isLoading: true, error: null };
+    case 'LOAD_SUCCESS':
+      return { ...state, isLoading: false, skills: action.skills };
+    case 'LOAD_ERROR':
+      return { ...state, isLoading: false, error: action.message };
+    case 'SELECT_SKILL':
+      return { ...state, selectedSkillId: action.id, skillDraft: action.draft };
+    case 'SET_SOURCE_FILTER':
+      return { ...state, sourceFilter: action.value };
+    case 'SET_MODALITY_FILTER':
+      return { ...state, modalityFilter: action.value };
+    case 'SET_STAGE_FILTER':
+      return { ...state, stageFilter: action.value };
+    case 'SAVE_START':
+      return { ...state, isSavingSkill: true, error: null };
+    case 'SAVE_SUCCESS':
+      return { ...state, isSavingSkill: false };
+    case 'SAVE_ERROR':
+      return { ...state, isSavingSkill: false, error: action.message };
+    case 'CUSTOMIZE_START':
+      return { ...state, isCustomizing: true, error: null };
+    case 'CUSTOMIZE_SUCCESS':
+      return {
+        ...state,
+        isCustomizing: false,
+        selectedSkillId: action.newSkillId,
+      };
+    case 'CUSTOMIZE_ERROR':
+      return { ...state, isCustomizing: false, error: action.message };
+    case 'SET_SKILL_DRAFT':
+      return { ...state, skillDraft: action.draft };
+    default:
+      return state;
+  }
+}
+
 export default function OrchestrationSkillsPage() {
   const { push } = useRouter();
   const { orgHref } = useOrgUrl();
@@ -41,22 +140,20 @@ export default function OrchestrationSkillsPage() {
   const { isReady, selectedBrand } = useBrand();
 
   const { enabledSlugs, toggleSkill } = useBrandEnabledSkills();
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [selectedSkillId, setSelectedSkillId] = useState<string>('');
-  const [sourceFilter, setSourceFilter] = useState<SourceFilterValue>('all');
-  const [modalityFilter, setModalityFilter] =
-    useState<ModalityFilterValue>('all');
-  const [stageFilter, setStageFilter] = useState<StageFilterValue>('all');
-  const [loading, setLoading] = useState(true);
-  const [savingSkill, setSavingSkill] = useState(false);
-  const [customizing, setCustomizing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [skillDraft, setSkillDraft] = useState<SkillDraft>({
-    defaultInstructions: '',
-    description: '',
-    name: '',
-    systemPromptTemplate: '',
-  });
+
+  const [state, dispatch] = useReducer(pageReducer, initialState);
+  const {
+    skills,
+    selectedSkillId,
+    sourceFilter,
+    modalityFilter,
+    stageFilter,
+    isLoading,
+    isSavingSkill,
+    isCustomizing,
+    error,
+    skillDraft,
+  } = state;
 
   const getSkillsService = useCallback(async () => {
     const token = await resolveClerkToken(getToken);
@@ -71,20 +168,20 @@ export default function OrchestrationSkillsPage() {
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    dispatch({ type: 'LOAD_START' });
 
     try {
       const service = await getSkillsService();
       const catalogSkills = await service.listSkills();
 
       startTransition(() => {
-        setSkills(catalogSkills);
+        dispatch({ type: 'LOAD_SUCCESS', skills: catalogSkills });
       });
     } catch {
-      setError('Failed to load the agent skill catalog.');
-    } finally {
-      setLoading(false);
+      dispatch({
+        type: 'LOAD_ERROR',
+        message: 'Failed to load the agent skill catalog.',
+      });
     }
   }, [getSkillsService, isReady]);
 
@@ -109,6 +206,8 @@ export default function OrchestrationSkillsPage() {
       .sort((left, right) => left.name.localeCompare(right.name));
   }, [modalityFilter, skills, sourceFilter, stageFilter]);
 
+  // Derive selectedSkill — falls back to the first filtered skill when the
+  // stored id is not in the current filtered list (e.g. after a filter change).
   const selectedSkill = useMemo(
     () =>
       filteredSkills.find((skill) => skill.id === selectedSkillId) ??
@@ -117,52 +216,53 @@ export default function OrchestrationSkillsPage() {
     [filteredSkills, selectedSkillId],
   );
 
-  useEffect(() => {
-    if (selectedSkill && selectedSkill.id !== selectedSkillId) {
-      setSelectedSkillId(selectedSkill.id);
-    }
-  }, [selectedSkill, selectedSkillId]);
+  // Derive skillDraft from selectedSkill when the user has not yet edited it.
+  // This replaces the previous useEffect that synced selectedSkill → skillDraft,
+  // and the useEffect that synced selectedSkill.id back to selectedSkillId.
+  // Both effects are removed; the draft is computed inline during render.
+  const derivedDraft = useMemo(
+    () => draftFromSkill(selectedSkill),
+    [selectedSkill],
+  );
 
-  useEffect(() => {
-    setSkillDraft({
-      defaultInstructions: selectedSkill?.defaultInstructions ?? '',
-      description: selectedSkill?.description ?? '',
-      name: selectedSkill?.name ?? '',
-      systemPromptTemplate: selectedSkill?.systemPromptTemplate ?? '',
-    });
-  }, [selectedSkill]);
+  // When selectedSkill changes (e.g. filters shift the selection), reset the
+  // draft to reflect the newly active skill — done inline without an effect.
+  const effectiveSkillDraft =
+    selectedSkillId === selectedSkill?.id ? skillDraft : derivedDraft;
 
   const handleSaveSkill = useCallback(async () => {
     if (!selectedSkill?.organization) {
       return;
     }
 
-    setSavingSkill(true);
-    setError(null);
+    dispatch({ type: 'SAVE_START' });
 
     try {
       const service = await getSkillsService();
       await service.updateSkill(selectedSkill.id, {
-        defaultInstructions: skillDraft.defaultInstructions.trim() || undefined,
-        description: skillDraft.description.trim(),
-        name: skillDraft.name.trim(),
+        defaultInstructions:
+          effectiveSkillDraft.defaultInstructions.trim() || undefined,
+        description: effectiveSkillDraft.description.trim(),
+        name: effectiveSkillDraft.name.trim(),
         systemPromptTemplate:
-          skillDraft.systemPromptTemplate.trim() || undefined,
+          effectiveSkillDraft.systemPromptTemplate.trim() || undefined,
       });
       await refreshCatalog();
+      dispatch({ type: 'SAVE_SUCCESS' });
     } catch {
-      setError('Failed to update the selected skill variant.');
-    } finally {
-      setSavingSkill(false);
+      dispatch({
+        type: 'SAVE_ERROR',
+        message: 'Failed to update the selected skill variant.',
+      });
     }
   }, [
     getSkillsService,
     refreshCatalog,
     selectedSkill,
-    skillDraft.defaultInstructions,
-    skillDraft.description,
-    skillDraft.name,
-    skillDraft.systemPromptTemplate,
+    effectiveSkillDraft.defaultInstructions,
+    effectiveSkillDraft.description,
+    effectiveSkillDraft.name,
+    effectiveSkillDraft.systemPromptTemplate,
   ]);
 
   const handleCustomize = useCallback(async () => {
@@ -170,8 +270,7 @@ export default function OrchestrationSkillsPage() {
       return;
     }
 
-    setCustomizing(true);
-    setError(null);
+    dispatch({ type: 'CUSTOMIZE_START' });
 
     try {
       const service = await getSkillsService();
@@ -179,11 +278,12 @@ export default function OrchestrationSkillsPage() {
         name: `${selectedSkill.name} Custom`,
       });
       await refreshCatalog();
-      setSelectedSkillId(customizedSkill.id);
+      dispatch({ type: 'CUSTOMIZE_SUCCESS', newSkillId: customizedSkill.id });
     } catch {
-      setError('Failed to create a brand-editable skill variant.');
-    } finally {
-      setCustomizing(false);
+      dispatch({
+        type: 'CUSTOMIZE_ERROR',
+        message: 'Failed to create a brand-editable skill variant.',
+      });
     }
   }, [getSkillsService, refreshCatalog, selectedSkill]);
 
@@ -196,12 +296,22 @@ export default function OrchestrationSkillsPage() {
     push(orgHref(`/chat/new?prompt=${encodeURIComponent(prompt)}`));
   }, [orgHref, push, selectedSkill]);
 
+  const handleSkillSelect = useCallback(
+    (id: string) => {
+      const skill = filteredSkills.find((s) => s.id === id) ?? null;
+      dispatch({ type: 'SELECT_SKILL', id, draft: draftFromSkill(skill) });
+    },
+    [filteredSkills],
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 px-4 py-6 md:px-6 lg:px-8">
       <SkillsPageHeader
         brandLabel={selectedBrand?.label}
         onRefresh={() => void refreshCatalog()}
-        onSourceFilterChange={setSourceFilter}
+        onSourceFilterChange={(value) =>
+          dispatch({ type: 'SET_SOURCE_FILTER', value })
+        }
         sourceFilter={sourceFilter}
       />
 
@@ -215,25 +325,34 @@ export default function OrchestrationSkillsPage() {
         <SkillCatalogCard
           enabledSlugs={enabledSlugs}
           filteredSkills={filteredSkills}
-          isLoading={loading}
+          isLoading={isLoading}
           modalityFilter={modalityFilter}
-          onModalityFilterChange={setModalityFilter}
-          onSkillSelect={setSelectedSkillId}
-          onStageFilterChange={setStageFilter}
+          onModalityFilterChange={(value) =>
+            dispatch({ type: 'SET_MODALITY_FILTER', value })
+          }
+          onSkillSelect={handleSkillSelect}
+          onStageFilterChange={(value) =>
+            dispatch({ type: 'SET_STAGE_FILTER', value })
+          }
           onToggleSkill={(slug) => void toggleSkill(slug)}
           selectedSkillId={selectedSkill?.id}
           stageFilter={stageFilter}
         />
 
         <SkillDetailCard
-          customizing={customizing}
+          customizing={isCustomizing}
           onCustomize={() => void handleCustomize()}
           onOpenTestInChat={handleOpenTestInChat}
           onSaveSkill={() => void handleSaveSkill()}
-          onSkillDraftChange={setSkillDraft}
-          savingSkill={savingSkill}
+          onSkillDraftChange={(updater) =>
+            dispatch({
+              type: 'SET_SKILL_DRAFT',
+              draft: updater(effectiveSkillDraft),
+            })
+          }
+          savingSkill={isSavingSkill}
           selectedSkill={selectedSkill}
-          skillDraft={skillDraft}
+          skillDraft={effectiveSkillDraft}
         />
       </div>
     </div>

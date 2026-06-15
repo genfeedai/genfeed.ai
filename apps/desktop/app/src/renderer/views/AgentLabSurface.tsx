@@ -147,8 +147,8 @@ export function AgentLabSurface({
   if (mode === 'overlay') {
     return (
       <div className="pointer-events-none fixed inset-0 z-40 top-16">
-        <div
-          aria-label="Close"
+        <Button
+          ariaLabel="Close"
           className="pointer-events-auto absolute inset-0 bg-black/45"
           onClick={onClose}
           onKeyDown={(event) => {
@@ -156,8 +156,9 @@ export function AgentLabSurface({
               onClose();
             }
           }}
-          role="button"
           tabIndex={-1}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
         />
         <div className="pointer-events-auto absolute inset-y-0 right-0 flex justify-end">
           {shell}

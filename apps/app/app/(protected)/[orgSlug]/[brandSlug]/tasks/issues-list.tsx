@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { type JSX, useCallback, useEffect, useRef, useState } from 'react';
+import { type JSX, useCallback, useEffect, useReducer, useRef } from 'react';
 import {
   HiOutlineExclamationTriangle,
   HiOutlineListBullet,
@@ -198,17 +198,101 @@ function KanbanColumn({
   );
 }
 
+type IssuesListState = {
+  issues: Task[];
+  isLoading: boolean;
+  viewMode: ViewMode;
+  statusFilter: TaskStatus | '';
+  showCreateDialog: boolean;
+  createTitle: string;
+  createDescription: string;
+  createPriority: TaskPriority;
+  isCreating: boolean;
+  selectedIssue: Task | null;
+};
+
+type IssuesListAction =
+  | { type: 'SET_ISSUES'; payload: Task[] }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_VIEW_MODE'; payload: ViewMode }
+  | { type: 'SET_STATUS_FILTER'; payload: TaskStatus | '' }
+  | { type: 'SET_SHOW_CREATE_DIALOG'; payload: boolean }
+  | { type: 'SET_CREATE_TITLE'; payload: string }
+  | { type: 'SET_CREATE_DESCRIPTION'; payload: string }
+  | { type: 'SET_CREATE_PRIORITY'; payload: TaskPriority }
+  | { type: 'SET_CREATING'; payload: boolean }
+  | { type: 'SET_SELECTED_ISSUE'; payload: Task | null }
+  | { type: 'RESET_CREATE_FORM' };
+
+const initialIssuesListState: IssuesListState = {
+  createDescription: '',
+  createPriority: 'medium',
+  createTitle: '',
+  isCreating: false,
+  isLoading: true,
+  issues: [],
+  selectedIssue: null,
+  showCreateDialog: false,
+  statusFilter: '',
+  viewMode: 'list',
+};
+
+function issuesListReducer(
+  state: IssuesListState,
+  action: IssuesListAction,
+): IssuesListState {
+  switch (action.type) {
+    case 'SET_ISSUES':
+      return { ...state, issues: action.payload };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_VIEW_MODE':
+      return { ...state, viewMode: action.payload };
+    case 'SET_STATUS_FILTER':
+      return { ...state, statusFilter: action.payload };
+    case 'SET_SHOW_CREATE_DIALOG':
+      return { ...state, showCreateDialog: action.payload };
+    case 'SET_CREATE_TITLE':
+      return { ...state, createTitle: action.payload };
+    case 'SET_CREATE_DESCRIPTION':
+      return { ...state, createDescription: action.payload };
+    case 'SET_CREATE_PRIORITY':
+      return { ...state, createPriority: action.payload };
+    case 'SET_CREATING':
+      return { ...state, isCreating: action.payload };
+    case 'SET_SELECTED_ISSUE':
+      return { ...state, selectedIssue: action.payload };
+    case 'RESET_CREATE_FORM':
+      return {
+        ...state,
+        createDescription: '',
+        createPriority: 'medium',
+        createTitle: '',
+        isCreating: false,
+        showCreateDialog: false,
+      };
+    default:
+      return state;
+  }
+}
+
 export default function IssuesList() {
-  const [issues, setIssues] = useState<Task[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [statusFilter, setStatusFilter] = useState<TaskStatus | ''>('');
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [createTitle, setCreateTitle] = useState('');
-  const [createDescription, setCreateDescription] = useState('');
-  const [createPriority, setCreatePriority] = useState<TaskPriority>('medium');
-  const [isCreating, setIsCreating] = useState(false);
-  const [selectedIssue, setSelectedIssue] = useState<Task | null>(null);
+  const [state, dispatch] = useReducer(
+    issuesListReducer,
+    initialIssuesListState,
+  );
+  const {
+    createDescription,
+    createPriority,
+    createTitle,
+    isCreating,
+    isLoading,
+    issues,
+    selectedIssue,
+    showCreateDialog,
+    statusFilter,
+    viewMode,
+  } = state;
   const controllerRef = useRef<AbortController | null>(null);
 
   const getTasksService = useAuthedService((token) =>
@@ -220,28 +304,28 @@ export default function IssuesList() {
     const controller = new AbortController();
     controllerRef.current = controller;
 
-    setIsLoading(true);
+    dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const service = await getTasksService();
       const params = statusFilter ? { status: statusFilter } : {};
       const result = await service.list(params);
       if (!controller.signal.aborted) {
-        setIssues(result);
+        dispatch({ type: 'SET_ISSUES', payload: result });
       }
     } catch {
       if (!controller.signal.aborted) {
-        setIssues([]);
+        dispatch({ type: 'SET_ISSUES', payload: [] });
       }
     } finally {
       if (!controller.signal.aborted) {
-        setIsLoading(false);
+        dispatch({ type: 'SET_LOADING', payload: false });
       }
     }
   }, [getTasksService, statusFilter]);
 
   const handleCreateIssue = useCallback(async () => {
     if (!createTitle.trim() || isCreating) return;
-    setIsCreating(true);
+    dispatch({ type: 'SET_CREATING', payload: true });
     try {
       const service = await getTasksService();
       await service.createTask({
@@ -250,15 +334,11 @@ export default function IssuesList() {
         status: 'todo',
         title: createTitle.trim(),
       });
-      setCreateTitle('');
-      setCreateDescription('');
-      setCreatePriority('medium');
-      setShowCreateDialog(false);
+      dispatch({ type: 'RESET_CREATE_FORM' });
       loadIssues();
     } catch {
       // Create failed
-    } finally {
-      setIsCreating(false);
+      dispatch({ type: 'SET_CREATING', payload: false });
     }
   }, [
     createTitle,
@@ -273,20 +353,21 @@ export default function IssuesList() {
     loadIssues();
 
     return () => {
-      // loadIssues() is also invoked outside this effect (handleCreateIssue),
-      // replacing the ref, so cleanup must abort the current controller rather
-      // than one captured at setup time.
-      controllerRef.current?.abort();
+      // Capture the ref value at cleanup time so the closure always
+      // aborts the controller that was active when the effect ran,
+      // regardless of whether loadIssues replaced the ref since then.
+      const controller = controllerRef.current;
+      controller?.abort();
     };
   }, [loadIssues]);
 
   const handleSelectIssue = useCallback((issue: Task) => {
-    setSelectedIssue(issue);
+    dispatch({ type: 'SET_SELECTED_ISSUE', payload: issue });
     openIssueOverlay();
   }, []);
 
   const handleOverlayClose = useCallback(() => {
-    setSelectedIssue(null);
+    dispatch({ type: 'SET_SELECTED_ISSUE', payload: null });
   }, []);
 
   const groupedByStatus = STATUS_ORDER.reduce(
@@ -306,7 +387,9 @@ export default function IssuesList() {
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
             className="inline-flex items-center gap-1.5"
-            onClick={() => setShowCreateDialog(true)}
+            onClick={() =>
+              dispatch({ type: 'SET_SHOW_CREATE_DIALOG', payload: true })
+            }
           >
             <HiOutlinePlusCircle className="size-3.5" />
             New Task
@@ -314,7 +397,10 @@ export default function IssuesList() {
           <Select
             value={statusFilter || 'all'}
             onValueChange={(value) =>
-              setStatusFilter(value === 'all' ? '' : (value as TaskStatus))
+              dispatch({
+                type: 'SET_STATUS_FILTER',
+                payload: value === 'all' ? '' : (value as TaskStatus),
+              })
             }
           >
             <SelectTrigger className="w-auto text-xs">
@@ -339,7 +425,9 @@ export default function IssuesList() {
                   ? 'bg-white/10 text-white'
                   : 'text-white/40 hover:text-white/60',
               )}
-              onClick={() => setViewMode('list')}
+              onClick={() =>
+                dispatch({ type: 'SET_VIEW_MODE', payload: 'list' })
+              }
             >
               <HiOutlineListBullet className="size-4" />
             </Button>
@@ -352,7 +440,9 @@ export default function IssuesList() {
                   ? 'bg-white/10 text-white'
                   : 'text-white/40 hover:text-white/60',
               )}
-              onClick={() => setViewMode('kanban')}
+              onClick={() =>
+                dispatch({ type: 'SET_VIEW_MODE', payload: 'kanban' })
+              }
             >
               <HiOutlineViewColumns className="size-4" />
             </Button>
@@ -415,7 +505,12 @@ export default function IssuesList() {
           ))}
         </div>
       )}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+      <Dialog
+        open={showCreateDialog}
+        onOpenChange={(open) =>
+          dispatch({ type: 'SET_SHOW_CREATE_DIALOG', payload: open })
+        }
+      >
         <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Create Task</DialogTitle>
@@ -429,7 +524,12 @@ export default function IssuesList() {
                 type="text"
                 placeholder="Task title"
                 value={createTitle}
-                onChange={(e) => setCreateTitle(e.target.value)}
+                onChange={(e) =>
+                  dispatch({
+                    type: 'SET_CREATE_TITLE',
+                    payload: e.target.value,
+                  })
+                }
               />
             </div>
             <div>
@@ -441,7 +541,12 @@ export default function IssuesList() {
                 placeholder="Optional description"
                 rows={4}
                 value={createDescription}
-                onChange={(e) => setCreateDescription(e.target.value)}
+                onChange={(e) =>
+                  dispatch({
+                    type: 'SET_CREATE_DESCRIPTION',
+                    payload: e.target.value,
+                  })
+                }
               />
             </div>
             <div>
@@ -451,7 +556,10 @@ export default function IssuesList() {
               <Select
                 value={createPriority}
                 onValueChange={(value) =>
-                  setCreatePriority(value as TaskPriority)
+                  dispatch({
+                    type: 'SET_CREATE_PRIORITY',
+                    payload: value as TaskPriority,
+                  })
                 }
               >
                 <SelectTrigger>
@@ -470,7 +578,9 @@ export default function IssuesList() {
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
-              onClick={() => setShowCreateDialog(false)}
+              onClick={() =>
+                dispatch({ type: 'SET_SHOW_CREATE_DIALOG', payload: false })
+              }
             >
               Cancel
             </Button>

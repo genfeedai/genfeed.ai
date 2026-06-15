@@ -66,6 +66,12 @@ vi.mock('@ui/card/Card', () => ({
   }) => <section className={className}>{children}</section>,
 }));
 
+function resolveButtonLabel(children: ReactNode): string {
+  if (typeof children === 'string') return children;
+  if (children != null) return 'Icon Button';
+  return '';
+}
+
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     asChild,
@@ -82,12 +88,9 @@ vi.mock('@ui/primitives/button', () => ({
       return <>{children}</>;
     }
 
-    const text =
-      typeof children === 'string' ? children : children ? 'Icon Button' : '';
-
     return (
       <button type="button" disabled={isDisabled} onClick={onClick}>
-        {text}
+        {resolveButtonLabel(children)}
       </button>
     );
   },

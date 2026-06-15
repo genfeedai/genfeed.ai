@@ -31,8 +31,7 @@ function MembersListContent() {
     useCallback((token: string) => MembersService.getInstance(token), []),
   );
 
-  const [members, setMembers] = useState<Member[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [members, setMembers] = useState<Member[] | null>(null);
 
   const columns: TableColumn<Member>[] = [
     {
@@ -63,7 +62,7 @@ function MembersListContent() {
       return;
     }
 
-    setIsLoading(true);
+    setMembers(null);
 
     try {
       const service = await getMembersService();
@@ -79,8 +78,7 @@ function MembersListContent() {
     } catch (error) {
       logger.error('GET /members failed', error);
       notificationsService.error('Failed to load members');
-    } finally {
-      setIsLoading(false);
+      setMembers([]);
     }
   }, [currentPage, getMembersService, notificationsService, organizationId]);
 
@@ -101,10 +99,10 @@ function MembersListContent() {
       }
     >
       <AppTable<Member>
-        items={members}
+        items={members ?? []}
         columns={columns}
         actions={[]}
-        isLoading={isLoading}
+        isLoading={members === null}
         getRowKey={(item) => item.id}
         emptyLabel={EMPTY_STATES.MEMBERS_FOUND}
       />

@@ -141,7 +141,6 @@ export function ExecutionPanel({
         clearTimeout(timerId);
         timerId = null;
       }
-      pollTimerRef.current = null;
     };
   }, [fetchExecution]);
 

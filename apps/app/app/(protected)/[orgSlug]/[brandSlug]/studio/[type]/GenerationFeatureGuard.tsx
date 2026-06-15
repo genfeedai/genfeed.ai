@@ -19,17 +19,17 @@ export default function GenerationFeatureGuard({
   const { replace } = useRouter();
   const { href } = useOrgUrl();
 
-  const categoryEnabled = isEnabled(category);
-
   useEffect(() => {
     if (isLoading) {
       return;
     }
 
-    if (!categoryEnabled) {
+    if (!isEnabled(category)) {
       replace(href('/studio'));
     }
-  }, [categoryEnabled, href, isLoading, replace]);
+  }, [category, href, isEnabled, isLoading, replace]);
+
+  const categoryEnabled = isEnabled(category);
 
   if (isLoading) {
     return (

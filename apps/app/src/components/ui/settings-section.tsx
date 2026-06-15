@@ -1,6 +1,12 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
+export type { InfoBoxProps } from './info-box';
+export { InfoBox } from './info-box';
+
+export type { LinkCardProps } from './link-card';
+export { LinkCard } from './link-card';
+
 /* ─── SettingsField ─── */
 
 export interface SettingsFieldProps {
@@ -38,127 +44,5 @@ export function SettingsField({
       </div>
       {children}
     </div>
-  );
-}
-
-/* ─── InfoBox ─── */
-
-export interface InfoBoxProps {
-  variant?: 'default' | 'warning';
-  icon?: React.ComponentType<{ className?: string }>;
-  title?: string;
-  children: ReactNode;
-  className?: string;
-}
-
-/** Bordered info/warning box */
-export function InfoBox({
-  variant = 'default',
-  icon: Icon,
-  title,
-  children,
-  className,
-}: InfoBoxProps) {
-  const isWarning = variant === 'warning';
-  return (
-    <div
-      className={cn(
-        'rounded-xl border p-4',
-        isWarning
-          ? 'border-amber-500/30 bg-amber-500/10'
-          : 'border-border bg-secondary/30',
-        className,
-      )}
-    >
-      {(Icon || title) && (
-        <div className="flex items-start gap-3">
-          {Icon && (
-            <Icon
-              className={cn(
-                'size-5 shrink-0 mt-0.5',
-                isWarning ? 'text-amber-500' : 'text-muted-foreground',
-              )}
-            />
-          )}
-          <div>
-            {title && (
-              <h4
-                className={cn(
-                  'font-medium text-sm',
-                  isWarning
-                    ? 'text-amber-600 dark:text-amber-400'
-                    : 'text-foreground',
-                )}
-              >
-                {title}
-              </h4>
-            )}
-            <div
-              className={cn(
-                'text-sm',
-                title && 'mt-1',
-                isWarning
-                  ? 'text-amber-600/80 dark:text-amber-400/80'
-                  : 'text-muted-foreground',
-              )}
-            >
-              {children}
-            </div>
-          </div>
-        </div>
-      )}
-      {!Icon && !title && children}
-    </div>
-  );
-}
-
-/* ─── LinkCard ─── */
-
-export interface LinkCardProps {
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-  /** Large icon style (for prominent cards) */
-  prominent?: boolean;
-}
-
-/** Clickable external link card */
-export function LinkCard({
-  href,
-  icon: Icon,
-  title,
-  description,
-  prominent,
-}: LinkCardProps) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={cn(
-        'flex items-center gap-3 rounded-xl border border-border transition hover:border-primary/50 hover:bg-secondary/30',
-        prominent ? 'p-4' : 'p-3',
-      )}
-    >
-      {prominent ? (
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
-          <Icon className="size-5 text-primary" />
-        </div>
-      ) : (
-        <Icon className="size-5 text-muted-foreground" />
-      )}
-      <div>
-        <div className="font-medium text-foreground">{title}</div>
-        <p
-          className={cn(
-            prominent ? 'text-sm' : 'text-xs',
-            'text-muted-foreground',
-          )}
-        >
-          {description}
-        </p>
-      </div>
-    </a>
   );
 }

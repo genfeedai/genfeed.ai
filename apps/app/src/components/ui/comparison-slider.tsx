@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { memo, useCallback, useRef, useState } from 'react';
+import { memo, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface ComparisonSliderProps {
@@ -26,7 +26,7 @@ function ComparisonSliderComponent({
   className,
 }: ComparisonSliderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const isDraggingRef = useRef(false);
 
   const handleMove = useCallback(
     (clientX: number) => {
@@ -42,7 +42,7 @@ function ComparisonSliderComponent({
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      setIsDragging(true);
+      isDraggingRef.current = true;
       handleMove(e.clientX);
     },
     [handleMove],
@@ -50,19 +50,19 @@ function ComparisonSliderComponent({
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
-      if (!isDragging) return;
+      if (!isDraggingRef.current) return;
       handleMove(e.clientX);
     },
-    [isDragging, handleMove],
+    [handleMove],
   );
 
   const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
+    isDraggingRef.current = false;
   }, []);
 
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
-      setIsDragging(true);
+      isDraggingRef.current = true;
       handleMove(e.touches[0].clientX);
     },
     [handleMove],
@@ -70,10 +70,10 @@ function ComparisonSliderComponent({
 
   const handleTouchMove = useCallback(
     (e: React.TouchEvent) => {
-      if (!isDragging) return;
+      if (!isDraggingRef.current) return;
       handleMove(e.touches[0].clientX);
     },
-    [isDragging, handleMove],
+    [handleMove],
   );
 
   const handleKeyDown = useCallback(

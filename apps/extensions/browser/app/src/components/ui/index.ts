@@ -1,3 +1,4 @@
+export { ButtonSpinner } from '~components/ui/ButtonSpinner';
 export { EmptyState } from '~components/ui/EmptyState';
 export {
   CloseIcon,
@@ -9,8 +10,5 @@ export {
   VideoIcon,
   ViewIcon,
 } from '~components/ui/Icons';
-export {
-  ButtonSpinner,
-  LoadingPage,
-  LoadingSpinner,
-} from '~components/ui/LoadingSpinner';
+export { LoadingPage } from '~components/ui/LoadingPage';
+export { LoadingSpinner } from '~components/ui/LoadingSpinner';

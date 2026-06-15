@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuth } from '@clerk/nextjs';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ModalEnum, PageScope } from '@genfeedai/enums';
 import type { IElementLighting, IQueryParams } from '@genfeedai/interfaces';
@@ -12,6 +13,7 @@ import { useConfirmModal } from '@providers/global-modals/global-modals.provider
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { LightingsService } from '@services/elements/lightings.service';
+import { useQuery } from '@tanstack/react-query';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalLighting } from '@ui/lazy/modal/LazyModal';
@@ -34,6 +36,7 @@ function LightingsListContent({
   onRefreshingChange,
   onRefresh,
 }: IElementContentProps): ReactNode {
+  const { isSignedIn } = useAuth();
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
   const { replace } = useRouter();
@@ -46,19 +49,13 @@ function LightingsListContent({
   );
   const currentPage = Number(parsedSearchParams.get('page')) || 1;
 
-  // Admin org/brand filter state (superadmin only)
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
-  );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
+  // Admin org/brand filter values derived from URL (superadmin only)
+  const adminOrg = parsedSearchParams.get('organization') ?? '';
+  const adminBrand = parsedSearchParams.get('brand') ?? '';
 
   // Admin filter URL sync handlers
   const handleAdminOrgChange = useCallback(
     (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
       const params = new URLSearchParams(searchParamsString);
       if (orgId) {
         params.set('organization', orgId);
@@ -77,7 +74,6 @@ function LightingsListContent({
 
   const handleAdminBrandChange = useCallback(
     (brandId: string) => {
-      setAdminBrand(brandId);
       const params = new URLSearchParams(searchParamsString);
       if (brandId) {
         params.set('brand', brandId);
@@ -97,8 +93,6 @@ function LightingsListContent({
     useCallback((token: string) => LightingsService.getInstance(token), []),
   );
 
-  const [lightings, setLightings] = useState<ElementLighting[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedLighting, setSelectedLighting] =
     useState<IElementLighting | null>(null);
 
@@ -110,6 +104,55 @@ function LightingsListContent({
     onRefreshingChangeRef.current = onRefreshingChange;
   });
 
+  const {
+    data: lightings = [] as ElementLighting[],
+    isLoading,
+    isFetching,
+    error: lightingsError,
+    refetch: refreshLightings,
+  } = useQuery({
+    queryKey: ['lightings', currentPage, scope, adminOrg, adminBrand],
+    queryFn: async () => {
+      const service = await getLightingsService();
+      const query: IQueryParams = {
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
+      };
+
+      if (scope === PageScope.SUPERADMIN) {
+        if (adminOrg) {
+          query.organization = adminOrg;
+        }
+        if (adminBrand) {
+          query.brand = adminBrand;
+        }
+      }
+
+      const data = await service.findAll(query);
+      logger.info('GET /lightings success', data);
+      return data;
+    },
+    enabled: !!isSignedIn,
+  });
+
+  const isRefreshing = isFetching && !isLoading;
+
+  useEffect(() => {
+    if (lightingsError) {
+      logger.error('GET /lightings failed', lightingsError);
+      notificationsService.error('Failed to load lightings');
+    }
+  }, [lightingsError, notificationsService]);
+
+  // Notify parent of loading state changes
+  useEffect(() => {
+    onLoadingChangeRef.current?.(isLoading);
+  }, [isLoading]);
+
+  useEffect(() => {
+    onRefreshingChangeRef.current?.(isRefreshing);
+  }, [isRefreshing]);
+
   const columns: TableColumn<ElementLighting>[] = [
     { header: 'Label', key: 'label' },
     { className: 'font-mono text-sm', header: 'Key', key: 'key' },
@@ -120,64 +163,15 @@ function LightingsListContent({
     },
   ];
 
-  const findAllLightings = useCallback(
-    async (isRefreshRequest = false) => {
-      setIsLoading(!isRefreshRequest);
-      onRefreshingChangeRef.current?.(isRefreshRequest);
-      onLoadingChangeRef.current?.(!isRefreshRequest);
-
-      try {
-        const service = await getLightingsService();
-        const query: IQueryParams = {
-          limit: ITEMS_PER_PAGE,
-          page: currentPage,
-        };
-
-        if (scope === PageScope.SUPERADMIN) {
-          if (adminOrg) {
-            query.organization = adminOrg;
-          }
-          if (adminBrand) {
-            query.brand = adminBrand;
-          }
-        }
-
-        const data = await service.findAll(query);
-        setLightings(data);
-        logger.info('GET /lightings success', data);
-
-        if (isRefreshRequest) {
-          notificationsService.success('Lightings refreshed');
-        }
-      } catch (error) {
-        logger.error('GET /lightings failed', error);
-        notificationsService.error('Failed to load lightings');
-      } finally {
-        setIsLoading(false);
-        onLoadingChangeRef.current?.(false);
-        onRefreshingChangeRef.current?.(false);
-      }
-    },
-    [
-      currentPage,
-      getLightingsService,
-      notificationsService.error,
-      notificationsService.success,
-      scope,
-      adminOrg,
-      adminBrand,
-    ],
-  );
-
-  useEffect(() => {
-    findAllLightings();
-  }, [findAllLightings]);
-
+  // Register refresh callback
   useEffect(() => {
     if (onRefresh) {
-      return onRefresh(() => findAllLightings(true));
+      return onRefresh(async () => {
+        await refreshLightings();
+        notificationsService.success('Lightings refreshed');
+      });
     }
-  }, [onRefresh, findAllLightings]);
+  }, [onRefresh, refreshLightings, notificationsService]);
 
   function openLightingModal(
     modalId: ModalEnum,
@@ -199,7 +193,7 @@ function LightingsListContent({
       await service.delete(lighting.id);
       notificationsService.success('Lighting deleted');
       setSelectedLighting(null);
-      findAllLightings(true);
+      refreshLightings();
     } catch (error) {
       logger.error('Failed to delete lighting', error);
       notificationsService.error('Failed to delete lighting');
@@ -263,7 +257,7 @@ function LightingsListContent({
           onClose={() => setSelectedLighting(null)}
           onConfirm={() => {
             setSelectedLighting(null);
-            findAllLightings(true);
+            refreshLightings();
           }}
         />
       )}

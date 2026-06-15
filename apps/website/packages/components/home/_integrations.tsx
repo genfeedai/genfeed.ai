@@ -4,28 +4,28 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { FaInstagram, FaTiktok, FaYoutube } from 'react-icons/fa6';
 
-export default function HomeIntegrations() {
-  const integrations = [
-    {
-      description:
-        'Publish AI-generated videos directly to YouTube Shorts. Track views and revenue in one dashboard.',
-      icon: <FaYoutube className="text-platform-youtube" />,
-      name: 'YouTube',
-    },
-    {
-      description:
-        'Create trending content and schedule posts to maximize engagement on TikTok.',
-      icon: <FaTiktok className="text-platform-tiktok" />,
-      name: 'TikTok',
-    },
-    {
-      description:
-        'Publish Reels and Stories directly to Instagram. No copy-paste required.',
-      icon: <FaInstagram className="text-platform-instagram" />,
-      name: 'Instagram',
-    },
-  ];
+const integrations = [
+  {
+    description:
+      'Publish AI-generated videos directly to YouTube Shorts. Track views and revenue in one dashboard.',
+    icon: <FaYoutube className="text-platform-youtube" />,
+    name: 'YouTube',
+  },
+  {
+    description:
+      'Create trending content and schedule posts to maximize engagement on TikTok.',
+    icon: <FaTiktok className="text-platform-tiktok" />,
+    name: 'TikTok',
+  },
+  {
+    description:
+      'Publish Reels and Stories directly to Instagram. No copy-paste required.',
+    icon: <FaInstagram className="text-platform-instagram" />,
+    name: 'Instagram',
+  },
+];
 
+export default function HomeIntegrations() {
   return (
     <div id="integrations" className="py-30">
       <div className="container mx-auto px-4 md:px-8">

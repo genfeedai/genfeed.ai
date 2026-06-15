@@ -121,9 +121,6 @@ export default function ExecutionDetailPage({
           return;
         }
         const service = await getService();
-        if (controller.signal.aborted) {
-          return;
-        }
         const result = await service.getExecution(runId);
         setExecution(mapExecution(result));
       } catch (err) {

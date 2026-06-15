@@ -15,7 +15,7 @@ import Spinner from '@ui/feedback/spinner/Spinner';
 import FormControl from '@ui/forms/base/form-control/FormControl';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { type ChangeEvent, useEffect } from 'react';
+import type { ChangeEvent } from 'react';
 import { HiTrash } from 'react-icons/hi2';
 
 export default function ModalRole({ role, onConfirm }: ModalRoleProps) {
@@ -32,16 +32,6 @@ export default function ModalRole({ role, onConfirm }: ModalRoleProps) {
       schema: roleSchema,
       serviceFactory: (token: string) => RolesService.getInstance(token),
     });
-
-  useEffect(() => {
-    if (role) {
-      form.setValue('label', role.label, { shouldValidate: true });
-      form.setValue('key', role.key, { shouldValidate: true });
-      form.setValue('primaryColor', role.primaryColor, {
-        shouldValidate: true,
-      });
-    }
-  }, [role, form]);
 
   function updateRoleField(e: ChangeEvent<HTMLInputElement>): void {
     const { name, value } = e.target;

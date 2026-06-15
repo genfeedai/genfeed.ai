@@ -1,6 +1,7 @@
 'use client';
 
 import type { OnboardingProgressProps } from '@props/onboarding/onboarding-progress.props';
+import { Progress } from '@ui/primitives';
 import { HiCheck } from 'react-icons/hi2';
 
 export default function OnboardingProgress({
@@ -12,21 +13,16 @@ export default function OnboardingProgress({
     totalSteps > 1 ? (currentStep / (totalSteps - 1)) * 100 : 100;
 
   return (
-    <div
-      className="w-full"
-      role="progressbar"
-      aria-label="Onboarding progress"
-      aria-valuemin={0}
-      aria-valuemax={Math.max(totalSteps - 1, 1)}
-      aria-valuenow={Math.min(currentStep, Math.max(totalSteps - 1, 1))}
-    >
+    <div className="w-full">
       {/* Progress bar */}
-      <div className="relative h-1 bg-white/[0.06] rounded-full overflow-hidden mb-6">
-        <div
-          className="absolute inset-y-0 left-0 bg-white/80 rounded-full transition-all duration-500 ease-out"
-          style={{ width: `${progressPercent}%` }}
-        />
-      </div>
+      <Progress
+        value={progressPercent}
+        aria-label="Onboarding progress"
+        aria-valuemin={0}
+        aria-valuemax={Math.max(totalSteps - 1, 1)}
+        aria-valuenow={Math.min(currentStep, Math.max(totalSteps - 1, 1))}
+        className="h-1 bg-white/[0.06] rounded-full overflow-hidden mb-6"
+      />
 
       {/* Step labels */}
       <div className="flex justify-between">

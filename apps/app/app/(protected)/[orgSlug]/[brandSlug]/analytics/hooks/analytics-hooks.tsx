@@ -26,6 +26,12 @@ import HookAnalysisSection from './HookAnalysisSection';
 import HookStatCards from './HookStatCards';
 import PlatformPerformanceSection from './PlatformPerformanceSection';
 
+function formatTimeSpent(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+}
+
 const createDefaultAnalysis = (): IViralHookAnalysis => ({
   avgTimePerVideo: 0,
   hookEffectiveness: [
@@ -53,14 +59,15 @@ export default function AnalyticsHooks({
   const getAnalyticsService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
   );
-  const [isLoading, setIsLoading] = useState(true);
-  const [videos, setVideos] = useState<IViralHookVideo[]>([]);
+  const [videos, setVideos] = useState<IViralHookVideo[] | null>(null);
   const [analysisData, setAnalysisData] = useState<IViralHookAnalysis>(() =>
     createDefaultAnalysis(),
   );
 
+  const isLoading = videos === null;
+
   const fetchHookData = useCallback(async () => {
-    setIsLoading(true);
+    setVideos(null);
     const url = 'GET /analytics/hooks';
 
     try {
@@ -84,8 +91,6 @@ export default function AnalyticsHooks({
       logger.error(`${url} failed`, error);
       setVideos([]);
       setAnalysisData(createDefaultAnalysis());
-    } finally {
-      setIsLoading(false);
     }
   }, [brandId, getAnalyticsService]);
 
@@ -100,14 +105,8 @@ export default function AnalyticsHooks({
     fetchHookData();
   };
 
-  const formatTimeSpent = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
-
   const aggregatedPlatformData = useMemo(() => {
-    if (!videos.length) {
+    if (!videos?.length) {
       return [];
     }
 
@@ -185,7 +184,7 @@ export default function AnalyticsHooks({
             <div className="p-6 space-y-4">
               <h2 className="text-xl font-semibold">Video Hook Breakdown</h2>
               <Table<IViralHookVideo>
-                items={videos}
+                items={videos ?? []}
                 columns={[
                   {
                     className: 'min-w-64',

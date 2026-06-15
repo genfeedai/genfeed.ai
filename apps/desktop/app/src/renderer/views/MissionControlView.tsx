@@ -9,7 +9,13 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { type ReactElement, useCallback, useMemo, useState } from 'react';
+import {
+  type ReactElement,
+  useCallback,
+  useMemo,
+  useReducer,
+  useRef,
+} from 'react';
 import { HiOutlineBeaker } from 'react-icons/hi2';
 import { AgentLabSurface } from './AgentLabSurface';
 import { MissionControlBulkBar } from './MissionControlBulkBar';
@@ -301,23 +307,104 @@ function StatusBadge({ status }: { status: AgentLabStatus }): ReactElement {
   );
 }
 
+interface MissionControlState {
+  mode: AgentLabMode;
+  search: string;
+  statusFilter: AgentLabStatus | 'all';
+  selectedIds: string[];
+  activeContext: AgentLabContext | null;
+  messages: AgentChatMessageModel[];
+  surfaceOpen: boolean;
+}
+
+type MissionControlAction =
+  | { type: 'SET_MODE'; payload: AgentLabMode }
+  | { type: 'SET_SEARCH'; payload: string }
+  | { type: 'SET_STATUS_FILTER'; payload: AgentLabStatus | 'all' }
+  | { type: 'SET_SELECTED_IDS'; payload: string[] }
+  | {
+      type: 'OPEN_SEEDED_CONVERSATION';
+      payload: {
+        context: AgentLabContext;
+        messages: AgentChatMessageModel[];
+        threadId: string;
+      };
+    }
+  | {
+      type: 'SEND_MESSAGE';
+      payload: {
+        context: AgentLabContext;
+        newMessages: AgentChatMessageModel[];
+      };
+    }
+  | { type: 'CLOSE_SURFACE' }
+  | { type: 'OPEN_EMPTY_SURFACE' }
+  | { type: 'RESET' };
+
+const INITIAL_STATE: MissionControlState = {
+  mode: 'rail',
+  search: '',
+  statusFilter: 'all',
+  selectedIds: [],
+  activeContext: null,
+  messages: [],
+  surfaceOpen: false,
+};
+
+function missionControlReducer(
+  state: MissionControlState,
+  action: MissionControlAction,
+): MissionControlState {
+  switch (action.type) {
+    case 'SET_MODE':
+      return { ...state, mode: action.payload };
+    case 'SET_SEARCH':
+      return { ...state, search: action.payload };
+    case 'SET_STATUS_FILTER':
+      return { ...state, statusFilter: action.payload };
+    case 'SET_SELECTED_IDS':
+      return { ...state, selectedIds: action.payload };
+    case 'OPEN_SEEDED_CONVERSATION':
+      return {
+        ...state,
+        activeContext: action.payload.context,
+        messages: action.payload.messages,
+        surfaceOpen: true,
+      };
+    case 'SEND_MESSAGE':
+      return {
+        ...state,
+        activeContext: action.payload.context,
+        messages: action.payload.newMessages,
+        surfaceOpen: true,
+      };
+    case 'CLOSE_SURFACE':
+      return { ...state, surfaceOpen: false };
+    case 'OPEN_EMPTY_SURFACE':
+      return { ...state, activeContext: null, messages: [], surfaceOpen: true };
+    case 'RESET':
+      return { ...state, search: '', statusFilter: 'all', selectedIds: [] };
+    default:
+      return state;
+  }
+}
+
 export function MissionControlView({
   onStartNewThread,
 }: {
   onStartNewThread: () => void;
 }) {
-  const [mode, setMode] = useState<AgentLabMode>('rail');
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<AgentLabStatus | 'all'>(
-    'all',
-  );
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [activeContext, setActiveContext] = useState<AgentLabContext | null>(
-    null,
-  );
-  const [messages, setMessages] = useState<AgentChatMessageModel[]>([]);
-  const [activeThreadId, setActiveThreadId] = useState('lab-page');
-  const [surfaceOpen, setSurfaceOpen] = useState(false);
+  const [state, dispatch] = useReducer(missionControlReducer, INITIAL_STATE);
+  const {
+    mode,
+    search,
+    statusFilter,
+    selectedIds,
+    activeContext,
+    messages,
+    surfaceOpen,
+  } = state;
+  const activeThreadIdRef = useRef('lab-page');
 
   const visibleRows = useMemo(() => {
     return ROWS.filter((row) => {
@@ -371,10 +458,15 @@ export function MissionControlView({
 
   const openSeededConversation = useCallback((context: AgentLabContext) => {
     const seeded = buildSeededConversation(context);
-    setActiveContext(context);
-    setActiveThreadId(seeded.threadId);
-    setMessages(seeded.messages);
-    setSurfaceOpen(true);
+    activeThreadIdRef.current = seeded.threadId;
+    dispatch({
+      type: 'OPEN_SEEDED_CONVERSATION',
+      payload: {
+        context,
+        messages: seeded.messages,
+        threadId: seeded.threadId,
+      },
+    });
   }, []);
 
   const handleSend = useCallback(
@@ -388,41 +480,32 @@ export function MissionControlView({
         activeContext ??
         buildPageContext(search, statusFilter, visibleRows, selectedRows);
 
-      setActiveContext(context);
-      setMessages((currentMessages) => {
-        const nextIndex = currentMessages.length + 1;
+      const threadId = activeThreadIdRef.current;
+      const nextIndex = messages.length + 1;
+      const newMessages: AgentChatMessageModel[] = [
+        ...messages,
+        {
+          content: trimmed,
+          createdAt: new Date().toISOString(),
+          id: `user-${threadId}-${nextIndex}`,
+          role: 'user',
+          threadId,
+        },
+        {
+          content: buildContextReply(trimmed, context, visibleRows),
+          createdAt: new Date().toISOString(),
+          id: `assistant-${threadId}-${nextIndex + 1}`,
+          metadata: {
+            toolCalls: [createToolCall(context, visibleRows.length, trimmed)],
+          },
+          role: 'assistant',
+          threadId,
+        },
+      ];
 
-        return [
-          ...currentMessages,
-          {
-            content: trimmed,
-            createdAt: new Date().toISOString(),
-            id: `user-${activeThreadId}-${nextIndex}`,
-            role: 'user',
-            threadId: activeThreadId,
-          },
-          {
-            content: buildContextReply(trimmed, context, visibleRows),
-            createdAt: new Date().toISOString(),
-            id: `assistant-${activeThreadId}-${nextIndex + 1}`,
-            metadata: {
-              toolCalls: [createToolCall(context, visibleRows.length, trimmed)],
-            },
-            role: 'assistant',
-            threadId: activeThreadId,
-          },
-        ];
-      });
-      setSurfaceOpen(true);
+      dispatch({ type: 'SEND_MESSAGE', payload: { context, newMessages } });
     },
-    [
-      activeContext,
-      activeThreadId,
-      search,
-      selectedRows,
-      statusFilter,
-      visibleRows,
-    ],
+    [activeContext, messages, search, selectedRows, statusFilter, visibleRows],
   );
 
   const handleCopy = useCallback(async (content: string) => {
@@ -527,7 +610,9 @@ export function MissionControlView({
         <div className="space-y-6">
           <MissionControlLabBanner
             mode={mode}
-            onModeChange={setMode}
+            onModeChange={(newMode) =>
+              dispatch({ type: 'SET_MODE', payload: newMode })
+            }
             onAskAboutTable={() =>
               openSeededConversation(
                 buildPageContext(
@@ -546,18 +631,14 @@ export function MissionControlView({
             search={search}
             statusFilter={statusFilter}
             statusOptions={STATUS_OPTIONS}
-            onSearchChange={setSearch}
-            onStatusFilterChange={setStatusFilter}
-            onReset={() => {
-              setSearch('');
-              setStatusFilter('all');
-              setSelectedIds([]);
-            }}
-            onOpenEmptySurface={() => {
-              setActiveContext(null);
-              setMessages([]);
-              setSurfaceOpen(true);
-            }}
+            onSearchChange={(value) =>
+              dispatch({ type: 'SET_SEARCH', payload: value })
+            }
+            onStatusFilterChange={(value) =>
+              dispatch({ type: 'SET_STATUS_FILTER', payload: value })
+            }
+            onReset={() => dispatch({ type: 'RESET' })}
+            onOpenEmptySurface={() => dispatch({ type: 'OPEN_EMPTY_SURFACE' })}
           />
 
           {selectedRows.length > 0 ? (
@@ -575,7 +656,9 @@ export function MissionControlView({
               columns={columns}
               selectable
               selectedIds={selectedIds}
-              onSelectionChange={setSelectedIds}
+              onSelectionChange={(ids) =>
+                dispatch({ type: 'SET_SELECTED_IDS', payload: ids })
+              }
               getItemId={(row) => row.id}
               getRowKey={(row) => row.id}
               onRowClick={(row) => openSeededConversation(buildRowContext(row))}
@@ -588,7 +671,7 @@ export function MissionControlView({
         context={activeContext}
         messages={messages}
         mode={mode}
-        onClose={() => setSurfaceOpen(false)}
+        onClose={() => dispatch({ type: 'CLOSE_SURFACE' })}
         onCopy={handleCopy}
         onSend={handleSend}
         open={surfaceOpen}

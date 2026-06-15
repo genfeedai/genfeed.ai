@@ -103,6 +103,8 @@ export function TerminalView({ workspaceId }: TerminalViewProps) {
   useEffect(() => {
     let isDisposed = false;
     const dataDisposables: Array<{ dispose: () => void }> = [];
+    let localResizeObserver: ResizeObserver | null = null;
+    let localTerminal: Terminal | null = null;
 
     const initializeTerminal = async () => {
       const [{ FitAddon }, { Terminal }] = await Promise.all([
@@ -151,6 +153,7 @@ export function TerminalView({ workspaceId }: TerminalViewProps) {
 
       terminal.loadAddon(fitAddon);
       terminal.open(containerRef.current);
+      localTerminal = terminal;
       terminalRef.current = terminal;
       fitAddonRef.current = fitAddon;
 
@@ -165,8 +168,10 @@ export function TerminalView({ workspaceId }: TerminalViewProps) {
         }),
       );
 
-      resizeObserverRef.current = new ResizeObserver(() => fitTerminal());
-      resizeObserverRef.current.observe(containerRef.current);
+      const observer = new ResizeObserver(() => fitTerminal());
+      localResizeObserver = observer;
+      resizeObserverRef.current = observer;
+      observer.observe(containerRef.current);
       fitTerminal();
       setIsTerminalReady(true);
     };
@@ -175,14 +180,12 @@ export function TerminalView({ workspaceId }: TerminalViewProps) {
 
     return () => {
       isDisposed = true;
-      const resizeObserver = resizeObserverRef.current;
-      const terminal = terminalRef.current;
-      resizeObserver?.disconnect();
+      localResizeObserver?.disconnect();
       resizeObserverRef.current = null;
       for (const disposable of dataDisposables) {
         disposable.dispose();
       }
-      terminal?.dispose();
+      localTerminal?.dispose();
       terminalRef.current = null;
       fitAddonRef.current = null;
       setIsTerminalReady(false);
@@ -217,11 +220,14 @@ export function TerminalView({ workspaceId }: TerminalViewProps) {
     void startSession('shell');
 
     return () => {
+      // Capture sessionRef.current at cleanup time via a local variable so the
+      // cleanup always reads the correct session node rather than a ref that
+      // may have been mutated after this effect ran.
       const session = sessionRef.current;
+      sessionRef.current = null;
       if (session) {
         void window.genfeedDesktop.terminal.kill(session.id);
       }
-      sessionRef.current = null;
       disposeData();
       disposeExit();
     };

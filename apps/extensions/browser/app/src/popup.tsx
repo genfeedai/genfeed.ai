@@ -13,6 +13,16 @@ import '~style.css';
 
 initializeErrorTracking('popup');
 
+function handleOpenSidePanel() {
+  chrome.sidePanel
+    .open({ windowId: chrome.windows.WINDOW_ID_CURRENT })
+    .then(() => window.close())
+    .catch(() => {
+      // Fallback: if sidePanel.open is not available, notify the user
+      logger.error('Failed to open side panel');
+    });
+}
+
 function PopupContent() {
   const { isLoaded, isSignedIn, getToken, signOut } = useAuth();
   const [authState, setAuthState] = useReducer(
@@ -58,16 +68,6 @@ function PopupContent() {
     await authService.clearToken();
     setAuthState('unauthenticated');
   };
-
-  function handleOpenSidePanel() {
-    chrome.sidePanel
-      .open({ windowId: chrome.windows.WINDOW_ID_CURRENT })
-      .then(() => window.close())
-      .catch(() => {
-        // Fallback: if sidePanel.open is not available, notify the user
-        logger.error('Failed to open side panel');
-      });
-  }
 
   if (!isLoaded || authState === 'syncing') {
     return (

@@ -134,16 +134,19 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
     };
   }, [issue, loadComments]);
 
+  const visibleComments = useMemo(() => {
+    const activeComments =
+      commentsState.issueId === issueId ? commentsState.comments : [];
+    const isShowAll =
+      commentVisibility.issueId === issueId ? commentVisibility.showAll : false;
+    return isShowAll || activeComments.length <= VISIBLE_COMMENT_COUNT
+      ? activeComments
+      : activeComments.slice(-VISIBLE_COMMENT_COUNT);
+  }, [commentsState, commentVisibility, issueId]);
+
   const hiddenCommentCount = Math.max(
     0,
     comments.length - VISIBLE_COMMENT_COUNT,
-  );
-  const visibleComments = useMemo(
-    () =>
-      showAllComments || comments.length <= VISIBLE_COMMENT_COUNT
-        ? comments
-        : comments.slice(-VISIBLE_COMMENT_COUNT),
-    [comments, showAllComments],
   );
 
   const handleOpenDetail = useCallback(() => {
@@ -153,14 +156,9 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
     }
   }, [issue, push]);
 
-  if (!issue) return null;
-
-  return (
-    <EntityOverlayShell
-      id={ISSUE_OVERLAY_ID}
-      title={issue.title}
-      description={issue.identifier}
-      badges={
+  const statusBadge = useMemo(
+    () =>
+      issue ? (
         <span
           className={cn(
             'rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
@@ -169,7 +167,18 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
         >
           {STATUS_LABELS[issue.status]}
         </span>
-      }
+      ) : null,
+    [issue],
+  );
+
+  if (!issue) return null;
+
+  return (
+    <EntityOverlayShell
+      id={ISSUE_OVERLAY_ID}
+      title={issue.title}
+      description={issue.identifier}
+      badges={statusBadge}
       onOpenDetail={handleOpenDetail}
       openDetailLabel="Open full page"
       onClose={onClose}

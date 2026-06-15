@@ -13,7 +13,7 @@ import {
 import { Textarea } from '@ui/primitives/textarea';
 import { clsx } from 'clsx';
 import { AlertCircle, Loader2, Sparkles, X } from 'lucide-react';
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useReducer } from 'react';
 import { getDesktopBridge, isDesktopShell } from '@/lib/desktop/runtime';
 import { useWorkflowStore } from '@/store/workflowStore';
 
@@ -145,6 +145,73 @@ async function generateWorkflow(params: {
 }
 
 // =============================================================================
+// REDUCER
+// =============================================================================
+
+interface GeneratorState {
+  description: string;
+  model: string;
+  contentLevel: ContentLevel;
+  isGenerating: boolean;
+  error: string | null;
+  generatedWorkflow: GeneratedWorkflow | null;
+}
+
+type GeneratorAction =
+  | { type: 'SET_DESCRIPTION'; payload: string }
+  | { type: 'SET_MODEL'; payload: string }
+  | { type: 'SET_CONTENT_LEVEL'; payload: ContentLevel }
+  | { type: 'GENERATE_START' }
+  | { type: 'GENERATE_SUCCESS'; payload: GeneratedWorkflow }
+  | { type: 'GENERATE_ERROR'; payload: string }
+  | { type: 'GENERATE_DONE' }
+  | { type: 'RESET' };
+
+const INITIAL_STATE: GeneratorState = {
+  contentLevel: 'minimal',
+  description: '',
+  error: null,
+  generatedWorkflow: null,
+  isGenerating: false,
+  model: DEFAULT_MODEL,
+};
+
+function generatorReducer(
+  state: GeneratorState,
+  action: GeneratorAction,
+): GeneratorState {
+  switch (action.type) {
+    case 'SET_DESCRIPTION':
+      return { ...state, description: action.payload };
+    case 'SET_MODEL':
+      return { ...state, model: action.payload };
+    case 'SET_CONTENT_LEVEL':
+      return { ...state, contentLevel: action.payload };
+    case 'GENERATE_START':
+      return {
+        ...state,
+        error: null,
+        generatedWorkflow: null,
+        isGenerating: true,
+      };
+    case 'GENERATE_SUCCESS':
+      return { ...state, generatedWorkflow: action.payload };
+    case 'GENERATE_ERROR':
+      return { ...state, error: action.payload };
+    case 'GENERATE_DONE':
+      return { ...state, isGenerating: false };
+    case 'RESET':
+      return {
+        ...INITIAL_STATE,
+        contentLevel: state.contentLevel,
+        model: state.model,
+      };
+    default:
+      return state;
+  }
+}
+
+// =============================================================================
 // MAIN COMPONENT
 // =============================================================================
 
@@ -152,23 +219,26 @@ function GenerateWorkflowModalComponent() {
   const { showAIGenerator, toggleAIGenerator } = useUIStore();
   const { loadWorkflow } = useWorkflowStore();
 
-  const [description, setDescription] = useState('');
-  const [model, setModel] = useState(DEFAULT_MODEL);
-  const [contentLevel, setContentLevel] = useState<ContentLevel>('minimal');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [generatedWorkflow, setGeneratedWorkflow] =
-    useState<GeneratedWorkflow | null>(null);
+  const [state, dispatch] = useReducer(generatorReducer, INITIAL_STATE);
+  const {
+    description,
+    model,
+    contentLevel,
+    isGenerating,
+    error,
+    generatedWorkflow,
+  } = state;
 
   const handleGenerate = useCallback(async () => {
     if (!description.trim()) {
-      setError('Please enter a workflow description');
+      dispatch({
+        type: 'GENERATE_ERROR',
+        payload: 'Please enter a workflow description',
+      });
       return;
     }
 
-    setIsGenerating(true);
-    setError(null);
-    setGeneratedWorkflow(null);
+    dispatch({ type: 'GENERATE_START' });
 
     try {
       const workflow = await generateWorkflow({
@@ -176,13 +246,15 @@ function GenerateWorkflowModalComponent() {
         description,
         model,
       });
-      setGeneratedWorkflow(workflow);
+      dispatch({ type: 'GENERATE_SUCCESS', payload: workflow });
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to generate workflow',
-      );
+      dispatch({
+        type: 'GENERATE_ERROR',
+        payload:
+          err instanceof Error ? err.message : 'Failed to generate workflow',
+      });
     } finally {
-      setIsGenerating(false);
+      dispatch({ type: 'GENERATE_DONE' });
     }
   }, [description, contentLevel, model]);
 
@@ -207,15 +279,12 @@ function GenerateWorkflowModalComponent() {
     });
 
     // Reset and close
-    setDescription('');
-    setGeneratedWorkflow(null);
+    dispatch({ type: 'RESET' });
     toggleAIGenerator();
   }, [generatedWorkflow, loadWorkflow, toggleAIGenerator]);
 
   const handleClose = useCallback(() => {
-    setDescription('');
-    setGeneratedWorkflow(null);
-    setError(null);
+    dispatch({ type: 'RESET' });
     toggleAIGenerator();
   }, [toggleAIGenerator]);
 
@@ -250,7 +319,9 @@ function GenerateWorkflowModalComponent() {
           </span>
           <Textarea
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) =>
+              dispatch({ type: 'SET_DESCRIPTION', payload: e.target.value })
+            }
             placeholder="e.g., Generate an image from a prompt and convert it to a short video"
             className="min-h-[120px] w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             disabled={isGenerating}
@@ -262,7 +333,9 @@ function GenerateWorkflowModalComponent() {
           <span className="text-sm font-medium text-foreground">Model</span>
           <Select
             value={model}
-            onValueChange={(value) => setModel(value)}
+            onValueChange={(value) =>
+              dispatch({ type: 'SET_MODEL', payload: value })
+            }
             disabled={isGenerating}
           >
             <SelectTrigger className="w-full">
@@ -292,7 +365,9 @@ function GenerateWorkflowModalComponent() {
                 key={prompt}
                 variant={ButtonVariant.OUTLINE}
                 withWrapper={false}
-                onClick={() => setDescription(prompt)}
+                onClick={() =>
+                  dispatch({ type: 'SET_DESCRIPTION', payload: prompt })
+                }
                 className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground transition hover:border-primary hover:text-foreground"
                 isDisabled={isGenerating}
               >
@@ -317,7 +392,9 @@ function GenerateWorkflowModalComponent() {
                     : ButtonVariant.GHOST
                 }
                 withWrapper={false}
-                onClick={() => setContentLevel(value)}
+                onClick={() =>
+                  dispatch({ type: 'SET_CONTENT_LEVEL', payload: value })
+                }
                 className={clsx(
                   'w-full rounded-md border p-3 text-left transition',
                   contentLevel === value

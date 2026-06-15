@@ -6,7 +6,7 @@ import type {
   IDesktopWorkspace,
 } from '@genfeedai/desktop-contracts';
 import { DropZone } from '@renderer/components/DropZone';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 import { LibraryAssetGrid } from './LibraryAssetGrid';
 import { LibraryFiltersBar } from './LibraryFiltersBar';
 import { LibraryGeneratePanel } from './LibraryGeneratePanel';
@@ -21,33 +21,153 @@ interface LibraryViewProps {
   workspaceId: string | null;
 }
 
+type LibraryState = {
+  assets: IDesktopAsset[];
+  assetPrompt: string;
+  assetJob: IDesktopGenerationJob | null;
+  assetError: string | null;
+  isGeneratingAsset: boolean;
+  isImportingAsset: boolean;
+  ingredients: IDesktopIngredient[];
+  isLoading: boolean;
+  error: string | null;
+  providerConfig: IDesktopGenerationProviderPublicConfig | null;
+  platformFilter: string;
+  sortBy: SortBy;
+  copiedId: string | null;
+};
+
+type LibraryAction =
+  | { type: 'SET_ASSETS'; payload: IDesktopAsset[] }
+  | { type: 'SET_ASSET_PROMPT'; payload: string }
+  | { type: 'SET_ASSET_JOB'; payload: IDesktopGenerationJob | null }
+  | { type: 'SET_ASSET_ERROR'; payload: string | null }
+  | { type: 'SET_INGREDIENTS'; payload: IDesktopIngredient[] }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | {
+      type: 'SET_PROVIDER_CONFIG';
+      payload: IDesktopGenerationProviderPublicConfig | null;
+    }
+  | { type: 'SET_PLATFORM_FILTER'; payload: string }
+  | { type: 'SET_SORT_BY'; payload: SortBy }
+  | { type: 'SET_COPIED_ID'; payload: string | null }
+  | {
+      type: 'INGREDIENTS_LOADED';
+      payload: { ingredients: IDesktopIngredient[] };
+    }
+  | { type: 'INGREDIENTS_LOAD_FAILED'; payload: string }
+  | { type: 'ASSET_GENERATION_START' }
+  | {
+      type: 'ASSET_GENERATION_DONE';
+      payload: { error: string | null };
+    }
+  | { type: 'IMPORT_START' }
+  | { type: 'IMPORT_DONE'; payload: { error: string | null } };
+
+const initialState: LibraryState = {
+  assets: [],
+  assetPrompt: '',
+  assetJob: null,
+  assetError: null,
+  isGeneratingAsset: false,
+  isImportingAsset: false,
+  ingredients: [],
+  isLoading: true,
+  error: null,
+  providerConfig: null,
+  platformFilter: '',
+  sortBy: 'votes',
+  copiedId: null,
+};
+
+function libraryReducer(
+  state: LibraryState,
+  action: LibraryAction,
+): LibraryState {
+  switch (action.type) {
+    case 'SET_ASSETS':
+      return { ...state, assets: action.payload };
+    case 'SET_ASSET_PROMPT':
+      return { ...state, assetPrompt: action.payload };
+    case 'SET_ASSET_JOB':
+      return { ...state, assetJob: action.payload };
+    case 'SET_ASSET_ERROR':
+      return { ...state, assetError: action.payload };
+    case 'SET_INGREDIENTS':
+      return { ...state, ingredients: action.payload };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
+    case 'SET_PROVIDER_CONFIG':
+      return { ...state, providerConfig: action.payload };
+    case 'SET_PLATFORM_FILTER':
+      return { ...state, platformFilter: action.payload };
+    case 'SET_SORT_BY':
+      return { ...state, sortBy: action.payload };
+    case 'SET_COPIED_ID':
+      return { ...state, copiedId: action.payload };
+    case 'INGREDIENTS_LOADED':
+      return {
+        ...state,
+        ingredients: action.payload.ingredients,
+        isLoading: false,
+        error: null,
+      };
+    case 'INGREDIENTS_LOAD_FAILED':
+      return { ...state, isLoading: false, error: action.payload };
+    case 'ASSET_GENERATION_START':
+      return { ...state, assetError: null, isGeneratingAsset: true };
+    case 'ASSET_GENERATION_DONE':
+      return {
+        ...state,
+        isGeneratingAsset: false,
+        assetError: action.payload.error,
+      };
+    case 'IMPORT_START':
+      return { ...state, isImportingAsset: true, error: null };
+    case 'IMPORT_DONE':
+      return {
+        ...state,
+        isImportingAsset: false,
+        error: action.payload.error,
+      };
+    default:
+      return state;
+  }
+}
+
 export const LibraryView = ({
   isOnline,
   workspace,
   workspaceId,
 }: LibraryViewProps) => {
-  const [assets, setAssets] = useState<IDesktopAsset[]>([]);
-  const [assetPrompt, setAssetPrompt] = useState('');
-  const [assetJob, setAssetJob] = useState<IDesktopGenerationJob | null>(null);
-  const [assetError, setAssetError] = useState<string | null>(null);
-  const [isGeneratingAsset, setIsGeneratingAsset] = useState(false);
-  const [isImportingAsset, setIsImportingAsset] = useState(false);
-  const [ingredients, setIngredients] = useState<IDesktopIngredient[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [providerConfig, setProviderConfig] =
-    useState<IDesktopGenerationProviderPublicConfig | null>(null);
-  const [platformFilter, setPlatformFilter] = useState('');
-  const [sortBy, setSortBy] = useState<SortBy>('votes');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(libraryReducer, initialState);
+
+  const {
+    assets,
+    assetPrompt,
+    assetJob,
+    assetError,
+    isGeneratingAsset,
+    isImportingAsset,
+    ingredients,
+    isLoading: loading,
+    error,
+    providerConfig,
+    platformFilter,
+    sortBy,
+    copiedId,
+  } = state;
 
   const loadIngredients = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: 'SET_ERROR', payload: null });
 
     if (!isOnline) {
-      setIngredients([]);
-      setLoading(false);
+      dispatch({ type: 'SET_INGREDIENTS', payload: [] });
+      dispatch({ type: 'SET_LOADING', payload: false });
       return;
     }
 
@@ -56,21 +176,28 @@ export const LibraryView = ({
         limit: 20,
         platform: platformFilter || undefined,
       });
-      setIngredients(result);
+      dispatch({
+        type: 'INGREDIENTS_LOADED',
+        payload: { ingredients: result },
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load library');
-    } finally {
-      setLoading(false);
+      dispatch({
+        type: 'INGREDIENTS_LOAD_FAILED',
+        payload: err instanceof Error ? err.message : 'Failed to load library',
+      });
     }
   }, [isOnline, platformFilter]);
 
   const loadAssets = useCallback(async () => {
     if (!workspaceId) {
-      setAssets([]);
+      dispatch({ type: 'SET_ASSETS', payload: [] });
       return;
     }
 
-    setAssets(await window.genfeedDesktop.files.listAssets(workspaceId));
+    dispatch({
+      type: 'SET_ASSETS',
+      payload: await window.genfeedDesktop.files.listAssets(workspaceId),
+    });
   }, [workspaceId]);
 
   useEffect(() => {
@@ -79,17 +206,18 @@ export const LibraryView = ({
 
   useEffect(() => {
     void loadAssets().catch((err: unknown) => {
-      setAssetError(
-        err instanceof Error ? err.message : 'Failed to load assets',
-      );
+      dispatch({
+        type: 'SET_ASSET_ERROR',
+        payload: err instanceof Error ? err.message : 'Failed to load assets',
+      });
     });
   }, [loadAssets]);
 
   useEffect(() => {
     void window.genfeedDesktop.generation
       .getProviderConfig()
-      .then(setProviderConfig)
-      .catch(() => setProviderConfig(null));
+      .then((cfg) => dispatch({ type: 'SET_PROVIDER_CONFIG', payload: cfg }))
+      .catch(() => dispatch({ type: 'SET_PROVIDER_CONFIG', payload: null }));
   }, []);
 
   const sortedIngredients = ingredients.toSorted((a, b) => {
@@ -99,16 +227,15 @@ export const LibraryView = ({
 
   const handleCopy = useCallback(async (ingredient: IDesktopIngredient) => {
     await navigator.clipboard.writeText(ingredient.content);
-    setCopiedId(ingredient.id);
-    setTimeout(() => setCopiedId(null), 2000);
+    dispatch({ type: 'SET_COPIED_ID', payload: ingredient.id });
+    setTimeout(() => dispatch({ type: 'SET_COPIED_ID', payload: null }), 2000);
   }, []);
 
   const importWorkspaceAssets = useCallback(
     async (paths?: string[]) => {
       if (!workspaceId) return;
 
-      setIsImportingAsset(true);
-      setError(null);
+      dispatch({ type: 'IMPORT_START' });
 
       try {
         const imported = await window.genfeedDesktop.files.importAssets(
@@ -116,6 +243,7 @@ export const LibraryView = ({
           paths,
         );
         if (imported.length === 0) {
+          dispatch({ type: 'IMPORT_DONE', payload: { error: null } });
           return;
         }
         await window.genfeedDesktop.notifications.notify(
@@ -123,10 +251,15 @@ export const LibraryView = ({
           `${String(imported.length)} asset(s) imported to workspace.`,
         );
         await loadAssets();
+        dispatch({ type: 'IMPORT_DONE', payload: { error: null } });
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to import files');
-      } finally {
-        setIsImportingAsset(false);
+        dispatch({
+          type: 'IMPORT_DONE',
+          payload: {
+            error:
+              err instanceof Error ? err.message : 'Failed to import files',
+          },
+        });
       }
     },
     [loadAssets, workspaceId],
@@ -141,12 +274,13 @@ export const LibraryView = ({
 
   const handleRevealAsset = useCallback(async (assetId: string) => {
     try {
-      setAssetError(null);
+      dispatch({ type: 'SET_ASSET_ERROR', payload: null });
       await window.genfeedDesktop.files.revealAsset(assetId);
     } catch (err) {
-      setAssetError(
-        err instanceof Error ? err.message : 'Failed to reveal asset.',
-      );
+      dispatch({
+        type: 'SET_ASSET_ERROR',
+        payload: err instanceof Error ? err.message : 'Failed to reveal asset.',
+      });
     }
   }, []);
 
@@ -159,14 +293,15 @@ export const LibraryView = ({
       providerConfig.provider !== 'replicate' &&
       providerConfig.provider !== 'fal'
     ) {
-      setAssetError(
-        'Image asset generation currently supports Replicate and fal.ai.',
-      );
+      dispatch({
+        type: 'SET_ASSET_ERROR',
+        payload:
+          'Image asset generation currently supports Replicate and fal.ai.',
+      });
       return;
     }
 
-    setAssetError(null);
-    setIsGeneratingAsset(true);
+    dispatch({ type: 'ASSET_GENERATION_START' });
 
     try {
       const job = await window.genfeedDesktop.generation.enqueueAssetGeneration(
@@ -178,7 +313,7 @@ export const LibraryView = ({
           workspaceId,
         },
       );
-      setAssetJob(job);
+      dispatch({ type: 'SET_ASSET_JOB', payload: job });
 
       let latestJob = job;
       for (let attempt = 0; attempt < 60; attempt += 1) {
@@ -194,20 +329,28 @@ export const LibraryView = ({
         latestJob =
           (await window.genfeedDesktop.generation.getGenerationJob(job.id)) ??
           latestJob;
-        setAssetJob(latestJob);
+        dispatch({ type: 'SET_ASSET_JOB', payload: latestJob });
       }
 
-      if (latestJob.status === 'failed') {
-        setAssetError(latestJob.error ?? 'Asset generation failed.');
-      }
+      const generationError =
+        latestJob.status === 'failed'
+          ? (latestJob.error ?? 'Asset generation failed.')
+          : null;
+
+      dispatch({
+        type: 'ASSET_GENERATION_DONE',
+        payload: { error: generationError },
+      });
 
       await loadAssets();
     } catch (err) {
-      setAssetError(
-        err instanceof Error ? err.message : 'Asset generation failed.',
-      );
-    } finally {
-      setIsGeneratingAsset(false);
+      dispatch({
+        type: 'ASSET_GENERATION_DONE',
+        payload: {
+          error:
+            err instanceof Error ? err.message : 'Asset generation failed.',
+        },
+      });
     }
   }, [assetPrompt, loadAssets, providerConfig, workspaceId]);
 
@@ -231,7 +374,9 @@ export const LibraryView = ({
         assetPrompt={assetPrompt}
         isGeneratingAsset={isGeneratingAsset}
         onGenerate={() => void handleGenerateAsset()}
-        onPromptChange={setAssetPrompt}
+        onPromptChange={(prompt) =>
+          dispatch({ type: 'SET_ASSET_PROMPT', payload: prompt })
+        }
         providerConfig={providerConfig}
         workspaceId={workspaceId}
       />
@@ -242,8 +387,12 @@ export const LibraryView = ({
       />
 
       <LibraryFiltersBar
-        onPlatformChange={setPlatformFilter}
-        onSortChange={setSortBy}
+        onPlatformChange={(filter) =>
+          dispatch({ type: 'SET_PLATFORM_FILTER', payload: filter })
+        }
+        onSortChange={(sort) =>
+          dispatch({ type: 'SET_SORT_BY', payload: sort })
+        }
         platformFilter={platformFilter}
         sortBy={sortBy}
       />

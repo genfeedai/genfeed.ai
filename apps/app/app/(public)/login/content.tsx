@@ -3,16 +3,20 @@
 import { SignIn, useAuth } from '@clerk/nextjs';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
+
+const subscribe = () => () => {};
+const getSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 export default function LoginPage() {
-  const [isMounted, setIsMounted] = useState(false);
+  const isMounted = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
   const { isSignedIn, isLoaded } = useAuth();
   const { push } = useRouter();
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   // Redirect authenticated users — handles cases where <SignIn> doesn't auto-redirect
   useEffect(() => {

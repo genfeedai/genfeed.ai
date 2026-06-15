@@ -21,14 +21,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { HiPencil, HiPlus, HiTrash } from 'react-icons/hi2';
 import {
   PresetCategoryCell,
@@ -110,15 +103,6 @@ function PresetsListContent({
     [pathname, replace, searchParamsString],
   );
 
-  // Use refs for callback props to prevent unnecessary re-renders
-  const onLoadingChangeRef = useRef(onLoadingChange);
-  const onRefreshingChangeRef = useRef(onRefreshingChange);
-
-  useEffect(() => {
-    onLoadingChangeRef.current = onLoadingChange;
-    onRefreshingChangeRef.current = onRefreshingChange;
-  });
-
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
 
@@ -165,14 +149,14 @@ function PresetsListContent({
     }
   }, [presetsError, notificationsService]);
 
-  // Notify parent of loading state changes
+  // Notify parent of loading/refreshing state changes
   useEffect(() => {
-    onLoadingChangeRef.current?.(isLoading);
-  }, [isLoading]);
+    onLoadingChange?.(isLoading);
+  }, [isLoading, onLoadingChange]);
 
   useEffect(() => {
-    onRefreshingChangeRef.current?.(isRefreshing);
-  }, [isRefreshing]);
+    onRefreshingChange?.(isRefreshing);
+  }, [isRefreshing, onRefreshingChange]);
 
   const openPresetModal = (modalId: ModalEnum, preset?: Preset) => {
     setSelectedPreset(preset || null);

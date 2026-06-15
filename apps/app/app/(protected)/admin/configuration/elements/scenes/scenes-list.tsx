@@ -23,10 +23,50 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
-  useState,
 } from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
+
+type FetchStatus = 'loading' | 'refreshing' | 'idle';
+
+type ScenesState = {
+  adminOrg: string;
+  adminBrand: string;
+  scenes: ElementScene[];
+  fetchStatus: FetchStatus;
+  selectedScene: IElementScene | null;
+};
+
+type ScenesAction =
+  | { type: 'SET_ADMIN_ORG'; payload: string }
+  | { type: 'SET_ADMIN_BRAND'; payload: string }
+  | { type: 'FETCH_START'; isRefresh: boolean }
+  | { type: 'FETCH_SUCCESS'; scenes: ElementScene[] }
+  | { type: 'FETCH_DONE' }
+  | { type: 'SET_SELECTED_SCENE'; scene: IElementScene | null };
+
+function scenesReducer(state: ScenesState, action: ScenesAction): ScenesState {
+  switch (action.type) {
+    case 'SET_ADMIN_ORG':
+      return { ...state, adminOrg: action.payload, adminBrand: '' };
+    case 'SET_ADMIN_BRAND':
+      return { ...state, adminBrand: action.payload };
+    case 'FETCH_START':
+      return {
+        ...state,
+        fetchStatus: action.isRefresh ? 'refreshing' : 'loading',
+      };
+    case 'FETCH_SUCCESS':
+      return { ...state, scenes: action.scenes };
+    case 'FETCH_DONE':
+      return { ...state, fetchStatus: 'idle' };
+    case 'SET_SELECTED_SCENE':
+      return { ...state, selectedScene: action.scene };
+    default:
+      return state;
+  }
+}
 
 function ScenesListContent({
   scope = PageScope.BRAND,
@@ -45,19 +85,23 @@ function ScenesListContent({
   );
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  // Admin org/brand filter state (superadmin only)
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
-  );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
+  const [state, dispatch] = useReducer(scenesReducer, undefined, () => ({
+    adminOrg: parsedSearchParams.get('organization') || '',
+    adminBrand: parsedSearchParams.get('brand') || '',
+    scenes: [],
+    fetchStatus: 'loading' as FetchStatus,
+    selectedScene: null,
+  }));
+
+  const { adminOrg, adminBrand, scenes, fetchStatus, selectedScene } = state;
+
+  // Derive isLoading from fetchStatus instead of storing it separately
+  const isLoading = fetchStatus === 'loading';
 
   // Admin filter URL sync handlers
   const handleAdminOrgChange = useCallback(
     (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
+      dispatch({ type: 'SET_ADMIN_ORG', payload: orgId });
       const params = new URLSearchParams(searchParamsString);
       if (orgId) {
         params.set('organization', orgId);
@@ -76,7 +120,7 @@ function ScenesListContent({
 
   const handleAdminBrandChange = useCallback(
     (brandId: string) => {
-      setAdminBrand(brandId);
+      dispatch({ type: 'SET_ADMIN_BRAND', payload: brandId });
       const params = new URLSearchParams(searchParamsString);
       if (brandId) {
         params.set('brand', brandId);
@@ -94,12 +138,6 @@ function ScenesListContent({
 
   const getScenesService = useAuthedService(
     useCallback((token: string) => ScenesService.getInstance(token), []),
-  );
-
-  const [scenes, setScenes] = useState<ElementScene[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedScene, setSelectedScene] = useState<IElementScene | null>(
-    null,
   );
 
   const onLoadingChangeRef = useRef(onLoadingChange);
@@ -122,7 +160,7 @@ function ScenesListContent({
 
   const findAllScenes = useCallback(
     async (isRefreshRequest = false) => {
-      setIsLoading(!isRefreshRequest);
+      dispatch({ type: 'FETCH_START', isRefresh: isRefreshRequest });
       onRefreshingChangeRef.current?.(isRefreshRequest);
       onLoadingChangeRef.current?.(!isRefreshRequest);
 
@@ -143,7 +181,7 @@ function ScenesListContent({
         }
 
         const data = await service.findAll(query);
-        setScenes(data);
+        dispatch({ type: 'FETCH_SUCCESS', scenes: data });
         logger.info('GET /scenes success', data);
 
         if (isRefreshRequest) {
@@ -153,7 +191,7 @@ function ScenesListContent({
         logger.error('GET /scenes failed', error);
         notificationsService.error('Failed to load scenes');
       } finally {
-        setIsLoading(false);
+        dispatch({ type: 'FETCH_DONE' });
         onLoadingChangeRef.current?.(false);
         onRefreshingChangeRef.current?.(false);
       }
@@ -174,7 +212,7 @@ function ScenesListContent({
   }, [findAllScenes]);
 
   function openSceneModal(modalId: ModalEnum, scene?: IElementScene): void {
-    setSelectedScene(scene ?? null);
+    dispatch({ type: 'SET_SELECTED_SCENE', scene: scene ?? null });
     openModal(modalId);
   }
 
@@ -187,17 +225,17 @@ function ScenesListContent({
       const service = await getScenesService();
       await service.delete(scene.id);
       notificationsService.success('Scene deleted');
-      setSelectedScene(null);
+      dispatch({ type: 'SET_SELECTED_SCENE', scene: null });
       findAllScenes(true);
     } catch (error) {
       logger.error('Failed to delete scene', error);
       notificationsService.error('Failed to delete scene');
-      setSelectedScene(null);
+      dispatch({ type: 'SET_SELECTED_SCENE', scene: null });
     }
   }
 
   function handleConfirmDelete(scene: ElementScene): void {
-    setSelectedScene(scene);
+    dispatch({ type: 'SET_SELECTED_SCENE', scene });
     openConfirm({
       confirmLabel: 'Delete',
       isError: true,
@@ -249,9 +287,9 @@ function ScenesListContent({
       {scope === PageScope.SUPERADMIN && (
         <LazyModalScene
           item={selectedScene}
-          onClose={() => setSelectedScene(null)}
+          onClose={() => dispatch({ type: 'SET_SELECTED_SCENE', scene: null })}
           onConfirm={() => {
-            setSelectedScene(null);
+            dispatch({ type: 'SET_SELECTED_SCENE', scene: null });
             findAllScenes(true);
           }}
         />

@@ -8,6 +8,7 @@ import {
   DefinitionTerm,
 } from '@genfeedai/ui';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
+import { useState } from 'react';
 import { HiOutlineLightBulb } from 'react-icons/hi2';
 import ReviewDecisionPanel from './ReviewDecisionPanel';
 import ReviewHistoryPanel from './ReviewHistoryPanel';
@@ -25,7 +26,6 @@ type ReviewEvent = NonNullable<IBatchItem['reviewEvents']>[number];
 
 interface ReviewDetailPanelAsideProps {
   browserTimezone: string;
-  feedback: string;
   formattedCreatedDate: string;
   formattedScheduledDate: string | null;
   isActioning: boolean;
@@ -37,13 +37,11 @@ interface ReviewDetailPanelAsideProps {
   onRequestChanges: (itemId: string, feedback?: string) => void;
   onToggleSelect: (itemId: string) => void;
   reviewEvents: ReviewEvent[];
-  setFeedback: (value: string) => void;
   statusLabel: string;
 }
 
 export default function ReviewDetailPanelAside({
   browserTimezone,
-  feedback,
   formattedCreatedDate,
   formattedScheduledDate,
   isActioning,
@@ -55,9 +53,10 @@ export default function ReviewDetailPanelAside({
   onRequestChanges,
   onToggleSelect,
   reviewEvents,
-  setFeedback,
   statusLabel,
 }: ReviewDetailPanelAsideProps) {
+  const [feedback, setFeedback] = useState(item.reviewFeedback ?? '');
+
   return (
     <aside className="space-y-4">
       <ReviewDecisionPanel

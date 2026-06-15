@@ -4,7 +4,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { usePathname, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import {
   loadMarketingTags,
   type MarketingTrackingConfig,
@@ -72,6 +72,11 @@ function MarketingPageTracker({
     return `${window.location.origin}${pathWithSearch}${window.location.hash}`;
   }, [pathname, search]);
 
+  // Keep a stable ref to the latest consent so the event listener and page-view
+  // effect can read it without re-registering on every consent update.
+  const consentRef = useRef(consent);
+  consentRef.current = consent;
+
   useEffect(() => {
     if (
       consent?.adStorage !== 'granted' &&
@@ -106,9 +111,10 @@ function MarketingPageTracker({
 
   useEffect(() => {
     const handleTrackedButton = (event: Event) => {
+      const currentConsent = consentRef.current;
       if (
-        consent?.adStorage !== 'granted' &&
-        consent?.analyticsStorage !== 'granted'
+        currentConsent?.adStorage !== 'granted' &&
+        currentConsent?.analyticsStorage !== 'granted'
       ) {
         return;
       }
@@ -148,7 +154,7 @@ function MarketingPageTracker({
         handleTrackedButton,
       );
     };
-  }, [config, consent, currentUrl]);
+  }, [config, currentUrl]);
 
   return null;
 }
@@ -160,16 +166,20 @@ export default function MarketingTrackingProvider({
 }: MarketingTrackingProviderProps) {
   const pathname = usePathname();
   const [consent, setConsent] = useState<MarketingConsentState | null>(null);
-  const [hasConsentChoice, setHasConsentChoice] = useState(false);
+  const hasStoredConsentRef = useRef(false);
+  // Derive: banner shows when no stored/accepted choice has been made yet and tags are configured.
+  // Before mount effect runs, consent is null so we treat it as "no choice".
+  const hasConsentChoice =
+    hasStoredConsentRef.current || consentDefault === 'granted';
   const shouldShowBanner =
-    !hasConsentChoice && hasConfiguredMarketingTag(config);
+    consent !== null && !hasConsentChoice && hasConfiguredMarketingTag(config);
 
   useEffect(() => {
     const stored = parseMarketingConsent(
       window.localStorage.getItem(MARKETING_CONSENT_STORAGE_KEY),
     );
+    hasStoredConsentRef.current = Boolean(stored);
     const initialConsent = stored ?? createConsentState(consentDefault);
-    setHasConsentChoice(Boolean(stored) || consentDefault === 'granted');
     setConsent(initialConsent);
     setGoogleConsent({
       adStorage: initialConsent.adStorage,
@@ -185,7 +195,7 @@ export default function MarketingTrackingProvider({
   }, [config, consentDefault]);
 
   const persistConsent = (nextConsent: MarketingConsentState) => {
-    setHasConsentChoice(true);
+    hasStoredConsentRef.current = true;
     setConsent(nextConsent);
     window.localStorage.setItem(
       MARKETING_CONSENT_STORAGE_KEY,

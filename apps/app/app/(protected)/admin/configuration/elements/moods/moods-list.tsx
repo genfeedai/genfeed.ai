@@ -23,10 +23,43 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
-  useState,
 } from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';
+
+type MoodsListState = {
+  adminOrg: string;
+  adminBrand: string;
+  moods: ElementMood[];
+  isLoading: boolean;
+  selectedMood: IElementMood | null;
+};
+
+type MoodsListAction =
+  | { type: 'SET_ADMIN_BRAND'; payload: string }
+  | { type: 'SET_ADMIN_ORG_CLEAR_BRAND'; payload: string }
+  | { type: 'SET_MOODS'; payload: ElementMood[] }
+  | { type: 'SET_IS_LOADING'; payload: boolean }
+  | { type: 'SET_SELECTED_MOOD'; payload: IElementMood | null };
+
+function moodsListReducer(
+  state: MoodsListState,
+  action: MoodsListAction,
+): MoodsListState {
+  switch (action.type) {
+    case 'SET_ADMIN_BRAND':
+      return { ...state, adminBrand: action.payload };
+    case 'SET_ADMIN_ORG_CLEAR_BRAND':
+      return { ...state, adminOrg: action.payload, adminBrand: '' };
+    case 'SET_MOODS':
+      return { ...state, moods: action.payload };
+    case 'SET_IS_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_SELECTED_MOOD':
+      return { ...state, selectedMood: action.payload };
+  }
+}
 
 function MoodsListContent({
   scope = PageScope.BRAND,
@@ -46,19 +79,20 @@ function MoodsListContent({
   );
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  // Admin org/brand filter state (superadmin only)
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
-  );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
+  const [state, dispatch] = useReducer(moodsListReducer, undefined, () => ({
+    adminOrg: parsedSearchParams.get('organization') || '',
+    adminBrand: parsedSearchParams.get('brand') || '',
+    moods: [],
+    isLoading: true,
+    selectedMood: null,
+  }));
+
+  const { adminOrg, adminBrand, moods, isLoading, selectedMood } = state;
 
   // Admin filter URL sync handlers
   const handleAdminOrgChange = useCallback(
     (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
+      dispatch({ type: 'SET_ADMIN_ORG_CLEAR_BRAND', payload: orgId });
       const params = new URLSearchParams(searchParamsString);
       if (orgId) {
         params.set('organization', orgId);
@@ -77,7 +111,7 @@ function MoodsListContent({
 
   const handleAdminBrandChange = useCallback(
     (brandId: string) => {
-      setAdminBrand(brandId);
+      dispatch({ type: 'SET_ADMIN_BRAND', payload: brandId });
       const params = new URLSearchParams(searchParamsString);
       if (brandId) {
         params.set('brand', brandId);
@@ -96,11 +130,6 @@ function MoodsListContent({
   const getMoodsService = useAuthedService(
     useCallback((token: string) => MoodsService.getInstance(token), []),
   );
-
-  const [moods, setMoods] = useState<ElementMood[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [_isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedMood, setSelectedMood] = useState<IElementMood | null>(null);
 
   const onLoadingChangeRef = useRef(onLoadingChange);
   const onRefreshingChangeRef = useRef(onRefreshingChange);
@@ -122,8 +151,7 @@ function MoodsListContent({
 
   const findAllMoods = useCallback(
     async (isRefreshRequest = false) => {
-      setIsRefreshing(isRefreshRequest);
-      setIsLoading(!isRefreshRequest);
+      dispatch({ type: 'SET_IS_LOADING', payload: !isRefreshRequest });
       onRefreshingChangeRef.current?.(isRefreshRequest);
       onLoadingChangeRef.current?.(!isRefreshRequest);
 
@@ -144,7 +172,7 @@ function MoodsListContent({
         }
 
         const data = await service.findAll(query);
-        setMoods(data);
+        dispatch({ type: 'SET_MOODS', payload: data });
         logger.info('GET /moods success', data);
 
         if (isRefreshRequest) {
@@ -154,8 +182,7 @@ function MoodsListContent({
         logger.error('GET /moods failed', error);
         notificationsService.error('Failed to load moods');
       } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
+        dispatch({ type: 'SET_IS_LOADING', payload: false });
         onLoadingChangeRef.current?.(false);
         onRefreshingChangeRef.current?.(false);
       }
@@ -182,7 +209,7 @@ function MoodsListContent({
   }, [onRefresh, findAllMoods]);
 
   function openMoodModal(modalId: ModalEnum, mood?: IElementMood): void {
-    setSelectedMood(mood ?? null);
+    dispatch({ type: 'SET_SELECTED_MOOD', payload: mood ?? null });
     openModal(modalId);
   }
 
@@ -195,17 +222,17 @@ function MoodsListContent({
       const service = await getMoodsService();
       await service.delete(mood.id);
       notificationsService.success('Mood deleted');
-      setSelectedMood(null);
+      dispatch({ type: 'SET_SELECTED_MOOD', payload: null });
       findAllMoods(true);
     } catch (error) {
       logger.error('Failed to delete mood', error);
       notificationsService.error('Failed to delete mood');
-      setSelectedMood(null);
+      dispatch({ type: 'SET_SELECTED_MOOD', payload: null });
     }
   }
 
   function handleConfirmDelete(mood: ElementMood): void {
-    setSelectedMood(mood);
+    dispatch({ type: 'SET_SELECTED_MOOD', payload: mood });
     openConfirm({
       confirmLabel: 'Delete',
       isError: true,
@@ -256,9 +283,9 @@ function MoodsListContent({
       {scope === PageScope.SUPERADMIN && (
         <LazyModalMood
           item={selectedMood}
-          onClose={() => setSelectedMood(null)}
+          onClose={() => dispatch({ type: 'SET_SELECTED_MOOD', payload: null })}
           onConfirm={() => {
-            setSelectedMood(null);
+            dispatch({ type: 'SET_SELECTED_MOOD', payload: null });
             findAllMoods(true);
           }}
         />

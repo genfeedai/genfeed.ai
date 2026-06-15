@@ -92,13 +92,11 @@ function BatchWorkflowPageContent() {
             selectedWorkflowId={selectedWorkflowId}
             onWorkflowChange={setSelectedWorkflowId}
             files={files}
-            hasPendingUploads={hasPendingUploads}
-            canRunBatch={canRunBatch}
-            isStartingBatch={isStartingBatch}
+            batchRunState={{ canRun: canRunBatch, isStarting: isStartingBatch }}
             onRunBatch={() => void handleRunBatch()}
             getRootProps={getRootProps}
             getInputProps={getInputProps}
-            isDragActive={isDragActive}
+            dropzoneState={{ hasPendingUploads, isDragActive }}
             onClearFiles={clearFiles}
             onRemoveFile={removeFile}
             recentJobs={recentJobs}

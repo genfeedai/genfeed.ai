@@ -687,10 +687,13 @@ function useCreatePanelController(onStartChat: () => void) {
   const [analyticsQuery, setAnalyticsQuery] = useState(
     'generated vs published performance overview',
   );
-  const [credentials, setCredentials] = useState<Credential[]>([]);
-  const [selectedCredentialId, setSelectedCredentialId] = useState<
-    string | null
-  >(null);
+  const [credentialState, setCredentialState] = useState<{
+    credentials: Credential[];
+    selectedCredentialId: string | null;
+  }>({ credentials: [], selectedCredentialId: null });
+  const { credentials, selectedCredentialId } = credentialState;
+  const setSelectedCredentialId = (id: string | null) =>
+    setCredentialState((prev) => ({ ...prev, selectedCredentialId: id }));
   const [currentRun, setCurrentRun] = useState<RunRecord | null>(null);
   const [currentRunEvents, setCurrentRunEvents] = useState<RunEventRecord[]>(
     [],
@@ -737,13 +740,8 @@ function useCreatePanelController(onStartChat: () => void) {
   }, [analyticsSnapshot, historySummary]);
 
   useEffect(() => {
-    setPostToComposer(autoPost);
-  }, [autoPost]);
-
-  useEffect(() => {
     if (!activeBrandId) {
-      setCredentials([]);
-      setSelectedCredentialId(null);
+      setCredentialState({ credentials: [], selectedCredentialId: null });
       return;
     }
 
@@ -754,11 +752,12 @@ function useCreatePanelController(onStartChat: () => void) {
           const connected = (response.credentials as Credential[]).filter(
             (credential) => credential.isConnected,
           );
-          setCredentials(connected);
-          setSelectedCredentialId(connected[0]?.id ?? null);
+          setCredentialState({
+            credentials: connected,
+            selectedCredentialId: connected[0]?.id ?? null,
+          });
         } else {
-          setCredentials([]);
-          setSelectedCredentialId(null);
+          setCredentialState({ credentials: [], selectedCredentialId: null });
         }
       },
     );

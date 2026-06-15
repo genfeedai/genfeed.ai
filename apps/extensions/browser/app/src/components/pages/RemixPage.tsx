@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { type ReactElement, useEffect, useState } from 'react';
+import { type ReactElement, useReducer } from 'react';
 import { LoadingSpinner } from '~components/ui';
 import { authService } from '~services/auth.service';
 import { apiEndpoint } from '~services/environment.service';
@@ -236,43 +236,82 @@ function RemixInputForm({
   );
 }
 
+interface RemixState {
+  content: string;
+  url: string;
+  platform: SocialPlatform;
+  step: RemixStep;
+  result: RemixResult | null;
+  error: string | null;
+  copiedIndex: number | null;
+}
+
+type RemixAction =
+  | { type: 'SET_CONTENT'; payload: string }
+  | { type: 'SET_URL'; payload: string }
+  | { type: 'SET_PLATFORM'; payload: SocialPlatform }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'START_LOADING' }
+  | { type: 'SET_RESULT'; payload: RemixResult }
+  | { type: 'RESET_TO_INPUT' }
+  | { type: 'SET_COPIED_INDEX'; payload: number | null };
+
+function remixReducer(state: RemixState, action: RemixAction): RemixState {
+  switch (action.type) {
+    case 'SET_CONTENT':
+      return { ...state, content: action.payload };
+    case 'SET_URL':
+      return { ...state, url: action.payload };
+    case 'SET_PLATFORM':
+      return { ...state, platform: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
+    case 'START_LOADING':
+      return { ...state, error: null, step: 'loading' };
+    case 'SET_RESULT':
+      return { ...state, result: action.payload, step: 'result' };
+    case 'RESET_TO_INPUT':
+      return { ...state, result: null, step: 'input' };
+    case 'SET_COPIED_INDEX':
+      return { ...state, copiedIndex: action.payload };
+    default:
+      return state;
+  }
+}
+
 export function RemixPage({
   initialContent = '',
   initialUrl = '',
   initialPlatform = 'tiktok',
 }: RemixPageProps): ReactElement {
-  const [content, setContent] = useState(initialContent);
-  const [url, setUrl] = useState(initialUrl);
-  const [platform, setPlatform] = useState<SocialPlatform>(initialPlatform);
-  const [step, setStep] = useState<RemixStep>('input');
-  const [result, setResult] = useState<RemixResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [state, dispatch] = useReducer(remixReducer, {
+    content: initialContent,
+    copiedIndex: null,
+    error: null,
+    platform: initialPlatform,
+    result: null,
+    step: 'input',
+    url: initialUrl,
+  });
 
-  // Sync props when they change (e.g. keyboard shortcut fires with new data)
-  useEffect(() => {
-    if (initialContent) {
-      setContent(initialContent);
-    }
-    if (initialUrl) {
-      setUrl(initialUrl);
-    }
-  }, [initialContent, initialUrl]);
+  const { content, copiedIndex, error, platform, result, step, url } = state;
 
   async function handleRemix(): Promise<void> {
     if (!content.trim()) {
-      setError('Add some content to remix first.');
+      dispatch({
+        payload: 'Add some content to remix first.',
+        type: 'SET_ERROR',
+      });
       return;
     }
 
-    setError(null);
-    setStep('loading');
+    dispatch({ type: 'START_LOADING' });
 
     try {
       const token = await authService.getToken();
       if (!token) {
-        setError('Sign in first to use Remix.');
-        setStep('input');
+        dispatch({ payload: 'Sign in first to use Remix.', type: 'SET_ERROR' });
+        dispatch({ type: 'RESET_TO_INPUT' });
         return;
       }
 
@@ -318,12 +357,15 @@ export function RemixPage({
           script?: string;
           title?: string;
         };
-        setResult({
-          angles: data.angles,
-          hooks: data.hooks,
-          rawContent: content,
-          script: data.script,
-          title: data.title,
+        dispatch({
+          payload: {
+            angles: data.angles,
+            hooks: data.hooks,
+            rawContent: content,
+            script: data.script,
+            title: data.title,
+          },
+          type: 'SET_RESULT',
         });
       } else {
         const data = (await response.json()) as {
@@ -332,31 +374,38 @@ export function RemixPage({
           script?: string;
           title?: string;
         };
-        setResult({
-          angles: data.angles,
-          hooks: data.hooks,
-          rawContent: content,
-          script: data.script,
-          title: data.title,
+        dispatch({
+          payload: {
+            angles: data.angles,
+            hooks: data.hooks,
+            rawContent: content,
+            script: data.script,
+            title: data.title,
+          },
+          type: 'SET_RESULT',
         });
       }
-
-      setStep('result');
     } catch (err) {
       logger.error('Remix error', err);
-      setError(err instanceof Error ? err.message : 'Failed to remix content');
-      setStep('input');
+      dispatch({
+        payload: err instanceof Error ? err.message : 'Failed to remix content',
+        type: 'SET_ERROR',
+      });
+      dispatch({ type: 'RESET_TO_INPUT' });
     }
   }
 
   async function handleCopy(text: string, index: number): Promise<void> {
     try {
       await navigator.clipboard.writeText(text);
-      setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 2000);
-    } catch (error) {
-      logger.error('Failed to copy remix text', error);
-      setError('Failed to copy remix text');
+      dispatch({ payload: index, type: 'SET_COPIED_INDEX' });
+      setTimeout(
+        () => dispatch({ payload: null, type: 'SET_COPIED_INDEX' }),
+        2000,
+      );
+    } catch (copyErr) {
+      logger.error('Failed to copy remix text', copyErr);
+      dispatch({ payload: 'Failed to copy remix text', type: 'SET_ERROR' });
     }
   }
 
@@ -395,8 +444,7 @@ export function RemixPage({
         copiedIndex={copiedIndex}
         result={result}
         onBack={() => {
-          setStep('input');
-          setResult(null);
+          dispatch({ type: 'RESET_TO_INPUT' });
         }}
         onCopy={(text, index) => {
           void handleCopy(text, index);
@@ -414,12 +462,16 @@ export function RemixPage({
       error={error}
       platform={platform}
       url={url}
-      onContentChange={setContent}
-      onPlatformChange={setPlatform}
+      onContentChange={(value) =>
+        dispatch({ payload: value, type: 'SET_CONTENT' })
+      }
+      onPlatformChange={(value) =>
+        dispatch({ payload: value, type: 'SET_PLATFORM' })
+      }
       onRemix={() => {
         void handleRemix();
       }}
-      onUrlChange={setUrl}
+      onUrlChange={(value) => dispatch({ payload: value, type: 'SET_URL' })}
     />
   );
 }

@@ -2,7 +2,7 @@ import type { IDesktopAnalytics } from '@genfeedai/desktop-contracts';
 import { ButtonVariant } from '@genfeedai/enums';
 import { DesktopResilienceState } from '@renderer/components/DesktopResilienceState';
 import { Button } from '@ui/primitives/button';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 
 type DaysRange = 7 | 30 | 90;
 
@@ -11,49 +11,97 @@ interface AnalyticsViewProps {
   workspaceId: string | null;
 }
 
+interface DraftStats {
+  generatedCount: number;
+  publishedCount: number;
+  reviewCount: number;
+}
+
+interface AnalyticsState {
+  analytics: IDesktopAnalytics | null;
+  draftStats: DraftStats;
+  isLoading: boolean;
+  error: string | null;
+  days: DaysRange;
+}
+
+type AnalyticsAction =
+  | { type: 'FETCH_START' }
+  | {
+      type: 'FETCH_SUCCESS';
+      analytics: IDesktopAnalytics | null;
+      draftStats: DraftStats;
+    }
+  | { type: 'FETCH_ERROR'; error: string }
+  | { type: 'SET_DAYS'; days: DaysRange };
+
+const initialAnalyticsState: AnalyticsState = {
+  analytics: null,
+  draftStats: { generatedCount: 0, publishedCount: 0, reviewCount: 0 },
+  isLoading: true,
+  error: null,
+  days: 7,
+};
+
+function analyticsReducer(
+  state: AnalyticsState,
+  action: AnalyticsAction,
+): AnalyticsState {
+  switch (action.type) {
+    case 'FETCH_START':
+      return { ...state, isLoading: true, error: null };
+    case 'FETCH_SUCCESS':
+      return {
+        ...state,
+        isLoading: false,
+        analytics: action.analytics,
+        draftStats: action.draftStats,
+      };
+    case 'FETCH_ERROR':
+      return { ...state, isLoading: false, error: action.error };
+    case 'SET_DAYS':
+      return { ...state, days: action.days };
+    default:
+      return state;
+  }
+}
+
 export const AnalyticsView = ({
   isOnline,
   workspaceId,
 }: AnalyticsViewProps) => {
-  const [analytics, setAnalytics] = useState<IDesktopAnalytics | null>(null);
-  const [draftStats, setDraftStats] = useState({
-    generatedCount: 0,
-    publishedCount: 0,
-    reviewCount: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [days, setDays] = useState<DaysRange>(7);
+  const [state, dispatch] = useReducer(analyticsReducer, initialAnalyticsState);
+  const { analytics, draftStats, isLoading, error, days } = state;
 
   const loadAnalytics = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    dispatch({ type: 'FETCH_START' });
 
     try {
       const drafts = workspaceId
         ? await window.genfeedDesktop.drafts.list(workspaceId)
         : [];
 
-      setDraftStats({
+      const draftStats: DraftStats = {
         generatedCount: drafts.filter((draft) => draft.status === 'generated')
           .length,
         publishedCount: drafts.filter((draft) => draft.status === 'published')
           .length,
         reviewCount: drafts.filter((draft) => draft.publishIntent === 'review')
           .length,
-      });
+      };
 
       if (!isOnline) {
-        setAnalytics(null);
+        dispatch({ type: 'FETCH_SUCCESS', analytics: null, draftStats });
         return;
       }
 
       const result = await window.genfeedDesktop.cloud.getAnalytics({ days });
-      setAnalytics(result);
+      dispatch({ type: 'FETCH_SUCCESS', analytics: result, draftStats });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load analytics');
-    } finally {
-      setLoading(false);
+      dispatch({
+        type: 'FETCH_ERROR',
+        error: err instanceof Error ? err.message : 'Failed to load analytics',
+      });
     }
   }, [days, isOnline, workspaceId]);
 
@@ -70,7 +118,7 @@ export const AnalyticsView = ({
             <Button
               className={`pill-button ${days === d ? 'pill-active' : ''}`}
               key={d}
-              onClick={() => setDays(d)}
+              onClick={() => dispatch({ type: 'SET_DAYS', days: d })}
               type="button"
               variant={ButtonVariant.UNSTYLED}
             >
@@ -80,8 +128,8 @@ export const AnalyticsView = ({
         </div>
       </div>
 
-      {loading && <p className="muted-text">Loading analytics...</p>}
-      {!loading && !isOnline && (
+      {isLoading && <p className="muted-text">Loading analytics...</p>}
+      {!isLoading && !isOnline && (
         <>
           <DesktopResilienceState
             actionLabel="Retry"
@@ -93,7 +141,7 @@ export const AnalyticsView = ({
           <DesktopDraftStatsGrid draftStats={draftStats} />
         </>
       )}
-      {!loading && isOnline && error && (
+      {!isLoading && isOnline && error && (
         <DesktopResilienceState
           actionLabel="Retry"
           details={error}
@@ -103,7 +151,7 @@ export const AnalyticsView = ({
         />
       )}
 
-      {!loading && isOnline && !error && analytics && (
+      {!isLoading && isOnline && !error && analytics && (
         <>
           <div className="stats-grid">
             <div className="stat-card">
@@ -159,7 +207,7 @@ export const AnalyticsView = ({
         </>
       )}
 
-      {!loading && isOnline && !error && !analytics && (
+      {!isLoading && isOnline && !error && !analytics && (
         <DesktopResilienceState
           details="No cloud analytics are available yet. Publish content or sync recent posts, then refresh this view."
           kind="empty"

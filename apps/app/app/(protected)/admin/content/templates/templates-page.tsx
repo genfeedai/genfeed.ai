@@ -22,11 +22,12 @@ export default function TemplatesPage() {
     TemplateService.getInstance(token),
   );
 
-  const [templates, setTemplates] = useState<IContentTemplate[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [templates, setTemplates] = useState<IContentTemplate[] | null>(null);
+
+  const isLoading = templates === null;
 
   const loadTemplates = useCallback(async () => {
-    setIsLoading(true);
+    setTemplates(null);
 
     try {
       const service = await getTemplatesService();
@@ -37,8 +38,7 @@ export default function TemplatesPage() {
     } catch (error) {
       logger.error('Failed to load templates', error);
       notificationsService.error('Failed to load templates');
-    } finally {
-      setIsLoading(false);
+      setTemplates([]);
     }
   }, [getTemplatesService, notificationsService]);
 
@@ -66,14 +66,14 @@ export default function TemplatesPage() {
           tone="muted"
           data-testid="content-templates-surface"
         >
-          {templates.length === 0 ? (
+          {(templates ?? []).length === 0 ? (
             <CardEmpty label="No templates yet" />
           ) : (
             <div
               data-testid="templates-grid"
               className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
             >
-              {templates.map((template) => (
+              {(templates ?? []).map((template) => (
                 <Link
                   key={template.id}
                   href={`/templates/${template.id}`}

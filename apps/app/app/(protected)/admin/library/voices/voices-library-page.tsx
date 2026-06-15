@@ -9,7 +9,7 @@ import { VoicesService } from '@services/ingredients/voices.service';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer } from 'react';
 import { HiOutlineSpeakerWave } from 'react-icons/hi2';
 import VoiceCatalogCard from './voice-catalog-card';
 import VoicesCatalogControls, {
@@ -25,24 +25,94 @@ const VOICE_SKELETON_KEYS = [
   'voice-skeleton-6',
 ] as const;
 
+type VoicesLibraryState = {
+  voices: ExternalVoice[];
+  isLoading: boolean;
+  isSyncingAll: boolean;
+  syncingProvider: VoiceProvider | null;
+  search: string;
+  providerFilter: ProviderFilter;
+  togglingKey: string | null;
+};
+
+type VoicesLibraryAction =
+  | { type: 'LOAD_START' }
+  | { type: 'LOAD_SUCCESS'; voices: ExternalVoice[] }
+  | { type: 'LOAD_ERROR' }
+  | { type: 'SYNC_START'; provider: VoiceProvider | null }
+  | { type: 'SYNC_END' }
+  | { type: 'TOGGLE_START'; key: string }
+  | { type: 'TOGGLE_SUCCESS'; voice: ExternalVoice }
+  | { type: 'TOGGLE_END' }
+  | { type: 'SET_SEARCH'; search: string }
+  | { type: 'SET_PROVIDER_FILTER'; providerFilter: ProviderFilter };
+
+const initialState: VoicesLibraryState = {
+  voices: [],
+  isLoading: true,
+  isSyncingAll: false,
+  syncingProvider: null,
+  search: '',
+  providerFilter: 'all',
+  togglingKey: null,
+};
+
+function voicesLibraryReducer(
+  state: VoicesLibraryState,
+  action: VoicesLibraryAction,
+): VoicesLibraryState {
+  switch (action.type) {
+    case 'LOAD_START':
+      return { ...state, isLoading: true };
+    case 'LOAD_SUCCESS':
+      return { ...state, isLoading: false, voices: action.voices };
+    case 'LOAD_ERROR':
+      return { ...state, isLoading: false, voices: [] };
+    case 'SYNC_START':
+      return action.provider
+        ? { ...state, syncingProvider: action.provider }
+        : { ...state, isSyncingAll: true };
+    case 'SYNC_END':
+      return { ...state, syncingProvider: null, isSyncingAll: false };
+    case 'TOGGLE_START':
+      return { ...state, togglingKey: action.key };
+    case 'TOGGLE_SUCCESS':
+      return {
+        ...state,
+        voices: state.voices.map((item) =>
+          item.id === action.voice.id ? action.voice : item,
+        ),
+      };
+    case 'TOGGLE_END':
+      return { ...state, togglingKey: null };
+    case 'SET_SEARCH':
+      return { ...state, search: action.search };
+    case 'SET_PROVIDER_FILTER':
+      return { ...state, providerFilter: action.providerFilter };
+    default:
+      return state;
+  }
+}
+
 export default function VoicesLibraryPage() {
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const getVoicesService = useAuthedService((token: string) =>
     VoicesService.getInstance(token),
   );
 
-  const [voices, setVoices] = useState<ExternalVoice[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSyncingAll, setIsSyncingAll] = useState(false);
-  const [syncingProvider, setSyncingProvider] = useState<VoiceProvider | null>(
-    null,
-  );
-  const [search, setSearch] = useState('');
-  const [providerFilter, setProviderFilter] = useState<ProviderFilter>('all');
-  const [togglingKey, setTogglingKey] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(voicesLibraryReducer, initialState);
+  const {
+    voices,
+    isLoading,
+    isSyncingAll,
+    syncingProvider,
+    search,
+    providerFilter,
+    togglingKey,
+  } = state;
 
   const loadVoices = useCallback(async () => {
-    setIsLoading(true);
+    dispatch({ type: 'LOAD_START' });
 
     try {
       const service = await getVoicesService();
@@ -50,13 +120,11 @@ export default function VoicesLibraryPage() {
         provider: providerFilter === 'all' ? undefined : providerFilter,
         search: search.trim() || undefined,
       });
-      setVoices(data);
+      dispatch({ type: 'LOAD_SUCCESS', voices: data });
     } catch (error) {
       logger.error('GET /voices/catalog failed', error);
       notifications.error('Failed to load voice catalog');
-      setVoices([]);
-    } finally {
-      setIsLoading(false);
+      dispatch({ type: 'LOAD_ERROR' });
     }
   }, [getVoicesService, notifications, providerFilter, search]);
 
@@ -69,12 +137,7 @@ export default function VoicesLibraryPage() {
   const handleSync = useCallback(
     async (providers?: VoiceProvider[]) => {
       const provider = providers?.length === 1 ? providers[0] : null;
-
-      if (provider) {
-        setSyncingProvider(provider);
-      } else {
-        setIsSyncingAll(true);
-      }
+      dispatch({ type: 'SYNC_START', provider });
 
       try {
         const service = await getVoicesService();
@@ -87,8 +150,7 @@ export default function VoicesLibraryPage() {
         logger.error('POST /voices/import failed', error);
         notifications.error('Failed to sync voice catalog');
       } finally {
-        setSyncingProvider(null);
-        setIsSyncingAll(false);
+        dispatch({ type: 'SYNC_END' });
       }
     },
     [getVoicesService, loadVoices, notifications],
@@ -100,7 +162,7 @@ export default function VoicesLibraryPage() {
       field: 'isActive' | 'isDefaultSelectable' | 'isFeatured',
       value: boolean,
     ) => {
-      setTogglingKey(`${voice.id}:${field}`);
+      dispatch({ type: 'TOGGLE_START', key: `${voice.id}:${field}` });
 
       try {
         const service = await getVoicesService();
@@ -108,14 +170,12 @@ export default function VoicesLibraryPage() {
           [field]: value,
         });
 
-        setVoices((current) =>
-          current.map((item) => (item.id === voice.id ? updatedVoice : item)),
-        );
+        dispatch({ type: 'TOGGLE_SUCCESS', voice: updatedVoice });
       } catch (error) {
         logger.error(`PATCH /voices/catalog/${voice.id} failed`, error);
         notifications.error('Failed to update voice');
       } finally {
-        setTogglingKey(null);
+        dispatch({ type: 'TOGGLE_END' });
       }
     },
     [getVoicesService, notifications],
@@ -132,8 +192,10 @@ export default function VoicesLibraryPage() {
         providerFilter={providerFilter}
         search={search}
         syncingProvider={syncingProvider}
-        onProviderFilterChange={setProviderFilter}
-        onSearchChange={setSearch}
+        onProviderFilterChange={(pf) =>
+          dispatch({ type: 'SET_PROVIDER_FILTER', providerFilter: pf })
+        }
+        onSearchChange={(s) => dispatch({ type: 'SET_SEARCH', search: s })}
         onSync={handleSync}
       />
 

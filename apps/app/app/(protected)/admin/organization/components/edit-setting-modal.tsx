@@ -8,7 +8,7 @@ import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Switch } from '@ui/primitives/switch';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 interface EditSettingModalProps {
   label: string;
@@ -16,6 +16,76 @@ interface EditSettingModalProps {
   type: 'boolean' | 'number' | 'string' | 'array';
   onSave: (value: unknown) => Promise<void>;
   onCancel: () => void;
+}
+
+const inputClassName =
+  'flex h-10 w-full border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
+
+interface SettingInputProps {
+  label: string;
+  type: 'boolean' | 'number' | 'string' | 'array';
+  editedValue: unknown;
+  isSaving: boolean;
+  onBooleanToggle: () => void;
+  onScalarChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+function SettingInput({
+  label,
+  type,
+  editedValue,
+  isSaving,
+  onBooleanToggle,
+  onScalarChange,
+}: SettingInputProps) {
+  switch (type) {
+    case 'boolean':
+      return (
+        <Field label={label}>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <Switch
+              checked={!!editedValue}
+              onCheckedChange={onBooleanToggle}
+              isDisabled={isSaving}
+              aria-label={`Toggle ${label}`}
+            />
+            <span>{editedValue ? 'Enabled' : 'Disabled'}</span>
+          </label>
+        </Field>
+      );
+    case 'number':
+      return (
+        <Field label={label}>
+          <Input
+            type="number"
+            className={inputClassName}
+            value={editedValue as number}
+            onChange={onScalarChange}
+            disabled={isSaving}
+          />
+        </Field>
+      );
+    case 'string':
+      return (
+        <Field label={label}>
+          <Input
+            type="text"
+            className={inputClassName}
+            value={editedValue as string}
+            onChange={onScalarChange}
+            disabled={isSaving}
+          />
+        </Field>
+      );
+    case 'array':
+      return (
+        <Field label={label}>
+          <div className="text-sm text-foreground/70">
+            Array editing not yet implemented. Please use the API directly.
+          </div>
+        </Field>
+      );
+  }
 }
 
 export function EditSettingModal({
@@ -27,10 +97,6 @@ export function EditSettingModal({
 }: EditSettingModalProps) {
   const [editedValue, setEditedValue] = useState<unknown>(value);
   const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    setEditedValue(value);
-  }, [value]);
 
   const closeEditModal = useCallback(() => {
     closeModal(ModalEnum.EDIT_SETTING);
@@ -61,67 +127,20 @@ export function EditSettingModal({
   );
 
   const handleBooleanToggle = useCallback(() => {
-    setEditedValue(!editedValue);
-  }, [editedValue]);
-
-  function renderSettingInput(): React.ReactNode {
-    const inputClassName =
-      'flex h-10 w-full border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
-
-    switch (type) {
-      case 'boolean':
-        return (
-          <Field label={label}>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <Switch
-                checked={!!editedValue}
-                onCheckedChange={handleBooleanToggle}
-                isDisabled={isSaving}
-                aria-label={`Toggle ${label}`}
-              />
-              <span>{editedValue ? 'Enabled' : 'Disabled'}</span>
-            </label>
-          </Field>
-        );
-      case 'number':
-        return (
-          <Field label={label}>
-            <Input
-              type="number"
-              className={inputClassName}
-              value={editedValue as number}
-              onChange={updateScalarSettingValue}
-              disabled={isSaving}
-            />
-          </Field>
-        );
-      case 'string':
-        return (
-          <Field label={label}>
-            <Input
-              type="text"
-              className={inputClassName}
-              value={editedValue as string}
-              onChange={updateScalarSettingValue}
-              disabled={isSaving}
-            />
-          </Field>
-        );
-      case 'array':
-        return (
-          <Field label={label}>
-            <div className="text-sm text-foreground/70">
-              Array editing not yet implemented. Please use the API directly.
-            </div>
-          </Field>
-        );
-    }
-  }
+    setEditedValue((prev: unknown) => !prev);
+  }, []);
 
   return (
     <Modal id={ModalEnum.EDIT_SETTING} title={`Edit ${label}`}>
       <div className="space-y-4">
-        {renderSettingInput()}
+        <SettingInput
+          label={label}
+          type={type}
+          editedValue={editedValue}
+          isSaving={isSaving}
+          onBooleanToggle={handleBooleanToggle}
+          onScalarChange={updateScalarSettingValue}
+        />
 
         <ModalActions>
           <Button

@@ -7,17 +7,24 @@ import EditorTimeline from './EditorTimeline';
 
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
-    'aria-label': ariaLabel,
+    ariaLabel,
     children,
     onClick,
+    onMouseDown,
     tooltip,
   }: {
-    'aria-label'?: string;
+    ariaLabel?: string;
     children?: ReactNode;
     onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+    onMouseDown?: (event: React.MouseEvent<HTMLButtonElement>) => void;
     tooltip?: string;
   }) => (
-    <button aria-label={ariaLabel ?? tooltip} type="button" onClick={onClick}>
+    <button
+      aria-label={ariaLabel ?? tooltip}
+      type="button"
+      onClick={onClick}
+      onMouseDown={onMouseDown}
+    >
       {children}
     </button>
   ),

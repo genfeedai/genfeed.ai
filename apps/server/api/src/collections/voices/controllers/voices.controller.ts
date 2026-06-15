@@ -52,8 +52,8 @@ import type {
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import {
-  type ExternalVoice,
   VoiceProvider as DbVoiceProvider,
+  type ExternalVoice,
 } from '@genfeedai/prisma';
 import {
   VoiceCatalogEntrySerializer,

@@ -7,7 +7,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { DesktopResilienceState } from '@renderer/components/DesktopResilienceState';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
 type ManualRunState = {
   agentId: string;
@@ -308,42 +308,170 @@ const AgentCard = ({
   );
 };
 
+type AgentsState = {
+  agents: IDesktopAgent[];
+  loading: boolean;
+  error: string | null;
+  manualRun: ManualRunState | null;
+  runningAgentId: string | null;
+};
+
+type AgentsAction =
+  | { type: 'LOAD_START' }
+  | { type: 'LOAD_SUCCESS'; agents: IDesktopAgent[] }
+  | { type: 'LOAD_ERROR'; error: string }
+  | { type: 'LOAD_SILENT_SUCCESS'; agents: IDesktopAgent[] }
+  | { type: 'RUN_START'; agentId: string; agentName: string; startedAt: string }
+  | {
+      type: 'RUN_QUEUED';
+      agentId: string;
+      agentName: string;
+      startedAt: string;
+      message?: string;
+      runId?: string;
+      status: IDesktopAgentRunResult['status'];
+    }
+  | {
+      type: 'RUN_FAILED';
+      agentId: string;
+      agentName: string;
+      startedAt: string;
+      message: string;
+    }
+  | { type: 'RUN_OFFLINE_ABORT'; error: string }
+  | { type: 'RUN_DONE' }
+  | { type: 'CLEAR_ERROR' };
+
+function agentsReducer(state: AgentsState, action: AgentsAction): AgentsState {
+  switch (action.type) {
+    case 'LOAD_START':
+      return { ...state, loading: true, error: null };
+    case 'LOAD_SUCCESS':
+      return { ...state, loading: false, agents: action.agents };
+    case 'LOAD_ERROR':
+      return { ...state, loading: false, error: action.error };
+    case 'LOAD_SILENT_SUCCESS':
+      return { ...state, agents: action.agents };
+    case 'RUN_START':
+      return {
+        ...state,
+        runningAgentId: action.agentId,
+        error: null,
+        manualRun: {
+          agentId: action.agentId,
+          agentName: action.agentName,
+          startedAt: action.startedAt,
+          status: 'queued',
+        },
+      };
+    case 'RUN_QUEUED':
+      return {
+        ...state,
+        manualRun: {
+          agentId: action.agentId,
+          agentName: action.agentName,
+          ...(action.message ? { message: action.message } : {}),
+          ...(action.runId ? { runId: action.runId } : {}),
+          startedAt: action.startedAt,
+          status: action.status,
+        },
+      };
+    case 'RUN_FAILED':
+      return {
+        ...state,
+        error: action.message,
+        manualRun: {
+          agentId: action.agentId,
+          agentName: action.agentName,
+          message: action.message,
+          startedAt: action.startedAt,
+          status: 'failed',
+        },
+      };
+    case 'RUN_OFFLINE_ABORT':
+      return {
+        ...state,
+        error: action.error,
+        runningAgentId: null,
+        manualRun: null,
+      };
+    case 'RUN_DONE':
+      return { ...state, runningAgentId: null };
+    case 'CLEAR_ERROR':
+      return { ...state, error: null };
+    default:
+      return state;
+  }
+}
+
+const initialAgentsState: AgentsState = {
+  agents: [],
+  loading: true,
+  error: null,
+  manualRun: null,
+  runningAgentId: null,
+};
+
 interface AgentsViewProps {
   isOnline: boolean;
   onRunHandoff?: (handoff: DesktopAgentRunHandoff) => void;
 }
 
 export const AgentsView = ({ isOnline, onRunHandoff }: AgentsViewProps) => {
-  const [agents, setAgents] = useState<IDesktopAgent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [manualRun, setManualRun] = useState<ManualRunState | null>(null);
-  const [runningAgentId, setRunningAgentId] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(agentsReducer, initialAgentsState);
+  const { agents, loading, error, runningAgentId } = state;
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Derive the effective manualRun by merging stored state with latest polled agent data.
+  // This avoids a self-updating effect (no-derived-state / no-self-updating-effect).
+  const manualRun = (() => {
+    const stored = state.manualRun;
+    if (!stored || !isManualRunInFlight(stored)) {
+      return stored;
+    }
+    const agent = agents.find((item) => item.id === stored.agentId);
+    const latestRun = agent?.latestRun;
+    if (
+      !latestRun ||
+      !isMatchingManualRun(stored, latestRun) ||
+      ['pending', 'queued', 'running'].includes(latestRun.status)
+    ) {
+      return stored;
+    }
+    return {
+      ...stored,
+      ...(latestRun.outputSummary ? { message: latestRun.outputSummary } : {}),
+      runId: latestRun.id,
+      status: latestRun.status,
+    };
+  })();
 
   const loadAgents = useCallback(
     async (options?: { silent?: boolean }) => {
       if (!options?.silent) {
-        setLoading(true);
+        dispatch({ type: 'LOAD_START' });
       }
-      setError(null);
 
       if (!isOnline) {
-        setAgents([]);
         if (!options?.silent) {
-          setLoading(false);
+          dispatch({ type: 'LOAD_SUCCESS', agents: [] });
         }
         return;
       }
 
       try {
         const result = await window.genfeedDesktop.cloud.listAgents();
-        setAgents(result);
+        if (options?.silent) {
+          dispatch({ type: 'LOAD_SILENT_SUCCESS', agents: result });
+        } else {
+          dispatch({ type: 'LOAD_SUCCESS', agents: result });
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load agents');
-      } finally {
         if (!options?.silent) {
-          setLoading(false);
+          dispatch({
+            type: 'LOAD_ERROR',
+            error: err instanceof Error ? err.message : 'Failed to load agents',
+          });
         }
       }
     },
@@ -355,10 +483,15 @@ export const AgentsView = ({ isOnline, onRunHandoff }: AgentsViewProps) => {
   }, [loadAgents]);
 
   // Poll every 5s while a manually triggered run is waiting on cloud history.
+  // loadAgents is captured via a stable ref so the interval isn't re-created
+  // every time the parent redraws (prefer-use-effect-event pattern).
+  const loadAgentsRef = useRef(loadAgents);
+  loadAgentsRef.current = loadAgents;
+
   useEffect(() => {
-    if (isManualRunInFlight(manualRun)) {
+    if (isManualRunInFlight(state.manualRun)) {
       pollRef.current = setInterval(() => {
-        void loadAgents({ silent: true });
+        void loadAgentsRef.current({ silent: true });
       }, 5000);
     } else if (pollRef.current) {
       clearInterval(pollRef.current);
@@ -370,56 +503,31 @@ export const AgentsView = ({ isOnline, onRunHandoff }: AgentsViewProps) => {
         clearInterval(pollRef.current);
       }
     };
-  }, [manualRun, loadAgents]);
-
-  useEffect(() => {
-    if (!isManualRunInFlight(manualRun)) {
-      return;
-    }
-
-    const activeManualRun = manualRun;
-    const agent = agents.find((item) => item.id === activeManualRun.agentId);
-    const latestRun = agent?.latestRun;
-
-    if (
-      !latestRun ||
-      !isMatchingManualRun(activeManualRun, latestRun) ||
-      ['pending', 'queued', 'running'].includes(latestRun.status)
-    ) {
-      return;
-    }
-
-    setManualRun({
-      ...activeManualRun,
-      ...(latestRun.outputSummary ? { message: latestRun.outputSummary } : {}),
-      runId: latestRun.id,
-      status: latestRun.status,
-    });
-  }, [agents, manualRun]);
+  }, [state.manualRun]);
 
   const handleRunAgent = useCallback(
     async (agentId: string) => {
       const agent = agents.find((item) => item.id === agentId);
       const startedAt = new Date().toISOString();
-      setRunningAgentId(agentId);
-      setManualRun({
+      dispatch({
+        type: 'RUN_START',
         agentId,
         agentName: agent?.name ?? 'Agent',
         startedAt,
-        status: 'queued',
       });
-      setError(null);
 
       if (!isOnline) {
-        setError('Reconnect before running cloud agent strategies.');
-        setRunningAgentId(null);
-        setManualRun(null);
+        dispatch({
+          type: 'RUN_OFFLINE_ABORT',
+          error: 'Reconnect before running cloud agent strategies.',
+        });
         return;
       }
 
       try {
         const result = await window.genfeedDesktop.cloud.runAgent(agentId);
-        setManualRun({
+        dispatch({
+          type: 'RUN_QUEUED',
           agentId,
           agentName: agent?.name ?? 'Agent',
           ...(result.message ? { message: result.message } : {}),
@@ -433,16 +541,15 @@ export const AgentsView = ({ isOnline, onRunHandoff }: AgentsViewProps) => {
         );
         await loadAgents({ silent: true });
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to run agent');
-        setManualRun({
+        dispatch({
+          type: 'RUN_FAILED',
           agentId,
           agentName: agent?.name ?? 'Agent',
           message: err instanceof Error ? err.message : 'Failed to run agent',
           startedAt,
-          status: 'failed',
         });
       } finally {
-        setRunningAgentId(null);
+        dispatch({ type: 'RUN_DONE' });
       }
     },
     [agents, isOnline, loadAgents],

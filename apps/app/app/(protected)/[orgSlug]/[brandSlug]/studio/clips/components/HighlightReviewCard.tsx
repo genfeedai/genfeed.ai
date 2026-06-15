@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { useCallback, useState } from 'react';
+import { useCallback, useReducer, useRef } from 'react';
 import type { ClipsApiService } from '../services/clips-api.service';
 
 interface HighlightReviewCardProps {
@@ -68,6 +68,50 @@ function getViralityColor(score: number): string {
   return 'bg-red-500/20 text-red-400 border-red-500/30';
 }
 
+type RewriteState = {
+  isRewriting: boolean;
+  hasBeenRewritten: boolean;
+  platform: string;
+  tone: string;
+  rewriteError: string | null;
+};
+
+type RewriteAction =
+  | { type: 'START_REWRITE' }
+  | { type: 'REWRITE_SUCCESS' }
+  | { type: 'REWRITE_ERROR'; error: string }
+  | { type: 'RESTORE' }
+  | { type: 'SET_PLATFORM'; platform: string }
+  | { type: 'SET_TONE'; tone: string };
+
+const initialRewriteState: RewriteState = {
+  isRewriting: false,
+  hasBeenRewritten: false,
+  platform: 'tiktok',
+  tone: 'hook',
+  rewriteError: null,
+};
+
+function rewriteReducer(
+  state: RewriteState,
+  action: RewriteAction,
+): RewriteState {
+  switch (action.type) {
+    case 'START_REWRITE':
+      return { ...state, isRewriting: true, rewriteError: null };
+    case 'REWRITE_SUCCESS':
+      return { ...state, isRewriting: false, hasBeenRewritten: true };
+    case 'REWRITE_ERROR':
+      return { ...state, isRewriting: false, rewriteError: action.error };
+    case 'RESTORE':
+      return { ...state, hasBeenRewritten: false, rewriteError: null };
+    case 'SET_PLATFORM':
+      return { ...state, platform: action.platform };
+    case 'SET_TONE':
+      return { ...state, tone: action.tone };
+  }
+}
+
 export default function HighlightReviewCard({
   highlight,
   selected,
@@ -84,22 +128,20 @@ export default function HighlightReviewCard({
     'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
 
   // Viral rewrite state
-  const [isRewriting, setIsRewriting] = useState(false);
-  const [hasBeenRewritten, setHasBeenRewritten] = useState(false);
-  const [originalScript, setOriginalScript] = useState('');
-  const [platform, setPlatform] = useState('tiktok');
-  const [tone, setTone] = useState('hook');
-  const [rewriteError, setRewriteError] = useState<string | null>(null);
+  const [
+    { isRewriting, hasBeenRewritten, platform, tone, rewriteError },
+    dispatch,
+  ] = useReducer(rewriteReducer, initialRewriteState);
+  const originalScriptRef = useRef('');
 
   const handleViralRewrite = useCallback(async () => {
     if (!projectId || !clipsService) return;
 
-    setIsRewriting(true);
-    setRewriteError(null);
+    dispatch({ type: 'START_REWRITE' });
 
     // Save original before overwriting
     if (!hasBeenRewritten) {
-      setOriginalScript(highlight.summary);
+      originalScriptRef.current = highlight.summary;
     }
 
     try {
@@ -109,11 +151,12 @@ export default function HighlightReviewCard({
         { platform, tone },
       );
       onScriptEdit(result.rewrittenScript);
-      setHasBeenRewritten(true);
+      dispatch({ type: 'REWRITE_SUCCESS' });
     } catch (err: unknown) {
-      setRewriteError(err instanceof Error ? err.message : 'Rewrite failed');
-    } finally {
-      setIsRewriting(false);
+      dispatch({
+        type: 'REWRITE_ERROR',
+        error: err instanceof Error ? err.message : 'Rewrite failed',
+      });
     }
   }, [
     projectId,
@@ -127,10 +170,9 @@ export default function HighlightReviewCard({
   ]);
 
   const handleRestoreOriginal = useCallback(() => {
-    onScriptEdit(originalScript);
-    setHasBeenRewritten(false);
-    setRewriteError(null);
-  }, [originalScript, onScriptEdit]);
+    onScriptEdit(originalScriptRef.current);
+    dispatch({ type: 'RESTORE' });
+  }, [onScriptEdit]);
 
   return (
     <div
@@ -194,7 +236,12 @@ export default function HighlightReviewCard({
       {projectId && clipsService && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {/* Platform selector */}
-          <Select value={platform} onValueChange={setPlatform}>
+          <Select
+            value={platform}
+            onValueChange={(v) =>
+              dispatch({ type: 'SET_PLATFORM', platform: v })
+            }
+          >
             <SelectTrigger className="h-7 w-auto px-2 py-1 text-[11px]">
               <SelectValue />
             </SelectTrigger>
@@ -208,7 +255,10 @@ export default function HighlightReviewCard({
           </Select>
 
           {/* Tone selector */}
-          <Select value={tone} onValueChange={setTone}>
+          <Select
+            value={tone}
+            onValueChange={(v) => dispatch({ type: 'SET_TONE', tone: v })}
+          >
             <SelectTrigger className="h-7 w-auto px-2 py-1 text-[11px]">
               <SelectValue />
             </SelectTrigger>

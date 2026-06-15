@@ -3,7 +3,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
-import { type Ref, useEffect, useImperativeHandle, useState } from 'react';
+import { type Ref, useImperativeHandle, useState } from 'react';
 
 export interface WorkspaceBrandMentionItem {
   id: string;
@@ -22,10 +22,6 @@ export function WorkspaceBrandMentionList({
   ref,
 }: WorkspaceBrandMentionListProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
-
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, []);
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }: { event: KeyboardEvent }) => {

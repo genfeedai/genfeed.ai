@@ -23,8 +23,9 @@ function ScenesListContent() {
     useCallback((token: string) => ScenesService.getInstance(token), []),
   );
 
-  const [scenes, setScenes] = useState<ElementScene[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [scenes, setScenes] = useState<ElementScene[] | null>(null);
+
+  const isLoading = scenes === null;
 
   const columns: TableColumn<ElementScene>[] = [
     { header: 'Label', key: 'label' },
@@ -37,7 +38,7 @@ function ScenesListContent() {
   ];
 
   const findAllScenes = useCallback(async () => {
-    setIsLoading(true);
+    setScenes(null);
 
     try {
       const service = await getScenesService();
@@ -52,8 +53,7 @@ function ScenesListContent() {
     } catch (error) {
       logger.error('GET /scenes failed', error);
       notificationsService.error('Failed to load scenes');
-    } finally {
-      setIsLoading(false);
+      setScenes([]);
     }
   }, [currentPage, getScenesService, notificationsService]);
 
@@ -67,7 +67,7 @@ function ScenesListContent() {
       description="Reusable scene elements for generation"
     >
       <AppTable<ElementScene>
-        items={scenes}
+        items={scenes ?? []}
         columns={columns}
         actions={[]}
         isLoading={isLoading}

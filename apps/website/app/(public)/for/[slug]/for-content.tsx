@@ -5,10 +5,43 @@ import HeroProofRail from '@ui/marketing/HeroProofRail';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
+import { useMemo } from 'react';
 import { FaCheck } from 'react-icons/fa6';
 import { HiXMark } from 'react-icons/hi2';
 
 export default function ForContent({ useCase }: { useCase: UseCase }) {
+  const heroProof = useMemo(
+    () => (
+      <HeroProofRail
+        title="Audience fit"
+        items={[
+          { label: 'Built for', value: useCase.audience },
+          { label: 'Recommended plan', value: useCase.pricing.recommended },
+          {
+            label: 'Primary result',
+            value: useCase.results[0] ?? 'Higher output',
+          },
+        ]}
+      />
+    ),
+    [useCase],
+  );
+
+  const heroVisual = useMemo(
+    () => (
+      <EditorialPoster
+        eyebrow={useCase.subtitle}
+        title={useCase.headline}
+        detail={useCase.description}
+        items={useCase.workflow.slice(0, 3).map((step) => ({
+          label: `Step ${step.step}`,
+          value: step.title,
+        }))}
+      />
+    ),
+    [useCase],
+  );
+
   return (
     <PageLayout
       title={useCase.title}
@@ -22,30 +55,8 @@ export default function ForContent({ useCase }: { useCase: UseCase }) {
           </Link>
         </>
       }
-      heroProof={
-        <HeroProofRail
-          title="Audience fit"
-          items={[
-            { label: 'Built for', value: useCase.audience },
-            { label: 'Recommended plan', value: useCase.pricing.recommended },
-            {
-              label: 'Primary result',
-              value: useCase.results[0] ?? 'Higher output',
-            },
-          ]}
-        />
-      }
-      heroVisual={
-        <EditorialPoster
-          eyebrow={useCase.subtitle}
-          title={useCase.headline}
-          detail={useCase.description}
-          items={useCase.workflow.slice(0, 3).map((step) => ({
-            label: `Step ${step.step}`,
-            value: step.title,
-          }))}
-        />
-      }
+      heroProof={heroProof}
+      heroVisual={heroVisual}
     >
       <section className="max-w-6xl mx-auto pb-20">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

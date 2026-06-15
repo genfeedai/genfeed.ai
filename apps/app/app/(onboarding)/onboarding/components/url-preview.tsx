@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { HiGlobeAlt } from 'react-icons/hi2';
 
 interface UrlPreviewProps {
@@ -29,9 +29,9 @@ function parseDomain(url: string): string | null {
  */
 export default function UrlPreview({ url }: UrlPreviewProps) {
   const [faviconError, setFaviconError] = useState(false);
-  const [prevUrl, setPrevUrl] = useState(url);
-  if (url !== prevUrl) {
-    setPrevUrl(url);
+  const prevUrlRef = useRef(url);
+  if (url !== prevUrlRef.current) {
+    prevUrlRef.current = url;
     setFaviconError(false);
   }
 
@@ -44,9 +44,8 @@ export default function UrlPreview({ url }: UrlPreviewProps) {
   const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
 
   return (
-    <div
+    <output
       className="flex items-center gap-2 mt-2 px-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded animate-in fade-in slide-in-from-top-1 duration-300"
-      role="status"
       aria-label={`Preview for ${domain}`}
     >
       {!faviconError ? (
@@ -66,6 +65,6 @@ export default function UrlPreview({ url }: UrlPreviewProps) {
       <span className="text-[10px] text-white/20 ml-auto">
         We&apos;ll extract colors, logo &amp; voice
       </span>
-    </div>
+    </output>
   );
 }

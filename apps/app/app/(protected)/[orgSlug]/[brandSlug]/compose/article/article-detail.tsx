@@ -261,14 +261,10 @@ export default function ArticleDetail({
       />
 
       <ArticleDetailHeader
-        isNew={isNew}
+        state={{ isNew, hasXArticleSections, isDirty, isSaving }}
+        permissions={{ canPublish, canArchive }}
         viewMode={viewMode}
         setViewMode={setViewMode}
-        canPublish={canPublish}
-        canArchive={canArchive}
-        hasXArticleSections={hasXArticleSections}
-        isDirty={isDirty}
-        isSaving={isSaving}
         formLabel={form.label}
         plainTextContent={plainTextContent}
         openConfirm={openConfirm}

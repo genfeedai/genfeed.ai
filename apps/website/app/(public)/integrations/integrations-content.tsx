@@ -63,9 +63,56 @@ const ICON_MAP: Record<string, IconType> = {
   HiNewspaper,
 };
 
+const featuredIntegrations = integrations.slice(0, 4);
+
+const HERO_PROOF = (
+  <HeroProofRail
+    items={[
+      {
+        label: 'Coverage',
+        value: `${integrations.length}+ platform endpoints and content surfaces.`,
+      },
+      {
+        label: 'Workflow',
+        value:
+          'Generate, optimize, schedule, and publish without leaving one system.',
+      },
+      {
+        label: 'Focus',
+        value:
+          'One operating layer for distribution instead of disconnected tools.',
+      },
+    ]}
+    title="Channel proof"
+  />
+);
+
+const HERO_VISUAL = (
+  <EditorialPoster
+    detail="Each integration is tuned for channel-native output so the content system stays coherent while the platform behavior changes."
+    eyebrow="Channel Map"
+    footer={
+      <span>{featuredIntegrations.map((item) => item.name).join(' / ')}</span>
+    }
+    items={featuredIntegrations.map((integration) => ({
+      label: integration.name,
+      value: integration.tagline,
+    }))}
+    subtitle="Distribution surfaces with AI-native packaging"
+    title={
+      <>
+        Every channel.
+        <br />
+        One operating
+        <br />
+        layer.
+      </>
+    }
+  />
+);
+
 export default function IntegrationsContent() {
   const containerRef = useMarketingEntrance();
-  const featuredIntegrations = integrations.slice(0, 4);
 
   return (
     <div ref={containerRef}>
@@ -83,52 +130,8 @@ export default function IntegrationsContent() {
             </Link>
           </ButtonTracked>
         }
-        heroProof={
-          <HeroProofRail
-            items={[
-              {
-                label: 'Coverage',
-                value: `${integrations.length}+ platform endpoints and content surfaces.`,
-              },
-              {
-                label: 'Workflow',
-                value:
-                  'Generate, optimize, schedule, and publish without leaving one system.',
-              },
-              {
-                label: 'Focus',
-                value:
-                  'One operating layer for distribution instead of disconnected tools.',
-              },
-            ]}
-            title="Channel proof"
-          />
-        }
-        heroVisual={
-          <EditorialPoster
-            detail="Each integration is tuned for channel-native output so the content system stays coherent while the platform behavior changes."
-            eyebrow="Channel Map"
-            footer={
-              <span>
-                {featuredIntegrations.map((item) => item.name).join(' / ')}
-              </span>
-            }
-            items={featuredIntegrations.map((integration) => ({
-              label: integration.name,
-              value: integration.tagline,
-            }))}
-            subtitle="Distribution surfaces with AI-native packaging"
-            title={
-              <>
-                Every channel.
-                <br />
-                One operating
-                <br />
-                layer.
-              </>
-            }
-          />
-        }
+        heroProof={HERO_PROOF}
+        heroVisual={HERO_VISUAL}
         title="Integrations"
         description="Connect Genfeed to your favorite platforms. Generate and publish AI content everywhere."
       >

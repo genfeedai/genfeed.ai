@@ -6,12 +6,9 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflow-ui/stores';
 import type { NodeProps } from '@xyflow/react';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { NodeButton } from '@/features/workflows/components/ui/button';
-import {
-  NodeInput,
-  NodeSelect,
-} from '@/features/workflows/components/ui/inputs';
+import { NodeSelect } from '@/features/workflows/components/ui/inputs';
 import { HelpText } from '@/features/workflows/components/ui/status';
 import {
   buildWorkflowMediaNodePatch,
@@ -22,7 +19,9 @@ import {
   setWorkflowMediaSource,
   type WorkflowMediaSource,
 } from '@/features/workflows/nodes/input/media-picker';
+import { UrlInputSection } from '@/features/workflows/nodes/input/UrlInputSection';
 import { useWorkflowMediaPicker } from '@/features/workflows/nodes/input/useWorkflowMediaPicker';
+import { VideoIcon } from '@/features/workflows/nodes/input/VideoIcon';
 
 const VIDEO_SOURCE_OPTIONS: Array<{
   value: WorkflowMediaSource;
@@ -33,25 +32,6 @@ const VIDEO_SOURCE_OPTIONS: Array<{
   { label: 'URL', value: 'url' },
 ];
 
-function VideoIcon({
-  className = 'h-4 w-4',
-}: {
-  className?: string;
-}): React.JSX.Element {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <polygon points="23 7 16 12 23 17 23 7" />
-      <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-    </svg>
-  );
-}
-
 function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
   const { data, id } = props;
   const updateNodeData = useWorkflowStore(selectUpdateNodeData);
@@ -60,11 +40,6 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
     () => getWorkflowMediaConfig(data, 'video'),
     [data],
   );
-  const [urlValue, setUrlValue] = useState(mediaConfig.url ?? '');
-
-  useEffect(() => {
-    setUrlValue(mediaConfig.url ?? '');
-  }, [mediaConfig.url]);
 
   const applyConfig = useCallback(
     (nextConfig: ReturnType<typeof getWorkflowMediaConfig>) => {
@@ -85,14 +60,12 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
     [applyConfig, mediaConfig],
   );
 
-  const handleLoadUrl = useCallback(() => {
-    const trimmedUrl = urlValue.trim();
-    if (trimmedUrl.length === 0) {
-      return;
-    }
-
-    applyConfig(createWorkflowMediaUrlConfig(mediaConfig, trimmedUrl));
-  }, [applyConfig, mediaConfig, urlValue]);
+  const handleLoadUrl = useCallback(
+    (trimmedUrl: string) => {
+      applyConfig(createWorkflowMediaUrlConfig(mediaConfig, trimmedUrl));
+    },
+    [applyConfig, mediaConfig],
+  );
 
   const handleSelectMedia = useCallback(() => {
     if (mediaConfig.source === 'url') {
@@ -150,29 +123,12 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
         </NodeSelect>
 
         {mediaConfig.source === 'url' ? (
-          <div className="space-y-2">
-            <NodeInput
-              aria-label="Video URL"
-              label="Video URL"
-              placeholder="https://..."
-              value={urlValue}
-              onChange={(event) => setUrlValue(event.target.value)}
-            />
-            <div className="flex gap-2">
-              <NodeButton
-                fullWidth
-                onClick={handleLoadUrl}
-                disabled={urlValue.trim().length === 0}
-              >
-                Load URL
-              </NodeButton>
-              {mediaConfig.resolvedUrl && (
-                <NodeButton variant="ghost" onClick={handleClear}>
-                  Clear
-                </NodeButton>
-              )}
-            </div>
-          </div>
+          <UrlInputSection
+            key={mediaConfig.url ?? ''}
+            mediaConfig={mediaConfig}
+            onLoadUrl={handleLoadUrl}
+            onClear={handleClear}
+          />
         ) : (
           <div className="flex gap-2">
             <NodeButton fullWidth onClick={handleSelectMedia}>

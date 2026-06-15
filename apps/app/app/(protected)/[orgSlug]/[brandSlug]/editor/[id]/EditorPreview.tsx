@@ -8,7 +8,6 @@ import {
   type ComponentProps,
   type ComponentType,
   type Ref,
-  useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -237,20 +236,20 @@ function EditorPreview({
     toggle: () => playerRef.current?.toggle(),
   }));
 
-  const handleFrameUpdate = useCallback(() => {
+  const handleFrameUpdateRef = useRef(() => {
     const frame = playerRef.current?.getCurrentFrame() ?? 0;
     onFrameChangeRef.current?.(frame);
-  }, []);
+  });
 
-  const handlePlay = useCallback(() => {
+  const handlePlayRef = useRef(() => {
     setIsPlaying(true);
     onPlayingChangeRef.current?.(true);
-  }, []);
+  });
 
-  const handlePause = useCallback(() => {
+  const handlePauseRef = useRef(() => {
     setIsPlaying(false);
     onPlayingChangeRef.current?.(false);
-  }, []);
+  });
 
   useEffect(() => {
     const player = playerRef.current;
@@ -258,16 +257,20 @@ function EditorPreview({
       return;
     }
 
-    player.addEventListener('frameupdate', handleFrameUpdate);
-    player.addEventListener('play', handlePlay);
-    player.addEventListener('pause', handlePause);
+    const onFrameUpdate = () => handleFrameUpdateRef.current();
+    const onPlay = () => handlePlayRef.current();
+    const onPause = () => handlePauseRef.current();
+
+    player.addEventListener('frameupdate', onFrameUpdate);
+    player.addEventListener('play', onPlay);
+    player.addEventListener('pause', onPause);
 
     return () => {
-      player.removeEventListener('frameupdate', handleFrameUpdate);
-      player.removeEventListener('play', handlePlay);
-      player.removeEventListener('pause', handlePause);
+      player.removeEventListener('frameupdate', onFrameUpdate);
+      player.removeEventListener('play', onPlay);
+      player.removeEventListener('pause', onPause);
     };
-  }, [handleFrameUpdate, handlePlay, handlePause]);
+  }, []);
 
   // Calculate aspect ratio for container
   const aspectRatio = width / height;

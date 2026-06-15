@@ -39,7 +39,7 @@ const CATEGORY_LABELS: Partial<Record<IngredientCategory, string>> = {
 interface StatusBadgeConfig {
   bgClass: string;
   textClass: string;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
   label: string;
 }
 
@@ -60,7 +60,7 @@ const STATUS_BADGE_CONFIG: Partial<
   },
 };
 
-function renderStatusBadge(status: IngredientStatus): ReactNode {
+function StatusBadge({ status }: { status: IngredientStatus }) {
   const config = STATUS_BADGE_CONFIG[status];
   if (config) {
     return (
@@ -167,7 +167,7 @@ export default function StudioEditDetail({
                     <div>
                       <span className="text-foreground/60">Status</span>
                       <div className="mt-1">
-                        {renderStatusBadge(selectedIngredient.status)}
+                        <StatusBadge status={selectedIngredient.status} />
                       </div>
                     </div>
                     <div>

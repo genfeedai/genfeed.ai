@@ -67,8 +67,12 @@ function BrandContentContent() {
   const searchParams = useSearchParams();
   const isAutoRequested = searchParams.get('auto') === 'true';
 
-  const [brandName, setBrandName] = useState('');
-  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [brandName, setBrandName] = useState(
+    () => localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandName) ?? '',
+  );
+  const [websiteUrl, setWebsiteUrl] = useState(
+    () => localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain) ?? '',
+  );
   const [submitting, setSubmitting] = useState(false);
   const [accountType, setAccountType] = useState<OrganizationCategory | null>(
     null,
@@ -80,21 +84,6 @@ function BrandContentContent() {
   useEffect(() => {
     if (prefetchedRef.current) {
       return;
-    }
-
-    const storedBrandName = localStorage.getItem(
-      ONBOARDING_STORAGE_KEYS.brandName,
-    );
-    const storedBrandDomain = localStorage.getItem(
-      ONBOARDING_STORAGE_KEYS.brandDomain,
-    );
-
-    if (storedBrandName?.trim()) {
-      setBrandName((prev) => prev || storedBrandName);
-    }
-
-    if (storedBrandDomain?.trim()) {
-      setWebsiteUrl((prev) => prev || storedBrandDomain);
     }
 
     const controller = new AbortController();
@@ -246,33 +235,26 @@ function BrandContentContent() {
     }
   }, [getToken, push]);
 
-  // Auto-scan from corporate email flow
+  // Auto-scan from corporate email flow.
+  // websiteUrl and brandName are already initialised from localStorage in useState,
+  // so we read them directly instead of re-reading localStorage and setting state.
   useEffect(() => {
     if (autoScanRef.current) {
       return;
     }
 
-    const storedDomain = localStorage.getItem(
-      ONBOARDING_STORAGE_KEYS.brandDomain,
-    );
-    const storedBrandName = localStorage.getItem(
-      ONBOARDING_STORAGE_KEYS.brandName,
-    );
-
-    if (isAutoRequested && storedDomain) {
+    if (isAutoRequested && websiteUrl) {
       const inferredBrandName =
-        storedBrandName?.trim() || deriveBrandNameFromDomain(storedDomain);
+        brandName.trim() || deriveBrandNameFromDomain(websiteUrl);
       autoScanRef.current = true;
-      setWebsiteUrl(storedDomain);
-      setBrandName((prev) => prev || inferredBrandName);
       handleContinue({
         brandNameOverride: inferredBrandName,
-        urlOverride: storedDomain,
+        urlOverride: websiteUrl,
       }).catch((error) => {
         logger.error('Failed to continue auto onboarding flow', error);
       });
     }
-  }, [handleContinue, isAutoRequested]);
+  }, [handleContinue, isAutoRequested, websiteUrl, brandName]);
 
   return (
     <div ref={sectionRef}>

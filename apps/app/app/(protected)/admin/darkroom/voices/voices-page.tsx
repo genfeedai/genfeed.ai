@@ -21,7 +21,7 @@ import {
 } from '@ui/primitives/select';
 import { Slider } from '@ui/primitives/slider';
 import { Textarea } from '@ui/primitives/textarea';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { HiOutlineSpeakerWave } from 'react-icons/hi2';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
@@ -39,6 +39,54 @@ interface GeneratedAudio {
   createdAt: string;
 }
 
+interface VoicesState {
+  selectedCharacter: string;
+  text: string;
+  selectedVoiceId: string;
+  speed: number;
+  isGenerating: boolean;
+  generatedAudios: GeneratedAudio[];
+}
+
+type VoicesAction =
+  | { type: 'SET_CHARACTER'; payload: string }
+  | { type: 'SET_TEXT'; payload: string }
+  | { type: 'SET_VOICE_ID'; payload: string }
+  | { type: 'SET_SPEED'; payload: number }
+  | { type: 'SET_GENERATING'; payload: boolean }
+  | { type: 'PREPEND_AUDIO'; payload: GeneratedAudio };
+
+const initialVoicesState: VoicesState = {
+  selectedCharacter: '',
+  text: '',
+  selectedVoiceId: '',
+  speed: 1.0,
+  isGenerating: false,
+  generatedAudios: [],
+};
+
+function voicesReducer(state: VoicesState, action: VoicesAction): VoicesState {
+  switch (action.type) {
+    case 'SET_CHARACTER':
+      return { ...state, selectedCharacter: action.payload };
+    case 'SET_TEXT':
+      return { ...state, text: action.payload };
+    case 'SET_VOICE_ID':
+      return { ...state, selectedVoiceId: action.payload };
+    case 'SET_SPEED':
+      return { ...state, speed: action.payload };
+    case 'SET_GENERATING':
+      return { ...state, isGenerating: action.payload };
+    case 'PREPEND_AUDIO':
+      return {
+        ...state,
+        generatedAudios: [action.payload, ...state.generatedAudios],
+      };
+    default:
+      return state;
+  }
+}
+
 const NO_CHARACTER_VALUE = '__no-character__';
 
 export default function VoicesPage() {
@@ -48,12 +96,15 @@ export default function VoicesPage() {
     AdminDarkroomService.getInstance(token),
   );
 
-  const [selectedCharacter, setSelectedCharacter] = useState<string>('');
-  const [text, setText] = useState('');
-  const [selectedVoiceId, setSelectedVoiceId] = useState('');
-  const [speed, setSpeed] = useState(1.0);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedAudios, setGeneratedAudios] = useState<GeneratedAudio[]>([]);
+  const [state, dispatch] = useReducer(voicesReducer, initialVoicesState);
+  const {
+    selectedCharacter,
+    text,
+    selectedVoiceId,
+    speed,
+    isGenerating,
+    generatedAudios,
+  } = state;
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const { data: characters, error: charactersError } = useQuery<
@@ -98,7 +149,7 @@ export default function VoicesPage() {
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
 
-    setIsGenerating(true);
+    dispatch({ type: 'SET_GENERATING', payload: true });
 
     try {
       const service = await getDarkroomService();
@@ -113,16 +164,16 @@ export default function VoicesPage() {
         voices?.find((v) => v.voiceId === selectedVoiceId)?.name ||
         selectedVoiceId;
 
-      setGeneratedAudios((prev) => [
-        {
+      dispatch({
+        type: 'PREPEND_AUDIO',
+        payload: {
           audioUrl: result.audioUrl,
           createdAt: new Date().toISOString(),
           id: crypto.randomUUID(),
           text,
           voiceName,
         },
-        ...prev,
-      ]);
+      });
 
       notificationsService.success('Audio generated successfully');
     } catch (error) {
@@ -132,7 +183,7 @@ export default function VoicesPage() {
       logger.error('POST /admin/darkroom/voices/generate failed', error);
       notificationsService.error('Failed to generate audio');
     } finally {
-      setIsGenerating(false);
+      dispatch({ type: 'SET_GENERATING', payload: false });
     }
   }, [
     text,
@@ -163,9 +214,10 @@ export default function VoicesPage() {
               </span>
               <Select
                 onValueChange={(value) =>
-                  setSelectedCharacter(
-                    value === NO_CHARACTER_VALUE ? '' : value,
-                  )
+                  dispatch({
+                    type: 'SET_CHARACTER',
+                    payload: value === NO_CHARACTER_VALUE ? '' : value,
+                  })
                 }
                 value={selectedCharacter || NO_CHARACTER_VALUE}
               >
@@ -192,7 +244,9 @@ export default function VoicesPage() {
               </span>
               <Select
                 disabled={isLoadingVoices}
-                onValueChange={setSelectedVoiceId}
+                onValueChange={(value) =>
+                  dispatch({ type: 'SET_VOICE_ID', payload: value })
+                }
                 value={selectedVoiceId}
               >
                 <SelectTrigger className="w-full">
@@ -222,7 +276,9 @@ export default function VoicesPage() {
                 className="w-full"
                 max={2.0}
                 min={0.5}
-                onValueChange={([value]) => setSpeed(value ?? 1)}
+                onValueChange={([value]) =>
+                  dispatch({ type: 'SET_SPEED', payload: value ?? 1 })
+                }
                 step={0.1}
                 value={[speed]}
               />
@@ -240,7 +296,9 @@ export default function VoicesPage() {
             </span>
             <Textarea
               className="min-h-[120px] w-full"
-              onChange={(event) => setText(event.target.value)}
+              onChange={(event) =>
+                dispatch({ type: 'SET_TEXT', payload: event.target.value })
+              }
               placeholder="Enter text to convert to speech..."
               rows={5}
               value={text}

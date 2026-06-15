@@ -16,7 +16,7 @@ import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { HiArrowLeft, HiOutlineUserCircle } from 'react-icons/hi2';
 
 type ReviewTab = 'selected' | 'review' | 'trash';
@@ -57,13 +57,17 @@ export default function CharacterDetail({ slug }: CharacterDetailProps) {
   const {
     data: character,
     isLoading: isLoadingCharacter,
-    error: characterError,
     refetch: refreshCharacter,
   } = useQuery<DarkroomCharacterRecord>({
     queryKey: ['darkroom-character', slug],
     queryFn: async () => {
-      const service = await getDarkroomService();
-      return service.getCharacter(slug) as Promise<DarkroomCharacterRecord>;
+      try {
+        const service = await getDarkroomService();
+        return service.getCharacter(slug) as Promise<DarkroomCharacterRecord>;
+      } catch (error) {
+        logger.error(`GET /admin/darkroom/characters/${slug} failed`, error);
+        throw error;
+      }
     },
   });
 
@@ -71,35 +75,24 @@ export default function CharacterDetail({ slug }: CharacterDetailProps) {
     data: assets,
     isLoading: isLoadingAssets,
     isFetching: isFetchingAssets,
-    error: assetsError,
     refetch: refreshAssets,
   } = useQuery<IDarkroomAsset[]>({
     queryKey: ['darkroom-assets', slug],
     queryFn: async () => {
-      const service = await getDarkroomService();
-      return service.getAssets({ personaSlug: slug });
+      try {
+        const service = await getDarkroomService();
+        return service.getAssets({ personaSlug: slug });
+      } catch (error) {
+        logger.error(
+          `GET /admin/darkroom/assets?personaSlug=${slug} failed`,
+          error,
+        );
+        throw error;
+      }
     },
   });
 
   const isRefreshing = isFetchingAssets && !isLoadingAssets;
-
-  useEffect(() => {
-    if (characterError) {
-      logger.error(
-        `GET /admin/darkroom/characters/${slug} failed`,
-        characterError,
-      );
-    }
-  }, [characterError, slug]);
-
-  useEffect(() => {
-    if (assetsError) {
-      logger.error(
-        `GET /admin/darkroom/assets?personaSlug=${slug} failed`,
-        assetsError,
-      );
-    }
-  }, [assetsError, slug]);
 
   const activeStatus =
     TABS.find((t) => t.key === activeTab)?.status ?? 'approved';

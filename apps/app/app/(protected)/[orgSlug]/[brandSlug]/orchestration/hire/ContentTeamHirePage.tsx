@@ -1,7 +1,6 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
@@ -11,21 +10,12 @@ import {
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
-import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import { HiOutlineUserPlus } from 'react-icons/hi2';
+import { HireForm } from './HireForm';
+import { RolePreviewCard } from './RolePreviewCard';
 
 interface HireFormState {
   brandId: string;
@@ -73,6 +63,10 @@ export default function ContentTeamHirePage() {
     },
     [],
   );
+
+  const handleCancel = useCallback(() => {
+    push(href('/orchestration'));
+  }, [href, push]);
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
@@ -134,208 +128,21 @@ export default function ContentTeamHirePage() {
       label="Hire Agent"
     >
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label
-                className="text-sm font-medium text-foreground"
-                htmlFor="content-team-role"
-              >
-                Role Preset
-              </label>
-              <Select
-                value={form.rolePresetId}
-                onValueChange={(value) => handleChange('rolePresetId', value)}
-              >
-                <SelectTrigger id="content-team-role">
-                  <SelectValue placeholder="Choose a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CONTENT_TEAM_ROLE_PRESETS.map((preset) => (
-                    <SelectItem key={preset.id} value={preset.id}>
-                      {preset.displayRole}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <HireForm
+          brands={brands}
+          form={form}
+          isSubmitting={isSubmitting}
+          onCancel={handleCancel}
+          onChange={handleChange}
+          onSubmit={handleSubmit}
+          selectedPreset={selectedPreset}
+        />
 
-            <div className="space-y-1.5">
-              <label
-                className="text-sm font-medium text-foreground"
-                htmlFor="content-team-agent-label"
-              >
-                Agent Label
-              </label>
-              <Input
-                id="content-team-agent-label"
-                onChange={(event) => handleChange('label', event.target.value)}
-                placeholder={selectedPreset?.defaultLabel ?? 'Agent label'}
-                value={form.label}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label
-                className="text-sm font-medium text-foreground"
-                htmlFor="content-team-brand"
-              >
-                Brand
-              </label>
-              <Select
-                value={form.brandId}
-                onValueChange={(value) => handleChange('brandId', value)}
-              >
-                <SelectTrigger id="content-team-brand">
-                  <SelectValue placeholder="Choose a brand" />
-                </SelectTrigger>
-                <SelectContent>
-                  {brands.map((brand) => (
-                    <SelectItem key={brand.id} value={brand.id}>
-                      {brand.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                className="text-sm font-medium text-foreground"
-                htmlFor="content-team-budget"
-              >
-                Daily Budget
-              </label>
-              <Input
-                id="content-team-budget"
-                min={0}
-                onChange={(event) => handleChange('budget', event.target.value)}
-                placeholder={String(selectedPreset?.defaultBudget ?? 0)}
-                type="number"
-                value={form.budget}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label
-                className="text-sm font-medium text-foreground"
-                htmlFor="content-team-reports-to"
-              >
-                Reports To
-              </label>
-              <Input
-                id="content-team-reports-to"
-                onChange={(event) =>
-                  handleChange('reportsToLabel', event.target.value)
-                }
-                placeholder="Main Orchestrator"
-                value={form.reportsToLabel}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                className="text-sm font-medium text-foreground"
-                htmlFor="content-team-group"
-              >
-                Team Group
-              </label>
-              <Input
-                id="content-team-group"
-                onChange={(event) =>
-                  handleChange('teamGroup', event.target.value)
-                }
-                placeholder={selectedPreset?.teamGroup ?? 'Production'}
-                value={form.teamGroup}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label
-              className="text-sm font-medium text-foreground"
-              htmlFor="content-team-persona"
-            >
-              Shared Persona
-            </label>
-            <Textarea
-              id="content-team-persona"
-              onChange={(event) => handleChange('persona', event.target.value)}
-              placeholder="Describe the creator voice, tone, and positioning for this role."
-              rows={4}
-              value={form.persona}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label
-              className="text-sm font-medium text-foreground"
-              htmlFor="content-team-topic"
-            >
-              Primary Topic
-            </label>
-            <Input
-              id="content-team-topic"
-              onChange={(event) =>
-                handleChange('sharedTopic', event.target.value)
-              }
-              placeholder="e.g. creator monetization, AI productivity, ecommerce"
-              value={form.sharedTopic}
-            />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button
-              label={isSubmitting ? 'Hiring…' : 'Hire Agent'}
-              type="submit"
-              variant={ButtonVariant.DEFAULT}
-            />
-            <Button
-              label="Cancel"
-              onClick={() => push(href('/orchestration'))}
-              type="button"
-              variant={ButtonVariant.SECONDARY}
-            />
-          </div>
-        </form>
-
-        <Card
-          bodyClassName="space-y-4 p-5"
-          description={selectedPreset?.description}
-          label={selectedPreset?.displayRole ?? 'Role Preview'}
-        >
-          <div className="grid grid-cols-1 gap-3 text-sm">
-            <div>
-              <p className="text-foreground/45">Agent Type</p>
-              <p className="mt-1 font-medium text-foreground">
-                {selectedPreset?.type ?? '—'}
-              </p>
-            </div>
-            <div>
-              <p className="text-foreground/45">Default Platforms</p>
-              <p className="mt-1 font-medium text-foreground">
-                {selectedPreset?.platforms.join(', ') ?? '—'}
-              </p>
-            </div>
-            <div>
-              <p className="text-foreground/45">Suggested Team Group</p>
-              <p className="mt-1 font-medium text-foreground">
-                {form.teamGroup || selectedPreset?.teamGroup || '—'}
-              </p>
-            </div>
-            <div>
-              <p className="text-foreground/45">Suggested Budget</p>
-              <p className="mt-1 font-medium text-foreground">
-                {form.budget || selectedPreset?.defaultBudget || 0} credits /
-                day
-              </p>
-            </div>
-          </div>
-        </Card>
+        <RolePreviewCard
+          budget={form.budget}
+          selectedPreset={selectedPreset}
+          teamGroup={form.teamGroup}
+        />
       </div>
     </Container>
   );

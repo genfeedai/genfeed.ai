@@ -100,6 +100,63 @@ const WORKFLOW_STEPS = [
 ];
 
 /* ------------------------------------------------------------------ */
+/*  Static prop values (hoisted to avoid recreation each render)       */
+/* ------------------------------------------------------------------ */
+
+const HERO_PROOF = (
+  <HeroProofRail
+    items={METRICS.map((metric) => ({
+      label: metric.label,
+      value: (
+        <>
+          <span className="text-foreground/40 line-through">
+            {metric.before}
+          </span>{' '}
+          {'->'} {metric.after}
+        </>
+      ),
+    }))}
+    title="What changes"
+  />
+);
+
+const HERO_VISUAL = (
+  <EditorialPoster
+    detail="Publishing is no longer a copy-paste ritual. Compose once, route everywhere, and keep the channel-level optimization attached."
+    eyebrow="Distribution Layer"
+    footer={<span>X / LinkedIn / Instagram / TikTok / YouTube</span>}
+    items={[
+      {
+        label: 'Compose once',
+        value: 'Write, package, and format in one operating surface.',
+      },
+      {
+        label: 'Optimize',
+        value: 'Channel-aware captions, hashtags, and delivery timing.',
+      },
+      {
+        label: 'Schedule',
+        value: 'Weeks of content queued from a single production run.',
+      },
+      {
+        label: 'Ship',
+        value: 'One command publishes the full distribution plan.',
+      },
+    ]}
+    subtitle="Publishing without tool switching"
+    title={
+      <>
+        Publish everywhere
+        <br />
+        from one
+        <br />
+        operating surface.
+      </>
+    }
+  />
+);
+
+/* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -133,57 +190,8 @@ export default function PublisherContent() {
             </ButtonTracked>
           </>
         }
-        heroProof={
-          <HeroProofRail
-            items={METRICS.map((metric) => ({
-              label: metric.label,
-              value: (
-                <>
-                  <span className="text-foreground/40 line-through">
-                    {metric.before}
-                  </span>{' '}
-                  {'->'} {metric.after}
-                </>
-              ),
-            }))}
-            title="What changes"
-          />
-        }
-        heroVisual={
-          <EditorialPoster
-            detail="Publishing is no longer a copy-paste ritual. Compose once, route everywhere, and keep the channel-level optimization attached."
-            eyebrow="Distribution Layer"
-            footer={<span>X / LinkedIn / Instagram / TikTok / YouTube</span>}
-            items={[
-              {
-                label: 'Compose once',
-                value: 'Write, package, and format in one operating surface.',
-              },
-              {
-                label: 'Optimize',
-                value: 'Channel-aware captions, hashtags, and delivery timing.',
-              },
-              {
-                label: 'Schedule',
-                value: 'Weeks of content queued from a single production run.',
-              },
-              {
-                label: 'Ship',
-                value: 'One command publishes the full distribution plan.',
-              },
-            ]}
-            subtitle="Publishing without tool switching"
-            title={
-              <>
-                Publish everywhere
-                <br />
-                from one
-                <br />
-                operating surface.
-              </>
-            }
-          />
-        }
+        heroProof={HERO_PROOF}
+        heroVisual={HERO_VISUAL}
         title="Publisher"
         description="Publish your content, everywhere, instantly."
       >

@@ -26,7 +26,6 @@ export function DesktopGate({ children }: DesktopGateProps) {
       setIsMobile(window.innerWidth < 1024);
     };
 
-    checkDevice();
     window.addEventListener('resize', checkDevice);
     return () => window.removeEventListener('resize', checkDevice);
   }, []);

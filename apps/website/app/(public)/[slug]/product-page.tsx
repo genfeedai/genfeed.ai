@@ -5,38 +5,17 @@ import Badge from '@ui/display/badge/Badge';
 import { VStack } from '@ui/layout/stack';
 import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
-import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
-import { FaCheck, FaGithub } from 'react-icons/fa6';
+import { FaCheck } from 'react-icons/fa6';
+import { GitHubLink } from './github-link';
 import ProductAgentLibrary from './product-agent-library';
 import ProductBenefits from './product-benefits';
 import ProductFinalCTA from './product-final-cta';
 import ProductPricingCTA from './product-pricing-cta';
-
-export function GitHubLink({
-  href,
-  children,
-  variant = ButtonVariant.OUTLINE,
-  className,
-}: {
-  href: string;
-  children: React.ReactNode;
-  variant?: ButtonVariant;
-  className?: string;
-}) {
-  return (
-    <Button variant={variant} asChild className={className}>
-      <Link href={href} target="_blank" rel="noopener noreferrer">
-        <FaGithub className="size-5" />
-        {children}
-      </Link>
-    </Button>
-  );
-}
 
 export default function ProductPage({ product }: { product: Product }) {
   const relatedProducts = getRelatedProducts(product.slug);

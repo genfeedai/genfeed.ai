@@ -42,40 +42,32 @@ export default function AnalyticsOrganizationsList({
   );
 
   const [data, setData] = useState<IPaginatedOrgsResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<
     AnalyticsMetric.ENGAGEMENT | AnalyticsMetric.VIEWS | AnalyticsMetric.POSTS
   >(AnalyticsMetric.ENGAGEMENT);
 
-  const fetchData = useCallback(
-    async (showLoading = true) => {
-      if (!dateRange.startDate || !dateRange.endDate) {
-        return;
-      }
+  const isLoading = data === null;
 
-      try {
-        if (showLoading) {
-          setIsLoading(true);
-        }
+  const fetchData = useCallback(async () => {
+    if (!dateRange.startDate || !dateRange.endDate) {
+      return;
+    }
 
-        const service = await getAnalyticsService();
-        const response = await service.getOrganizationsWithStats({
-          endDate: format(dateRange.endDate, 'yyyy-MM-dd'),
-          limit: ITEMS_PER_PAGE,
-          page,
-          sort,
-          startDate: format(dateRange.startDate, 'yyyy-MM-dd'),
-        });
-        setData(response);
-      } catch (error) {
-        logger.error('Failed to fetch organizations', error);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [getAnalyticsService, dateRange, page, sort],
-  );
+    try {
+      const service = await getAnalyticsService();
+      const response = await service.getOrganizationsWithStats({
+        endDate: format(dateRange.endDate, 'yyyy-MM-dd'),
+        limit: ITEMS_PER_PAGE,
+        page,
+        sort,
+        startDate: format(dateRange.startDate, 'yyyy-MM-dd'),
+      });
+      setData(response);
+    } catch (error) {
+      logger.error('Failed to fetch organizations', error);
+    }
+  }, [getAnalyticsService, dateRange, page, sort]);
 
   useEffect(() => {
     fetchData();
@@ -83,7 +75,7 @@ export default function AnalyticsOrganizationsList({
 
   useEffect(() => {
     if (refreshTrigger > 0) {
-      fetchData(false);
+      fetchData();
     }
   }, [refreshTrigger, fetchData]);
 

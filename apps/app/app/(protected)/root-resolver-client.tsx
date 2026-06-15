@@ -46,27 +46,41 @@ export default function ProtectedRootResolver() {
       (typeof accessState?.brandId === 'string' &&
         accessState.brandId.length > 0);
 
+    let nextMessage: string;
+    let nextUrl: string;
+
     if (hasOrganization && hasSelectedBrand) {
       const orgSlug = getBrandOrganizationSlug(selectedBrand);
       const brandSlug = selectedBrand?.slug;
 
       if (orgSlug && brandSlug) {
-        setStatusMessage('Opening workspace...');
-        window.location.replace(`/${orgSlug}/${brandSlug}/workspace/overview`);
-        return;
+        nextMessage = 'Opening workspace...';
+        nextUrl = `/${orgSlug}/${brandSlug}/workspace/overview`;
+      } else {
+        const fallbackOrgSlug = getBrandOrganizationSlug(brands[0]);
+        nextMessage =
+          hasOrganization && fallbackOrgSlug
+            ? 'Opening organization...'
+            : 'Opening onboarding...';
+        nextUrl =
+          hasOrganization && fallbackOrgSlug
+            ? `/${fallbackOrgSlug}/~`
+            : '/onboarding';
       }
+    } else {
+      const fallbackOrgSlug = getBrandOrganizationSlug(brands[0]);
+      nextMessage =
+        hasOrganization && fallbackOrgSlug
+          ? 'Opening organization...'
+          : 'Opening onboarding...';
+      nextUrl =
+        hasOrganization && fallbackOrgSlug
+          ? `/${fallbackOrgSlug}/~`
+          : '/onboarding';
     }
 
-    const fallbackOrgSlug = getBrandOrganizationSlug(brands[0]);
-
-    if (hasOrganization && fallbackOrgSlug) {
-      setStatusMessage('Opening organization...');
-      window.location.replace(`/${fallbackOrgSlug}/~`);
-      return;
-    }
-
-    setStatusMessage('Opening onboarding...');
-    window.location.replace('/onboarding');
+    setStatusMessage(nextMessage);
+    window.location.replace(nextUrl);
   }, [
     accessState,
     brandId,

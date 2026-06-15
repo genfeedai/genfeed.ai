@@ -87,6 +87,15 @@ const websiteJsonLd = {
   url: 'https://genfeed.ai',
 };
 
+const layoutHead = (
+  <>
+    <script type="application/ld+json">
+      {JSON.stringify(organizationJsonLd)}
+    </script>
+    <script type="application/ld+json">{JSON.stringify(websiteJsonLd)}</script>
+  </>
+);
+
 export default async function RootLayout({ children }: LayoutProps) {
   const initialTheme = await resolveRequestTheme();
 
@@ -95,16 +104,7 @@ export default async function RootLayout({ children }: LayoutProps) {
       initialTheme={initialTheme}
       fontVariables={fontVariables}
       bodyClassName="gf-app flex flex-col"
-      head={
-        <>
-          <script type="application/ld+json">
-            {JSON.stringify(organizationJsonLd)}
-          </script>
-          <script type="application/ld+json">
-            {JSON.stringify(websiteJsonLd)}
-          </script>
-        </>
-      }
+      head={layoutHead}
     >
       <AppProviders
         initialTheme={initialTheme}

@@ -6,6 +6,7 @@ import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Badge from '@ui/display/badge/Badge';
 import ListRowSound from '@ui/lists/row-sound/ListRowSound';
 import { Button } from '@ui/primitives/button';
+import { useMemo } from 'react';
 import { HiTrash } from 'react-icons/hi2';
 
 function getProviderLabel(provider?: string): string {
@@ -75,45 +76,60 @@ export default function VoiceCatalogRow({
   selectedBrandLabel,
   voice,
 }: VoiceCatalogRowProps) {
+  const badges = useMemo(
+    () => (
+      <>
+        <Badge variant="secondary">{getProviderLabel(voice.provider)}</Badge>
+        <Badge variant="ghost">{getVoiceSourceLabel(voice)}</Badge>
+        {voice.cloneStatus ? (
+          <Badge variant="outline">{voice.cloneStatus}</Badge>
+        ) : null}
+        {voice.isFeatured ? <Badge variant="accent">Featured</Badge> : null}
+        {isOrgDefault ? <Badge variant="success">Org Default</Badge> : null}
+        {isBrandDefault ? (
+          <Badge variant="primary">
+            {selectedBrandLabel ?? 'Brand'} Default
+          </Badge>
+        ) : null}
+      </>
+    ),
+    [voice, isOrgDefault, isBrandDefault, selectedBrandLabel],
+  );
+
+  const metaPrimary = useMemo(
+    () => (
+      <div className="space-y-1">
+        <div>{voice.externalVoiceId ?? voice.id}</div>
+        {voice.isDefaultSelectable === false ? (
+          <div className="text-xs text-warning">Not default selectable</div>
+        ) : null}
+      </div>
+    ),
+    [voice.externalVoiceId, voice.id, voice.isDefaultSelectable],
+  );
+
+  const stats = useMemo(
+    () => (
+      <div className="flex flex-wrap items-center gap-2">
+        <AudioPreviewPlayer
+          audioUrl={getVoicePreview(voice)}
+          label={getVoiceName(voice)}
+        />
+      </div>
+    ),
+    [voice],
+  );
+
   return (
     <ListRowSound
       className="grid-cols-1 items-start gap-3 lg:grid-cols-[auto_minmax(0,2.2fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_auto] lg:items-center"
       isActive={isOrgDefault || isBrandDefault}
       title={getVoiceName(voice)}
       subtitle={getVoiceSubtitle(voice)}
-      badges={
-        <>
-          <Badge variant="secondary">{getProviderLabel(voice.provider)}</Badge>
-          <Badge variant="ghost">{getVoiceSourceLabel(voice)}</Badge>
-          {voice.cloneStatus ? (
-            <Badge variant="outline">{voice.cloneStatus}</Badge>
-          ) : null}
-          {voice.isFeatured ? <Badge variant="accent">Featured</Badge> : null}
-          {isOrgDefault ? <Badge variant="success">Org Default</Badge> : null}
-          {isBrandDefault ? (
-            <Badge variant="primary">
-              {selectedBrandLabel ?? 'Brand'} Default
-            </Badge>
-          ) : null}
-        </>
-      }
-      metaPrimary={
-        <div className="space-y-1">
-          <div>{voice.externalVoiceId ?? voice.id}</div>
-          {voice.isDefaultSelectable === false ? (
-            <div className="text-xs text-warning">Not default selectable</div>
-          ) : null}
-        </div>
-      }
+      badges={badges}
+      metaPrimary={metaPrimary}
       metaSecondary={getProviderMeta(voice)}
-      stats={
-        <div className="flex flex-wrap items-center gap-2">
-          <AudioPreviewPlayer
-            audioUrl={getVoicePreview(voice)}
-            label={getVoiceName(voice)}
-          />
-        </div>
-      }
+      stats={stats}
       actions={
         <>
           <Button
