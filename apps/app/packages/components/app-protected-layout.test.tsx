@@ -50,6 +50,15 @@ const mockRouteParams = vi.hoisted(() => ({
   orgSlug: 'org-123',
 }));
 
+// Stable router instance (matches Next's real App Router, which returns the
+// same object across renders). A fresh `push` per render would cascade through
+// the hook's `useCallback` deps and remount the conversation subtree each
+// render — turning the chat sidebar into an infinite mount loop.
+const mockRouter = vi.hoisted(() => ({
+  push: vi.fn(),
+  refresh: vi.fn(),
+}));
+
 const enabledCategoriesState = vi.hoisted(() => ({
   enabledCategories: ['image', 'video', 'avatar'],
   isLoading: false,
@@ -230,33 +239,63 @@ vi.mock('@/store/commandPaletteStore', () => ({
   },
 }));
 
+// Render `next/dynamic` lazy boundaries synchronously (repo-wide test
+// convention). The real next/dynamic resolves via React.lazy/Suspense, which —
+// once the `@genfeedai/agent` module is warm from an earlier render and the
+// boundary is awaited through `findBy*` (waitFor + act) — re-suspends in an
+// unbounded loop that exhausts the heap and OOMs the shard worker. Resolving
+// the loader's target synchronously by export name removes the async path
+// entirely while preserving the rendered stubs and their spies.
+vi.mock('next/dynamic', () => ({
+  default: (
+    loader: () => Promise<unknown>,
+    options?: { loading?: () => ReactNode },
+  ) => {
+    const source = String(loader);
+
+    if (source.includes('AgentThreadList')) {
+      return function LazyAgentThreadListStub(props: {
+        onActionsChange?: (actions: ReactNode) => void;
+      }) {
+        agentThreadListSpy(props);
+        useEffect(() => {
+          props.onActionsChange?.(
+            <button type="button">Conversation header action</button>,
+          );
+
+          return () => props.onActionsChange?.(null);
+        }, [props.onActionsChange]);
+
+        return <div data-testid="agent-thread-list" />;
+      };
+    }
+
+    if (source.includes('AgentPanel')) {
+      return function LazyAgentPanelStub(props: { isActive?: boolean }) {
+        agentPanelSpy(props);
+        return (
+          <div
+            data-testid="agent-panel"
+            data-is-active={String(props.isActive)}
+            data-prompt-layout-mode="surface-fixed"
+          />
+        );
+      };
+    }
+
+    if (source.includes('CommandPalette')) {
+      return function LazyCommandPaletteStub() {
+        return <div data-testid="command-palette" />;
+      };
+    }
+
+    return options?.loading ?? (() => null);
+  },
+}));
+
 vi.mock('@genfeedai/agent', () => ({
   AGENT_PANEL_OPEN_KEY: 'genfeed:agent-open',
   AgentApiService: class AgentApiService {},
-  AgentPanel: (props: { isActive?: boolean }) => {
-    agentPanelSpy(props);
-    return (
-      <div
-        data-testid="agent-panel"
-        data-is-active={String(props.isActive)}
-        data-prompt-layout-mode="surface-fixed"
-      />
-    );
-  },
-  AgentThreadList: (props: {
-    onActionsChange?: (actions: ReactNode) => void;
-  }) => {
-    agentThreadListSpy(props);
-    useEffect(() => {
-      props.onActionsChange?.(
-        <button type="button">Conversation header action</button>,
-      );
-
-      return () => props.onActionsChange?.(null);
-    }, [props.onActionsChange]);
-
-    return <div data-testid="agent-thread-list" />;
-  },
   useAgentChatStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({
       beginOverlaySession: beginOverlaySessionSpy,
@@ -361,9 +400,7 @@ vi.mock('@ui/guards/onboarding/OnboardingGuard', () => ({
 vi.mock('next/navigation', () => ({
   useParams: () => mockRouteParams,
   usePathname: () => mockPathname.value,
-  useRouter: () => ({
-    push: vi.fn(),
-  }),
+  useRouter: () => mockRouter,
   useSearchParams: () => new URLSearchParams(),
 }));
 
