@@ -70,7 +70,7 @@ jobs:
     name: Test Changed Services
     needs: [detect-changes]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     if: |
       (inputs.skip_tests != true) && (
         needs.detect-changes.outputs.api_changed == 'true' ||
@@ -87,13 +87,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      # Use the shared toolchain action: it caches ~/.bun/install/cache and
+      # .turbo (keyed on bun.lock/turbo.json) and retries install on transient
+      # CDN failures. The previous inline setup-bun + uncached `bun install`
+      # routinely blew past the old 10-min timeout on a cold runner, which
+      # cancelled this job, skipped build-unified-image, and left the deploy
+      # pulling an image tag that was never pushed ("manifest unknown").
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: "1.3.14"
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+          bun-version: '1.3.14'
 
       - name: Run tests for changed services
         run: |
@@ -181,12 +184,26 @@ jobs:
 
   deploy-services:
     name: Deploy Services
-    needs: [detect-changes, resolve-config, build-unified-image]
+    needs: [detect-changes, resolve-config, test-changed, build-unified-image]
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # Guard: only deploy when the server image is actually available. The image
+    # is pushed by build-unified-image; if test-changed failed/was cancelled
+    # (e.g. timeout), build-unified-image skips and NO image is pushed for this
+    # SHA. Without this guard the old condition still ran deploy on a skipped
+    # build and pulled a non-existent tag ("manifest unknown"). build==success
+    # ⇒ image pushed; build==skipped is only legitimate (redis-only deploy, no
+    # server service changed) when tests passed/were skipped — so gate that
+    # branch on test success/skipped too.
     if: |
       always() &&
-      (needs.build-unified-image.result == 'success' || needs.build-unified-image.result == 'skipped') &&
+      (
+        needs.build-unified-image.result == 'success' ||
+        (
+          needs.build-unified-image.result == 'skipped' &&
+          (needs.test-changed.result == 'success' || needs.test-changed.result == 'skipped')
+        )
+      ) &&
       (
         needs.detect-changes.outputs.api_changed == 'true' ||
         needs.detect-changes.outputs.files_changed == 'true' ||
