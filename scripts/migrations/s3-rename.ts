@@ -39,6 +39,7 @@ import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { config } from 'dotenv';
 import { PrismaClient } from '../../packages/prisma/src/index';
+import { normalizePgUrl } from './_pg-ssl';
 
 const logger = new Logger('S3Rename');
 
@@ -581,7 +582,9 @@ async function main(): Promise<void> {
   }
 
   // --- Prisma client ---
-  const adapter = new PrismaPg({ connectionString: DATABASE_URL });
+  const adapter = new PrismaPg({
+    connectionString: normalizePgUrl(DATABASE_URL),
+  });
   const prisma = new PrismaClient({ adapter });
 
   // --- S3 client ---

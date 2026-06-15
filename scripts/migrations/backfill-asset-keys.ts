@@ -32,6 +32,7 @@ import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { config } from 'dotenv';
 import { PrismaClient } from '../../packages/prisma/src/index';
+import { normalizePgUrl } from './_pg-ssl';
 
 const logger = new Logger('BackfillAssetKeys');
 
@@ -89,7 +90,9 @@ const ASSET_CATEGORY_TO_PREFIX: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 function createPrismaClient(): PrismaClient {
-  const adapter = new PrismaPg({ connectionString: DATABASE_URL! });
+  const adapter = new PrismaPg({
+    connectionString: normalizePgUrl(DATABASE_URL!),
+  });
   // biome-ignore lint/suspicious/noExplicitAny: PrismaClient ctor accepts adapter
   return new PrismaClient({ adapter } as any);
 }

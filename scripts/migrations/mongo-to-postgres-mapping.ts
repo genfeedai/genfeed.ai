@@ -821,6 +821,11 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
       phase: 3,
       categoryOverride,
       transform: (doc, idMap) => {
+        // Voice catalog entries live in the ExternalVoice table (seeded from
+        // providers), NOT in ingredients. Skip them here so the asset migration
+        // imports only real generated content (image/video/source/music) and
+        // does NOT recreate the voice "shells" that voice-junk-cleanup removes.
+        if ((doc.category as string) === 'voice') return null;
         const mongoId = (doc._id as { toString(): string }).toString();
         const organizationId = resolveDocRef(
           doc,

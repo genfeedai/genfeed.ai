@@ -45,6 +45,7 @@ import { Logger } from '@nestjs/common';
 import { createId } from '@paralleldrive/cuid2';
 import { config } from 'dotenv';
 import { type Document, MongoClient } from 'mongodb';
+import { normalizePgUrl } from './_pg-ssl';
 
 import {
   BACKFILL_MAPPINGS,
@@ -197,7 +198,9 @@ async function createPrismaClient(): Promise<PrismaClientType> {
   const { PrismaClient } = await import(
     '../../packages/prisma/generated/prisma/client/client'
   );
-  const adapter = new PrismaPg({ connectionString: DATABASE_URL! });
+  const adapter = new PrismaPg({
+    connectionString: normalizePgUrl(DATABASE_URL!),
+  });
   return new PrismaClient({ adapter });
 }
 
@@ -305,10 +308,25 @@ async function dryRunCollection(
       .collection(mapping.mongoCollection)
       .countDocuments();
     result.sourceDocs = sourceCount;
-    result.targetDocs = sourceCount; // optimistic for dry-run
+
+    // Count docs that survive transform — some mappings skip rows (e.g. voice
+    // ingredients are excluded; they live in ExternalVoice). Applying the
+    // transform here makes the dry target count match what --live would insert,
+    // so the gate verification can confirm the real number (transform is
+    // side-effect-free; registerMapping only runs on the live path).
+    let targetCount = 0;
+    const countCursor = db.collection(mapping.mongoCollection).find({});
+    for await (const doc of countCursor) {
+      try {
+        if (mapping.transform(doc, idMap)) targetCount++;
+      } catch {
+        // transform error — this doc would be skipped at insert time too
+      }
+    }
+    result.targetDocs = targetCount;
 
     logger.log(
-      `  ${mapping.mongoDb}.${mapping.mongoCollection} → ${mapping.pgTable}: ${sourceCount.toLocaleString()} docs`,
+      `  ${mapping.mongoDb}.${mapping.mongoCollection} → ${mapping.pgTable}: ${sourceCount.toLocaleString()} source → ${targetCount.toLocaleString()} after transform`,
     );
 
     // Sample first 3 docs and show transformed output

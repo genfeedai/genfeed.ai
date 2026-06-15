@@ -1,17 +1,18 @@
 /**
  * Voice Junk Cleanup Script
  *
- * Purges 2 304 VOICE ingredient "shells" that were created during the initial
- * PostgreSQL provisioning on 2026-03-09 before the real asset migration ran.
- * These rows have no media, no metadata link, no external voice reference, and
- * are NOT referenced by any brand or persona.  They are pure garbage.
+ * Purges 2 304 VOICE ingredient "shells" bulk-created during initial PostgreSQL
+ * provisioning (they carry a 69xx mongoId and a 2026-03-10 createdAt, but have
+ * NO owner, NO provider voice reference, NO metadata link, NO sample audio, and
+ * are not clones). Verified: the entire VOICE table is these shells — there are
+ * zero real voice ingredients. They are pure garbage.
  *
  * The real voice catalog now lives in the `ExternalVoice` table (PR1).
  * The real cloned/generated voice ingredients will be migrated by
  * mongo-to-postgres.ts (Gate 6).
  *
  * Hard-delete is used (not soft-delete) because:
- *   - These rows have no mongoId and therefore no migration lineage.
+ *   - These rows have no owner/content lineage (userId/metadataId/externalVoiceId all null).
  *   - They are not referenced by any real content (FK check aborts if they are).
  *   - The repo convention is `isDeleted` soft-delete for user-owned entities;
  *     junk infrastructure shells with zero content value are eligible for hard
@@ -29,12 +30,14 @@
  *
  * WHERE clause (junk set):
  *   category = 'VOICE'
- *   AND mongoId IS NULL          -- never came from Mongo; junk shells only
- *   AND cdnUrl IS NULL           -- no media
- *   AND s3Key IS NULL            -- no media
+ *   AND isDeleted = false
+ *   AND userId IS NULL           -- no owner
  *   AND externalVoiceId IS NULL  -- no provider voice reference
- *   AND "createdAt" >= '2026-03-09 00:00:00Z'
- *   AND "createdAt" <  '2026-03-10 00:00:00Z'
+ *   AND metadataId IS NULL       -- no metadata link
+ *   AND sampleAudioUrl IS NULL   -- no sample
+ *   AND voiceSource IS NULL      -- not catalog/cloned/generated
+ *   AND (isCloned IS NULL OR isCloned = false)
+ *   -- NOTE: shells DO have a 69xx mongoId and 2026-03-10 createdAt; do not key on those.
  *
  * Usage:
  *   bun run scripts/migrations/voice-junk-cleanup.ts                          # dry-run local
@@ -48,6 +51,7 @@ import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { config } from 'dotenv';
 import { PrismaClient } from '../../packages/prisma/src/index';
+import { normalizePgUrl } from './_pg-ssl';
 
 const logger = new Logger('VoiceJunkCleanup');
 
@@ -85,16 +89,14 @@ if (DRY_RUN) {
 // WHERE criteria (explicit — never implicit)
 // ---------------------------------------------------------------------------
 
-// Junk window: rows were bulk-created on 2026-03-09 during initial provisioning.
-const JUNK_CREATED_GTE = new Date('2026-03-09T00:00:00.000Z');
-const JUNK_CREATED_LT = new Date('2026-03-10T00:00:00.000Z');
-
 // ---------------------------------------------------------------------------
 // Prisma client
 // ---------------------------------------------------------------------------
 
 function createPrismaClient(): PrismaClient {
-  const adapter = new PrismaPg({ connectionString: DATABASE_URL! });
+  const adapter = new PrismaPg({
+    connectionString: normalizePgUrl(DATABASE_URL!),
+  });
   // biome-ignore lint/suspicious/noExplicitAny: PrismaClient ctor accepts adapter
   return new PrismaClient({ adapter } as any);
 }
@@ -116,12 +118,13 @@ async function main(): Promise<void> {
   logger.log('');
   logger.log('Junk-set WHERE criteria:');
   logger.log('  category = VOICE');
-  logger.log('  AND mongoId IS NULL');
-  logger.log('  AND cdnUrl  IS NULL');
-  logger.log('  AND s3Key   IS NULL');
+  logger.log('  AND isDeleted = false');
+  logger.log('  AND userId IS NULL');
   logger.log('  AND externalVoiceId IS NULL');
-  logger.log(`  AND createdAt >= ${JUNK_CREATED_GTE.toISOString()}`);
-  logger.log(`  AND createdAt <  ${JUNK_CREATED_LT.toISOString()}`);
+  logger.log('  AND metadataId IS NULL');
+  logger.log('  AND sampleAudioUrl IS NULL');
+  logger.log('  AND voiceSource IS NULL');
+  logger.log('  AND (isCloned IS NULL OR isCloned = false)');
   logger.log('');
 
   const prisma = createPrismaClient();
@@ -139,16 +142,22 @@ async function main(): Promise<void> {
   // Step 1: Count junk rows
   // ------------------------------------------------------------------
 
+  // Junk = a VOICE ingredient that is an empty shell: no owner, no provider
+  // voice reference, no metadata link, no sample audio, no voiceSource, not a
+  // clone. Real catalog voices now live in the ExternalVoice table; real
+  // cloned/generated voices have userId + externalVoiceId/metadataId set. So
+  // these criteria isolate the bulk-provisioned shells (verified == 2304) and
+  // can never match a real voice. (NOTE: the shells DO have a 69xx mongoId and
+  // were created 2026-03-10 — do NOT key on mongoId/createdAt.)
   const junkWhere = {
     category: 'VOICE' as const,
-    mongoId: null,
-    cdnUrl: null,
-    s3Key: null,
+    isDeleted: false,
+    userId: null,
     externalVoiceId: null,
-    createdAt: {
-      gte: JUNK_CREATED_GTE,
-      lt: JUNK_CREATED_LT,
-    },
+    metadataId: null,
+    sampleAudioUrl: null,
+    voiceSource: null,
+    OR: [{ isCloned: null }, { isCloned: false }],
   };
 
   // biome-ignore lint/suspicious/noExplicitAny: dynamic prisma client
@@ -254,18 +263,14 @@ async function main(): Promise<void> {
   // ------------------------------------------------------------------
 
   const remainingCount: number = await prismaAny.ingredient.count({
-    where: {
-      category: 'VOICE',
-      mongoId: null,
-    },
+    where: junkWhere,
   });
 
-  logger.log(`Post-delete: VOICE rows with mongoId IS NULL: ${remainingCount}`);
+  logger.log(`Post-delete: junk-set rows remaining: ${remainingCount}`);
   if (remainingCount > 0) {
     logger.warn(
-      `${remainingCount} VOICE rows with mongoId=NULL remain. ` +
-        'These may be outside the 2026-03-09 window or have other nulls populated. ' +
-        'Inspect manually before Gate 6.',
+      `${remainingCount} junk-set VOICE rows remain (concurrent writes?). ` +
+        'Re-run to clear, or inspect manually before Gate 6.',
     );
   }
 

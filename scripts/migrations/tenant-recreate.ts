@@ -35,6 +35,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { config } from 'dotenv';
 import { type Document, MongoClient } from 'mongodb';
 import { PrismaClient } from '../../packages/prisma/src/index';
+import { normalizePgUrl } from './_pg-ssl';
 
 const logger = new Logger('TenantRecreate');
 
@@ -131,7 +132,9 @@ function resolveMongoRef(doc: Document, field: string): string | null {
 // ---------------------------------------------------------------------------
 
 function createPrismaClient(): PrismaClient {
-  const adapter = new PrismaPg({ connectionString: DATABASE_URL! });
+  const adapter = new PrismaPg({
+    connectionString: normalizePgUrl(DATABASE_URL!),
+  });
   // biome-ignore lint/suspicious/noExplicitAny: PrismaClient ctor accepts adapter
   return new PrismaClient({ adapter } as any);
 }
