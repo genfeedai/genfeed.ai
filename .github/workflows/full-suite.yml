@@ -22,8 +22,13 @@ jobs:
     uses: ./.github/workflows/ci.yml
     secrets: inherit
 
+  build-verify:
+    name: Build & Boot Check
+    uses: ./.github/workflows/build-verify.yml
+    secrets: inherit
+
   e2e:
     name: E2E Suite
-    needs: ci
+    needs: [ci, build-verify]
     uses: ./.github/workflows/e2e.yml
     secrets: inherit
