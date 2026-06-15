@@ -27,7 +27,7 @@ author: Claude Code PM System
 - PR #118: Thread context compaction for agent conversations
 - Root `/` redirect loop fixed for authenticated users with org/brand slug resolution; self-hosted onboarding loop tracked separately in issue #141
 - Default local ports regrouped: frontend `300x`, API core `3010-3014`, service/bot apps `3015-3019`, fleet services `3020-3022`
-- GitHub issue implementation workflow standardized on worktrees from `develop` with PRs back to `develop`
+- GitHub issue implementation workflow standardized on worktrees from `master` with PRs back to `master` (trunk-based)
 
 ### Codebase Health
 - Fallow health score: 72/100 (tracked via issue #83)

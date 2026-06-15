@@ -1,10 +1,12 @@
-# Build Verification — ensures Docker image builds on PRs
-# Prevents broken images from reaching production (no push, just verify)
+# Build Verification — builds the server image + boots the EE/SaaS bundle.
+# Trunk model: runs on master pushes (post-merge gate) + manual dispatch (used
+# at release cut), NOT on every PR — keeps PRs fast; heavy gates run at
+# merge/release. The boot step is the #574 circular-dep regression guard.
 name: Build Verify
 
 on:
-  pull_request:
-    branches: [staging, master]
+  push:
+    branches: [master]
     paths:
       - 'apps/server/**'
       - 'ee/packages/billing/**'
@@ -13,6 +15,7 @@ on:
       - 'docker/**'
       - 'package.json'
       - 'bun.lock'
+  workflow_dispatch:
 
 concurrency:
   group: build-verify-${{ github.head_ref || github.ref_name }}

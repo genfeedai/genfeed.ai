@@ -18,8 +18,8 @@ import { type ReactNode, Suspense, useCallback, useMemo } from 'react';
 
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { isEEEnabled } from '@/lib/config/edition';
-import type { RouteVariant } from './AppProtectedLayoutSidebar';
-import AppProtectedLayoutSidebarWrapper from './AppProtectedLayoutSidebarWrapper';
+
+import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import { useAppProtectedLayout } from './useAppProtectedLayout';
 
 type AgentPanelProps = {
@@ -104,6 +104,7 @@ function AppLayoutWithDynamicMenu({
     isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryLandingRoute,
+    isLibraryRoute,
     isOrgRoute,
     isPromptBarRoute,
     isSettingsRoute,
@@ -121,6 +122,7 @@ function AppLayoutWithDynamicMenu({
     adminMenuItems,
     analyticsMenuItems,
     composeMenuItems,
+    libraryMenuItems,
     menuItems,
     orgMenuItems,
     secondaryMenuItems,
@@ -149,42 +151,30 @@ function AppLayoutWithDynamicMenu({
     [agentApiService, handleNavigate, setConversationActions],
   );
 
-  const routeVariant = useMemo((): RouteVariant => {
-    if (isFocusedOnboardingRoute) return 'focusedOnboarding';
-    if (isStudioRoute) return 'studio';
-    if (isAdminRoute) return 'admin';
-    if (isComposeRoute) return 'compose';
-    if (isWorkflowsRoute) return 'workflows';
-    if (isEditorRoute) return 'editor';
-    if (isAnalyticsRoute) return 'analytics';
-    if (isOrgRoute) return 'org';
-    if (isSettingsRoute) return 'settings';
-    if (isConversationRoute) return 'conversation';
-    return 'default';
-  }, [
-    isAdminRoute,
-    isAnalyticsRoute,
-    isComposeRoute,
-    isConversationRoute,
-    isEditorRoute,
-    isFocusedOnboardingRoute,
-    isOrgRoute,
-    isSettingsRoute,
-    isStudioRoute,
-    isWorkflowsRoute,
-  ]);
+  const menuComponent = useMemo(() => {
+    if (isFocusedOnboardingRoute || isEditorCanvasRoute) {
+      return undefined;
+    }
 
-  const menuComponent = useMemo(
-    () => (
-      <AppProtectedLayoutSidebarWrapper
+    return (
+      <AppProtectedLayoutSidebar
         shellChromeVariant={shellChromeVariant}
         taskContextSearchParams={taskContextSearchParams}
-        currentApp={currentApp}
-        routeVariant={routeVariant}
-        isEditorCanvasRoute={isEditorCanvasRoute}
+        isAdminRoute={isAdminRoute}
+        isAnalyticsRoute={isAnalyticsRoute}
+        isComposeRoute={isComposeRoute}
+        isConversationRoute={isConversationRoute}
+        isEditorRoute={isEditorRoute}
+        isFocusedOnboardingRoute={isFocusedOnboardingRoute}
+        isLibraryRoute={isLibraryRoute}
+        isOrgRoute={isOrgRoute}
+        isSettingsRoute={isSettingsRoute}
+        isStudioRoute={isStudioRoute}
+        isWorkflowsRoute={isWorkflowsRoute}
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
         composeMenuItems={composeMenuItems}
+        libraryMenuItems={libraryMenuItems}
         menuItems={menuItems}
         orgMenuItems={orgMenuItems}
         secondaryMenuItems={secondaryMenuItems}
@@ -195,27 +185,36 @@ function AppLayoutWithDynamicMenu({
         renderConversations={renderConversations}
         onOpenCommandPalette={handleOpenCommandPalette}
       />
-    ),
-    [
-      adminMenuItems,
-      analyticsMenuItems,
-      composeMenuItems,
-      conversationActions,
-      currentApp,
-      handleOpenCommandPalette,
-      isEditorCanvasRoute,
-      menuItems,
-      orgMenuItems,
-      renderConversations,
-      routeVariant,
-      secondaryMenuItems,
-      settingsMenuItems,
-      shellChromeVariant,
-      studioMenuItems,
-      taskContextSearchParams,
-      workflowsMenuItems,
-    ],
-  );
+    );
+  }, [
+    adminMenuItems,
+    analyticsMenuItems,
+    composeMenuItems,
+    conversationActions,
+    handleOpenCommandPalette,
+    isAdminRoute,
+    isAnalyticsRoute,
+    isComposeRoute,
+    isConversationRoute,
+    isEditorCanvasRoute,
+    isEditorRoute,
+    isFocusedOnboardingRoute,
+    isLibraryRoute,
+    isOrgRoute,
+    isSettingsRoute,
+    isStudioRoute,
+    isWorkflowsRoute,
+    libraryMenuItems,
+    menuItems,
+    orgMenuItems,
+    renderConversations,
+    secondaryMenuItems,
+    settingsMenuItems,
+    shellChromeVariant,
+    studioMenuItems,
+    taskContextSearchParams,
+    workflowsMenuItems,
+  ]);
 
   const topbarComponent =
     isEditorCanvasRoute || isFocusedOnboardingRoute

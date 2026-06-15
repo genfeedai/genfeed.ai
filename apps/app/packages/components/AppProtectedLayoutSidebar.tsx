@@ -3,6 +3,7 @@
 import { ADMIN_LOGO_HREF } from '@app-config/admin-menu-items.config';
 import { ANALYTICS_LOGO_HREF } from '@app-config/analytics-menu-items.config';
 import { COMPOSE_LOGO_HREF } from '@app-config/compose-menu-items.config';
+import { LIBRARY_LOGO_HREF } from '@app-config/library-menu-items.config';
 import { APP_LOGO_HREF } from '@app-config/menu-items.config';
 import { ORG_LOGO_HREF } from '@app-config/org-menu-items.config';
 import { SETTINGS_LOGO_HREF } from '@app-config/settings-menu-items.config';
@@ -25,27 +26,25 @@ type ShellChromeVariant = 'default';
 
 type TaskContextSearchParams = URLSearchParams;
 
-export type RouteVariant =
-  | 'admin'
-  | 'analytics'
-  | 'compose'
-  | 'conversation'
-  | 'editor'
-  | 'focusedOnboarding'
-  | 'org'
-  | 'settings'
-  | 'studio'
-  | 'workflows'
-  | 'default';
-
 type Props = {
   shellChromeVariant: ShellChromeVariant;
   taskContextSearchParams: TaskContextSearchParams;
   currentApp?: MenuSharedProps['currentApp'];
-  routeVariant: RouteVariant;
+  isAdminRoute: boolean;
+  isAnalyticsRoute: boolean;
+  isComposeRoute: boolean;
+  isConversationRoute: boolean;
+  isEditorRoute: boolean;
+  isFocusedOnboardingRoute: boolean;
+  isLibraryRoute: boolean;
+  isOrgRoute: boolean;
+  isSettingsRoute: boolean;
+  isStudioRoute: boolean;
+  isWorkflowsRoute: boolean;
   adminMenuItems: MenuItemConfig[];
   analyticsMenuItems: MenuItemConfig[];
   composeMenuItems: MenuItemConfig[];
+  libraryMenuItems: MenuItemConfig[];
   menuItems: MenuItemConfig[];
   orgMenuItems: MenuItemConfig[];
   secondaryMenuItems: MenuItemConfig[];
@@ -61,10 +60,21 @@ export default function AppProtectedLayoutSidebar({
   shellChromeVariant,
   taskContextSearchParams,
   currentApp,
-  routeVariant,
+  isAdminRoute,
+  isAnalyticsRoute,
+  isComposeRoute,
+  isConversationRoute,
+  isEditorRoute,
+  isFocusedOnboardingRoute,
+  isLibraryRoute,
+  isOrgRoute,
+  isSettingsRoute,
+  isStudioRoute,
+  isWorkflowsRoute,
   adminMenuItems,
   analyticsMenuItems,
   composeMenuItems,
+  libraryMenuItems,
   menuItems,
   orgMenuItems,
   secondaryMenuItems,
@@ -77,11 +87,26 @@ export default function AppProtectedLayoutSidebar({
 }: Props) {
   const { href: buildHref, orgHref } = useOrgUrl();
 
-  if (routeVariant === 'focusedOnboarding') {
+  if (isFocusedOnboardingRoute) {
     return null;
   }
 
-  if (routeVariant === 'studio') {
+  if (isLibraryRoute) {
+    return (
+      <AppSidebar
+        items={libraryMenuItems}
+        logoHref={withTaskContextHref(
+          buildHref(LIBRARY_LOGO_HREF),
+          taskContextSearchParams,
+        )}
+        currentApp={currentApp}
+        sectionLabel="Library"
+        shellChromeVariant={shellChromeVariant}
+      />
+    );
+  }
+
+  if (isStudioRoute) {
     return (
       <AppSidebar
         backHref={withTaskContextHref(
@@ -101,7 +126,7 @@ export default function AppProtectedLayoutSidebar({
     );
   }
 
-  if (routeVariant === 'admin') {
+  if (isAdminRoute) {
     return (
       <AdminSidebar
         items={adminMenuItems}
@@ -110,7 +135,7 @@ export default function AppProtectedLayoutSidebar({
     );
   }
 
-  if (routeVariant === 'compose') {
+  if (isComposeRoute) {
     return (
       <AppSidebar
         items={composeMenuItems}
@@ -125,7 +150,7 @@ export default function AppProtectedLayoutSidebar({
     );
   }
 
-  if (routeVariant === 'workflows') {
+  if (isWorkflowsRoute) {
     return (
       <AppSidebar
         items={workflowsMenuItems}
@@ -140,7 +165,7 @@ export default function AppProtectedLayoutSidebar({
     );
   }
 
-  if (routeVariant === 'editor') {
+  if (isEditorRoute) {
     return (
       <AppSidebar
         items={[]}
@@ -155,7 +180,7 @@ export default function AppProtectedLayoutSidebar({
     );
   }
 
-  if (routeVariant === 'analytics') {
+  if (isAnalyticsRoute) {
     return (
       <AppSidebar
         items={analyticsMenuItems}
@@ -170,7 +195,7 @@ export default function AppProtectedLayoutSidebar({
     );
   }
 
-  if (routeVariant === 'org') {
+  if (isOrgRoute) {
     return (
       <AppSidebar
         items={orgMenuItems}
@@ -185,7 +210,7 @@ export default function AppProtectedLayoutSidebar({
     );
   }
 
-  if (routeVariant === 'settings') {
+  if (isSettingsRoute) {
     return (
       <AppSidebar
         items={settingsMenuItems}
@@ -199,8 +224,6 @@ export default function AppProtectedLayoutSidebar({
       />
     );
   }
-
-  const isConversationRoute = routeVariant === 'conversation';
 
   return (
     <AppSidebar
