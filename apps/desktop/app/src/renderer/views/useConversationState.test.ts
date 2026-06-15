@@ -59,7 +59,8 @@ describe('buildPersistedContentRunDraft', () => {
       projectId: 'project-2',
       prompt: 'Write the launch positioning as a founder article',
       publishIntent: 'draft',
-      title: 'Write the launch positioning as a founder article',
+      // buildDraftTitle truncates titles longer than 48 chars (49-char prompt → 48 + ellipsis)
+      title: 'Write the launch positioning as a founder articl…',
       type: 'article',
       updatedAt: '2026-06-08T00:15:00.000Z',
     });
