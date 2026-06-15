@@ -198,6 +198,14 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/pages/$1'),
       },
       {
+        find: /^@genfeedai\/pricing$/,
+        replacement: path.resolve(repoRoot, './packages/pricing/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/pricing\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/pricing/src/$1'),
+      },
+      {
         find: /^@genfeedai\/props$/,
         replacement: path.resolve(repoRoot, './packages/props/index.ts'),
       },
