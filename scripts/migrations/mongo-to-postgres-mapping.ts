@@ -75,6 +75,14 @@ export function toPostgresEnum(
   return mongoValue.toUpperCase().replace(/-/g, '_');
 }
 
+// Mongo ingredient statuses with no PG IngredientStatus enum equivalent →
+// nearest valid "ready" state (PG enum: DRAFT/PROCESSING/UPLOADED/GENERATED/
+// VALIDATED/FAILED/ARCHIVED/REJECTED). Keyed by lowercased Mongo value.
+const INGREDIENT_STATUS_REMAP: Record<string, string> = {
+  merged: 'GENERATED',
+  resized: 'UPLOADED',
+};
+
 /** Resolve a MongoDB ObjectId ref (ObjectId or string) to a CUID via the idMap. */
 export function resolveRef(
   idMap: MongoIdToCuidMap,
@@ -872,8 +880,15 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
           category:
             categoryOverride ??
             toPostgresEnum(doc.category as string | undefined | null),
+          // Mongo has `merged`/`resized` statuses that the PG IngredientStatus
+          // enum doesn't define — map them to the nearest valid "ready" state
+          // so the batch doesn't reject. All other statuses map 1:1.
           status:
-            toPostgresEnum(doc.status as string | undefined | null) ?? 'DRAFT',
+            INGREDIENT_STATUS_REMAP[
+              ((doc.status as string | undefined | null) ?? '').toLowerCase()
+            ] ??
+            toPostgresEnum(doc.status as string | undefined | null) ??
+            'DRAFT',
           scope:
             toPostgresEnum(doc.scope as string | undefined | null) ?? 'USER',
           qualityStatus:
