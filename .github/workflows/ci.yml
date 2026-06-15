@@ -393,14 +393,14 @@ jobs:
           fi
 
   test-app:
-    name: Test App (Shard ${{ matrix.shard }}/4)
+    name: Test App (Shard ${{ matrix.shard }}/6)
     runs-on: ubuntu-latest
     needs: [trust, test-scope]
     if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.app == 'true' && ((github.event_name == 'pull_request' && github.base_ref == 'master') || (github.event_name != 'pull_request' && github.ref_name == 'master'))
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -412,16 +412,19 @@ jobs:
       - name: Build app workspace
         run: bunx turbo run build --filter='./apps/app...'
       - name: Run app test shard
-        run: cd apps/app && bunx vitest run --config ./vitest.config.mts --maxWorkers=2 --shard=${{ matrix.shard }}/4
+        run: cd apps/app && bunx vitest run --config ./vitest.config.mts --maxWorkers=2 --shard=${{ matrix.shard }}/6
         env:
           NODE_ENV: test
-          # vitest's forks pool reuses each worker across all files in a shard, and
-          # jsdom/RTL retention accumulates: shard 4/4 runs 108 files through one
-          # worker and tips past Node's ~4 GB default heap on the last file
-          # (packages/components/app-protected-layout.test.tsx → "JavaScript heap
-          # out of memory"). Forks workers inherit the parent's NODE_OPTIONS, so
-          # raise the per-worker heap to 6 GB. maxWorkers=2 → 2 × 6 GB = 12 GB,
-          # within the 16 GB ubuntu-latest runner.
+          # apps/app's vitest 'forks' pool reuses one worker process across every
+          # file in a shard, so jsdom/native heap accumulates as the shard runs.
+          # With 4 shards the last bucket (~108 files, incl. the heavy
+          # packages/components/app-protected-layout.test.tsx — 23 RTL renders)
+          # outgrew even a 6 GB heap and OOMed, while shards 1-3 passed under the
+          # default heap. Splitting into 6 shards (~72 files each) keeps every
+          # bucket below the per-shard envelope the passing shards already proved
+          # safe; vmForks was rejected (its node:vm contexts lack web-stream
+          # globals like TransformStream, breaking transitive imports). The 6 GB
+          # ceiling is kept as headroom: maxWorkers=2 → 2 × 6 GB = 12 GB < 16 GB.
           NODE_OPTIONS: --max-old-space-size=6144
 
   test-api:
