@@ -6,12 +6,9 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflow-ui/stores';
 import type { NodeProps } from '@xyflow/react';
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { NodeButton } from '@/features/workflows/components/ui/button';
-import {
-  NodeInput,
-  NodeSelect,
-} from '@/features/workflows/components/ui/inputs';
+import { NodeSelect } from '@/features/workflows/components/ui/inputs';
 import { HelpText } from '@/features/workflows/components/ui/status';
 import {
   buildWorkflowMediaNodePatch,
@@ -22,7 +19,9 @@ import {
   setWorkflowMediaSource,
   type WorkflowMediaSource,
 } from '@/features/workflows/nodes/input/media-picker';
+import { UrlInputSection } from '@/features/workflows/nodes/input/UrlInputSection';
 import { useWorkflowMediaPicker } from '@/features/workflows/nodes/input/useWorkflowMediaPicker';
+import { VideoIcon } from '@/features/workflows/nodes/input/VideoIcon';
 
 const VIDEO_SOURCE_OPTIONS: Array<{
   value: WorkflowMediaSource;
@@ -32,70 +31,6 @@ const VIDEO_SOURCE_OPTIONS: Array<{
   { label: 'Brand Videos', value: 'brand-references' },
   { label: 'URL', value: 'url' },
 ];
-
-function VideoIcon({
-  className = 'h-4 w-4',
-}: {
-  className?: string;
-}): React.JSX.Element {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <polygon points="23 7 16 12 23 17 23 7" />
-      <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-    </svg>
-  );
-}
-
-interface UrlInputSectionProps {
-  mediaConfig: ReturnType<typeof getWorkflowMediaConfig>;
-  onLoadUrl: (url: string) => void;
-  onClear: () => void;
-}
-
-function UrlInputSection({
-  mediaConfig,
-  onLoadUrl,
-  onClear,
-}: UrlInputSectionProps): React.JSX.Element {
-  const [urlValue, setUrlValue] = useState(mediaConfig.url ?? '');
-
-  return (
-    <div className="space-y-2">
-      <NodeInput
-        aria-label="Video URL"
-        label="Video URL"
-        placeholder="https://..."
-        value={urlValue}
-        onChange={(event) => setUrlValue(event.target.value)}
-      />
-      <div className="flex gap-2">
-        <NodeButton
-          fullWidth
-          onClick={() => {
-            const trimmedUrl = urlValue.trim();
-            if (trimmedUrl.length > 0) {
-              onLoadUrl(trimmedUrl);
-            }
-          }}
-          disabled={urlValue.trim().length === 0}
-        >
-          Load URL
-        </NodeButton>
-        {mediaConfig.resolvedUrl && (
-          <NodeButton variant="ghost" onClick={onClear}>
-            Clear
-          </NodeButton>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
   const { data, id } = props;

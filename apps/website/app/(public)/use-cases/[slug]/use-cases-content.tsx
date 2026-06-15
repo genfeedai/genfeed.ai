@@ -10,38 +10,6 @@ import { FaCheck } from 'react-icons/fa6';
 import { HiXMark } from 'react-icons/hi2';
 
 export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
-  const heroProof = (
-    <HeroProofRail
-      title="Target audience"
-      items={[
-        { label: 'Built for', value: useCase.audience },
-        { label: 'Recommended plan', value: useCase.pricing.recommended },
-        {
-          label: 'Expected outcome',
-          value: useCase.results[0] ?? 'Faster execution',
-        },
-      ]}
-    />
-  );
-
-  const heroVisual = (
-    <EditorialPoster
-      eyebrow={useCase.subtitle}
-      title={useCase.headline}
-      detail={useCase.description}
-      items={useCase.workflow.slice(0, 3).map((step) => ({
-        label: `Step ${step.step}`,
-        value: step.title,
-      }))}
-      footer={
-        <>
-          <span>{useCase.audience}</span>
-          <span>{useCase.cta}</span>
-        </>
-      }
-    />
-  );
-
   return (
     <PageLayout
       title={useCase.title}
@@ -55,8 +23,36 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
           </Link>
         </>
       }
-      heroProof={heroProof}
-      heroVisual={heroVisual}
+      heroProof={
+        <HeroProofRail
+          title="Target audience"
+          items={[
+            { label: 'Built for', value: useCase.audience },
+            { label: 'Recommended plan', value: useCase.pricing.recommended },
+            {
+              label: 'Expected outcome',
+              value: useCase.results[0] ?? 'Faster execution',
+            },
+          ]}
+        />
+      }
+      heroVisual={
+        <EditorialPoster
+          eyebrow={useCase.subtitle}
+          title={useCase.headline}
+          detail={useCase.description}
+          items={useCase.workflow.slice(0, 3).map((step) => ({
+            label: `Step ${step.step}`,
+            value: step.title,
+          }))}
+          footer={
+            <>
+              <span>{useCase.audience}</span>
+              <span>{useCase.cta}</span>
+            </>
+          }
+        />
+      }
     >
       <section className="max-w-6xl mx-auto pb-20">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-edge/5">

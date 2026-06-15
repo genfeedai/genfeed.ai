@@ -20,34 +20,6 @@ import ProductPricingCTA from './product-pricing-cta';
 export default function ProductPage({ product }: { product: Product }) {
   const relatedProducts = getRelatedProducts(product.slug);
 
-  const heroProof = (
-    <HeroProofRail
-      title="Why teams switch"
-      items={product.benefits.slice(0, 3).map((benefit) => ({
-        label: benefit.problem,
-        value: benefit.solution,
-      }))}
-    />
-  );
-
-  const heroVisual = (
-    <EditorialPoster
-      eyebrow={product.tagline}
-      title={product.headline}
-      detail={product.description}
-      items={product.features.slice(0, 4).map((feature) => ({
-        label: feature.title,
-        value: feature.description,
-      }))}
-      footer={
-        <>
-          <span>{product.category}</span>
-          <span>{product.pricing.recommended} plan recommended</span>
-        </>
-      }
-    />
-  );
-
   return (
     <PageLayout
       title={product.name}
@@ -86,8 +58,32 @@ export default function ProductPage({ product }: { product: Product }) {
           ) : null}
         </div>
       }
-      heroProof={heroProof}
-      heroVisual={heroVisual}
+      heroProof={
+        <HeroProofRail
+          title="Why teams switch"
+          items={product.benefits.slice(0, 3).map((benefit) => ({
+            label: benefit.problem,
+            value: benefit.solution,
+          }))}
+        />
+      }
+      heroVisual={
+        <EditorialPoster
+          eyebrow={product.tagline}
+          title={product.headline}
+          detail={product.description}
+          items={product.features.slice(0, 4).map((feature) => ({
+            label: feature.title,
+            value: feature.description,
+          }))}
+          footer={
+            <>
+              <span>{product.category}</span>
+              <span>{product.pricing.recommended} plan recommended</span>
+            </>
+          }
+        />
+      }
     >
       <section className="max-w-6xl mx-auto pb-20">
         <Heading size="2xl" className="text-center mb-12">
