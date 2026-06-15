@@ -3,6 +3,7 @@
 import { ADMIN_LOGO_HREF } from '@app-config/admin-menu-items.config';
 import { ANALYTICS_LOGO_HREF } from '@app-config/analytics-menu-items.config';
 import { COMPOSE_LOGO_HREF } from '@app-config/compose-menu-items.config';
+import { LIBRARY_LOGO_HREF } from '@app-config/library-menu-items.config';
 import { APP_LOGO_HREF } from '@app-config/menu-items.config';
 import { ORG_LOGO_HREF } from '@app-config/org-menu-items.config';
 import { SETTINGS_LOGO_HREF } from '@app-config/settings-menu-items.config';
@@ -35,6 +36,7 @@ type Props = {
   isConversationRoute: boolean;
   isEditorRoute: boolean;
   isFocusedOnboardingRoute: boolean;
+  isLibraryRoute: boolean;
   isOrgRoute: boolean;
   isSettingsRoute: boolean;
   isStudioRoute: boolean;
@@ -42,6 +44,7 @@ type Props = {
   adminMenuItems: MenuItemConfig[];
   analyticsMenuItems: MenuItemConfig[];
   composeMenuItems: MenuItemConfig[];
+  libraryMenuItems: MenuItemConfig[];
   menuItems: MenuItemConfig[];
   orgMenuItems: MenuItemConfig[];
   secondaryMenuItems: MenuItemConfig[];
@@ -63,6 +66,7 @@ export default function AppProtectedLayoutSidebar({
   isConversationRoute,
   isEditorRoute,
   isFocusedOnboardingRoute,
+  isLibraryRoute,
   isOrgRoute,
   isSettingsRoute,
   isStudioRoute,
@@ -70,6 +74,7 @@ export default function AppProtectedLayoutSidebar({
   adminMenuItems,
   analyticsMenuItems,
   composeMenuItems,
+  libraryMenuItems,
   menuItems,
   orgMenuItems,
   secondaryMenuItems,
@@ -84,6 +89,21 @@ export default function AppProtectedLayoutSidebar({
 
   if (isFocusedOnboardingRoute) {
     return null;
+  }
+
+  if (isLibraryRoute) {
+    return (
+      <AppSidebar
+        items={libraryMenuItems}
+        logoHref={withTaskContextHref(
+          buildHref(LIBRARY_LOGO_HREF),
+          taskContextSearchParams,
+        )}
+        currentApp={currentApp}
+        sectionLabel="Library"
+        shellChromeVariant={shellChromeVariant}
+      />
+    );
   }
 
   if (isStudioRoute) {

@@ -14,11 +14,11 @@
 ## Feedback (user corrections — permanent)
 
 - [Never lose code](feedback_never_lose_code.md) — Always branch+push WIP before destructive git ops
-- [Never commit/push to master](feedback_never_commit_to_master.md) — Feature branches: commit freely. Master: always ask.
+- [Ship autonomously; master is PR-only](feedback_never_commit_to_master.md) — Trunk-based: commit/push/PR freely when work done. Never push direct to master. Secret-scan every commit.
 - [proxy.ts is middleware](feedback_proxy_middleware.md) — Next.js 16 renamed middleware.ts → proxy.ts
 - [Use @ui/primitives](feedback_ui_primitives.md) — Never raw HTML elements — blocked by lint-no-raw-html.sh
 - [Codex adversarial review](feedback_codex_adversarial_review.md) — MANDATORY before ExitPlanMode
-- [GitHub issue worktree workflow](feedback_gh_issue_worktree_workflow.md) — Assigned issues use worktrees from develop
+- [GitHub issue worktree workflow](feedback_gh_issue_worktree_workflow.md) — Assigned issues use worktrees from master → PR to master
 - [No external symlinks](feedback_no_external_symlinks.md) — Open source repo. Internal symlinks only.
 - [End-to-end implementation](feedback_end_to_end_implementation.md) — Never ship half-architecture; wire the full user path
 - [P0 status, not label](feedback_p0_status_not_label.md) — P0 is issue status; never create priority labels
@@ -27,9 +27,9 @@
 - [GPU instances off by default](feedback_gpu_instances_off_by_default.md) — Keep Genfeed GPU/Fleet inference instances off unless explicitly needed
 - [Inference servers private boundary](feedback_inference_servers_private_boundary.md) — Keep Genfeed inference server implementations out of the public monorepo
 - [GenfeedAI managed provider](feedback_genfeedai_managed_provider.md) — Model Genfeed-managed inference as provider=genfeedai, enabled per customer from console
-- [Concurrent automation on develop](feedback_concurrent_automation_develop.md) — A background bot commits to HEAD + pushes develop in this shared checkout; path-scope git add, never blind add -u
+- [Concurrent automation in shared checkout](feedback_concurrent_automation_develop.md) — A background bot commits to HEAD + pushes the shared checkout; path-scope git add, never blind add -u
 - [Genfeed project kanban](feedback_genfeed_project_kanban.md) — Use project #12 Genfeed.ai as canonical; never select work from closed Mission Control #11
-- [Production deploys master-only](feedback_production_deploy_master_only.md) — Never deploy develop/staging to production unless Vincent explicitly overrides; production deploys run from GitHub CI on master
+- [Production deploys master-only](feedback_production_deploy_master_only.md) — Never deploy any non-master ref to production unless Vincent explicitly overrides; production deploys run from GitHub CI on master
 
 ## References
 
