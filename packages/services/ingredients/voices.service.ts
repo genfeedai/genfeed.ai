@@ -74,8 +74,8 @@ export class VoicesService extends IngredientsService<Voice> {
     return this.executeWithErrorHandling(
       `PATCH /voices/catalog/${id}`,
       this.instance
-        .patch<ExternalVoice>(`/catalog/${id}`, data)
-        .then((res) => res.data),
+        .patch<JsonApiResponseDocument>(`/catalog/${id}`, data)
+        .then((res) => this.extractResource<ExternalVoice>(res.data)),
     );
   }
 }

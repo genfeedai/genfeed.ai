@@ -10,7 +10,7 @@ import { Button } from '@ui/primitives/button';
 import { HiSparkles, HiStar } from 'react-icons/hi2';
 
 function getVoiceName(voice: ExternalVoice): string {
-  return voice.name || voice.externalId || voice.id;
+  return voice.name || voice.externalVoiceId || voice.id;
 }
 
 function getProviderLabel(provider?: string): string {
@@ -64,7 +64,7 @@ export default function VoiceCatalogCard({
               {getVoiceName(voice)}
             </h3>
             <p className="truncate text-xs text-foreground/50">
-              {voice.externalId ?? voice.id}
+              {voice.externalVoiceId ?? voice.id}
             </p>
           </div>
         </div>
