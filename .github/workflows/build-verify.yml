@@ -4,18 +4,13 @@
 # merge/release. The boot step is the #574 circular-dep regression guard.
 name: Build Verify
 
+# Build + boot verification runs at release/preview time only (dispatch or as a
+# called step in full-suite) — NOT on every PR or master push. Keeps PR/master
+# CI to the fast required checks; heavy compile/boot validation happens when you
+# cut a preview/release.
 on:
-  push:
-    branches: [master]
-    paths:
-      - 'apps/server/**'
-      - 'ee/packages/billing/**'
-      - 'packages/**'
-      - 'configs/**'
-      - 'docker/**'
-      - 'package.json'
-      - 'bun.lock'
   workflow_dispatch:
+  workflow_call:
 
 concurrency:
   group: build-verify-${{ github.head_ref || github.ref_name }}
