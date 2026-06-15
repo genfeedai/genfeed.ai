@@ -95,7 +95,7 @@ function createVoice(overrides: Partial<Voice> = {}): Voice {
       index: 4,
     },
     sampleAudioUrl: 'https://example.com/sample.mp3',
-    voiceSource: 'catalog',
+    voiceSource: 'cloned',
     ...overrides,
   } as Voice;
 }
@@ -128,7 +128,7 @@ describe('VoiceCatalogRow', () => {
       'Warm narration voice',
     );
     expect(screen.getByText('secondary:ElevenLabs')).toBeInTheDocument();
-    expect(screen.getByText('ghost:Catalog')).toBeInTheDocument();
+    expect(screen.getByText('ghost:Cloned')).toBeInTheDocument();
     expect(screen.getByText('outline:ready')).toBeInTheDocument();
     expect(screen.getByText('accent:Featured')).toBeInTheDocument();
     expect(screen.getByText('success:Org Default')).toBeInTheDocument();

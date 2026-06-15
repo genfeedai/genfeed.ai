@@ -8,6 +8,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { VoicesController } from '@api/collections/voices/controllers/voices.controller';
+import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { VotesModule } from '@api/collections/votes/votes.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -23,7 +24,7 @@ import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [VoicesController],
-  exports: [VoicesService],
+  exports: [ExternalVoiceCatalogService, VoicesService],
   imports: [
     forwardRef(() => IngredientsModule),
     forwardRef(() => MetadataModule),
@@ -39,6 +40,11 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => NotificationsPublisherModule),
     forwardRef(() => VotesModule),
   ],
-  providers: [VoicesService, CreditsGuard, CreditsInterceptor],
+  providers: [
+    ExternalVoiceCatalogService,
+    VoicesService,
+    CreditsGuard,
+    CreditsInterceptor,
+  ],
 })
 export class VoicesModule {}

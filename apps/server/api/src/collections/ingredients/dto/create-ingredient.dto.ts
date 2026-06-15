@@ -1,5 +1,5 @@
-import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { PrismaIngredientCategoryValue } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   AssetScope,
   ContentRating,
@@ -76,6 +76,14 @@ export class CreateIngredientDto {
   @IsOptional()
   @ApiProperty({ required: false })
   readonly metadata?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Metadata ID — preferred over the legacy `metadata` field',
+    required: false,
+  })
+  readonly metadataId?: string;
 
   @IsEntityId()
   @IsOptional()

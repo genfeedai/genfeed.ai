@@ -196,6 +196,7 @@ import LibraryVoicesPage from './library-voices-page';
 
 function createVoice(overrides: Partial<Voice> = {}): Voice {
   return {
+    externalVoiceCatalogId: 'voice-catalog-1',
     externalVoiceId: 'voice-ext-1',
     id: 'voice-1',
     isCloned: false,

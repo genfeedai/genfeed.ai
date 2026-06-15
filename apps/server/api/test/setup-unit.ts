@@ -5,6 +5,7 @@
  * since unit tests should mock all database operations.
  */
 import 'reflect-metadata';
+import process from 'node:process';
 import { vi } from 'vitest';
 
 // Mock @genfeedai/prisma so unit tests never need the generated Prisma client
@@ -20,7 +21,19 @@ vi.mock('@genfeedai/prisma', () => {
         Array.isArray(arg) ? Promise.all(arg) : arg(new PrismaClient()),
       );
   }
-  return { PrismaClient };
+
+  // Prisma 7 generates enums as const objects (member name === value), not TS
+  // enums. Code that reads these at module load (e.g. the provider-casing maps
+  // in voices.controller.ts) needs the value present on the mock, or the import
+  // throws "No export is defined on the mock".
+  const VoiceProvider = {
+    ELEVENLABS: 'ELEVENLABS',
+    GENFEED_AI: 'GENFEED_AI',
+    HEDRA: 'HEDRA',
+    HEYGEN: 'HEYGEN',
+  } as const;
+
+  return { PrismaClient, VoiceProvider };
 });
 
 // Mock @prisma/adapter-pg so PrismaService constructor doesn't require DATABASE_URL
