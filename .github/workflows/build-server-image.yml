@@ -1,0 +1,71 @@
+# Build Server Image — builds + pushes the unified production server image
+# (docker/Dockerfile.server) so DEPLOYS PULL A PRE-BUILT IMAGE instead of
+# building inline.
+#
+# Why this exists: the deploy used to build the image inside the deploy run, and
+# the shared `server:buildcache` was only written by those deploy builds — so it
+# went stale between deploys and every deploy paid a near-cold ~30-min build.
+# This workflow builds on master-push (async, non-blocking) and writes
+# `server:buildcache` (mode=max) every run via the composite, keeping layers hot
+# so builds drop to ~5-10 min and `server:<sha>` is ready before any deploy.
+#
+# Triggers:
+#   push:master (paths-gated) — publish `server:<sha>` + warm the cache for every
+#     server-affecting commit, making any master SHA instantly deployable.
+#   workflow_dispatch — manual/test rebuild. Pick `environment: staging` when
+#     testing so the run does NOT move the :production/:latest floating tags.
+#   workflow_call — let release/preview callers build on demand.
+
+name: Build Server Image
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/server/**'
+      - 'packages/**'
+      - 'ee/**'
+      - 'docker/Dockerfile.server'
+      - 'bun.lock'
+      - 'package.json'
+      - '.github/workflows/build-server-image.yml'
+      - '.github/actions/build-unified-image/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Floating-tag scope. production moves :production/:latest; staging moves :staging. server:<sha> is always pushed.'
+        type: choice
+        options: [production, staging]
+        default: production
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: false
+        default: production
+
+concurrency:
+  # Serialize builds for a ref: concurrent runs writing the shared
+  # server:buildcache (mode=max) ref can clobber each other's cache manifest.
+  group: build-server-image-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build & Push Server Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Build & push unified server image
+        uses: ./.github/actions/build-unified-image
+        with:
+          image_prefix: ${{ github.repository }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          sentry_auth_token: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          environment: ${{ inputs.environment || 'production' }}
