@@ -392,10 +392,9 @@ export class WebhooksService {
       const metadataId = this.getDocumentId(
         metadata as { _id?: string; id?: string } | null,
       );
-      const ingredient = await this.ingredientsService.findOne(
-        { metadata: metadataId },
-        [PopulatePatterns.userMinimal],
-      );
+      const ingredient = await this.ingredientsService.findOne({ metadataId }, [
+        PopulatePatterns.userMinimal,
+      ]);
 
       if (!ingredient) {
         return;

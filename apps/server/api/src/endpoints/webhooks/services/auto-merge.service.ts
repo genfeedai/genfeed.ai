@@ -324,14 +324,14 @@ export class AutoMergeService {
         IngredientCategory.VIDEO,
       ),
       groupId,
-      metadata: metadataId,
+      metadataId,
       order: 1,
       organization: organizationId,
       sources: parentIds,
       status: IngredientStatus.PROCESSING,
       transformations: [TransformationCategory.MERGED],
       user: dbUserId,
-    } as unknown as Parameters<typeof this.ingredientsService.create>[0]);
+    } as Parameters<typeof this.ingredientsService.create>[0]);
 
     const mergedIngredientId = String(ingredientData._id);
     const websocketURL = WebSocketPaths.video(mergedIngredientId);

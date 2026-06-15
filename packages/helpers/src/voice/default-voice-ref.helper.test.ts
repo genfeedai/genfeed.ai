@@ -10,6 +10,7 @@ describe('default-voice-ref.helper', () => {
   it('builds catalog refs for curated provider voices', () => {
     expect(
       buildDefaultVoiceRefFromVoice({
+        externalVoiceCatalogId: 'voice-catalog-1',
         externalVoiceId: 'voice-ext-1',
         id: 'voice-1',
         metadataLabel: 'Rachel',

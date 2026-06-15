@@ -120,6 +120,7 @@
     "test:e2e:core:changed": "bunx playwright test --config=playwright/configs/playwright.config.ts playwright/e2e/tests/smoke playwright/e2e/tests/core --project=app-core --only-changed=${E2E_BASE_REF:-origin/develop}",
     "test:e2e:core:failed": "bunx playwright test --config=playwright/configs/playwright.config.ts playwright/e2e/tests/smoke playwright/e2e/tests/core --project=app-core --last-failed",
     "test:e2e:authed": "bunx playwright test --config=playwright/configs/playwright.config.ts --project=app-authed",
+    "test:e2e:authed:local": "E2E_AUTHED_LOCAL=1 NEXT_PUBLIC_PLAYWRIGHT_TEST=false bunx playwright test --config=playwright/configs/playwright.config.ts --project=app-authed",
     "test:e2e:authed:failed": "bunx playwright test --config=playwright/configs/playwright.config.ts --project=app-authed --last-failed",
     "test:e2e:smoke": "bunx playwright test --config=playwright/configs/playwright.config.ts playwright/e2e/tests/smoke/all-app-pages.spec.ts --project=app-core",
     "test:e2e:full": "bunx playwright test --config=playwright/configs/playwright-full.config.ts",
