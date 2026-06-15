@@ -91,8 +91,8 @@ jobs:
       # .turbo (keyed on bun.lock/turbo.json) and retries install on transient
       # CDN failures. The previous inline setup-bun + uncached `bun install`
       # routinely blew past the old 10-min timeout on a cold runner, which
-      # cancelled this job, skipped build-unified-image, and left the deploy
-      # pulling an image tag that was never pushed ("manifest unknown").
+      # cancelled this job; deploy-services is gated on this job's result, so a
+      # cancelled test correctly skips the deploy instead of shipping untested.
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
@@ -137,45 +137,11 @@ jobs:
             bun run test --filter=@genfeedai/clips
           fi
 
-  # Build single unified server image containing all 10 services
-  build-unified-image:
-    name: Build Unified Server Image
-    needs: [detect-changes, test-changed]
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    if: |
-      always() &&
-      (needs.test-changed.result == 'success' || needs.test-changed.result == 'skipped') &&
-      (
-        needs.detect-changes.outputs.api_changed == 'true' ||
-        needs.detect-changes.outputs.files_changed == 'true' ||
-        needs.detect-changes.outputs.mcp_changed == 'true' ||
-        needs.detect-changes.outputs.notifications_changed == 'true' ||
-        needs.detect-changes.outputs.telegram_changed == 'true' ||
-        needs.detect-changes.outputs.discord_changed == 'true' ||
-        needs.detect-changes.outputs.slack_changed == 'true' ||
-        needs.detect-changes.outputs.workers_changed == 'true' ||
-        needs.detect-changes.outputs.clips_changed == 'true' ||
-        inputs.force_all == true ||
-        inputs.force_api == true ||
-        inputs.force_bots == true ||
-        inputs.force_workers == true ||
-        inputs.force_redis == true
-      )
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Build unified server image
-        uses: ./.github/actions/build-unified-image
-        with:
-          image_prefix: ${{ env.IMAGE_PREFIX }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          sentry_auth_token: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          environment: ${{ inputs.environment }}
+  # The unified server image is built+pushed OUT OF BAND by build-server-image.yml
+  # (on master-push, paths-gated). Deploy is pull-only: it pulls server:<sha>,
+  # which is guaranteed present for any committed master SHA. The image-availability
+  # preflight in deploy-services waits briefly in case a just-merged commit's build
+  # is still finishing, then fails fast with a clear message if it never lands.
 
   # --- Single consolidated deploy job ---
   # Deploys all changed services in wave order via one SSH session to EC2
@@ -184,26 +150,16 @@ jobs:
 
   deploy-services:
     name: Deploy Services
-    needs: [detect-changes, resolve-config, test-changed, build-unified-image]
+    needs: [detect-changes, resolve-config, test-changed]
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    # Guard: only deploy when the server image is actually available. The image
-    # is pushed by build-unified-image; if test-changed failed/was cancelled
-    # (e.g. timeout), build-unified-image skips and NO image is pushed for this
-    # SHA. Without this guard the old condition still ran deploy on a skipped
-    # build and pulled a non-existent tag ("manifest unknown"). build==success
-    # ⇒ image pushed; build==skipped is only legitimate (redis-only deploy, no
-    # server service changed) when tests passed/were skipped — so gate that
-    # branch on test success/skipped too.
+    # Only deploy when pre-deploy tests passed or were skipped (skip_tests). The
+    # server image itself is built out of band by build-server-image.yml; the
+    # "Wait for server image" step below proves server:<sha> exists before any
+    # service is touched, so a missing image fails fast instead of mid-deploy.
     if: |
       always() &&
-      (
-        needs.build-unified-image.result == 'success' ||
-        (
-          needs.build-unified-image.result == 'skipped' &&
-          (needs.test-changed.result == 'success' || needs.test-changed.result == 'skipped')
-        )
-      ) &&
+      (needs.test-changed.result == 'success' || needs.test-changed.result == 'skipped') &&
       (
         needs.detect-changes.outputs.api_changed == 'true' ||
         needs.detect-changes.outputs.files_changed == 'true' ||
@@ -226,6 +182,33 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+
+      # Pull-only deploy: prove the pre-built image exists before touching prod.
+      # build-server-image.yml publishes server:<sha> on master-push; if you
+      # dispatch a deploy seconds after merging, that build may still be running,
+      # so poll briefly before failing. Never builds here — just verifies.
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wait for server image
+        run: |
+          set -euo pipefail
+          IMG="ghcr.io/${{ github.repository }}/server:${{ github.sha }}"
+          echo "Verifying pre-built image: ${IMG}"
+          for i in $(seq 1 30); do
+            if docker manifest inspect "${IMG}" >/dev/null 2>&1; then
+              echo "✅ Image present — proceeding with pull-only deploy."
+              exit 0
+            fi
+            echo "Image not found yet (attempt ${i}/30) — the master-push build may still be running. Sleeping 30s..."
+            sleep 30
+          done
+          echo "::error::${IMG} not found after ~15 min. Run the 'Build Server Image' workflow for this commit, then re-dispatch the deploy."
+          exit 1
 
       - name: Setup Tailscale
         uses: tailscale/github-action@v2
@@ -404,14 +387,13 @@ jobs:
 
   deployment-summary:
     name: Deployment Summary
-    needs: [detect-changes, test-changed, build-unified-image, deploy-services]
+    needs: [detect-changes, test-changed, deploy-services]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Write deployment summary
         env:
           API_CHANGED: ${{ needs.detect-changes.outputs.api_changed }}
-          BUILD_RESULT: ${{ needs.build-unified-image.result }}
           BOTS_CHANGED: ${{ needs.detect-changes.outputs.telegram_changed == 'true' || needs.detect-changes.outputs.discord_changed == 'true' || needs.detect-changes.outputs.slack_changed == 'true' || needs.detect-changes.outputs.clips_changed == 'true' }}
           CHANGED_SERVICES: ${{ needs.deploy-services.outputs.changed_services }}
           DEPLOY_RESULT: ${{ needs.deploy-services.result }}
@@ -441,9 +423,7 @@ jobs:
             echo "" >> "$GITHUB_STEP_SUMMARY"
             if [ "${TEST_RESULT}" = "failure" ]; then
               echo "Backend deploy was skipped because the changed-service test job failed." >> "$GITHUB_STEP_SUMMARY"
-            elif [ "${BUILD_RESULT}" = "failure" ]; then
-              echo "Backend deploy was skipped because the unified server image build failed." >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "Backend deploy was a no-op: no services matched the deploy conditions and no force flag applied." >> "$GITHUB_STEP_SUMMARY"
+              echo "Backend deploy was a no-op: no services matched the deploy conditions and no force flag applied. (The server image is built out of band by build-server-image.yml.)" >> "$GITHUB_STEP_SUMMARY"
             fi
           fi
