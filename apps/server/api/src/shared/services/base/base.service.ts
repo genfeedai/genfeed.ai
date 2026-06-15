@@ -582,12 +582,25 @@ export abstract class BaseService<
       return data as PrismaUpdate;
     }
 
-    return Object.fromEntries(
-      Object.entries(data).map(([key, value]) => [
-        key,
-        this.normalizeOperatorValue(key, value),
-      ]),
-    );
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(data)) {
+      // Belt-and-suspenders remap: legacy call sites on the ingredient↔metadata
+      // relation write `{ metadata: someId }` (Mongo-style). The Prisma column is
+      // `metadataId` (scalar FK). We remap ONLY the exact key `"metadata"` when
+      // its value is a non-empty string to avoid Prisma silently dropping the
+      // relation key and writing NULL. All other keys — including `organization`,
+      // `user`, `brand`, `prompt`, `parent`, `folder` — are intentionally left
+      // untouched; their callers either already use the correct scalar FK or pass
+      // Prisma connect objects. Scoped narrowly to prevent tenancy/ownership side-
+      // effects from a broad remap.
+      if (key === 'metadata' && typeof value === 'string' && value.length > 0) {
+        result['metadataId'] = value;
+        continue;
+      }
+
+      result[key] = this.normalizeOperatorValue(key, value);
+    }
+    return result;
   }
 
   private extractOptionsWhere(options: AggregationOptions): PrismaFilter {

@@ -1,5 +1,69 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
+
+/**
+ * Local-only: hydrate the Playwright RUNNER process from `apps/app/.env.local`
+ * (the developer's Clerk dev instance) when `E2E_AUTHED_LOCAL=1`.
+ *
+ * Why this exists: `next dev` auto-loads `apps/app/.env.local`, so the web
+ * server already sees the Clerk keys. The runner that executes clerk.setup.ts
+ * does NOT — it runs from the repo root and only sees its own env. This loader
+ * bridges the dev-instance keys (CLERK_SECRET_KEY / NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
+ * into the runner so `clerk-setup` can provision + sign in `+clerk_test` users
+ * against the dev instance without any new CI secret.
+ *
+ * Safety: gated behind an explicit flag (never runs for the mocked `app-core`
+ * suite), never overrides an already-set var (so the launching script's
+ * NEXT_PUBLIC_PLAYWRIGHT_TEST=false wins), and logs only KEY NAMES — never values.
+ */
+function loadDevEnvLocal(): void {
+  if (process.env.E2E_AUTHED_LOCAL !== '1') {
+    return;
+  }
+
+  const envPath = path.resolve(process.cwd(), 'apps/app/.env.local');
+  if (!fs.existsSync(envPath)) {
+    console.warn(
+      `[e2e] E2E_AUTHED_LOCAL=1 but ${envPath} not found — clerk-setup will fail with a missing-key error.`,
+    );
+    return;
+  }
+
+  const loaded: string[] = [];
+  const raw = fs.readFileSync(envPath, 'utf8');
+  for (const line of raw.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) {
+      continue;
+    }
+    const eq = trimmed.indexOf('=');
+    if (eq <= 0) {
+      continue;
+    }
+    const key = trimmed.slice(0, eq).trim();
+    if (process.env[key] !== undefined) {
+      continue; // already set (e.g. script-provided) — existing env wins
+    }
+    let value = trimmed.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    process.env[key] = value;
+    loaded.push(key);
+  }
+
+  if (loaded.length > 0) {
+    console.log(
+      `[e2e] Loaded ${loaded.length} keys from apps/app/.env.local: ${loaded.join(', ')}`,
+    );
+  }
+}
+
+loadDevEnvLocal();
 
 /**
  * Playwright Configuration for E2E Tests

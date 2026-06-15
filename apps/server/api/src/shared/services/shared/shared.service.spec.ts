@@ -126,6 +126,26 @@ describe('SharedService', () => {
       });
     });
 
+    it('should write metadataId (scalar FK) not metadata (relation key) on ingredient create', async () => {
+      const body = {
+        brand: '507f1f77bcf86cd799439016',
+        organization: '507f1f77bcf86cd799439017',
+        status: IngredientStatus.PROCESSING,
+      };
+
+      (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
+      (ingredientsService.create as vi.Mock).mockResolvedValue(mockIngredient);
+
+      await service.saveDocuments(mockUser, body);
+
+      expect(ingredientsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ metadataId: mockMetadata._id }),
+      );
+      expect(ingredientsService.create).not.toHaveBeenCalledWith(
+        expect.objectContaining({ metadata: mockMetadata._id }),
+      );
+    });
+
     it('should handle parent versioning', async () => {
       const body = {
         parent: '507f1f77bcf86cd799439020',
@@ -360,11 +380,16 @@ describe('SharedService', () => {
         expect.objectContaining({
           brand: body.brand,
           isDefault: false,
-          metadata: '507f1f77bcf86cd799439013',
+          metadataId: '507f1f77bcf86cd799439013',
           organization: body.organization,
           status: IngredientStatus.PROCESSING,
           user: body.user,
           version: 1,
+        }),
+      );
+      expect(ingredientsService.create).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: '507f1f77bcf86cd799439013',
         }),
       );
       expect(result).toEqual({

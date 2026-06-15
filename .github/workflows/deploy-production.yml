@@ -1,13 +1,11 @@
-# Production Deployment — thin caller for the reusable _deploy.yml workflow
-# Triggers on GitHub release (like cal.com). Contributors PR against develop;
-# maintainers merge develop → master, then create a release to deploy.
-# Manual dispatch is also available for hotfixes.
+# Production Deployment — thin caller for the reusable _deploy.yml workflow.
+# Dispatch-only: cutting a release/tag does NOT auto-deploy. A maintainer
+# explicitly dispatches this workflow to ship, so deploys are deliberate and
+# it's always known exactly when prod was shipped.
 
 name: Deploy Production
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       force_all:
