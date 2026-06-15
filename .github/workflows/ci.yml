@@ -393,26 +393,14 @@ jobs:
           fi
 
   test-app:
-    name: Test App (Shard ${{ matrix.shard }}/12)
+    name: Test App (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     needs: [trust, test-scope]
     if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.app == 'true' && github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
-        shard:
-          - 1
-          - 2
-          - 3
-          - 4
-          - 5
-          - 6
-          - 7
-          - 8
-          - 9
-          - 10
-          - 11
-          - 12
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -424,24 +412,9 @@ jobs:
       - name: Build app workspace
         run: bunx turbo run build --filter='./apps/app...'
       - name: Run app test shard
-        run: cd apps/app && bunx vitest run --config ./vitest.config.mts --maxWorkers=2 --shard=${{ matrix.shard }}/12
+        run: cd apps/app && bunx vitest run --config ./vitest.config.mts --maxWorkers=2 --shard=${{ matrix.shard }}/4
         env:
           NODE_ENV: test
-          # The earlier OOM here was NOT memory residue — it was an infinite mount
-          # loop in packages/components/app-protected-layout.test.tsx. The chat
-          # sidebar rendered its `renderConversations` render prop as a JSX component
-          # (<RenderConversations />) instead of calling it, so React keyed the
-          # subtree on the function's identity. The test's `useRouter` mock returned a
-          # fresh `push` per render, which cascaded through the hook's useCallback deps
-          # → new render-prop identity → full subtree unmount+remount every render;
-          # the child's onActionsChange mount-effect set parent state, feeding the loop
-          # until the heap exhausted (~60-112s → OOM). No "max update depth" warning
-          # fires because each iteration is a legit fresh mount, not a render-phase
-          # setState — which is why it read as a slow leak. Fixed at the source:
-          # AppProtectedLayoutChatSidebar now calls {renderConversations()}, and the
-          # test mock returns a stable router (matching real App Router). The file now
-          # runs in ~5s with normal heap, so 12 shards is restored.
-          NODE_OPTIONS: --max-old-space-size=7168
 
   test-api:
     name: Test API (Shard ${{ matrix.shard }}/4)
