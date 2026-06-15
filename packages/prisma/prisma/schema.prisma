@@ -1140,6 +1140,12 @@ model Ingredient {
   providerData        Json?
   isFeatured          Boolean?
 
+  // External voice catalog reference (set on generated/cloned voices that used a
+  // provider catalog voice). Catalog entries themselves live in ExternalVoice,
+  // NOT in ingredients — only generated/cloned voice ASSETS are ingredients.
+  externalVoiceCatalogId String?
+  externalVoiceCatalog   ExternalVoice? @relation("ingredient_external_voice", fields: [externalVoiceCatalogId], references: [id])
+
   // Video discriminator fields
   language String?
 
@@ -1176,7 +1182,32 @@ model Ingredient {
   @@index([personaSlug])
   @@index([isDeleted, personaId, reviewStatus])
   @@index([campaign, isDeleted, personaSlug])
+  @@index([externalVoiceCatalogId])
   @@map("ingredients")
+}
+
+/// Provider voice catalog (ElevenLabs, HeyGen, …). Reference data synced from
+/// provider APIs — NOT user-owned content, so no brand/org/isDeleted. Generated
+/// or cloned voice ingredients reference an entry via Ingredient.externalVoiceCatalogId.
+model ExternalVoice {
+  id                  String        @id @default(cuid())
+  externalId          String
+  externalProvider    VoiceProvider
+  name                String
+  sampleAudioUrl      String?
+  language            String?
+  isActive            Boolean       @default(true)
+  isDefaultSelectable Boolean       @default(true)
+  isFeatured          Boolean       @default(false)
+  providerData        Json?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  ingredients Ingredient[] @relation("ingredient_external_voice")
+
+  @@unique([externalProvider, externalId], map: "external_voices_provider_external_id_key")
+  @@index([externalProvider, isActive, isDefaultSelectable], map: "external_voices_provider_active_selectable_idx")
+  @@map("external_voices")
 }
 
 model Metadata {
