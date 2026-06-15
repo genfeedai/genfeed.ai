@@ -23,13 +23,14 @@ concurrency:
   cancel-in-progress: true
 ```
 
-- **Manual, per-branch:** Actions → *E2E Tests* → *Run workflow* → choose `develop` / `staging` / `master`.
-  CLI: `gh workflow run e2e.yml --ref <branch>`.
+- **Manual, per-branch:** Actions → *E2E Tests* → *Run workflow* → choose `master` (the trunk) or any
+  short-lived feature branch. CLI: `gh workflow run e2e.yml --ref <branch>`.
   `workflow_dispatch` checks out **that branch** and runs its copy of the workflow + tests.
+  (Trunk-based: `develop`/`staging` branches no longer exist.)
 - **Weekly review:** the `schedule` trigger always runs on the **default branch = `master`**
   (GitHub runs scheduled workflows only from the default branch). This is the weekly master review.
 - **Availability:** the workflow only appears in the Actions UI / runs on schedule when the file
-  exists on `master`. It is present on `master`, `staging`, and `develop`.
+  exists on `master`. `master` is the single trunk.
 - **Free compute:** public repo → unlimited GitHub Actions minutes on `ubuntu-latest`.
 
 Top-level env: `TURBO_TOKEN` (secret) + `TURBO_TEAM` (var) enable Turborepo remote cache in every job.
@@ -216,12 +217,11 @@ Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`,
 
 ```bash
 # Trigger per branch
-gh workflow run e2e.yml --ref develop
-gh workflow run e2e.yml --ref staging
 gh workflow run e2e.yml --ref master
+gh workflow run e2e.yml --ref feat/your-branch
 
 # Watch latest
-gh run list --workflow=e2e.yml --branch develop --limit 1
+gh run list --workflow=e2e.yml --branch master --limit 1
 gh run watch <run-id>
 
 # Local

@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/enums';
-import type { Voice } from '@models/ingredients/voice.model';
+import type { ExternalVoice } from '@models/elements/external-voice.model';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
@@ -9,8 +9,8 @@ import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
 import { HiSparkles, HiStar } from 'react-icons/hi2';
 
-function getVoiceName(voice: Voice): string {
-  return voice.metadataLabel || voice.externalVoiceId || voice.id;
+function getVoiceName(voice: ExternalVoice): string {
+  return voice.name || voice.externalVoiceId || voice.id;
 }
 
 function getProviderLabel(provider?: string): string {
@@ -26,9 +26,9 @@ function getProviderLabel(provider?: string): string {
 
 type Props = {
   togglingKey: string | null;
-  voice: Voice;
+  voice: ExternalVoice;
   onToggle: (
-    voice: Voice,
+    voice: ExternalVoice,
     field: 'isActive' | 'isDefaultSelectable' | 'isFeatured',
     value: boolean,
   ) => void;

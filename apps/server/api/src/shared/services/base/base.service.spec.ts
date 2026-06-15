@@ -916,4 +916,70 @@ describe('BaseService', () => {
       );
     });
   });
+
+  describe('normalizeData — metadata→metadataId remap', () => {
+    it('remaps metadata string to metadataId on create', async () => {
+      const created = { id: 'ing_1', metadataId: 'meta_1' };
+      delegate.create.mockResolvedValue(created);
+
+      await service.create({ metadata: 'meta_1' } as TestDocument);
+
+      expect(delegate.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ metadataId: 'meta_1' }),
+        }),
+      );
+      expect(delegate.create).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ metadata: 'meta_1' }),
+        }),
+      );
+    });
+
+    it('does not remap metadata when value is not a string', async () => {
+      const created = { id: 'ing_2' };
+      delegate.create.mockResolvedValue(created);
+
+      // metadata as an object (e.g. populated relation) must pass through untouched
+      await service.create({ metadata: { id: 'meta_1' } } as TestDocument);
+
+      expect(delegate.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ metadata: { id: 'meta_1' } }),
+        }),
+      );
+    });
+
+    it('leaves organization untouched on create (no tenancy side-effect)', async () => {
+      const created = { id: 'ing_3', organizationId: 'org_1' };
+      delegate.create.mockResolvedValue(created);
+
+      await service.create({ organization: 'org_1' } as TestDocument);
+
+      expect(delegate.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ organization: 'org_1' }),
+        }),
+      );
+    });
+
+    it('remaps metadata string to metadataId on patch', async () => {
+      setModelFields('id', 'isDeleted', 'metadataId');
+      const updated = { id: 'ing_4', metadataId: 'meta_2' };
+      delegate.update.mockResolvedValue(updated);
+
+      await service.patch('ing_4', { metadata: 'meta_2' } as TestDocument);
+
+      expect(delegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ metadataId: 'meta_2' }),
+        }),
+      );
+      expect(delegate.update).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ metadata: 'meta_2' }),
+        }),
+      );
+    });
+  });
 });

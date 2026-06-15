@@ -79,6 +79,7 @@ export class IngredientEntity extends BaseEntity implements Ingredient {
   declare readonly voiceSource: Ingredient['voiceSource'];
   declare readonly voiceProvider: Ingredient['voiceProvider'];
   declare readonly externalVoiceId: Ingredient['externalVoiceId'];
+  declare readonly externalVoiceCatalogId: Ingredient['externalVoiceCatalogId'];
   declare readonly cloneStatus: Ingredient['cloneStatus'];
   declare readonly sampleAudioUrl: Ingredient['sampleAudioUrl'];
   declare readonly isCloned: Ingredient['isCloned'];

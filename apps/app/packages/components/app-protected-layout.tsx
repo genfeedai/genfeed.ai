@@ -104,6 +104,7 @@ function AppLayoutWithDynamicMenu({
     isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryLandingRoute,
+    isLibraryRoute,
     isOrgRoute,
     isPromptBarRoute,
     isSettingsRoute,
@@ -121,6 +122,7 @@ function AppLayoutWithDynamicMenu({
     adminMenuItems,
     analyticsMenuItems,
     composeMenuItems,
+    libraryMenuItems,
     menuItems,
     orgMenuItems,
     secondaryMenuItems,
@@ -164,6 +166,7 @@ function AppLayoutWithDynamicMenu({
         isConversationRoute={isConversationRoute}
         isEditorRoute={isEditorRoute}
         isFocusedOnboardingRoute={isFocusedOnboardingRoute}
+        isLibraryRoute={isLibraryRoute}
         isOrgRoute={isOrgRoute}
         isSettingsRoute={isSettingsRoute}
         isStudioRoute={isStudioRoute}
@@ -171,6 +174,7 @@ function AppLayoutWithDynamicMenu({
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
         composeMenuItems={composeMenuItems}
+        libraryMenuItems={libraryMenuItems}
         menuItems={menuItems}
         orgMenuItems={orgMenuItems}
         secondaryMenuItems={secondaryMenuItems}
@@ -195,10 +199,12 @@ function AppLayoutWithDynamicMenu({
     isEditorCanvasRoute,
     isEditorRoute,
     isFocusedOnboardingRoute,
+    isLibraryRoute,
     isOrgRoute,
     isSettingsRoute,
     isStudioRoute,
     isWorkflowsRoute,
+    libraryMenuItems,
     menuItems,
     orgMenuItems,
     renderConversations,
