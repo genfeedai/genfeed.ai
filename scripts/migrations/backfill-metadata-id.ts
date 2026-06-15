@@ -331,7 +331,12 @@ async function main(): Promise<void> {
         unresolved += batchUnresolved;
       }
 
-      offset += batch.length;
+      // In --live mode, recovered rows drop out of the `metadataId IS NULL`
+      // result set, so only the still-unresolved rows remain ahead of the
+      // cursor. Advance OFFSET by the unresolved count to avoid skipping
+      // never-visited rows. In dry-run nothing is updated, so the full batch
+      // stays in the set and we must step past all of it.
+      offset += isLive ? batchUnresolved : batch.length;
 
       log(
         `Progress: ${processed}/${total} processed, ${recovered} recovered so far`,
