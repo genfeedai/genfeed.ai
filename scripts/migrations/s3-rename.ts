@@ -39,6 +39,7 @@ import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { config } from 'dotenv';
 import { PrismaClient } from '../../packages/prisma/src/index';
+import { normalizePgUrl } from './_pg-ssl';
 
 const logger = new Logger('S3Rename');
 
@@ -62,7 +63,8 @@ if (!DATABASE_URL) {
 }
 
 const S3_BUCKET = process.env.AWS_S3_BUCKET ?? 'cdn.genfeed.ai';
-const S3_REGION = process.env.AWS_REGION ?? 'us-east-1';
+// cdn.genfeed.ai is hosted in us-west-1 — not us-east-1.
+const S3_REGION = process.env.AWS_REGION ?? 'us-west-1';
 
 const DRY_RUN = !process.argv.includes('--live');
 const CONCURRENCY = 50;
@@ -580,7 +582,9 @@ async function main(): Promise<void> {
   }
 
   // --- Prisma client ---
-  const adapter = new PrismaPg({ connectionString: DATABASE_URL });
+  const adapter = new PrismaPg({
+    connectionString: normalizePgUrl(DATABASE_URL),
+  });
   const prisma = new PrismaClient({ adapter });
 
   // --- S3 client ---
