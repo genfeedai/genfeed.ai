@@ -39,6 +39,7 @@ module "service" {
     { name = "SERVICE_NAME", value = each.key },
   ])
 
+  desired_count    = each.value.desired
   register_alb     = each.value.alb
   target_group_arn = each.value.alb ? aws_lb_target_group.api.arn : ""
   health_grace     = each.value.health_grace

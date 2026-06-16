@@ -107,8 +107,4 @@ resource "aws_ecs_service" "this" {
   }
 
   health_check_grace_period_seconds = var.register_alb ? var.health_grace : null
-
-  lifecycle {
-    ignore_changes = [desired_count] # allow manual/auto scaling without TF drift
-  }
 }
