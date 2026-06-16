@@ -10,15 +10,21 @@ locals {
 
   # SSM params under ssm_path injected as task secrets: env var name = last path
   # segment (e.g. /genfeed/production/DATABASE_URL -> DATABASE_URL).
-  # Exclude REDIS_PASSWORD: ElastiCache here is no-auth (private subnet, SG-locked),
-  # and redis-connection.utils.ts falls back to REDIS_PASSWORD as the AUTH password
-  # even when the URL has none — which a no-auth server rejects. REDIS_URL (below)
-  # carries the connection instead.
+  # ECS forbids a `secrets` entry sharing a name with an `environment` entry, so
+  # any SSM param we also set as a container env var (the Cloud Map inter-service
+  # URLs, REDIS_URL, NODE_ENV, VERSION, PORT, SERVICE_NAME) must be filtered out
+  # of the injected secrets — the env value wins. REDIS_PASSWORD is dropped too:
+  # ElastiCache is no-auth (private + SG-locked) and redis-connection.utils.ts
+  # would otherwise send AUTH (which a no-auth server rejects).
+  reserved_env_names = toset(concat(
+    [for e in local.internal_env : e.name],
+    ["PORT", "SERVICE_NAME", "REDIS_PASSWORD"],
+  ))
   task_secrets = [
     for i, name in data.aws_ssm_parameters_by_path.prod.names : {
       name      = element(reverse(split("/", name)), 0)
       valueFrom = data.aws_ssm_parameters_by_path.prod.arns[i]
-    } if element(reverse(split("/", name)), 0) != "REDIS_PASSWORD"
+    } if !contains(local.reserved_env_names, element(reverse(split("/", name)), 0))
   ]
 
   # ── Service catalogue (mirrors docker-compose.production.yml) ─────────

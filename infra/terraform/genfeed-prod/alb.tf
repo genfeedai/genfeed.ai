@@ -36,11 +36,11 @@ resource "aws_lb" "main" {
 
 # api target group — bridge mode static host port 3010 => instance targets.
 resource "aws_lb_target_group" "api" {
-  name                 = "${local.name_prefix}-api"
+  name_prefix          = "gpapi" # <=6 chars; create_before_destroy needs unique names on replace
   port                 = local.services.api.port
   protocol             = "HTTP"
   vpc_id               = local.vpc_id
-  target_type          = "instance"
+  target_type          = "ip" # awsvpc tasks register their ENI IP, not the instance
   deregistration_delay = 30
 
   health_check {
