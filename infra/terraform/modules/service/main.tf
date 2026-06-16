@@ -28,7 +28,7 @@ resource "aws_service_discovery_service" "this" {
 resource "aws_ecs_task_definition" "this" {
   family                   = "${var.name_prefix}-${var.name}"
   network_mode             = "awsvpc"
-  requires_compatibilities = ["EC2"]
+  requires_compatibilities = ["FARGATE"]
   cpu                      = var.cpu
   memory                   = var.memory
   execution_role_arn       = var.execution_role_arn
@@ -85,24 +85,17 @@ resource "aws_ecs_service" "this" {
   }
 
   network_configuration {
-    subnets         = var.subnets
-    security_groups = var.security_group_ids
+    subnets          = var.subnets          # private subnets (NAT egress)
+    security_groups  = var.security_group_ids
+    assign_public_ip = false                # Fargate in private subnets; egress via NAT
   }
 
   service_registries {
     registry_arn = aws_service_discovery_service.this.arn
   }
 
-  # Spread tasks across instances + AZs so one box dying never takes all of a
-  # service, and so api can roll onto the other box (zero-downtime).
-  ordered_placement_strategy {
-    type  = "spread"
-    field = "attribute:ecs.availability-zone"
-  }
-  ordered_placement_strategy {
-    type  = "spread"
-    field = "instanceId"
-  }
+  # No placement strategy: Fargate doesn't support them and auto-spreads tasks
+  # across the AZs of the configured subnets.
 
   dynamic "load_balancer" {
     for_each = var.register_alb ? [1] : []

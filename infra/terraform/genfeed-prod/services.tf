@@ -18,7 +18,7 @@ module "service" {
   name              = each.key
   name_prefix       = local.name_prefix
   cluster_id        = aws_ecs_cluster.main.id
-  capacity_provider = aws_ecs_capacity_provider.ec2.name
+  capacity_provider = "FARGATE"
   image             = local.image
   command           = ["bun", "--filter", each.value.filter, "start:prod"]
   cpu               = each.value.cpu
@@ -60,7 +60,7 @@ resource "aws_cloudwatch_log_group" "migrate" {
 resource "aws_ecs_task_definition" "migrate" {
   family                   = "${local.name_prefix}-migrate"
   network_mode             = "awsvpc"
-  requires_compatibilities = ["EC2"]
+  requires_compatibilities = ["FARGATE"]
   cpu                      = 512
   memory                   = 1024
   execution_role_arn       = aws_iam_role.execution.arn

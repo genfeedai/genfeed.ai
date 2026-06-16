@@ -17,11 +17,6 @@ locals {
   zone_id = var.route53_zone_id != "" ? var.route53_zone_id : data.aws_route53_zone.main[0].zone_id
 }
 
-# ── ECS-optimized AMI (Amazon Linux 2023) via SSM public parameter ──
-data "aws_ssm_parameter" "ecs_ami" {
-  name = "/aws/service/ecs/optimized-ami/amazon-linux-2023/recommended/image_id"
-}
-
 # ── App secrets under the SSM path (names + ARNs only; no decryption) ─
 data "aws_ssm_parameters_by_path" "prod" {
   path            = var.ssm_path
