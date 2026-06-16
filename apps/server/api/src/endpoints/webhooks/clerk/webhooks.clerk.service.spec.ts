@@ -531,6 +531,54 @@ describe('ClerkWebhookService', () => {
       );
     });
 
+    it('should ack (not throw) when the user projection vanishes mid-update (P2025)', async () => {
+      const event = asWebhookEvent({
+        data: { id: 'user_123456' },
+        type: 'user.updated',
+      });
+      const url = 'webhook/clerk';
+
+      // Clerk redelivers/retries: the projection is removed by a concurrent
+      // event between the lookup and the patch, so Prisma throws P2025.
+      const recordNotFound = Object.assign(
+        new Error('No record was found for an update.'),
+        { code: 'P2025', name: 'PrismaClientKnownRequestError' },
+      );
+
+      (clerkService.getUser as vi.Mock).mockResolvedValue(mockClerkUser);
+      (usersService.findOne as vi.Mock).mockResolvedValue(mockUser);
+      (usersService.patch as vi.Mock).mockRejectedValue(recordNotFound);
+
+      // Must resolve cleanly (webhook returns 200) so Clerk stops retrying.
+      await expect(
+        service.handleWebhookEvent(event, url),
+      ).resolves.toBeUndefined();
+
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('user projection no longer exists'),
+        expect.objectContaining({ clerkUserId: 'user_123456' }),
+      );
+      // Bailed before downstream sync — no Clerk metadata write.
+      expect(clerkService.updateUserPublicMetadata).not.toHaveBeenCalled();
+    });
+
+    it('should rethrow non-P2025 database errors during user update', async () => {
+      const event = asWebhookEvent({
+        data: { id: 'user_123456' },
+        type: 'user.updated',
+      });
+      const url = 'webhook/clerk';
+
+      const dbError = new Error('Database connection error');
+      (clerkService.getUser as vi.Mock).mockResolvedValue(mockClerkUser);
+      (usersService.findOne as vi.Mock).mockResolvedValue(mockUser);
+      (usersService.patch as vi.Mock).mockRejectedValue(dbError);
+
+      await expect(service.handleWebhookEvent(event, url)).rejects.toThrow(
+        dbError,
+      );
+    });
+
     it('should reject session.created events', async () => {
       const event = asWebhookEvent({
         data: {
