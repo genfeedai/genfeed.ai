@@ -27,10 +27,11 @@ log()  { echo -e "${GREEN}[✓]${NC} $*"; }
 warn() { echo -e "${YELLOW}[!]${NC} $*"; }
 err()  { echo -e "${RED}[✗]${NC} $*" >&2; }
 
-# CI does not need Claude skill symlink generation during install.
-# Keep explicit subcommands available so validation can still run when requested.
-if [[ -z "${1:-}" ]] && [[ "${CI:-}" == "true" || "${GITHUB_ACTIONS:-}" == "true" ]]; then
-  log "Skipping .claude/skills generation in CI"
+# CI and hosted build environments (Vercel) do not need Claude skill symlink
+# generation during install. Keep explicit subcommands available so validation
+# can still run when requested.
+if [[ -z "${1:-}" ]] && [[ "${CI:-}" == "true" || "${GITHUB_ACTIONS:-}" == "true" || "${VERCEL:-}" == "1" ]]; then
+  log "Skipping .claude/skills generation in CI/hosted build"
   exit 0
 fi
 
@@ -90,7 +91,7 @@ generate_symlinks() {
     local name
     name=$(basename "$dir")
     ln -sf "../../.agents/skills/${name}" "${CLAUDE_SKILLS}/${name}"
-    ((count++))
+    count=$((count + 1))
   done
 
   log "Generated ${count} symlinks in .claude/skills/"
@@ -110,16 +111,16 @@ sync_from_shipshitdev() {
       # Only sync if source is newer or dest doesn't exist
       if [[ ! -d "${AGENTS_SKILLS}/${skill}" ]]; then
         cp -r "${SHIPSHITDEV_SKILLS}/${skill}" "${AGENTS_SKILLS}/"
-        ((synced++))
+        synced=$((synced + 1))
       else
         # Replace with latest
         rm -rf "${AGENTS_SKILLS}/${skill}"
         cp -r "${SHIPSHITDEV_SKILLS}/${skill}" "${AGENTS_SKILLS}/"
-        ((synced++))
+        synced=$((synced + 1))
       fi
     else
       warn "Not in shipshitdev: ${skill}"
-      ((skipped++))
+      skipped=$((skipped + 1))
     fi
   done
 
@@ -133,7 +134,7 @@ check_integrity() {
   for f in "$AGENTS_SKILLS"/*/SKILL.md; do
     if [[ -f "$f" ]] && ! head -n 1 "$f" | grep -q '^---$'; then
       err "Missing frontmatter: $f"
-      ((errors++))
+      errors=$((errors + 1))
     fi
   done
 
@@ -142,7 +143,7 @@ check_integrity() {
   broken=$(find "$CLAUDE_SKILLS" -maxdepth 1 -type l ! -exec test -e {} \; 2>/dev/null | wc -l | tr -d ' ')
   if [[ "$broken" -gt 0 ]]; then
     err "${broken} broken symlinks in .claude/skills/"
-    ((errors++))
+    errors=$((errors + 1))
   fi
 
   # Check every .agents/skills/ entry has a .claude/skills/ symlink
@@ -151,7 +152,7 @@ check_integrity() {
     name=$(basename "$dir")
     if [[ ! -L "${CLAUDE_SKILLS}/${name}" ]]; then
       err "Missing symlink: .claude/skills/${name}"
-      ((errors++))
+      errors=$((errors + 1))
     fi
   done
 
@@ -162,7 +163,7 @@ check_integrity() {
       target=$(readlink "${link%/}")
       if [[ "$target" == /* ]] || [[ "$target" == ~* ]]; then
         err "External symlink detected: ${link%/} -> ${target}"
-        ((errors++))
+        errors=$((errors + 1))
       fi
     fi
   done
