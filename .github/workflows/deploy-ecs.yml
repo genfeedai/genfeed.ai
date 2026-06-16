@@ -35,13 +35,32 @@ jobs:
 
       - name: Validate ref is master
         run: |
-          if [ "${GITHUB_REF_NAME}" != "master" ]; then
-            echo "::error::Production deploy must run from master (got ${GITHUB_REF_NAME})"; exit 1
+          # Check the FULL ref, not GITHUB_REF_NAME: the short name strips the
+          # refs/heads vs refs/tags prefix, so a tag literally named "master"
+          # would satisfy a name-only check and bypass the production gate.
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Production deploy must run from refs/heads/master (got ${GITHUB_REF})"; exit 1
           fi
 
       - name: Resolve image tag
         id: tag
-        run: echo "sha=${{ inputs.image_tag != '' && inputs.image_tag || github.sha }}" >> "$GITHUB_OUTPUT"
+        env:
+          # Read the dispatch input via env (never interpolate ${{ inputs }}
+          # directly into a run script — that is a template-injection sink).
+          INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
+          DEFAULT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          TAG="${INPUT_IMAGE_TAG:-}"
+          [ -z "$TAG" ] && TAG="$DEFAULT_SHA"
+          # The tag flows into `docker buildx imagetools` and a terraform -var;
+          # restrict it to a conservative image-tag charset so a crafted input
+          # cannot inject shell or terraform. (The image must also exist in GHCR,
+          # which imagetools enforces downstream.)
+          if ! printf '%s' "$TAG" | grep -Eq '^[A-Za-z0-9._-]+$'; then
+            echo "::error::Invalid image_tag '$TAG' (allowed chars: A-Za-z0-9 . _ -)"; exit 1
+          fi
+          echo "sha=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
