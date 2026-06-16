@@ -1,0 +1,128 @@
+# ECS production deploy (replaces the SSH-waves path post-cutover).
+# Dispatch-only + gated by the GitHub "production" environment (manual approval).
+# Flow: copy server:<sha> GHCR->ECR -> run migrate task -> terraform apply rolls
+# services (task defs are TF-managed with image_tag) -> wait services-stable.
+name: Deploy ECS (production)
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'server image tag to deploy (default: current SHA)'
+        required: false
+        default: ''
+
+concurrency:
+  group: deploy-ecs-production
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+  packages: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  TF_DIR: infra/terraform/genfeed-prod
+
+jobs:
+  deploy:
+    name: Deploy ECS
+    runs-on: ubuntu-latest
+    environment: production # <- requires reviewer approval (the human gate)
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate ref is master
+        run: |
+          # Check the FULL ref, not GITHUB_REF_NAME: the short name strips the
+          # refs/heads vs refs/tags prefix, so a tag literally named "master"
+          # would satisfy a name-only check and bypass the production gate.
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Production deploy must run from refs/heads/master (got ${GITHUB_REF})"; exit 1
+          fi
+
+      - name: Resolve image tag
+        id: tag
+        env:
+          # Read the dispatch input via env (never interpolate ${{ inputs }}
+          # directly into a run script — that is a template-injection sink).
+          INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
+          DEFAULT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          TAG="${INPUT_IMAGE_TAG:-}"
+          [ -z "$TAG" ] && TAG="$DEFAULT_SHA"
+          # The tag flows into `docker buildx imagetools` and a terraform -var;
+          # restrict it to a conservative image-tag charset so a crafted input
+          # cannot inject shell or terraform. (The image must also exist in GHCR,
+          # which imagetools enforces downstream.)
+          if ! printf '%s' "$TAG" | grep -Eq '^[A-Za-z0-9._-]+$'; then
+            echo "::error::Invalid image_tag '$TAG' (allowed chars: A-Za-z0-9 . _ -)"; exit 1
+          fi
+          echo "sha=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR + GHCR
+        run: |
+          aws ecr get-login-password --region "$AWS_REGION" \
+            | docker login --username AWS --password-stdin \
+              "$(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_REGION.amazonaws.com"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Copy server:<sha> GHCR -> ECR (no rebuild)
+        run: |
+          SHA="${{ steps.tag.outputs.sha }}"
+          ECR="$(aws ecr describe-repositories --repository-names genfeed/server \
+                 --query 'repositories[0].repositoryUri' --output text)"
+          docker buildx imagetools create -t "${ECR}:${SHA}" "ghcr.io/genfeedai/genfeed.ai/server:${SHA}"
+
+      # OpenTofu, not Terraform — state is tofu in S3; mixing the two risks a
+      # state-version mismatch.
+      - uses: opentofu/setup-opentofu@v1
+        with: { tofu_version: "1.12.2" }
+
+      - name: Tofu init
+        working-directory: ${{ env.TF_DIR }}
+        run: tofu init -input=false
+
+      - name: Run DB migrations (one-off task, gated before services roll)
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          set -euo pipefail
+          CLUSTER=$(tofu output -raw cluster_name)
+          FAMILY=$(tofu output -raw migrate_task_family)
+          SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
+          SG=$(tofu output -raw task_security_group)
+          echo "Running migrate task on $CLUSTER ($FAMILY)..."
+          # FARGATE — the cluster is Fargate-only (no EC2 capacity); assignPublicIp
+          # DISABLED since tasks egress via NAT from the private subnets.
+          TASK_ARN=$(aws ecs run-task --cluster "$CLUSTER" --task-definition "$FAMILY" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG],assignPublicIp=DISABLED}" \
+            --query 'tasks[0].taskArn' --output text)
+          aws ecs wait tasks-stopped --cluster "$CLUSTER" --tasks "$TASK_ARN"
+          CODE=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[0].exitCode' --output text)
+          echo "migrate exit code: $CODE"
+          [ "$CODE" = "0" ] || { echo "::error::migration failed"; exit 1; }
+
+      - name: Tofu apply (roll services to new image)
+        working-directory: ${{ env.TF_DIR }}
+        run: tofu apply -input=false -auto-approve -var="image_tag=${{ steps.tag.outputs.sha }}"
+
+      - name: Wait for services stable
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          set -euo pipefail
+          CLUSTER=$(tofu output -raw cluster_name)
+          for svc in $(tofu output -json service_names | jq -r '.[]'); do
+            echo "waiting: $svc"
+            aws ecs wait services-stable --cluster "$CLUSTER" --services "$svc"
+          done
+          echo "All services stable."
