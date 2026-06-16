@@ -182,11 +182,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          # Need history so the image fallback can walk HEAD's ancestors.
+          fetch-depth: 50
 
-      # Pull-only deploy: prove the pre-built image exists before touching prod.
-      # build-server-image.yml publishes server:<sha> on master-push; if you
-      # dispatch a deploy seconds after merging, that build may still be running,
-      # so poll briefly before failing. Never builds here — just verifies.
+      # Pull-only deploy: resolve the server image to pull before touching prod.
+      # build-server-image.yml publishes server:<sha> on master-push, but it is
+      # PATH-GATED — a HEAD whose top commit(s) only touch non-server paths
+      # (CI yaml, compose, docs) never triggers a build, so server:<HEAD> may
+      # not exist even though HEAD's server CODE is unchanged. Never builds here.
       - name: Log in to GHCR
         uses: docker/login-action@v4
         with:
@@ -194,20 +198,35 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Wait for server image
+      - name: Resolve server image (exact sha, else newest ancestor)
+        id: image
         run: |
           set -euo pipefail
-          IMG="ghcr.io/${{ github.repository }}/server:${{ github.sha }}"
-          echo "Verifying pre-built image: ${IMG}"
-          for i in $(seq 1 30); do
-            if docker manifest inspect "${IMG}" >/dev/null 2>&1; then
-              echo "✅ Image present — proceeding with pull-only deploy."
+          REPO="ghcr.io/${{ github.repository }}/server"
+          HEAD_SHA="${{ github.sha }}"
+          # Prefer HEAD's exact image; poll a few minutes in case the
+          # master-push build is still running.
+          for i in $(seq 1 10); do
+            if docker manifest inspect "${REPO}:${HEAD_SHA}" >/dev/null 2>&1; then
+              echo "tag=${HEAD_SHA}" >> "$GITHUB_OUTPUT"
+              echo "✅ Exact image present: ${HEAD_SHA}"
               exit 0
             fi
-            echo "Image not found yet (attempt ${i}/30) — the master-push build may still be running. Sleeping 30s..."
+            echo "Exact image not ready (attempt ${i}/10) — master-push build may still be running. Sleeping 30s..."
             sleep 30
           done
-          echo "::error::${IMG} not found after ~15 min. Run the 'Build Server Image' workflow for this commit, then re-dispatch the deploy."
+          # Fallback: walk first-parent ancestry and deploy the newest existing
+          # image. When HEAD's top commits didn't touch server paths, the newest
+          # ancestor image IS HEAD's server code.
+          echo "No image for HEAD (${HEAD_SHA}); searching recent ancestors for the newest available image..."
+          for sha in $(git rev-list --first-parent -n 50 "${HEAD_SHA}"); do
+            if docker manifest inspect "${REPO}:${sha}" >/dev/null 2>&1; then
+              echo "tag=${sha}" >> "$GITHUB_OUTPUT"
+              echo "::warning::server:${HEAD_SHA} not built (likely a non-server commit at HEAD); deploying newest ancestor image ${sha}."
+              exit 0
+            fi
+          done
+          echo "::error::No server:<sha> image for HEAD or its last 50 ancestors. Run 'Build Server Image' for ${HEAD_SHA}, then re-dispatch."
           exit 1
 
       - name: Setup Tailscale
@@ -378,7 +397,9 @@ jobs:
             export GITHUB_ACTOR="${{ github.actor }}"
             export GITHUB_SHA="${{ github.sha }}"
             export GITHUB_STEP_SUMMARY="/dev/null"
-            export IMAGE_TAG="${{ github.sha }}"
+            # Resolved image tag (HEAD's exact image, or newest ancestor when
+            # HEAD was a non-server commit that produced no build).
+            export IMAGE_TAG="${{ steps.image.outputs.tag }}"
             export SSM_PARAMETER_PATH_PREFIX="${{ vars.SSM_PARAMETER_PATH_PREFIX }}"
             export AWS_REGION="${{ vars.AWS_REGION }}"
 
