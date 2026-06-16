@@ -42,6 +42,11 @@ resource "aws_launch_template" "ecs" {
 }
 
 resource "aws_autoscaling_group" "ecs" {
+  # Instances must launch AFTER awsvpcTrunking is enabled, or the ECS agent
+  # registers them without the eni-trunking capability and each t3a.medium caps
+  # at ~2 awsvpc tasks (can't fit all 9 services). If instances predate the
+  # setting, terminate them so the ASG relaunches trunking-capable ones.
+  depends_on          = [aws_ecs_account_setting_default.awsvpc_trunking]
   name_prefix         = "${local.name_prefix}-"
   vpc_zone_identifier = local.private_subnet_ids
   min_size            = var.asg_min
