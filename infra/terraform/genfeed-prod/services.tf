@@ -72,9 +72,13 @@ resource "aws_ecs_task_definition" "migrate" {
     image            = local.image
     essential        = true
     workingDirectory = "/usr/src/app/packages/prisma"
-    command          = ["bunx", "prisma", "migrate", "deploy"]
-    secrets          = local.task_secrets
-    environment      = [{ name = "NODE_ENV", value = "production" }]
+    # Use `bun x` (the bun subcommand), NOT `bunx` — the server image ships the
+    # `bun` binary but not a standalone `bunx`, so `["bunx", ...]` fell through to
+    # the node entrypoint (`Cannot find module .../packages/prisma/bunx`) and the
+    # migrate task exited 1. Matches the services' `["bun", ...]` invocation.
+    command     = ["bun", "x", "prisma", "migrate", "deploy"]
+    secrets     = local.task_secrets
+    environment = [{ name = "NODE_ENV", value = "production" }]
     logConfiguration = {
       logDriver = "awslogs"
       options = {

@@ -86,10 +86,13 @@ resource "aws_lb_listener" "http_redirect" {
 # Only created when enable_dns_cutover=true, so the first apply builds the ALB
 # without stealing live traffic from the old box before services are healthy.
 resource "aws_route53_record" "api" {
-  count   = var.enable_dns_cutover ? 1 : 0
-  zone_id = local.zone_id
-  name    = local.fqdn
-  type    = "A"
+  count = var.enable_dns_cutover ? 1 : 0
+  # Overwrite the pre-existing manual A record (old EC2 box) on cutover instead
+  # of failing with "record already exists".
+  allow_overwrite = true
+  zone_id         = local.zone_id
+  name            = local.fqdn
+  type            = "A"
   alias {
     name                   = aws_lb.main.dns_name
     zone_id                = aws_lb.main.zone_id

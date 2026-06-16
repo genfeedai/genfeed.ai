@@ -23,9 +23,10 @@ provider "aws" {
   region = var.region
   default_tags {
     tags = {
-      Project   = "genfeed"
-      ManagedBy = "terraform"
-      Stack     = "genfeed-prod"
+      Project     = "genfeed"
+      Environment = "production"
+      ManagedBy   = "terraform"
+      Stack       = "genfeed-prod"
     }
   }
 }
