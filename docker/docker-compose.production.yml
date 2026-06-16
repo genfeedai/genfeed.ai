@@ -25,7 +25,11 @@ services:
   redis:
     image: redis:7-alpine
     container_name: genfeed-ai-redis
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    # Memory ceilings (added 2026-06): measured steady-state ×~3 with headroom;
+    # sum of all limits ≈5.6G < 7.7G box RAM, so all services can peak at once
+    # without OOM. Caps a single runaway/leak instead of letting it eat the box.
+    mem_limit: 256m
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD} --maxmemory 200mb --maxmemory-policy allkeys-lru
     volumes:
       - redis-data:/data
     restart: unless-stopped
@@ -52,6 +56,7 @@ services:
     image: ${SERVER_IMAGE:-ghcr.io/genfeedai/genfeed.ai/server:${IMAGE_TAG:-latest}}
     command: ["bun", "--filter", "@genfeedai/files", "start:prod"]
     container_name: genfeed-ai-files
+    mem_limit: 512m
     depends_on:
       redis:
         condition: service_healthy
@@ -87,6 +92,7 @@ services:
     image: ${SERVER_IMAGE:-ghcr.io/genfeedai/genfeed.ai/server:${IMAGE_TAG:-latest}}
     command: ["bun", "--filter", "@genfeedai/mcp", "start:prod"]
     container_name: genfeed-ai-mcp
+    mem_limit: 384m
     depends_on:
       redis:
         condition: service_healthy
@@ -122,6 +128,7 @@ services:
     image: ${SERVER_IMAGE:-ghcr.io/genfeedai/genfeed.ai/server:${IMAGE_TAG:-latest}}
     command: ["bun", "--filter", "@genfeedai/notifications", "start:prod"]
     container_name: genfeed-ai-notifications
+    mem_limit: 384m
     depends_on:
       redis:
         condition: service_healthy
@@ -159,6 +166,7 @@ services:
     image: ${SERVER_IMAGE:-ghcr.io/genfeedai/genfeed.ai/server:${IMAGE_TAG:-latest}}
     command: ["bun", "--filter", "@genfeedai/api", "start:prod"]
     container_name: genfeed-ai-api
+    mem_limit: 1280m
     depends_on:
       redis:
         condition: service_healthy
@@ -206,6 +214,7 @@ services:
     image: ${SERVER_IMAGE:-ghcr.io/genfeedai/genfeed.ai/server:${IMAGE_TAG:-latest}}
     command: ["bun", "--filter", "@genfeedai/clips", "start:prod"]
     container_name: genfeed-ai-clips
+    mem_limit: 384m
     depends_on:
       redis:
         condition: service_healthy
@@ -247,6 +256,7 @@ services:
     image: ${SERVER_IMAGE:-ghcr.io/genfeedai/genfeed.ai/server:${IMAGE_TAG:-latest}}
     command: ["bun", "--filter", "@genfeedai/discord", "start:prod"]
     container_name: genfeed-ai-discord
+    mem_limit: 320m
     depends_on:
       redis:
         condition: service_healthy
@@ -285,6 +295,7 @@ services:
     image: ${SERVER_IMAGE:-ghcr.io/genfeedai/genfeed.ai/server:${IMAGE_TAG:-latest}}
     command: ["bun", "--filter", "@genfeedai/slack", "start:prod"]
     container_name: genfeed-ai-slack
+    mem_limit: 320m
     depends_on:
       redis:
         condition: service_healthy
@@ -323,6 +334,7 @@ services:
     image: ${SERVER_IMAGE:-ghcr.io/genfeedai/genfeed.ai/server:${IMAGE_TAG:-latest}}
     command: ["bun", "--filter", "@genfeedai/telegram", "start:prod"]
     container_name: genfeed-ai-telegram
+    mem_limit: 320m
     depends_on:
       redis:
         condition: service_healthy
@@ -363,6 +375,7 @@ services:
     image: ${SERVER_IMAGE:-ghcr.io/genfeedai/genfeed.ai/server:${IMAGE_TAG:-latest}}
     command: ["bun", "--filter", "@genfeedai/workers", "start:prod"]
     container_name: genfeed-ai-workers
+    mem_limit: 1536m
     depends_on:
       redis:
         condition: service_healthy
