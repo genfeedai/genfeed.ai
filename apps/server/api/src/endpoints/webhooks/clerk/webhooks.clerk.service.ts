@@ -226,6 +226,46 @@ export class ClerkWebhookService {
     }
   }
 
+  /**
+   * Detect Prisma's "record required but not found" failure (P2025), which
+   * `BaseService.patch`/`update` surfaces when the target row disappeared
+   * between our read and the write.
+   */
+  private isRecordNotFoundError(error: unknown): boolean {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: unknown }).code === 'P2025'
+    );
+  }
+
+  /**
+   * Patch a user projection idempotently. Clerk redelivers and retries
+   * webhooks, so the projection can be removed by a concurrent event between
+   * our lookup and this update. A vanished record resolves to `null` (logged)
+   * instead of a P2025 that would 404 the callback and trigger an endless
+   * Clerk retry loop.
+   */
+  private async patchUserProjection(
+    id: string,
+    update: Parameters<UsersService['patch']>[1],
+  ): Promise<UserDocument | null> {
+    try {
+      return await this.usersService.patch(id, update);
+    } catch (error: unknown) {
+      if (this.isRecordNotFoundError(error)) {
+        this.loggerService.warn(
+          `Skipped user projection patch for ${id}; record no longer exists (concurrent Clerk event)`,
+          { id },
+        );
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
   private async findOrganizationProjection(
     clerkOrganizationId: string,
     metadata: ClerkWebhookRecord = {},
@@ -496,8 +536,10 @@ export class ClerkWebhookService {
       });
 
       if (user) {
-        // Update the pre-created user with the real Clerk ID
-        user = await this.usersService.patch(user._id, {
+        // Update the pre-created user with the real Clerk ID. A concurrent
+        // Clerk event may have removed the projection between the lookup above
+        // and this write; tolerate that and fall through to recreation below.
+        user = await this.patchUserProjection(user._id, {
           avatar: avatar ?? user.avatar ?? undefined,
           clerkId: clerkUserId,
           email: email ?? user.email ?? undefined,
@@ -505,9 +547,11 @@ export class ClerkWebhookService {
           lastName: lastName ?? user.lastName ?? undefined,
         });
 
-        this.loggerService.log(
-          `Updated pre-created invited user ${user._id} with Clerk ID ${clerkUserId}`,
-        );
+        if (user) {
+          this.loggerService.log(
+            `Updated pre-created invited user ${user._id} with Clerk ID ${clerkUserId}`,
+          );
+        }
       }
     }
 
@@ -533,13 +577,27 @@ export class ClerkWebhookService {
         }) as Parameters<UsersService['create']>[0],
       );
     } else {
-      // Update existing user profile (for both sign-ins and invitations)
-      user = await this.usersService.patch(user._id, {
+      // Update existing user profile (for both sign-ins and invitations).
+      // Clerk retries and duplicate deliveries mean the projection can vanish
+      // between the lookup above and this write (TOCTOU). Treat a missing
+      // record as an idempotent no-op and ack the webhook so Clerk stops
+      // retrying, instead of surfacing a P2025 that 404s the callback.
+      const patched = await this.patchUserProjection(user._id, {
         avatar,
         email,
         firstName: firstName || undefined,
         lastName: lastName || undefined,
       });
+
+      if (!patched) {
+        this.loggerService.warn(
+          `${url} user projection no longer exists; acking webhook`,
+          { clerkUserId, userId: user._id },
+        );
+        return;
+      }
+
+      user = patched;
 
       if (isInvited) {
         this.loggerService.log(
@@ -556,7 +614,9 @@ export class ClerkWebhookService {
     // For new user creation (not updates), mark onboarding as completed immediately
     // New users skip the wizard — they go to Stripe checkout or explore mode
     if (type === 'user.created' && !isInvited && !isConsumerSignup) {
-      await this.usersService.patch(user._id, { isOnboardingCompleted: true });
+      await this.patchUserProjection(user._id, {
+        isOnboardingCompleted: true,
+      });
     }
 
     // Handle organization membership
