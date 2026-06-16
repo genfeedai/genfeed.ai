@@ -27,7 +27,17 @@ function AppProtectedTopbarContent({
   brandSlug,
 }: TopbarProps = {}) {
   const searchParams = useSearchParams();
-  const { href } = useOrgUrl();
+  // useOrgUrl resolves the brand from the active-brand context when the route has
+  // no [brandSlug] (org-level `/:org/~/...` pages). Use the resolved values so the
+  // app switcher can still link into brand-scoped apps (Library/Posts/Studio/…)
+  // instead of falling back to `/:org/~/overview` and trapping the user there.
+  const {
+    href,
+    brandSlug: resolvedBrandSlug,
+    orgSlug: resolvedOrgSlug,
+  } = useOrgUrl();
+  const effectiveOrgSlug = orgSlug || resolvedOrgSlug;
+  const effectiveBrandSlug = brandSlug || resolvedBrandSlug;
 
   const taskId = searchParams.get('taskId');
   const taskTitle = searchParams.get('taskTitle');
@@ -74,13 +84,13 @@ function AppProtectedTopbarContent({
             </Button>
           ) : null}
 
-          {orgSlug ? (
+          {effectiveOrgSlug ? (
             <div className="min-w-0">
               <AppSwitcher
                 variant="labeled"
                 currentApp={currentApp ?? 'workspace'}
-                orgSlug={orgSlug}
-                brandSlug={brandSlug}
+                orgSlug={effectiveOrgSlug}
+                brandSlug={effectiveBrandSlug}
               />
             </div>
           ) : null}
