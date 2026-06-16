@@ -53,11 +53,17 @@ terraform apply -var="image_tag=<sha>"
 
 ## Cutover (in-place)
 
-1. Apply the stack; services come up at desired_count, api registered to the ALB.
-2. Smoke-test via ALB DNS.
-3. Flip `api.genfeed.ai` A record → ALB (Terraform manages this record; it
-   happens on apply once the zone is correct).
-4. Keep the old EC2 box **stopped, not terminated**, for ~1 week (snapshot first)
-   as a one-flip rollback.
+1. `terraform apply` (enable_dns_cutover=false, the default) — builds the cluster,
+   ALB, ECR, ElastiCache, services. Does NOT touch api.genfeed.ai DNS, so the old
+   box keeps serving traffic. (Services crash-loop until the image is pushed — fine,
+   no traffic.)
+2. Push the image to ECR + `terraform apply -var="image_tag=<sha>"` → services
+   go healthy.
+3. Smoke-test via the **ALB DNS name** (`terraform output alb_dns_name`):
+   `curl -H 'Host: api.genfeed.ai' https://<alb_dns>/v1/health`.
+4. **Cutover:** `terraform apply -var="image_tag=<sha>" -var="enable_dns_cutover=true"`
+   → creates the api.genfeed.ai A-record → ALB. (Lower the record TTL beforehand.)
+5. Keep the old EC2 box **stopped, not terminated**, for ~1 week (snapshot first).
+   Rollback = re-point api.genfeed.ai at the box's EIP / `enable_dns_cutover=false`.
 5. Remove the SSH deploy (`docker/deploy-common.sh`, `deploy-*.sh`,
    `render-ssm-env.sh`, Tailscale steps) in a follow-up PR.

@@ -82,8 +82,11 @@ resource "aws_lb_listener" "http_redirect" {
   }
 }
 
-# ── api.genfeed.ai -> ALB ────────────────────────────────────────────
+# ── api.genfeed.ai -> ALB (gated: the actual traffic cutover) ────────
+# Only created when enable_dns_cutover=true, so the first apply builds the ALB
+# without stealing live traffic from the old box before services are healthy.
 resource "aws_route53_record" "api" {
+  count   = var.enable_dns_cutover ? 1 : 0
   zone_id = local.zone_id
   name    = local.fqdn
   type    = "A"
