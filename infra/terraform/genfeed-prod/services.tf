@@ -5,6 +5,7 @@ locals {
     { name = "GENFEEDAI_MICROSERVICES_MCP_URL", value = "http://mcp.genfeed.internal:${local.services.mcp.port}" },
     { name = "GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL", value = "http://notifications.genfeed.internal:${local.services.notifications.port}" },
     { name = "GENFEEDAI_API_URL", value = "http://api.genfeed.internal:${local.services.api.port}" },
+    { name = "REDIS_URL", value = "redis://${aws_elasticache_replication_group.redis.primary_endpoint_address}:6379" },
     { name = "NODE_ENV", value = "production" },
     { name = "VERSION", value = "1.0.0" },
   ]

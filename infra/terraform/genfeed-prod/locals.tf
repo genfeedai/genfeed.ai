@@ -10,11 +10,15 @@ locals {
 
   # SSM params under ssm_path injected as task secrets: env var name = last path
   # segment (e.g. /genfeed/production/DATABASE_URL -> DATABASE_URL).
+  # Exclude REDIS_PASSWORD: ElastiCache here is no-auth (private subnet, SG-locked),
+  # and redis-connection.utils.ts falls back to REDIS_PASSWORD as the AUTH password
+  # even when the URL has none — which a no-auth server rejects. REDIS_URL (below)
+  # carries the connection instead.
   task_secrets = [
     for i, name in data.aws_ssm_parameters_by_path.prod.names : {
       name      = element(reverse(split("/", name)), 0)
       valueFrom = data.aws_ssm_parameters_by_path.prod.arns[i]
-    }
+    } if element(reverse(split("/", name)), 0) != "REDIS_PASSWORD"
   ]
 
   # ── Service catalogue (mirrors docker-compose.production.yml) ─────────
