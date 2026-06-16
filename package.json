@@ -55,6 +55,7 @@
     "build:packages": "bunx turbo run build --filter='./packages/*'",
     "build:web:parallel": "bunx turbo run build --filter=@genfeedai/app --filter=@genfeedai/website --filter=@genfeedai/docs",
     "build:web:sequential": "bunx turbo run build --filter=@genfeedai/app --filter=@genfeedai/website --filter=@genfeedai/docs --concurrency=1",
+    "build:website": "bunx turbo run build --filter=@genfeedai/website",
     "check:architecture": "bun run scripts/check-architecture.ts",
     "check:import-cycles": "bun run scripts/check-import-cycles.ts",
     "check:ui-guards": "bun run scripts/ui/check-ui-guards.ts",
