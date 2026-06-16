@@ -25,7 +25,9 @@ jobs:
   build-verify:
     name: Build & Boot Check
     uses: ./.github/workflows/build-verify.yml
-    secrets: inherit
+    # No `secrets: inherit` — build-verify.yml only uses GITHUB_TOKEN (GHCR
+    # login), which every called workflow gets automatically. Inheriting the full
+    # secret set here would over-scope it (least-privilege).
 
   e2e:
     name: E2E Suite
