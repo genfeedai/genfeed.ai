@@ -1,18 +1,6 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-# ── Network (default VPC unless overridden) ──────────────────────────
-data "aws_vpc" "default" {
-  default = true
-}
-
-data "aws_subnets" "all" {
-  filter {
-    name   = "vpc-id"
-    values = [local.vpc_id]
-  }
-}
-
 # ── Existing RDS — to wire the ECS tasks SG into its security group ───
 data "aws_db_instance" "genfeed" {
   db_instance_identifier = "genfeed-data"

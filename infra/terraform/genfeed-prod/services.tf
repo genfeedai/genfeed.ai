@@ -28,7 +28,7 @@ module "service" {
   execution_role_arn = aws_iam_role.execution.arn
   task_role_arn      = aws_iam_role.task.arn
 
-  subnets            = local.public_subnet_ids
+  subnets            = local.private_subnet_ids
   security_group_ids = [aws_security_group.ecs.id]
   namespace_id       = aws_service_discovery_private_dns_namespace.internal.id
 

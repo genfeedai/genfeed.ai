@@ -13,24 +13,33 @@ variable "environment" {
   default = "production"
 }
 
-# ── Network ──────────────────────────────────────────────────────────
-# Leave empty to auto-discover the default VPC + its subnets (the box + RDS
-# live there today). Override if genfeed runs in a non-default VPC.
+# ── Network (genfeedai-vpc; no default VPC in this account) ──────────
 variable "vpc_id" {
   type    = string
-  default = ""
+  default = "vpc-0e7522e453a642bd8" # genfeedai-vpc (10.0.8.0/21)
 }
 
+# Existing public subnets (IGW route) — used for the internet-facing ALB + NAT.
 variable "public_subnet_ids" {
-  type        = list(string)
-  default     = []
-  description = "Public subnets for the ALB + ECS container instances. Empty = all subnets in the VPC."
+  type    = list(string)
+  default = ["subnet-04dfe8480e85f0a47", "subnet-07aec43af6ded15f0"] # 1b, 1c
 }
 
-variable "private_subnet_ids" {
-  type        = list(string)
-  default     = []
-  description = "Private subnets for ElastiCache. Empty = same as public (default-VPC has only public subnets)."
+# NAT lives in this public subnet (1b).
+variable "nat_public_subnet_id" {
+  type    = string
+  default = "subnet-04dfe8480e85f0a47"
+}
+
+# New private subnets created by this stack for ECS tasks/instances + cache
+# (existing private subnets are 1b-only; we need 2 AZs). CIDRs are free space in
+# the VPC (10.0.11/12 .0/24).
+variable "private_subnet_cidrs" {
+  type = map(string)
+  default = {
+    "us-west-1b" = "10.0.11.0/24"
+    "us-west-1c" = "10.0.12.0/24"
+  }
 }
 
 # ── DNS / TLS ────────────────────────────────────────────────────────

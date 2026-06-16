@@ -28,9 +28,9 @@ output "migrate_task_family" {
   value = aws_ecs_task_definition.migrate.family
 }
 
-# Network config for `aws ecs run-task` (migrate) in CI.
+# Network config for `aws ecs run-task` (migrate) in CI — private subnets (NAT egress).
 output "task_subnets" {
-  value = local.public_subnet_ids
+  value = local.private_subnet_ids
 }
 
 output "task_security_group" {

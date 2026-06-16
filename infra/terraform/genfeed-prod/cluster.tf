@@ -43,7 +43,7 @@ resource "aws_launch_template" "ecs" {
 
 resource "aws_autoscaling_group" "ecs" {
   name_prefix         = "${local.name_prefix}-"
-  vpc_zone_identifier = local.public_subnet_ids
+  vpc_zone_identifier = local.private_subnet_ids
   min_size            = var.asg_min
   max_size            = var.asg_max
   desired_capacity    = var.asg_desired

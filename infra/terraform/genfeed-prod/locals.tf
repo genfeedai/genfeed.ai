@@ -2,12 +2,9 @@ locals {
   name_prefix = "${var.project}-${var.environment}"
   fqdn        = "${var.api_subdomain}.${var.domain}" # api.genfeed.ai
 
-  vpc_id = var.vpc_id != "" ? var.vpc_id : data.aws_vpc.default.id
-
-  public_subnet_ids = length(var.public_subnet_ids) > 0 ? var.public_subnet_ids : data.aws_subnets.all.ids
-  private_subnet_ids = length(var.private_subnet_ids) > 0 ? var.private_subnet_ids : (
-    length(var.public_subnet_ids) > 0 ? var.public_subnet_ids : data.aws_subnets.all.ids
-  )
+  vpc_id             = var.vpc_id
+  public_subnet_ids  = var.public_subnet_ids                  # ALB (internet-facing)
+  private_subnet_ids = [for s in aws_subnet.private : s.id]   # ECS tasks/instances + cache (NAT egress)
 
   image = "${aws_ecr_repository.server.repository_url}:${var.image_tag}"
 
