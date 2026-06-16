@@ -1,4 +1,6 @@
 {
-  "buildCommand": "bun run build",
-  "framework": "nextjs"
+  "buildCommand": "cd ../../ && sh scripts/sh/vercel-bun.sh run build:docs",
+  "framework": "nextjs",
+  "installCommand": "cd ../../ && sh scripts/sh/vercel-bun.sh install --ignore-scripts",
+  "outputDirectory": ".next"
 }
