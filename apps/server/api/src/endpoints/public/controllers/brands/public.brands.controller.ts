@@ -5,6 +5,7 @@ import { LinksService } from '@api/collections/links/services/links.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
+import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import { BrandFilterUtil } from '@api/helpers/utils/brand-filter/brand-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import {
@@ -12,7 +13,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { ArticleStatus, AssetScope, IngredientStatus } from '@genfeedai/enums';
+import { AssetScope, IngredientStatus } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -372,7 +373,7 @@ export class PublicBrandsController {
         brand: brandId,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
-        status: ArticleStatus.PUBLIC,
+        ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
       },
       orderBy: { createdAt: -1, publishedAt: -1 },
     };

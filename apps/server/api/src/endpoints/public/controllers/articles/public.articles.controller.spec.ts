@@ -229,7 +229,7 @@ describe('PublicArticlesController', () => {
         expect.objectContaining({
           _id: id,
           isDeleted: false,
-          status: ArticleStatus.PUBLIC,
+          status: 'PUBLISHED',
         }),
       );
       expect(result).toEqual(mockArticle);

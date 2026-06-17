@@ -18,6 +18,7 @@ import type { Request } from 'express';
 
 describe('PublicBrandsController', () => {
   let controller: PublicBrandsController;
+  let articlesService: vi.Mocked<ArticlesService>;
   let brandsService: vi.Mocked<BrandsService>;
 
   const mockBrand = {
@@ -56,6 +57,7 @@ describe('PublicBrandsController', () => {
       .compile();
 
     controller = module.get<PublicBrandsController>(PublicBrandsController);
+    articlesService = module.get(ArticlesService);
     brandsService = module.get(BrandsService);
   });
 
@@ -94,6 +96,27 @@ describe('PublicBrandsController', () => {
     it('should only access public brand data', () => {
       expect(controller).toBeDefined();
       // Public controller should not expose private data
+    });
+  });
+
+  describe('findBrandArticles', () => {
+    it('queries public brand articles with persisted status values', async () => {
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+      articlesService.findAll.mockResolvedValue({
+        docs: [],
+        totalDocs: 0,
+      } as never);
+
+      await controller.findBrandArticles('507f191e810c19729de860ee', mockReq);
+
+      expect(articlesService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ status: 'PUBLISHED' }),
+        }),
+        expect.any(Object),
+      );
     });
   });
 });

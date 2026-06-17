@@ -1,7 +1,81 @@
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import { ArticleStatus } from '@genfeedai/enums';
 
+const API_SRC_ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../..');
+const ARTICLE_STATUS_GUARD_ROOTS = [
+  join(API_SRC_ROOT, 'collections/articles'),
+  join(API_SRC_ROOT, 'endpoints/public'),
+];
+const PRISMA_ARTICLE_STATUS_MEMBERS = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
+
+function walkSourceFiles(dir: string): string[] {
+  const results: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (entry === 'dist' || entry === 'node_modules') continue;
+    if (statSync(full).isDirectory()) {
+      results.push(...walkSourceFiles(full));
+    } else if (entry.endsWith('.ts') && !entry.endsWith('.spec.ts')) {
+      results.push(full);
+    }
+  }
+  return results;
+}
+
 describe('ArticleFilterUtil', () => {
+  describe('toPrismaArticleStatus', () => {
+    it('maps app statuses to persisted Prisma status values', () => {
+      expect(ArticleFilterUtil.toPrismaArticleStatus(ArticleStatus.DRAFT)).toBe(
+        'DRAFT',
+      );
+      expect(
+        ArticleFilterUtil.toPrismaArticleStatus(ArticleStatus.PUBLIC),
+      ).toBe('PUBLISHED');
+      expect(
+        ArticleFilterUtil.toPrismaArticleStatus(ArticleStatus.ARCHIVED),
+      ).toBe('ARCHIVED');
+    });
+
+    it('passes already-persisted Prisma status values through', () => {
+      expect(ArticleFilterUtil.toPrismaArticleStatus('PUBLISHED')).toBe(
+        'PUBLISHED',
+      );
+    });
+
+    it('does not map transient generation statuses to Article.status', () => {
+      expect(
+        ArticleFilterUtil.toPrismaArticleStatus(ArticleStatus.PROCESSING),
+      ).toBeUndefined();
+      expect(
+        ArticleFilterUtil.toPrismaArticleStatus(ArticleStatus.FAILED),
+      ).toBeUndefined();
+    });
+
+    it('rejects transient statuses for persisted write data', () => {
+      expect(() =>
+        ArticleFilterUtil.toPersistedArticleStatus(ArticleStatus.PROCESSING),
+      ).toThrow('cannot be persisted to Article.status');
+    });
+
+    it('maps write data through the same boundary', () => {
+      expect(
+        ArticleFilterUtil.toArticlePersistenceData({
+          label: 'Launch',
+          status: ArticleStatus.PUBLIC,
+        }),
+      ).toEqual({ label: 'Launch', status: 'PUBLISHED' });
+    });
+
+    it('builds the canonical public persisted status filter', () => {
+      expect(ArticleFilterUtil.buildPublicArticleStatusFilter()).toEqual({
+        status: 'PUBLISHED',
+      });
+    });
+  });
+
   describe('buildArticleStatusFilter', () => {
     it('maps draft to Prisma DRAFT', () => {
       const filter = ArticleFilterUtil.buildArticleStatusFilter(
@@ -135,6 +209,49 @@ describe('ArticleFilterUtil', () => {
         { isDeleted: false },
       );
       expect((query.where as Record<string, unknown>).status).toBeUndefined();
+    });
+  });
+
+  describe('guard — ArticleStatus persistence boundary', () => {
+    it('keeps every persisted app status mapped to a valid Prisma ArticleStatus member', () => {
+      const prismaStatusSet = new Set(PRISMA_ARTICLE_STATUS_MEMBERS);
+      for (const status of [
+        ArticleStatus.DRAFT,
+        ArticleStatus.PUBLIC,
+        ArticleStatus.ARCHIVED,
+      ]) {
+        const prismaStatus = ArticleFilterUtil.toPersistedArticleStatus(status);
+        expect(
+          prismaStatusSet.has(prismaStatus),
+          `${status} mapped to ${prismaStatus}, which is not a Prisma ArticleStatus member`,
+        ).toBe(true);
+      }
+    });
+
+    it('does not use app ArticleStatus values directly in Prisma where/data status filters', () => {
+      const forbiddenPatterns = [
+        /where\s*:\s*{[^}]*status\s*:\s*ArticleStatus\./gs,
+        /where\.status\s*=\s*ArticleStatus\./g,
+        /data\s*:\s*{[^}]*status\s*:\s*ArticleStatus\./gs,
+        /status\s*:\s*PrismaArticleStatus\./g,
+        /where\.status\s*=\s*PrismaArticleStatus\./g,
+      ];
+      const violations: string[] = [];
+
+      for (const filePath of ARTICLE_STATUS_GUARD_ROOTS.flatMap((root) =>
+        walkSourceFiles(root),
+      )) {
+        const source = readFileSync(filePath, 'utf-8');
+        for (const pattern of forbiddenPatterns) {
+          pattern.lastIndex = 0;
+          if (pattern.test(source)) {
+            violations.push(relative(API_SRC_ROOT, filePath));
+            break;
+          }
+        }
+      }
+
+      expect(violations).toEqual([]);
     });
   });
 });
