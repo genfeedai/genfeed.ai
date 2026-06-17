@@ -48,6 +48,14 @@ export default function TopbarCreditsBar() {
   refreshBreakdownRef.current = refreshCreditsBreakdown;
   const { subscribe, unsubscribe } = useSocketManager();
 
+  const clearTopbarBalanceRefreshTimeout = useCallback(() => {
+    const timeout = balanceRefreshTimeoutRef.current;
+    if (timeout) {
+      clearTimeout(timeout);
+      balanceRefreshTimeoutRef.current = null;
+    }
+  }, []);
+
   const findTopbarBalances = useCallback(async () => {
     if (!organizationId) {
       return setIsLoading(false);
@@ -81,15 +89,13 @@ export default function TopbarCreditsBar() {
   }, [organizationId, getCreditsService]);
 
   const scheduleTopbarBalanceRefresh = useCallback(() => {
-    if (balanceRefreshTimeoutRef.current) {
-      clearTimeout(balanceRefreshTimeoutRef.current);
-    }
+    clearTopbarBalanceRefreshTimeout();
 
     balanceRefreshTimeoutRef.current = setTimeout(() => {
       balanceRefreshTimeoutRef.current = null;
       void findTopbarBalances();
     }, 1500);
-  }, [findTopbarBalances]);
+  }, [clearTopbarBalanceRefreshTimeout, findTopbarBalances]);
 
   useEffect(() => {
     if (organizationId) {
@@ -124,13 +130,10 @@ export default function TopbarCreditsBar() {
     }
   }, [organizationId, subscribe, unsubscribe, scheduleTopbarBalanceRefresh]);
 
-  useEffect(() => {
-    return () => {
-      if (balanceRefreshTimeoutRef.current) {
-        clearTimeout(balanceRefreshTimeoutRef.current);
-      }
-    };
-  }, []);
+  useEffect(
+    () => clearTopbarBalanceRefreshTimeout,
+    [clearTopbarBalanceRefreshTimeout],
+  );
 
   useEffect(() => {
     if (organizationId) {
