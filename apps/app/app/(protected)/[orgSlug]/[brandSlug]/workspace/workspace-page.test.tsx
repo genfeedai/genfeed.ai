@@ -4,12 +4,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import WorkspacePageContent from './workspace-page';
 
 const mocks = vi.hoisted(() => ({
+  agentRunsList: vi.fn(),
   approve: vi.fn(),
   dismiss: vi.fn(),
   ensurePlanningThread: vi.fn(),
   findByIds: vi.fn(),
   findOne: vi.fn(),
+  getActiveRuns: vi.fn(),
   getBatch: vi.fn(),
+  getRunStats: vi.fn(),
   getToken: vi.fn(),
   keepOutput: vi.fn(),
   list: vi.fn(),
@@ -48,7 +51,10 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
 vi.mock('@services/ai/agent-runs.service', () => ({
   AgentRunsService: {
     getInstance: () => ({
+      getActive: mocks.getActiveRuns,
       getBatch: mocks.getBatch,
+      getStats: mocks.getRunStats,
+      list: mocks.agentRunsList,
     }),
   },
 }));
@@ -160,6 +166,9 @@ describe('WorkspacePageContent', () => {
     vi.clearAllMocks();
     mocks.resolveClerkToken.mockResolvedValue('token-1');
     mocks.subscribe.mockReturnValue(vi.fn());
+    mocks.agentRunsList.mockResolvedValue([]);
+    mocks.getActiveRuns.mockResolvedValue([]);
+    mocks.getRunStats.mockResolvedValue(null);
     mocks.list.mockResolvedValue([
       makeInspectorTask(),
       makeTask({
@@ -252,6 +261,7 @@ describe('WorkspacePageContent', () => {
     render(<WorkspacePageContent section="inbox" defaultInboxView="unread" />);
 
     expect(await screen.findByText('Campaign image')).toBeVisible();
+    expect(mocks.agentRunsList).not.toHaveBeenCalled();
     expect(screen.getByText('Workspace at a glance')).toBeVisible();
     expect(mocks.subscribe).toHaveBeenCalled();
 
@@ -372,6 +382,9 @@ describe('WorkspacePageContent', () => {
     );
 
     expect(await screen.findByText('Workspace Dashboard')).toBeVisible();
+    await waitFor(() =>
+      expect(mocks.agentRunsList).toHaveBeenCalledWith({ page: 1 }),
+    );
     expect(screen.getByTestId('workspace-in-progress')).toBeVisible();
     expect(screen.getAllByText('Campaign image').length).toBeGreaterThan(0);
     expect(screen.getByText('Live runs')).toBeVisible();

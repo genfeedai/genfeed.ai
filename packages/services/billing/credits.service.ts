@@ -6,6 +6,8 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 
+const TOPBAR_BALANCES_TIMEOUT_MS = 5_000;
+
 export interface ByokUsageSummary {
   totalUsage: number;
   freeThreshold: number;
@@ -39,8 +41,10 @@ export class CreditsService extends HTTPBaseService {
   }
 
   public async getTopbarBalances(): Promise<ITopbarBalances> {
-    const response =
-      await this.instance.get<JsonApiResponseDocument>('/topbar-balances');
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      '/topbar-balances',
+      { timeout: TOPBAR_BALANCES_TIMEOUT_MS },
+    );
 
     return deserializeResource<ITopbarBalances>(response.data);
   }
