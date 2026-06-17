@@ -68,7 +68,7 @@ export interface SqlRiskAuditOptions {
 }
 
 interface CliOptions extends SqlRiskAuditOptions {
-  json: boolean;
+  isJsonOutput: boolean;
   out?: string;
 }
 
@@ -430,17 +430,17 @@ function escapeMarkdownCell(value: string): string {
 }
 
 function parseArgs(argv: string[]): CliOptions {
-  const options: CliOptions = { json: false };
+  const options: CliOptions = { isJsonOutput: false };
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--json') {
-      options.json = true;
+      options.isJsonOutput = true;
     } else if (arg === '--out') {
-      options.out = argv[index + 1];
+      options.out = readRequiredArg(argv, index, arg);
       index += 1;
     } else if (arg === '--root') {
-      options.rootDir = argv[index + 1];
+      options.rootDir = readRequiredArg(argv, index, arg);
       index += 1;
     }
   }
@@ -448,9 +448,18 @@ function parseArgs(argv: string[]): CliOptions {
   return options;
 }
 
+function readRequiredArg(argv: string[], index: number, flag: string): string {
+  const value = argv[index + 1];
+  if (!value || value.startsWith('--')) {
+    throw new Error(`${flag} requires a value`);
+  }
+
+  return value;
+}
+
 function writeOutput(body: string, out?: string): void {
   if (!out) {
-    console.log(body);
+    process.stdout.write(body.endsWith('\n') ? body : `${body}\n`);
     return;
   }
 
@@ -467,7 +476,7 @@ function isMainModule(): boolean {
 if (isMainModule()) {
   const options = parseArgs(process.argv.slice(2));
   const result = runSqlRiskAudit(options);
-  const body = options.json
+  const body = options.isJsonOutput
     ? `${JSON.stringify(result, null, 2)}\n`
     : formatSqlRiskAudit(result);
 

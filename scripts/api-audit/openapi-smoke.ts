@@ -20,8 +20,12 @@ interface OpenApiOperation {
   summary?: string;
 }
 
+type OpenApiPathItem = Partial<Record<OpenApiHttpMethod, OpenApiOperation>> & {
+  parameters?: OpenApiParameter[];
+};
+
 interface OpenApiDocument {
-  paths?: Record<string, Partial<Record<OpenApiHttpMethod, OpenApiOperation>>>;
+  paths?: Record<string, OpenApiPathItem>;
 }
 
 interface SmokeTarget {
@@ -70,7 +74,7 @@ export interface OpenApiSmokeReport {
 }
 
 interface CliOptions extends OpenApiSmokeOptions {
-  json: boolean;
+  isJsonOutput: boolean;
   out?: string;
 }
 
@@ -107,7 +111,9 @@ export async function runOpenApiSmoke(
   const failed = completed.filter((result) => {
     return (
       Boolean(result.error) ||
-      (result.status !== undefined && result.status >= 500)
+      (result.status !== undefined &&
+        (result.status < 200 || result.status >= 400) &&
+        !isAuthMissing(result, token))
     );
   }).length;
   const passed = completed.filter((result) => {
@@ -241,16 +247,16 @@ function collectSmokeTargets(document: OpenApiDocument): {
         continue;
       }
 
-      const requiredPathParams = (operation.parameters ?? []).filter(
-        (param) => {
-          return param.in === 'path' && param.required;
-        },
-      );
-      const requiredQueryParams = (operation.parameters ?? []).filter(
-        (param) => {
-          return param.in === 'query' && param.required;
-        },
-      );
+      const parameters = [
+        ...(operations.parameters ?? []),
+        ...(operation.parameters ?? []),
+      ];
+      const requiredPathParams = parameters.filter((param) => {
+        return param.in === 'path' && param.required;
+      });
+      const requiredQueryParams = parameters.filter((param) => {
+        return param.in === 'query' && param.required;
+      });
 
       if (requiredPathParams.length > 0 || /\{[^}]+}/.test(apiPath)) {
         skipped.push({
@@ -281,6 +287,10 @@ function collectSmokeTargets(document: OpenApiDocument): {
   }
 
   return { skipped, targets };
+}
+
+function isAuthMissing(result: SmokeResult, token?: string): boolean {
+  return !token && (result.status === 401 || result.status === 403);
 }
 
 async function smokeTarget(
@@ -391,32 +401,41 @@ function parseNumberArg(value: string | undefined, fallback: number): number {
 }
 
 function parseArgs(argv: string[]): CliOptions {
-  const options: CliOptions = { json: false };
+  const options: CliOptions = { isJsonOutput: false };
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--json') {
-      options.json = true;
+      options.isJsonOutput = true;
     } else if (arg === '--base-url') {
-      options.baseUrl = argv[index + 1];
+      options.baseUrl = readRequiredArg(argv, index, arg);
       index += 1;
     } else if (arg === '--openapi-url') {
-      options.openApiUrl = argv[index + 1];
+      options.openApiUrl = readRequiredArg(argv, index, arg);
       index += 1;
     } else if (arg === '--token') {
-      options.token = argv[index + 1];
+      options.token = readRequiredArg(argv, index, arg);
       index += 1;
     } else if (arg === '--timeout-ms') {
-      options.timeoutMs = parseNumberArg(argv[index + 1], 5_000);
+      options.timeoutMs = parseNumberArg(
+        readRequiredArg(argv, index, arg),
+        5_000,
+      );
       index += 1;
     } else if (arg === '--budget-ms') {
-      options.budgetMs = parseNumberArg(argv[index + 1], 1_000);
+      options.budgetMs = parseNumberArg(
+        readRequiredArg(argv, index, arg),
+        1_000,
+      );
       index += 1;
     } else if (arg === '--concurrency') {
-      options.concurrency = parseNumberArg(argv[index + 1], 8);
+      options.concurrency = parseNumberArg(
+        readRequiredArg(argv, index, arg),
+        8,
+      );
       index += 1;
     } else if (arg === '--out') {
-      options.out = argv[index + 1];
+      options.out = readRequiredArg(argv, index, arg);
       index += 1;
     }
   }
@@ -424,9 +443,18 @@ function parseArgs(argv: string[]): CliOptions {
   return options;
 }
 
+function readRequiredArg(argv: string[], index: number, flag: string): string {
+  const value = argv[index + 1];
+  if (!value || value.startsWith('--')) {
+    throw new Error(`${flag} requires a value`);
+  }
+
+  return value;
+}
+
 function writeOutput(body: string, out?: string): void {
   if (!out) {
-    console.log(body);
+    process.stdout.write(body.endsWith('\n') ? body : `${body}\n`);
     return;
   }
 
@@ -443,7 +471,7 @@ function isMainModule(): boolean {
 if (isMainModule()) {
   const options = parseArgs(process.argv.slice(2));
   const report = await runOpenApiSmoke(options);
-  const body = options.json
+  const body = options.isJsonOutput
     ? `${JSON.stringify(report, null, 2)}\n`
     : formatOpenApiSmokeReport(report);
 
