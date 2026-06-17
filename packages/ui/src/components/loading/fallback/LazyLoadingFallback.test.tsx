@@ -1,21 +1,32 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { describe, expect, it } from 'vitest';
 
 describe('LazyLoadingFallback', () => {
-  it('should render without crashing', () => {
+  it('renders the skeleton fallback by default', () => {
     const { container } = render(<LazyLoadingFallback />);
-    expect(container.firstChild).toBeInTheDocument();
+
+    expect(container.firstChild).toHaveAttribute(
+      'aria-label',
+      'Loading content',
+    );
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<LazyLoadingFallback />);
-    expect(container.firstChild).toBeInTheDocument();
+  it('uses the shared spinner for minimal fallbacks', () => {
+    const { container } = render(<LazyLoadingFallback variant="minimal" />);
+
+    expect(container.firstChild).toHaveClass('min-h-[60vh]');
+    expect(screen.getByRole('status', { name: 'Loading' })).toHaveClass(
+      'animate-spin',
+    );
   });
 
-  it('should apply correct styles and classes', () => {
-    const { container } = render(<LazyLoadingFallback />);
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
+  it('uses the shared spinner for full-page fallbacks', () => {
+    const { container } = render(<LazyLoadingFallback variant="full" />);
+
+    expect(container.firstChild).toHaveClass('min-h-screen');
+    expect(screen.getByRole('status', { name: 'Loading' })).toHaveClass(
+      'animate-spin',
+    );
   });
 });

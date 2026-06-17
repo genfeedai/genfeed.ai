@@ -18,9 +18,12 @@ import WorkspacePageContent from './workspace-page';
 
 const getTokenMock = vi.fn();
 const listMock = vi.fn();
+const listAgentRunsMock = vi.fn();
 const createTaskMock = vi.fn();
 const ensurePlanningThreadMock = vi.fn();
+const getActiveRunsMock = vi.fn();
 const getBatchMock = vi.fn();
+const getRunStatsMock = vi.fn();
 const findIngredientsByIdsMock = vi.fn();
 const findIssueMock = vi.fn();
 const routerPushMock = vi.fn();
@@ -221,6 +224,9 @@ describe('WorkspacePageContent', () => {
       id: 'issue-1',
       identifier: 'GEN-42',
     });
+    listAgentRunsMock.mockResolvedValue([]);
+    getActiveRunsMock.mockResolvedValue([]);
+    getRunStatsMock.mockResolvedValue(null);
     vi.mocked(TasksService.getInstance).mockReturnValue({
       approve: vi.fn(),
       createChildTasks: vi.fn(),
@@ -232,7 +238,10 @@ describe('WorkspacePageContent', () => {
       requestChanges: vi.fn(),
     } as unknown as ReturnType<typeof TasksService.getInstance>);
     vi.mocked(AgentRunsService.getInstance).mockReturnValue({
+      getActive: getActiveRunsMock,
       getBatch: getBatchMock,
+      getStats: getRunStatsMock,
+      list: listAgentRunsMock,
     } as unknown as ReturnType<typeof AgentRunsService.getInstance>);
     vi.mocked(IngredientsService.getInstance).mockReturnValue({
       findByIds: findIngredientsByIdsMock,

@@ -22,6 +22,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import CreditsBarPanel from './CreditsBarPanel';
 import CreditsBarTrigger from './CreditsBarTrigger';
 
+interface OptionalBalanceRequestError {
+  isCancelled?: boolean;
+  silent?: boolean;
+}
+
 export default function TopbarCreditsBar() {
   const { organizationId } = useBrand();
   const { orgHref } = useOrgUrl();
@@ -42,6 +47,14 @@ export default function TopbarCreditsBar() {
   );
   refreshBreakdownRef.current = refreshCreditsBreakdown;
   const { subscribe, unsubscribe } = useSocketManager();
+
+  const clearTopbarBalanceRefreshTimeout = useCallback(() => {
+    const timeout = balanceRefreshTimeoutRef.current;
+    if (timeout) {
+      clearTimeout(timeout);
+      balanceRefreshTimeoutRef.current = null;
+    }
+  }, []);
 
   const findTopbarBalances = useCallback(async () => {
     if (!organizationId) {
@@ -64,21 +77,25 @@ export default function TopbarCreditsBar() {
       );
       setIsLoading(false);
     } catch (error: unknown) {
-      logger.error('TopbarCreditsBar: failed to fetch balances', error);
+      const requestError = error as OptionalBalanceRequestError;
+      if (!requestError.isCancelled && !requestError.silent) {
+        logger.warn('TopbarCreditsBar: failed to fetch balances', {
+          error,
+          reportToSentry: false,
+        });
+      }
       setIsLoading(false);
     }
   }, [organizationId, getCreditsService]);
 
   const scheduleTopbarBalanceRefresh = useCallback(() => {
-    if (balanceRefreshTimeoutRef.current) {
-      clearTimeout(balanceRefreshTimeoutRef.current);
-    }
+    clearTopbarBalanceRefreshTimeout();
 
     balanceRefreshTimeoutRef.current = setTimeout(() => {
       balanceRefreshTimeoutRef.current = null;
       void findTopbarBalances();
     }, 1500);
-  }, [findTopbarBalances]);
+  }, [clearTopbarBalanceRefreshTimeout, findTopbarBalances]);
 
   useEffect(() => {
     if (organizationId) {
@@ -113,13 +130,10 @@ export default function TopbarCreditsBar() {
     }
   }, [organizationId, subscribe, unsubscribe, scheduleTopbarBalanceRefresh]);
 
-  useEffect(() => {
-    return () => {
-      if (balanceRefreshTimeoutRef.current) {
-        clearTimeout(balanceRefreshTimeoutRef.current);
-      }
-    };
-  }, []);
+  useEffect(
+    () => clearTopbarBalanceRefreshTimeout,
+    [clearTopbarBalanceRefreshTimeout],
+  );
 
   useEffect(() => {
     if (organizationId) {

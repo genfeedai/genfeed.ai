@@ -5,6 +5,27 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
  */
 export class QueryDefaultsUtil {
   private static readonly defaults = new BaseQueryDto();
+  private static readonly maxLimit = 100;
+
+  private static parsePositiveInteger(
+    value: unknown,
+    fallback: number,
+    max?: number,
+  ): number {
+    const numericValue =
+      typeof value === 'number'
+        ? value
+        : typeof value === 'string' && value.trim() !== ''
+          ? Number(value)
+          : Number.NaN;
+
+    if (!Number.isFinite(numericValue) || numericValue < 1) {
+      return fallback;
+    }
+
+    const integerValue = Math.floor(numericValue);
+    return max ? Math.min(integerValue, max) : integerValue;
+  }
 
   /**
    * Get default pagination options from BaseQueryDto
@@ -20,8 +41,15 @@ export class QueryDefaultsUtil {
     }
 
     return {
-      limit: query.limit ?? QueryDefaultsUtil.defaults.limit,
-      page: query.page ?? QueryDefaultsUtil.defaults.page,
+      limit: QueryDefaultsUtil.parsePositiveInteger(
+        query.limit,
+        QueryDefaultsUtil.defaults.limit,
+        QueryDefaultsUtil.maxLimit,
+      ),
+      page: QueryDefaultsUtil.parsePositiveInteger(
+        query.page,
+        QueryDefaultsUtil.defaults.page,
+      ),
       pagination: paginationValue,
     };
   }
@@ -51,8 +79,15 @@ export class QueryDefaultsUtil {
     return {
       ...query,
       isDeleted: query.isDeleted ?? QueryDefaultsUtil.defaults.isDeleted,
-      limit: query.limit ?? QueryDefaultsUtil.defaults.limit,
-      page: query.page ?? QueryDefaultsUtil.defaults.page,
+      limit: QueryDefaultsUtil.parsePositiveInteger(
+        query.limit,
+        QueryDefaultsUtil.defaults.limit,
+        QueryDefaultsUtil.maxLimit,
+      ),
+      page: QueryDefaultsUtil.parsePositiveInteger(
+        query.page,
+        QueryDefaultsUtil.defaults.page,
+      ),
       pagination: query.pagination ?? QueryDefaultsUtil.defaults.pagination,
       sort: query.sort ?? QueryDefaultsUtil.defaults.sort,
     } as T & BaseQueryDto;

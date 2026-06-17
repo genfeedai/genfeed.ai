@@ -489,6 +489,7 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         collapsedSidebarWidth: 0,
+        currentApp: 'workspace',
         mobileSidebarWidth: 304,
         renderTopSlot: expect.any(Function),
         secondaryItems: [
