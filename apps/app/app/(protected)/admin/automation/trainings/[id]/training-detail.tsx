@@ -57,7 +57,16 @@ export default function TrainingDetail({
 
         abortControllerRef.current?.abort();
         abortControllerRef.current = controller;
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
         const service = await getTrainingsService();
+
+        if (controller.signal.aborted) {
+          return;
+        }
 
         const data = await service.findOne(trainingId);
 
