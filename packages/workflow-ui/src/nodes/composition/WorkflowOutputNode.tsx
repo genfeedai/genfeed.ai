@@ -84,6 +84,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
             Output Name
           </Label>
           <input
+            aria-label="Output Name"
             id={`output-name-${id}`}
             type="text"
             value={nodeData.outputName || 'output'}
@@ -95,9 +96,14 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
 
         {/* Output Type */}
         <div className="space-y-1.5">
-          <Label className="text-xs">Data Type</Label>
+          <Label className="text-xs" id={`output-type-${id}`}>
+            Data Type
+          </Label>
           <Select value={outputType} onValueChange={handleTypeChange}>
-            <SelectTrigger className="nodrag h-9 w-full">
+            <SelectTrigger
+              aria-labelledby={`output-type-${id}`}
+              className="nodrag h-9 w-full"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -116,6 +122,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
             Description (optional)
           </Label>
           <input
+            aria-label="Output description"
             id={`output-description-${id}`}
             type="text"
             value={nodeData.description || ''}

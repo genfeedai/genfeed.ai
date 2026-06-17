@@ -2,7 +2,7 @@ import { FlashList } from '@shopify/flash-list';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { memo, type ReactElement, useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -179,6 +179,41 @@ function ApprovalCard({
   );
 }
 
+const ApprovalList = memo(function ApprovalList({
+  approvals,
+  isRefreshing,
+  keyExtractor,
+  refresh,
+  renderItem,
+}: {
+  approvals: Approval[];
+  isRefreshing: boolean;
+  keyExtractor: (item: Approval) => string;
+  refresh: () => void;
+  renderItem: ({ item }: { item: Approval }) => ReactElement;
+}) {
+  const refreshControl = useMemo(
+    () => (
+      <RefreshControl
+        refreshing={isRefreshing}
+        onRefresh={refresh}
+        tintColor={colors.agent}
+      />
+    ),
+    [isRefreshing, refresh],
+  );
+
+  return (
+    <FlashList
+      data={approvals}
+      renderItem={renderItem}
+      keyExtractor={keyExtractor}
+      contentContainerStyle={styles.listContent}
+      refreshControl={refreshControl}
+    />
+  );
+});
+
 export default function Approvals() {
   const router = useRouter();
   const [filter, setFilter] = useState<ContentType | null>(null);
@@ -301,7 +336,6 @@ export default function Approvals() {
       selectionMode,
     ],
   );
-
   if (isLoading) {
     return <LoadingScreen message="Loading approvals..." />;
   }
@@ -380,18 +414,12 @@ export default function Approvals() {
           message="No pending approvals at the moment"
         />
       ) : (
-        <FlashList
-          data={approvals}
+        <ApprovalList
+          approvals={approvals}
+          isRefreshing={isRefreshing}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={refresh}
-              tintColor={colors.agent}
-            />
-          }
+          refresh={refresh}
         />
       )}
     </View>

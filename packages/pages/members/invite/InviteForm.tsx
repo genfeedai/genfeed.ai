@@ -45,8 +45,8 @@ export default function InviteForm({
       {hasFormErrors(formState.errors) && (
         <Alert type={AlertCategory.ERROR} className="mb-4">
           <div className="space-y-1">
-            {parseFormErrors(formState.errors).map((error, index) => (
-              <div key={index}>{error}</div>
+            {parseFormErrors(formState.errors).map((error) => (
+              <div key={error}>{error}</div>
             ))}
           </div>
         </Alert>

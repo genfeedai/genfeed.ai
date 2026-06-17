@@ -208,6 +208,8 @@ describe('CreditsService', () => {
       ],
     });
 
-    expect(mockGet).toHaveBeenCalledWith('/topbar-balances');
+    expect(mockGet).toHaveBeenCalledWith('/topbar-balances', {
+      timeout: 5_000,
+    });
   });
 });

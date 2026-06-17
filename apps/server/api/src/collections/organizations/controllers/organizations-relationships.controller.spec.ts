@@ -67,7 +67,9 @@ describe('OrganizationsRelationshipsController', () => {
       findAll: vi.fn().mockResolvedValue({ docs: [], total: 0 }),
     },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
-    membersService: {},
+    membersService: {
+      findOne: vi.fn().mockResolvedValue(null),
+    },
     organizationsService: {
       findOne: vi.fn().mockResolvedValue({
         _id: '507f1f77bcf86cd799439012',
@@ -131,6 +133,30 @@ describe('OrganizationsRelationshipsController', () => {
     );
     _organizationsService =
       module.get<OrganizationsService>(OrganizationsService);
+  });
+
+  describe('findAllPosts', () => {
+    it('uses a Prisma-safe root-post filter', async () => {
+      await controller.findAllPosts(
+        {} as never,
+        '507f1f77bcf86cd799439012',
+        mockUser,
+        { status: 'draft' } as never,
+      );
+
+      expect(mockServices.postsService.findAll).toHaveBeenCalledWith(
+        {
+          orderBy: { createdAt: -1 },
+          where: {
+            isDeleted: false,
+            organization: '507f1f77bcf86cd799439012',
+            parentId: null,
+            status: 'draft',
+          },
+        },
+        expect.objectContaining({ limit: 10, page: 1 }),
+      );
+    });
   });
 
   afterEach(() => {

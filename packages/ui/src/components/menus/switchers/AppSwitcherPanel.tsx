@@ -15,7 +15,7 @@ import type { RefObject } from 'react';
 type AppSwitcherPanelProps = {
   adminApps: AppLink[];
   currentApp: string;
-  dropdownRef: RefObject<HTMLUListElement>;
+  dropdownRef: RefObject<HTMLDivElement>;
   regularApps: AppLink[];
   onClose: () => void;
 };
@@ -29,14 +29,12 @@ export function AppSwitcherPanel({
 }: AppSwitcherPanelProps) {
   return (
     <Portal>
-      <ul
+      <div
         ref={dropdownRef}
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
         className={cn(
           BG_BLUR,
           BORDER_WHITE_30,
-          'app-switcher-dropdown z-50 w-[480px] fixed p-2 list-none',
+          'app-switcher-dropdown z-50 w-[480px] fixed p-2',
         )}
       >
         <div className="w-full">
@@ -151,7 +149,7 @@ export function AppSwitcherPanel({
             </>
           )}
         </div>
-      </ul>
+      </div>
     </Portal>
   );
 }

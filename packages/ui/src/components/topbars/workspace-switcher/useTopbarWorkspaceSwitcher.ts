@@ -1,6 +1,7 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useBrandOverlay } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -174,7 +175,7 @@ export function useTopbarWorkspaceSwitcher() {
       logger.info('DELETE /users/me/brand-selection success');
       await user?.reload();
       setIsOpen(false);
-      push(orgHref('/overview'));
+      push(orgHref(APP_ROUTES.OVERVIEW.ROOT));
       refresh();
       setIsUpdatingBrand(false);
     } catch (error) {

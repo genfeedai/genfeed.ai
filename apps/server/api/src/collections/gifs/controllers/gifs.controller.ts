@@ -69,7 +69,6 @@ export class GifsController {
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-    const scope = { not: null };
     const brand = publicMetadata.brand;
 
     const aggregate = {
@@ -83,7 +82,6 @@ export class GifsController {
                     brand,
                     category: IngredientCategory.GIF,
                     isDeleted,
-                    scope,
                     user: publicMetadata.user,
                   },
                 ],
@@ -96,7 +94,6 @@ export class GifsController {
                     category: IngredientCategory.GIF,
                     isDefault: true,
                     isDeleted,
-                    scope,
                   },
                 ],
               },
@@ -170,7 +167,7 @@ export class GifsController {
                     brand,
                     category: IngredientCategory.GIF,
                     isDeleted,
-                    scope,
+                    ...(scope !== undefined ? { scope } : {}),
                     status,
                   },
                   folderConditions,

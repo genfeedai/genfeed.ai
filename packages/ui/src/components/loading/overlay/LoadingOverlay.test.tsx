@@ -1,21 +1,16 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import LoadingOverlay from '@ui/loading/overlay/LoadingOverlay';
 import { describe, expect, it } from 'vitest';
 
 describe('LoadingOverlay', () => {
-  it('should render without crashing', () => {
-    const { container } = render(<LoadingOverlay />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
+  it('renders an accessible overlay status', () => {
+    render(<LoadingOverlay message="Rendering" />);
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<LoadingOverlay />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
+    const overlay = screen.getByRole('alert');
+    const spinner = screen.getByRole('status', { name: 'Rendering' });
 
-  it('should apply correct styles and classes', () => {
-    const { container } = render(<LoadingOverlay />);
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
+    expect(overlay).toHaveAttribute('aria-busy', 'true');
+    expect(spinner).toHaveClass('animate-spin');
+    expect(screen.getByText('Rendering')).toBeInTheDocument();
   });
 });

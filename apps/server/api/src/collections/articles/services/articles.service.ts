@@ -36,6 +36,7 @@ import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import {
   calculateEstimatedTextCredits,
   getMinimumTextCredits,
@@ -58,10 +59,7 @@ import {
   SystemPromptKey,
 } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
-import {
-  type Prisma,
-  ArticleStatus as PrismaArticleStatus,
-} from '@genfeedai/prisma';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -130,12 +128,6 @@ export class ArticlesService extends BaseService<
 
   private normalizeArticleScope(value: unknown): ArticleScope | undefined {
     return Object.values(ArticleScope).find((scope) => scope === value);
-  }
-
-  private isPublicArticleStatus(value: unknown): boolean {
-    return (
-      value === ArticleStatus.PUBLIC || value === PrismaArticleStatus.PUBLISHED
-    );
   }
 
   /**
@@ -385,12 +377,12 @@ export class ArticlesService extends BaseService<
       throw new Error('Invalid brandId');
     }
 
-    const articleData = {
+    const articleData = ArticleFilterUtil.toArticlePersistenceData({
       ...createArticleDto,
       brandId,
       organizationId,
       userId,
-    };
+    });
 
     const result = await super.create(articleData);
 
@@ -510,7 +502,9 @@ export class ArticlesService extends BaseService<
         throw new Error('Invalid brandId');
       }
 
-      const updateData: Record<string, unknown> = { ...updateArticleDto };
+      const updateData = ArticleFilterUtil.toArticlePersistenceData({
+        ...updateArticleDto,
+      });
 
       // If status is being changed to PUBLISHED, handle publishing logic
       if (updateArticleDto.status === ArticleStatus.PUBLIC) {
@@ -565,7 +559,7 @@ export class ArticlesService extends BaseService<
         ];
 
         // If article is published, also invalidate public cache (PUBLISHED = public)
-        if (this.isPublicArticleStatus(result.status)) {
+        if (ArticleFilterUtil.isPublicArticleStatus(result.status)) {
           tagsToInvalidate.push('public');
         }
 
@@ -726,7 +720,7 @@ export class ArticlesService extends BaseService<
     const where: Record<string, unknown> = {
       isDeleted: false,
       publishedAt: { not: null },
-      status: PrismaArticleStatus.PUBLISHED,
+      ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
     };
 
     if (search) {
@@ -783,7 +777,7 @@ export class ArticlesService extends BaseService<
     // In normal mode, only show published articles (PUBLISHED = public)
     if (!isPreview) {
       where.publishedAt = { not: null };
-      where.status = PrismaArticleStatus.PUBLISHED;
+      Object.assign(where, ArticleFilterUtil.buildPublicArticleStatusFilter());
     }
 
     const article = await this.delegate.findFirst({ where });

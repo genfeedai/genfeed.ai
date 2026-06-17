@@ -146,6 +146,30 @@ describe('BrandsRelationshipsController', () => {
     });
   });
 
+  describe('findAllPosts', () => {
+    it('uses a Prisma-safe root-post filter', async () => {
+      await controller.findAllPosts(
+        {} as Request,
+        '507f1f77bcf86cd799439013',
+        mockUser,
+        { status: 'draft' } as never,
+      );
+
+      expect(mockServices.postsService.findAll).toHaveBeenCalledWith(
+        {
+          orderBy: { createdAt: -1 },
+          where: {
+            brand: '507f1f77bcf86cd799439013',
+            isDeleted: false,
+            parentId: null,
+            status: 'draft',
+          },
+        },
+        expect.objectContaining({ limit: 10, page: 1 }),
+      );
+    });
+  });
+
   describe('findBrandAnalytics', () => {
     it('should return brand analytics', async () => {
       const result = await controller.findBrandAnalytics(

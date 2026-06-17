@@ -1,6 +1,7 @@
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-role';
+import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/constants';
 import type { MemberRole } from '@genfeedai/enums';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
@@ -30,7 +31,7 @@ interface PageContextConfig {
 }
 
 const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
-  '/analytics': {
+  [APP_ROUTES.ANALYTICS.ROOT]: {
     placeholder: 'Ask about your analytics...',
     suggestedActions: [
       {
@@ -52,7 +53,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/analytics/insights': {
+  [APP_ROUTES.ANALYTICS.INSIGHTS]: {
     placeholder: 'Ask about your AI insights...',
     suggestedActions: [
       {
@@ -71,7 +72,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/analytics/performance-lab': {
+  [APP_ROUTES.ANALYTICS.PERFORMANCE_LAB]: {
     placeholder: 'Ask about winning patterns...',
     suggestedActions: [
       {
@@ -158,7 +159,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/chat': {
+  [APP_ROUTES.CHAT.ROOT]: {
     placeholder: 'Ask me anything...',
     suggestedActions: [
       {
@@ -200,7 +201,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/compose': {
+  [APP_ROUTES.COMPOSE.ROOT]: {
     placeholder: 'Ask the co-pilot to improve this draft...',
     suggestedActions: [
       {
@@ -224,7 +225,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/library': {
+  [APP_ROUTE_PREFIXES.LIBRARY]: {
     placeholder: 'Ask about your library...',
     suggestedActions: [
       {
@@ -246,7 +247,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/library/images': {
+  [APP_ROUTES.LIBRARY.IMAGES]: {
     placeholder: 'Ask about your images...',
     suggestedActions: [
       {
@@ -268,7 +269,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/library/videos': {
+  [APP_ROUTES.LIBRARY.VIDEOS]: {
     placeholder: 'Ask about your videos...',
     suggestedActions: [
       {
@@ -285,7 +286,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/overview': {
+  [APP_ROUTES.OVERVIEW.ROOT]: {
     placeholder: 'What would you like to do?',
     suggestedActions: [
       {
@@ -309,7 +310,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/overview/activities': {
+  [APP_ROUTES.OVERVIEW.ACTIVITIES]: {
     placeholder: 'Ask about recent activity...',
     suggestedActions: [
       {
@@ -326,7 +327,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/posts': {
+  [APP_ROUTES.POSTS.ROOT]: {
     placeholder: 'Ask about your posts...',
     suggestedActions: [
       {
@@ -352,7 +353,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/posts/': {
+  [`${APP_ROUTES.POSTS.ROOT}/`]: {
     placeholder: 'Ask about this post...',
     suggestedActions: [
       {
@@ -371,7 +372,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/posts/review': {
+  [APP_ROUTES.POSTS.REVIEW]: {
     placeholder: 'Ask about content review...',
     suggestedActions: [
       {
@@ -395,7 +396,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/research': {
+  [APP_ROUTES.RESEARCH.ROOT]: {
     placeholder: 'Ask about trends...',
     suggestedActions: [
       {
@@ -412,7 +413,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/research/ads': {
+  [APP_ROUTES.RESEARCH.ADS]: {
     placeholder: 'Ask about winning ads in your niche...',
     suggestedActions: [
       {
@@ -437,7 +438,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/research/ads/google': {
+  [APP_ROUTES.RESEARCH.ADS_GOOGLE]: {
     placeholder: 'Ask about Google and YouTube ads...',
     suggestedActions: [
       {
@@ -456,7 +457,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/research/ads/meta': {
+  [APP_ROUTES.RESEARCH.ADS_META]: {
     placeholder: 'Ask about Meta ad winners...',
     suggestedActions: [
       {
@@ -475,7 +476,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/settings': {
+  [APP_ROUTES.SETTINGS.ROOT]: {
     placeholder: 'Need help with settings?',
     suggestedActions: [
       {
@@ -492,7 +493,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/settings/models/trainings': {
+  [APP_ROUTES.SETTINGS.MODEL_TRAININGS]: {
     placeholder: 'Ask about your trainings...',
     suggestedActions: [
       {
@@ -507,7 +508,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  '/studio': {
+  [APP_ROUTES.STUDIO.ROOT]: {
     placeholder: 'Ask about this asset...',
     suggestedActions: [
       {

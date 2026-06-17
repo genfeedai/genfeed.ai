@@ -1,5 +1,5 @@
+import { COMPOSE_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import {
   HiDocumentText,
   HiEnvelope,

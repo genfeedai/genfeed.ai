@@ -10,7 +10,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'Full-page or partial loading indicator with infinity animation.',
+          'Full-page or partial loading indicator using the shared spinner.',
       },
     },
     layout: 'fullscreen',

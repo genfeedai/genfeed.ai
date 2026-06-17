@@ -5,6 +5,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AppSwitcherItemConfig } from '@genfeedai/interfaces';
 import type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
 import Link from 'next/link';
+import { useRef } from 'react';
 import {
   HiChevronDown,
   HiOutlineChartBar,
@@ -130,10 +131,12 @@ function AppDropdownItem({
   app,
   isActive,
   href,
+  onNavigateStart,
 }: {
   app: AppSwitcherItemConfig;
   isActive: boolean;
   href: string;
+  onNavigateStart: () => void;
 }) {
   const Icon = app.icon;
 
@@ -142,6 +145,7 @@ function AppDropdownItem({
       <Link
         href={href}
         aria-current={isActive ? 'page' : undefined}
+        onClick={onNavigateStart}
         className={cn(
           'flex items-center gap-2.5 px-3 py-1.5 text-[13px]',
           isActive && 'bg-foreground/[0.06] font-medium',
@@ -170,9 +174,15 @@ export function AppSwitcher({
   preservedSearch,
   variant = 'icon',
 }: AppSwitcherProps) {
+  const preventTriggerAutoFocusRef = useRef(false);
+
   function getAppHref(app: AppSwitcherItemConfig) {
     return withPreservedSearch(app.route(orgSlug, brandSlug), preservedSearch);
   }
+
+  const handleNavigateStart = () => {
+    preventTriggerAutoFocusRef.current = true;
+  };
 
   const activeApp = ALL_APPS.find((app) => app.id === currentApp);
   const ActiveIcon = activeApp?.icon ?? HiOutlineSquares2X2;
@@ -185,7 +195,7 @@ export function AppSwitcher({
           <Button
             type="button"
             variant={ButtonVariant.GHOST}
-            className="flex h-7 items-center gap-2 rounded-md px-2"
+            className="flex h-7 items-center gap-2 rounded-md px-2 focus-visible:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0"
             ariaLabel="Switch section"
           >
             <ActiveIcon className="size-4 shrink-0 text-foreground/70" />
@@ -199,14 +209,26 @@ export function AppSwitcher({
             type="button"
             variant={ButtonVariant.GHOST}
             size={ButtonSize.ICON}
-            className="size-7"
+            className="size-7 focus-visible:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0"
             ariaLabel="Switch app"
           >
             <TbGridDots className="size-4" />
           </Button>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" sideOffset={8} className="w-48">
+      <DropdownMenuContent
+        align="start"
+        sideOffset={8}
+        className="w-48"
+        onCloseAutoFocus={(event) => {
+          if (!preventTriggerAutoFocusRef.current) {
+            return;
+          }
+
+          event.preventDefault();
+          preventTriggerAutoFocusRef.current = false;
+        }}
+      >
         <DropdownMenuLabel>Content</DropdownMenuLabel>
         {CONTENT_APPS.map((app) => (
           <AppDropdownItem
@@ -214,6 +236,7 @@ export function AppSwitcher({
             app={app}
             isActive={app.id === currentApp}
             href={getAppHref(app)}
+            onNavigateStart={handleNavigateStart}
           />
         ))}
 
@@ -226,6 +249,7 @@ export function AppSwitcher({
             app={app}
             isActive={app.id === currentApp}
             href={getAppHref(app)}
+            onNavigateStart={handleNavigateStart}
           />
         ))}
       </DropdownMenuContent>

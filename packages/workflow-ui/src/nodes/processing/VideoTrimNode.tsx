@@ -122,6 +122,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
             className="nodrag w-full"
           />
           <input
+            aria-label="Start time"
             id={`trim-start-${id}`}
             type="text"
             value={formatTime(nodeData.startTime)}
@@ -148,6 +149,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
             className="nodrag w-full"
           />
           <input
+            aria-label="End time"
             id={`trim-end-${id}`}
             type="text"
             value={formatTime(nodeData.endTime)}
@@ -172,7 +174,9 @@ function VideoTrimNodeComponent(props: NodeProps) {
               aria-label="Trimmed video output"
               className="w-full h-20 object-cover rounded"
               controls
-            />
+            >
+              <track kind="captions" />
+            </video>
             <Button
               variant="ghost"
               size="icon-sm"

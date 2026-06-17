@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
   HiArrowTrendingUp,
@@ -17,68 +18,68 @@ import {
 export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
-    href: '/analytics/overview',
+    href: APP_ROUTES.ANALYTICS.OVERVIEW,
     label: 'Overview',
-    matchPaths: ['/analytics', '/analytics/overview'],
+    matchPaths: [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
     outline: HiOutlineChartBar,
     solid: HiChartBar,
   },
   {
     group: '',
-    href: '/analytics/posts',
+    href: APP_ROUTES.ANALYTICS.POSTS,
     label: 'Posts',
-    matchPaths: ['/analytics/posts'],
+    matchPaths: [APP_ROUTES.ANALYTICS.POSTS],
     outline: HiOutlineDocumentText,
     solid: HiDocumentText,
   },
   {
     group: '',
-    href: '/analytics/brands',
+    href: APP_ROUTES.ANALYTICS.BRANDS,
     label: 'Brands',
-    matchPaths: ['/analytics/brands'],
+    matchPaths: [APP_ROUTES.ANALYTICS.BRANDS],
     outline: HiOutlineBuildingOffice2,
     solid: HiBuildingOffice2,
   },
   {
     group: '',
-    href: '/analytics/insights',
+    href: APP_ROUTES.ANALYTICS.INSIGHTS,
     label: 'Insights',
-    matchPaths: ['/analytics/insights'],
+    matchPaths: [APP_ROUTES.ANALYTICS.INSIGHTS],
     outline: HiOutlineSparkles,
     solid: HiSparkles,
   },
   {
     group: '',
-    href: '/analytics/hooks',
+    href: APP_ROUTES.ANALYTICS.HOOKS,
     label: 'Hooks',
-    matchPaths: ['/analytics/hooks'],
+    matchPaths: [APP_ROUTES.ANALYTICS.HOOKS],
     outline: HiOutlineArrowTrendingUp,
     solid: HiArrowTrendingUp,
   },
   {
     group: '',
-    href: '/analytics/performance-lab',
+    href: APP_ROUTES.ANALYTICS.PERFORMANCE_LAB,
     label: 'Performance Lab',
-    matchPaths: ['/analytics/performance-lab'],
+    matchPaths: [APP_ROUTES.ANALYTICS.PERFORMANCE_LAB],
     outline: HiOutlineChartBar,
     solid: HiChartBar,
   },
   {
     group: '',
-    href: '/analytics/trend-turnover',
+    href: APP_ROUTES.ANALYTICS.TREND_TURNOVER,
     label: 'Trend Turnover',
-    matchPaths: ['/analytics/trend-turnover'],
+    matchPaths: [APP_ROUTES.ANALYTICS.TREND_TURNOVER],
     outline: HiOutlineArrowTrendingUp,
     solid: HiArrowTrendingUp,
   },
   {
     group: '',
-    href: '/analytics/streaks',
+    href: APP_ROUTES.ANALYTICS.STREAKS,
     label: 'Streaks',
-    matchPaths: ['/analytics/streaks'],
+    matchPaths: [APP_ROUTES.ANALYTICS.STREAKS],
     outline: HiOutlineFire,
     solid: HiFire,
   },
 ];
 
-export const ANALYTICS_LOGO_HREF = '/analytics/overview';
+export const ANALYTICS_LOGO_HREF = APP_ROUTES.ANALYTICS.OVERVIEW;

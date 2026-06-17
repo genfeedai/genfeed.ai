@@ -42,6 +42,27 @@ describe('QueryDefaultsUtil', () => {
       const result = QueryDefaultsUtil.getPaginationDefaults(query);
       expect(result.pagination).toBe(true);
     });
+
+    it('should coerce string limit and page values to numbers', () => {
+      const result = QueryDefaultsUtil.getPaginationDefaults({
+        limit: '30' as never,
+        page: '2' as never,
+      });
+
+      expect(result).toEqual({
+        limit: 30,
+        page: 2,
+        pagination: true,
+      });
+    });
+
+    it('should clamp oversized string limits to the DTO max', () => {
+      const result = QueryDefaultsUtil.getPaginationDefaults({
+        limit: '500' as never,
+      });
+
+      expect(result.limit).toBe(100);
+    });
   });
 
   describe('getIsDeletedDefault', () => {
@@ -120,6 +141,16 @@ describe('QueryDefaultsUtil', () => {
         pagination: true,
         sort: 'updatedAt',
       });
+    });
+
+    it('should coerce runtime string pagination values', () => {
+      const result = QueryDefaultsUtil.applyDefaults({
+        limit: '25' as never,
+        page: '4' as never,
+      });
+
+      expect(result.limit).toBe(25);
+      expect(result.page).toBe(4);
     });
   });
 

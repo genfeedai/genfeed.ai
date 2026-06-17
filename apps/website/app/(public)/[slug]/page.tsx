@@ -1,3 +1,4 @@
+import { stringifyJsonLd } from '@data/json-ld';
 import { getAllProductSlugs } from '@data/products.data';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { getProductBySlugCached } from '@public/[slug]/product-loader';
@@ -125,10 +126,10 @@ export default async function ProductPageRoute({
   return (
     <>
       <script type="application/ld+json">
-        {JSON.stringify(productJsonLd)}
+        {stringifyJsonLd(productJsonLd)}
       </script>
       <script type="application/ld+json">
-        {JSON.stringify(breadcrumbJsonLd)}
+        {stringifyJsonLd(breadcrumbJsonLd)}
       </script>
       <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
         <ProductPage product={product} />

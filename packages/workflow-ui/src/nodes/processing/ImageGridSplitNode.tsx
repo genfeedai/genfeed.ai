@@ -51,6 +51,7 @@ function GridConfiguration({
           Rows
         </label>
         <input
+          aria-label="Rows"
           id={`image-grid-rows-${id}`}
           type="number"
           min="1"
@@ -68,6 +69,7 @@ function GridConfiguration({
           Columns
         </label>
         <input
+          aria-label="Columns"
           id={`image-grid-columns-${id}`}
           type="number"
           min="1"
@@ -174,10 +176,14 @@ function GridOutputSettings({
           </Select>
         </div>
         <div>
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <div
+            className="text-xs text-[var(--muted-foreground)]"
+            id={`image-grid-quality-${id}`}
+          >
             Quality: {nodeData.quality}%
-          </label>
+          </div>
           <Slider
+            aria-labelledby={`image-grid-quality-${id}`}
             value={[nodeData.quality]}
             min={1}
             max={100}
@@ -241,29 +247,28 @@ function OutputGallery({
         {images.map((img, index) => (
           <div
             key={img}
-            className="relative group aspect-square rounded overflow-hidden border border-[var(--border)] cursor-pointer"
-            role="button"
-            tabIndex={0}
-            onClick={() => onPreviewToggle(index)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                onPreviewToggle(index);
-              }
-            }}
+            className="relative group aspect-square rounded overflow-hidden border border-[var(--border)]"
           >
-            <Image
-              src={img}
-              alt={`Cell ${index + 1}`}
-              fill
-              className="size-full object-cover"
-              sizes="64px"
-              unoptimized
-            />
+            <button
+              type="button"
+              className="absolute inset-0 cursor-pointer"
+              onClick={() => onPreviewToggle(index)}
+              aria-label={`Preview grid cell ${index + 1}`}
+            >
+              <Image
+                src={img}
+                alt=""
+                fill
+                className="size-full object-cover"
+                sizes="64px"
+                unoptimized
+              />
+            </button>
             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1">
               <Button
                 variant="ghost"
                 size="icon-sm"
+                aria-label={`Download grid cell ${index + 1}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   onDownload(index);

@@ -1,3 +1,4 @@
+import { stringifyJsonLd } from '@data/json-ld';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { PublicService } from '@services/external/public.service';
@@ -5,6 +6,7 @@ import type { Metadata } from 'next';
 import ArticleDetailContent from './article-detail';
 import { getPublicArticleBySlugCached } from './article-loader';
 
+export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
@@ -176,11 +178,11 @@ export default async function ArticleDetail({
     <>
       {articleJsonLd ? (
         <script type="application/ld+json">
-          {JSON.stringify(articleJsonLd)}
+          {stringifyJsonLd(articleJsonLd)}
         </script>
       ) : null}
       <script type="application/ld+json">
-        {JSON.stringify(breadcrumbJsonLd)}
+        {stringifyJsonLd(breadcrumbJsonLd)}
       </script>
       <ArticleDetailContent
         article={

@@ -66,7 +66,6 @@ export class ImagesController {
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-    const scope = { not: null };
     const brand = publicMetadata.brand;
 
     const aggregate = {
@@ -80,7 +79,6 @@ export class ImagesController {
                     brand,
                     category: IngredientCategory.IMAGE,
                     isDeleted,
-                    scope,
                     // Exclude training source images by default
                     training: { not: false },
                     user: publicMetadata.user,
@@ -95,7 +93,6 @@ export class ImagesController {
                     category: IngredientCategory.IMAGE,
                     isDefault: true,
                     isDeleted,
-                    scope,
                   },
                 ],
               },
@@ -194,7 +191,9 @@ export class ImagesController {
                     ],
                     category: IngredientCategory.IMAGE,
                     isDeleted,
-                    ...(query.isPublic === undefined ? { scope } : {}),
+                    ...(query.isPublic === undefined && scope !== undefined
+                      ? { scope }
+                      : {}),
                     brand,
                     status,
                     ...isPublicFilter,

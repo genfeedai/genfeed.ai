@@ -14,13 +14,19 @@ import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import AppLayout from '@ui/layouts/app/AppLayout';
 import AdminTopbar from '@ui/shell/topbars/AdminTopbar';
 import dynamic from 'next/dynamic';
+import { usePathname } from 'next/navigation';
 import { type ReactNode, Suspense, useCallback, useMemo } from 'react';
 
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { isEEEnabled } from '@/lib/config/edition';
+import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
-import { useAppProtectedLayout } from './useAppProtectedLayout';
+import {
+  isProtectedEditorCanvasRoute,
+  isProtectedWorkspaceRoute,
+  useAppProtectedLayout,
+} from './useAppProtectedLayout';
 
 type AgentPanelProps = {
   apiService: AgentApiService;
@@ -160,6 +166,7 @@ function AppLayoutWithDynamicMenu({
       <AppProtectedLayoutSidebar
         shellChromeVariant={shellChromeVariant}
         taskContextSearchParams={taskContextSearchParams}
+        currentApp={currentApp}
         isAdminRoute={isAdminRoute}
         isAnalyticsRoute={isAnalyticsRoute}
         isComposeRoute={isComposeRoute}
@@ -190,6 +197,7 @@ function AppLayoutWithDynamicMenu({
     adminMenuItems,
     analyticsMenuItems,
     composeMenuItems,
+    currentApp,
     conversationActions,
     handleOpenCommandPalette,
     isAdminRoute,
@@ -307,8 +315,13 @@ function AppProtectedLayoutContent({
   children,
   initialBootstrap,
 }: AppProtectedLayoutProps) {
-  const { isEditorCanvasRoute, isWorkspaceRoute } =
-    useAppProtectedLayout(initialBootstrap);
+  const rawPathname = usePathname();
+  const pathname = useMemo(
+    () => normalizeProtectedPathname(rawPathname),
+    [rawPathname],
+  );
+  const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
+  const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
 
   return (
     <ProtectedProviders

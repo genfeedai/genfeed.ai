@@ -1,3 +1,4 @@
+import { stringifyJsonLd } from '@data/json-ld';
 import { getAllUseCaseSlugs } from '@data/use-cases.data';
 import {
   formatUseCaseSlug,
@@ -92,10 +93,10 @@ export default async function UseCasesPage({
   return (
     <>
       <script type="application/ld+json">
-        {JSON.stringify(useCaseJsonLd)}
+        {stringifyJsonLd(useCaseJsonLd)}
       </script>
       <script type="application/ld+json">
-        {JSON.stringify(breadcrumbJsonLd)}
+        {stringifyJsonLd(breadcrumbJsonLd)}
       </script>
       <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
         <UseCasesContent useCase={useCase} />

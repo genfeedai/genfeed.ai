@@ -168,6 +168,7 @@ function SubtitleNodeComponent(props: NodeProps) {
             Color
           </label>
           <input
+            aria-label="Subtitle color"
             id={`subtitle-color-${id}`}
             type="color"
             value={nodeData.fontColor}

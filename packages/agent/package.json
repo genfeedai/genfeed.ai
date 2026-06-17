@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@genfeedai/constants": "workspace:*",
     "@genfeedai/contexts": "workspace:*",
     "@genfeedai/models": "workspace:*",
     "@genfeedai/props": "workspace:*",

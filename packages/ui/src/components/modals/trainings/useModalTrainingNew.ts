@@ -36,6 +36,34 @@ type FileStatusUpdater = Dispatch<
   SetStateAction<Map<string, FileUploadStatus>>
 >;
 
+const RANDOM_TRIGGER_CHARS = 'BCDFGHJKLMNPQRSTVWXYZ23456789';
+const RANDOM_TRIGGER_DIGITS = '23456789';
+
+function getSecureRandomIndex(maxExclusive: number): number {
+  const randomValues = new Uint32Array(1);
+  const maxUint32 = 0xffffffff;
+  const rejectionLimit = maxUint32 - (maxUint32 % maxExclusive);
+
+  do {
+    globalThis.crypto.getRandomValues(randomValues);
+  } while (randomValues[0] >= rejectionLimit);
+
+  return randomValues[0] % maxExclusive;
+}
+
+function buildRandomToken(
+  length: number,
+  chars = RANDOM_TRIGGER_CHARS,
+): string {
+  let token = '';
+
+  for (let index = 0; index < length; index++) {
+    token += chars[getSecureRandomIndex(chars.length)];
+  }
+
+  return token;
+}
+
 function updateFileStatus(
   setFileStatuses: FileStatusUpdater,
   fileId: string,
@@ -137,22 +165,18 @@ export function useModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
   const maxFiles = 25;
 
   const generateRandomTrigger = () => {
-    const chars = 'BCDFGHJKLMNPQRSTVWXYZ23456789';
-    const len = Math.floor(Math.random() * 2) + 4;
-    let token = '';
-    let hasDigit = false;
-    for (let i = 0; i < len; i++) {
-      const ch = chars[Math.floor(Math.random() * chars.length)];
-      token += ch;
-      if (ch >= '0' && ch <= '9') {
-        hasDigit = true;
-      }
-    }
+    const len = getSecureRandomIndex(2) + 4;
+    let token = buildRandomToken(len);
+    const hasDigit = Array.from(token).some((ch) => ch >= '0' && ch <= '9');
+
     if (!hasDigit) {
-      const digits = '23456789';
       token =
-        token.slice(0, -1) + digits[Math.floor(Math.random() * digits.length)];
+        token.slice(0, -1) +
+        RANDOM_TRIGGER_DIGITS[
+          getSecureRandomIndex(RANDOM_TRIGGER_DIGITS.length)
+        ];
     }
+
     form.setValue('trigger', token, {
       shouldDirty: true,
       shouldValidate: true,
@@ -176,7 +200,7 @@ export function useModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
         const allowedFiles = acceptedFiles.slice(0, remaining);
 
         allowedFiles.forEach((newFile) => {
-          const fileId = `${newFile.name}-${Date.now()}-${Math.random()}`;
+          const fileId = `${newFile.name}-${Date.now()}-${buildRandomToken(8)}`;
 
           setFiles((prev) => [...prev, newFile]);
 

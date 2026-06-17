@@ -47,55 +47,69 @@ export default function TrainingDetail({
     TrainingsService.getInstance(token),
   );
 
-  const loadTraining = useCallback(async () => {
-    const url = `GET /trainings/${trainingId}`;
+  const abortCurrentTrainingLoad = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
 
-    try {
-      setIsLoading(true);
-      setError(null);
+  const loadTraining = useCallback(
+    async (controller = new AbortController()) => {
+      const url = `GET /trainings/${trainingId}`;
 
-      abortControllerRef.current = new AbortController();
-      const service = await getTrainingsService();
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      const data = await service.findOne(trainingId);
+        abortCurrentTrainingLoad();
+        abortControllerRef.current = controller;
 
-      if (!abortControllerRef.current?.signal.aborted) {
+        controller.signal.throwIfAborted();
+
+        const service = await getTrainingsService();
+
+        controller.signal.throwIfAborted();
+
+        const data = await service.findOne(trainingId);
+
+        controller.signal.throwIfAborted();
+
         setTraining(data);
-      }
+        logger.info(`${url} success`, data);
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
 
-      logger.info(`${url} success`, data);
-    } catch (error) {
-      logger.error(`${url} failed`, error);
-      if (error instanceof Error && error.name === 'AbortError') {
-        return;
+        logger.error(`${url} failed`, error);
+        const errorMessage = getErrorMessage(
+          error,
+          'Failed to load training details',
+        );
+        setError(errorMessage);
+        notificationsService.error('Failed to load training details');
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
-
-      const errorMessage = getErrorMessage(
-        error,
-        'Failed to load training details',
-      );
-      setError(errorMessage);
-      notificationsService.error('Failed to load training details');
-    } finally {
-      if (!abortControllerRef.current?.signal.aborted) {
-        setIsLoading(false);
-      }
-    }
-  }, [getTrainingsService, notificationsService, trainingId]);
+    },
+    [
+      abortCurrentTrainingLoad,
+      getTrainingsService,
+      notificationsService,
+      trainingId,
+    ],
+  );
 
   useEffect(() => {
+    const controller = new AbortController();
+
+    // eslint-disable-next-line react-doctor/no-event-handler -- Route-scoped training data loads when trainingId changes, not from a user event.
     if (trainingId) {
-      loadTraining();
+      void loadTraining(controller);
     }
 
-    return () => {
-      // Capture the current controller at cleanup registration time so the
-      // closure always aborts the right instance even if the ref is replaced
-      // by a subsequent call to loadTraining (retry button, onSuccess, etc.).
-      const controller = abortControllerRef.current;
-      controller?.abort();
-    };
-  }, [trainingId, loadTraining]);
+    return abortCurrentTrainingLoad;
+  }, [trainingId, loadTraining, abortCurrentTrainingLoad]);
 
   if (isLoading) {
     return <Loading isFullSize={false} />;
@@ -117,7 +131,13 @@ export default function TrainingDetail({
             {error || 'Training not found'}
           </p>
 
-          <Button label="Try Again" onClick={loadTraining} className="mt-4" />
+          <Button
+            label="Try Again"
+            onClick={() => {
+              void loadTraining();
+            }}
+            className="mt-4"
+          />
         </Card>
       </Container>
     );

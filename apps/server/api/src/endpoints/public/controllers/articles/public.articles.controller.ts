@@ -2,6 +2,7 @@ import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.d
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
+import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -9,7 +10,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ArticleStatus } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -63,7 +63,7 @@ export class PublicArticlesController {
     const matchQuery: PrismaWhereQuery = {
       isDeleted: false,
       publishedAt: { not: null },
-      status: ArticleStatus.PUBLIC,
+      ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
     };
 
     // Add search filter
@@ -145,7 +145,7 @@ export class PublicArticlesController {
       _id: articleId,
       isDeleted: false,
       publishedAt: { not: null },
-      status: ArticleStatus.PUBLIC,
+      ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
     });
 
     if (!article) {

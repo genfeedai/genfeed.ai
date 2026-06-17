@@ -17,6 +17,11 @@ import {
   useAgentChatStore,
   useAgentPageContext,
 } from '@genfeedai/agent';
+import {
+  APP_ROUTE_PREFIXES,
+  APP_ROUTES,
+  COMPOSE_ROUTES,
+} from '@genfeedai/constants';
 import type { AppContext } from '@genfeedai/interfaces';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
@@ -37,7 +42,6 @@ import {
   type EntityOverlayVisibilityDetail,
   isDesktopAgentViewport,
 } from '@services/core/agent-overlay-coordination.service';
-import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type ReactNode,
@@ -65,6 +69,24 @@ const WORKFLOWS_NAMED_ROUTES = new Set([
   'skills',
 ]);
 
+export function isProtectedEditorCanvasRoute(pathname: string): boolean {
+  return (
+    pathname === APP_ROUTES.EDITOR.NEW ||
+    /^\/editor\/[^/]+$/.test(pathname) ||
+    pathname === APP_ROUTES.WORKFLOWS.NEW ||
+    (/^\/workflows\/([^/]+)$/.test(pathname) &&
+      !WORKFLOWS_NAMED_ROUTES.has(pathname.split('/')[2] ?? ''))
+  );
+}
+
+export function isProtectedWorkspaceRoute(pathname: string): boolean {
+  return (
+    pathname === APP_ROUTES.WORKSPACE.ROOT ||
+    pathname === APP_ROUTES.OVERVIEW.ROOT ||
+    pathname.startsWith(`${APP_ROUTE_PREFIXES.WORKSPACE}/`)
+  );
+}
+
 function isTerminalDockAvailable(): boolean {
   return (
     process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' ||
@@ -86,19 +108,24 @@ export function useAppProtectedLayout(
 
   const isChatRoute = /^\/chat(?:\/|$)/.test(pathname);
   const isConversationRoute = isChatRoute;
-  const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
-  const isFocusedOnboardingRoute = pathname.startsWith('/chat/onboarding');
+  const isAdminRoute =
+    pathname === APP_ROUTES.ADMIN.ROOT ||
+    pathname.startsWith(`${APP_ROUTE_PREFIXES.ADMIN}/`);
+  const isFocusedOnboardingRoute = pathname.startsWith(
+    APP_ROUTES.CHAT.ONBOARDING,
+  );
   const isComposeRoute = pathname.startsWith(COMPOSE_ROUTES.ROOT);
-  const isLibraryLandingRoute = pathname === '/library/ingredients';
-  const isLibraryRoute = pathname.startsWith('/library');
+  const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.INGREDIENTS;
+  const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
   const isStudioPromptBarRoute =
-    pathname === '/studio' ||
+    pathname === APP_ROUTES.STUDIO.ROOT ||
     /^\/studio\/(avatar|image|music|video)(?:\/|$)/.test(pathname);
-  const isStudioRoute = pathname.startsWith('/studio');
-  const isPostsPromptBarRoute = pathname === '/posts';
-  const isPostsRoute = pathname.startsWith('/posts');
+  const isStudioRoute = pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
+  const isPostsPromptBarRoute = pathname === APP_ROUTES.POSTS.ROOT;
+  const isPostsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.POSTS);
   const isMissionControlPromptBarRoute =
-    pathname === '/workflows/executions' || pathname === '/orchestration/runs';
+    pathname === APP_ROUTES.WORKFLOWS.EXECUTIONS ||
+    pathname === APP_ROUTES.ORCHESTRATION.RUNS;
   const isPromptBarRoute =
     isStudioPromptBarRoute ||
     isPostsPromptBarRoute ||
@@ -107,22 +134,19 @@ export function useAppProtectedLayout(
     const parts = rawPathname.split('/').filter(Boolean);
     return (
       parts[1] === '~' &&
-      !pathname.startsWith('/settings') &&
+      !pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS) &&
       !isConversationRoute
     );
   })();
-  const isSettingsRoute = pathname.startsWith('/settings');
-  const hasSecondaryTopbar = !isAdminRoute && pathname.startsWith('/studio');
-  const isEditorCanvasRoute =
-    pathname === '/editor/new' ||
-    /^\/editor\/[^/]+$/.test(pathname) ||
-    pathname === '/workflows/new' ||
-    (/^\/workflows\/([^/]+)$/.test(pathname) &&
-      !WORKFLOWS_NAMED_ROUTES.has(pathname.split('/')[2] ?? ''));
+  const isSettingsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS);
+  const hasSecondaryTopbar =
+    !isAdminRoute && pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
+  const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isWorkflowsRoute =
-    pathname.startsWith('/workflows') || pathname.startsWith('/orchestration');
-  const isEditorRoute = pathname.startsWith('/editor');
-  const isAnalyticsRoute = pathname.startsWith('/analytics');
+    pathname.startsWith(APP_ROUTE_PREFIXES.WORKFLOWS) ||
+    pathname.startsWith(APP_ROUTE_PREFIXES.ORCHESTRATION);
+  const isEditorRoute = pathname.startsWith(APP_ROUTE_PREFIXES.EDITOR);
+  const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
 
   const currentApp: AppContext = isStudioRoute
     ? 'studio'
@@ -450,10 +474,7 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
-  const isWorkspaceRoute =
-    pathname === '/workspace' ||
-    pathname === '/overview' ||
-    pathname.startsWith('/workspace/');
+  const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
 
   const isLowCreditsBannerEnabled = useFeatureFlag('low_credits_banner');
   const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';

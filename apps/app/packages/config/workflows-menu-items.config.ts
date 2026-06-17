@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
   HiCog6Tooth,
@@ -15,35 +16,38 @@ import {
 export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
-    href: '/workflows/executions',
+    href: APP_ROUTES.WORKFLOWS.EXECUTIONS,
     label: 'Runs',
-    matchPaths: ['/workflows/executions', '/orchestration/runs'],
+    matchPaths: [
+      APP_ROUTES.WORKFLOWS.EXECUTIONS,
+      APP_ROUTES.ORCHESTRATION.RUNS,
+    ],
     outline: HiOutlinePlayCircle,
     solid: HiPlayCircle,
   },
   {
     group: '',
-    href: '/workflows',
+    href: APP_ROUTES.WORKFLOWS.ROOT,
     label: 'Workflows',
-    matchPaths: ['/orchestration/workflows', '/workflows'],
+    matchPaths: [APP_ROUTES.ORCHESTRATION.WORKFLOWS, APP_ROUTES.WORKFLOWS.ROOT],
     outline: HiOutlineWrenchScrewdriver,
     solid: HiWrenchScrewdriver,
   },
   {
     group: '',
-    href: '/orchestration/skills',
+    href: APP_ROUTES.ORCHESTRATION.SKILLS,
     label: 'Skills',
-    matchPaths: ['/orchestration/skills'],
+    matchPaths: [APP_ROUTES.ORCHESTRATION.SKILLS],
     outline: HiOutlineSparkles,
     solid: HiSparkles,
   },
   {
     group: '',
-    href: '/workflows/autopilot',
+    href: APP_ROUTES.WORKFLOWS.AUTOPILOT,
     label: 'Autopilot',
     matchPaths: [
-      '/workflows/autopilot',
-      '/orchestration/autopilot',
+      APP_ROUTES.WORKFLOWS.AUTOPILOT,
+      APP_ROUTES.ORCHESTRATION.AUTOPILOT,
       '/orchestration/strategies',
     ],
     outline: HiOutlineRocketLaunch,
@@ -51,12 +55,15 @@ export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: '',
-    href: '/workflows/configuration',
+    href: APP_ROUTES.WORKFLOWS.CONFIGURATION,
     label: 'Configuration',
-    matchPaths: ['/workflows/configuration', '/orchestration/configuration'],
+    matchPaths: [
+      APP_ROUTES.WORKFLOWS.CONFIGURATION,
+      APP_ROUTES.ORCHESTRATION.CONFIGURATION,
+    ],
     outline: HiOutlineCog6Tooth,
     solid: HiCog6Tooth,
   },
 ];
 
-export const WORKFLOWS_LOGO_HREF = '/overview';
+export const WORKFLOWS_LOGO_HREF = APP_ROUTES.OVERVIEW.ROOT;

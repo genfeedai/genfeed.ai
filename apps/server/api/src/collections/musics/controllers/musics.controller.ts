@@ -81,7 +81,7 @@ export class MusicsController extends BaseCRUDController<
             category: IngredientCategory.MUSIC,
             isDefault,
             isDeleted: query.isDeleted ?? false,
-            scope,
+            ...(scope !== undefined ? { scope } : {}),
             status,
             // Filter default musics by brand when brand is specified
             ...(query.brand && isEntityId(query.brand) ? { brand } : {}),
@@ -107,7 +107,6 @@ export class MusicsController extends BaseCRUDController<
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-    const scope = { not: null };
     const brand = publicMetadata.brand;
 
     const aggregate = {
@@ -127,7 +126,6 @@ export class MusicsController extends BaseCRUDController<
             category: IngredientCategory.MUSIC,
             isDefault: true,
             isDeleted,
-            scope,
           },
         ],
       },

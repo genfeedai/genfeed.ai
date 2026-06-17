@@ -373,11 +373,9 @@ export class BrandsRelationshipsController {
 
     // Build match filter
     const matchFilter: Record<string, unknown> = {
-      // Only show parent posts (not children/replies)
-      // Handle both null and undefined (undefined fields aren't stored in MongoDB)
-      OR: [{ parent: null }, { parent: { not: false } }],
       brand: brandId,
       isDeleted,
+      parentId: null,
     };
 
     // Add platform filter if provided

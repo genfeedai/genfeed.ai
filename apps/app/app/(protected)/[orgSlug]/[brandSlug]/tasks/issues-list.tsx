@@ -353,11 +353,7 @@ export default function IssuesList() {
     loadIssues();
 
     return () => {
-      // Capture the ref value at cleanup time so the closure always
-      // aborts the controller that was active when the effect ran,
-      // regardless of whether loadIssues replaced the ref since then.
-      const controller = controllerRef.current;
-      controller?.abort();
+      controllerRef.current?.abort();
     };
   }, [loadIssues]);
 

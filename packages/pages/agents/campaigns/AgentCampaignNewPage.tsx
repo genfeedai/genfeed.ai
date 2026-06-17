@@ -148,7 +148,7 @@ export default function AgentCampaignNewPage() {
         />
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">Status</label>
+          <span className="text-sm font-medium text-foreground">Status</span>
           <Select
             value={form.status}
             onValueChange={(value) =>

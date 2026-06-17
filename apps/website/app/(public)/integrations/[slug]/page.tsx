@@ -1,4 +1,5 @@
 import { getAllIntegrationSlugs } from '@data/integrations.data';
+import { stringifyJsonLd } from '@data/json-ld';
 import IntegrationContent from '@public/integrations/[slug]/integration-content';
 import { getIntegrationBySlugCached } from '@public/integrations/[slug]/integration-loader';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -113,10 +114,10 @@ export default async function IntegrationPage({
   return (
     <>
       <script type="application/ld+json">
-        {JSON.stringify(integrationJsonLd)}
+        {stringifyJsonLd(integrationJsonLd)}
       </script>
       <script type="application/ld+json">
-        {JSON.stringify(breadcrumbJsonLd)}
+        {stringifyJsonLd(breadcrumbJsonLd)}
       </script>
       <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
         <IntegrationContent integration={integration} />

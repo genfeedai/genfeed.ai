@@ -284,7 +284,7 @@ function buildProtectedAppBootstrapPayload() {
   return {
     access: {
       brandId: 'brand-1',
-      creditsBalance: 1000,
+      creditsBalance: 500,
       hasEverHadCredits: true,
       isOnboardingCompleted: true,
       isSuperAdmin: true,
@@ -843,9 +843,9 @@ async function handleBillingRoutes(route: Route): Promise<void> {
       body: JSON.stringify(
         wrapInJsonApi(
           {
-            available: 1000,
-            total: 1250,
-            used: 250,
+            available: 500,
+            total: 625,
+            used: 125,
           },
           'credits',
           'mock-credits',
@@ -1531,7 +1531,7 @@ export async function setupApiMocks(
 
   await routeApi('/agent/credits**', async (r) => {
     await r.fulfill({
-      body: JSON.stringify({ balance: 1000, modelCosts: {} }),
+      body: JSON.stringify({ balance: 500, modelCosts: {} }),
       contentType: 'application/json',
       status: 200,
     });
@@ -1684,7 +1684,7 @@ export async function setupApiMocks(
 
     if (url.includes('/v1/agent/credits')) {
       await r.fulfill({
-        body: JSON.stringify({ balance: 1000, modelCosts: {} }),
+        body: JSON.stringify({ balance: 500, modelCosts: {} }),
         contentType: 'application/json',
         status: 200,
       });

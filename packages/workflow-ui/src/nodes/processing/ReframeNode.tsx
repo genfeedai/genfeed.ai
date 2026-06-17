@@ -122,9 +122,14 @@ function ReframeNodeComponent(props: NodeProps) {
         {/* Model Selection (only for images) */}
         {inputType === 'image' && (
           <div className="space-y-1.5">
-            <Label className="text-xs">Model</Label>
+            <Label className="text-xs" id={`reframe-model-${id}`}>
+              Model
+            </Label>
             <Select value={nodeData.model} onValueChange={handleModelChange}>
-              <SelectTrigger className="nodrag h-9 w-full">
+              <SelectTrigger
+                aria-labelledby={`reframe-model-${id}`}
+                className="nodrag h-9 w-full"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -140,12 +145,17 @@ function ReframeNodeComponent(props: NodeProps) {
 
         {/* Aspect Ratio */}
         <div className="space-y-1.5">
-          <Label className="text-xs">Target Aspect Ratio</Label>
+          <Label className="text-xs" id={`reframe-aspect-ratio-${id}`}>
+            Target Aspect Ratio
+          </Label>
           <Select
             value={nodeData.aspectRatio}
             onValueChange={handleAspectRatioChange}
           >
-            <SelectTrigger className="nodrag h-9 w-full">
+            <SelectTrigger
+              aria-labelledby={`reframe-aspect-ratio-${id}`}
+              className="nodrag h-9 w-full"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -170,6 +180,7 @@ function ReframeNodeComponent(props: NodeProps) {
             Prompt (optional)
           </Label>
           <input
+            aria-label="Reframe prompt"
             id={`reframe-prompt-${id}`}
             type="text"
             value={nodeData.prompt}

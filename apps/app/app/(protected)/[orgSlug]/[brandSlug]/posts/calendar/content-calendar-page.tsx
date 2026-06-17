@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { PLATFORM_COLORS } from '@genfeedai/constants';
+import { COMPOSE_ROUTES, PLATFORM_COLORS } from '@genfeedai/constants';
 import {
   ArticleStatus,
   CredentialPlatform,
@@ -21,7 +21,6 @@ import { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
-import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';

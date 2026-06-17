@@ -1,3 +1,4 @@
+import { memo, type ReactNode, useMemo } from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -187,6 +188,37 @@ function EngagementBreakdown({
   );
 }
 
+const AnalyticsScrollContainer = memo(function AnalyticsScrollContainer({
+  children,
+  isLoading,
+  onRefresh,
+}: {
+  children: ReactNode;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const refreshControl = useMemo(
+    () => (
+      <RefreshControl
+        refreshing={isLoading}
+        onRefresh={onRefresh}
+        tintColor={colors.indigo}
+      />
+    ),
+    [isLoading, onRefresh],
+  );
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      refreshControl={refreshControl}
+    >
+      {children}
+    </ScrollView>
+  );
+});
+
 export default function AnalyticsScreen() {
   const { data, isLoading, error, refetch } = useAnalytics();
 
@@ -209,17 +241,7 @@ export default function AnalyticsScreen() {
   const { overview, topContent, platformStats, engagement } = data;
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      refreshControl={
-        <RefreshControl
-          refreshing={isLoading}
-          onRefresh={refetch}
-          tintColor={colors.indigo}
-        />
-      }
-    >
+    <AnalyticsScrollContainer isLoading={isLoading} onRefresh={refetch}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Analytics</Text>
         <Text style={styles.headerSubtitle}>Last 7 days</Text>
@@ -304,7 +326,7 @@ export default function AnalyticsScreen() {
           message="Start publishing content to see your performance metrics"
         />
       )}
-    </ScrollView>
+    </AnalyticsScrollContainer>
   );
 }
 

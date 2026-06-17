@@ -1,12 +1,12 @@
 'use client';
 
+import { APP_ROUTES, COMPOSE_ROUTES } from '@genfeedai/constants';
 import { useBackgroundTaskContext } from '@genfeedai/contexts/ui/background-task-context';
 import type { IBackgroundTaskUpdateEvent } from '@genfeedai/interfaces';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
@@ -23,8 +23,8 @@ function buildBackgroundTaskHref(event: IBackgroundTaskUpdateEvent): string {
     label.includes('batch content')
   ) {
     return targetId
-      ? `/workflows/executions/${targetId}`
-      : '/workflows/executions';
+      ? `${APP_ROUTES.WORKFLOWS.EXECUTIONS}/${targetId}`
+      : APP_ROUTES.WORKFLOWS.EXECUTIONS;
   }
 
   if (resultType === 'article' || label.includes('article')) {
@@ -59,10 +59,10 @@ function buildBackgroundTaskHref(event: IBackgroundTaskUpdateEvent): string {
     label.includes('generation') ||
     label.includes('merge')
   ) {
-    return '/studio';
+    return APP_ROUTES.STUDIO.ROOT;
   }
 
-  return '/overview/activities';
+  return APP_ROUTES.OVERVIEW.ACTIVITIES;
 }
 
 function buildBackgroundTaskStartedMessage(

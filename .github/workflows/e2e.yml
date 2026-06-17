@@ -61,7 +61,7 @@ jobs:
       # Mock all external service keys
       REPLICATE_API_TOKEN: test-mock-key
       STRIPE_SECRET_KEY: test-mock-key
-      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
+      CLERK_SECRET_KEY: test-mock-clerk-key
     steps:
       - uses: actions/checkout@v5
 

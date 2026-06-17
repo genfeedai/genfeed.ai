@@ -181,7 +181,7 @@ function bootstrapPayload() {
   return {
     access: {
       brandId: 'brand-1',
-      creditsBalance: 1000,
+      creditsBalance: 500,
       hasEverHadCredits: true,
       isOnboardingCompleted: true,
       isSuperAdmin: true,
@@ -372,7 +372,7 @@ async function startMockApiServer(): Promise<Server | null> {
     }
 
     if (url.includes('/credits') || url.includes('/agent/credits')) {
-      jsonResponse(response, { balance: 1000, modelCosts: {} });
+      jsonResponse(response, { balance: 500, modelCosts: {} });
       return;
     }
 

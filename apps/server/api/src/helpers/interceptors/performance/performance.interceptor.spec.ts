@@ -1,21 +1,31 @@
+import process from 'node:process';
+import { ConfigService } from '@api/config/config.service';
 import {
   APIMetricsInterceptor,
   PerformanceInterceptor,
 } from '@api/helpers/interceptors/performance/performance.interceptor';
+import { recordPrismaQuery } from '@api/helpers/performance/request-performance.context';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { firstValueFrom, of, throwError } from 'rxjs';
+import { firstValueFrom, Observable, of, throwError } from 'rxjs';
 
 describe('PerformanceInterceptor', () => {
   let interceptor: PerformanceInterceptor;
+  let configService: Pick<ConfigService, 'get'>;
   let loggerService: vi.Mocked<LoggerService>;
+  const originalApiQueryMetrics = process.env.API_QUERY_METRICS;
+  const originalApiSlowQueryThresholdMs =
+    process.env.API_SLOW_QUERY_THRESHOLD_MS;
 
   const mockExecutionContext = {
     getRequest: vi.fn(),
     getResponse: vi.fn(),
     switchToHttp: vi.fn().mockReturnThis(),
-  } as unknown as ExecutionContext;
+  } as unknown as ExecutionContext & {
+    getRequest: ReturnType<typeof vi.fn>;
+    getResponse: ReturnType<typeof vi.fn>;
+  };
 
   const mockRequest = {
     headers: { 'user-agent': 'test-agent' },
@@ -29,13 +39,24 @@ describe('PerformanceInterceptor', () => {
   };
 
   const mockCallHandler = {
-    handle: vi.fn(),
-  } as unknown as CallHandler;
+    handle: vi.fn<CallHandler['handle']>(),
+  } satisfies CallHandler;
 
   beforeEach(async () => {
+    process.env.API_SLOW_QUERY_THRESHOLD_MS = '100';
+    configService = {
+      get: vi.fn((key: string) => {
+        return process.env[key];
+      }),
+    } as unknown as Pick<ConfigService, 'get'>;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PerformanceInterceptor,
+        {
+          provide: ConfigService,
+          useValue: configService,
+        },
         {
           provide: LoggerService,
           useValue: {
@@ -50,8 +71,23 @@ describe('PerformanceInterceptor', () => {
     interceptor = module.get<PerformanceInterceptor>(PerformanceInterceptor);
     loggerService = module.get(LoggerService);
 
-    (mockExecutionContext as any).getRequest.mockReturnValue(mockRequest);
-    (mockExecutionContext as any).getResponse.mockReturnValue(mockResponse);
+    mockExecutionContext.getRequest.mockReturnValue(mockRequest);
+    mockExecutionContext.getResponse.mockReturnValue(mockResponse);
+    mockCallHandler.handle.mockReset();
+  });
+
+  afterEach(() => {
+    if (originalApiQueryMetrics === undefined) {
+      delete process.env.API_QUERY_METRICS;
+    } else {
+      process.env.API_QUERY_METRICS = originalApiQueryMetrics;
+    }
+
+    if (originalApiSlowQueryThresholdMs === undefined) {
+      delete process.env.API_SLOW_QUERY_THRESHOLD_MS;
+    } else {
+      process.env.API_SLOW_QUERY_THRESHOLD_MS = originalApiSlowQueryThresholdMs;
+    }
   });
 
   it('should be defined', () => {
@@ -60,7 +96,7 @@ describe('PerformanceInterceptor', () => {
 
   describe('intercept', () => {
     it('should log debug for fast requests', async () => {
-      (mockCallHandler as any).handle.mockReturnValue(of('success'));
+      mockCallHandler.handle.mockReturnValue(of('success'));
 
       await firstValueFrom(
         interceptor.intercept(mockExecutionContext, mockCallHandler),
@@ -81,8 +117,49 @@ describe('PerformanceInterceptor', () => {
       );
     });
 
+    it('should attach database metrics when Prisma query metrics are enabled', async () => {
+      process.env.API_QUERY_METRICS = 'true';
+      mockCallHandler.handle.mockReturnValue(
+        new Observable((subscriber) => {
+          recordPrismaQuery(
+            {
+              duration: 150,
+              params: '[]',
+              query: 'SELECT * FROM "Post" WHERE "id" = $1',
+              target: 'prisma:query',
+              timestamp: new Date('2026-01-01T00:00:00.000Z'),
+            },
+            configService,
+          );
+          subscriber.next('success');
+          subscriber.complete();
+        }),
+      );
+
+      await firstValueFrom(
+        interceptor.intercept(mockExecutionContext, mockCallHandler),
+      );
+
+      expect(loggerService.debug).toHaveBeenCalledWith(
+        'Request completed',
+        expect.objectContaining({
+          database: {
+            queryCount: 1,
+            queryDuration: 150,
+            slowQueries: [
+              expect.objectContaining({
+                duration: 150,
+                fingerprint: 'SELECT * FROM ? WHERE ? = ?',
+                target: 'prisma:query',
+              }),
+            ],
+          },
+        }),
+      );
+    });
+
     it('should log warn for slow requests', async () => {
-      (mockCallHandler as any).handle.mockReturnValue(of('success'));
+      mockCallHandler.handle.mockReturnValue(of('success'));
 
       const originalNow = Date.now;
       Date.now = vi.fn().mockReturnValueOnce(1000).mockReturnValueOnce(2001);
@@ -104,7 +181,7 @@ describe('PerformanceInterceptor', () => {
     });
 
     it('should log warn for very slow requests', async () => {
-      (mockCallHandler as any).handle.mockReturnValue(of('success'));
+      mockCallHandler.handle.mockReturnValue(of('success'));
 
       const originalNow = Date.now;
       Date.now = vi.fn().mockReturnValueOnce(1000).mockReturnValueOnce(7000);
@@ -127,7 +204,7 @@ describe('PerformanceInterceptor', () => {
 
     it('should log error for failed requests', async () => {
       const error = Object.assign(new Error('Test error'), { status: 400 });
-      (mockCallHandler as any).handle.mockReturnValue(throwError(() => error));
+      mockCallHandler.handle.mockReturnValue(throwError(() => error));
 
       await firstValueFrom(
         interceptor.intercept(mockExecutionContext, mockCallHandler),
@@ -151,10 +228,8 @@ describe('PerformanceInterceptor', () => {
 
     it('should handle requests without user', async () => {
       const requestWithoutUser = { ...mockRequest, user: undefined };
-      (mockExecutionContext as any).getRequest.mockReturnValue(
-        requestWithoutUser,
-      );
-      (mockCallHandler as any).handle.mockReturnValue(of('success'));
+      mockExecutionContext.getRequest.mockReturnValue(requestWithoutUser);
+      mockCallHandler.handle.mockReturnValue(of('success'));
 
       await firstValueFrom(
         interceptor.intercept(mockExecutionContext, mockCallHandler),
@@ -170,10 +245,8 @@ describe('PerformanceInterceptor', () => {
 
     it('should handle requests without user-agent', async () => {
       const requestWithoutUserAgent = { ...mockRequest, headers: {} };
-      (mockExecutionContext as any).getRequest.mockReturnValue(
-        requestWithoutUserAgent,
-      );
-      (mockCallHandler as any).handle.mockReturnValue(of('success'));
+      mockExecutionContext.getRequest.mockReturnValue(requestWithoutUserAgent);
+      mockCallHandler.handle.mockReturnValue(of('success'));
 
       await firstValueFrom(
         interceptor.intercept(mockExecutionContext, mockCallHandler),
