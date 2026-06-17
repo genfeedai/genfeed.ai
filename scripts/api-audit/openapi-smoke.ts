@@ -450,6 +450,6 @@ if (isMainModule()) {
   writeOutput(body, options.out);
 
   if (report.summary.failed > 0 || report.summary.p95 > report.budgetMs) {
-    process.exitCode = 1;
+    process.exit(1);
   }
 }
