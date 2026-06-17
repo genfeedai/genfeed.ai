@@ -10,6 +10,7 @@ const testProjects = [
   'apps/vitest.config.mts',
   'packages/*/vitest.config.ts',
   'packages/*/vitest.config.mts',
+  'scripts/*/vitest.config.ts',
 ];
 
 export default defineConfig({

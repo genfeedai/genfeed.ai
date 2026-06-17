@@ -1,5 +1,11 @@
-import process from 'node:process';
+import { ConfigService } from '@api/config/config.service';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
+import {
+  createRequestPerformanceStore,
+  getRequestDatabaseMetrics,
+  isPrismaQueryMetricsEnabled,
+  runWithRequestPerformance,
+} from '@api/helpers/performance/request-performance.context';
 import { PerformanceMetrics } from '@api/shared/interfaces/performance/performance.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -16,13 +22,15 @@ import { tap } from 'rxjs/operators';
 export class PerformanceInterceptor implements NestInterceptor {
   private readonly slowRequestThreshold = 1_000; // 1 second
   private readonly verySlowRequestThreshold = 5_000; // 5 seconds
-  private readonly logSuccessfulRequests =
-    process.env.NODE_ENV !== 'production';
+  private readonly logSuccessfulRequests: boolean;
 
   constructor(
     private readonly logger: LoggerService,
+    private readonly configService: ConfigService,
     @Optional() private readonly memoryMonitor?: MemoryMonitorService,
-  ) {}
+  ) {
+    this.logSuccessfulRequests = configService.get('NODE_ENV') !== 'production';
+  }
 
   private readError(error: unknown): {
     message?: string;
@@ -62,7 +70,7 @@ export class PerformanceInterceptor implements NestInterceptor {
     const userAgent = headers['user-agent'];
     const userId = user?.id;
 
-    return next.handle().pipe(
+    const observable = next.handle().pipe(
       tap({
         error: (error: unknown) => {
           const errorDetails = this.readError(error);
@@ -88,6 +96,31 @@ export class PerformanceInterceptor implements NestInterceptor {
         },
       }),
     );
+
+    if (!isPrismaQueryMetricsEnabled(this.configService)) {
+      return observable;
+    }
+
+    const store = createRequestPerformanceStore();
+    return new Observable<unknown>((subscriber) => {
+      return runWithRequestPerformance(store, () => {
+        const subscription = observable.subscribe({
+          complete: () => {
+            subscriber.complete();
+          },
+          error: (error: unknown) => {
+            subscriber.error(error);
+          },
+          next: (value: unknown) => {
+            subscriber.next(value);
+          },
+        });
+
+        return () => {
+          subscription.unsubscribe();
+        };
+      });
+    });
   }
 
   private logPerformance(
@@ -117,6 +150,7 @@ export class PerformanceInterceptor implements NestInterceptor {
       userAgent,
       userId,
     };
+    const databaseMetrics = getRequestDatabaseMetrics();
 
     // Check memory usage for slow requests
     const memoryStats =
@@ -130,6 +164,7 @@ export class PerformanceInterceptor implements NestInterceptor {
       this.logger.warn('Very slow request detected', {
         ...metrics,
         severity: 'HIGH',
+        ...(databaseMetrics && { database: databaseMetrics }),
         ...(errorDetails?.message && { error: errorDetails.message }),
         ...(memoryStats && {
           memory: memoryStats,
@@ -143,6 +178,7 @@ export class PerformanceInterceptor implements NestInterceptor {
       this.logger.warn('Slow request detected', {
         ...metrics,
         severity: 'MEDIUM',
+        ...(databaseMetrics && { database: databaseMetrics }),
         ...(errorDetails?.message && { error: errorDetails.message }),
         ...(memoryStats && {
           memory: memoryStats,
@@ -156,6 +192,7 @@ export class PerformanceInterceptor implements NestInterceptor {
       // Keep low-value request completion logs out of the production hot path.
       this.logger.debug('Request completed', {
         ...metrics,
+        ...(databaseMetrics && { database: databaseMetrics }),
         severity: 'LOW',
         ...(errorDetails?.message && { error: errorDetails.message }),
       });
@@ -165,6 +202,7 @@ export class PerformanceInterceptor implements NestInterceptor {
     if (error) {
       this.logger.error('Request failed', {
         ...metrics,
+        ...(databaseMetrics && { database: databaseMetrics }),
         error: {
           message: errorDetails?.message,
           name: errorDetails?.name,

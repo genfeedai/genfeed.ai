@@ -27,7 +27,7 @@ function bootstrapPayload() {
   return {
     access: {
       brandId: 'brand-1',
-      creditsBalance: 1000,
+      creditsBalance: 500,
       hasEverHadCredits: true,
       isOnboardingCompleted: true,
       isSuperAdmin: true,
@@ -138,7 +138,7 @@ function startMockApiServer(): Promise<Server | null> {
         data: { attributes: bootstrapPayload().settings },
       });
     if (url.includes('/credits'))
-      return jsonResponse(response, { balance: 1000, modelCosts: {} });
+      return jsonResponse(response, { balance: 500, modelCosts: {} });
     return jsonResponse(response, collection('mock'));
   });
 

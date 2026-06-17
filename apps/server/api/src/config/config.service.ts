@@ -36,6 +36,10 @@ import { Injectable } from '@nestjs/common';
 import Joi from 'joi';
 
 interface ApiEnvConfig extends IEnvConfig {
+  API_PERFORMANCE_AUDIT?: 'true' | 'false';
+  API_QUERY_METRICS?: 'true' | 'false';
+  API_SLOW_QUERY_SAMPLE_SIZE?: string;
+  API_SLOW_QUERY_THRESHOLD_MS?: string;
   CONTENT_HARNESS_PACKAGES?: string;
   FEATURE_FLAG_DEFAULTS?: string;
   GF_DEV_ENABLE_OPTIONAL_INIT?: 'true' | 'false';
@@ -51,6 +55,13 @@ interface ApiEnvConfig extends IEnvConfig {
  */
 const apiSpecificSchema = {
   API_METRICS_LOGGING: Joi.string().valid('true', 'false').optional().allow(''),
+  API_PERFORMANCE_AUDIT: Joi.string()
+    .valid('true', 'false')
+    .optional()
+    .allow(''),
+  API_QUERY_METRICS: Joi.string().valid('true', 'false').optional().allow(''),
+  API_SLOW_QUERY_SAMPLE_SIZE: Joi.string().optional().allow(''),
+  API_SLOW_QUERY_THRESHOLD_MS: Joi.string().optional().allow(''),
   CONTENT_HARNESS_PACKAGES: Joi.string()
     .pattern(
       /^(@[a-z0-9][\w-]*\/)?[a-z0-9][\w.-]*(\s*,\s*(@[a-z0-9][\w-]*\/)?[a-z0-9][\w.-]*)*$/i,
