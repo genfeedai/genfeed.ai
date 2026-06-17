@@ -242,14 +242,14 @@ function normalizeScopedRoutePath(path: string): string {
 export function createBrandAppRoute(
   orgSlug: string,
   brandSlug: string,
-  path = APP_ROUTES.ROOT,
+  path: string = APP_ROUTES.ROOT,
 ): string {
   return `/${orgSlug}/${brandSlug}${normalizeScopedRoutePath(path)}`;
 }
 
 export function createOrganizationAppRoute(
   orgSlug: string,
-  path = APP_ROUTES.ROOT,
+  path: string = APP_ROUTES.ROOT,
 ): string {
   return `/${orgSlug}/~${normalizeScopedRoutePath(path)}`;
 }
