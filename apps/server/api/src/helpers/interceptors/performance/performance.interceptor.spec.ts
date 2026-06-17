@@ -1,15 +1,18 @@
+import process from 'node:process';
 import {
   APIMetricsInterceptor,
   PerformanceInterceptor,
 } from '@api/helpers/interceptors/performance/performance.interceptor';
+import { recordPrismaQuery } from '@api/helpers/performance/request-performance.context';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { firstValueFrom, of, throwError } from 'rxjs';
+import { firstValueFrom, Observable, of, throwError } from 'rxjs';
 
 describe('PerformanceInterceptor', () => {
   let interceptor: PerformanceInterceptor;
   let loggerService: vi.Mocked<LoggerService>;
+  const originalApiQueryMetrics = process.env.API_QUERY_METRICS;
 
   const mockExecutionContext = {
     getRequest: vi.fn(),
@@ -54,6 +57,14 @@ describe('PerformanceInterceptor', () => {
     (mockExecutionContext as any).getResponse.mockReturnValue(mockResponse);
   });
 
+  afterEach(() => {
+    if (originalApiQueryMetrics === undefined) {
+      delete process.env.API_QUERY_METRICS;
+    } else {
+      process.env.API_QUERY_METRICS = originalApiQueryMetrics;
+    }
+  });
+
   it('should be defined', () => {
     expect(interceptor).toBeDefined();
   });
@@ -77,6 +88,44 @@ describe('PerformanceInterceptor', () => {
           url: '/api/test',
           userAgent: 'test-agent',
           userId: 'user123',
+        }),
+      );
+    });
+
+    it('should attach database metrics when Prisma query metrics are enabled', async () => {
+      process.env.API_QUERY_METRICS = 'true';
+      (mockCallHandler as any).handle.mockReturnValue(
+        new Observable((subscriber) => {
+          recordPrismaQuery({
+            duration: 150,
+            params: '[]',
+            query: 'SELECT * FROM "Post" WHERE "id" = $1',
+            target: 'prisma:query',
+            timestamp: new Date('2026-01-01T00:00:00.000Z'),
+          });
+          subscriber.next('success');
+          subscriber.complete();
+        }),
+      );
+
+      await firstValueFrom(
+        interceptor.intercept(mockExecutionContext, mockCallHandler),
+      );
+
+      expect(loggerService.debug).toHaveBeenCalledWith(
+        'Request completed',
+        expect.objectContaining({
+          database: {
+            queryCount: 1,
+            queryDuration: 150,
+            slowQueries: [
+              expect.objectContaining({
+                duration: 150,
+                fingerprint: 'SELECT * FROM ? WHERE ? = ?',
+                target: 'prisma:query',
+              }),
+            ],
+          },
         }),
       );
     });
