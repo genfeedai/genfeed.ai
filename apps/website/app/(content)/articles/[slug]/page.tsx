@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import ArticleDetailContent from './article-detail';
 import { getPublicArticleBySlugCached } from './article-loader';
 
+export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
 export async function generateStaticParams(): Promise<{ slug: string }[]> {

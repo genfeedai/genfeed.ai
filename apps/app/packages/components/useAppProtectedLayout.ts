@@ -65,6 +65,24 @@ const WORKFLOWS_NAMED_ROUTES = new Set([
   'skills',
 ]);
 
+export function isProtectedEditorCanvasRoute(pathname: string): boolean {
+  return (
+    pathname === '/editor/new' ||
+    /^\/editor\/[^/]+$/.test(pathname) ||
+    pathname === '/workflows/new' ||
+    (/^\/workflows\/([^/]+)$/.test(pathname) &&
+      !WORKFLOWS_NAMED_ROUTES.has(pathname.split('/')[2] ?? ''))
+  );
+}
+
+export function isProtectedWorkspaceRoute(pathname: string): boolean {
+  return (
+    pathname === '/workspace' ||
+    pathname === '/overview' ||
+    pathname.startsWith('/workspace/')
+  );
+}
+
 function isTerminalDockAvailable(): boolean {
   return (
     process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' ||
@@ -113,12 +131,7 @@ export function useAppProtectedLayout(
   })();
   const isSettingsRoute = pathname.startsWith('/settings');
   const hasSecondaryTopbar = !isAdminRoute && pathname.startsWith('/studio');
-  const isEditorCanvasRoute =
-    pathname === '/editor/new' ||
-    /^\/editor\/[^/]+$/.test(pathname) ||
-    pathname === '/workflows/new' ||
-    (/^\/workflows\/([^/]+)$/.test(pathname) &&
-      !WORKFLOWS_NAMED_ROUTES.has(pathname.split('/')[2] ?? ''));
+  const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isWorkflowsRoute =
     pathname.startsWith('/workflows') || pathname.startsWith('/orchestration');
   const isEditorRoute = pathname.startsWith('/editor');
@@ -450,10 +463,7 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
-  const isWorkspaceRoute =
-    pathname === '/workspace' ||
-    pathname === '/overview' ||
-    pathname.startsWith('/workspace/');
+  const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
 
   const isLowCreditsBannerEnabled = useFeatureFlag('low_credits_banner');
   const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';

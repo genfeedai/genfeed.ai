@@ -104,7 +104,7 @@ describe('MusicsController', () => {
       expect(query.where.OR).toHaveLength(2);
     });
 
-    it('should keep the default music branch scoped', () => {
+    it('should not add a required-scope not-null filter to the default music branch', () => {
       const user = createMockUser();
       const inputQuery = {};
       const query = controller.buildFindAllQuery(
@@ -114,8 +114,8 @@ describe('MusicsController', () => {
 
       expect(query.where.OR[1]).toMatchObject({
         isDefault: { not: null },
-        scope: { not: null },
       });
+      expect(query.where.OR[1]).not.toHaveProperty('scope');
     });
 
     it('should add status filters when provided', () => {

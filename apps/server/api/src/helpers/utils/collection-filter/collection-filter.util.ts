@@ -132,7 +132,7 @@ export class CollectionFilterUtil {
    *
    * Handles filtering by asset scope (public/private/organization):
    * - specific scope → that scope value
-   * - undefined → any scope (not null)
+   * - undefined → no scope filter
    *
    * @param scope - Scope from query params
    * @returns Filter value for scope field
@@ -143,14 +143,12 @@ export class CollectionFilterUtil {
    * // Returns: 'public'
    *
    * @example
-   * // Default - any scope
+   * // Default - no filter
    * CollectionFilterUtil.buildScopeFilter(undefined)
-   * // Returns: { not: null }
+   * // Returns: undefined
    */
-  static buildScopeFilter(
-    scope?: AssetScope,
-  ): AssetScope | Record<string, unknown> {
-    return scope ? scope : { not: null };
+  static buildScopeFilter(scope?: AssetScope): AssetScope | undefined {
+    return scope;
   }
 
   /**

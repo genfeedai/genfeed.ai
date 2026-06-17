@@ -177,7 +177,6 @@ export class VideosController {
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-    const scope = { not: null };
     const brand = publicMetadata.brand;
 
     const aggregate = {
@@ -189,7 +188,6 @@ export class VideosController {
               IngredientCategory.VIDEO,
             ),
             isDeleted,
-            scope,
             // Exclude training source videos by default
             training: { not: false },
             user: publicMetadata.user,
@@ -279,7 +277,7 @@ export class VideosController {
               IngredientCategory.VIDEO,
             ),
             isDeleted,
-            scope,
+            ...(scope !== undefined ? { scope } : {}),
             status,
             // ...(isEntityId(query.references)
             //   ? { references: query.references }

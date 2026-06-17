@@ -51,9 +51,9 @@ describe('CollectionFilterUtil', () => {
       expect(result).toBe(AssetScope.PUBLIC);
     });
 
-    it('returns not-null filter when scope missing', () => {
+    it('omits the scope filter when scope missing', () => {
       const result = CollectionFilterUtil.buildScopeFilter(undefined);
-      expect(result).toEqual({ not: null });
+      expect(result).toBeUndefined();
     });
   });
 
