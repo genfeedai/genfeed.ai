@@ -1,4 +1,4 @@
-import process from 'node:process';
+import { ConfigService } from '@api/config/config.service';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
 import {
   createRequestPerformanceStore,
@@ -22,13 +22,15 @@ import { tap } from 'rxjs/operators';
 export class PerformanceInterceptor implements NestInterceptor {
   private readonly slowRequestThreshold = 1_000; // 1 second
   private readonly verySlowRequestThreshold = 5_000; // 5 seconds
-  private readonly logSuccessfulRequests =
-    process.env.NODE_ENV !== 'production';
+  private readonly logSuccessfulRequests: boolean;
 
   constructor(
     private readonly logger: LoggerService,
+    private readonly configService: ConfigService,
     @Optional() private readonly memoryMonitor?: MemoryMonitorService,
-  ) {}
+  ) {
+    this.logSuccessfulRequests = configService.get('NODE_ENV') !== 'production';
+  }
 
   private readError(error: unknown): {
     message?: string;
@@ -95,7 +97,7 @@ export class PerformanceInterceptor implements NestInterceptor {
       }),
     );
 
-    if (!isPrismaQueryMetricsEnabled()) {
+    if (!isPrismaQueryMetricsEnabled(this.configService)) {
       return observable;
     }
 

@@ -196,7 +196,7 @@ async function main() {
       new ResponseIdNormalizerInterceptor(),
       ...(redisCacheInterceptor ? [redisCacheInterceptor] : []),
       new TimeoutInterceptor(),
-      new PerformanceInterceptor(logger, memoryMonitor),
+      new PerformanceInterceptor(logger, configService, memoryMonitor),
       new APIMetricsInterceptor(logger, logApiUsage),
     ];
 

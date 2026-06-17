@@ -1,4 +1,5 @@
 import process from 'node:process';
+import { ConfigService } from '@api/config/config.service';
 import {
   APIMetricsInterceptor,
   PerformanceInterceptor,
@@ -11,6 +12,7 @@ import { firstValueFrom, Observable, of, throwError } from 'rxjs';
 
 describe('PerformanceInterceptor', () => {
   let interceptor: PerformanceInterceptor;
+  let configService: Pick<ConfigService, 'get'>;
   let loggerService: vi.Mocked<LoggerService>;
   const originalApiQueryMetrics = process.env.API_QUERY_METRICS;
   const originalApiSlowQueryThresholdMs =
@@ -42,10 +44,19 @@ describe('PerformanceInterceptor', () => {
 
   beforeEach(async () => {
     process.env.API_SLOW_QUERY_THRESHOLD_MS = '100';
+    configService = {
+      get: vi.fn((key: string) => {
+        return process.env[key];
+      }),
+    } as unknown as Pick<ConfigService, 'get'>;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PerformanceInterceptor,
+        {
+          provide: ConfigService,
+          useValue: configService,
+        },
         {
           provide: LoggerService,
           useValue: {
@@ -110,13 +121,16 @@ describe('PerformanceInterceptor', () => {
       process.env.API_QUERY_METRICS = 'true';
       mockCallHandler.handle.mockReturnValue(
         new Observable((subscriber) => {
-          recordPrismaQuery({
-            duration: 150,
-            params: '[]',
-            query: 'SELECT * FROM "Post" WHERE "id" = $1',
-            target: 'prisma:query',
-            timestamp: new Date('2026-01-01T00:00:00.000Z'),
-          });
+          recordPrismaQuery(
+            {
+              duration: 150,
+              params: '[]',
+              query: 'SELECT * FROM "Post" WHERE "id" = $1',
+              target: 'prisma:query',
+              timestamp: new Date('2026-01-01T00:00:00.000Z'),
+            },
+            configService,
+          );
           subscriber.next('success');
           subscriber.complete();
         }),

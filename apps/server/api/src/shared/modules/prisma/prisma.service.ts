@@ -1,4 +1,4 @@
-import process from 'node:process';
+import { ConfigService } from '@api/config/config.service';
 import {
   isPrismaQueryMetricsEnabled,
   recordPrismaQuery,
@@ -17,13 +17,13 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
-  constructor() {
-    const connectionString = process.env.DATABASE_URL;
+  constructor(private readonly configService: ConfigService) {
+    const connectionString = configService.get('DATABASE_URL');
     if (!connectionString) {
       throw new Error('DATABASE_URL environment variable is not set');
     }
     const adapter = new PrismaPg({ connectionString });
-    const enableQueryMetrics = isPrismaQueryMetricsEnabled();
+    const enableQueryMetrics = isPrismaQueryMetricsEnabled(configService);
     super({
       adapter,
       ...(enableQueryMetrics
@@ -32,10 +32,9 @@ export class PrismaService
     });
 
     if (enableQueryMetrics) {
-      (this as unknown as PrismaQueryEventClient).$on(
-        'query',
-        recordPrismaQuery,
-      );
+      (this as unknown as PrismaQueryEventClient).$on('query', (event) => {
+        recordPrismaQuery(event, this.configService);
+      });
     }
   }
 

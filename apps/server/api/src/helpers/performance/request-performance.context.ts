@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import process from 'node:process';
+import type { ConfigService } from '@api/config/config.service';
 import type { Prisma } from '@genfeedai/prisma';
 
 export interface PrismaQueryMetric {
@@ -21,12 +21,16 @@ interface RequestPerformanceStore {
   slowQueries: PrismaQueryMetric[];
 }
 
+type RequestPerformanceConfig = Pick<ConfigService, 'get'>;
+
 const storage = new AsyncLocalStorage<RequestPerformanceStore>();
 
-export function isPrismaQueryMetricsEnabled(): boolean {
+export function isPrismaQueryMetricsEnabled(
+  configService: RequestPerformanceConfig,
+): boolean {
   return (
-    process.env.API_QUERY_METRICS === 'true' ||
-    process.env.API_PERFORMANCE_AUDIT === 'true'
+    configService.get('API_QUERY_METRICS') === 'true' ||
+    configService.get('API_PERFORMANCE_AUDIT') === 'true'
   );
 }
 
@@ -45,8 +49,11 @@ export function runWithRequestPerformance<T>(
   return storage.run(store, callback);
 }
 
-export function recordPrismaQuery(event: Prisma.QueryEvent): void {
-  if (!isPrismaQueryMetricsEnabled()) {
+export function recordPrismaQuery(
+  event: Prisma.QueryEvent,
+  configService: RequestPerformanceConfig,
+): void {
+  if (!isPrismaQueryMetricsEnabled(configService)) {
     return;
   }
 
@@ -59,7 +66,7 @@ export function recordPrismaQuery(event: Prisma.QueryEvent): void {
   store.queryDuration += event.duration;
 
   const slowQueryThreshold = readPositiveNumber(
-    process.env.API_SLOW_QUERY_THRESHOLD_MS,
+    configService.get('API_SLOW_QUERY_THRESHOLD_MS'),
     100,
   );
 
@@ -68,7 +75,7 @@ export function recordPrismaQuery(event: Prisma.QueryEvent): void {
   }
 
   const maxSlowQueries = readPositiveNumber(
-    process.env.API_SLOW_QUERY_SAMPLE_SIZE,
+    configService.get('API_SLOW_QUERY_SAMPLE_SIZE'),
     5,
   );
 
