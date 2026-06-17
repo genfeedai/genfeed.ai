@@ -6,8 +6,8 @@
 // Usage:  bash scripts/check-prod-creds.sh
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { MongoClient } from 'mongodb';
 import { ListBucketsCommand, S3Client } from '@aws-sdk/client-s3';
+import { MongoClient } from 'mongodb';
 
 // pg is bun-isolated (not hoisted) — resolve it from node_modules/.bun directly.
 async function loadPg() {

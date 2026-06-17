@@ -31,7 +31,7 @@ const StatusDot = memo(function StatusDot({
   className,
 }: StatusDotProps) {
   return (
-    <span
+    <output
       className={cn(
         'gen-dot',
         SIZE_CLASSES[size],
@@ -39,7 +39,6 @@ const StatusDot = memo(function StatusDot({
         pulse && 'gen-dot-pulse',
         className,
       )}
-      role="status"
       aria-label={`Status: ${status}`}
     />
   );

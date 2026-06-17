@@ -1,3 +1,4 @@
+import { stringifyJsonLd } from '@data/json-ld';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { PublicService } from '@services/external/public.service';
@@ -176,11 +177,11 @@ export default async function ArticleDetail({
     <>
       {articleJsonLd ? (
         <script type="application/ld+json">
-          {JSON.stringify(articleJsonLd)}
+          {stringifyJsonLd(articleJsonLd)}
         </script>
       ) : null}
       <script type="application/ld+json">
-        {JSON.stringify(breadcrumbJsonLd)}
+        {stringifyJsonLd(breadcrumbJsonLd)}
       </script>
       <ArticleDetailContent
         article={

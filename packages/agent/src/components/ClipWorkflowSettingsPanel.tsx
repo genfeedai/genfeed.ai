@@ -91,30 +91,34 @@ export function ClipWorkflowSettingsPanel({
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-xs">
-        <label className="flex items-center gap-2 border border-border p-2">
+        <div className="flex items-center gap-2 border border-border p-2">
           <Checkbox
             isChecked={autonomousMode}
+            label="Autonomous mode"
             onChange={(e) => onAutonomousModeChange(e.target.checked)}
           />
-          Autonomous mode
-        </label>
-        <label className="flex items-center gap-2 border border-border p-2">
+        </div>
+        <div className="flex items-center gap-2 border border-border p-2">
           <Checkbox
             isChecked={requireStepConfirmation}
+            label="Confirm each step"
             onChange={(e) => onRequireStepConfirmationChange(e.target.checked)}
           />
-          Confirm each step
-        </label>
-        <label className="flex items-center gap-2 border border-border p-2">
+        </div>
+        <div className="flex items-center gap-2 border border-border p-2">
           <Checkbox
             isChecked={mergeGeneratedVideos}
+            label="Merge multiple clips"
             onChange={(e) => onMergeGeneratedVideosChange(e.target.checked)}
           />
-          Merge multiple clips
-        </label>
-        <label className="flex items-center gap-2 border border-border p-2">
+        </div>
+        <label
+          htmlFor="clip-workflow-duration-seconds"
+          className="flex items-center gap-2 border border-border p-2"
+        >
           <span>Duration (s)</span>
           <Input
+            id="clip-workflow-duration-seconds"
             type="number"
             min={5}
             max={60}

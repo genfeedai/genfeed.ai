@@ -68,7 +68,8 @@ export default function TopbarPublic({
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const triggerRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const triggerRefs = useRef<Map<string, HTMLButtonElement> | null>(null);
+  triggerRefs.current ??= new Map();
   const _megaMenuRef = useRef<HTMLDivElement>(null);
 
   // Handle hydration

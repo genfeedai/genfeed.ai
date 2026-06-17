@@ -34,7 +34,6 @@ export function CardEmptyContent({
 }: CardEmptyProps) {
   return (
     <div
-      role="status"
       aria-live="polite"
       className={cn(
         'flex flex-col items-center justify-center text-center py-12',

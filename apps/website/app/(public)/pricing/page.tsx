@@ -1,3 +1,4 @@
+import { stringifyJsonLd } from '@data/json-ld';
 import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import PricingContent from '@public/pricing/pricing-content';
 
@@ -71,7 +72,7 @@ const saasJsonLd = {
 export default function Pricing() {
   return (
     <>
-      <script type="application/ld+json">{JSON.stringify(saasJsonLd)}</script>
+      <script type="application/ld+json">{stringifyJsonLd(saasJsonLd)}</script>
       <PricingContent />
     </>
   );

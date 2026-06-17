@@ -34,6 +34,25 @@ const VARIANT_COLORS: Record<string, string> = {
   warning: 'bg-warning/20 text-warning',
 };
 
+function getActiveIconColorClass(variant: string): string {
+  const v = variant.toLowerCase();
+  if (v.includes('error')) {
+    return VARIANT_COLORS.error;
+  }
+  if (v.includes('warning')) {
+    return VARIANT_COLORS.warning;
+  }
+  if (v.includes('info')) {
+    return VARIANT_COLORS.info;
+  }
+
+  return 'bg-muted text-foreground';
+}
+
+function getScopeIcon(scope: AssetScope): React.ReactNode {
+  return SCOPE_ICONS[scope] ?? SCOPE_ICONS[AssetScope.USER];
+}
+
 export default function DropdownScope({
   item,
   className = '',
@@ -100,20 +119,6 @@ export default function DropdownScope({
 
   // Check if we should render icon-only mode (when className includes rounded-full)
   const isIconOnly = className.includes('rounded-full');
-
-  function getActiveIconColorClass(variant: string): string {
-    const v = variant.toLowerCase();
-    for (const [key, value] of Object.entries(VARIANT_COLORS)) {
-      if (v.includes(key)) {
-        return value;
-      }
-    }
-    return 'bg-muted text-foreground';
-  }
-
-  function getScopeIcon(scope: AssetScope): React.ReactNode {
-    return SCOPE_ICONS[scope] ?? SCOPE_ICONS[AssetScope.USER];
-  }
 
   return (
     <Dropdown

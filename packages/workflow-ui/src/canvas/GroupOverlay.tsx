@@ -128,9 +128,11 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
   // Drag state
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
-  const nodeStartPositionsRef = useRef<Map<string, { x: number; y: number }>>(
-    new Map(),
-  );
+  const nodeStartPositionsRef = useRef<Map<
+    string,
+    { x: number; y: number }
+  > | null>(null);
+  nodeStartPositionsRef.current ??= new Map();
 
   // Focus input when editing starts
   useEffect(() => {
@@ -174,7 +176,7 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
         setIsEditing(false);
       }
     },
-    [handleNameSubmit, group.name],
+    [handleNameSubmit],
   );
 
   // Handle drag start on group header

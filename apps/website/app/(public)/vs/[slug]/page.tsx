@@ -1,4 +1,5 @@
 import { getAllCompetitorSlugs } from '@data/competitors.data';
+import { stringifyJsonLd } from '@data/json-ld';
 import ComparisonPage from '@public/vs/[slug]/comparison-page';
 import {
   formatCompetitorSlug,
@@ -104,10 +105,10 @@ export default async function Page({
   return (
     <>
       <script type="application/ld+json">
-        {JSON.stringify(comparisonJsonLd)}
+        {stringifyJsonLd(comparisonJsonLd)}
       </script>
       <script type="application/ld+json">
-        {JSON.stringify(breadcrumbJsonLd)}
+        {stringifyJsonLd(breadcrumbJsonLd)}
       </script>
       <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
         <ComparisonPage competitor={competitor} />

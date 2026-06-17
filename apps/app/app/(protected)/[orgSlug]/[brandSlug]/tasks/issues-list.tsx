@@ -351,12 +351,9 @@ export default function IssuesList() {
 
   useEffect(() => {
     loadIssues();
+    const controller = controllerRef.current;
 
     return () => {
-      // Capture the ref value at cleanup time so the closure always
-      // aborts the controller that was active when the effect ran,
-      // regardless of whether loadIssues replaced the ref since then.
-      const controller = controllerRef.current;
       controller?.abort();
     };
   }, [loadIssues]);

@@ -84,9 +84,14 @@ function ResizeNodeComponent(props: NodeProps) {
       <div className="flex flex-col gap-3">
         {/* Media Type Selection */}
         <div className="space-y-1.5">
-          <Label className="text-xs">Media Type</Label>
+          <Label className="text-xs" id={`resize-media-type-${id}`}>
+            Media Type
+          </Label>
           <Select value={mediaType} onValueChange={handleTypeChange}>
-            <SelectTrigger className="nodrag h-9 w-full">
+            <SelectTrigger
+              aria-labelledby={`resize-media-type-${id}`}
+              className="nodrag h-9 w-full"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -109,12 +114,17 @@ function ResizeNodeComponent(props: NodeProps) {
 
         {/* Aspect Ratio */}
         <div className="space-y-1.5">
-          <Label className="text-xs">Target Aspect Ratio</Label>
+          <Label className="text-xs" id={`resize-aspect-ratio-${id}`}>
+            Target Aspect Ratio
+          </Label>
           <Select
             value={nodeData.targetAspectRatio}
             onValueChange={handleAspectRatioChange}
           >
-            <SelectTrigger className="nodrag h-9 w-full">
+            <SelectTrigger
+              aria-labelledby={`resize-aspect-ratio-${id}`}
+              className="nodrag h-9 w-full"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -139,6 +149,7 @@ function ResizeNodeComponent(props: NodeProps) {
             Prompt (optional)
           </Label>
           <input
+            aria-label="Resize prompt"
             id={`resize-prompt-${id}`}
             type="text"
             value={nodeData.prompt}

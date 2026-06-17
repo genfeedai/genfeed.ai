@@ -13,7 +13,6 @@ import { cn } from '../lib/utils';
 import {
   BUTTON_VARIANT_CONFIG,
   type ButtonStyleProps,
-  buttonVariants,
   getMappedButtonSize,
   getSizeOverrideClassName,
   getVariantOverrideClassName,
@@ -99,10 +98,9 @@ function SimpleTooltip({
 
 function Spinner() {
   return (
-    <span
+    <output
       aria-label="Loading"
       className="inline-block size-4 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"
-      role="status"
     />
   );
 }

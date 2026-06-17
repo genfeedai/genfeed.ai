@@ -1,5 +1,10 @@
 import React from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { colors } from '@/constants';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { useOfflineQueue } from '@/hooks/use-offline-queue';
@@ -7,22 +12,22 @@ import { useOfflineQueue } from '@/hooks/use-offline-queue';
 export function OfflineIndicator(): React.ReactElement | null {
   const { isOnline } = useNetworkStatus();
   const { queueLength } = useOfflineQueue();
-  const opacity = React.useMemo(() => new Animated.Value(0), []);
+  const opacity = useSharedValue(0);
 
   React.useEffect(() => {
-    Animated.timing(opacity, {
-      duration: 300,
-      toValue: isOnline ? 0 : 1,
-      useNativeDriver: true,
-    }).start();
+    opacity.value = withTiming(isOnline ? 0 : 1, { duration: 300 });
   }, [isOnline, opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
 
   if (isOnline && queueLength === 0) {
     return null;
   }
 
   return (
-    <Animated.View style={[styles.container, { opacity }]}>
+    <Animated.View style={[styles.container, animatedStyle]}>
       <View style={styles.content}>
         <View style={styles.dot} />
         <Text style={styles.text}>

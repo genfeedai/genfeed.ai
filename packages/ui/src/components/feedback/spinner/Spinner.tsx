@@ -10,9 +10,8 @@ export default function Spinner({
   ...props
 }: SpinnerProps = {}) {
   return (
-    <span
+    <output
       className={cn(spinnerVariants({ size }), className)}
-      role="status"
       aria-label={ariaLabel}
       {...props}
     />

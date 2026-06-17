@@ -39,8 +39,8 @@ jobs:
       - name: Run extension tests
         run: bun run test --filter="./apps/extensions/browser/*"
 
-  build-and-submit:
-    name: Build & Submit
+  build:
+    name: Build Extension
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [test]
@@ -90,8 +90,22 @@ jobs:
           name: browser-extension-build
           path: apps/extensions/browser/app/build/chrome-mv3-prod.zip
 
+  submit:
+    name: Submit Extension
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build]
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: browser-extension-build
+          path: apps/extensions/browser/app/build
+
       - name: Browser Platform Publish
+        env:
+          EXTENSION_SUBMIT_KEYS: ${{ secrets.EXTENSION_SUBMIT_KEYS }}
         uses: PlasmoHQ/bpp@v3
         with:
-          keys: ${{ secrets.EXTENSION_SUBMIT_KEYS }}
+          keys: ${{ env.EXTENSION_SUBMIT_KEYS }}
           artifact: apps/extensions/browser/app/build/chrome-mv3-prod.zip

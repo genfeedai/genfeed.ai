@@ -47,52 +47,53 @@ export default function TrainingDetail({
     TrainingsService.getInstance(token),
   );
 
-  const loadTraining = useCallback(async () => {
-    const url = `GET /trainings/${trainingId}`;
+  const loadTraining = useCallback(
+    async (controller = new AbortController()) => {
+      const url = `GET /trainings/${trainingId}`;
 
-    try {
-      setIsLoading(true);
-      setError(null);
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      abortControllerRef.current = new AbortController();
-      const service = await getTrainingsService();
+        abortControllerRef.current = controller;
+        const service = await getTrainingsService();
 
-      const data = await service.findOne(trainingId);
+        const data = await service.findOne(trainingId);
 
-      if (!abortControllerRef.current?.signal.aborted) {
-        setTraining(data);
+        if (!controller.signal.aborted) {
+          setTraining(data);
+        }
+
+        logger.info(`${url} success`, data);
+      } catch (error) {
+        logger.error(`${url} failed`, error);
+        if (error instanceof Error && error.name === 'AbortError') {
+          return;
+        }
+
+        const errorMessage = getErrorMessage(
+          error,
+          'Failed to load training details',
+        );
+        setError(errorMessage);
+        notificationsService.error('Failed to load training details');
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
-
-      logger.info(`${url} success`, data);
-    } catch (error) {
-      logger.error(`${url} failed`, error);
-      if (error instanceof Error && error.name === 'AbortError') {
-        return;
-      }
-
-      const errorMessage = getErrorMessage(
-        error,
-        'Failed to load training details',
-      );
-      setError(errorMessage);
-      notificationsService.error('Failed to load training details');
-    } finally {
-      if (!abortControllerRef.current?.signal.aborted) {
-        setIsLoading(false);
-      }
-    }
-  }, [getTrainingsService, notificationsService, trainingId]);
+    },
+    [getTrainingsService, notificationsService, trainingId],
+  );
 
   useEffect(() => {
+    const controller = new AbortController();
+
     if (trainingId) {
-      loadTraining();
+      void loadTraining(controller);
     }
 
     return () => {
-      // Capture the current controller at cleanup registration time so the
-      // closure always aborts the right instance even if the ref is replaced
-      // by a subsequent call to loadTraining (retry button, onSuccess, etc.).
-      const controller = abortControllerRef.current;
       controller?.abort();
     };
   }, [trainingId, loadTraining]);

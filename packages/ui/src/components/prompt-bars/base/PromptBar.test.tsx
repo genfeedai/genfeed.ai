@@ -13,7 +13,7 @@ import {
 } from '@testing-library/react';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';
 import type { ReactElement } from 'react';
-import { useContext } from 'react';
+import { use } from 'react';
 import { MdOutlineCropLandscape, MdOutlineCropSquare } from 'react-icons/md';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -260,7 +260,7 @@ vi.mock(
   '@ui/prompt-bars/components/expanded-view/PromptBarExpandedView',
   () => ({
     default: function MockExpandedView() {
-      const ctx = useContext(PromptBarInternalContext);
+      const ctx = use(PromptBarInternalContext);
       expandedViewProps = ctx as unknown as Record<string, unknown>;
       return (
         <div data-testid="expanded-view">

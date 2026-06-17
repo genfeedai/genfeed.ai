@@ -53,17 +53,17 @@ export default function EditMemberForm({
           {hasFormErrors(formState.errors) && (
             <Alert type={AlertCategory.ERROR} className="mb-4">
               <div className="space-y-1">
-                {parseFormErrors(formState.errors).map((error, index) => (
-                  <div key={index}>{error}</div>
+                {parseFormErrors(formState.errors).map((error) => (
+                  <div key={error}>{error}</div>
                 ))}
               </div>
             </Alert>
           )}
 
           <div className="w-full mb-5">
-            <label>
+            <div>
               <span className="text-sm capitalize font-semibold">Brands</span>
-            </label>
+            </div>
 
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {brands.map((brand: IBrand) => (

@@ -19,14 +19,12 @@ export default function PageLoadingState({
   return (
     <div
       aria-busy="true"
-      aria-label={message ?? 'Loading'}
       aria-live="polite"
       className={cn(
         'flex items-center justify-center',
         fullScreen ? 'min-h-screen' : 'min-h-[60vh]',
         className,
       )}
-      role="status"
     >
       <div className="flex max-w-md flex-col items-center gap-4 px-6 text-center">
         <Spinner
