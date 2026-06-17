@@ -40,10 +40,6 @@ vi.mock('@api/collections/brands/services/brands.service', () => ({
   BrandsService: class BrandsService {},
 }));
 
-vi.mock('@api/collections/credentials/services/credentials.service', () => ({
-  CredentialsService: class CredentialsService {},
-}));
-
 vi.mock('@api/collections/credits/services/credits.utils.service', () => ({
   CreditsUtilsService: class CreditsUtilsService {},
 }));
@@ -56,13 +52,6 @@ vi.mock(
   '@api/collections/organization-settings/services/organization-settings.service',
   () => ({
     OrganizationSettingsService: class OrganizationSettingsService {},
-  }),
-);
-
-vi.mock(
-  '@api/collections/posts/services/analytics-aggregation.service',
-  () => ({
-    AnalyticsAggregationService: class AnalyticsAggregationService {},
   }),
 );
 
@@ -111,10 +100,6 @@ describe('AuthBootstrapService', () => {
     getStats: vi.fn(),
     listRecentRuns: vi.fn(),
   };
-  const analyticsAggregationService = {
-    getOverviewMetrics: vi.fn(),
-    getTimeSeriesDataWithPlatforms: vi.fn(),
-  };
   const brandsService = {
     findForOrganization: vi.fn(),
   };
@@ -123,9 +108,6 @@ describe('AuthBootstrapService', () => {
   };
   const creditsUtilsService = {
     getOrganizationCreditsBalance: vi.fn(),
-  };
-  const credentialsService = {
-    countConnected: vi.fn(),
   };
   const batchGenerationService = {
     getReviewInboxSummary: vi.fn(),
@@ -154,11 +136,9 @@ describe('AuthBootstrapService', () => {
     service = new AuthBootstrapService(
       accessBootstrapCacheService as never,
       agentRunsService as never,
-      analyticsAggregationService as never,
       brandsService as never,
       configService as never,
       creditsUtilsService as never,
-      credentialsService as never,
       batchGenerationService as never,
       fleetService as never,
       membersService as never,
@@ -172,16 +152,9 @@ describe('AuthBootstrapService', () => {
     agentRunsService.getActiveRuns.mockResolvedValue([]);
     agentRunsService.getStats.mockResolvedValue(null);
     agentRunsService.listRecentRuns.mockResolvedValue([]);
-    analyticsAggregationService.getOverviewMetrics.mockResolvedValue({
-      totalPosts: 12,
-    });
-    analyticsAggregationService.getTimeSeriesDataWithPlatforms.mockResolvedValue(
-      [],
-    );
     brandsService.findForOrganization.mockResolvedValue([]);
     configService.get.mockReturnValue('');
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(0);
-    credentialsService.countConnected.mockResolvedValue(0);
     batchGenerationService.getReviewInboxSummary.mockResolvedValue({
       approvedCount: 1,
       changesRequestedCount: 0,
@@ -517,7 +490,7 @@ describe('AuthBootstrapService', () => {
     expect(result.darkroomCapabilities).toBeNull();
   });
 
-  it('aggregates overview data through the single overview bootstrap path', async () => {
+  it('loads workspace overview data without unused analytics work', async () => {
     const organizationId = 'test-object-id';
     const brandId = 'test-object-id';
     const userId = 'test-object-id';
@@ -561,14 +534,6 @@ describe('AuthBootstrapService', () => {
       trends: [],
       webEnabledRuns: 1,
     });
-    analyticsAggregationService.getOverviewMetrics.mockResolvedValue({
-      totalPosts: 12,
-    });
-    analyticsAggregationService.getTimeSeriesDataWithPlatforms.mockResolvedValue(
-      [{ date: '2026-03-17', instagram: 10 }],
-    );
-    credentialsService.countConnected.mockResolvedValue(3);
-
     const result = await service.getOverviewBootstrap({
       context: {
         brandId,
@@ -587,12 +552,6 @@ describe('AuthBootstrapService', () => {
 
     expect(getBootstrapSpy).not.toHaveBeenCalled();
     expect(usersService.findOne).not.toHaveBeenCalled();
-    expect(analyticsAggregationService.getOverviewMetrics).toHaveBeenCalledWith(
-      organizationId,
-      brandId,
-      expect.any(String),
-      expect.any(String),
-    );
     expect(agentRunsService.listRecentRuns).toHaveBeenCalledWith(
       organizationId,
       20,
@@ -602,16 +561,9 @@ describe('AuthBootstrapService', () => {
       brandId,
       5,
     );
-    expect(credentialsService.countConnected).toHaveBeenCalledWith(
-      organizationId,
-      brandId,
-    );
     expect(result).toEqual({
       activeRuns: [{ id: 'run_2' }],
-      analytics: {
-        totalCredentialsConnected: 3,
-        totalPosts: 12,
-      },
+      analytics: {},
       reviewInbox: {
         approvedCount: 1,
         changesRequestedCount: 0,
@@ -649,7 +601,7 @@ describe('AuthBootstrapService', () => {
         trends: [],
         webEnabledRuns: 1,
       },
-      timeSeries: [{ date: '2026-03-17', instagram: 10 }],
+      timeSeries: [],
     });
   });
 
@@ -675,8 +627,6 @@ describe('AuthBootstrapService', () => {
       settings: null,
       streak: null,
     } satisfies AccessBootstrapCachePayload);
-    credentialsService.countConnected.mockResolvedValue(3);
-
     const request = {
       context: {
         brandId,
@@ -697,13 +647,6 @@ describe('AuthBootstrapService', () => {
     const result2 = await service.getOverviewBootstrap(request);
 
     expect(result1).toEqual(result2);
-    expect(
-      analyticsAggregationService.getOverviewMetrics,
-    ).toHaveBeenCalledTimes(1);
-    expect(
-      analyticsAggregationService.getTimeSeriesDataWithPlatforms,
-    ).toHaveBeenCalledTimes(1);
-    expect(credentialsService.countConnected).toHaveBeenCalledTimes(1);
     expect(batchGenerationService.getReviewInboxSummary).toHaveBeenCalledTimes(
       1,
     );

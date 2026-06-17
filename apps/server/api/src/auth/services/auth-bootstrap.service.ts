@@ -1,10 +1,8 @@
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { StreaksService } from '@api/collections/streaks/services/streaks.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
@@ -85,11 +83,9 @@ export class AuthBootstrapService {
   constructor(
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     private readonly agentRunsService: AgentRunsService,
-    private readonly analyticsAggregationService: AnalyticsAggregationService,
     private readonly brandsService: BrandsService,
     private readonly configService: ConfigService,
     private readonly creditsUtilsService: CreditsUtilsService,
-    private readonly credentialsService: CredentialsService,
     private readonly batchGenerationService: BatchGenerationService,
     private readonly fleetService: FleetService,
     private readonly membersService: MembersService,
@@ -426,40 +422,11 @@ export class AuthBootstrapService {
       return cached;
     }
 
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - 13);
-
-    const startDateIso = startDate.toISOString().split('T')[0] ?? '';
-    const endDateIso = endDate.toISOString().split('T')[0] ?? '';
-
-    const [
-      analyticsMetrics,
-      totalCredentialsConnected,
-      reviewInbox,
-      timeSeries,
-      runs,
-      activeRuns,
-      stats,
-    ] = await Promise.all([
-      this.analyticsAggregationService.getOverviewMetrics(
-        organizationId,
-        brandId,
-        startDateIso,
-        endDateIso,
-      ),
-      this.credentialsService.countConnected(organizationId, brandId),
+    const [reviewInbox, runs, activeRuns, stats] = await Promise.all([
       this.batchGenerationService.getReviewInboxSummary(
         organizationId,
         brandId || undefined,
         5,
-      ),
-      this.analyticsAggregationService.getTimeSeriesDataWithPlatforms(
-        organizationId,
-        brandId,
-        startDateIso,
-        endDateIso,
-        'day',
       ),
       this.agentRunsService.listRecentRuns(organizationId, 20),
       this.agentRunsService.getActiveRuns(organizationId),
@@ -468,14 +435,11 @@ export class AuthBootstrapService {
 
     const payload: OverviewBootstrapPayload = {
       activeRuns: toPlainJson(activeRuns),
-      analytics: {
-        ...analyticsMetrics,
-        totalCredentialsConnected,
-      },
+      analytics: {},
       reviewInbox: toPlainJson(reviewInbox),
       runs: toPlainJson(runs),
       stats,
-      timeSeries: toPlainJson(timeSeries),
+      timeSeries: [],
     };
 
     this.setCachedOverviewBootstrap(cacheKey, payload);

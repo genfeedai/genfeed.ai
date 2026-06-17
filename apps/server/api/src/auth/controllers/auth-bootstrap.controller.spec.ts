@@ -24,7 +24,7 @@ const mockShellBootstrapPayload = {
 
 const mockOverviewBootstrapPayload = {
   activeRuns: [{ id: 'run_2' }],
-  analytics: { totalPosts: 12 },
+  analytics: {},
   reviewInbox: {
     approvedCount: 0,
     changesRequestedCount: 0,
@@ -49,7 +49,7 @@ const mockOverviewBootstrapPayload = {
     trends: [],
     webEnabledRuns: 1,
   },
-  timeSeries: [{ date: '2026-03-17', instagram: 10 }],
+  timeSeries: [],
 };
 
 const mockAuthBootstrapService = {

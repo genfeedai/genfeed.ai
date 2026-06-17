@@ -2,17 +2,6 @@ import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 import { render, screen } from '@testing-library/react';
 import WorkspaceInboxViewPage, * as PageModule from './page';
 
-vi.mock('@app-server/overview-page-data.server', () => ({
-  loadOverviewPageData: vi.fn(async () => ({
-    activeRuns: [],
-    analytics: null,
-    reviewInbox: [],
-    runs: [],
-    stats: null,
-    timeSeriesData: [],
-  })),
-}));
-
 vi.mock('next/navigation', () => ({
   notFound: vi.fn(() => {
     throw new Error('not-found');

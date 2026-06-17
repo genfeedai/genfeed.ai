@@ -7,6 +7,7 @@ import type { AgentRunStats } from '@genfeedai/types';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
+import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { Task, TasksService } from '@services/management/tasks.service';
 import { WebSocketPaths } from '@utils/network/websocket.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -72,6 +73,11 @@ export function useWorkspacePageContent({
   const [isWorkspaceRefreshing, setWorkspaceRefreshing] = useState(false);
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [activeRuns, setActiveRuns] = useState<IAgentRun[]>(initialActiveRuns);
+  const [agentRuns, setAgentRuns] = useState<IAgentRun[]>(initialRuns);
+  const [agentStats, setAgentStats] = useState<AgentRunStats | null>(
+    initialStats,
+  );
   const [workspaceTasks, setWorkspaceTasks] = useState<Task[]>([]);
 
   const reviewInboxTasks = useMemo(
@@ -185,20 +191,20 @@ export function useWorkspacePageContent({
       },
       {
         label: 'In Progress',
-        value: String(inProgressTasks.length + initialActiveRuns.length),
+        value: String(inProgressTasks.length + activeRuns.length),
       },
       {
         label: 'Completed Today',
-        value: String(initialStats?.completedToday ?? 0),
+        value: String(agentStats?.completedToday ?? 0),
       },
       {
         label: 'Failed Today',
-        value: String(initialStats?.failedToday ?? 0),
+        value: String(agentStats?.failedToday ?? 0),
       },
     ],
     [
-      initialActiveRuns.length,
-      initialStats,
+      activeRuns.length,
+      agentStats,
       inProgressTasks.length,
       unreadInboxTasks.length,
     ],
@@ -251,6 +257,51 @@ export function useWorkspacePageContent({
       controller.abort();
     };
   }, [getToken]);
+
+  useEffect(() => {
+    if (section !== 'overview') {
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadWorkspaceRuns = async () => {
+      const token = await resolveClerkToken(getToken);
+      if (!token || !isMounted) {
+        return;
+      }
+
+      const service = AgentRunsService.getInstance(token);
+      const [runsResult, activeRunsResult, statsResult] =
+        await Promise.allSettled([
+          service.list({ page: 1 }),
+          service.getActive(),
+          service.getStats(),
+        ]);
+
+      if (!isMounted) {
+        return;
+      }
+
+      startTransition(() => {
+        if (runsResult.status === 'fulfilled') {
+          setAgentRuns(runsResult.value);
+        }
+        if (activeRunsResult.status === 'fulfilled') {
+          setActiveRuns(activeRunsResult.value);
+        }
+        if (statsResult.status === 'fulfilled') {
+          setAgentStats(statsResult.value);
+        }
+      });
+    };
+
+    void loadWorkspaceRuns();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [getToken, section]);
 
   useEffect(() => {
     if (!organizationId) {
@@ -394,10 +445,10 @@ export function useWorkspacePageContent({
     defaultInboxView,
     historyPreviewItems,
     inProgressTasks,
-    initialActiveRuns,
+    initialActiveRuns: activeRuns,
     initialReviewInbox,
-    initialRuns,
-    initialStats,
+    initialRuns: agentRuns,
+    initialStats: agentStats,
     isInboxSection,
     isOverviewSection,
     isTaskComposerOpen,

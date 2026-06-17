@@ -1,5 +1,7 @@
+import { ComponentSize } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { LoadingOverlayProps } from '@genfeedai/props/ui/feedback/loading.props';
+import Spinner from '@ui/feedback/spinner/Spinner';
 
 export default function LoadingOverlay({
   message = 'Loading…',
@@ -15,8 +17,13 @@ export default function LoadingOverlay({
         className,
       )}
     >
-      <div className="absolute bg-primary/5 inset-0 backdrop-blur-sm"></div>
-      <span className="relative bg-black/10 w-full text-center text-white px-2 py-1 animate-pulse">
+      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" />
+      <span className="relative flex items-center gap-3 rounded-md border border-border/60 bg-background/90 px-3 py-2 text-sm text-foreground shadow-lg">
+        <Spinner
+          ariaLabel={message}
+          className="text-white/80"
+          size={ComponentSize.SM}
+        />
         {message}
       </span>
     </div>

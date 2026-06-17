@@ -22,6 +22,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import CreditsBarPanel from './CreditsBarPanel';
 import CreditsBarTrigger from './CreditsBarTrigger';
 
+interface OptionalBalanceRequestError {
+  isCancelled?: boolean;
+  silent?: boolean;
+}
+
 export default function TopbarCreditsBar() {
   const { organizationId } = useBrand();
   const { orgHref } = useOrgUrl();
@@ -64,7 +69,13 @@ export default function TopbarCreditsBar() {
       );
       setIsLoading(false);
     } catch (error: unknown) {
-      logger.error('TopbarCreditsBar: failed to fetch balances', error);
+      const requestError = error as OptionalBalanceRequestError;
+      if (!requestError.isCancelled && !requestError.silent) {
+        logger.warn('TopbarCreditsBar: failed to fetch balances', {
+          error,
+          reportToSentry: false,
+        });
+      }
       setIsLoading(false);
     }
   }, [organizationId, getCreditsService]);
