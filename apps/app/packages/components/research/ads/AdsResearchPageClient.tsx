@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   AlertCategory,
   ButtonSize,
@@ -100,14 +101,14 @@ export default function AdsResearchPageClient({
         fullWidth: false,
         items: [
           {
-            href: '/research/ads',
+            href: APP_ROUTES.RESEARCH.ADS,
             id: 'all',
             label: 'Overview',
             matchMode: 'exact',
           },
-          { href: '/research/ads/meta', id: 'meta', label: 'Meta' },
+          { href: APP_ROUTES.RESEARCH.ADS_META, id: 'meta', label: 'Meta' },
           {
-            href: '/research/ads/google',
+            href: APP_ROUTES.RESEARCH.ADS_GOOGLE,
             id: 'google',
             label: 'Google + YouTube',
           },

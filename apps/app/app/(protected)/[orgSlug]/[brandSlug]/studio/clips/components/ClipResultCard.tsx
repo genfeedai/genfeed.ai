@@ -1,5 +1,6 @@
 'use client';
 
+import { COMPOSE_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import type {
   ClipResult,
@@ -9,7 +10,6 @@ import type {
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 import {

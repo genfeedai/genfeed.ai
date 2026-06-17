@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   formatCompactNumber,
@@ -224,7 +225,7 @@ export default function TopbarCreditsBar() {
         remainingPercent={remainingPercent}
         providerSegments={providerSegments}
         isLoading={isLoading}
-        settingsHref={orgHref('/settings')}
+        settingsHref={orgHref(APP_ROUTES.SETTINGS.ROOT)}
         onRefreshBalance={handleRefreshBalance}
         onClose={() => setIsOpen(false)}
       />

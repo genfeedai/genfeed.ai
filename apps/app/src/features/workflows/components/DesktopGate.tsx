@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useEffect, useState } from 'react';
 
@@ -43,7 +44,7 @@ export function DesktopGate({ children }: DesktopGateProps) {
           Minimum screen width: 1024px
         </p>
         <a
-          href={href('/overview')}
+          href={href(APP_ROUTES.OVERVIEW.ROOT)}
           className="inline-block bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
         >
           Go to Dashboard

@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  createBrandAppRoute,
+  createOrganizationAppRoute,
+} from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { IBrand } from '@genfeedai/interfaces';
 import { useParams } from 'next/navigation';
@@ -51,16 +55,12 @@ export function useOrgUrl(): OrgUrlContext {
     params.orgSlug ?? getBrandOrganizationSlug(selectedBrand) ?? '';
   const brandSlug = params.brandSlug ?? selectedBrand?.slug ?? '';
 
-  const normalizePath = (path: string) =>
-    path.startsWith('/') ? path : `/${path}`;
-  const orgHref = (path: string) => `/${orgSlug}/~${normalizePath(path)}`;
+  const orgHref = (path: string) => createOrganizationAppRoute(orgSlug, path);
 
   return {
     brandSlug,
     href: (path: string) =>
-      brandSlug
-        ? `/${orgSlug}/${brandSlug}${normalizePath(path)}`
-        : orgHref(path),
+      brandSlug ? createBrandAppRoute(orgSlug, brandSlug, path) : orgHref(path),
     orgHref,
     orgSlug,
   };

@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
   HiChartBar,
@@ -11,28 +12,28 @@ import {
 export const ORG_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
-    href: '/overview',
+    href: APP_ROUTES.OVERVIEW.ROOT,
     label: 'Overview',
-    matchPaths: ['/overview'],
+    matchPaths: [APP_ROUTES.OVERVIEW.ROOT],
     outline: HiOutlineSquares2X2,
     solid: HiSquares2X2,
   },
   {
     group: '',
-    href: '/analytics/overview',
+    href: APP_ROUTES.ANALYTICS.OVERVIEW,
     label: 'Analytics',
-    matchPaths: ['/analytics', '/analytics/overview'],
+    matchPaths: [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
     outline: HiOutlineChartBar,
     solid: HiChartBar,
   },
   {
     group: '',
-    href: '/chat',
+    href: APP_ROUTES.CHAT.ROOT,
     label: 'Agent',
-    matchPaths: ['/chat'],
+    matchPaths: [APP_ROUTES.CHAT.ROOT],
     outline: HiOutlineChatBubbleLeftRight,
     solid: HiChatBubbleLeftRight,
   },
 ];
 
-export const ORG_LOGO_HREF = '/overview';
+export const ORG_LOGO_HREF = APP_ROUTES.OVERVIEW.ROOT;

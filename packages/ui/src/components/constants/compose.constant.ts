@@ -1,6 +1,2 @@
-export const COMPOSE_ROUTES = {
-  ARTICLE: '/compose/article',
-  NEWSLETTER: '/compose/newsletter',
-  POST: '/compose/post',
-  ROOT: '/compose',
-} as const;
+export type { ComposeRoute } from '@genfeedai/constants';
+export { COMPOSE_ROUTES } from '@genfeedai/constants';

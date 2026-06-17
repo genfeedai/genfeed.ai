@@ -4,6 +4,7 @@ import {
   type AgentDraftSuggestionPayload,
   useAgentDraftContext,
 } from '@genfeedai/agent';
+import { COMPOSE_ROUTES } from '@genfeedai/constants';
 import { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
 import type { Article } from '@genfeedai/models/content/article.model';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -19,7 +20,6 @@ import XArticleAssetsBar from '@ui/articles/x-article/XArticleAssetsBar';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
-import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import ArticleDetailHeader from './article-detail-header';

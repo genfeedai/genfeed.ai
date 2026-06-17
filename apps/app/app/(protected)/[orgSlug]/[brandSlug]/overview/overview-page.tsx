@@ -1,5 +1,6 @@
 'use client';
 
+import { COMPOSE_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
@@ -17,7 +18,6 @@ import Card from '@ui/card/Card';
 import CardIcon from '@ui/card/icon/CardIcon';
 import OverviewLayout from '@ui/overview/OverviewLayout';
 import { Button } from '@ui/primitives/button';
-import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import Link from 'next/link';
 import type { ComponentType } from 'react';
 import { useMemo } from 'react';
