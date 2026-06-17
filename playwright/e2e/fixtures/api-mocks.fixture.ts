@@ -660,7 +660,7 @@ export async function mockActiveSubscription(
   page: Page,
   options: BillingMockOptions = {},
 ): Promise<void> {
-  const { plan = 'pro', credits = 1000, hasPaymentMethod = true } = options;
+  const { plan = 'pro', credits = 500, hasPaymentMethod = true } = options;
 
   await routeApiPattern(page, '/subscriptions/**', async (route) => {
     await route.fulfill({
