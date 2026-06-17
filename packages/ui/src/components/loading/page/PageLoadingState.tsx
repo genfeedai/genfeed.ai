@@ -19,7 +19,9 @@ export default function PageLoadingState({
   return (
     <div
       aria-busy="true"
+      aria-label={message ?? 'Loading'}
       aria-live="polite"
+      role="status"
       className={cn(
         'flex items-center justify-center',
         fullScreen ? 'min-h-screen' : 'min-h-[60vh]',
