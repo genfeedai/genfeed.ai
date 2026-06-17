@@ -113,7 +113,12 @@ describe('PublicBrandsController', () => {
 
       expect(articlesService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ status: 'PUBLISHED' }),
+          where: expect.objectContaining({
+            brand: '507f191e810c19729de860ee',
+            isDeleted: false,
+            scope: AssetScope.PUBLIC,
+            status: 'PUBLISHED',
+          }),
         }),
         expect.any(Object),
       );

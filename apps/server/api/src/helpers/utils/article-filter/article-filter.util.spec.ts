@@ -10,6 +10,13 @@ const ARTICLE_STATUS_GUARD_ROOTS = [
   join(API_SRC_ROOT, 'endpoints/public'),
 ];
 const PRISMA_ARTICLE_STATUS_MEMBERS = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
+const FORBIDDEN_STATUS_FILTER_PATTERNS = [
+  /where\s*:\s*{(?:[^{}]|{[^{}]*})*status\s*:\s*ArticleStatus\./gs,
+  /where\.status\s*=\s*ArticleStatus\./g,
+  /data\s*:\s*{(?:[^{}]|{[^{}]*})*status\s*:\s*ArticleStatus\./gs,
+  /status\s*:\s*PrismaArticleStatus\./g,
+  /where\.status\s*=\s*PrismaArticleStatus\./g,
+];
 
 function walkSourceFiles(dir: string): string[] {
   const results: string[] = [];
@@ -23,6 +30,13 @@ function walkSourceFiles(dir: string): string[] {
     }
   }
   return results;
+}
+
+function hasForbiddenStatusFilter(source: string): boolean {
+  return FORBIDDEN_STATUS_FILTER_PATTERNS.some((pattern) => {
+    pattern.lastIndex = 0;
+    return pattern.test(source);
+  });
 }
 
 describe('ArticleFilterUtil', () => {
@@ -228,26 +242,28 @@ describe('ArticleFilterUtil', () => {
       }
     });
 
+    it('detects direct app status filters after nested where/data filters', () => {
+      expect(
+        hasForbiddenStatusFilter(
+          'where: { publishedAt: { not: null }, status: ArticleStatus.PUBLIC }',
+        ),
+      ).toBe(true);
+      expect(
+        hasForbiddenStatusFilter(
+          'data: { metadata: { source: "rss" }, status: ArticleStatus.PUBLIC }',
+        ),
+      ).toBe(true);
+    });
+
     it('does not use app ArticleStatus values directly in Prisma where/data status filters', () => {
-      const forbiddenPatterns = [
-        /where\s*:\s*{[^}]*status\s*:\s*ArticleStatus\./gs,
-        /where\.status\s*=\s*ArticleStatus\./g,
-        /data\s*:\s*{[^}]*status\s*:\s*ArticleStatus\./gs,
-        /status\s*:\s*PrismaArticleStatus\./g,
-        /where\.status\s*=\s*PrismaArticleStatus\./g,
-      ];
       const violations: string[] = [];
 
       for (const filePath of ARTICLE_STATUS_GUARD_ROOTS.flatMap((root) =>
         walkSourceFiles(root),
       )) {
         const source = readFileSync(filePath, 'utf-8');
-        for (const pattern of forbiddenPatterns) {
-          pattern.lastIndex = 0;
-          if (pattern.test(source)) {
-            violations.push(relative(API_SRC_ROOT, filePath));
-            break;
-          }
+        if (hasForbiddenStatusFilter(source)) {
+          violations.push(relative(API_SRC_ROOT, filePath));
         }
       }
 
