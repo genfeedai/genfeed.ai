@@ -11,7 +11,7 @@ export default function Loading({
   const label = message ?? 'Loading';
 
   return (
-    <div
+    <output
       className={cn(
         'flex items-center justify-center text-center',
         isFullSize ? 'min-h-screen' : 'min-h-[60vh]',
@@ -20,7 +20,6 @@ export default function Loading({
       aria-busy="true"
       aria-label={label}
       aria-live="polite"
-      role="status"
     >
       <div className="flex max-w-md flex-col items-center gap-4 px-6">
         <Spinner
@@ -29,9 +28,9 @@ export default function Loading({
           size={ComponentSize.LG}
         />
         {message ? (
-          <output className="text-sm text-white/40">{message}</output>
+          <span className="text-sm text-white/40">{message}</span>
         ) : null}
       </div>
-    </div>
+    </output>
   );
 }

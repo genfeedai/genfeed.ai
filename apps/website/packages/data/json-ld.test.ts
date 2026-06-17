@@ -23,4 +23,16 @@ describe('stringifyJsonLd', () => {
       paragraphSeparator: '\u2029',
     });
   });
+
+  it('rejects top-level values that JSON.stringify cannot serialize', () => {
+    expect(() => stringifyJsonLd(undefined)).toThrow(
+      'stringifyJsonLd expects a JSON-serializable value',
+    );
+    expect(() => stringifyJsonLd(() => undefined)).toThrow(
+      'stringifyJsonLd expects a JSON-serializable value',
+    );
+    expect(() => stringifyJsonLd(Symbol('json-ld'))).toThrow(
+      'stringifyJsonLd expects a JSON-serializable value',
+    );
+  });
 });

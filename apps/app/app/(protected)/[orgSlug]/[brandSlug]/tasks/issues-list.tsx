@@ -351,10 +351,9 @@ export default function IssuesList() {
 
   useEffect(() => {
     loadIssues();
-    const controller = controllerRef.current;
 
     return () => {
-      controller?.abort();
+      controllerRef.current?.abort();
     };
   }, [loadIssues]);
 

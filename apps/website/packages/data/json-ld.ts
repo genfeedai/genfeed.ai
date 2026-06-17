@@ -9,7 +9,13 @@ const JSON_SCRIPT_ESCAPE_LOOKUP: Record<string, string> = {
 const JSON_SCRIPT_ESCAPE_PATTERN = /[<>&\u2028\u2029]/g;
 
 export function stringifyJsonLd(value: unknown): string {
-  return JSON.stringify(value).replace(
+  const serialized = JSON.stringify(value);
+
+  if (serialized === undefined) {
+    throw new TypeError('stringifyJsonLd expects a JSON-serializable value');
+  }
+
+  return serialized.replace(
     JSON_SCRIPT_ESCAPE_PATTERN,
     (character) => JSON_SCRIPT_ESCAPE_LOOKUP[character],
   );

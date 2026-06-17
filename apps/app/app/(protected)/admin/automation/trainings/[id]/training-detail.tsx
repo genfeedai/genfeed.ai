@@ -55,22 +55,24 @@ export default function TrainingDetail({
         setIsLoading(true);
         setError(null);
 
+        abortControllerRef.current?.abort();
         abortControllerRef.current = controller;
         const service = await getTrainingsService();
 
         const data = await service.findOne(trainingId);
 
-        if (!controller.signal.aborted) {
-          setTraining(data);
-        }
-
-        logger.info(`${url} success`, data);
-      } catch (error) {
-        logger.error(`${url} failed`, error);
-        if (error instanceof Error && error.name === 'AbortError') {
+        if (controller.signal.aborted) {
           return;
         }
 
+        setTraining(data);
+        logger.info(`${url} success`, data);
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        logger.error(`${url} failed`, error);
         const errorMessage = getErrorMessage(
           error,
           'Failed to load training details',
@@ -94,7 +96,7 @@ export default function TrainingDetail({
     }
 
     return () => {
-      controller?.abort();
+      abortControllerRef.current?.abort();
     };
   }, [trainingId, loadTraining]);
 
