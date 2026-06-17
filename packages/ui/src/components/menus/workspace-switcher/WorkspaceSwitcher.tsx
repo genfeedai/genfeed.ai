@@ -3,6 +3,11 @@
 import { useUser } from '@clerk/nextjs';
 import { useBrandOverlay } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import {
+  getBrandEntityId,
+  getBrandOrganizationId,
+  getBrandOrganizationSlug,
+} from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -13,7 +18,7 @@ import {
   PopoverPanelContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CreateOrgModal } from './CreateOrgModal';
 import { WorkspaceSwitcherPanel } from './WorkspaceSwitcherPanel';
@@ -26,11 +31,22 @@ type OrganizationEntry = {
   brand: { id: string; label: string } | null;
 };
 
+function getCurrentBrandScopedPath(pathname: string): string {
+  const parts = pathname.split('/').filter(Boolean);
+
+  if (parts.length >= 3 && parts[1] !== '~') {
+    return `/${parts.slice(2).join('/')}`;
+  }
+
+  return '/workspace/overview';
+}
+
 export default function WorkspaceSwitcher() {
   const { user } = useUser();
-  const { brands, brandId } = useBrand();
+  const { brands, brandId, setBrandId, setOrganizationId } = useBrand();
   const { openBrandOverlay } = useBrandOverlay();
   const { push, refresh } = useRouter();
+  const pathname = usePathname();
   const { href, orgSlug, orgHref } = useOrgUrl();
 
   const getOrganizationsService = useAuthedService((token: string) =>
@@ -87,7 +103,7 @@ export default function WorkspaceSwitcher() {
     [organizations],
   );
   const selectedBrand = useMemo(
-    () => brands.find((b) => b.id === brandId),
+    () => brands.find((brand) => getBrandEntityId(brand) === brandId),
     [brands, brandId],
   );
 
@@ -126,13 +142,31 @@ export default function WorkspaceSwitcher() {
       try {
         setIsSwitchingBrand(true);
         const service = await getUsersService();
-        await service.patchMeBrand(id, { isSelected: true });
+        const updatedBrand = await service.patchMeBrand(id, {
+          isSelected: true,
+        });
         logger.info(`${url} success`);
-        await user?.reload();
 
-        const newBrand = brands.find((b) => b.id === id);
+        const newBrand =
+          brands.find((brand) => getBrandEntityId(brand) === id) ??
+          updatedBrand;
         if (newBrand?.slug) {
-          push(`/${orgSlug}/${newBrand.slug}/workspace/overview`);
+          const nextBrandId = getBrandEntityId(newBrand) || id;
+          const nextOrganizationId = getBrandOrganizationId(newBrand);
+          const nextOrgSlug = getBrandOrganizationSlug(newBrand) || orgSlug;
+
+          setBrandId(nextBrandId);
+          if (nextOrganizationId) {
+            setOrganizationId(nextOrganizationId);
+          }
+          setIsOpen(false);
+          push(
+            `/${nextOrgSlug}/${newBrand.slug}${getCurrentBrandScopedPath(pathname)}`,
+          );
+          const reloadPromise = user?.reload();
+          void reloadPromise?.catch((error) => {
+            logger.error('Failed to reload user after brand switch', error);
+          });
         } else {
           refresh();
         }
@@ -142,7 +176,18 @@ export default function WorkspaceSwitcher() {
         setIsSwitchingBrand(false);
       }
     },
-    [getUsersService, user, brands, orgSlug, push, refresh, isSwitchingBrand],
+    [
+      getUsersService,
+      user,
+      brands,
+      orgSlug,
+      pathname,
+      push,
+      refresh,
+      setBrandId,
+      setOrganizationId,
+      isSwitchingBrand,
+    ],
   );
 
   const close = useCallback(() => {
