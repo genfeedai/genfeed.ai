@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
@@ -45,7 +46,7 @@ function AppProtectedTopbarContent({
   const backToTaskHref = taskId
     ? href(
         appendSearchParamsToHref(
-          '/workspace/overview',
+          APP_ROUTES.WORKSPACE.OVERVIEW,
           new URLSearchParams([['taskId', taskId]]),
         ),
       )

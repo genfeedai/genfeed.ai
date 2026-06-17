@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
   HiClipboardDocumentList,
@@ -20,38 +21,38 @@ export enum AppMenuGroup {
 export const APP_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: AppMenuGroup.Root,
-    href: '/workspace/overview',
+    href: APP_ROUTES.WORKSPACE.OVERVIEW,
     label: 'Dashboard',
-    matchPaths: ['/workspace', '/workspace/overview'],
+    matchPaths: [APP_ROUTES.WORKSPACE.ROOT, APP_ROUTES.WORKSPACE.OVERVIEW],
     outline: HiOutlineSquares2X2,
     solid: HiSquares2X2,
   },
   {
     group: AppMenuGroup.Root,
-    href: '/workspace/inbox/unread',
+    href: APP_ROUTES.WORKSPACE.INBOX_UNREAD,
     label: 'Inbox',
     matchPaths: [
-      '/workspace/inbox',
-      '/workspace/inbox/unread',
-      '/workspace/inbox/recent',
-      '/workspace/inbox/all',
+      APP_ROUTES.WORKSPACE.INBOX,
+      APP_ROUTES.WORKSPACE.INBOX_UNREAD,
+      APP_ROUTES.WORKSPACE.INBOX_RECENT,
+      APP_ROUTES.WORKSPACE.INBOX_ALL,
     ],
     outline: HiOutlineInboxStack,
     solid: HiInboxStack,
   },
   {
     group: AppMenuGroup.Root,
-    href: '/tasks',
+    href: APP_ROUTES.TASKS.ROOT,
     label: 'Tasks',
-    matchPaths: ['/tasks'],
+    matchPaths: [APP_ROUTES.TASKS.ROOT],
     outline: HiOutlineClipboardDocumentList,
     solid: HiClipboardDocumentList,
   },
   {
     group: AppMenuGroup.Root,
-    href: '/workspace/activity',
+    href: APP_ROUTES.WORKSPACE.ACTIVITY,
     label: 'Activity',
-    matchPaths: ['/workspace/activity'],
+    matchPaths: [APP_ROUTES.WORKSPACE.ACTIVITY],
     outline: HiOutlineClock,
     solid: HiClock,
   },
@@ -63,4 +64,4 @@ export function getAppSecondaryMenuItems(
   return [];
 }
 
-export const APP_LOGO_HREF = '/workspace/overview';
+export const APP_LOGO_HREF = APP_ROUTES.WORKSPACE.OVERVIEW;

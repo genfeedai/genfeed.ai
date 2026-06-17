@@ -1,5 +1,6 @@
 'use client';
 
+import { COMPOSE_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
 import type { Article } from '@genfeedai/models/content/article.model';
@@ -8,7 +9,6 @@ import { ArticlesService } from '@genfeedai/services/content/articles.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 

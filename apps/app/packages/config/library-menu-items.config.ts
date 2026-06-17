@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
   HiDocumentText,
@@ -19,61 +20,61 @@ import {
 export const LIBRARY_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
-    href: '/library/videos',
+    href: APP_ROUTES.LIBRARY.VIDEOS,
     label: 'Videos',
-    matchPaths: ['/library/videos'],
+    matchPaths: [APP_ROUTES.LIBRARY.VIDEOS],
     outline: HiOutlineVideoCamera,
     solid: HiVideoCamera,
   },
   {
     group: '',
-    href: '/library/images',
+    href: APP_ROUTES.LIBRARY.IMAGES,
     label: 'Images',
-    matchPaths: ['/library/images'],
+    matchPaths: [APP_ROUTES.LIBRARY.IMAGES],
     outline: HiOutlinePhoto,
     solid: HiPhoto,
   },
   {
     group: '',
-    href: '/library/gifs',
+    href: APP_ROUTES.LIBRARY.GIFS,
     label: 'GIFs',
-    matchPaths: ['/library/gifs'],
+    matchPaths: [APP_ROUTES.LIBRARY.GIFS],
     outline: HiOutlinePlayCircle,
     solid: HiPlayCircle,
   },
   {
     group: '',
-    href: '/library/avatars',
+    href: APP_ROUTES.LIBRARY.AVATARS,
     label: 'Avatars',
-    matchPaths: ['/library/avatars'],
+    matchPaths: [APP_ROUTES.LIBRARY.AVATARS],
     outline: HiOutlineSparkles,
     solid: HiSparkles,
   },
   {
     group: '',
     hasDividerAbove: true,
-    href: '/library/voices',
+    href: APP_ROUTES.LIBRARY.VOICES,
     label: 'Voices',
-    matchPaths: ['/library/voices'],
+    matchPaths: [APP_ROUTES.LIBRARY.VOICES],
     outline: HiOutlineMicrophone,
     solid: HiMicrophone,
   },
   {
     group: '',
-    href: '/library/music',
+    href: APP_ROUTES.LIBRARY.MUSIC,
     label: 'Music',
-    matchPaths: ['/library/music'],
+    matchPaths: [APP_ROUTES.LIBRARY.MUSIC],
     outline: HiOutlineMusicalNote,
     solid: HiMusicalNote,
   },
   {
     group: '',
-    href: '/library/captions',
+    href: APP_ROUTES.LIBRARY.CAPTIONS,
     label: 'Captions',
-    matchPaths: ['/library/captions'],
+    matchPaths: [APP_ROUTES.LIBRARY.CAPTIONS],
     outline: HiOutlineDocumentText,
     solid: HiDocumentText,
   },
 ];
 
-export const LIBRARY_LOGO_HREF = '/library/ingredients';
+export const LIBRARY_LOGO_HREF = APP_ROUTES.LIBRARY.INGREDIENTS;

@@ -9,6 +9,7 @@ import { ORG_LOGO_HREF } from '@app-config/org-menu-items.config';
 import { SETTINGS_LOGO_HREF } from '@app-config/settings-menu-items.config';
 import { STUDIO_LOGO_HREF } from '@app-config/studio-menu-items.config';
 import { WORKFLOWS_LOGO_HREF } from '@app-config/workflows-menu-items.config';
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -170,7 +171,7 @@ export default function AppProtectedLayoutSidebar({
       <AppSidebar
         items={[]}
         logoHref={withTaskContextHref(
-          buildHref('/workspace/overview'),
+          buildHref(APP_ROUTES.WORKSPACE.OVERVIEW),
           taskContextSearchParams,
         )}
         currentApp={currentApp}

@@ -1,3 +1,4 @@
+import { APP_ROUTES, COMPOSE_ROUTES } from '@genfeedai/constants';
 import type { Task } from '@services/management/tasks.service';
 
 export type TaskLaunchMode =
@@ -111,39 +112,39 @@ export function withTaskContextHref(
 function getTaskLaunchPath(task: Task, mode: TaskLaunchMode): string {
   if (mode === 'write') {
     if (task.outputType === 'newsletter') {
-      return '/compose/newsletter';
+      return COMPOSE_ROUTES.NEWSLETTER;
     }
 
     return task.outputType === 'caption' || task.outputType === 'post'
-      ? '/compose/post'
-      : '/compose/article';
+      ? COMPOSE_ROUTES.POST
+      : COMPOSE_ROUTES.ARTICLE;
   }
 
   if (mode === 'generate') {
     return task.executionPathUsed === 'video_generation'
-      ? '/studio/video'
-      : '/studio/image';
+      ? APP_ROUTES.STUDIO.VIDEO
+      : APP_ROUTES.STUDIO.IMAGE;
   }
 
   if (mode === 'edit') {
-    return '/editor';
+    return APP_ROUTES.EDITOR.ROOT;
   }
 
   if (mode === 'automate') {
-    return '/workflows';
+    return APP_ROUTES.WORKFLOWS.ROOT;
   }
 
   switch (task.executionPathUsed) {
     case 'caption_generation':
       return task.outputType === 'newsletter'
-        ? '/compose/newsletter'
-        : '/compose/post';
+        ? COMPOSE_ROUTES.NEWSLETTER
+        : COMPOSE_ROUTES.POST;
     case 'image_generation':
-      return '/studio/image';
+      return APP_ROUTES.STUDIO.IMAGE;
     case 'video_generation':
-      return '/studio/video';
+      return APP_ROUTES.STUDIO.VIDEO;
     default:
-      return '/workflows';
+      return APP_ROUTES.WORKFLOWS.ROOT;
   }
 }
 

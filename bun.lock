@@ -664,6 +664,7 @@
       "name": "@genfeedai/agent",
       "version": "1.0.0",
       "dependencies": {
+        "@genfeedai/constants": "workspace:*",
         "@genfeedai/contexts": "workspace:*",
         "@genfeedai/models": "workspace:*",
         "@genfeedai/props": "workspace:*",
@@ -1015,6 +1016,7 @@
       "name": "@genfeedai/pages",
       "version": "0.1.0",
       "dependencies": {
+        "@genfeedai/constants": "workspace:*",
         "@tanstack/react-query": "5.101.0",
       },
     },

@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
 import {
   AnomalySeverity,
@@ -22,7 +23,7 @@ import {
 } from '@genfeedai/services/analytics/insights.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 
 interface UseInsightsOptions {
@@ -68,7 +69,6 @@ export function useInsights({
   enabled = true,
 }: UseInsightsOptions = {}): UseInsightsReturn {
   const { dateRange, refreshTrigger } = useAnalyticsContext();
-  const queryClient = useQueryClient();
 
   const getInsightsService = useAuthedService((token: string) =>
     InsightsService.getInstance(token),
@@ -225,7 +225,7 @@ function getMockInsightsData(): ContentInsightsData {
     alerts: [
       {
         actionLabel: 'View Stats',
-        actionUrl: '/overview',
+        actionUrl: APP_ROUTES.OVERVIEW.ROOT,
         createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
         id: 'alert-1',
         isDismissed: false,
@@ -237,7 +237,7 @@ function getMockInsightsData(): ContentInsightsData {
       },
       {
         actionLabel: 'Review Posts',
-        actionUrl: '/posts',
+        actionUrl: APP_ROUTES.POSTS.ROOT,
         createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
         id: 'alert-2',
         isDismissed: false,
@@ -250,7 +250,7 @@ function getMockInsightsData(): ContentInsightsData {
       },
       {
         actionLabel: 'View Post',
-        actionUrl: '/posts',
+        actionUrl: APP_ROUTES.POSTS.ROOT,
         createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
         id: 'alert-3',
         isDismissed: false,

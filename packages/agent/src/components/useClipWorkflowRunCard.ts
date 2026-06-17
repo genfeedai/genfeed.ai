@@ -5,7 +5,7 @@ import {
   buildAgentGenerationRequestBody,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
-import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
+import { COMPOSE_ROUTES } from '@genfeedai/constants';
 import { useCallback, useMemo, useState } from 'react';
 
 export type StepKey =

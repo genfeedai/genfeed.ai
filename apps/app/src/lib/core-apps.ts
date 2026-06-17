@@ -1,3 +1,5 @@
+import { APP_ROUTES } from '@genfeedai/constants';
+
 export type CoreAppId = 'agent' | 'workflows' | 'studio' | 'editor';
 
 export interface CoreAppDefinition {
@@ -12,7 +14,7 @@ export const CORE_APPS: CoreAppDefinition[] = [
   {
     description:
       'Control content creation from a full-page agent conversation.',
-    href: '/chat',
+    href: APP_ROUTES.CHAT.ROOT,
     id: 'agent',
     label: 'Agent',
     shortLabel: 'Agent',
@@ -20,7 +22,7 @@ export const CORE_APPS: CoreAppDefinition[] = [
   {
     description:
       'Build reusable node-based automation pipelines and manage saved workflows.',
-    href: '/workflows',
+    href: APP_ROUTES.WORKFLOWS.ROOT,
     id: 'workflows',
     label: 'Workflows',
     shortLabel: 'Flows',
@@ -28,7 +30,7 @@ export const CORE_APPS: CoreAppDefinition[] = [
   {
     description:
       'Generate image and video assets quickly with a prompt bar and Replicate models.',
-    href: '/studio',
+    href: APP_ROUTES.STUDIO.ROOT,
     id: 'studio',
     label: 'Studio',
     shortLabel: 'Studio',
@@ -36,7 +38,7 @@ export const CORE_APPS: CoreAppDefinition[] = [
   {
     description:
       'Compose and export media from generated assets using a Remotion-based editor.',
-    href: '/editor',
+    href: APP_ROUTES.EDITOR.ROOT,
     id: 'editor',
     label: 'Editor',
     shortLabel: 'Editor',

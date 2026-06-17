@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
   HiMusicalNote,
@@ -15,45 +16,45 @@ import {
 export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
-    href: '/studio/image',
+    href: APP_ROUTES.STUDIO.IMAGE,
     label: 'Image',
-    matchPaths: ['/studio', '/studio/image'],
+    matchPaths: [APP_ROUTES.STUDIO.ROOT, APP_ROUTES.STUDIO.IMAGE],
     outline: HiOutlinePhoto,
     solid: HiPhoto,
   },
   {
     group: '',
-    href: '/studio/video',
+    href: APP_ROUTES.STUDIO.VIDEO,
     label: 'Video',
-    matchPaths: ['/studio/video'],
+    matchPaths: [APP_ROUTES.STUDIO.VIDEO],
     outline: HiOutlinePlayCircle,
     solid: HiPlayCircle,
   },
   {
     group: '',
-    href: '/studio/avatar',
+    href: APP_ROUTES.STUDIO.AVATAR,
     label: 'Avatar',
-    matchPaths: ['/studio/avatar'],
+    matchPaths: [APP_ROUTES.STUDIO.AVATAR],
     outline: HiOutlineUserGroup,
     solid: HiUserGroup,
   },
   {
     group: '',
-    href: '/studio/music',
+    href: APP_ROUTES.STUDIO.MUSIC,
     label: 'Music',
-    matchPaths: ['/studio/music'],
+    matchPaths: [APP_ROUTES.STUDIO.MUSIC],
     outline: HiOutlineMusicalNote,
     solid: HiMusicalNote,
   },
   {
     group: '',
     hasDividerAbove: true,
-    href: '/studio/batch',
+    href: APP_ROUTES.STUDIO.BATCH,
     label: 'Batch',
-    matchPaths: ['/studio/batch'],
+    matchPaths: [APP_ROUTES.STUDIO.BATCH],
     outline: HiOutlineRectangleStack,
     solid: HiRectangleStack,
   },
 ];
 
-export const STUDIO_LOGO_HREF = '/library/ingredients';
+export const STUDIO_LOGO_HREF = APP_ROUTES.LIBRARY.INGREDIENTS;

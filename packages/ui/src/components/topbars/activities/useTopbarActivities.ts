@@ -1,5 +1,6 @@
 'use client';
 
+import { COMPOSE_ROUTES } from '@genfeedai/constants';
 import { useIngredientOverlay } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
 import { useBackgroundTaskContext } from '@genfeedai/contexts/ui/background-task-context';
@@ -19,7 +20,6 @@ import type {
 import type { UnifiedActivityItem } from '@genfeedai/interfaces/components/topbar-activities.interface';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
-import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
