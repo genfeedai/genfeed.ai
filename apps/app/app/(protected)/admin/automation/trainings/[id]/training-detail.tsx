@@ -118,7 +118,13 @@ export default function TrainingDetail({
             {error || 'Training not found'}
           </p>
 
-          <Button label="Try Again" onClick={loadTraining} className="mt-4" />
+          <Button
+            label="Try Again"
+            onClick={() => {
+              void loadTraining();
+            }}
+            className="mt-4"
+          />
         </Card>
       </Container>
     );
