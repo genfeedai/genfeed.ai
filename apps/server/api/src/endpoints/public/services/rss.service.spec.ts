@@ -94,7 +94,7 @@ describe('RssService', () => {
           where: {
             isDeleted: false,
             scope: ArticleScope.PUBLIC,
-            status: ArticleStatus.PUBLIC,
+            status: 'PUBLISHED',
           },
         }),
         { pagination: false },

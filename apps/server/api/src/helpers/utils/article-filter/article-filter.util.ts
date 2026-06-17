@@ -1,26 +1,98 @@
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ArticleStatus } from '@genfeedai/enums';
+import { BadRequestException } from '@nestjs/common';
 
 /**
  * Maps app-level ArticleStatus values (lowercase) to Prisma enum values (uppercase).
- * processing and failed have no Prisma equivalent and are excluded from the filter.
+ * processing and failed are generation-pipeline states; they never persist to
+ * Article.status and are excluded from persisted filters.
  */
-const APP_TO_PRISMA_STATUS: Partial<Record<ArticleStatus, string>> = {
+export type PrismaArticleStatusValue = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+const APP_TO_PRISMA_STATUS: Partial<
+  Record<ArticleStatus, PrismaArticleStatusValue>
+> = {
   [ArticleStatus.DRAFT]: 'DRAFT',
   [ArticleStatus.PUBLIC]: 'PUBLISHED',
   [ArticleStatus.ARCHIVED]: 'ARCHIVED',
 };
 
+const PRISMA_ARTICLE_STATUS_VALUES = new Set<string>(
+  Object.values(APP_TO_PRISMA_STATUS),
+);
+
 export class ArticleFilterUtil {
+  static toPrismaArticleStatus(
+    status?: ArticleStatus | PrismaArticleStatusValue | string,
+  ): PrismaArticleStatusValue | undefined {
+    if (status === undefined || status === '') {
+      return undefined;
+    }
+
+    const mapped = APP_TO_PRISMA_STATUS[status as ArticleStatus];
+    if (mapped !== undefined) {
+      return mapped;
+    }
+
+    if (PRISMA_ARTICLE_STATUS_VALUES.has(status)) {
+      return status as PrismaArticleStatusValue;
+    }
+
+    return undefined;
+  }
+
+  static toPersistedArticleStatus(
+    status: ArticleStatus | PrismaArticleStatusValue | string,
+  ): PrismaArticleStatusValue {
+    const mapped = ArticleFilterUtil.toPrismaArticleStatus(status);
+    if (mapped !== undefined) {
+      return mapped;
+    }
+
+    throw new BadRequestException(
+      `ArticleStatus "${status}" cannot be persisted to Article.status`,
+    );
+  }
+
+  static buildPublicArticleStatusFilter(): {
+    status: PrismaArticleStatusValue;
+  } {
+    return {
+      status: ArticleFilterUtil.toPersistedArticleStatus(ArticleStatus.PUBLIC),
+    };
+  }
+
+  static isPublicArticleStatus(status: unknown): boolean {
+    return (
+      ArticleFilterUtil.toPrismaArticleStatus(String(status)) === 'PUBLISHED'
+    );
+  }
+
+  static toArticlePersistenceData<T extends Record<string, unknown>>(
+    data: T,
+  ): T {
+    if (data.status === undefined) {
+      return data;
+    }
+
+    return {
+      ...data,
+      status: ArticleFilterUtil.toPersistedArticleStatus(String(data.status)),
+    };
+  }
+
   static buildArticleStatusFilter(
-    status?: ArticleStatus | ArticleStatus[],
+    status?:
+      | ArticleStatus
+      | PrismaArticleStatusValue
+      | Array<ArticleStatus | PrismaArticleStatusValue>,
   ): Record<string, unknown> {
     if (!status) return {};
 
     const statuses = Array.isArray(status) ? status : [status];
     const mapped = statuses
-      .map((s) => APP_TO_PRISMA_STATUS[s])
-      .filter((s): s is string => s !== undefined);
+      .map((s) => ArticleFilterUtil.toPrismaArticleStatus(s))
+      .filter((s): s is PrismaArticleStatusValue => s !== undefined);
 
     if (mapped.length === 0) return {};
     if (mapped.length === 1) {

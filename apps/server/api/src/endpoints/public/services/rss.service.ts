@@ -1,6 +1,7 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { ConfigService } from '@api/config/config.service';
-import { ArticleScope, ArticleStatus } from '@genfeedai/enums';
+import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
+import { ArticleScope } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 import RSS from 'rss';
 
@@ -46,7 +47,7 @@ export class RssService {
         where: {
           isDeleted: false,
           scope: ArticleScope.PUBLIC,
-          status: ArticleStatus.PUBLIC,
+          ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
         },
         orderBy: { createdAt: -1, publishedAt: -1 },
       },
@@ -89,7 +90,7 @@ export class RssService {
         where: {
           isDeleted: false,
           scope: ArticleScope.PUBLIC,
-          status: ArticleStatus.PUBLIC,
+          ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
           user: userId,
         },
         orderBy: { createdAt: -1, publishedAt: -1 },
@@ -134,7 +135,7 @@ export class RssService {
           brand: brandId,
           isDeleted: false,
           scope: ArticleScope.PUBLIC,
-          status: ArticleStatus.PUBLIC,
+          ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
         },
         orderBy: { createdAt: -1, publishedAt: -1 },
       },
@@ -178,7 +179,7 @@ export class RssService {
           isDeleted: false,
           organization: organizationId,
           scope: ArticleScope.PUBLIC,
-          status: ArticleStatus.PUBLIC,
+          ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
         },
         orderBy: { createdAt: -1, publishedAt: -1 },
       },
