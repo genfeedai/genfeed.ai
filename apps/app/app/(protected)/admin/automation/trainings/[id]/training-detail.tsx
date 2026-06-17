@@ -47,6 +47,10 @@ export default function TrainingDetail({
     TrainingsService.getInstance(token),
   );
 
+  const abortCurrentTrainingLoad = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
+
   const loadTraining = useCallback(
     async (controller = new AbortController()) => {
       const url = `GET /trainings/${trainingId}`;
@@ -55,24 +59,18 @@ export default function TrainingDetail({
         setIsLoading(true);
         setError(null);
 
-        abortControllerRef.current?.abort();
+        abortCurrentTrainingLoad();
         abortControllerRef.current = controller;
 
-        if (controller.signal.aborted) {
-          return;
-        }
+        controller.signal.throwIfAborted();
 
         const service = await getTrainingsService();
 
-        if (controller.signal.aborted) {
-          return;
-        }
+        controller.signal.throwIfAborted();
 
         const data = await service.findOne(trainingId);
 
-        if (controller.signal.aborted) {
-          return;
-        }
+        controller.signal.throwIfAborted();
 
         setTraining(data);
         logger.info(`${url} success`, data);
@@ -94,20 +92,24 @@ export default function TrainingDetail({
         }
       }
     },
-    [getTrainingsService, notificationsService, trainingId],
+    [
+      abortCurrentTrainingLoad,
+      getTrainingsService,
+      notificationsService,
+      trainingId,
+    ],
   );
 
   useEffect(() => {
     const controller = new AbortController();
 
+    // eslint-disable-next-line react-doctor/no-event-handler -- Route-scoped training data loads when trainingId changes, not from a user event.
     if (trainingId) {
       void loadTraining(controller);
     }
 
-    return () => {
-      abortControllerRef.current?.abort();
-    };
-  }, [trainingId, loadTraining]);
+    return abortCurrentTrainingLoad;
+  }, [trainingId, loadTraining, abortCurrentTrainingLoad]);
 
   if (isLoading) {
     return <Loading isFullSize={false} />;
