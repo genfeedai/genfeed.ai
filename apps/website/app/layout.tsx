@@ -1,5 +1,6 @@
 import '@styles/globals.css';
 
+import { stringifyJsonLd } from '@data/json-ld';
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
 import { fontVariables } from '@genfeedai/fonts';
 import { metadata as metadataHelper } from '@helpers/media/metadata/metadata.helper';
@@ -90,9 +91,9 @@ const websiteJsonLd = {
 const layoutHead = (
   <>
     <script type="application/ld+json">
-      {JSON.stringify(organizationJsonLd)}
+      {stringifyJsonLd(organizationJsonLd)}
     </script>
-    <script type="application/ld+json">{JSON.stringify(websiteJsonLd)}</script>
+    <script type="application/ld+json">{stringifyJsonLd(websiteJsonLd)}</script>
   </>
 );
 

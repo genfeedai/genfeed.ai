@@ -1,4 +1,5 @@
 import { FAQ_CATEGORIES } from '@data/faq.data';
+import { stringifyJsonLd } from '@data/json-ld';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import FAQContent from '@public/faq/faq-content';
 import type { Metadata, ResolvingMetadata } from 'next';
@@ -49,7 +50,7 @@ export async function generateMetadata(
 export default function FAQPage() {
   return (
     <>
-      <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>
+      <script type="application/ld+json">{stringifyJsonLd(faqJsonLd)}</script>
       <FAQContent />
     </>
   );

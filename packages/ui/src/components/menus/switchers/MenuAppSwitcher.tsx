@@ -27,7 +27,7 @@ const useIsomorphicLayoutEffect =
 export default function MenuAppSwitcher() {
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLDivElement>(null);
-  const dropdownRef = useRef<HTMLUListElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const logoUrl = useThemeLogo();
   const { user, isLoaded } = useUser();

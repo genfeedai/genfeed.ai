@@ -1,3 +1,4 @@
+import { stringifyJsonLd } from '@data/json-ld';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import type { Metadata, ResolvingMetadata } from 'next';
@@ -61,7 +62,7 @@ export default async function ArticlesPage({
   return (
     <>
       <script type="application/ld+json">
-        {JSON.stringify(articlesJsonLd)}
+        {stringifyJsonLd(articlesJsonLd)}
       </script>
       <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
         <ArticlesList articles={articles} />

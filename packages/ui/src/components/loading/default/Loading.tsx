@@ -11,13 +11,14 @@ export default function Loading({
   const label = message ?? 'Loading';
 
   return (
-    <div
+    <output
       className={cn(
         'flex items-center justify-center text-center',
         isFullSize ? 'min-h-screen' : 'min-h-[60vh]',
         className,
       )}
       aria-busy="true"
+      aria-label={label}
       aria-live="polite"
     >
       <div className="flex max-w-md flex-col items-center gap-4 px-6">
@@ -27,9 +28,9 @@ export default function Loading({
           size={ComponentSize.LG}
         />
         {message ? (
-          <output className="text-sm text-white/40">{message}</output>
+          <span className="text-sm text-white/40">{message}</span>
         ) : null}
       </div>
-    </div>
+    </output>
   );
 }

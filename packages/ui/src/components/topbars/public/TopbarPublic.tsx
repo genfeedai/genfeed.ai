@@ -68,8 +68,12 @@ export default function TopbarPublic({
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const triggerRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const triggerRefs = useRef<Map<string, HTMLButtonElement> | null>(null);
   const _megaMenuRef = useRef<HTMLDivElement>(null);
+  if (triggerRefs.current === null) {
+    triggerRefs.current = new Map<string, HTMLButtonElement>();
+  }
+  const triggerRefsMap = triggerRefs.current;
 
   // Handle hydration
   useEffect(() => {
@@ -103,7 +107,7 @@ export default function TopbarPublic({
     (label: string) => {
       if (megaMenu && dropdowns.length > 0) {
         // For mega-menu, position based on first dropdown trigger
-        const firstTrigger = triggerRefs.current.get(dropdowns[0].label);
+        const firstTrigger = triggerRefsMap.get(dropdowns[0].label);
         if (firstTrigger) {
           const rect = firstTrigger.getBoundingClientRect();
           setDropdownPosition({
@@ -113,7 +117,7 @@ export default function TopbarPublic({
         }
         setOpenDropdown('mega');
       } else {
-        const trigger = triggerRefs.current.get(label);
+        const trigger = triggerRefsMap.get(label);
         if (trigger) {
           const rect = trigger.getBoundingClientRect();
           setDropdownPosition({
@@ -124,7 +128,7 @@ export default function TopbarPublic({
         setOpenDropdown(label);
       }
     },
-    [megaMenu, dropdowns],
+    [megaMenu, dropdowns, triggerRefsMap],
   );
 
   const handleDropdownClose = useCallback(() => {
@@ -179,7 +183,7 @@ export default function TopbarPublic({
                       <Button
                         ref={(el) => {
                           if (el) {
-                            triggerRefs.current.set(dropdown.label, el);
+                            triggerRefsMap.set(dropdown.label, el);
                           }
                         }}
                         type="button"

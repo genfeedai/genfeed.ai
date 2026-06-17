@@ -11,8 +11,7 @@ export function AnimatedStatusText({
   text,
 }: AnimatedStatusTextProps): ReactElement {
   return (
-    <span
-      role="status"
+    <output
       aria-label={text}
       className={cn(
         'inline-flex flex-wrap items-center gap-[0.02em]',
@@ -28,12 +27,12 @@ export function AnimatedStatusText({
           )}
           style={{
             animationDelay: `${index * 55}ms`,
-            animationDuration: '1.2s',
+            animationDuration: '1s',
           }}
         >
           {character === ' ' ? '\u00A0' : character}
         </span>
       ))}
-    </span>
+    </output>
   );
 }

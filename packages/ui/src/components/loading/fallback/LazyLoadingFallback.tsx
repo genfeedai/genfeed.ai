@@ -51,8 +51,8 @@ export default function LazyLoadingFallback({
         aspectClass,
         className,
       )}
-      role="status"
       aria-label="Loading content"
+      role="status"
     >
       {/* Shimmer effect */}
       <div className="absolute inset-0 animate-shimmer" />

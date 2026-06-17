@@ -42,23 +42,28 @@ const TIER_PRICES: Record<SubscriptionTier, string> = {
   [SubscriptionTier.ENTERPRISE]: '$4,999',
 };
 
-function getRequiredTierForQuality(quality: QualityTier): SubscriptionTier {
-  const tierOrder = [
-    SubscriptionTier.FREE,
-    SubscriptionTier.CREATOR,
-    SubscriptionTier.PRO,
-    SubscriptionTier.SCALE,
-    SubscriptionTier.ENTERPRISE,
-  ];
+const TIER_ORDER = [
+  SubscriptionTier.FREE,
+  SubscriptionTier.BYOK,
+  SubscriptionTier.CREATOR,
+  SubscriptionTier.PRO,
+  SubscriptionTier.SCALE,
+  SubscriptionTier.ENTERPRISE,
+];
 
-  for (const tier of tierOrder) {
-    const accessibleQualities = TIER_QUALITY_ACCESS[tier];
-    if (accessibleQualities?.includes(quality)) {
-      return tier;
+const QUALITY_TIERS_BY_ACCESS: Map<QualityTier, SubscriptionTier> =
+  TIER_ORDER.reduce((tiersByQuality, tier) => {
+    for (const quality of TIER_QUALITY_ACCESS[tier]) {
+      if (!tiersByQuality.has(quality)) {
+        tiersByQuality.set(quality, tier);
+      }
     }
-  }
 
-  return SubscriptionTier.SCALE;
+    return tiersByQuality;
+  }, new Map<QualityTier, SubscriptionTier>());
+
+function getRequiredTierForQuality(quality: QualityTier): SubscriptionTier {
+  return QUALITY_TIERS_BY_ACCESS.get(quality) ?? SubscriptionTier.SCALE;
 }
 
 const UPGRADE_TIERS = [

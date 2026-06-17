@@ -65,7 +65,7 @@ export default function OutreachCampaignWizardStep1({
   return (
     <div className="space-y-6">
       <div>
-        <label className="mb-2 block text-sm font-medium">Platform</label>
+        <p className="mb-2 text-sm font-medium">Platform</p>
         <div className="grid grid-cols-2 gap-4">
           {platformOptions.map((option) => (
             <Button
@@ -87,7 +87,7 @@ export default function OutreachCampaignWizardStep1({
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-medium">Campaign Type</label>
+        <p className="mb-2 text-sm font-medium">Campaign Type</p>
         <div className="space-y-3">
           {typeOptions.map((option) => (
             <Button

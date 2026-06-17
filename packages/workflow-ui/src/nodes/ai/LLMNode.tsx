@@ -180,6 +180,7 @@ function LLMNodeComponent(props: NodeProps) {
             Max Tokens
           </label>
           <input
+            aria-label="Max Tokens"
             id={`llm-max-tokens-${id}`}
             type="number"
             min="64"

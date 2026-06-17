@@ -158,9 +158,11 @@ export function BottomBar() {
 
   return (
     <div
+      aria-label="Workflow controls"
       className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2"
       onMouseDown={(e) => e.stopPropagation()}
       role="toolbar"
+      tabIndex={-1}
     >
       <div className="flex items-center gap-1 rounded-md border border-neutral-700/80 bg-neutral-800/95 px-2 py-1 shadow-lg backdrop-blur-sm">
         {/* Batch Counter */}

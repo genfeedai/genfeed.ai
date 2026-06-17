@@ -83,7 +83,7 @@ describe('Spinner', () => {
 
     const spinner = screen.getByRole('status');
     expect(spinner).toHaveAttribute('aria-label', 'Loading');
-    expect(spinner).toHaveAttribute('role', 'status');
+    expect(spinner.tagName).toBe('OUTPUT');
   });
 
   it('trims whitespace in className', () => {

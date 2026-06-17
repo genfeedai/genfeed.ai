@@ -309,6 +309,7 @@ function SelectFieldInner<T extends FieldValues = FieldValues>({
         onValueChange={handleValueChange}
       >
         <input
+          aria-label={label ?? name}
           hidden={true}
           name={fieldName || name}
           onBlur={fieldOnBlur}

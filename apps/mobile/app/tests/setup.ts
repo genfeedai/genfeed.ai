@@ -224,6 +224,15 @@ vi.mock('expo-haptics', () => ({
   selectionAsync: vi.fn(),
 }));
 
+vi.mock('react-native-reanimated', () => ({
+  default: {
+    View: MockView,
+  },
+  useAnimatedStyle: (callback: () => object) => callback(),
+  useSharedValue: (value: unknown) => ({ value }),
+  withTiming: (value: unknown) => value,
+}));
+
 // Mock Clerk
 vi.mock('@clerk/clerk-expo', () => ({
   ClerkProvider: vi.fn(({ children }) => children),

@@ -1,3 +1,4 @@
+import { stringifyJsonLd } from '@data/json-ld';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import VsHubContent from '@public/vs/vs-hub-content';
 import type { Metadata, ResolvingMetadata } from 'next';
@@ -49,7 +50,7 @@ export async function generateMetadata(
 export default function VsPage() {
   return (
     <>
-      <script type="application/ld+json">{JSON.stringify(vsJsonLd)}</script>
+      <script type="application/ld+json">{stringifyJsonLd(vsJsonLd)}</script>
       <VsHubContent />
     </>
   );
