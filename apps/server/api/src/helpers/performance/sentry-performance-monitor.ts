@@ -1,25 +1,13 @@
 import type { ConfigService } from '@api/config/config.service';
-import type { RequestDatabaseMetrics } from '@api/helpers/performance/request-performance.context';
-import type { PerformanceMetrics } from '@api/shared/interfaces/performance/performance.interface';
+import type {
+  ApiPerformanceSeverity,
+  ApiPerformanceTelemetryInput,
+  MetricAttributes,
+  PerformanceMetrics,
+} from '@api/shared/interfaces/performance/performance.interface';
 import * as Sentry from '@sentry/nestjs';
 
-export type ApiPerformanceSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'ERROR';
-
 type PerformanceConfig = Pick<ConfigService, 'get'>;
-
-interface ApiPerformanceTelemetryInput {
-  databaseMetrics?: RequestDatabaseMetrics;
-  errorMessage?: string;
-  metrics: PerformanceMetrics;
-  severity: ApiPerformanceSeverity;
-}
-
-interface MetricAttributes {
-  method: string;
-  route: string;
-  severity: ApiPerformanceSeverity;
-  status_code: string;
-}
 
 const OBJECT_ID_PATTERN = /^[0-9a-f]{24}$/i;
 const UUID_PATTERN =

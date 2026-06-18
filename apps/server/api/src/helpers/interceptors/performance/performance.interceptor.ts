@@ -7,11 +7,13 @@ import {
   runWithRequestPerformance,
 } from '@api/helpers/performance/request-performance.context';
 import {
-  type ApiPerformanceSeverity,
   normalizeApiRoute,
   recordApiPerformanceTelemetry,
 } from '@api/helpers/performance/sentry-performance-monitor';
-import { PerformanceMetrics } from '@api/shared/interfaces/performance/performance.interface';
+import type {
+  ApiPerformanceSeverity,
+  PerformanceMetrics,
+} from '@api/shared/interfaces/performance/performance.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   CallHandler,

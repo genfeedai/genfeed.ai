@@ -1,3 +1,18 @@
+export type ApiPerformanceSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'ERROR';
+
+export interface PrismaQueryMetric {
+  duration: number;
+  fingerprint: string;
+  target: string;
+  timestamp: string;
+}
+
+export interface RequestDatabaseMetrics {
+  queryCount: number;
+  queryDuration: number;
+  slowQueries: PrismaQueryMetric[];
+}
+
 export interface PerformanceMetrics {
   method: string;
   url: string;
@@ -7,4 +22,18 @@ export interface PerformanceMetrics {
   userId?: string;
   statusCode?: number;
   timestamp: string;
+}
+
+export interface ApiPerformanceTelemetryInput {
+  databaseMetrics?: RequestDatabaseMetrics;
+  errorMessage?: string;
+  metrics: PerformanceMetrics;
+  severity: ApiPerformanceSeverity;
+}
+
+export interface MetricAttributes {
+  method: string;
+  route: string;
+  severity: ApiPerformanceSeverity;
+  status_code: string;
 }
