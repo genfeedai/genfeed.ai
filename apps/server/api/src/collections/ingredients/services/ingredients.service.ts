@@ -351,7 +351,10 @@ export class IngredientsService extends BaseService<
       this.logger.debug(`${this.constructorName} patchAll`, { filter, update });
 
       const result = await this.prisma.ingredient.updateMany({
-        where: filter as never,
+        where: {
+          ...filter,
+          isDeleted: filter.isDeleted ?? false,
+        } as never,
         data: update as never,
       });
 

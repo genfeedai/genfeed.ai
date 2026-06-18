@@ -445,13 +445,14 @@ export class ByokService {
 
   private async writeByokSettings(
     tx: Pick<PrismaClient, 'organizationSetting'>,
-    existing: { id: string; updatedAt: Date },
+    existing: { id: string; organizationId: string; updatedAt: Date },
     data: Prisma.OrganizationSettingUpdateManyMutationInput,
   ): Promise<void> {
     const result = await tx.organizationSetting.updateMany({
       data,
       where: {
         id: existing.id,
+        organizationId: existing.organizationId,
         updatedAt: existing.updatedAt,
       },
     });

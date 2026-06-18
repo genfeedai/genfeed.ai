@@ -44,16 +44,14 @@ export class TrendAnalysisService {
     organizationId?: string,
     brandId?: string,
   ): Promise<void> {
-    const where: Record<string, unknown> = {
-      isCurrent: true,
-      isDeleted: false,
-      organizationId: organizationId ?? null,
-      brandId: brandId ?? null,
-    };
-
     await this.prisma.trend.updateMany({
       data: { isCurrent: false },
-      where: where as never,
+      where: {
+        brandId: brandId ?? null,
+        isCurrent: true,
+        isDeleted: false,
+        organizationId: organizationId ?? null,
+      },
     });
   }
 

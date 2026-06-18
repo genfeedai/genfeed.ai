@@ -75,6 +75,7 @@ interface CliOptions extends SqlRiskAuditOptions {
 interface PrismaCall {
   callText: string;
   file: string;
+  leadingText: string;
   line: number;
   method: string;
   receiver: string;
@@ -227,6 +228,7 @@ function readPrismaCall(
   return {
     callText: call.getText(source),
     file: relativeFile,
+    leadingText: readLeadingText(source, call),
     line: source.getLineAndCharacterOfPosition(call.getStart(source)).line + 1,
     method,
     receiver,
@@ -255,6 +257,7 @@ function readPrismaTaggedTemplate(
   return {
     callText: taggedTemplate.getText(source),
     file: relativeFile,
+    leadingText: readLeadingText(source, taggedTemplate),
     line:
       source.getLineAndCharacterOfPosition(taggedTemplate.getStart(source))
         .line + 1,
@@ -309,7 +312,11 @@ function createFindingsForCall(call: PrismaCall): SqlRiskFinding[] {
     );
   }
 
-  if (isBulkWrite(call.method) && !hasTenantGuard(callText)) {
+  if (
+    isBulkWrite(call.method) &&
+    !hasTenantGuard(callText) &&
+    !hasSuppression(call, 'bulk-write-tenant-review')
+  ) {
     findings.push(
       createFinding(
         call,
@@ -332,6 +339,15 @@ function createFindingsForCall(call: PrismaCall): SqlRiskFinding[] {
   }
 
   return findings;
+}
+
+function readLeadingText(source: ts.SourceFile, node: ts.Node): string {
+  const start = node.getStart(source);
+  const { line } = source.getLineAndCharacterOfPosition(start);
+  const windowStartLine = Math.max(0, line - 4);
+  const windowStart = source.getPositionOfLineAndCharacter(windowStartLine, 0);
+
+  return source.text.slice(windowStart, start);
 }
 
 function createFinding(
@@ -400,6 +416,17 @@ function hasTenantGuard(callText: string): boolean {
   return /organization(Id)?\s*:|user(Id)?\s*:|brand(Id)?\s*:|isDeleted\s*:/i.test(
     callText.slice(whereIndex),
   );
+}
+
+function hasSuppression(call: PrismaCall, category: string): boolean {
+  return new RegExp(
+    `sql-risk-audit:\\s*ignore\\s+${escapeRegExp(category)}\\s+--\\s+\\S`,
+    'i',
+  ).test(call.leadingText);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function countBy<T>(

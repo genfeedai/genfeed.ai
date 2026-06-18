@@ -132,7 +132,7 @@ export class AdInsightsService {
     const result =
       expiredIds.length > 0
         ? await this.prisma.adInsights.deleteMany({
-            where: { id: { in: expiredIds } },
+            where: { id: { in: expiredIds }, isDeleted: false },
           })
         : { count: 0 };
 

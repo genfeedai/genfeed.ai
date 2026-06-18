@@ -617,7 +617,7 @@ describe('BaseService', () => {
       );
 
       expect(delegate.updateMany).toHaveBeenCalledWith({
-        where: { status: 'old' },
+        where: { isDeleted: false, status: 'old' },
         data: { status: 'new' },
       });
       expect(result).toEqual({ modifiedCount: 3 });
