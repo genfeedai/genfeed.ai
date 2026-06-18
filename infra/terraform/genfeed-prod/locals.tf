@@ -20,11 +20,17 @@ locals {
     [for e in local.internal_env : e.name],
     ["PORT", "SERVICE_NAME", "REDIS_PASSWORD"],
   ))
+  ignored_ssm_secret_names = toset([
+    # Retired Vercel deployment-notification gate. Keep it out of task definitions
+    # even if a stale temporary parameter is present under the production path.
+    "VERCEL_DEPLOYMENT_NOTIFICATIONS_ENABLED",
+  ])
+  excluded_ssm_secret_names = setunion(local.reserved_env_names, local.ignored_ssm_secret_names)
   task_secrets = [
     for i, name in data.aws_ssm_parameters_by_path.prod.names : {
       name      = element(reverse(split("/", name)), 0)
       valueFrom = data.aws_ssm_parameters_by_path.prod.arns[i]
-    } if !contains(local.reserved_env_names, element(reverse(split("/", name)), 0))
+    } if !contains(local.excluded_ssm_secret_names, element(reverse(split("/", name)), 0))
   ]
 
   # ── Service catalogue (mirrors docker-compose.production.yml) ─────────
