@@ -146,9 +146,23 @@ function isBareProtectedPath(pathname: string): boolean {
   );
 }
 
+function isScopedWorkspacePath(pathname: string): boolean {
+  const parts = pathname.split('/').filter(Boolean);
+
+  if (parts.length === 0 || parts[0] === 'admin') {
+    return false;
+  }
+
+  if (parts.length === 1) {
+    return !isBareProtectedPath(pathname);
+  }
+
+  return !isBareProtectedPath(pathname);
+}
+
 type WorkspaceSlugs = {
   brandCount: number;
-  brandSlug: string;
+  brandSlug?: string;
   orgSlug: string;
 };
 
@@ -233,9 +247,11 @@ async function decodeSlugCookie(value: string): Promise<WorkspaceSlugs | null> {
       s: WorkspaceSlugs;
     };
     if (parsed.e <= Date.now()) return null;
-    if (!parsed.s?.orgSlug || !parsed.s?.brandSlug) return null;
-    if (!isValidSlug(parsed.s.orgSlug) || !isValidSlug(parsed.s.brandSlug))
+    if (!parsed.s?.orgSlug) return null;
+    if (!isValidSlug(parsed.s.orgSlug)) return null;
+    if (parsed.s.brandSlug !== undefined && !isValidSlug(parsed.s.brandSlug)) {
       return null;
+    }
     return parsed.s;
   } catch {
     return null;
@@ -340,15 +356,22 @@ async function resolveActiveWorkspaceSlugs(
     (await bootstrapResponse.json()) as BootstrapResponse | null;
   const brands = bootstrap?.brands ?? [];
   const activeBrandId = bootstrap?.access?.brandId ?? '';
-  const matchedBrand = brands.find((brand) => {
-    return String(brand.id ?? brand._id ?? '') === activeBrandId;
-  });
+  const matchedBrand = activeBrandId
+    ? brands.find((brand) => {
+        return String(brand.id ?? brand._id ?? '') === activeBrandId;
+      })
+    : undefined;
   const resolvedBrand =
-    (matchedBrand?.slug ? matchedBrand : null) ??
-    brands.find((brand) => Boolean(brand.slug)) ??
-    matchedBrand;
+    activeBrandId && matchedBrand?.slug
+      ? matchedBrand
+      : activeBrandId
+        ? (brands.find((brand) => Boolean(brand.slug)) ?? matchedBrand)
+        : undefined;
   const brandSlug = resolvedBrand?.slug;
-  let orgSlug = resolvedBrand?.organization?.slug;
+  let orgSlug =
+    resolvedBrand?.organization?.slug ??
+    brands.find((brand) => Boolean(brand.organization?.slug))?.organization
+      ?.slug;
 
   if (!orgSlug) {
     let organizationsResponse: Response;
@@ -377,14 +400,14 @@ async function resolveActiveWorkspaceSlugs(
       organizations?.[0]?.slug;
   }
 
-  if (!orgSlug || !brandSlug) {
+  if (!orgSlug) {
     return null;
   }
 
   // Validate slugs before caching and using them in redirect paths.
   // This prevents an attacker-controlled API response from injecting a slug
   // like `//attacker.example` and causing a cross-origin redirect.
-  if (!SLUG_RE.test(orgSlug) || !SLUG_RE.test(brandSlug)) {
+  if (!SLUG_RE.test(orgSlug) || (brandSlug && !SLUG_RE.test(brandSlug))) {
     return null;
   }
 
@@ -418,17 +441,51 @@ async function shouldRedirectSignedInUserToOnboarding(
   const bootstrap =
     (await bootstrapResponse.json()) as BootstrapResponse | null;
 
-  return (
-    Boolean(bootstrap?.currentUser) &&
-    Array.isArray(bootstrap?.brands) &&
-    bootstrap.brands.length === 0
-  );
+  return Array.isArray(bootstrap?.brands) && bootstrap.brands.length === 0;
 }
 
 type CanonicalResolution = {
   cookieValue: string | null;
   path: string;
 };
+
+const ORG_ROOT_APP_PREFIXES = [
+  'analytics',
+  'chat',
+  'compose',
+  'editor',
+  'library',
+  'posts',
+  'settings',
+  'studio',
+  'workflows',
+] as const;
+
+function createOrgScopedCanonicalPath(
+  canonicalPath: string,
+  orgSlug: string,
+): string {
+  const topLevelSegment = getTopLevelSegment(canonicalPath);
+
+  if (topLevelSegment === 'workspace' || topLevelSegment === 'overview') {
+    return `/${orgSlug}/~/overview`;
+  }
+
+  if (topLevelSegment === 'compose') {
+    return `/${orgSlug}/~/posts`;
+  }
+
+  if (
+    topLevelSegment &&
+    ORG_ROOT_APP_PREFIXES.includes(
+      topLevelSegment as (typeof ORG_ROOT_APP_PREFIXES)[number],
+    )
+  ) {
+    return `/${orgSlug}/~${canonicalPath}`;
+  }
+
+  return `/${orgSlug}/~/overview`;
+}
 
 async function resolveCanonicalProtectedPath(
   pathname: string,
@@ -466,6 +523,13 @@ async function resolveCanonicalProtectedPath(
     }
 
     return { cookieValue, path: `/${slugs.orgSlug}/~${canonicalPath}` };
+  }
+
+  if (!slugs.brandSlug) {
+    return {
+      cookieValue,
+      path: createOrgScopedCanonicalPath(canonicalPath, slugs.orgSlug),
+    };
   }
 
   if (
@@ -525,10 +589,10 @@ const clerkProxy = isCloudConnected
               req,
             );
             if (resolution) {
-              const response = redirectPreservingSearch(
-                req,
-                `/${resolution.slugs.orgSlug}/${resolution.slugs.brandSlug}/workspace/overview`,
-              );
+              const destination = resolution.slugs.brandSlug
+                ? `/${resolution.slugs.orgSlug}/${resolution.slugs.brandSlug}/workspace/overview`
+                : `/${resolution.slugs.orgSlug}/~/overview`;
+              const response = redirectPreservingSearch(req, destination);
               if (resolution.cookieValue) {
                 setSlugCookie(response, resolution.cookieValue);
               }
@@ -615,6 +679,13 @@ const clerkProxy = isCloudConnected
             : null;
 
           if (!resolved) {
+            if (
+              token &&
+              (await shouldRedirectSignedInUserToOnboarding(token))
+            ) {
+              return redirectPreservingSearch(req, ONBOARDING_PATH);
+            }
+
             return NextResponse.next();
           }
 
@@ -623,6 +694,14 @@ const clerkProxy = isCloudConnected
             setSlugCookie(response, resolved.cookieValue);
           }
           return response;
+        }
+
+        if (isScopedWorkspacePath(pathname)) {
+          const token = await session.getToken?.();
+
+          if (token && (await shouldRedirectSignedInUserToOnboarding(token))) {
+            return redirectPreservingSearch(req, ONBOARDING_PATH);
+          }
         }
 
         return NextResponse.next();

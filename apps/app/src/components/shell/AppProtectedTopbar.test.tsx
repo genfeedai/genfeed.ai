@@ -3,10 +3,19 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mockSearchParams = new URLSearchParams();
+const appSwitcherSpy = vi.hoisted(() => vi.fn());
 
 vi.mock('@genfeedai/enums', () => ({
   ButtonSize: { ICON: 'icon' },
   ButtonVariant: { GHOST: 'ghost', UNSTYLED: 'unstyled' },
+}));
+
+vi.mock('@genfeedai/constants', () => ({
+  APP_ROUTES: {
+    WORKSPACE: {
+      OVERVIEW: '/workspace/overview',
+    },
+  },
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -42,9 +51,15 @@ vi.mock('@ui/primitives/button', () => ({
 }));
 
 vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
-  AppSwitcher: ({ variant }: { variant?: string }) => (
-    <div data-testid="app-switcher">{variant}</div>
-  ),
+  AppSwitcher: (props: {
+    brandSlug?: string;
+    currentApp?: string;
+    orgSlug: string;
+    variant?: string;
+  }) => {
+    appSwitcherSpy(props);
+    return <div data-testid="app-switcher">{props.variant}</div>;
+  },
 }));
 
 vi.mock('@ui/topbars/credits-bar/TopbarCreditsBar', () => ({
@@ -83,6 +98,7 @@ const { default: AppProtectedTopbar } = await import('./AppProtectedTopbar');
 describe('AppProtectedTopbar', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
+    appSwitcherSpy.mockClear();
   });
 
   it('renders the section switcher before the right-side controls', () => {
@@ -96,6 +112,36 @@ describe('AppProtectedTopbar', () => {
       switcher.compareDocumentPosition(cloudSyncIndicator) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('does not inject the context brand into explicit org-scoped routes', () => {
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
+
+    expect(appSwitcherSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandSlug: undefined,
+        currentApp: 'workspace',
+        orgSlug: 'acme',
+      }),
+    );
+  });
+
+  it('passes an explicit brand route through to the app switcher', () => {
+    render(
+      <AppProtectedTopbar
+        orgSlug="acme"
+        brandSlug="brand"
+        currentApp="workspace"
+      />,
+    );
+
+    expect(appSwitcherSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandSlug: 'brand',
+        currentApp: 'workspace',
+        orgSlug: 'acme',
+      }),
+    );
   });
 
   it('renders the cloud sync indicator beside the terminal dock control', () => {

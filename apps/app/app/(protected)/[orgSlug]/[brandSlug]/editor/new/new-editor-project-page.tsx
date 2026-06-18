@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -8,6 +9,7 @@ import { Suspense, useEffect, useRef } from 'react';
 
 function NewEditorProjectPageContent() {
   const { replace } = useRouter();
+  const { href } = useOrgUrl();
   const searchParams = useSearchParams();
   const videoId = searchParams.get('video') || searchParams.get('videoId');
   const creating = useRef(false);
@@ -30,14 +32,14 @@ function NewEditorProjectPageContent() {
           sourceVideoId: videoId ?? undefined,
         });
 
-        replace(`/editor/${project.id}`);
+        replace(href(`/editor/${project.id}`));
       } catch (error) {
         logger.error('Failed to create editor project', error);
         creating.current = false;
-        replace('/editor');
+        replace(href('/editor'));
       }
     })();
-  }, [videoId, getEditorService, replace]);
+  }, [videoId, getEditorService, href, replace]);
 
   return (
     <div className="flex h-screen items-center justify-center">

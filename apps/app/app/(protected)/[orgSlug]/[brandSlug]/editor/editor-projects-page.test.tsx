@@ -19,6 +19,12 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getEditorService,
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/~${path}`,
+  }),
+}));
+
 vi.mock('@services/editor/editor-projects.service', () => ({
   EditorProjectsService: {
     getInstance: vi.fn(),
@@ -149,7 +155,7 @@ describe('EditorProjectsPage', () => {
     expect(await screen.findByText('Create Your First Project')).toBeVisible();
     expect(screen.getByText('Start New Project')).toHaveAttribute(
       'href',
-      '/editor/new',
+      '/acme/~/editor/new',
     );
     expect(screen.getByText('Timeline Editor')).toBeVisible();
     expect(screen.getByText('Effects & Transitions')).toBeVisible();

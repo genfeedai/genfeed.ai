@@ -78,6 +78,18 @@ describe('useOrgUrl', () => {
     );
   });
 
+  it('keeps org-scoped routes brandless when a selected brand exists', () => {
+    mockUseParams.mockReturnValue({ orgSlug: 'genfeed-ai' });
+
+    const { result } = renderHook(() => useOrgUrl());
+
+    expect(result.current.orgSlug).toBe('genfeed-ai');
+    expect(result.current.brandSlug).toBe('');
+    expect(result.current.href('/library/ingredients')).toBe(
+      '/genfeed-ai/~/library/ingredients',
+    );
+  });
+
   it('falls back to org-scoped href when no active brand is available', () => {
     mockUseParams.mockReturnValue({ orgSlug: 'genfeed-ai' });
     mockBrandState.selectedBrand = null;

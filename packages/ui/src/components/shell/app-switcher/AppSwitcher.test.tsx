@@ -170,12 +170,30 @@ describe('AppSwitcher', () => {
       );
     });
 
-    it('links to org overview for studio when brandSlug is absent', () => {
+    it('links to org studio when brandSlug is absent', () => {
       render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
       expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
         'href',
-        '/acme/~/overview',
+        '/acme/~/studio/image',
       );
+    });
+
+    it('routes brand apps to org views when brandSlug is absent', () => {
+      render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
+
+      for (const [label, href] of [
+        ['Library', '/acme/~/library'],
+        ['Posts', '/acme/~/posts'],
+        ['Studio', '/acme/~/studio/image'],
+        ['Workflows', '/acme/~/workflows'],
+        ['Editor', '/acme/~/editor'],
+        ['Write', '/acme/~/posts'],
+      ] as const) {
+        expect(screen.getByRole('link', { name: label })).toHaveAttribute(
+          'href',
+          href,
+        );
+      }
     });
 
     it('links to correct route for workspace app', () => {
