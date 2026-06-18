@@ -71,6 +71,7 @@ export class SkillDownloadService {
     receiptId: string,
     skillSlug?: string,
   ): Promise<{
+    checksum: string;
     downloadUrl: string;
     expiresIn: number;
     skill: { slug: string; name: string; version: string };
@@ -134,6 +135,7 @@ export class SkillDownloadService {
     });
 
     return {
+      checksum: skillEntry.checksum ?? '',
       downloadUrl,
       expiresIn: 900,
       skill: {

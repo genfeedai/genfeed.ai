@@ -14,6 +14,9 @@ type CheckoutSession = Awaited<
 type CheckoutSessionCreateParams = Parameters<
   StripeClient['checkout']['sessions']['create']
 >[0];
+type CheckoutLineItem = NonNullable<
+  CheckoutSessionCreateParams['line_items']
+>[number];
 
 @Injectable()
 export class SkillCheckoutService {
@@ -32,33 +35,22 @@ export class SkillCheckoutService {
   ): Promise<{ url: string }> {
     this.loggerService.log(`${this.constructorName} createCheckoutSession`);
 
-    const priceId = await this.resolveBundlePriceId();
-    if (!priceId) {
-      throw new BadRequestException(
-        'Skills Pro checkout is not configured. No bundle price ID found.',
-      );
-    }
+    const lineItem = await this.resolveBundleLineItem();
 
-    const defaultSuccessUrl =
-      this.configService.get('GENFEEDAI_APP_URL') +
-      '/skills-pro/success?session_id={CHECKOUT_SESSION_ID}';
-    const defaultCancelUrl = `${this.configService.get('GENFEEDAI_APP_URL')}/skills-pro`;
+    const appUrl = this.configService.get('GENFEEDAI_APP_URL');
+    const defaultSuccessUrl = `${appUrl}/skills-pro/success?session_id={CHECKOUT_SESSION_ID}`;
+    const defaultCancelUrl = `${appUrl}/skills-pro`;
 
     const sessionConfig: CheckoutSessionCreateParams = {
-      cancel_url: dto.cancelUrl || defaultCancelUrl,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      cancel_url: this.resolveRedirectUrl(dto.cancelUrl, defaultCancelUrl),
+      line_items: [lineItem],
       metadata: {
         bundle: 'true',
         type: 'skills-pro',
       },
       mode: 'payment',
       payment_method_types: ['card'],
-      success_url: dto.successUrl || defaultSuccessUrl,
+      success_url: this.resolveRedirectUrl(dto.successUrl, defaultSuccessUrl),
     };
 
     const promotionCodeId = this.configService.get(
@@ -84,12 +76,81 @@ export class SkillCheckoutService {
     return { url: session.url || '' };
   }
 
-  private async resolveBundlePriceId(): Promise<string | undefined> {
+  private async resolveBundleLineItem(): Promise<CheckoutLineItem> {
     const envPriceId = this.configService.get('STRIPE_PRICE_SKILLS_PRO');
     if (envPriceId) {
-      return envPriceId;
+      return { price: envPriceId, quantity: 1 };
     }
 
-    return this.skillRegistryService.getBundleStripePriceId();
+    const registryPriceId =
+      await this.skillRegistryService.getBundleStripePriceId();
+    if (registryPriceId) {
+      return { price: registryPriceId, quantity: 1 };
+    }
+
+    const bundlePriceCents =
+      await this.skillRegistryService.getBundlePriceCents();
+    if (bundlePriceCents && bundlePriceCents > 0) {
+      return {
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'Skills Pro Bundle',
+          },
+          unit_amount: bundlePriceCents,
+        },
+        quantity: 1,
+      };
+    }
+
+    throw new BadRequestException(
+      'Skills Pro checkout is not configured. No bundle price found.',
+    );
+  }
+
+  private resolveRedirectUrl(
+    requestedUrl: string | undefined,
+    fallbackUrl: string,
+  ): string {
+    if (!requestedUrl) {
+      return fallbackUrl;
+    }
+
+    return this.isAllowedRedirectUrl(requestedUrl) ? requestedUrl : fallbackUrl;
+  }
+
+  private isAllowedRedirectUrl(url: string): boolean {
+    let requestedOrigin: string;
+
+    try {
+      requestedOrigin = new URL(url).origin;
+    } catch {
+      return false;
+    }
+
+    return this.getAllowedRedirectOrigins().has(requestedOrigin);
+  }
+
+  private getAllowedRedirectOrigins(): Set<string> {
+    return new Set(
+      [
+        this.configService.get('GENFEEDAI_APP_URL'),
+        this.configService.get('GENFEEDAI_PUBLIC_URL'),
+      ]
+        .map((url) => this.toOrigin(url))
+        .filter((origin): origin is string => Boolean(origin)),
+    );
+  }
+
+  private toOrigin(url: string | undefined): string | undefined {
+    if (!url) {
+      return undefined;
+    }
+
+    try {
+      return new URL(url).origin;
+    } catch {
+      return undefined;
+    }
   }
 }
