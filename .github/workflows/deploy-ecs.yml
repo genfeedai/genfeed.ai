@@ -84,8 +84,10 @@ jobs:
 
       # OpenTofu, not Terraform — state is tofu in S3; mixing the two risks a
       # state-version mismatch.
-      - uses: opentofu/setup-opentofu@v1
-        with: { tofu_version: "1.12.2" }
+      - uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_version: "1.12.2"
+          tofu_wrapper: false
 
       - name: Tofu init
         working-directory: ${{ env.TF_DIR }}
