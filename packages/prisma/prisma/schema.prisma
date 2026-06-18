@@ -3121,19 +3121,38 @@ model AdOptimizationRecommendation {
 }
 
 model AdPerformance {
-  id             String       @id @default(cuid())
-  mongoId        String?      @unique
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  brandId        String?
-  brand          Brand?       @relation(fields: [brandId], references: [id])
-  credentialId   String?
-  credential     Credential?  @relation(fields: [credentialId], references: [id])
-  data           Json         @default("{}")
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                        String       @id @default(cuid())
+  mongoId                   String?      @unique
+  organizationId            String
+  organization              Organization @relation(fields: [organizationId], references: [id])
+  brandId                   String?
+  brand                     Brand?       @relation(fields: [brandId], references: [id])
+  credentialId              String?
+  credential                Credential?  @relation(fields: [credentialId], references: [id])
+  data                      Json         @default("{}")
+  headlineText              String?
+  ctaText                   String?
+  adPlatform                String?
+  industry                  String?
+  scope                     String?
+  spend                     Float?
+  ctr                       Float?
+  roas                      Float?
+  cpc                       Float?
+  cpa                       Float?
+  performanceScore          Float?
+  conversionRate            Float?
+  dataConfidence            Float?
+  spendBucket               String?
+  headlinePatternCategories String[]     @default([])
+  ctaPatternCategories      String[]     @default([])
+  isDeleted                 Boolean      @default(false)
+  createdAt                 DateTime     @default(now())
+  updatedAt                 DateTime     @updatedAt
 
+  @@index([isDeleted, scope, industry])
+  @@index([isDeleted, scope, adPlatform, industry])
+  @@index([isDeleted, scope, spendBucket, adPlatform, industry])
   @@map("ad_performance")
 }
 
