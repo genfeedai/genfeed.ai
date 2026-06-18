@@ -1,5 +1,4 @@
 import { existsSync, readFileSync } from 'node:fs';
-import process from 'node:process';
 import { ConfigService } from '@api/config/config.service';
 import {
   isPrismaQueryMetricsEnabled,
@@ -26,6 +25,10 @@ type PrismaPgConnectionConfig = {
       };
 };
 
+type PrismaPgConfigOptions = {
+  caFilePaths?: readonly (string | undefined)[];
+};
+
 function parseDatabaseUrl(connectionString: string): URL | undefined {
   try {
     return new URL(connectionString);
@@ -34,9 +37,11 @@ function parseDatabaseUrl(connectionString: string): URL | undefined {
   }
 }
 
-function readConfiguredPostgresCa(): string | undefined {
-  for (const key of POSTGRES_CA_FILE_ENV_KEYS) {
-    const caFile = process.env[key]?.trim();
+function readConfiguredPostgresCa(
+  caFilePaths: readonly (string | undefined)[] = [],
+): string | undefined {
+  for (const caFilePath of caFilePaths) {
+    const caFile = caFilePath?.trim();
     if (!caFile) {
       continue;
     }
@@ -61,6 +66,7 @@ function readBundledRdsCa(databaseUrl: URL | undefined): string | undefined {
 
 export function createPrismaPgConfig(
   connectionString: string,
+  options: PrismaPgConfigOptions = {},
 ): PrismaPgConnectionConfig {
   const databaseUrl = parseDatabaseUrl(connectionString);
   const sslMode = databaseUrl?.searchParams.get('sslmode')?.toLowerCase();
@@ -73,7 +79,9 @@ export function createPrismaPgConfig(
     return { connectionString, ssl: { rejectUnauthorized: false } };
   }
 
-  const ca = readConfiguredPostgresCa() ?? readBundledRdsCa(databaseUrl);
+  const ca =
+    readConfiguredPostgresCa(options.caFilePaths) ??
+    readBundledRdsCa(databaseUrl);
   if (ca) {
     return { connectionString, ssl: { ca, rejectUnauthorized: true } };
   }
@@ -105,7 +113,13 @@ export class PrismaService
     if (!connectionString) {
       throw new Error('DATABASE_URL environment variable is not set');
     }
-    const adapter = new PrismaPg(createPrismaPgConfig(connectionString));
+    const adapter = new PrismaPg(
+      createPrismaPgConfig(connectionString, {
+        caFilePaths: POSTGRES_CA_FILE_ENV_KEYS.map((key) =>
+          configService.get(key),
+        ),
+      }),
+    );
     const enableQueryMetrics = isPrismaQueryMetricsEnabled(configService);
     super({
       adapter,
