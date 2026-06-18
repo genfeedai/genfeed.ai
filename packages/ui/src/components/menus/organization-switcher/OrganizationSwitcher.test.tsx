@@ -69,11 +69,12 @@ describe('OrganizationSwitcher', () => {
         id: 'org_1',
         isActive: true,
         label: 'Acme Org',
+        slug: 'acme-org',
       },
     ]);
   });
 
-  it('loads organizations and exposes contextual footer actions', async () => {
+  it('loads organizations and exposes contextual row settings action', async () => {
     render(<OrganizationSwitcher />);
 
     await waitFor(() => {
@@ -81,12 +82,14 @@ describe('OrganizationSwitcher', () => {
     });
 
     expect(capturedItems[0]?.label).toBe('Acme Org');
+    expect(capturedItems[0]?.trailingAction?.ariaLabel).toBe(
+      'Open Acme Org settings',
+    );
     expect(capturedFooterActions.map((action) => action.label)).toEqual([
-      'Organization Settings',
       'New Organization',
     ]);
 
-    capturedFooterActions[0]?.onAction();
+    capturedItems[0]?.trailingAction?.onAction();
 
     expect(mockPush).toHaveBeenCalledWith('/acme-org/~/settings');
   });

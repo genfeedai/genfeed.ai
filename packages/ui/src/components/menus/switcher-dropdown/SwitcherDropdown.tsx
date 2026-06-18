@@ -162,7 +162,15 @@ export default function SwitcherDropdown({
         <div className="max-h-64 overflow-y-auto py-0.5">
           {filteredItems.length > 0 ? (
             filteredItems.map((item) => (
-              <SwitcherItem key={item.id} item={item} onSelect={handleSelect} />
+              <SwitcherItem
+                key={item.id}
+                item={item}
+                onSelect={handleSelect}
+                onAction={() => {
+                  close();
+                  item.trailingAction?.onAction();
+                }}
+              />
             ))
           ) : (
             <div className="p-3 text-xs text-foreground/40 text-center">
@@ -206,55 +214,77 @@ export default function SwitcherDropdown({
 
 function SwitcherItem({
   item,
+  onAction,
   onSelect,
 }: {
   item: SwitcherDropdownItem;
+  onAction: () => void;
   onSelect: (id: string) => void;
 }) {
+  const TrailingIcon = item.trailingAction?.icon;
+
   return (
-    <Button
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-      onClick={() => !item.isActive && onSelect(item.id)}
-      isDisabled={item.isActive}
-      className={cn(
-        'flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors duration-150',
-        item.isActive
-          ? 'text-foreground cursor-default'
-          : 'text-foreground/70 hover:text-foreground hover:bg-foreground/[0.06] cursor-pointer',
-      )}
-    >
-      {/* Avatar */}
-      {item.imageUrl ? (
-        <div className="size-5 rounded-full overflow-hidden bg-background flex items-center justify-center flex-shrink-0">
-          <Image
-            src={item.imageUrl}
-            alt={item.label}
-            width={20}
-            height={20}
-            className="object-cover object-center"
-            sizes="20px"
-            style={{ height: 'auto', width: 'auto' }}
-          />
-        </div>
-      ) : (
-        <div
+    <div className="group flex w-full items-center">
+      <Button
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
+        onClick={() => !item.isActive && onSelect(item.id)}
+        isDisabled={item.isActive}
+        className={cn(
+          'flex min-w-0 flex-1 items-center gap-2.5 py-2 pl-3 text-sm transition-colors duration-150',
+          item.trailingAction ? 'pr-1' : 'pr-3',
+          item.isActive
+            ? 'text-foreground cursor-default'
+            : 'text-foreground/70 hover:text-foreground hover:bg-foreground/[0.06] cursor-pointer',
+        )}
+      >
+        {/* Avatar */}
+        {item.imageUrl ? (
+          <div className="size-5 rounded-full overflow-hidden bg-background flex items-center justify-center flex-shrink-0">
+            <Image
+              src={item.imageUrl}
+              alt={item.label}
+              width={20}
+              height={20}
+              className="object-cover object-center"
+              sizes="20px"
+              style={{ height: 'auto', width: 'auto' }}
+            />
+          </div>
+        ) : (
+          <div
+            className={cn(
+              'size-5 rounded flex items-center justify-center text-[10px] font-bold flex-shrink-0',
+              item.isActive
+                ? 'bg-primary/30 text-primary'
+                : 'bg-foreground/10 text-foreground/60',
+            )}
+          >
+            {item.label.charAt(0).toUpperCase()}
+          </div>
+        )}
+
+        <span className="flex-1 truncate text-left">{item.label}</span>
+
+        {item.isActive && (
+          <HiCheck className="size-3.5 text-primary flex-shrink-0" />
+        )}
+      </Button>
+
+      {item.trailingAction && TrailingIcon ? (
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+          ariaLabel={item.trailingAction.ariaLabel}
+          onClick={onAction}
           className={cn(
-            'size-5 rounded flex items-center justify-center text-[10px] font-bold flex-shrink-0',
-            item.isActive
-              ? 'bg-primary/30 text-primary'
-              : 'bg-foreground/10 text-foreground/60',
+            'mr-1 flex size-7 flex-shrink-0 items-center justify-center rounded text-foreground/38 transition-colors duration-150',
+            'hover:bg-foreground/[0.08] hover:text-foreground',
           )}
         >
-          {item.label.charAt(0).toUpperCase()}
-        </div>
-      )}
-
-      <span className="flex-1 truncate text-left">{item.label}</span>
-
-      {item.isActive && (
-        <HiCheck className="size-3.5 text-primary flex-shrink-0" />
-      )}
-    </Button>
+          <TrailingIcon className="size-3.5" />
+        </Button>
+      ) : null}
+    </div>
   );
 }

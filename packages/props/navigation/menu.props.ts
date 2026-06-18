@@ -68,6 +68,8 @@ export interface MenuSharedProps extends BaseMenuProps, SidebarSizingProps {
   conversationActions?: ReactNode;
   /** Renders content in the sidebar footer, above the user profile row */
   renderFooterSlot?: () => ReactNode;
+  /** Shows the signed-in user profile footer in the sidebar */
+  showUserProfile?: boolean;
 }
 
 export interface MenuItemProps {

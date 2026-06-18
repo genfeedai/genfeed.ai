@@ -5,8 +5,8 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import MenuItem from '@ui/menus/item/MenuItem';
+import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
-import WorkspaceSwitcher from '@ui/menus/workspace-switcher/WorkspaceSwitcher';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -38,6 +38,7 @@ export default function MenuShared({
   showPrimaryItems = true,
   conversationActions,
   renderFooterSlot,
+  showUserProfile = true,
 }: MenuSharedProps) {
   const { push } = useRouter();
 
@@ -205,7 +206,7 @@ export default function MenuShared({
           )}
         >
           {sharedCollapseControl}
-          <WorkspaceSwitcher />
+          <OrganizationSwitcher />
         </div>
 
         {/* Body — fades out when collapsed, pointer-events disabled */}
@@ -292,7 +293,9 @@ export default function MenuShared({
           )}
         </div>
 
-        <SidebarUserProfile isCollapsed={isCollapsed} />
+        {showUserProfile ? (
+          <SidebarUserProfile isCollapsed={isCollapsed} />
+        ) : null}
       </div>
     </div>
   );

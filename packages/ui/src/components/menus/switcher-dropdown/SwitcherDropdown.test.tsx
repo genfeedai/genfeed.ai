@@ -123,6 +123,35 @@ describe('SwitcherDropdown', () => {
     expect(settingsButton.querySelector('svg')).not.toBeNull();
   });
 
+  it('renders per-row trailing actions without selecting the item', () => {
+    const onAction = vi.fn();
+    const onSelect = vi.fn();
+
+    renderDropdown({
+      items: [
+        {
+          id: '1',
+          isActive: false,
+          label: 'Alpha',
+          trailingAction: {
+            ariaLabel: 'Open Alpha settings',
+            icon: HiOutlineCog6Tooth,
+            onAction,
+          },
+        },
+      ],
+      onSelect,
+    });
+
+    fireEvent.click(screen.getByText('Open'));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Open Alpha settings' }),
+    );
+
+    expect(onAction).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
   it('shows search when hasSearch is true', () => {
     renderDropdown({ hasSearch: true, searchPlaceholder: 'Find…' });
     fireEvent.click(screen.getByText('Open'));

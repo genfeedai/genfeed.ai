@@ -1,20 +1,37 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import {
+  getBrandEntityId,
+  getBrandOrganizationId,
+  getBrandOrganizationSlug,
+} from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
+import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { Button } from '@ui/primitives/button';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback } from 'react';
 import { HiBars3, HiOutlineCommandLine, HiXMark } from 'react-icons/hi2';
 import { PiSidebarSimple } from 'react-icons/pi';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
+
+function getCurrentBrandScopedPath(pathname: string): string {
+  const parts = pathname.split('/').filter(Boolean);
+
+  if (parts.length >= 3 && parts[1] !== '~') {
+    return `/${parts.slice(2).join('/')}`;
+  }
+
+  return APP_ROUTES.WORKSPACE.OVERVIEW;
+}
 
 function AppProtectedTopbarContent({
   isMenuOpen,
@@ -28,6 +45,10 @@ function AppProtectedTopbarContent({
   brandSlug,
 }: TopbarProps = {}) {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const { push } = useRouter();
+  const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
+    useBrand();
   // useOrgUrl resolves the brand from the active-brand context when the route has
   // no [brandSlug] (org-level `/:org/~/...` pages). Use the resolved values so the
   // app switcher can still link into brand-scoped apps (Library/Posts/Studio/…)
@@ -39,6 +60,31 @@ function AppProtectedTopbarContent({
   } = useOrgUrl();
   const effectiveOrgSlug = orgSlug || resolvedOrgSlug;
   const effectiveBrandSlug = brandSlug || resolvedBrandSlug;
+  const effectiveBrandId = brandId || getBrandEntityId(selectedBrand);
+
+  const handleBrandChange = useCallback(
+    (nextBrandId: string) => {
+      setBrandId(nextBrandId);
+
+      const nextBrand = brands.find(
+        (brand) => getBrandEntityId(brand) === nextBrandId,
+      );
+      const nextOrganizationId = getBrandOrganizationId(nextBrand);
+      const nextOrgSlug =
+        getBrandOrganizationSlug(nextBrand) || effectiveOrgSlug;
+
+      if (nextOrganizationId) {
+        setOrganizationId(nextOrganizationId);
+      }
+
+      if (nextOrgSlug && nextBrand?.slug) {
+        push(
+          `/${nextOrgSlug}/${nextBrand.slug}${getCurrentBrandScopedPath(pathname)}`,
+        );
+      }
+    },
+    [brands, effectiveOrgSlug, pathname, push, setBrandId, setOrganizationId],
+  );
 
   const taskId = searchParams.get('taskId');
   const taskTitle = searchParams.get('taskTitle');
@@ -85,13 +131,13 @@ function AppProtectedTopbarContent({
             </Button>
           ) : null}
 
-          {effectiveOrgSlug ? (
-            <div className="min-w-0">
-              <AppSwitcher
+          {brands.length > 0 ? (
+            <div className="min-w-0 w-40 sm:w-56">
+              <MenuBrandSwitcher
                 variant="labeled"
-                currentApp={currentApp ?? 'workspace'}
-                orgSlug={effectiveOrgSlug}
-                brandSlug={effectiveBrandSlug}
+                brands={brands}
+                brandId={effectiveBrandId}
+                onBrandChange={handleBrandChange}
               />
             </div>
           ) : null}
@@ -117,6 +163,15 @@ function AppProtectedTopbarContent({
                 </Link>
               ) : null}
             </div>
+          ) : null}
+
+          {effectiveOrgSlug ? (
+            <AppSwitcher
+              variant="icon"
+              currentApp={currentApp ?? 'workspace'}
+              orgSlug={effectiveOrgSlug}
+              brandSlug={effectiveBrandSlug}
+            />
           ) : null}
 
           {onAgentToggle ? (
