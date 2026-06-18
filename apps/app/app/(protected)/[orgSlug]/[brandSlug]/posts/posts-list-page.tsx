@@ -25,14 +25,14 @@ export async function renderPostsListPage({
   const { page, platform, search, sort, status } = await searchParams;
   const normalizedStatus =
     statusOverride ?? normalizePublisherPostsStatus(status);
-  const scope =
-    normalizedStatus === 'public' ? PageScope.ANALYTICS : PageScope.PUBLISHER;
+  const parsedPage = Math.floor(Number.parseInt(page ?? '1', 10));
+  const currentPage = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
   const normalizedPlatform = normalizePostsPlatform(platform);
   const initialData = await loadPostsPageData({
-    currentPage: Number(page) || 1,
+    currentPage,
     platformFilter:
       normalizedPlatform !== 'all' ? normalizedPlatform : undefined,
-    scope,
+    scope: PageScope.PUBLISHER,
     search,
     sort,
     status: normalizedStatus,
@@ -43,7 +43,7 @@ export async function renderPostsListPage({
       initialPostPresets={initialData.postPresets}
       initialPosts={initialData.posts}
       platform={normalizedPlatform}
-      scope={scope}
+      scope={PageScope.PUBLISHER}
       status={normalizedStatus}
     />
   );

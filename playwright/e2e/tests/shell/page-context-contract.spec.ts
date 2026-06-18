@@ -16,37 +16,38 @@ type PageContextContract = {
     | 'workflows'
     | 'workspace';
   sectionLabel?: string;
-  visibleLabels: string[];
+  pageLabels?: string[];
+  sidebarLabels?: string[];
 };
 
 const CONTRACTS: PageContextContract[] = [
   {
     route: `${BRAND_BASE}/workspace/overview`,
     currentApp: 'workspace',
-    visibleLabels: ['Dashboard', 'Inbox', 'Tasks', 'Activity'],
+    sidebarLabels: ['Dashboard', 'Inbox', 'Tasks', 'Activity'],
   },
   {
     route: `${BRAND_BASE}/library/images`,
     currentApp: 'library',
     sectionLabel: 'Library',
-    visibleLabels: ['Videos', 'Images', 'Voices', 'Music'],
+    sidebarLabels: ['Videos', 'Images', 'Voices', 'Music'],
   },
   {
     route: `${BRAND_BASE}/studio/image`,
     currentApp: 'studio',
     sectionLabel: 'Studio',
-    visibleLabels: ['Library', 'Image', 'Video', 'Batch'],
+    sidebarLabels: ['Library', 'Image', 'Video', 'Batch'],
   },
   {
     route: `${BRAND_BASE}/posts/scheduled`,
     currentApp: 'posts',
-    visibleLabels: ['Drafts', 'Scheduled', 'Published'],
+    pageLabels: ['Drafts', 'Scheduled', 'Published'],
   },
   {
     route: `${BRAND_BASE}/orchestration/library`,
     currentApp: 'workflows',
     sectionLabel: 'Workflows',
-    visibleLabels: ['Runs', 'Workflows', 'Skills', 'Autopilot'],
+    sidebarLabels: ['Runs', 'Workflows', 'Skills', 'Autopilot'],
   },
 ];
 
@@ -87,9 +88,17 @@ test.describe('Shell page context contract', () => {
           'data-shell-section-label',
           contract.sectionLabel,
         );
+      } else {
+        await expect(sidebar).toHaveAttribute('data-shell-section-label', '');
       }
 
-      for (const label of contract.visibleLabels) {
+      for (const label of contract.sidebarLabels ?? []) {
+        await expect(
+          sidebar.getByText(label, { exact: true }).first(),
+        ).toBeVisible();
+      }
+
+      for (const label of contract.pageLabels ?? []) {
         await expect(
           authenticatedPage.getByText(label, { exact: true }).first(),
         ).toBeVisible();
