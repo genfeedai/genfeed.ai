@@ -37,14 +37,13 @@ export class SkillCheckoutService {
 
     const lineItem = await this.resolveBundleLineItem();
 
-    const defaultSuccessUrl =
-      this.configService.get('GENFEEDAI_APP_URL') +
-      '/skills-pro/success?session_id={CHECKOUT_SESSION_ID}';
-    const defaultCancelUrl = `${this.configService.get('GENFEEDAI_APP_URL')}/skills-pro`;
+    const appUrl = this.configService.get('GENFEEDAI_APP_URL');
+    const defaultSuccessUrl = `${appUrl}/skills-pro/success?session_id={CHECKOUT_SESSION_ID}`;
+    const defaultCancelUrl = `${appUrl}/skills-pro`;
 
     const sessionConfig: CheckoutSessionCreateParams = {
       allow_promotion_codes: true,
-      cancel_url: dto.cancelUrl || defaultCancelUrl,
+      cancel_url: this.resolveRedirectUrl(dto.cancelUrl, defaultCancelUrl),
       line_items: [lineItem],
       metadata: {
         bundle: 'true',
@@ -52,7 +51,7 @@ export class SkillCheckoutService {
       },
       mode: 'payment',
       payment_method_types: ['card'],
-      success_url: dto.successUrl || defaultSuccessUrl,
+      success_url: this.resolveRedirectUrl(dto.successUrl, defaultSuccessUrl),
     };
 
     if (dto.email) {
@@ -99,5 +98,51 @@ export class SkillCheckoutService {
     throw new BadRequestException(
       'Skills Pro checkout is not configured. No bundle price found.',
     );
+  }
+
+  private resolveRedirectUrl(
+    requestedUrl: string | undefined,
+    fallbackUrl: string,
+  ): string {
+    if (!requestedUrl) {
+      return fallbackUrl;
+    }
+
+    return this.isAllowedRedirectUrl(requestedUrl) ? requestedUrl : fallbackUrl;
+  }
+
+  private isAllowedRedirectUrl(url: string): boolean {
+    let requestedOrigin: string;
+
+    try {
+      requestedOrigin = new URL(url).origin;
+    } catch {
+      return false;
+    }
+
+    return this.getAllowedRedirectOrigins().has(requestedOrigin);
+  }
+
+  private getAllowedRedirectOrigins(): Set<string> {
+    return new Set(
+      [
+        this.configService.get('GENFEEDAI_APP_URL'),
+        this.configService.get('GENFEEDAI_PUBLIC_URL'),
+      ]
+        .map((url) => this.toOrigin(url))
+        .filter((origin): origin is string => Boolean(origin)),
+    );
+  }
+
+  private toOrigin(url: string | undefined): string | undefined {
+    if (!url) {
+      return undefined;
+    }
+
+    try {
+      return new URL(url).origin;
+    } catch {
+      return undefined;
+    }
   }
 }

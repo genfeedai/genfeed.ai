@@ -260,10 +260,11 @@ describe('SkillCheckoutService', () => {
       );
     });
 
-    it('should use custom success and cancel URLs when provided in DTO', async () => {
+    it('should use custom success and cancel URLs from configured origins', async () => {
       configService.get.mockImplementation(
         buildConfigGetMock({
           GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
+          GENFEEDAI_PUBLIC_URL: 'https://genfeed.ai',
           STRIPE_PRICE_SKILLS_PRO: 'price_env_123',
         }),
       );
@@ -278,8 +279,9 @@ describe('SkillCheckoutService', () => {
       );
 
       const dto: CreateSkillCheckoutDto = {
-        cancelUrl: 'https://custom.example.com/cancel',
-        successUrl: 'https://custom.example.com/success',
+        cancelUrl: 'https://genfeed.ai/skills',
+        successUrl:
+          'https://genfeed.ai/skills/success?session_id={CHECKOUT_SESSION_ID}',
       };
 
       await service.createCheckoutSession(dto);
@@ -288,8 +290,45 @@ describe('SkillCheckoutService', () => {
         stripeService.stripe.checkout.sessions.create,
       ).toHaveBeenCalledWith(
         expect.objectContaining({
-          cancel_url: 'https://custom.example.com/cancel',
-          success_url: 'https://custom.example.com/success',
+          cancel_url: 'https://genfeed.ai/skills',
+          success_url:
+            'https://genfeed.ai/skills/success?session_id={CHECKOUT_SESSION_ID}',
+        }),
+      );
+    });
+
+    it('should ignore checkout redirect URLs from unknown origins', async () => {
+      configService.get.mockImplementation(
+        buildConfigGetMock({
+          GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
+          GENFEEDAI_PUBLIC_URL: 'https://genfeed.ai',
+          STRIPE_PRICE_SKILLS_PRO: 'price_env_123',
+        }),
+      );
+
+      const mockSession = {
+        id: 'cs_test_rejected_redirect',
+        url: 'https://checkout.stripe.com/session/cs_test_rejected_redirect',
+      } as unknown as Stripe.Checkout.Session;
+
+      stripeService.stripe.checkout.sessions.create.mockResolvedValue(
+        mockSession,
+      );
+
+      const dto: CreateSkillCheckoutDto = {
+        cancelUrl: 'https://evil.example/cancel',
+        successUrl: 'https://evil.example/success',
+      };
+
+      await service.createCheckoutSession(dto);
+
+      expect(
+        stripeService.stripe.checkout.sessions.create,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cancel_url: 'https://app.genfeed.ai/skills-pro',
+          success_url:
+            'https://app.genfeed.ai/skills-pro/success?session_id={CHECKOUT_SESSION_ID}',
         }),
       );
     });
