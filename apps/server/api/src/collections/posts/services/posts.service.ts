@@ -499,35 +499,40 @@ export class PostsService extends BaseService<
     populate: PopulateOption[] = [],
     maxDepth: number = 100,
   ): Promise<PostDocument | null> {
+    const requestedMaxDepth = Number.isFinite(maxDepth)
+      ? Math.trunc(maxDepth)
+      : 100;
+    const safeMaxDepth = Math.min(Math.max(requestedMaxDepth, 1), 500);
     const ancestors = await this.prisma.$queryRaw<
-      Array<{ id: string; parentId: string | null }>
+      Array<{ depth: number; id: string; parentId: string | null }>
     >`
       WITH RECURSIVE ancestors AS (
-        SELECT id, "parentId"
+        SELECT id, "parentId", 1 AS depth
         FROM "posts"
         WHERE id = ${postId} AND "isDeleted" = false
         UNION ALL
-        SELECT p.id, p."parentId"
+        SELECT p.id, p."parentId", a.depth + 1
         FROM "posts" p
         INNER JOIN ancestors a ON p.id = a."parentId"
-        WHERE p."isDeleted" = false
+        WHERE p."isDeleted" = false AND a.depth <= ${safeMaxDepth}
       )
-      SELECT id, "parentId" FROM ancestors
-      LIMIT ${maxDepth + 1}
+      SELECT id, "parentId", depth FROM ancestors
+      ORDER BY depth ASC
+      LIMIT ${safeMaxDepth + 1}
     `;
 
     if (!ancestors || ancestors.length === 0) {
       return null;
     }
 
-    if (ancestors.length > maxDepth) {
+    if (ancestors.length > safeMaxDepth) {
       this.logger.error('Max depth exceeded in findRootPost', {
         depth: ancestors.length,
-        maxDepth,
+        maxDepth: safeMaxDepth,
         postId,
       });
       throw new BadRequestException(
-        `Max hierarchy depth (${maxDepth}) exceeded for post ${postId}`,
+        `Max hierarchy depth (${safeMaxDepth}) exceeded for post ${postId}`,
       );
     }
 

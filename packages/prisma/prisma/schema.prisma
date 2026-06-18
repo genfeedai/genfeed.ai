@@ -1635,6 +1635,11 @@ model PostAnalytics {
 
   ingredients Ingredient[] @relation("post_analytics_ingredients")
 
+  @@index([date(sort: Desc)])
+  @@index([organizationId, date(sort: Desc)])
+  @@index([brandId, date(sort: Desc)])
+  @@index([platform, date(sort: Desc)])
+  @@index([postId, date(sort: Desc)])
   @@map("post_analytics")
 }
 
