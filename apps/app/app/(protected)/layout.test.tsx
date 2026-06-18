@@ -10,4 +10,14 @@ describe('app/(protected)/layout.tsx', () => {
     );
     expect(source).toContain('export ');
   });
+
+  it('does not block the protected shell on the server bootstrap payload', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'app/(protected)/layout.tsx'),
+      'utf8',
+    );
+
+    expect(source).not.toContain('loadProtectedBootstrap');
+    expect(source).toContain('initialBootstrap={null}');
+  });
 });
