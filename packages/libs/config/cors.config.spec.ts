@@ -1,5 +1,8 @@
 import {
+  GENFEED_CORS_ALLOWED_METHODS,
+  GENFEED_CORS_PREFLIGHT_MAX_AGE_SECONDS,
   GENFEED_SUBDOMAINS,
+  getGenfeedCorsOptions,
   getGenfeedCorsOrigins,
 } from '@libs/config/cors.config';
 
@@ -228,6 +231,21 @@ describe('CORS Configuration', () => {
           false,
         );
       });
+    });
+  });
+
+  describe('getGenfeedCorsOptions', () => {
+    it('adds preflight caching to the shared service CORS options', () => {
+      const options = getGenfeedCorsOptions({
+        isDevelopment: false,
+      });
+
+      expect(options.credentials).toBe(true);
+      expect(options.methods).toBe(GENFEED_CORS_ALLOWED_METHODS);
+      expect(options.maxAge).toBe(GENFEED_CORS_PREFLIGHT_MAX_AGE_SECONDS);
+      expect(options.origin).toEqual(
+        getGenfeedCorsOrigins({ isDevelopment: false }),
+      );
     });
   });
 

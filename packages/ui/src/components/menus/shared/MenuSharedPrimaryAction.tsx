@@ -5,6 +5,7 @@ import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interf
 import type { MenuShellConfig } from '@genfeedai/props/navigation/menu.props';
 import { Kbd } from '@genfeedai/ui';
 import MenuItem from '@ui/menus/item/MenuItem';
+import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { HiPlus } from 'react-icons/hi2';
@@ -28,14 +29,21 @@ export default function MenuSharedPrimaryAction({
   isActiveItem,
   handleLinkClick,
 }: MenuSharedPrimaryActionProps) {
+  const primaryActionHref = config.primaryAction?.href
+    ? (prefixHref(config.primaryAction) ?? config.primaryAction.href)
+    : undefined;
+  const prefetchPrimaryActionHref = useNavigationPrefetch(primaryActionHref);
+
   if (config.primaryAction) {
     return (
       <div className="px-3 pt-2 pb-1">
         {config.primaryAction.href ? (
           <Link
             data-testid="sidebar-primary-action"
-            href={prefixHref(config.primaryAction) ?? config.primaryAction.href}
+            href={primaryActionHref ?? config.primaryAction.href}
             onClick={handleLinkClick}
+            onFocus={prefetchPrimaryActionHref}
+            onMouseEnter={prefetchPrimaryActionHref}
             className="flex h-9 w-full items-center gap-3 rounded-md border border-border bg-background-secondary px-3 py-1.5 text-left text-xs font-semibold transition-colors hover:border-border-strong hover:bg-background-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
             data-tone="accent"
           >
