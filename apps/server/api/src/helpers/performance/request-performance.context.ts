@@ -1,19 +1,10 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { ConfigService } from '@api/config/config.service';
+import type {
+  PrismaQueryMetric,
+  RequestDatabaseMetrics,
+} from '@api/shared/interfaces/performance/performance.interface';
 import type { Prisma } from '@genfeedai/prisma';
-
-export interface PrismaQueryMetric {
-  duration: number;
-  fingerprint: string;
-  target: string;
-  timestamp: string;
-}
-
-export interface RequestDatabaseMetrics {
-  queryCount: number;
-  queryDuration: number;
-  slowQueries: PrismaQueryMetric[];
-}
 
 interface RequestPerformanceStore {
   queryCount: number;

@@ -10,6 +10,7 @@ export interface IEnvConfig {
   VERSION?: string;
   SERVICE_NAME?: string;
   API_METRICS_LOGGING?: 'true' | 'false';
+  API_SENTRY_PERFORMANCE_METRICS?: 'true' | 'false';
   GENFEED_CLOUD?: 'true' | 'false';
 
   // === Genfeed Internal URLs ===

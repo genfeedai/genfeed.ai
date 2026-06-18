@@ -1,22 +1,34 @@
-import process from 'node:process';
 import { ConfigService } from '@api/config/config.service';
 import {
   APIMetricsInterceptor,
   PerformanceInterceptor,
 } from '@api/helpers/interceptors/performance/performance.interceptor';
 import { recordPrismaQuery } from '@api/helpers/performance/request-performance.context';
+import { normalizeApiRoute } from '@api/helpers/performance/sentry-performance-monitor';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import * as Sentry from '@sentry/nestjs';
 import { firstValueFrom, Observable, of, throwError } from 'rxjs';
+
+vi.mock('@sentry/nestjs', () => ({
+  getActiveSpan: vi.fn(),
+  metrics: {
+    count: vi.fn(),
+    distribution: vi.fn(),
+  },
+  setContext: vi.fn(),
+  setHttpStatus: vi.fn(),
+  setMeasurement: vi.fn(),
+  setTag: vi.fn(),
+  updateSpanName: vi.fn(),
+}));
 
 describe('PerformanceInterceptor', () => {
   let interceptor: PerformanceInterceptor;
   let configService: Pick<ConfigService, 'get'>;
+  let configValues: Record<string, string | undefined>;
   let loggerService: vi.Mocked<LoggerService>;
-  const originalApiQueryMetrics = process.env.API_QUERY_METRICS;
-  const originalApiSlowQueryThresholdMs =
-    process.env.API_SLOW_QUERY_THRESHOLD_MS;
 
   const mockExecutionContext = {
     getRequest: vi.fn(),
@@ -43,11 +55,15 @@ describe('PerformanceInterceptor', () => {
   } satisfies CallHandler;
 
   beforeEach(async () => {
-    process.env.API_SLOW_QUERY_THRESHOLD_MS = '100';
+    vi.clearAllMocks();
+    vi.mocked(Sentry.getActiveSpan).mockReturnValue(undefined);
+    vi.mocked(Sentry.setMeasurement).mockImplementation(() => undefined);
+    configValues = {
+      API_SLOW_QUERY_THRESHOLD_MS: '100',
+    };
+
     configService = {
-      get: vi.fn((key: string) => {
-        return process.env[key];
-      }),
+      get: vi.fn((key: string) => configValues[key]),
     } as unknown as Pick<ConfigService, 'get'>;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -76,20 +92,6 @@ describe('PerformanceInterceptor', () => {
     mockCallHandler.handle.mockReset();
   });
 
-  afterEach(() => {
-    if (originalApiQueryMetrics === undefined) {
-      delete process.env.API_QUERY_METRICS;
-    } else {
-      process.env.API_QUERY_METRICS = originalApiQueryMetrics;
-    }
-
-    if (originalApiSlowQueryThresholdMs === undefined) {
-      delete process.env.API_SLOW_QUERY_THRESHOLD_MS;
-    } else {
-      process.env.API_SLOW_QUERY_THRESHOLD_MS = originalApiSlowQueryThresholdMs;
-    }
-  });
-
   it('should be defined', () => {
     expect(interceptor).toBeDefined();
   });
@@ -107,6 +109,7 @@ describe('PerformanceInterceptor', () => {
         expect.objectContaining({
           duration: expect.any(Number),
           method: 'GET',
+          route: '/api/test',
           severity: 'LOW',
           statusCode: 200,
           timestamp: expect.any(String),
@@ -115,10 +118,27 @@ describe('PerformanceInterceptor', () => {
           userId: 'user123',
         }),
       );
+      expect(Sentry.setTag).toHaveBeenCalledWith('api.route', '/api/test');
+      expect(Sentry.setMeasurement).toHaveBeenCalledWith(
+        'api.request.duration',
+        expect.any(Number),
+        'millisecond',
+        undefined,
+      );
+      expect(Sentry.setContext).toHaveBeenCalledWith(
+        'api.performance',
+        expect.objectContaining({
+          method: 'GET',
+          route: '/api/test',
+          severity: 'LOW',
+          statusCode: 200,
+        }),
+      );
+      expect(Sentry.metrics.distribution).not.toHaveBeenCalled();
     });
 
     it('should attach database metrics when Prisma query metrics are enabled', async () => {
-      process.env.API_QUERY_METRICS = 'true';
+      configValues.API_QUERY_METRICS = 'true';
       mockCallHandler.handle.mockReturnValue(
         new Observable((subscriber) => {
           recordPrismaQuery(
@@ -154,6 +174,118 @@ describe('PerformanceInterceptor', () => {
               }),
             ],
           },
+        }),
+      );
+      expect(Sentry.setMeasurement).toHaveBeenCalledWith(
+        'api.db.query_duration',
+        150,
+        'millisecond',
+        undefined,
+      );
+      expect(Sentry.setMeasurement).toHaveBeenCalledWith(
+        'api.db.query_count',
+        1,
+        'none',
+        undefined,
+      );
+      expect(Sentry.setContext).toHaveBeenCalledWith('api.database', {
+        queryCount: 1,
+        queryDuration: 150,
+        slowQueries: [
+          expect.objectContaining({
+            duration: 150,
+            fingerprint: 'SELECT * FROM ? WHERE ? = ?',
+            target: 'prisma:query',
+          }),
+        ],
+      });
+    });
+
+    it('should annotate the active Sentry span with normalized route metrics', async () => {
+      const activeSpan = {
+        setAttributes: vi.fn(),
+      };
+      vi.mocked(Sentry.getActiveSpan).mockReturnValue(activeSpan as never);
+      mockExecutionContext.getRequest.mockReturnValue({
+        ...mockRequest,
+        url: '/v1/videos/507f1f77bcf86cd799439011?include=comments',
+      });
+      mockCallHandler.handle.mockReturnValue(of('success'));
+
+      await firstValueFrom(
+        interceptor.intercept(mockExecutionContext, mockCallHandler),
+      );
+
+      expect(activeSpan.setAttributes).toHaveBeenCalledWith(
+        expect.objectContaining({
+          'genfeed.api.duration_ms': expect.any(Number),
+          'genfeed.api.performance_severity': 'LOW',
+          'genfeed.api.route': '/v1/videos/*',
+          'http.request.method': 'GET',
+          'http.response.status_code': 200,
+        }),
+      );
+      expect(Sentry.updateSpanName).toHaveBeenCalledWith(
+        activeSpan,
+        'GET /v1/videos/*',
+      );
+      expect(Sentry.setHttpStatus).toHaveBeenCalledWith(activeSpan, 200);
+    });
+
+    it('should emit Sentry distribution metrics when enabled', async () => {
+      configValues.API_SENTRY_PERFORMANCE_METRICS = 'true';
+      mockExecutionContext.getRequest.mockReturnValue({
+        ...mockRequest,
+        url: '/v1/posts/my-post-slug',
+      });
+      mockCallHandler.handle.mockReturnValue(of('success'));
+
+      await firstValueFrom(
+        interceptor.intercept(mockExecutionContext, mockCallHandler),
+      );
+
+      expect(Sentry.metrics.count).toHaveBeenCalledWith(
+        'api.request.count',
+        1,
+        {
+          attributes: {
+            method: 'GET',
+            route: '/v1/posts/*',
+            severity: 'LOW',
+            status_code: '200',
+          },
+        },
+      );
+      expect(Sentry.metrics.distribution).toHaveBeenCalledWith(
+        'api.request.duration',
+        expect.any(Number),
+        {
+          attributes: {
+            method: 'GET',
+            route: '/v1/posts/*',
+            severity: 'LOW',
+            status_code: '200',
+          },
+          unit: 'millisecond',
+        },
+      );
+    });
+
+    it('should continue the request when Sentry telemetry fails', async () => {
+      vi.mocked(Sentry.setMeasurement).mockImplementationOnce(() => {
+        throw new Error('Sentry unavailable');
+      });
+      mockCallHandler.handle.mockReturnValue(of('success'));
+
+      await firstValueFrom(
+        interceptor.intercept(mockExecutionContext, mockCallHandler),
+      );
+
+      expect(loggerService.debug).toHaveBeenCalledWith(
+        'Request completed',
+        expect.objectContaining({
+          route: '/api/test',
+          severity: 'LOW',
         }),
       );
     });
@@ -259,6 +391,28 @@ describe('PerformanceInterceptor', () => {
         }),
       );
     });
+  });
+});
+
+describe('normalizeApiRoute', () => {
+  it('should keep static collection routes intact', () => {
+    expect(normalizeApiRoute('/v1/videos')).toBe('/v1/videos');
+    expect(normalizeApiRoute('/v1/content-orchestration')).toBe(
+      '/v1/content-orchestration',
+    );
+  });
+
+  it('should replace high-cardinality path segments', () => {
+    expect(normalizeApiRoute('/v1/videos/507f1f77bcf86cd799439011')).toBe(
+      '/v1/videos/*',
+    );
+    expect(normalizeApiRoute('/v1/users/123')).toBe('/v1/users/*');
+    expect(normalizeApiRoute('/v1/posts/my-post-slug')).toBe('/v1/posts/*');
+    expect(
+      normalizeApiRoute(
+        '/v1/videos/507f1f77bcf86cd799439011/comments/456?include=user',
+      ),
+    ).toBe('/v1/videos/*/comments/*');
   });
 });
 
