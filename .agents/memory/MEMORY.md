@@ -19,6 +19,7 @@
 - [Use @ui/primitives](feedback_ui_primitives.md) — Never raw HTML elements — blocked by lint-no-raw-html.sh
 - [Codex adversarial review](feedback_codex_adversarial_review.md) — MANDATORY before ExitPlanMode
 - [GitHub issue worktree workflow](feedback_gh_issue_worktree_workflow.md) — Assigned issues use worktrees from master → PR to master
+- [Ready PRs by default](feedback_ready_pr_default.md) — Open normal ready PRs to master by default; draft only by explicit request or blocked WIP
 - [No external symlinks](feedback_no_external_symlinks.md) — Open source repo. Internal symlinks only.
 - [End-to-end implementation](feedback_end_to_end_implementation.md) — Never ship half-architecture; wire the full user path
 - [P0 status, not label](feedback_p0_status_not_label.md) — P0 is issue status; never create priority labels
