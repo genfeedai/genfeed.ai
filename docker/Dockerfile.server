@@ -330,9 +330,9 @@ RUN mkdir -p /usr/src/app/public/tmp \
         /usr/src/app/apps/server/workers \
         /usr/src/app/public
 
-# RDS CA bundle — DATABASE_URL uses TLS against RDS and the runtime env sets
-# NODE_EXTRA_CA_CERTS=/certs/rds-ca.pem; without the file every Prisma query
-# fails with "self-signed certificate in certificate chain".
+# RDS CA bundle — PrismaService passes this CA to PrismaPg for RDS DATABASE_URLs;
+# without the file every Prisma query fails with
+# "self-signed certificate in certificate chain".
 RUN mkdir -p /certs && \
     curl -fsSL https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem -o /certs/rds-ca.pem && \
     chmod 444 /certs/rds-ca.pem
