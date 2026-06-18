@@ -362,6 +362,46 @@ describe('FilesClientService', () => {
     });
   });
 
+  describe('resizeImageFromUrl', () => {
+    it('should resize image URL successfully', async () => {
+      const imageUrl = 'https://example.com/image.jpg';
+      const target = { height: 600, width: 800 };
+      const mockResponse = {
+        data: { data: Buffer.from('resized-image').toString('base64') },
+      };
+
+      httpService.post.mockReturnValue(httpResponse(mockResponse.data));
+
+      const result = await service.resizeImageFromUrl(imageUrl, target);
+
+      expect(result).toBeInstanceOf(Buffer);
+      expect(httpService.post).toHaveBeenCalledWith(
+        `${mockFilesServiceUrl}/v1/files/processing/resize-image`,
+        {
+          height: target.height,
+          imageUrl,
+          width: target.width,
+        },
+      );
+    });
+
+    it('should handle errors when resizing image URL', async () => {
+      const imageUrl = 'https://example.com/image.jpg';
+      const target = { height: 600, width: 800 };
+      const error = new Error('Processing error');
+
+      httpService.post.mockReturnValue(throwError(() => error));
+
+      await expect(
+        service.resizeImageFromUrl(imageUrl, target),
+      ).rejects.toThrow(error);
+      expect(loggerService.error).toHaveBeenCalledWith(
+        'Failed to resize image from URL',
+        error,
+      );
+    });
+  });
+
   describe('resizeVideo', () => {
     it('should resize video successfully', async () => {
       const inputPath = '/tmp/input.mp4';
