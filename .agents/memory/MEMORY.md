@@ -27,6 +27,7 @@
 - [GPU instances off by default](feedback_gpu_instances_off_by_default.md) — Keep Genfeed GPU/Fleet inference instances off unless explicitly needed
 - [Inference servers private boundary](feedback_inference_servers_private_boundary.md) — Keep Genfeed inference server implementations out of the public monorepo
 - [GenfeedAI managed provider](feedback_genfeedai_managed_provider.md) — Model Genfeed-managed inference as provider=genfeedai, enabled per customer from console
+- [Console managed inference control plane](feedback_console_managed_inference_control_plane.md) — Private console owns Genfeed-managed Fleet/model/customer assignment
 - [Concurrent automation in shared checkout](feedback_concurrent_automation_develop.md) — A background bot commits to HEAD + pushes the shared checkout; path-scope git add, never blind add -u
 - [Genfeed project kanban](feedback_genfeed_project_kanban.md) — Use project #12 Genfeed.ai as canonical; never select work from closed Mission Control #11
 - [Production deploys master-only](feedback_production_deploy_master_only.md) — Never deploy any non-master ref to production unless Vincent explicitly overrides; production deploys run from GitHub CI on master
