@@ -794,6 +794,7 @@ model Brand {
   bookmarks                  Bookmark[]
 
   @@index([isDefault])
+  @@index([organizationId, isDeleted, label], map: "brands_org_deleted_label_idx")
   @@map("brands")
 }
 
@@ -815,6 +816,7 @@ model Member {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
+  @@index([organizationId, userId, isDeleted], map: "members_org_user_deleted_idx")
   @@map("members")
 }
 
@@ -1606,6 +1608,10 @@ model Post {
   @@index([isDeleted, nextScheduledDate, status])
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([brandId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, status, createdAt(sort: Desc)], map: "posts_org_deleted_status_created_at_idx")
+  @@index([brandId, isDeleted, status, createdAt(sort: Desc)], map: "posts_brand_deleted_status_created_at_idx")
+  @@index([brandId, credentialId, isDeleted, createdAt(sort: Desc)], map: "posts_brand_credential_deleted_created_at_idx")
+  @@index([brandId, platform, isDeleted, createdAt(sort: Desc)], map: "posts_brand_platform_deleted_created_at_idx")
   @@map("posts")
 }
 
@@ -2189,6 +2195,7 @@ model AgentRun {
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, isDeleted, status, createdAt(sort: Desc)])
   @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, status, completedAt(sort: Desc)], map: "agent_runs_org_deleted_status_completed_at_idx")
   @@map("agent_runs")
 }
 
@@ -2519,6 +2526,8 @@ model ContentRun {
   contentPerformances ContentPerformance[]
   contentDrafts       ContentDraft[]
 
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "content_runs_org_brand_deleted_created_at_idx")
+  @@index([organizationId, brandId, isDeleted, status, createdAt(sort: Desc)], map: "content_runs_org_brand_deleted_status_created_at_idx")
   @@map("content_runs")
 }
 
@@ -3018,6 +3027,10 @@ model Activity {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  @@index([isDeleted, createdAt(sort: Desc)], map: "activities_deleted_created_at_idx")
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "activities_org_deleted_created_at_idx")
+  @@index([brandId, isDeleted, createdAt(sort: Desc)], map: "activities_brand_deleted_created_at_idx")
+  @@index([userId, isDeleted, createdAt(sort: Desc)], map: "activities_user_deleted_created_at_idx")
   @@map("activities")
 }
 
@@ -3924,6 +3937,9 @@ model Batch {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "batches_org_deleted_created_at_idx")
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "batches_org_brand_deleted_created_at_idx")
+  @@index([organizationId, isDeleted, status, createdAt(sort: Desc)], map: "batches_org_deleted_status_created_at_idx")
   @@map("batches")
 }
 
