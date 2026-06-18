@@ -78,13 +78,128 @@ describe('analytics ingestion to dashboard smoke path', () => {
 
   const rows: AnalyticsRow[] = [];
 
+  function filterAnalyticsRows(where?: {
+    brandId?: string;
+    date?: { gte?: Date; lte?: Date };
+    organizationId?: string;
+    postId?: string;
+  }): AnalyticsRow[] {
+    return rows.filter(
+      (row) =>
+        (!where?.postId || row.postId === where.postId) &&
+        (!where?.organizationId ||
+          row.organizationId === where.organizationId) &&
+        (!where?.brandId || row.brandId === where.brandId) &&
+        dateMatches(row.date, where?.date),
+    );
+  }
+
+  function aggregateAnalyticsRows(where?: {
+    brandId?: string;
+    date?: { gte?: Date; lte?: Date };
+    organizationId?: string;
+    postId?: string;
+  }) {
+    const matchingRows = filterAnalyticsRows(where);
+    const sum = (field: keyof AnalyticsRow) =>
+      matchingRows.reduce((total, row) => total + Number(row[field] ?? 0), 0);
+    const avgEngagementRate =
+      matchingRows.length > 0
+        ? sum('engagementRate') / matchingRows.length
+        : null;
+
+    return {
+      _avg: { engagementRate: avgEngagementRate },
+      _count: { _all: matchingRows.length, postId: matchingRows.length },
+      _sum: {
+        totalComments: sum('totalComments'),
+        totalLikes: sum('totalLikes'),
+        totalSaves: sum('totalSaves'),
+        totalShares: sum('totalShares'),
+        totalViews: sum('totalViews'),
+      },
+    };
+  }
+
+  function getQueryText(query: unknown): string {
+    if (typeof query === 'string') return query;
+    if (typeof query !== 'object' || query === null) return '';
+    if ('sql' in query) return String(query.sql);
+    if ('text' in query) return String(query.text);
+    return '';
+  }
+
   const prisma = {
+    $queryRaw: vi.fn((query: unknown) => {
+      const matchingRows = filterAnalyticsRows({
+        brandId,
+        organizationId,
+      });
+      const totalEngagement = matchingRows.reduce(
+        (total, row) => total + row.engagementRate,
+        0,
+      );
+      const avgEngagementRate =
+        matchingRows.length > 0 ? totalEngagement / matchingRows.length : 0;
+      const queryText = getQueryText(query);
+
+      if (queryText.includes('pa."platform"::text AS platform')) {
+        return Promise.resolve(
+          matchingRows.length > 0
+            ? [
+                {
+                  avg_engagement_rate: avgEngagementRate,
+                  platform: String(matchingRows[0]?.platform ?? 'unknown'),
+                  total_posts: new Set(matchingRows.map((row) => row.postId))
+                    .size,
+                },
+              ]
+            : [],
+        );
+      }
+
+      if (queryText.includes('COALESCE(p."category"')) {
+        return Promise.resolve(
+          matchingRows.length > 0
+            ? [
+                {
+                  avg_engagement_rate: avgEngagementRate,
+                  category: String(post.category),
+                  total_posts: new Set(matchingRows.map((row) => row.postId))
+                    .size,
+                },
+              ]
+            : [],
+        );
+      }
+
+      if (queryText.includes('EXTRACT(HOUR FROM p."publicationDate")')) {
+        const hour = post.publicationDate?.getHours();
+        return Promise.resolve(
+          matchingRows.length > 0 && typeof hour === 'number'
+            ? [
+                {
+                  avg_engagement_rate: avgEngagementRate,
+                  hour,
+                  post_count: new Set(matchingRows.map((row) => row.postId))
+                    .size,
+                },
+              ]
+            : [],
+        );
+      }
+
+      return Promise.resolve([]);
+    }),
     post: {
       findMany: vi.fn(({ where }: { where: { id: { in: string[] } } }) =>
         Promise.resolve(where.id.in.includes(postId) ? [post] : []),
       ),
     },
     postAnalytics: {
+      aggregate: vi.fn(({ where }) =>
+        Promise.resolve(aggregateAnalyticsRows(where)),
+      ),
       findFirst: vi.fn(
         ({
           where,
@@ -131,6 +246,53 @@ describe('analytics ingestion to dashboard smoke path', () => {
                 : a.engagementRate - b.engagementRate,
             );
           }
+
+          return Promise.resolve(
+            typeof take === 'number' ? result.slice(0, take) : result,
+          );
+        },
+      ),
+      groupBy: vi.fn(
+        ({
+          take,
+          where,
+        }: {
+          take?: number;
+          where?: {
+            brandId?: string;
+            date?: { gte?: Date; lte?: Date };
+            organizationId?: string;
+          };
+        }) => {
+          const grouped = new Map<string, AnalyticsRow[]>();
+          for (const row of filterAnalyticsRows(where)) {
+            const key = String(row.platform);
+            grouped.set(key, [...(grouped.get(key) ?? []), row]);
+          }
+
+          const result = Array.from(grouped.entries())
+            .map(([platform, platformRows]) => {
+              const sum = (field: keyof AnalyticsRow) =>
+                platformRows.reduce(
+                  (total, row) => total + Number(row[field] ?? 0),
+                  0,
+                );
+              return {
+                _avg: {
+                  engagementRate:
+                    platformRows.length > 0
+                      ? sum('engagementRate') / platformRows.length
+                      : null,
+                },
+                _count: { postId: platformRows.length },
+                platform,
+              };
+            })
+            .sort(
+              (left, right) =>
+                Number(right._avg.engagementRate ?? 0) -
+                Number(left._avg.engagementRate ?? 0),
+            );
 
           return Promise.resolve(
             typeof take === 'number' ? result.slice(0, take) : result,

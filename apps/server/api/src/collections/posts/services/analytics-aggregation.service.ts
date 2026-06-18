@@ -8,6 +8,7 @@ import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AnalyticsMetric } from '@genfeedai/enums';
 import type { IViralHookPlatformAggResult } from '@genfeedai/interfaces';
+import { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 
 export interface Timeframe {
@@ -124,6 +125,28 @@ export interface EngagementBreakdown {
   savesPercentage: number;
 }
 
+type NumericSqlValue = bigint | number | string | null;
+
+type DistinctPostCountRow = {
+  post_count: NumericSqlValue;
+};
+
+type PlatformComparisonRow = {
+  comments: NumericSqlValue;
+  engagement_rate: NumericSqlValue;
+  likes: NumericSqlValue;
+  platform: string | null;
+  post_count: NumericSqlValue;
+  saves: NumericSqlValue;
+  shares: NumericSqlValue;
+  views: NumericSqlValue;
+};
+
+type PostViewsRow = {
+  post_id: string;
+  total_views: NumericSqlValue;
+};
+
 @Injectable()
 export class AnalyticsAggregationService {
   constructor(
@@ -139,6 +162,45 @@ export class AnalyticsAggregationService {
     endDateInput?: Date | string,
   ): Timeframe {
     return DateRangeUtil.parseDateRange(startDateInput, endDateInput);
+  }
+
+  private readNumber(value: unknown): number {
+    return Number(value ?? 0);
+  }
+
+  private readDateKey(date: Date, groupBy: 'day' | 'week'): string {
+    if (groupBy === 'day') {
+      return new Date(date).toISOString().split('T')[0];
+    }
+
+    const current = new Date(date);
+    const year = current.getFullYear();
+    const oneJan = new Date(year, 0, 1);
+    const days = Math.floor(
+      (current.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000),
+    );
+    const week = Math.ceil((days + oneJan.getDay() + 1) / 7);
+    return `${year}-${String(week).padStart(2, '0')}`;
+  }
+
+  private totalEngagementFromSums(sums: {
+    totalComments?: unknown;
+    totalLikes?: unknown;
+    totalShares?: unknown;
+  }): number {
+    return (
+      this.readNumber(sums.totalLikes) +
+      this.readNumber(sums.totalComments) +
+      this.readNumber(sums.totalShares)
+    );
+  }
+
+  private buildBrandSqlPredicate(brandId?: string): Prisma.Sql {
+    return brandId ? Prisma.sql`AND "brandId" = ${brandId}` : Prisma.empty;
+  }
+
+  private buildAliasedBrandSqlPredicate(brandId?: string): Prisma.Sql {
+    return brandId ? Prisma.sql`AND pa."brandId" = ${brandId}` : Prisma.empty;
   }
 
   /**
@@ -166,44 +228,6 @@ export class AnalyticsAggregationService {
       where.brandId = brandId;
     }
 
-    const docs = await this.prisma.postAnalytics.findMany({
-      where: where as never,
-    });
-
-    const docTyped = docs as unknown as Array<{
-      platform: string;
-      engagementRate: number;
-      totalComments: number;
-      totalLikes: number;
-      totalSaves: number;
-      totalShares: number;
-      totalViews: number;
-    }>;
-
-    // Aggregate in-memory
-    let totalViews = 0;
-    let totalLikes = 0;
-    let totalComments = 0;
-    let totalSaves = 0;
-    let totalShares = 0;
-    let engagementRateSum = 0;
-    const platformSet = new Set<string>();
-    const platformViews = new Map<string, number>();
-
-    for (const doc of docTyped) {
-      totalViews += doc.totalViews;
-      totalLikes += doc.totalLikes;
-      totalComments += doc.totalComments;
-      totalSaves += doc.totalSaves;
-      totalShares += doc.totalShares;
-      engagementRateSum += doc.engagementRate;
-      platformSet.add(doc.platform);
-      platformViews.set(
-        doc.platform,
-        (platformViews.get(doc.platform) || 0) + doc.totalViews,
-      );
-    }
-
     // Previous period
     const prevWhere: Record<string, unknown> = {
       date: { gte: previousStartDate, lte: previousEndDate },
@@ -211,23 +235,37 @@ export class AnalyticsAggregationService {
     };
     if (brandId) prevWhere.brandId = brandId;
 
-    const prevDocs = await this.prisma.postAnalytics.findMany({
-      where: prevWhere as never,
-    });
-
-    const prevTyped = prevDocs as unknown as Array<{
-      totalViews: number;
-      totalLikes: number;
-      totalComments: number;
-      totalShares: number;
-    }>;
-
-    let prevViews = 0;
-    let prevEngagement = 0;
-    for (const doc of prevTyped) {
-      prevViews += doc.totalViews;
-      prevEngagement += doc.totalLikes + doc.totalComments + doc.totalShares;
-    }
+    const [currentAggregate, previousAggregate, platformRows] =
+      await Promise.all([
+        this.prisma.postAnalytics.aggregate({
+          _avg: { engagementRate: true },
+          _count: { _all: true },
+          _sum: {
+            totalComments: true,
+            totalLikes: true,
+            totalSaves: true,
+            totalShares: true,
+            totalViews: true,
+          },
+          where: where as never,
+        }),
+        this.prisma.postAnalytics.aggregate({
+          _sum: {
+            totalComments: true,
+            totalLikes: true,
+            totalShares: true,
+            totalViews: true,
+          },
+          where: prevWhere as never,
+        }),
+        this.prisma.postAnalytics.groupBy({
+          _sum: { totalViews: true },
+          by: ['platform'],
+          orderBy: { _sum: { totalViews: 'desc' } },
+          take: 20,
+          where: where as never,
+        } as never),
+      ]);
 
     const postCount = await this.postsService.count({
       isDeleted: false,
@@ -235,9 +273,35 @@ export class AnalyticsAggregationService {
       ...(brandId ? { brandId } : {}),
     });
 
+    const currentSums =
+      (
+        currentAggregate as {
+          _avg?: { engagementRate?: unknown };
+          _sum?: Record<string, unknown>;
+        }
+      )._sum ?? {};
+    const previousSums =
+      (previousAggregate as { _sum?: Record<string, unknown> })._sum ?? {};
+
+    const totalViews = this.readNumber(currentSums.totalViews);
+    const totalLikes = this.readNumber(currentSums.totalLikes);
+    const totalComments = this.readNumber(currentSums.totalComments);
+    const totalSaves = this.readNumber(currentSums.totalSaves);
+    const totalShares = this.readNumber(currentSums.totalShares);
     const totalEngagement = totalLikes + totalComments + totalShares;
-    const avgEngagementRate =
-      docTyped.length > 0 ? engagementRateSum / docTyped.length : 0;
+    const avgEngagementRate = this.readNumber(
+      (
+        currentAggregate as {
+          _avg?: { engagementRate?: unknown };
+        }
+      )._avg?.engagementRate,
+    );
+    const activePlatforms = (platformRows as Array<{ platform: string }>).map(
+      (row) => row.platform,
+    );
+    const bestPlatform = activePlatforms[0] ?? 'N/A';
+    const prevViews = this.readNumber(previousSums.totalViews);
+    const prevEngagement = this.totalEngagementFromSums(previousSums);
 
     const viewsGrowth =
       prevViews > 0 ? ((totalViews - prevViews) / prevViews) * 100 : 0;
@@ -246,18 +310,8 @@ export class AnalyticsAggregationService {
         ? ((totalEngagement - prevEngagement) / prevEngagement) * 100
         : 0;
 
-    // Best performing platform
-    let bestPlatform = 'N/A';
-    let maxViews = 0;
-    for (const [platform, views] of platformViews.entries()) {
-      if (views > maxViews) {
-        maxViews = views;
-        bestPlatform = platform;
-      }
-    }
-
     return {
-      activePlatforms: Array.from(platformSet),
+      activePlatforms,
       avgEngagementRate,
       bestPerformingPlatform: bestPlatform,
       engagementGrowth,
@@ -291,66 +345,59 @@ export class AnalyticsAggregationService {
       where.brandId = brandId;
     }
 
-    const docs = await this.prisma.postAnalytics.findMany({
+    const rows = await this.prisma.postAnalytics.groupBy({
+      _avg: { engagementRate: true },
+      _sum: {
+        totalComments: true,
+        totalLikes: true,
+        totalSaves: true,
+        totalShares: true,
+        totalViews: true,
+      },
+      by: ['date'],
       orderBy: { date: 'asc' },
       where: where as never,
-    });
+    } as never);
 
-    const docTyped = docs as unknown as Array<{
-      date: Date;
-      platform: string;
-      engagementRate: number;
-      totalComments: number;
-      totalLikes: number;
-      totalSaves: number;
-      totalShares: number;
-      totalViews: number;
-    }>;
-
-    // Group by date
     const grouped = new Map<
       string,
       {
         comments: number;
-        engagementRates: number[];
+        engagementRate: number;
         likes: number;
+        rowCount: number;
         saves: number;
         shares: number;
         views: number;
       }
     >();
 
-    for (const doc of docTyped) {
-      let dateKey: string;
-      if (groupBy === 'week') {
-        const d = new Date(doc.date);
-        const year = d.getFullYear();
-        const oneJan = new Date(year, 0, 1);
-        const days = Math.floor(
-          (d.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000),
-        );
-        const week = Math.ceil((days + oneJan.getDay() + 1) / 7);
-        dateKey = `${year}-${String(week).padStart(2, '0')}`;
-      } else {
-        dateKey = new Date(doc.date).toISOString().split('T')[0];
-      }
-
+    for (const row of rows as Array<{
+      _avg?: { engagementRate?: unknown };
+      _sum?: Record<string, unknown>;
+      date: Date;
+    }>) {
+      const dateKey = this.readDateKey(row.date, groupBy);
+      const sums = row._sum ?? {};
+      const engagementRate = this.readNumber(row._avg?.engagementRate);
       const existing = grouped.get(dateKey);
       if (existing) {
-        existing.views += doc.totalViews;
-        existing.likes += doc.totalLikes;
-        existing.comments += doc.totalComments;
-        existing.shares += doc.totalShares;
-        existing.saves += doc.totalSaves;
-        existing.engagementRates.push(doc.engagementRate);
+        existing.views += this.readNumber(sums.totalViews);
+        existing.likes += this.readNumber(sums.totalLikes);
+        existing.comments += this.readNumber(sums.totalComments);
+        existing.shares += this.readNumber(sums.totalShares);
+        existing.saves += this.readNumber(sums.totalSaves);
+        existing.engagementRate += engagementRate;
+        existing.rowCount += 1;
       } else {
         grouped.set(dateKey, {
-          comments: doc.totalComments,
-          engagementRates: [doc.engagementRate],
-          likes: doc.totalLikes,
-          saves: doc.totalSaves,
-          shares: doc.totalShares,
-          views: doc.totalViews,
+          comments: this.readNumber(sums.totalComments),
+          engagementRate,
+          likes: this.readNumber(sums.totalLikes),
+          rowCount: 1,
+          saves: this.readNumber(sums.totalSaves),
+          shares: this.readNumber(sums.totalShares),
+          views: this.readNumber(sums.totalViews),
         });
       }
     }
@@ -359,10 +406,7 @@ export class AnalyticsAggregationService {
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([date, data]) => {
         const engagementRate =
-          data.engagementRates.length > 0
-            ? data.engagementRates.reduce((a, b) => a + b, 0) /
-              data.engagementRates.length
-            : 0;
+          data.rowCount > 0 ? data.engagementRate / data.rowCount : 0;
         return {
           comments: data.comments,
           date,
@@ -455,61 +499,50 @@ export class AnalyticsAggregationService {
       where.brandId = brandId;
     }
 
-    const docs = await this.prisma.postAnalytics.findMany({
+    const rows = await this.prisma.postAnalytics.groupBy({
+      _avg: { engagementRate: true },
+      _sum: {
+        totalComments: true,
+        totalLikes: true,
+        totalSaves: true,
+        totalShares: true,
+        totalViews: true,
+      },
+      by: ['date', 'platform'],
       where: where as never,
-    });
+    } as never);
 
-    const docTyped = docs as unknown as Array<{
-      date: Date;
-      platform: string;
-      engagementRate: number;
-      totalComments: number;
-      totalLikes: number;
-      totalSaves: number;
-      totalShares: number;
-      totalViews: number;
-    }>;
-
-    // Group by date+platform in-memory
     const dataMap = new Map<string, Map<string, PlatformMetrics>>();
 
-    for (const doc of docTyped) {
-      let dateKey: string;
-      if (groupBy === 'week') {
-        const d = new Date(doc.date);
-        const year = d.getFullYear();
-        const oneJan = new Date(year, 0, 1);
-        const days = Math.floor(
-          (d.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000),
-        );
-        const week = Math.ceil((days + oneJan.getDay() + 1) / 7);
-        dateKey = `${year}-${String(week).padStart(2, '0')}`;
-      } else {
-        dateKey = new Date(doc.date).toISOString().split('T')[0];
-      }
-
+    for (const row of rows as Array<{
+      _avg?: { engagementRate?: unknown };
+      _sum?: Record<string, unknown>;
+      date: Date;
+      platform: string;
+    }>) {
+      const dateKey = this.readDateKey(row.date, groupBy);
+      const sums = row._sum ?? {};
       if (!dataMap.has(dateKey)) {
         dataMap.set(dateKey, new Map());
       }
 
       const platformMap = dataMap.get(dateKey)!;
-      const existing = platformMap.get(doc.platform);
+      const existing = platformMap.get(row.platform);
       if (existing) {
-        existing.views += doc.totalViews;
-        existing.likes += doc.totalLikes;
-        existing.comments += doc.totalComments;
-        existing.shares += doc.totalShares;
-        existing.saves += doc.totalSaves;
-        existing.engagementRate =
-          (existing.engagementRate + doc.engagementRate) / 2;
+        existing.views += this.readNumber(sums.totalViews);
+        existing.likes += this.readNumber(sums.totalLikes);
+        existing.comments += this.readNumber(sums.totalComments);
+        existing.shares += this.readNumber(sums.totalShares);
+        existing.saves += this.readNumber(sums.totalSaves);
+        existing.engagementRate = this.readNumber(row._avg?.engagementRate);
       } else {
-        platformMap.set(doc.platform, {
-          comments: doc.totalComments,
-          engagementRate: doc.engagementRate,
-          likes: doc.totalLikes,
-          saves: doc.totalSaves,
-          shares: doc.totalShares,
-          views: doc.totalViews,
+        platformMap.set(row.platform, {
+          comments: this.readNumber(sums.totalComments),
+          engagementRate: this.readNumber(row._avg?.engagementRate),
+          likes: this.readNumber(sums.totalLikes),
+          saves: this.readNumber(sums.totalSaves),
+          shares: this.readNumber(sums.totalShares),
+          views: this.readNumber(sums.totalViews),
         });
       }
     }
@@ -564,80 +597,44 @@ export class AnalyticsAggregationService {
       where.brandId = brandId;
     }
 
-    const docs = await this.prisma.postAnalytics.findMany({
-      where: where as never,
+    const rows = await this.prisma.$queryRaw<PlatformComparisonRow[]>(
+      Prisma.sql`
+        SELECT
+          "platform"::text AS platform,
+          SUM("totalViews") AS views,
+          SUM("totalLikes") AS likes,
+          SUM("totalComments") AS comments,
+          SUM("totalShares") AS shares,
+          SUM("totalSaves") AS saves,
+          AVG("engagementRate") AS engagement_rate,
+          COUNT(DISTINCT "postId") AS post_count
+        FROM "post_analytics"
+        WHERE "organizationId" = ${organizationId}
+          AND "date" >= ${startDate}
+          AND "date" <= ${endDate}
+          ${this.buildBrandSqlPredicate(brandId)}
+        GROUP BY "platform"
+        ORDER BY views DESC
+        LIMIT 20
+      `,
+    );
+
+    return rows.map((row) => {
+      const postCount = this.readNumber(row.post_count);
+      const views = this.readNumber(row.views);
+
+      return {
+        avgViewsPerPost: postCount > 0 ? views / postCount : 0,
+        comments: this.readNumber(row.comments),
+        engagementRate: this.readNumber(row.engagement_rate),
+        likes: this.readNumber(row.likes),
+        platform: row.platform || 'unknown',
+        postCount,
+        saves: this.readNumber(row.saves),
+        shares: this.readNumber(row.shares),
+        views,
+      };
     });
-
-    const docTyped = docs as unknown as Array<{
-      platform: string;
-      postId: string;
-      engagementRate: number;
-      totalComments: number;
-      totalLikes: number;
-      totalSaves: number;
-      totalShares: number;
-      totalViews: number;
-    }>;
-
-    // Group by platform in-memory
-    const platformMap = new Map<
-      string,
-      {
-        comments: number;
-        engagementRates: number[];
-        likes: number;
-        postIds: Set<string>;
-        saves: number;
-        shares: number;
-        views: number;
-      }
-    >();
-
-    for (const doc of docTyped) {
-      const existing = platformMap.get(doc.platform);
-      if (existing) {
-        existing.views += doc.totalViews;
-        existing.likes += doc.totalLikes;
-        existing.comments += doc.totalComments;
-        existing.shares += doc.totalShares;
-        existing.saves += doc.totalSaves;
-        existing.engagementRates.push(doc.engagementRate);
-        existing.postIds.add(doc.postId);
-      } else {
-        platformMap.set(doc.platform, {
-          comments: doc.totalComments,
-          engagementRates: [doc.engagementRate],
-          likes: doc.totalLikes,
-          postIds: new Set([doc.postId]),
-          saves: doc.totalSaves,
-          shares: doc.totalShares,
-          views: doc.totalViews,
-        });
-      }
-    }
-
-    return Array.from(platformMap.entries())
-      .map(([platform, data]) => {
-        const postCount = data.postIds.size;
-        const avgEngagementRate =
-          data.engagementRates.length > 0
-            ? data.engagementRates.reduce((a, b) => a + b, 0) /
-              data.engagementRates.length
-            : 0;
-
-        return {
-          avgViewsPerPost: postCount > 0 ? data.views / postCount : 0,
-          comments: data.comments,
-          engagementRate: avgEngagementRate,
-          likes: data.likes,
-          platform,
-          postCount,
-          saves: data.saves,
-          shares: data.shares,
-          views: data.views,
-        };
-      })
-      .sort((a, b) => b.views - a.views);
   }
 
   /**
@@ -667,71 +664,51 @@ export class AnalyticsAggregationService {
       where.brandId = brandId;
     }
 
-    const docs = await this.prisma.postAnalytics.findMany({
+    const safeLimit = Math.min(Math.max(1, limit), 100);
+    const candidateLimit =
+      metric === AnalyticsMetric.ENGAGEMENT
+        ? Math.min(safeLimit * 5, 250)
+        : safeLimit;
+    const rows = await this.prisma.postAnalytics.groupBy({
+      _avg: { engagementRate: true },
+      _max: {
+        totalComments: true,
+        totalLikes: true,
+        totalShares: true,
+        totalViews: true,
+      },
+      by: ['postId', 'platform'],
+      orderBy:
+        metric === AnalyticsMetric.ENGAGEMENT
+          ? { _max: { totalLikes: 'desc' } }
+          : { _max: { totalViews: 'desc' } },
+      take: candidateLimit,
       where: where as never,
-    });
+    } as never);
 
-    const docTyped = docs as unknown as Array<{
-      postId: string;
-      platform: string;
-      engagementRate: number;
-      totalComments: number;
-      totalLikes: number;
-      totalSaves: number;
-      totalShares: number;
-      totalViews: number;
-    }>;
-
-    // Group by postId in-memory
-    const postMap = new Map<
-      string,
-      {
-        comments: number;
-        engagementRates: number[];
-        likes: number;
+    const scored = (
+      rows as Array<{
+        _avg?: { engagementRate?: unknown };
+        _max?: Record<string, unknown>;
         platform: string;
-        shares: number;
-        views: number;
-      }
-    >();
-
-    for (const doc of docTyped) {
-      const existing = postMap.get(doc.postId);
-      if (existing) {
-        existing.views = Math.max(existing.views, doc.totalViews);
-        existing.likes = Math.max(existing.likes, doc.totalLikes);
-        existing.comments = Math.max(existing.comments, doc.totalComments);
-        existing.shares = Math.max(existing.shares, doc.totalShares);
-        existing.engagementRates.push(doc.engagementRate);
-      } else {
-        postMap.set(doc.postId, {
-          comments: doc.totalComments,
-          engagementRates: [doc.engagementRate],
-          likes: doc.totalLikes,
-          platform: doc.platform,
-          shares: doc.totalShares,
-          views: doc.totalViews,
-        });
-      }
-    }
-
-    const scored = Array.from(postMap.entries()).map(([postId, data]) => {
-      const avgEngagementRate =
-        data.engagementRates.length > 0
-          ? data.engagementRates.reduce((a, b) => a + b, 0) /
-            data.engagementRates.length
-          : 0;
-      const totalEngagement = data.likes + data.comments + data.shares;
+        postId: string;
+      }>
+    ).map((row) => {
+      const max = row._max ?? {};
+      const likes = this.readNumber(max.totalLikes);
+      const comments = this.readNumber(max.totalComments);
+      const shares = this.readNumber(max.totalShares);
+      const totalEngagement = likes + comments + shares;
 
       return {
-        avgEngagementRate,
-        comments: data.comments,
-        likes: data.likes,
-        platform: data.platform,
-        postId,
-        shares: data.shares,
+        avgEngagementRate: this.readNumber(row._avg?.engagementRate),
+        comments,
+        likes,
+        platform: row.platform,
+        postId: row.postId,
+        shares,
         totalEngagement,
-        views: data.views,
+        views: this.readNumber(max.totalViews),
       };
     });
 
@@ -741,7 +718,7 @@ export class AnalyticsAggregationService {
         ? scored.sort((a, b) => b.totalEngagement - a.totalEngagement)
         : scored.sort((a, b) => b.views - a.views);
 
-    const topScored = sorted.slice(0, limit);
+    const topScored = sorted.slice(0, safeLimit);
 
     // Fetch post details
     const postIds = topScored.map((s) => s.postId);
@@ -753,6 +730,7 @@ export class AnalyticsAggregationService {
         publicationDate: true,
         url: true,
       },
+      take: postIds.length,
       where: { id: { in: postIds } },
     });
 
@@ -813,56 +791,53 @@ export class AnalyticsAggregationService {
 
     if (brandId) prevWhere.brandId = brandId;
 
-    const [docs, prevDocs] = await Promise.all([
-      this.prisma.postAnalytics.findMany({ where: where as never }),
-      this.prisma.postAnalytics.findMany({ where: prevWhere as never }),
-    ]);
+    const [currentAggregate, previousAggregate, viewsByDateRows] =
+      await Promise.all([
+        this.prisma.postAnalytics.aggregate({
+          _sum: {
+            totalComments: true,
+            totalLikes: true,
+            totalShares: true,
+            totalViews: true,
+          },
+          where: where as never,
+        }),
+        this.prisma.postAnalytics.aggregate({
+          _sum: {
+            totalComments: true,
+            totalLikes: true,
+            totalShares: true,
+            totalViews: true,
+          },
+          where: prevWhere as never,
+        }),
+        this.prisma.postAnalytics.groupBy({
+          _sum: { totalViews: true },
+          by: ['date'],
+          orderBy: { _sum: { totalViews: 'desc' } },
+          take: 1,
+          where: where as never,
+        } as never),
+      ]);
 
-    const typed = docs as unknown as Array<{
-      date: Date;
-      totalViews: number;
-      totalLikes: number;
-      totalComments: number;
-      totalShares: number;
-    }>;
-    const prevTyped = prevDocs as unknown as Array<{
-      totalViews: number;
-      totalLikes: number;
-      totalComments: number;
-      totalShares: number;
-    }>;
-
-    let totalViews = 0;
-    let totalEngagement = 0;
-    const viewsByDate = new Map<string, number>();
-
-    for (const doc of typed) {
-      totalViews += doc.totalViews;
-      totalEngagement += doc.totalLikes + doc.totalComments + doc.totalShares;
-
-      const dateKey = new Date(doc.date).toISOString().split('T')[0];
-      viewsByDate.set(
-        dateKey,
-        (viewsByDate.get(dateKey) || 0) + doc.totalViews,
-      );
-    }
-
-    let prevViews = 0;
-    let prevEngagement = 0;
-    for (const doc of prevTyped) {
-      prevViews += doc.totalViews;
-      prevEngagement += doc.totalLikes + doc.totalComments + doc.totalShares;
-    }
+    const currentSums =
+      (currentAggregate as { _sum?: Record<string, unknown> })._sum ?? {};
+    const previousSums =
+      (previousAggregate as { _sum?: Record<string, unknown> })._sum ?? {};
+    const totalViews = this.readNumber(currentSums.totalViews);
+    const totalEngagement = this.totalEngagementFromSums(currentSums);
+    const prevViews = this.readNumber(previousSums.totalViews);
+    const prevEngagement = this.totalEngagementFromSums(previousSums);
 
     // Best day
-    let bestDate = 'N/A';
-    let bestViews = 0;
-    for (const [date, views] of viewsByDate.entries()) {
-      if (views > bestViews) {
-        bestViews = views;
-        bestDate = date;
-      }
-    }
+    const bestDay = (
+      viewsByDateRows as Array<{
+        _sum?: { totalViews?: unknown };
+        date: Date;
+      }>
+    )[0];
+    const bestDate = bestDay ? this.readDateKey(bestDay.date, 'day') : 'N/A';
+    const bestViews = this.readNumber(bestDay?._sum?.totalViews);
 
     const viewsGrowth = totalViews - prevViews;
     const viewsGrowthPct = prevViews > 0 ? (viewsGrowth / prevViews) * 100 : 0;
@@ -916,28 +891,21 @@ export class AnalyticsAggregationService {
 
     if (brandId) where.brandId = brandId;
 
-    const docs = await this.prisma.postAnalytics.findMany({
+    const aggregate = await this.prisma.postAnalytics.aggregate({
+      _sum: {
+        totalComments: true,
+        totalLikes: true,
+        totalSaves: true,
+        totalShares: true,
+      },
       where: where as never,
     });
 
-    const typed = docs as unknown as Array<{
-      totalComments: number;
-      totalLikes: number;
-      totalSaves: number;
-      totalShares: number;
-    }>;
-
-    let likes = 0;
-    let comments = 0;
-    let shares = 0;
-    let saves = 0;
-
-    for (const doc of typed) {
-      likes += doc.totalLikes;
-      comments += doc.totalComments;
-      shares += doc.totalShares;
-      saves += doc.totalSaves;
-    }
+    const sums = (aggregate as { _sum?: Record<string, unknown> })._sum ?? {};
+    const likes = this.readNumber(sums.totalLikes);
+    const comments = this.readNumber(sums.totalComments);
+    const shares = this.readNumber(sums.totalShares);
+    const saves = this.readNumber(sums.totalSaves);
 
     const total = likes + comments + shares + saves;
 
@@ -972,29 +940,58 @@ export class AnalyticsAggregationService {
 
     if (brandId) where.brandId = brandId;
 
-    const docs = await this.prisma.postAnalytics.findMany({
-      where: where as never,
-    });
+    const topPostRows = await this.prisma.$queryRaw<PostViewsRow[]>(
+      Prisma.sql`
+        WITH per_platform AS (
+          SELECT
+            "postId",
+            "platform",
+            MAX("totalViews") AS views
+          FROM "post_analytics"
+          WHERE "organizationId" = ${organizationId}
+            AND "date" >= ${startDate}
+            AND "date" <= ${endDate}
+            ${this.buildBrandSqlPredicate(brandId)}
+          GROUP BY "postId", "platform"
+        )
+        SELECT
+          "postId" AS post_id,
+          SUM(views) AS total_views
+        FROM per_platform
+        GROUP BY "postId"
+        ORDER BY total_views DESC
+        LIMIT 25
+      `,
+    );
 
-    const typed = docs as unknown as Array<{
-      postId: string;
-      platform: string;
-      engagementRate: number;
-      totalComments: number;
-      totalLikes: number;
-      totalSaves: number;
-      totalShares: number;
-      totalViews: number;
-    }>;
+    const postIds = topPostRows.map((row) => row.post_id);
 
-    // Group by postId then platform in-memory
+    const platformRows =
+      postIds.length > 0
+        ? await this.prisma.postAnalytics.groupBy({
+            _avg: { engagementRate: true },
+            _max: {
+              totalComments: true,
+              totalLikes: true,
+              totalSaves: true,
+              totalShares: true,
+              totalViews: true,
+            },
+            by: ['postId', 'platform'],
+            where: {
+              ...where,
+              postId: { in: postIds },
+            } as never,
+          } as never)
+        : [];
+
     const postPlatformMap = new Map<
       string,
       Map<
         string,
         {
           comments: number;
-          engagementRates: number[];
+          engagementRate: number;
           likes: number;
           saves: number;
           shares: number;
@@ -1003,47 +1000,32 @@ export class AnalyticsAggregationService {
       >
     >();
 
-    for (const doc of typed) {
-      if (!postPlatformMap.has(doc.postId)) {
-        postPlatformMap.set(doc.postId, new Map());
-      }
-
-      const platformMap = postPlatformMap.get(doc.postId)!;
-      const existing = platformMap.get(doc.platform);
-
-      if (existing) {
-        existing.views = Math.max(existing.views, doc.totalViews);
-        existing.likes = Math.max(existing.likes, doc.totalLikes);
-        existing.comments = Math.max(existing.comments, doc.totalComments);
-        existing.shares = Math.max(existing.shares, doc.totalShares);
-        existing.saves = Math.max(existing.saves, doc.totalSaves);
-        existing.engagementRates.push(doc.engagementRate);
-      } else {
-        platformMap.set(doc.platform, {
-          comments: doc.totalComments,
-          engagementRates: [doc.engagementRate],
-          likes: doc.totalLikes,
-          saves: doc.totalSaves,
-          shares: doc.totalShares,
-          views: doc.totalViews,
-        });
-      }
+    for (const row of platformRows as Array<{
+      _avg?: { engagementRate?: unknown };
+      _max?: Record<string, unknown>;
+      platform: string;
+      postId: string;
+    }>) {
+      const max = row._max ?? {};
+      const platformMap = postPlatformMap.get(row.postId) ?? new Map();
+      platformMap.set(row.platform, {
+        comments: this.readNumber(max.totalComments),
+        engagementRate: this.readNumber(row._avg?.engagementRate),
+        likes: this.readNumber(max.totalLikes),
+        saves: this.readNumber(max.totalSaves),
+        shares: this.readNumber(max.totalShares),
+        views: this.readNumber(max.totalViews),
+      });
+      postPlatformMap.set(row.postId, platformMap);
     }
 
-    // Sort posts by total views, take top 25
-    const ranked = Array.from(postPlatformMap.entries())
-      .map(([postId, platforms]) => {
-        const totalViews = Array.from(platforms.values()).reduce(
-          (sum, p) => sum + p.views,
-          0,
-        );
-        return { platforms, postId, totalViews };
-      })
-      .sort((a, b) => b.totalViews - a.totalViews)
-      .slice(0, 25);
+    const ranked = topPostRows.map((row) => ({
+      platforms: postPlatformMap.get(row.post_id) ?? new Map(),
+      postId: row.post_id,
+      totalViews: this.readNumber(row.total_views),
+    }));
 
     // Fetch post details
-    const postIds = ranked.map((r) => r.postId);
     const posts = await this.prisma.post.findMany({
       select: {
         createdAt: true,
@@ -1053,6 +1035,7 @@ export class AnalyticsAggregationService {
         publicationDate: true,
         url: true,
       },
+      take: postIds.length,
       where: { id: { in: postIds } },
     });
 
@@ -1082,21 +1065,16 @@ export class AnalyticsAggregationService {
       const post = postsById.get(item.postId);
       const platforms = Array.from(item.platforms.entries()).map(
         ([platform, data]) => {
-          const avgEngagementRate =
-            data.engagementRates.length > 0
-              ? data.engagementRates.reduce((a, b) => a + b, 0) /
-                data.engagementRates.length
-              : 0;
           const viralScore = Math.min(
             100,
-            Math.round(avgEngagementRate * 5 + data.views / 1000),
+            Math.round(data.engagementRate * 5 + data.views / 1000),
           );
 
           return {
             avgWatchTime: 0,
             comments: data.comments,
             completionRate: 0,
-            engagementRate: avgEngagementRate,
+            engagementRate: data.engagementRate,
             likes: data.likes,
             platform: platform.toLowerCase(),
             saves: data.saves,
@@ -1209,55 +1187,61 @@ export class AnalyticsAggregationService {
 
     if (brandId) prevWhere.brandId = brandId;
 
-    const [docs, prevDocs] = await Promise.all([
-      this.prisma.postAnalytics.findMany({ where: where as never }),
-      this.prisma.postAnalytics.findMany({ where: prevWhere as never }),
-    ]);
+    const [currentAggregate, previousAggregate, postCountRows] =
+      await Promise.all([
+        this.prisma.postAnalytics.aggregate({
+          _avg: { engagementRate: true },
+          _sum: {
+            totalComments: true,
+            totalLikes: true,
+            totalSaves: true,
+            totalShares: true,
+            totalViews: true,
+          },
+          where: where as never,
+        }),
+        this.prisma.postAnalytics.aggregate({
+          _sum: {
+            totalComments: true,
+            totalLikes: true,
+            totalShares: true,
+            totalViews: true,
+          },
+          where: prevWhere as never,
+        }),
+        this.prisma.$queryRaw<DistinctPostCountRow[]>(
+          Prisma.sql`
+          SELECT COUNT(DISTINCT "postId") AS post_count
+          FROM "post_analytics"
+          WHERE "organizationId" = ${organizationId}
+            AND "platform" = ${platform}
+            AND "date" >= ${parsedStartDate}
+            AND "date" <= ${parsedEndDate}
+            ${this.buildBrandSqlPredicate(brandId)}
+        `,
+        ),
+      ]);
 
-    const typed = docs as unknown as Array<{
-      postId: string;
-      engagementRate: number;
-      totalComments: number;
-      totalLikes: number;
-      totalSaves: number;
-      totalShares: number;
-      totalViews: number;
-    }>;
-
-    const prevTyped = prevDocs as unknown as Array<{
-      totalViews: number;
-      totalLikes: number;
-      totalComments: number;
-      totalShares: number;
-    }>;
-
-    let totalViews = 0;
-    let totalLikes = 0;
-    let totalComments = 0;
-    let totalSaves = 0;
-    let totalShares = 0;
-    let engRateSum = 0;
-    const postIds = new Set<string>();
-
-    for (const doc of typed) {
-      totalViews += doc.totalViews;
-      totalLikes += doc.totalLikes;
-      totalComments += doc.totalComments;
-      totalSaves += doc.totalSaves;
-      totalShares += doc.totalShares;
-      engRateSum += doc.engagementRate;
-      postIds.add(doc.postId);
-    }
-
-    let prevViews = 0;
-    let prevEngagement = 0;
-    for (const doc of prevTyped) {
-      prevViews += doc.totalViews;
-      prevEngagement += doc.totalLikes + doc.totalComments + doc.totalShares;
-    }
-
+    const currentSums =
+      (currentAggregate as { _sum?: Record<string, unknown> })._sum ?? {};
+    const previousSums =
+      (previousAggregate as { _sum?: Record<string, unknown> })._sum ?? {};
+    const totalViews = this.readNumber(currentSums.totalViews);
+    const totalLikes = this.readNumber(currentSums.totalLikes);
+    const totalComments = this.readNumber(currentSums.totalComments);
+    const totalSaves = this.readNumber(currentSums.totalSaves);
+    const totalShares = this.readNumber(currentSums.totalShares);
     const totalEngagement = totalLikes + totalComments + totalShares;
-    const avgEngagementRate = typed.length > 0 ? engRateSum / typed.length : 0;
+    const avgEngagementRate = this.readNumber(
+      (
+        currentAggregate as {
+          _avg?: { engagementRate?: unknown };
+        }
+      )._avg?.engagementRate,
+    );
+    const prevViews = this.readNumber(previousSums.totalViews);
+    const prevEngagement = this.totalEngagementFromSums(previousSums);
+    const totalPosts = this.readNumber(postCountRows[0]?.post_count);
 
     return {
       activePlatforms: [platform],
@@ -1270,7 +1254,7 @@ export class AnalyticsAggregationService {
       totalComments,
       totalEngagement,
       totalLikes,
-      totalPosts: postIds.size,
+      totalPosts,
       totalSaves,
       totalShares,
       totalViews,
