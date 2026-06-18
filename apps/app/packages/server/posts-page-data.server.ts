@@ -15,6 +15,8 @@ import { BrandsService } from '@services/social/brands.service';
 import { cache } from 'react';
 
 export interface PostsPageData {
+  brandId: string | null;
+  organizationId: string | null;
   postPresets: IPreset[];
   posts: IPost[];
 }
@@ -44,6 +46,8 @@ export const loadPostsPageData = cache(
 
     if (!bootstrap || !hasUsableServerAuthToken(token)) {
       return {
+        brandId: null,
+        organizationId: null,
         postPresets: [],
         posts: [],
       };
@@ -122,6 +126,8 @@ export const loadPostsPageData = cache(
     ]);
 
     return {
+      brandId,
+      organizationId,
       postPresets: JSON.parse(JSON.stringify(postPresets)) as IPreset[],
       posts: JSON.parse(
         JSON.stringify(
