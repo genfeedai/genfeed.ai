@@ -42,7 +42,6 @@ export class SkillCheckoutService {
     const defaultCancelUrl = `${appUrl}/skills-pro`;
 
     const sessionConfig: CheckoutSessionCreateParams = {
-      allow_promotion_codes: true,
       cancel_url: this.resolveRedirectUrl(dto.cancelUrl, defaultCancelUrl),
       line_items: [lineItem],
       metadata: {
@@ -53,6 +52,15 @@ export class SkillCheckoutService {
       payment_method_types: ['card'],
       success_url: this.resolveRedirectUrl(dto.successUrl, defaultSuccessUrl),
     };
+
+    const promotionCodeId = this.configService.get(
+      'STRIPE_PROMOTION_CODE_SKILLS_PRO',
+    );
+    if (promotionCodeId) {
+      sessionConfig.discounts = [{ promotion_code: promotionCodeId }];
+    } else {
+      sessionConfig.allow_promotion_codes = true;
+    }
 
     if (dto.email) {
       sessionConfig.customer_email = dto.email;

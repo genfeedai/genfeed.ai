@@ -27,11 +27,12 @@ resource "aws_acm_certificate_validation" "api" {
 
 # ── ALB ──────────────────────────────────────────────────────────────
 resource "aws_lb" "main" {
-  name               = "${local.name_prefix}-alb"
-  load_balancer_type = "application"
-  internal           = false
-  security_groups    = [aws_security_group.alb.id]
-  subnets            = local.public_subnet_ids
+  name                       = "${local.name_prefix}-alb"
+  load_balancer_type         = "application"
+  internal                   = false
+  drop_invalid_header_fields = true
+  security_groups            = [aws_security_group.alb.id]
+  subnets                    = local.public_subnet_ids
 }
 
 # api target group — bridge mode static host port 3010 => instance targets.

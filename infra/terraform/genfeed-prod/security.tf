@@ -83,11 +83,13 @@ resource "aws_security_group" "cache" {
 
 # ── Let ECS tasks reach the existing RDS ─────────────────────────────
 resource "aws_security_group_rule" "rds_from_ecs" {
+  for_each = toset(data.aws_db_instance.genfeed.vpc_security_groups)
+
   type                     = "ingress"
   description              = "genfeed ECS tasks to RDS"
   from_port                = 5432
   to_port                  = 5432
   protocol                 = "tcp"
-  security_group_id        = tolist(data.aws_db_instance.genfeed.vpc_security_groups)[0]
+  security_group_id        = each.value
   source_security_group_id = aws_security_group.ecs.id
 }
