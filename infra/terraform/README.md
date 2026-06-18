@@ -17,15 +17,18 @@ is stopped and retained only as a manual rollback host.
   (`registeredContainerInstances=0`, capacity providers `FARGATE` and
   `FARGATE_SPOT`).
 - Running core services: `api`, `workers`, `files`, `mcp`, `notifications`
-  (`desired=1`, `running=1`, `pending=0`), all on task definition revision `:4`
-  for image tag `dbf06f145a594ba9919d9f6eff96a8e3a7b3dabd`.
+  (`desired=1`, `running=1`, `pending=0` at the last verification). Task
+  definition revisions change on every deploy; live AWS is the source of truth.
+- Last verified ECS deploy: GitHub Actions run `27759489824` completed from
+  `master` with server image tag
+  `05f7538e48cad75cbebf7a6405d09fc82d4db868`.
 - Parked services: `clips`, `discord`, `slack`, `telegram`
   (`desired=0`, `running=0`). They are still defined and can be enabled by
   changing `locals.tf`.
 - ALB: `genfeed-production-alb-774183965.us-west-1.elb.amazonaws.com`, active,
   with a healthy IP target for `api` on port `3010`.
 - Public API DNS: Route53 `api.genfeed.ai` is an ALB alias. Post-stop health
-  verification returned `200` from ALB IP `52.9.20.128`.
+  verification returned `200` from ALB IPs.
 - Other public backend hostnames: `mcp.genfeed.ai` and
   `notifications.genfeed.ai` still point to old EIP `52.52.217.255`. Add public
   ALB/listener/DNS support or retire those records before relying on them after
@@ -95,16 +98,20 @@ tofu apply -var="image_tag=<sha>"
 - `Deploy ECS (production)` is active and is the intended backend deploy path.
   It is dispatch-only, uses the GitHub `production` environment approval, and
   refuses to run from anything except `refs/heads/master`.
-- The 2026-06-18 run copied GHCR `server:dbf06f145...` to ECR but failed before
-  OpenTofu execution because `tofu` was not on PATH. The live cutover was
-  completed locally with OpenTofu.
-- The workflow should use `opentofu/setup-opentofu@v2` with
-  `tofu_wrapper: false`, then:
+- The 2026-06-18 cutover was completed locally first, then the GitHub Actions
+  deploy path was fixed and verified green with run `27759489824`.
+- The workflow uses `opentofu/setup-opentofu@v2` with `tofu_wrapper: false`,
+  then:
 
 1. Copy `ghcr.io/genfeedai/genfeed.ai/server:<sha>` to ECR.
 2. Register/run the Prisma migration task on Fargate in the private subnets.
 3. `tofu apply -var="image_tag=<sha>"` to roll services.
 4. Wait for every ECS service to stabilize.
+
+Active services should roll with `min_healthy=100` and `max_percent=200`.
+Workers verify dependent Cloud Map DNS during startup; stop-then-start deploys
+can temporarily remove `files.genfeed.internal` or
+`notifications.genfeed.internal` and make workers exit.
 
 ## Cutover and Rollback
 
@@ -112,13 +119,16 @@ The API cutover was completed on 2026-06-18:
 
 1. Registered the migration task definition and ran Prisma migrations on
    Fargate. Exit code was `0`; no pending migrations.
-2. Applied OpenTofu with
-   `-var="image_tag=dbf06f145a594ba9919d9f6eff96a8e3a7b3dabd"`
-   and `-var="enable_dns_cutover=true"`.
+2. Applied OpenTofu with `-var="enable_dns_cutover=true"` to move
+   `api.genfeed.ai` to the ALB.
 3. Verified all five core ECS services were stable.
 4. Verified `api.genfeed.ai` resolves to the ALB and `/v1/health` returns `200`
    after stopping EC2.
 5. Stopped, but did not terminate, the old EC2 host.
+
+The CI deploy path was later verified green from `master` with GitHub Actions
+run `27759489824`, using server image tag
+`05f7538e48cad75cbebf7a6405d09fc82d4db868`.
 
 Rollback is manual:
 

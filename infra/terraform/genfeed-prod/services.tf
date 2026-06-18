@@ -44,10 +44,10 @@ module "service" {
   target_group_arn = each.value.alb ? aws_lb_target_group.api.arn : ""
   health_grace     = each.value.health_grace
 
-  # api rolls zero-downtime (needs the 2nd box as headroom); single-task
-  # bots/workers tolerate a brief blip on deploy.
-  min_healthy = each.value.alb ? 100 : 0
-  max_percent = each.value.alb ? 200 : 100
+  # Keep internal Cloud Map records present during deployments. Workers verify
+  # dependent service DNS at startup, so stop-then-start rolls can race.
+  min_healthy = 100
+  max_percent = 200
 
   depends_on = [aws_ecs_cluster_capacity_providers.main]
 }

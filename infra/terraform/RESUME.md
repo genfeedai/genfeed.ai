@@ -15,8 +15,9 @@ manual rollback.
 - ALB: `genfeed-production-alb-774183965.us-west-1.elb.amazonaws.com`.
 - VPC: `vpc-0e7522e453a642bd8`.
 - ECS task SG: `sg-0630fbed0bf8faafc`.
-- Current production image:
-  `948918267147.dkr.ecr.us-west-1.amazonaws.com/genfeed/server:dbf06f145a594ba9919d9f6eff96a8e3a7b3dabd`.
+- Last verified server image tag:
+  `05f7538e48cad75cbebf7a6405d09fc82d4db868`. Live ECS is the source of truth
+  for current task definition revisions.
 - Old EC2 host: `i-0ba4418050d90bd32`, `api.genfeed.ai-al2023`,
   EIP `52.52.217.255`, stopped on 2026-06-18.
 
@@ -33,8 +34,7 @@ manual rollback.
 - ALB target group is healthy for the API target (`targetType=ip`, port `3010`).
 - Route53 `api.genfeed.ai` is an ALB alias.
 - Public health verification after stopping EC2:
-  `curl https://api.genfeed.ai/v1/health` returned `200` from ALB IP
-  `52.9.20.128`.
+  `curl https://api.genfeed.ai/v1/health` returned `200` from ALB IPs.
 - `mcp.genfeed.ai` and `notifications.genfeed.ai` still point to
   `52.52.217.255`. Those public names need explicit ALB/listener/DNS work or
   retirement if they should remain available without EC2.
@@ -43,28 +43,32 @@ manual rollback.
 
 - PR #639, `fix(infra): address ECS review follow-ups`, was merged into
   `master`.
-- GHCR server image `dbf06f145...` was copied to ECR.
+- GHCR server image was copied to ECR.
 - OpenTofu applied the migration task definition, then a Fargate migration task
   ran successfully with exit code `0`.
 - OpenTofu applied the service rollout and `enable_dns_cutover=true`.
-- All five core ECS services stabilized on task definition revision `:4`.
+- All five core ECS services stabilized on Fargate.
 - The old EC2 host was tagged, termination protection was enabled, and the
   instance was stopped.
+- GitHub Actions deploy run `27759489824` later completed green from `master`
+  with server image tag `05f7538e48cad75cbebf7a6405d09fc82d4db868`.
 
 ## CI/Deploy Status
 
 - `Deploy Production` is disabled manually. It was the old EC2 deploy path:
   `_Deploy` -> Tailscale -> SSH -> Docker Compose.
-- `Deploy ECS (production)` is active and should be the normal backend deploy
-  path after the workflow fix is merged.
+- `Deploy ECS (production)` is active and is the normal backend deploy path.
 - Run `27756338031` failed before OpenTofu execution because `tofu` was not on
   PATH after `opentofu/setup-opentofu@v1`.
-- The workflow should use `opentofu/setup-opentofu@v2` with
-  `tofu_wrapper: false`; the live production rollout was completed locally with
-  OpenTofu while the workflow fix was prepared.
+- The workflow now uses `opentofu/setup-opentofu@v2` with
+  `tofu_wrapper: false`, passes `enable_dns_cutover=true`, has the required SSM
+  and RDS IAM reads, and was verified green with run `27759489824`.
 - `Build Server Image` remains active and publishes GHCR server images on
   server-affecting master pushes; ECS receives a new ECR image only when
   `Deploy ECS (production)` copies GHCR to ECR.
+- Active ECS services should roll with `min_healthy=100` and `max_percent=200`.
+  Workers verify Cloud Map dependency DNS at startup, so stop-then-start rolls
+  can race when `files` or `notifications` records briefly disappear.
 
 ## Tailscale Status
 
@@ -102,7 +106,6 @@ ECR, SSM, Route53, RDS, ALB, OpenTofu, or the production VPC.
 
 ## Follow-ups
 
-- Merge and verify the `Deploy ECS (production)` workflow fix.
 - Decide whether `mcp.genfeed.ai` and `notifications.genfeed.ai` should get
   public ALB/listener/DNS support or be retired.
 - Remove broad temporary IAM privileges from the `genfeedai` IAM user after the
