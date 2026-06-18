@@ -85,9 +85,9 @@ resource "aws_ecs_service" "this" {
   }
 
   network_configuration {
-    subnets          = var.subnets          # private subnets (NAT egress)
+    subnets          = var.subnets # private subnets (NAT egress)
     security_groups  = var.security_group_ids
-    assign_public_ip = false                # Fargate in private subnets; egress via NAT
+    assign_public_ip = false # Fargate in private subnets; egress via NAT
   }
 
   service_registries {
