@@ -1,17 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('isomorphic-dompurify', () => ({
-  default: {
-    sanitize: (html: string) => {
-      // Simulate DOMPurify: strip script tags and event handlers
-      return html
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/\s*on\w+="[^"]*"/gi, '');
-    },
-  },
-}));
-
 import { createMarkup, sanitizeHtml } from '@utils/sanitize-html';
+import { describe, expect, it } from 'vitest';
 
 describe('sanitize-html', () => {
   describe('sanitizeHtml', () => {
@@ -29,6 +17,56 @@ describe('sanitize-html', () => {
     it('should strip event handlers', () => {
       const result = sanitizeHtml('<img onerror="alert(1)" src="x.jpg">');
       expect(result).not.toContain('onerror');
+    });
+
+    it('should strip unquoted and single-quoted event handlers', () => {
+      const result = sanitizeHtml(
+        '<img onerror=alert(1) onload=\'alert(2)\' src="x.jpg">',
+      );
+
+      expect(result).not.toContain('onerror');
+      expect(result).not.toContain('onload');
+      expect(result).toContain('src="x.jpg"');
+    });
+
+    it('should strip blocked elements and their content', () => {
+      const result = sanitizeHtml(
+        '<p>Safe</p><iframe src="https://example.com"></iframe><style>body{display:none}</style>',
+      );
+
+      expect(result).toBe('<p>Safe</p>');
+    });
+
+    it('should strip unsafe URL protocols', () => {
+      const result = sanitizeHtml(
+        '<a href="java&#x73;cript:alert(1)">bad</a><a href="https://example.com">good</a>',
+      );
+
+      expect(result).toBe('<a>bad</a><a href="https://example.com">good</a>');
+    });
+
+    it('should strip unsafe URL protocols hidden behind named entities and whitespace', () => {
+      const result = sanitizeHtml(
+        '<a href="java&Tab;script&colon;alert(1)">bad</a><a href="vbscript&colon;msgbox(1)">also bad</a>',
+      );
+
+      expect(result).toBe('<a>bad</a><a>also bad</a>');
+    });
+
+    it('should strip srcset attributes containing unsafe candidates', () => {
+      const result = sanitizeHtml(
+        '<img srcset="https://example.com/a.jpg 1x, java&#x73;cript:alert(1) 2x" src="https://example.com/a.jpg">',
+      );
+
+      expect(result).toBe('<img src="https://example.com/a.jpg">');
+    });
+
+    it('should strip style and srcdoc attributes', () => {
+      const result = sanitizeHtml(
+        '<div style="color:red"><iframe srcdoc="<p>x</p>"></iframe><p>Text</p></div>',
+      );
+
+      expect(result).toBe('<div><p>Text</p></div>');
     });
 
     it('should handle empty string', () => {

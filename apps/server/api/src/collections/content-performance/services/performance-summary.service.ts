@@ -358,7 +358,12 @@ export class PerformanceSummaryService {
     const posts =
       postIds.length > 0
         ? await this.prisma.post.findMany({
-            select: { description: true, id: true, label: true },
+            select: {
+              description: true,
+              id: true,
+              label: true,
+              publicationDate: true,
+            },
             take: postIds.length,
             where: { id: { in: postIds } },
           })
