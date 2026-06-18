@@ -1,19 +1,8 @@
 name: Desktop QA
 
 on:
-  pull_request:
-    branches: [develop, staging, master]
-    paths:
-      - 'apps/desktop/**'
-      - 'apps/app/**'
-      - 'packages/desktop-*/**'
-      - 'package.json'
-      - 'bun.lock'
-      - 'turbo.json'
-      - '.github/actions/setup-bun-env/**'
-      - '.github/workflows/desktop-qa.yml'
-      - '.github/workflows/desktop-release.yml'
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -49,8 +38,10 @@ jobs:
       - name: QA summary
         if: always()
         run: |
-          echo "## Desktop QA" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Checklist: apps/desktop/RELEASE_QA.md" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Command: \`bun run --filter=@genfeedai/desktop qa:release\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Release SHA: \`${GENFEED_DESKTOP_RELEASE}\`" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## Desktop QA"
+            echo ""
+            echo "- Checklist: apps/desktop/RELEASE_QA.md"
+            echo "- Command: \`bun run --filter=@genfeedai/desktop qa:release\`"
+            echo "- Release SHA: \`${GENFEED_DESKTOP_RELEASE}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
