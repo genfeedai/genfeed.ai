@@ -240,8 +240,10 @@ vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
   default: ({ title }: { title: string }) => <div>{title}</div>,
 }));
 
-vi.mock('@ui/loading/default/Loading', () => ({
-  default: () => <div data-testid="loading" />,
+vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
+  default: ({ variant }: { variant?: string }) => (
+    <div data-testid="lazy-loading-fallback">{variant}</div>
+  ),
 }));
 
 vi.mock('@ui/primitives/button', () => ({
@@ -262,6 +264,8 @@ describe('AnalyticsOverview', () => {
 
     mockAnalyticsStore.blocks = [];
     mockAnalyticsStore.isAgentModified = false;
+    mockAnalyticsReturn.isLoading = false;
+    mockAnalyticsReturn.isRefreshing = false;
     mockAnalyticsReturn.analytics = {
       activePlatforms: [],
       avgEngagementRate: 0,
@@ -294,6 +298,15 @@ describe('AnalyticsOverview', () => {
     expect(markup).toContain(
       'Trend lines will appear here once performance data lands',
     );
+  });
+
+  it('renders the grid skeleton while analytics data is loading', () => {
+    mockAnalyticsReturn.isLoading = true;
+
+    const markup = renderOverview();
+
+    expect(markup).toContain('lazy-loading-fallback');
+    expect(markup).toContain('grid');
   });
 
   it('mounts agent dashboard persistence before the customized dashboard is visible', async () => {
