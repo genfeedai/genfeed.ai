@@ -91,18 +91,26 @@ jobs:
         working-directory: ${{ env.TF_DIR }}
         run: tofu init -input=false
 
+      - name: Register migration task definition
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          tofu apply -input=false -auto-approve \
+            -target=aws_cloudwatch_log_group.migrate \
+            -target=aws_ecs_task_definition.migrate \
+            -var="image_tag=${{ steps.tag.outputs.sha }}"
+
       - name: Run DB migrations (one-off task, gated before services roll)
         working-directory: ${{ env.TF_DIR }}
         run: |
           set -euo pipefail
           CLUSTER=$(tofu output -raw cluster_name)
-          FAMILY=$(tofu output -raw migrate_task_family)
+          TASK_DEFINITION=$(tofu output -raw migrate_task_definition_arn)
           SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
           SG=$(tofu output -raw task_security_group)
-          echo "Running migrate task on $CLUSTER ($FAMILY)..."
+          echo "Running migrate task on $CLUSTER ($TASK_DEFINITION)..."
           # FARGATE — the cluster is Fargate-only (no EC2 capacity); assignPublicIp
           # DISABLED since tasks egress via NAT from the private subnets.
-          TASK_ARN=$(aws ecs run-task --cluster "$CLUSTER" --task-definition "$FAMILY" \
+          TASK_ARN=$(aws ecs run-task --cluster "$CLUSTER" --task-definition "$TASK_DEFINITION" \
             --launch-type FARGATE \
             --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG],assignPublicIp=DISABLED}" \
             --query 'tasks[0].taskArn' --output text)
