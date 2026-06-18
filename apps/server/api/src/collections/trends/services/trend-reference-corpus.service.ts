@@ -6,6 +6,7 @@ import type {
   TrendSourceReferenceResult,
 } from '@api/collections/trends/interfaces/trend.interfaces';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -80,28 +81,12 @@ export class TrendReferenceCorpusService {
 
         const canonicalUrl = this.normalizeSourceUrl(sourceItem.sourceUrl);
 
-        // Upsert the source reference
-        const existingRef = await this.prisma.trendSourceReference.findFirst({
+        const matchedRef = await this.prisma.trendSourceReference.findFirst({
           where: {
+            canonicalUrl,
             isDeleted: false,
-            // match canonicalUrl + platform stored in data JSON — in-memory
+            platform: sourceItem.platform,
           },
-        });
-
-        // In-memory approach since canonicalUrl/platform live in JSON `data`
-        const allRefs = await this.prisma.trendSourceReference.findMany({
-          orderBy: { createdAt: 'desc' },
-          take: 5000,
-          where: { isDeleted: false },
-        });
-        void existingRef;
-
-        const matchedRef = allRefs.find((doc) => {
-          const d = doc.data as unknown as Record<string, unknown>;
-          return (
-            d.canonicalUrl === canonicalUrl &&
-            d.platform === sourceItem.platform
-          );
         });
 
         const engagementTotal = this.getEngagementTotal(sourceItem.metrics);
@@ -121,9 +106,13 @@ export class TrendReferenceCorpusService {
 
           await this.prisma.trendSourceReference.update({
             data: {
+              authorHandle: sourceItem.authorHandle,
+              canonicalUrl,
+              currentEngagementTotal: engagementTotal,
               data: {
                 ...existingData,
                 authorHandle: sourceItem.authorHandle,
+                canonicalUrl,
                 contentType: sourceItem.contentType,
                 currentEngagementTotal: engagementTotal,
                 currentMetrics: sourceItem.metrics || {},
@@ -141,6 +130,9 @@ export class TrendReferenceCorpusService {
                 thumbnailUrl: sourceItem.thumbnailUrl,
                 title: sourceItem.title,
               } as never,
+              lastSeenAt: now,
+              latestTrendViralityScore: trend.viralityScore,
+              platform: sourceItem.platform,
             },
             where: { id: matchedRef.id },
           });
@@ -148,6 +140,9 @@ export class TrendReferenceCorpusService {
         } else {
           const created = await this.prisma.trendSourceReference.create({
             data: {
+              authorHandle: sourceItem.authorHandle,
+              canonicalUrl,
+              currentEngagementTotal: engagementTotal,
               data: {
                 authorHandle: sourceItem.authorHandle,
                 canonicalUrl,
@@ -171,6 +166,9 @@ export class TrendReferenceCorpusService {
                 title: sourceItem.title,
               } as never,
               isDeleted: false,
+              lastSeenAt: now,
+              latestTrendViralityScore: trend.viralityScore,
+              platform: sourceItem.platform,
             },
           });
           referenceId = created.id;
@@ -179,27 +177,14 @@ export class TrendReferenceCorpusService {
 
         // Upsert snapshot for today
         const snapshotDate = this.toSnapshotDate();
-        const existingSnapshot =
+        const matchedSnapshot =
           await this.prisma.trendSourceReferenceSnapshot.findFirst({
             where: {
               isDeleted: false,
+              snapshotDate,
               sourceReferenceId: referenceId,
             },
           });
-
-        // Find snapshot matching snapshotDate (stored in data)
-        const snapshotDocs =
-          await this.prisma.trendSourceReferenceSnapshot.findMany({
-            where: {
-              isDeleted: false,
-              sourceReferenceId: referenceId,
-            },
-          });
-        const matchedSnapshot = snapshotDocs.find((doc) => {
-          const d = doc.data as unknown as Record<string, unknown>;
-          return d.snapshotDate === snapshotDate.toISOString();
-        });
-        void existingSnapshot;
 
         if (!matchedSnapshot) {
           await this.prisma.trendSourceReferenceSnapshot.create({
@@ -212,6 +197,7 @@ export class TrendReferenceCorpusService {
                 trendViralityScore: trend.viralityScore,
               } as never,
               isDeleted: false,
+              snapshotDate,
               sourceReferenceId: referenceId,
             },
           });
@@ -226,6 +212,7 @@ export class TrendReferenceCorpusService {
                 trendMentions: trend.mentions,
                 trendViralityScore: trend.viralityScore,
               } as never,
+              snapshotDate,
             },
             where: { id: matchedSnapshot.id },
           });
@@ -389,15 +376,13 @@ export class TrendReferenceCorpusService {
       ),
     );
 
-    const allRefs = await this.prisma.trendSourceReference.findMany({
+    const matchedRefs = await this.prisma.trendSourceReference.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 5000,
-      where: { isDeleted: false },
-    });
-
-    const matchedRefs = allRefs.filter((doc) => {
-      const d = doc.data as unknown as Record<string, unknown>;
-      return canonicalUrls.includes(d.canonicalUrl as string);
+      take: canonicalUrls.length,
+      where: {
+        canonicalUrl: { in: canonicalUrls },
+        isDeleted: false,
+      },
     });
 
     if (matchedRefs.length === 0) {
@@ -406,8 +391,8 @@ export class TrendReferenceCorpusService {
 
     const referenceMap = new Map(
       matchedRefs.map((doc) => {
-        const d = doc.data as unknown as Record<string, unknown>;
-        return [d.canonicalUrl as string, doc.id];
+        const d = doc.data as unknown as ReferenceRecordData;
+        return [doc.canonicalUrl ?? d.canonicalUrl, doc.id];
       }),
     );
 
@@ -449,6 +434,8 @@ export class TrendReferenceCorpusService {
       }
 
       const links = await this.prisma.trendSourceReferenceLink.findMany({
+        select: { sourceReferenceId: true },
+        take: Math.max(limit * 10, 100),
         where: {
           isDeleted: false,
           trendId: options.trendId,
@@ -459,40 +446,22 @@ export class TrendReferenceCorpusService {
         .filter((id): id is string => id != null);
     }
 
-    const allRefs = await this.prisma.trendSourceReference.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: limit * 10,
+    const docs = await this.prisma.trendSourceReference.findMany({
+      orderBy: [
+        { currentEngagementTotal: 'desc' },
+        { latestTrendViralityScore: 'desc' },
+        { lastSeenAt: 'desc' },
+      ],
+      take: limit,
       where: {
+        ...(options.authorHandle ? { authorHandle: options.authorHandle } : {}),
+        ...(options.platform ? { platform: options.platform } : {}),
         ...(sourceReferenceIds != null
           ? { id: { in: sourceReferenceIds } }
           : {}),
         isDeleted: false,
       },
     });
-
-    // In-memory filter on JSON data fields
-    let docs = allRefs.filter((doc) => {
-      const d = doc.data as unknown as Record<string, unknown>;
-      if (options.platform && d.platform !== options.platform) return false;
-      if (options.authorHandle && d.authorHandle !== options.authorHandle)
-        return false;
-      return true;
-    });
-
-    // Sort by engagement, lastSeenAt, viralityScore
-    docs = docs
-      .sort((a, b) => {
-        const ad = a.data as unknown as Record<string, number>;
-        const bd = b.data as unknown as Record<string, number>;
-        const engDiff =
-          (bd.currentEngagementTotal ?? 0) - (ad.currentEngagementTotal ?? 0);
-        if (engDiff !== 0) return engDiff;
-        const virDiff =
-          (bd.latestTrendViralityScore ?? 0) -
-          (ad.latestTrendViralityScore ?? 0);
-        return virDiff;
-      })
-      .slice(0, limit);
 
     const remixCounts = await this.getRemixCounts(
       docs.map((doc) => doc.id),
@@ -523,60 +492,25 @@ export class TrendReferenceCorpusService {
   ): Promise<TrendSourceAccountResult> {
     const limit = options.limit ?? 20;
 
-    const allRefs = await this.prisma.trendSourceReference.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 10000,
-      where: { isDeleted: false },
-    });
-
-    // In-memory grouping by authorHandle + platform (data fields)
     type AccountKey = string; // `${platform}:${authorHandle}`
-    const accountMap = new Map<
-      AccountKey,
-      {
-        authorHandle: string;
-        platform: string;
-        referenceCount: number;
-        totalEngagement: number;
-        totalViralityScore: number;
-        lastSeenAt?: Date;
-      }
-    >();
-
-    for (const doc of allRefs) {
-      const d = doc.data as unknown as Record<string, unknown>;
-      const authorHandle = d.authorHandle as string | undefined;
-      const platform = d.platform as string | undefined;
-      if (!authorHandle || !platform) continue;
-      if (options.platform && platform !== options.platform) continue;
-
-      const key: AccountKey = `${platform}:${authorHandle}`;
-      const existing = accountMap.get(key);
-      const lastSeenAtStr = d.lastSeenAt as string | undefined;
-      const lastSeenAt = lastSeenAtStr ? new Date(lastSeenAtStr) : undefined;
-
-      if (existing) {
-        existing.referenceCount += 1;
-        existing.totalEngagement += (d.currentEngagementTotal as number) ?? 0;
-        existing.totalViralityScore +=
-          (d.latestTrendViralityScore as number) ?? 0;
-        if (
-          lastSeenAt &&
-          (!existing.lastSeenAt || lastSeenAt > existing.lastSeenAt)
-        ) {
-          existing.lastSeenAt = lastSeenAt;
-        }
-      } else {
-        accountMap.set(key, {
-          authorHandle,
-          lastSeenAt,
-          platform,
-          referenceCount: 1,
-          totalEngagement: (d.currentEngagementTotal as number) ?? 0,
-          totalViralityScore: (d.latestTrendViralityScore as number) ?? 0,
-        });
-      }
-    }
+    const accountRows = await this.prisma.trendSourceReference.groupBy({
+      _avg: { latestTrendViralityScore: true },
+      _count: { _all: true },
+      _max: { lastSeenAt: true },
+      _sum: { currentEngagementTotal: true },
+      by: ['platform', 'authorHandle'],
+      orderBy: [
+        { _avg: { latestTrendViralityScore: 'desc' } },
+        { _count: { authorHandle: 'desc' } },
+        { _sum: { currentEngagementTotal: 'desc' } },
+      ],
+      take: limit,
+      where: {
+        authorHandle: { not: null },
+        isDeleted: false,
+        platform: options.platform ? options.platform : { not: null },
+      },
+    } as never);
 
     const brandRemixCounts = await this.getBrandRemixCountsByAccount(
       organizationId,
@@ -584,29 +518,31 @@ export class TrendReferenceCorpusService {
       options.platform,
     );
 
-    const accounts: TrendSourceAccountSummary[] = Array.from(
-      accountMap.entries(),
+    const accounts: TrendSourceAccountSummary[] = (
+      accountRows as Array<{
+        _avg?: { latestTrendViralityScore?: unknown };
+        _count?: { _all?: unknown };
+        _max?: { lastSeenAt?: Date | null };
+        _sum?: { currentEngagementTotal?: unknown };
+        authorHandle?: string | null;
+        platform?: string | null;
+      }>
     )
-      .map(([key, stats]) => ({
-        authorHandle: stats.authorHandle,
-        avgTrendViralityScore: Math.round(
-          stats.referenceCount > 0
-            ? stats.totalViralityScore / stats.referenceCount
-            : 0,
-        ),
-        brandRemixCount: brandRemixCounts.get(key) || 0,
-        lastSeenAt: stats.lastSeenAt?.toISOString(),
-        platform: stats.platform,
-        referenceCount: stats.referenceCount,
-        totalEngagement: stats.totalEngagement,
-      }))
-      .sort(
-        (a, b) =>
-          b.avgTrendViralityScore - a.avgTrendViralityScore ||
-          b.referenceCount - a.referenceCount ||
-          b.totalEngagement - a.totalEngagement,
-      )
-      .slice(0, limit);
+      .filter((row) => row.platform && row.authorHandle)
+      .map((row) => {
+        const key: AccountKey = `${row.platform}:${row.authorHandle}`;
+        return {
+          authorHandle: String(row.authorHandle),
+          avgTrendViralityScore: Math.round(
+            Number(row._avg?.latestTrendViralityScore ?? 0),
+          ),
+          brandRemixCount: brandRemixCounts.get(key) || 0,
+          lastSeenAt: row._max?.lastSeenAt?.toISOString(),
+          platform: String(row.platform),
+          referenceCount: Number(row._count?._all ?? 0),
+          totalEngagement: Number(row._sum?.currentEngagementTotal ?? 0),
+        };
+      });
 
     return {
       accounts,
@@ -637,17 +573,16 @@ export class TrendReferenceCorpusService {
       this.normalizeSourceUrl(url),
     );
 
-    const allRefs = await this.prisma.trendSourceReference.findMany({
-      take: 5000,
-      where: { isDeleted: false },
+    const refs = await this.prisma.trendSourceReference.findMany({
+      select: { id: true },
+      take: normalizedUrls.length,
+      where: {
+        canonicalUrl: { in: normalizedUrls },
+        isDeleted: false,
+      },
     });
 
-    return allRefs
-      .filter((doc) => {
-        const d = doc.data as unknown as Record<string, unknown>;
-        return normalizedUrls.includes(d.canonicalUrl as string);
-      })
-      .map((doc) => doc.id);
+    return refs.map((doc) => doc.id);
   }
 
   private parseOptionalString(value: unknown): string[] {
@@ -707,26 +642,32 @@ export class TrendReferenceCorpusService {
       return new Map();
     }
 
-    // Fetch remix lineages for this org+brand, then count source reference occurrences
-    const lineages = await this.prisma.trendRemixLineage.findMany({
-      include: { sourceReferences: { select: { id: true } } },
-      where: {
-        brandId,
-        isDeleted: false,
-        organizationId,
-      },
-    });
+    const rows = await this.prisma.$queryRaw<
+      Array<{
+        remix_count: bigint | number | string;
+        source_reference_id: string;
+      }>
+    >(
+      Prisma.sql`
+        SELECT
+          refs."B" AS source_reference_id,
+          COUNT(*) AS remix_count
+        FROM "_remix_lineage_source_refs" refs
+        INNER JOIN "trend_remix_lineages" lineage ON lineage."id" = refs."A"
+        WHERE refs."B" = ANY(${sourceReferenceIds}::text[])
+          AND lineage."organizationId" = ${organizationId}
+          AND lineage."brandId" = ${brandId}
+          AND lineage."isDeleted" = false
+        GROUP BY refs."B"
+      `,
+    );
 
-    const countMap = new Map<string, number>();
-    for (const lineage of lineages) {
-      for (const ref of lineage.sourceReferences) {
-        if (sourceReferenceIds.includes(ref.id)) {
-          countMap.set(ref.id, (countMap.get(ref.id) ?? 0) + 1);
-        }
-      }
-    }
-
-    return countMap;
+    return new Map(
+      rows.map((row) => [
+        row.source_reference_id,
+        Number(row.remix_count ?? 0),
+      ]),
+    );
   }
 
   private async getBrandRemixCountsByAccount(
@@ -738,31 +679,41 @@ export class TrendReferenceCorpusService {
       return new Map();
     }
 
-    const lineages = await this.prisma.trendRemixLineage.findMany({
-      include: {
-        sourceReferences: { select: { data: true, id: true } },
-      },
-      where: {
-        brandId,
-        isDeleted: false,
-        organizationId,
-      },
-    });
+    const platformFilter = platform
+      ? Prisma.sql`AND source_ref."platform" = ${platform}`
+      : Prisma.empty;
+    const rows = await this.prisma.$queryRaw<
+      Array<{
+        author_handle: string;
+        platform: string;
+        remix_count: bigint | number | string;
+      }>
+    >(
+      Prisma.sql`
+        SELECT
+          source_ref."platform" AS platform,
+          source_ref."authorHandle" AS author_handle,
+          COUNT(*) AS remix_count
+        FROM "_remix_lineage_source_refs" refs
+        INNER JOIN "trend_remix_lineages" lineage ON lineage."id" = refs."A"
+        INNER JOIN "trend_source_references" source_ref ON source_ref."id" = refs."B"
+        WHERE lineage."organizationId" = ${organizationId}
+          AND lineage."brandId" = ${brandId}
+          AND lineage."isDeleted" = false
+          AND source_ref."isDeleted" = false
+          AND source_ref."platform" IS NOT NULL
+          AND source_ref."authorHandle" IS NOT NULL
+          ${platformFilter}
+        GROUP BY source_ref."platform", source_ref."authorHandle"
+      `,
+    );
 
-    const countMap = new Map<string, number>();
-    for (const lineage of lineages) {
-      for (const ref of lineage.sourceReferences) {
-        const d = ref.data as unknown as Record<string, unknown>;
-        const authorHandle = d.authorHandle as string | undefined;
-        const refPlatform = d.platform as string | undefined;
-        if (!authorHandle || !refPlatform) continue;
-        if (platform && refPlatform !== platform) continue;
-        const key = `${refPlatform}:${authorHandle}`;
-        countMap.set(key, (countMap.get(key) ?? 0) + 1);
-      }
-    }
-
-    return countMap;
+    return new Map(
+      rows.map((row) => [
+        `${row.platform}:${row.author_handle}`,
+        Number(row.remix_count ?? 0),
+      ]),
+    );
   }
 
   private toReferenceRecord(

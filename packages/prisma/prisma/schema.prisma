@@ -3232,21 +3232,33 @@ model TrendRemixLineage {
   trends           Trend[]                @relation("remix_lineage_trends")
   sourceReferences TrendSourceReference[] @relation("remix_lineage_source_refs")
 
+  @@index([organizationId, brandId, isDeleted], map: "trend_remix_lineages_org_brand_deleted_idx")
+  @@index([contentDraftId, isDeleted], map: "trend_remix_lineages_content_draft_deleted_idx")
+  @@index([postId, isDeleted], map: "trend_remix_lineages_post_deleted_idx")
   @@map("trend_remix_lineages")
 }
 
 model TrendSourceReference {
-  id        String   @id @default(cuid())
-  mongoId   String?  @unique
-  data      Json     @default("{}")
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                       String    @id @default(cuid())
+  mongoId                  String?   @unique
+  canonicalUrl             String?
+  platform                 String?
+  authorHandle             String?
+  currentEngagementTotal   Int       @default(0)
+  latestTrendViralityScore Float     @default(0)
+  lastSeenAt               DateTime?
+  data                     Json      @default("{}")
+  isDeleted                Boolean   @default(false)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   links         TrendSourceReferenceLink[]
   snapshots     TrendSourceReferenceSnapshot[]
   remixLineages TrendRemixLineage[]            @relation("remix_lineage_source_refs")
 
+  @@index([canonicalUrl, platform, isDeleted], map: "trend_source_refs_url_platform_deleted_idx")
+  @@index([isDeleted, platform, authorHandle, lastSeenAt(sort: Desc)], map: "trend_source_refs_account_lookup_idx")
+  @@index([isDeleted, currentEngagementTotal(sort: Desc), latestTrendViralityScore(sort: Desc)], map: "trend_source_refs_rank_idx")
   @@map("trend_source_references")
 }
 
@@ -3261,6 +3273,8 @@ model TrendSourceReferenceLink {
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
 
+  @@index([trendId, isDeleted], map: "trend_source_reference_links_trend_deleted_idx")
+  @@index([sourceReferenceId, isDeleted], map: "trend_source_reference_links_ref_deleted_idx")
   @@map("trend_source_reference_links")
 }
 
@@ -3269,11 +3283,13 @@ model TrendSourceReferenceSnapshot {
   mongoId           String?               @unique
   sourceReferenceId String?
   sourceReference   TrendSourceReference? @relation(fields: [sourceReferenceId], references: [id])
+  snapshotDate      DateTime?
   data              Json                  @default("{}")
   isDeleted         Boolean               @default(false)
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
 
+  @@index([sourceReferenceId, snapshotDate, isDeleted], map: "trend_source_reference_snapshots_ref_date_deleted_idx")
   @@map("trend_source_reference_snapshots")
 }
 
