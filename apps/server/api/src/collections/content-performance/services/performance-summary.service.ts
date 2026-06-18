@@ -1,6 +1,6 @@
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { Prisma } from '@genfeedai/prisma';
+import { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 
 export interface WeeklySummaryOptions {
@@ -64,6 +64,29 @@ export interface WeeklySummary {
   };
 }
 
+type DateRangeFilter = {
+  gte?: Date;
+  lte?: Date;
+};
+
+type ContentTypeEngagementRow = {
+  avg_engagement_rate: number | string | null;
+  category: string | null;
+  total_posts: bigint | number | string;
+};
+
+type PlatformEngagementRow = {
+  avg_engagement_rate: number | string | null;
+  platform: string | null;
+  total_posts: bigint | number | string;
+};
+
+type PostingTimeAnalysisRow = {
+  avg_engagement_rate: number | string | null;
+  hour: number | string;
+  post_count: bigint | number | string;
+};
+
 @Injectable()
 export class PerformanceSummaryService {
   constructor(private readonly prisma: PrismaService) {}
@@ -83,6 +106,19 @@ export class PerformanceSummaryService {
       date: { gte: startDate, lte: endDate },
       organizationId,
     };
+  }
+
+  private buildAnalyticsSqlWhere(
+    matchFilter: Prisma.PostAnalyticsWhereInput,
+  ): Prisma.Sql {
+    const dateRange = (matchFilter.date ?? {}) as DateRangeFilter;
+
+    return Prisma.sql`
+      pa."organizationId" = ${String(matchFilter.organizationId ?? '')}
+      AND pa."brandId" = ${String(matchFilter.brandId ?? '')}
+      AND pa."date" >= ${dateRange.gte ?? new Date(0)}
+      AND pa."date" <= ${dateRange.lte ?? new Date()}
+    `;
   }
 
   /**
@@ -194,7 +230,16 @@ export class PerformanceSummaryService {
     const postIds = [...new Set(analytics.map((a) => String(a.postId)))];
     const posts =
       postIds.length > 0
-        ? await this.prisma.post.findMany({ where: { id: { in: postIds } } })
+        ? await this.prisma.post.findMany({
+            select: {
+              description: true,
+              id: true,
+              label: true,
+              publicationDate: true,
+            },
+            take: postIds.length,
+            where: { id: { in: postIds } },
+          })
         : [];
     const postMap = new Map(posts.map((p) => [p.id, p]));
 
@@ -312,7 +357,11 @@ export class PerformanceSummaryService {
     const postIds = [...new Set(analytics.map((a) => String(a.postId)))];
     const posts =
       postIds.length > 0
-        ? await this.prisma.post.findMany({ where: { id: { in: postIds } } })
+        ? await this.prisma.post.findMany({
+            select: { description: true, id: true, label: true },
+            take: postIds.length,
+            where: { id: { in: postIds } },
+          })
         : [];
     const postMap = new Map(posts.map((p) => [p.id, p]));
 
@@ -337,116 +386,78 @@ export class PerformanceSummaryService {
   private async getAvgEngagementByPlatform(
     matchFilter: Prisma.PostAnalyticsWhereInput,
   ): Promise<PlatformEngagement[]> {
-    const analytics = await this.prisma.postAnalytics.findMany({
-      where: matchFilter,
-    });
+    const rows = await this.prisma.$queryRaw<PlatformEngagementRow[]>(
+      Prisma.sql`
+        SELECT
+          pa."platform"::text AS platform,
+          AVG(pa."engagementRate") AS avg_engagement_rate,
+          COUNT(DISTINCT pa."postId") AS total_posts
+        FROM "post_analytics" pa
+        WHERE ${this.buildAnalyticsSqlWhere(matchFilter)}
+        GROUP BY pa."platform"
+        ORDER BY avg_engagement_rate DESC
+        LIMIT 20
+      `,
+    );
 
-    const platformMap = new Map<
-      string,
-      { totalEngagement: number; postIds: Set<string> }
-    >();
-
-    for (const item of analytics) {
-      const platform = String(item.platform || 'unknown');
-      const existing = platformMap.get(platform) ?? {
-        postIds: new Set<string>(),
-        totalEngagement: 0,
-      };
-      existing.totalEngagement += Number(item.engagementRate || 0);
-      existing.postIds.add(String(item.postId));
-      platformMap.set(platform, existing);
-    }
-
-    return Array.from(platformMap.entries())
-      .map(([platform, data]) => ({
-        avgEngagementRate:
-          data.postIds.size > 0 ? data.totalEngagement / data.postIds.size : 0,
-        platform,
-        totalPosts: data.postIds.size,
-      }))
-      .sort((a, b) => b.avgEngagementRate - a.avgEngagementRate);
+    return rows.map((row) => ({
+      avgEngagementRate: Number(row.avg_engagement_rate ?? 0),
+      platform: row.platform || 'unknown',
+      totalPosts: Number(row.total_posts ?? 0),
+    }));
   }
 
   private async getAvgEngagementByContentType(
     matchFilter: Prisma.PostAnalyticsWhereInput,
   ): Promise<ContentTypeEngagement[]> {
-    const analytics = await this.prisma.postAnalytics.findMany({
-      where: matchFilter,
-    });
+    const rows = await this.prisma.$queryRaw<ContentTypeEngagementRow[]>(
+      Prisma.sql`
+        SELECT
+          COALESCE(p."category"::text, 'unknown') AS category,
+          AVG(pa."engagementRate") AS avg_engagement_rate,
+          COUNT(DISTINCT pa."postId") AS total_posts
+        FROM "post_analytics" pa
+        INNER JOIN "posts" p ON p."id" = pa."postId"
+        WHERE ${this.buildAnalyticsSqlWhere(matchFilter)}
+          AND p."isDeleted" = false
+        GROUP BY COALESCE(p."category"::text, 'unknown')
+        ORDER BY avg_engagement_rate DESC
+        LIMIT 20
+      `,
+    );
 
-    const postIds = [...new Set(analytics.map((a) => String(a.postId)))];
-    const posts =
-      postIds.length > 0
-        ? await this.prisma.post.findMany({ where: { id: { in: postIds } } })
-        : [];
-    const postMap = new Map(posts.map((p) => [p.id, p]));
-
-    const categoryMap = new Map<
-      string,
-      { totalEngagement: number; postIds: Set<string> }
-    >();
-
-    for (const item of analytics) {
-      const post = postMap.get(String(item.postId));
-      const category = String(post?.category || 'unknown');
-      const existing = categoryMap.get(category) ?? {
-        postIds: new Set<string>(),
-        totalEngagement: 0,
-      };
-      existing.totalEngagement += Number(item.engagementRate || 0);
-      existing.postIds.add(String(item.postId));
-      categoryMap.set(category, existing);
-    }
-
-    return Array.from(categoryMap.entries())
-      .map(([category, data]) => ({
-        avgEngagementRate:
-          data.postIds.size > 0 ? data.totalEngagement / data.postIds.size : 0,
-        category,
-        totalPosts: data.postIds.size,
-      }))
-      .sort((a, b) => b.avgEngagementRate - a.avgEngagementRate);
+    return rows.map((row) => ({
+      avgEngagementRate: Number(row.avg_engagement_rate ?? 0),
+      category: row.category || 'unknown',
+      totalPosts: Number(row.total_posts ?? 0),
+    }));
   }
 
   private async getBestPostingTimes(
     matchFilter: Prisma.PostAnalyticsWhereInput,
   ): Promise<PostingTimeAnalysis[]> {
-    const analytics = await this.prisma.postAnalytics.findMany({
-      where: matchFilter,
-    });
+    const rows = await this.prisma.$queryRaw<PostingTimeAnalysisRow[]>(
+      Prisma.sql`
+        SELECT
+          EXTRACT(HOUR FROM p."publicationDate")::int AS hour,
+          AVG(pa."engagementRate") AS avg_engagement_rate,
+          COUNT(DISTINCT pa."postId") AS post_count
+        FROM "post_analytics" pa
+        INNER JOIN "posts" p ON p."id" = pa."postId"
+        WHERE ${this.buildAnalyticsSqlWhere(matchFilter)}
+          AND p."isDeleted" = false
+          AND p."publicationDate" IS NOT NULL
+        GROUP BY hour
+        ORDER BY avg_engagement_rate DESC
+        LIMIT 24
+      `,
+    );
 
-    const postIds = [...new Set(analytics.map((a) => String(a.postId)))];
-    const posts =
-      postIds.length > 0
-        ? await this.prisma.post.findMany({ where: { id: { in: postIds } } })
-        : [];
-    const postMap = new Map(posts.map((p) => [p.id, p]));
-
-    const hourMap = new Map<
-      number,
-      { totalEngagement: number; count: number }
-    >();
-
-    for (const item of analytics) {
-      const post = postMap.get(String(item.postId));
-      const pubDate = post?.publicationDate;
-      if (!pubDate) continue;
-
-      const hour = new Date(pubDate).getHours();
-      const existing = hourMap.get(hour) ?? { count: 0, totalEngagement: 0 };
-      existing.totalEngagement += Number(item.engagementRate || 0);
-      existing.count += 1;
-      hourMap.set(hour, existing);
-    }
-
-    return Array.from(hourMap.entries())
-      .map(([hour, data]) => ({
-        avgEngagementRate:
-          data.count > 0 ? data.totalEngagement / data.count : 0,
-        hour,
-        postCount: data.count,
-      }))
-      .sort((a, b) => b.avgEngagementRate - a.avgEngagementRate);
+    return rows.map((row) => ({
+      avgEngagementRate: Number(row.avg_engagement_rate ?? 0),
+      hour: Number(row.hour),
+      postCount: Number(row.post_count ?? 0),
+    }));
   }
 
   private async getTopHooks(
@@ -479,16 +490,19 @@ export class PerformanceSummaryService {
     const aggregateEngagement = async (
       filter: Prisma.PostAnalyticsWhereInput,
     ): Promise<number> => {
-      const rows = await this.prisma.postAnalytics.findMany({
+      const aggregate = await this.prisma.postAnalytics.aggregate({
+        _sum: {
+          totalComments: true,
+          totalLikes: true,
+          totalShares: true,
+        },
         where: filter,
       });
-      return rows.reduce(
-        (sum, r) =>
-          sum +
-          (Number(r.totalLikes || 0) +
-            Number(r.totalComments || 0) +
-            Number(r.totalShares || 0)),
-        0,
+      const sums = (aggregate as { _sum?: Record<string, unknown> })._sum ?? {};
+      return (
+        Number(sums.totalLikes ?? 0) +
+        Number(sums.totalComments ?? 0) +
+        Number(sums.totalShares ?? 0)
       );
     };
 
