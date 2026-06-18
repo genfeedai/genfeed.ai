@@ -39,10 +39,12 @@ exclude_path = ["node_modules", ".next", "dist", "build", ".turbo"]
 # - Hosts that aggressively block bots, producing false "dead link" reports
 #   (twitter/x/linkedin return 403/999 to non-browser clients; OpenAI's
 #   platform host 403s the same way on /api-keys).
+# - Badge CDNs are cosmetic and intermittently return 408 to non-browser checks.
 exclude = [
   "^https://genfeed\\.ai",
   "^https?://localhost",
   "^https?://127\\.0\\.0\\.1",
+  "img\\.shields\\.io",
   "twitter\\.com",
   "x\\.com",
   "linkedin\\.com",

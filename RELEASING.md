@@ -19,8 +19,12 @@ Use this when shipping the hosted product and self-hosted image.
 
 That release triggers:
 
-- `.github/workflows/deploy-production.yml` for the backend and Vercel surfaces
 - `.github/workflows/docker-publish.yml` for the self-hosted image
+
+Production backend deploys are handled separately through
+`.github/workflows/deploy-ecs.yml`, dispatched from `master` and gated by the
+GitHub `production` environment. The legacy `Deploy Production` workflow was
+removed after the Fargate cutover.
 
 ## Desktop Release
 
