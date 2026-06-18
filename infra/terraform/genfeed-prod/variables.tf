@@ -59,10 +59,10 @@ variable "route53_zone_id" {
   description = "Hosted zone for genfeed.ai. Empty = look up by name (assumes the zone is in Route53)."
 }
 
-# DNS cutover gate. FALSE (default): build everything EXCEPT the api.genfeed.ai
-# A-record, so the first apply never repoints live traffic at an empty ALB. Push
-# the image, get services healthy, smoke-test the ALB DNS, THEN apply with
-# enable_dns_cutover=true to flip api.genfeed.ai onto the ALB.
+# DNS cutover gate. FALSE (default): build everything EXCEPT public service
+# A-records, so the first apply never repoints live traffic at an empty ALB.
+# Push the image, get services healthy, smoke-test the ALB DNS, THEN apply with
+# enable_dns_cutover=true to flip api/mcp/notifications hostnames onto the ALB.
 variable "enable_dns_cutover" {
   type    = bool
   default = false

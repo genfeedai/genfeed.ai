@@ -65,19 +65,15 @@ jobs:
           RELEASE_TARGET_COMMITISH: ${{ github.event.release.target_commitish || '' }}
 
   deploy-backend:
+    name: Legacy EC2 backend disabled
     if: ${{ github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v') }}
     needs: validate-production-ref
-    uses: ./.github/workflows/_deploy.yml
-    with:
-      environment: production
-      workers_follow_api: true
-      force_all: ${{ (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')) || inputs.force_all || false }}
-      force_api: ${{ inputs.force_api || false }}
-      force_bots: ${{ inputs.force_bots || false }}
-      force_workers: ${{ inputs.force_workers || false }}
-      force_redis: ${{ inputs.force_redis || false }}
-      skip_tests: ${{ inputs.skip_tests || false }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip legacy Tailscale/SSH backend deploy
+        run: |
+          echo "::warning::The legacy EC2/Tailscale/Docker Compose backend deploy is disabled after the ECS/Fargate cutover."
+          echo "::warning::Use the Deploy ECS (production) workflow for managed backend deploys."
 
   # Deploy all Vercel frontend apps in parallel after backend is up.
   # Secret: VERCEL_TOKEN (auth)

@@ -20,17 +20,18 @@ Live AWS wins over older AL2023 EC2 migration notes.
 - **Parked services**: `clips`, `discord`, `slack`, and `telegram` remain
   defined ECS services with `desired=0`, `running=0`.
 - **ALB**: `genfeed-production-alb-774183965.us-west-1.elb.amazonaws.com`,
-  internet-facing, active. The API target group uses `targetType=ip`; health is
-  green on port `3010`.
-- **Public API DNS**: Route53 `api.genfeed.ai` is now an ALB alias. Public
-  health verification after stopping EC2 returned `200` from ALB IPs.
+  internet-facing, active. Public target groups use `targetType=ip`; health is
+  green for `api` on port `3010`, `mcp` on port `3014`, and `notifications` on
+  port `3011`.
+- **Public backend DNS**: Route53 `api.genfeed.ai`, `mcp.genfeed.ai`, and
+  `notifications.genfeed.ai` are ALB aliases. Public health verification after
+  stopping EC2 returned `200` for all three `/v1/health` endpoints.
 - **Last verified ECS deploy**: GitHub Actions run `27759489824` completed on
   2026-06-18 from `master` and rolled the server image tag
   `05f7538e48cad75cbebf7a6405d09fc82d4db868`.
-- **Other public backend hostnames**: `mcp.genfeed.ai` and
-  `notifications.genfeed.ai` still point to old EIP `52.52.217.255`. They need
-  explicit ALB/listener/DNS work or retirement if those public names should
-  survive the EC2 shutdown.
+- **Public backend follow-up**: `mcp.genfeed.ai` and
+  `notifications.genfeed.ai` were moved from stale A records on EIP
+  `52.52.217.255` to ALB aliases on 2026-06-18.
 
 ## Legacy EC2 Host
 
@@ -38,12 +39,13 @@ Live AWS wins over older AL2023 EC2 migration notes.
   Amazon Linux 2023, `t3a.large`, EIP `52.52.217.255`.
 - **State**: stopped on 2026-06-18 after the API DNS cutover. It was not
   terminated.
-- **Guards**: `Deploy Production` is disabled manually in GitHub Actions;
-  instance termination protection is enabled; instance and root volume are
-  tagged `DoNotStart=true`, `StoppedFor=fargate-cutover-2026-06-18`, and
+- **Guards**: `Deploy Production` is disabled manually in GitHub Actions; its
+  legacy backend job is a repo-level no-op; instance termination protection is
+  enabled; instance and root volume are tagged `DoNotStart=true`,
+  `StoppedFor=fargate-cutover-2026-06-18`, and
   `CutoverSnapshot=snap-0232fb7b41809e8e0`.
-- **Rollback role only**: rollback means manually re-pointing Route53
-  `api.genfeed.ai` to `52.52.217.255` and starting the instance. Do not treat
+- **Rollback role only**: rollback means manually re-pointing affected public
+  backend hostnames to `52.52.217.255` and starting the instance. Do not treat
   it as the intended managed production platform.
 - **Historical access**: previous SSH path used Tailscale IP
   `100.101.125.109`; verify current access details before any rollback work.
@@ -51,7 +53,8 @@ Live AWS wins over older AL2023 EC2 migration notes.
 ## Deployment Path
 
 - `Deploy Production` is disabled and should not be used for normal backend
-  deploys. It was the old Tailscale/SSH/Docker Compose path to EC2.
+  deploys. Its backend job is a no-op so it cannot call the old
+  Tailscale/SSH/Docker Compose path to EC2 if the workflow is re-enabled.
 - `Deploy ECS (production)` is the intended production backend deploy path. It
   is dispatch-only, production-environment gated, and master-only.
 - The 2026-06-18 cutover was completed locally first, then the GitHub Actions
