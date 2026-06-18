@@ -45,7 +45,6 @@ export class SkillCheckoutService {
     const defaultCancelUrl = `${this.configService.get('GENFEEDAI_APP_URL')}/skills-pro`;
 
     const sessionConfig: CheckoutSessionCreateParams = {
-      allow_promotion_codes: true,
       cancel_url: dto.cancelUrl || defaultCancelUrl,
       line_items: [
         {
@@ -61,6 +60,15 @@ export class SkillCheckoutService {
       payment_method_types: ['card'],
       success_url: dto.successUrl || defaultSuccessUrl,
     };
+
+    const promotionCodeId = this.configService.get(
+      'STRIPE_PROMOTION_CODE_SKILLS_PRO',
+    );
+    if (promotionCodeId) {
+      sessionConfig.discounts = [{ promotion_code: promotionCodeId }];
+    } else {
+      sessionConfig.allow_promotion_codes = true;
+    }
 
     if (dto.email) {
       sessionConfig.customer_email = dto.email;
