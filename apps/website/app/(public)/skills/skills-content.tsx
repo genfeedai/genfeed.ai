@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Code } from '@genfeedai/ui';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import {
+  FREE_SKILL_COUNT,
   SKILL_CATEGORIES,
   type SkillRegistry,
   type SkillRegistryEntry,
@@ -80,10 +81,11 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
         badgeIcon={LuBrainCircuit}
         title={
           <>
-            22 Skills. <span className="italic font-light">One Command.</span>
+            {FREE_SKILL_COUNT} Skills.{' '}
+            <span className="italic font-light">One Command.</span>
           </>
         }
-        description="Content creation, SEO, advertising, image prompting, and strategy — all as Claude Code skills. Works standalone. Works better with Genfeed."
+        description="Content creation, SEO, advertising, GTM, image prompting, platform development, and analysis as Claude Code skills. Works standalone. Works better with Genfeed."
         heroActions={
           <div className="flex flex-col items-center gap-6">
             <InstallCommand />
@@ -160,7 +162,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
 
             <div className="text-center mt-8">
               <Code className="bg-transparent text-surface/25">
-                npx skills add genfeedai/skills/{category.skills[0]?.slug}
+                bunx skills add genfeedai/skills/{category.skills[0]?.slug}
               </Code>
             </div>
           </WebSection>
@@ -175,8 +177,9 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
               </div>
               <h2 className="text-5xl font-serif mb-6">Pro Skills</h2>
               <p className="text-surface/50 max-w-xl mx-auto">
-                Deep domain skills that make your agent dramatically more
-                capable. All included in the bundle.
+                Paid operating systems for source-to-brief, brand voice,
+                production queues, performance loops, and platform warmup. All
+                included in the bundle.
               </p>
             </div>
 
@@ -225,8 +228,9 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
               </div>
               <h2 className="text-4xl font-serif mb-4">One Command</h2>
               <p className="text-surface/40 text-sm leading-relaxed mb-6">
-                Install all 22 skills with a single command. Your agent learns
-                each skill and activates it at exactly the right moment.
+                Install all {FREE_SKILL_COUNT} free skills with a single
+                command. Your agent learns each skill and activates it at
+                exactly the right moment.
               </p>
               <div className="space-y-3 text-sm text-surface/40">
                 <p>
@@ -234,7 +238,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
                     Install all:
                   </span>{' '}
                   <Code className="text-surface/50 bg-fill/5">
-                    npx skills add genfeedai/skills
+                    bunx skills add genfeedai/skills
                   </Code>
                 </p>
                 <p>
@@ -242,7 +246,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
                     Install one:
                   </span>{' '}
                   <Code className="text-surface/50 bg-fill/5">
-                    npx skills add genfeedai/skills/x-content-creator
+                    bunx skills add genfeedai/skills/x-content-creator
                   </Code>
                 </p>
               </div>
@@ -257,7 +261,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
         <CtaSection
           bg="subtle"
           title="Start Creating"
-          description="22 free skills. Every platform. One install. Upgrade to Pro for deep domain skills."
+          description={`${FREE_SKILL_COUNT} free skills. Every platform. One install. Upgrade to Pro for warmup and deep operating systems.`}
         >
           {registry && registry.skills.length > 0 && (
             <Button

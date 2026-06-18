@@ -933,7 +933,10 @@ export abstract class BaseService<
       this.logger?.debug('Bulk updating documents', { filter, update });
 
       const result = await this.internalDelegate.updateMany({
-        where: this.normalizeWhere(filter),
+        where: {
+          ...this.normalizeWhere(filter),
+          isDeleted: (filter as Record<string, unknown>).isDeleted ?? false,
+        },
         data: this.normalizeData(update),
       });
 
@@ -1214,7 +1217,7 @@ export abstract class BaseService<
       const result = await this.internalDelegate.updateMany({
         where: this.withSoftDeleteFilter({
           id: { in: ids },
-          organizationId,
+          organizationId: organizationId,
         }),
         data: { [field]: value },
       });

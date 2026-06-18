@@ -224,6 +224,46 @@ describe('BrandProvider', () => {
     expect(useAuthedServiceMock).not.toHaveBeenCalled();
   });
 
+  it('treats empty bootstrap brands as hydrated data', () => {
+    const emptyBootstrap = {
+      ...initialBootstrap,
+      brandId: '',
+      brands: [],
+      darkroomCapabilities: null,
+      organizationId: '',
+      settings: null,
+    };
+
+    function Consumer() {
+      const { brandId, brands, organizationId, settings } = useBrand();
+
+      return (
+        <div>
+          <span data-testid="brand-id">{brandId || 'none'}</span>
+          <span data-testid="organization-id">{organizationId || 'none'}</span>
+          <span data-testid="brand-count">{String(brands.length)}</span>
+          <span data-testid="settings">{settings ? 'present' : 'none'}</span>
+        </div>
+      );
+    }
+
+    const Wrapper = createWrapper();
+
+    render(
+      <Wrapper>
+        <BrandProvider initialBootstrap={emptyBootstrap as never}>
+          <Consumer />
+        </BrandProvider>
+      </Wrapper>,
+    );
+
+    expect(screen.getByTestId('brand-id')).toHaveTextContent('none');
+    expect(screen.getByTestId('organization-id')).toHaveTextContent('none');
+    expect(screen.getByTestId('brand-count')).toHaveTextContent('0');
+    expect(screen.getByTestId('settings')).toHaveTextContent('none');
+    expect(useAuthedServiceMock).not.toHaveBeenCalled();
+  });
+
   it('shows empty state when auth is not ready', () => {
     useAuthMock.mockReturnValue({
       isLoaded: false,

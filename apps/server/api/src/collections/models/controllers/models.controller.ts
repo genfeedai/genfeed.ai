@@ -326,11 +326,13 @@ export class ModelsController extends BaseCRUDController<
 
     // If setting isDefault to true, clear other defaults in same category
     if (updateDto.isDefault === true) {
+      // sql-risk-audit: ignore bulk-write-tenant-review -- Wrapped service call is constrained to non-deleted models in the same registry category.
       await this.modelsService.updateMany(
         {
           _id: { not: modelId },
           category: model.category,
           isDefault: true,
+          isDeleted: false,
         },
         { isDefault: false },
       );

@@ -75,7 +75,10 @@ export class ClerkWebhookController {
           'svix-timestamp': svixTimestamp,
         }) as WebhookEvent;
       } catch (error: unknown) {
-        this.loggerService.error(`${url} invalid signature`, error);
+        this.loggerService.warn(`${url} invalid signature`, {
+          error: error instanceof Error ? error.message : String(error),
+          svixId,
+        });
         throw new BadRequestException('Invalid Clerk webhook signature');
       }
 
@@ -88,6 +91,10 @@ export class ClerkWebhookController {
 
       return { message: 'Webhook processed successfully', success: true };
     } catch (error: unknown) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }

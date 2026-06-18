@@ -3,6 +3,7 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAccessState } from '@providers/access-state/access-state.provider';
 import PageLoadingState from '@ui/loading/page/PageLoadingState';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 function getBrandOrganizationSlug(
@@ -25,6 +26,7 @@ function getBrandOrganizationSlug(
 export default function ProtectedRootResolver() {
   const { brandId, brands, organizationId, selectedBrand } = useBrand();
   const { accessState, isLoading: isAccessStateLoading } = useAccessState();
+  const { replace } = useRouter();
   const hasStartedRef = useRef(false);
   const [statusMessage, setStatusMessage] = useState(
     'Checking workspace state...',
@@ -80,13 +82,14 @@ export default function ProtectedRootResolver() {
     }
 
     setStatusMessage(nextMessage);
-    window.location.replace(nextUrl);
+    replace(nextUrl);
   }, [
     accessState,
     brandId,
     brands,
     isAccessStateLoading,
     organizationId,
+    replace,
     selectedBrand,
   ]);
 

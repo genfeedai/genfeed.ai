@@ -4,12 +4,18 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 
 describe('AnalyticsAggregationService', () => {
   it('does not add soft-delete filters to PostAnalytics queries', async () => {
-    const postAnalyticsFindMany = vi.fn().mockResolvedValue([]);
+    const postAnalyticsAggregate = vi.fn().mockResolvedValue({
+      _avg: { engagementRate: null },
+      _count: { _all: 0 },
+      _sum: {},
+    });
+    const postAnalyticsGroupBy = vi.fn().mockResolvedValue([]);
     const postsCount = vi.fn().mockResolvedValue(0);
     const service = new AnalyticsAggregationService(
       {
         postAnalytics: {
-          findMany: postAnalyticsFindMany,
+          aggregate: postAnalyticsAggregate,
+          groupBy: postAnalyticsGroupBy,
         },
       } as unknown as PrismaService,
       {
@@ -30,7 +36,13 @@ describe('AnalyticsAggregationService', () => {
       '2026-04-14',
     );
 
-    for (const [query] of postAnalyticsFindMany.mock.calls) {
+    const postAnalyticsCalls = [
+      ...postAnalyticsAggregate.mock.calls,
+      ...postAnalyticsGroupBy.mock.calls,
+    ];
+
+    expect(postAnalyticsCalls.length).toBeGreaterThan(0);
+    for (const [query] of postAnalyticsCalls) {
       expect(query.where).toMatchObject({
         brandId: 'brand_1',
         organizationId: 'org_1',

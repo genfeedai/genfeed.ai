@@ -10,6 +10,7 @@ export interface IEnvConfig {
   VERSION?: string;
   SERVICE_NAME?: string;
   API_METRICS_LOGGING?: 'true' | 'false';
+  API_SENTRY_PERFORMANCE_METRICS?: 'true' | 'false';
   GENFEED_CLOUD?: 'true' | 'false';
 
   // === Genfeed Internal URLs ===
@@ -61,6 +62,7 @@ export interface IEnvConfig {
   STRIPE_API_VERSION?: string;
   STRIPE_PRICE_PAYG?: string;
   STRIPE_PRICE_SKILLS_PRO?: string;
+  STRIPE_PROMOTION_CODE_SKILLS_PRO?: string;
   STRIPE_PAYG_CREDITS?: number;
   STRIPE_MONTHLY_CREDITS?: number;
   STRIPE_YEARLY_CREDITS?: number;

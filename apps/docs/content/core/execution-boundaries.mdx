@@ -44,6 +44,12 @@ Genfeed Cloud owns managed services:
 
 Cloud-only services do not run inside Core unless they are present under `ee/` or exposed through an explicit Cloud API integration.
 
+## Workflow and Runtime Package Boundary
+
+- Public workflow contracts, public workflow templates, registry metadata, and generic Comfy-compatible self-hosted helpers live in this repository.
+- Customer-specific workflow templates, managed model inventory, customer model assignment, Fleet lifecycle controls, health probes, runtime secrets, and hosted LoRA/customer runtime operations are managed Cloud responsibilities outside the public repository.
+- Self-hosted deployments may connect their own ComfyUI, LoRA, or provider infrastructure through configuration. That does not make Genfeed Cloud's managed customer runtime part of Core.
+
 ## Account and Sync Model
 
 Self-hosted Core has a local source of truth. A Cloud account does not automatically become the source of truth for a Core install.

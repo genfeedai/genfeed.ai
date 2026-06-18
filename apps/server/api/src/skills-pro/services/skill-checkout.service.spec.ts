@@ -34,6 +34,7 @@ describe('SkillCheckoutService', () => {
             get: buildConfigGetMock({
               GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
               STRIPE_PRICE_SKILLS_PRO: '',
+              STRIPE_PROMOTION_CODE_SKILLS_PRO: '',
             }),
           },
         },
@@ -49,6 +50,7 @@ describe('SkillCheckoutService', () => {
         {
           provide: SkillRegistryService,
           useValue: {
+            getBundlePriceCents: vi.fn(),
             getBundleStripePriceId: vi.fn(),
             getRegistry: vi.fn(),
             getSkillBySlug: vi.fn(),
@@ -163,7 +165,7 @@ describe('SkillCheckoutService', () => {
       );
     });
 
-    it('should throw BadRequestException when no price ID is available', async () => {
+    it('should fall back to registry bundle price when no price ID is available', async () => {
       configService.get.mockImplementation(
         buildConfigGetMock({
           GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
@@ -172,10 +174,57 @@ describe('SkillCheckoutService', () => {
       );
 
       skillRegistryService.getBundleStripePriceId.mockResolvedValue(undefined);
+      skillRegistryService.getBundlePriceCents.mockResolvedValue(2900);
 
       const dto: CreateSkillCheckoutDto = {};
 
-      await expect(service.createCheckoutSession(dto)).rejects.toThrow(
+      const mockSession = {
+        id: 'cs_test_price_data',
+        url: 'https://checkout.stripe.com/session/cs_test_price_data',
+      } as unknown as Stripe.Checkout.Session;
+
+      stripeService.stripe.checkout.sessions.create.mockResolvedValue(
+        mockSession,
+      );
+
+      const result = await service.createCheckoutSession(dto);
+
+      expect(result.url).toBe(
+        'https://checkout.stripe.com/session/cs_test_price_data',
+      );
+      expect(skillRegistryService.getBundlePriceCents).toHaveBeenCalled();
+      expect(
+        stripeService.stripe.checkout.sessions.create,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          line_items: [
+            {
+              price_data: {
+                currency: 'usd',
+                product_data: {
+                  name: 'Skills Pro Bundle',
+                },
+                unit_amount: 2900,
+              },
+              quantity: 1,
+            },
+          ],
+        }),
+      );
+    });
+
+    it('should throw BadRequestException when no price ID or bundle price is available', async () => {
+      configService.get.mockImplementation(
+        buildConfigGetMock({
+          GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
+          STRIPE_PRICE_SKILLS_PRO: '',
+        }),
+      );
+
+      skillRegistryService.getBundleStripePriceId.mockResolvedValue(undefined);
+      skillRegistryService.getBundlePriceCents.mockResolvedValue(undefined);
+
+      await expect(service.createCheckoutSession({})).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -212,10 +261,11 @@ describe('SkillCheckoutService', () => {
       );
     });
 
-    it('should use custom success and cancel URLs when provided in DTO', async () => {
+    it('should use custom success and cancel URLs from configured origins', async () => {
       configService.get.mockImplementation(
         buildConfigGetMock({
           GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
+          GENFEEDAI_PUBLIC_URL: 'https://genfeed.ai',
           STRIPE_PRICE_SKILLS_PRO: 'price_env_123',
         }),
       );
@@ -230,8 +280,9 @@ describe('SkillCheckoutService', () => {
       );
 
       const dto: CreateSkillCheckoutDto = {
-        cancelUrl: 'https://custom.example.com/cancel',
-        successUrl: 'https://custom.example.com/success',
+        cancelUrl: 'https://genfeed.ai/skills',
+        successUrl:
+          'https://genfeed.ai/skills/success?session_id={CHECKOUT_SESSION_ID}',
       };
 
       await service.createCheckoutSession(dto);
@@ -240,8 +291,45 @@ describe('SkillCheckoutService', () => {
         stripeService.stripe.checkout.sessions.create,
       ).toHaveBeenCalledWith(
         expect.objectContaining({
-          cancel_url: 'https://custom.example.com/cancel',
-          success_url: 'https://custom.example.com/success',
+          cancel_url: 'https://genfeed.ai/skills',
+          success_url:
+            'https://genfeed.ai/skills/success?session_id={CHECKOUT_SESSION_ID}',
+        }),
+      );
+    });
+
+    it('should ignore checkout redirect URLs from unknown origins', async () => {
+      configService.get.mockImplementation(
+        buildConfigGetMock({
+          GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
+          GENFEEDAI_PUBLIC_URL: 'https://genfeed.ai',
+          STRIPE_PRICE_SKILLS_PRO: 'price_env_123',
+        }),
+      );
+
+      const mockSession = {
+        id: 'cs_test_rejected_redirect',
+        url: 'https://checkout.stripe.com/session/cs_test_rejected_redirect',
+      } as unknown as Stripe.Checkout.Session;
+
+      stripeService.stripe.checkout.sessions.create.mockResolvedValue(
+        mockSession,
+      );
+
+      const dto: CreateSkillCheckoutDto = {
+        cancelUrl: 'https://evil.example/cancel',
+        successUrl: 'https://evil.example/success',
+      };
+
+      await service.createCheckoutSession(dto);
+
+      expect(
+        stripeService.stripe.checkout.sessions.create,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cancel_url: 'https://app.genfeed.ai/skills-pro',
+          success_url:
+            'https://app.genfeed.ai/skills-pro/success?session_id={CHECKOUT_SESSION_ID}',
         }),
       );
     });
@@ -270,6 +358,34 @@ describe('SkillCheckoutService', () => {
       const callArgs = stripeService.stripe.checkout.sessions.create.mock
         .calls[0][0] as Stripe.Checkout.SessionCreateParams;
       expect(callArgs.customer_email).toBeUndefined();
+    });
+
+    it('should apply the configured promotion code discount automatically', async () => {
+      configService.get.mockImplementation(
+        buildConfigGetMock({
+          GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
+          STRIPE_PRICE_SKILLS_PRO: 'price_env_123',
+          STRIPE_PROMOTION_CODE_SKILLS_PRO: 'promo_earlygen',
+        }),
+      );
+
+      const mockSession = {
+        id: 'cs_test_discount',
+        url: 'https://checkout.stripe.com/session/cs_test_discount',
+      } as unknown as Stripe.Checkout.Session;
+
+      stripeService.stripe.checkout.sessions.create.mockResolvedValue(
+        mockSession,
+      );
+
+      await service.createCheckoutSession({});
+
+      const callArgs = stripeService.stripe.checkout.sessions.create.mock
+        .calls[0][0] as Stripe.Checkout.SessionCreateParams;
+      expect(callArgs.allow_promotion_codes).toBeUndefined();
+      expect(callArgs.discounts).toEqual([
+        { promotion_code: 'promo_earlygen' },
+      ]);
     });
 
     it('should return empty string url when Stripe session has no url', async () => {

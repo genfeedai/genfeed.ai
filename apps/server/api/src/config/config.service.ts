@@ -38,6 +38,7 @@ import Joi from 'joi';
 interface ApiEnvConfig extends IEnvConfig {
   API_PERFORMANCE_AUDIT?: 'true' | 'false';
   API_QUERY_METRICS?: 'true' | 'false';
+  API_SENTRY_PERFORMANCE_METRICS?: 'true' | 'false';
   API_SLOW_QUERY_SAMPLE_SIZE?: string;
   API_SLOW_QUERY_THRESHOLD_MS?: string;
   CONTENT_HARNESS_PACKAGES?: string;
@@ -62,6 +63,10 @@ const apiSpecificSchema = {
     .optional()
     .allow(''),
   API_QUERY_METRICS: Joi.string().valid('true', 'false').optional().allow(''),
+  API_SENTRY_PERFORMANCE_METRICS: Joi.string()
+    .valid('true', 'false')
+    .optional()
+    .allow(''),
   API_SLOW_QUERY_SAMPLE_SIZE: Joi.string().optional().allow(''),
   API_SLOW_QUERY_THRESHOLD_MS: Joi.string().optional().allow(''),
   CONTENT_HARNESS_PACKAGES: Joi.string()

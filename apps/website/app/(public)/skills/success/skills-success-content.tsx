@@ -9,8 +9,7 @@ import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
 import { LuCheck, LuCopy, LuTerminal } from 'react-icons/lu';
 
-const INSTALL_COMMAND =
-  'npx @genfeedai/skills-pro install --receipt sk_rcpt_xxx';
+const INSTALL_COMMAND = 'npx @genfeedai/skills-pro install sk_rcpt_xxx';
 
 async function handleCopy() {
   try {

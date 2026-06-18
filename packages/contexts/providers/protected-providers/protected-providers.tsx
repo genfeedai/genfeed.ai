@@ -120,6 +120,7 @@ export default function ProtectedProviders({
   additionalProviders,
 }: ProtectedProvidersProps): ReactNode {
   let content: ReactNode = children;
+  const hasInitialBootstrap = initialBootstrap != null;
 
   if (additionalProviders) {
     content = additionalProviders(children);
@@ -145,7 +146,10 @@ export default function ProtectedProviders({
   );
 
   content = (
-    <AccessStateProvider initialAccessState={initialBootstrap?.accessState}>
+    <AccessStateProvider
+      hasInitialBootstrap={hasInitialBootstrap}
+      initialAccessState={initialBootstrap?.accessState}
+    >
       {content}
     </AccessStateProvider>
   );
@@ -159,7 +163,10 @@ export default function ProtectedProviders({
   }
 
   content = (
-    <UserProvider initialCurrentUser={initialBootstrap?.currentUser}>
+    <UserProvider
+      hasInitialBootstrap={hasInitialBootstrap}
+      initialCurrentUser={initialBootstrap?.currentUser}
+    >
       {content}
     </UserProvider>
   );

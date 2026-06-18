@@ -2,7 +2,7 @@ terraform {
   required_version = ">= 1.10"
 
   # S3-native state locking (use_lockfile) — no DynamoDB. Bucket created by the
-  # bootstrap stack. `terraform init` this stack after bootstrap has applied.
+  # bootstrap stack and intentionally hard-coded there too.
   backend "s3" {
     bucket       = "genfeed-tfstate"
     key          = "genfeed-prod/terraform.tfstate"

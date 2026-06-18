@@ -69,6 +69,32 @@ describe('sql risk audit', () => {
       updateMany: 1,
     });
   });
+
+  it('allows reviewed bulk-write suppressions with local rationale', () => {
+    writeFixture(
+      'apps/server/api/src/auth/cleanup.service.ts',
+      `
+      export class CleanupService {
+        constructor(private readonly prisma: PrismaService) {}
+
+        async cleanup() {
+          // sql-risk-audit: ignore bulk-write-tenant-review -- Global TTL cleanup uses expiresAt index and touches no tenant-owned content.
+          return this.prisma.desktopAuthCode.deleteMany({
+            where: { expiresAt: { lte: new Date() } },
+          });
+        }
+      }
+      `,
+    );
+
+    const result = runSqlRiskAudit({ rootDir: testDir });
+
+    expect(result.findings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ category: 'bulk-write-tenant-review' }),
+      ]),
+    );
+  });
 });
 
 function writeFixture(relativePath: string, content: string): void {

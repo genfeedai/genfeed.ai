@@ -35,6 +35,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 
+type PrismaSql = ReturnType<typeof Prisma.sql>;
+type PostAnalyticsTextColumn = 'brandId' | 'organizationId';
+
 interface ExportPostData {
   id: string;
   label: string;
@@ -227,6 +230,55 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     return DateRangeUtil.parseDateRange(startDateStr, endDateStr);
   }
 
+  private postAnalyticsTextColumn(
+    column: PostAnalyticsTextColumn,
+    alias?: 'pa',
+  ): PrismaSql {
+    const prefix = alias ? `${alias}.` : '';
+    return Prisma.raw(`${prefix}"${column}"`);
+  }
+
+  private postAnalyticsOptionalTextFilter(
+    column: PostAnalyticsTextColumn,
+    value?: string,
+    alias?: 'pa',
+  ): PrismaSql {
+    if (!value) {
+      return Prisma.empty;
+    }
+
+    return Prisma.sql`AND ${this.postAnalyticsTextColumn(column, alias)} = ${value}`;
+  }
+
+  private postAnalyticsOptionalPlatformFilter(
+    platform?: CredentialPlatform,
+    alias?: 'pa',
+  ): PrismaSql {
+    if (!platform) {
+      return Prisma.empty;
+    }
+
+    return Prisma.sql`AND ${Prisma.raw(`${alias ? `${alias}.` : ''}"platform"`)}::text = ${String(platform)}`;
+  }
+
+  private postAnalyticsTopContentSortExpression(
+    metric:
+      | AnalyticsMetric.VIEWS
+      | AnalyticsMetric.ENGAGEMENT
+      | AnalyticsMetric.LIKES,
+  ): PrismaSql {
+    switch (metric) {
+      case AnalyticsMetric.ENGAGEMENT:
+        return Prisma.raw(
+          '(pa."totalLikes" + pa."totalComments" + pa."totalShares" + pa."totalSaves") DESC',
+        );
+      case AnalyticsMetric.LIKES:
+        return Prisma.raw('pa."totalLikes" DESC');
+      default:
+        return Prisma.raw('pa."totalViews" DESC');
+    }
+  }
+
   /**
    * Calculate growth percentage between current and previous values
    */
@@ -252,13 +304,12 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       return new Map();
     }
 
-    const column =
-      entityField === 'organizationId' ? '"organizationId"' : '"brandId"';
+    const column = this.postAnalyticsTextColumn(entityField);
 
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const results: any[] = await this.prisma.$queryRaw`
       SELECT
-        ${Prisma.raw(column)} AS entity_id,
+        ${column} AS entity_id,
         AVG("engagementRate") AS avg_engagement_rate,
         SUM("totalViews") AS total_views,
         SUM("totalLikes") AS total_likes,
@@ -266,12 +317,12 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         SUM("totalShares") AS total_shares,
         SUM("totalSaves") AS total_saves,
         COUNT(DISTINCT "postId") AS unique_posts
-        ${includePlatforms ? Prisma.raw(`, ARRAY_AGG(DISTINCT "platform"::text) AS platforms`) : Prisma.raw('')}
+        ${includePlatforms ? Prisma.sql`, ARRAY_AGG(DISTINCT "platform"::text) AS platforms` : Prisma.empty}
       FROM "post_analytics"
-      WHERE ${Prisma.raw(column)} = ANY(${entityIds}::text[])
+      WHERE ${column} = ANY(${entityIds}::text[])
         AND "date" >= ${startDate}
         AND "date" <= ${endDate}
-      GROUP BY ${Prisma.raw(column)}
+      GROUP BY ${column}
     `;
 
     const analyticsMap = new Map<string, IEntityAnalyticsStats>();
@@ -308,19 +359,18 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       return new Map();
     }
 
-    const column =
-      entityField === 'organizationId' ? '"organizationId"' : '"brandId"';
+    const column = this.postAnalyticsTextColumn(entityField);
 
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const results: any[] = await this.prisma.$queryRaw`
       SELECT
-        ${Prisma.raw(column)} AS entity_id,
+        ${column} AS entity_id,
         SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS total_engagement
       FROM "post_analytics"
-      WHERE ${Prisma.raw(column)} = ANY(${entityIds}::text[])
+      WHERE ${column} = ANY(${entityIds}::text[])
         AND "date" >= ${startDate}
         AND "date" <= ${endDate}
-      GROUP BY ${Prisma.raw(column)}
+      GROUP BY ${column}
     `;
 
     const engagementMap = new Map<string, number>();
@@ -944,7 +994,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       FROM "post_analytics"
       WHERE "date" >= ${start}
         AND "date" <= ${end}
-        ${organizationId ? Prisma.raw(`AND "organizationId" = '${organizationId.replace(/'/g, "''")}'`) : Prisma.raw('')}
+        ${this.postAnalyticsOptionalTextFilter('organizationId', organizationId)}
       GROUP BY TO_CHAR("date", 'YYYY-MM-DD'), "platform"
       ORDER BY day ASC
     `;
@@ -1053,14 +1103,14 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       this.parseDateRange(startDateStr, endDateStr);
 
     // Build conditional WHERE fragments
-    const brandFilter = brandId
-      ? Prisma.raw(`AND "brandId" = '${brandId.replace(/'/g, "''")}'`)
-      : Prisma.raw('');
-    const orgFilter = organizationId
-      ? Prisma.raw(
-          `AND "organizationId" = '${organizationId.replace(/'/g, "''")}'`,
-        )
-      : Prisma.raw('');
+    const brandFilter = this.postAnalyticsOptionalTextFilter(
+      'brandId',
+      brandId,
+    );
+    const orgFilter = this.postAnalyticsOptionalTextFilter(
+      'organizationId',
+      organizationId,
+    );
 
     // Current period metrics
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
@@ -1169,14 +1219,14 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       endDateStr,
     );
 
-    const brandFilter = brandId
-      ? Prisma.raw(`AND "brandId" = '${brandId.replace(/'/g, "''")}'`)
-      : Prisma.raw('');
-    const orgFilter = organizationId
-      ? Prisma.raw(
-          `AND "organizationId" = '${organizationId.replace(/'/g, "''")}'`,
-        )
-      : Prisma.raw('');
+    const brandFilter = this.postAnalyticsOptionalTextFilter(
+      'brandId',
+      brandId,
+    );
+    const orgFilter = this.postAnalyticsOptionalTextFilter(
+      'organizationId',
+      organizationId,
+    );
 
     // Group by platform and hour, pick the best hour per platform
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
@@ -1241,33 +1291,21 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       endDateStr,
     );
 
-    // Determine sort field based on metric
-    let sortExpr: string;
-    switch (metric) {
-      case AnalyticsMetric.ENGAGEMENT:
-        sortExpr =
-          '(pa."totalLikes" + pa."totalComments" + pa."totalShares" + pa."totalSaves") DESC';
-        break;
-      case AnalyticsMetric.LIKES:
-        sortExpr = 'pa."totalLikes" DESC';
-        break;
-      default:
-        sortExpr = 'pa."totalViews" DESC';
-    }
-
-    const brandFilter = brandId
-      ? Prisma.raw(`AND pa."brandId" = '${brandId.replace(/'/g, "''")}'`)
-      : Prisma.raw('');
-    const platformFilter = platform
-      ? Prisma.raw(
-          `AND pa."platform"::text = '${String(platform).replace(/'/g, "''")}'`,
-        )
-      : Prisma.raw('');
-    const orgFilter = organizationId
-      ? Prisma.raw(
-          `AND pa."organizationId" = '${organizationId.replace(/'/g, "''")}'`,
-        )
-      : Prisma.raw('');
+    const sortExpr = this.postAnalyticsTopContentSortExpression(metric);
+    const brandFilter = this.postAnalyticsOptionalTextFilter(
+      'brandId',
+      brandId,
+      'pa',
+    );
+    const platformFilter = this.postAnalyticsOptionalPlatformFilter(
+      platform,
+      'pa',
+    );
+    const orgFilter = this.postAnalyticsOptionalTextFilter(
+      'organizationId',
+      organizationId,
+      'pa',
+    );
 
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const results: any[] = await this.prisma.$queryRaw`
@@ -1295,7 +1333,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         ${brandFilter}
         ${platformFilter}
         ${orgFilter}
-      ORDER BY ${Prisma.raw(sortExpr)}
+      ORDER BY ${sortExpr}
       LIMIT ${safeLimit}
     `;
 
@@ -1335,9 +1373,10 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       endDateStr,
     );
 
-    const brandFilter = brandId
-      ? Prisma.raw(`AND "brandId" = '${brandId.replace(/'/g, "''")}'`)
-      : Prisma.raw('');
+    const brandFilter = this.postAnalyticsOptionalTextFilter(
+      'brandId',
+      brandId,
+    );
 
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const results: any[] = await this.prisma.$queryRaw`
@@ -1408,9 +1447,10 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     const { startDate, endDate, previousStartDate, previousEndDate } =
       this.parseDateRange(startDateStr, endDateStr);
 
-    const brandFilter = brandId
-      ? Prisma.raw(`AND "brandId" = '${brandId.replace(/'/g, "''")}'`)
-      : Prisma.raw('');
+    const brandFilter = this.postAnalyticsOptionalTextFilter(
+      'brandId',
+      brandId,
+    );
 
     // Current period: group by day
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
@@ -1516,14 +1556,11 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       endDateStr,
     );
 
-    const brandFilter = brandId
-      ? Prisma.raw(`AND "brandId" = '${brandId.replace(/'/g, "''")}'`)
-      : Prisma.raw('');
-    const platformFilter = platform
-      ? Prisma.raw(
-          `AND "platform"::text = '${String(platform).replace(/'/g, "''")}'`,
-        )
-      : Prisma.raw('');
+    const brandFilter = this.postAnalyticsOptionalTextFilter(
+      'brandId',
+      brandId,
+    );
+    const platformFilter = this.postAnalyticsOptionalPlatformFilter(platform);
 
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const results: any[] = await this.prisma.$queryRaw`
@@ -1613,14 +1650,16 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       endDateStr,
     );
 
-    const brandFilter = brandId
-      ? Prisma.raw(`AND pa."brandId" = '${brandId.replace(/'/g, "''")}'`)
-      : Prisma.raw('');
-    const orgFilter = organizationId
-      ? Prisma.raw(
-          `AND pa."organizationId" = '${organizationId.replace(/'/g, "''")}'`,
-        )
-      : Prisma.raw('');
+    const brandFilter = this.postAnalyticsOptionalTextFilter(
+      'brandId',
+      brandId,
+      'pa',
+    );
+    const orgFilter = this.postAnalyticsOptionalTextFilter(
+      'organizationId',
+      organizationId,
+      'pa',
+    );
 
     // Get top performing posts with description data
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result

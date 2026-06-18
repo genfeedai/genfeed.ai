@@ -10,7 +10,7 @@ export default function InstallCommand(): React.ReactElement {
 
   async function handleCopy(): Promise<void> {
     try {
-      await navigator.clipboard.writeText('npx skills add genfeedai/skills');
+      await navigator.clipboard.writeText('bunx skills add genfeedai/skills');
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -26,7 +26,7 @@ export default function InstallCommand(): React.ReactElement {
       className="group inline-flex items-center gap-3 px-6 py-3 bg-fill/5 border border-edge/10 hover:border-edge/20 transition-all font-mono text-sm cursor-pointer"
     >
       <LuTerminal className="size-4 text-surface/30" />
-      <span className="text-surface/70">npx skills add genfeedai/skills</span>
+      <span className="text-surface/70">bunx skills add genfeedai/skills</span>
       {copied ? (
         <LuCheck className="size-4 text-emerald-400" />
       ) : (

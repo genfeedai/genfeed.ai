@@ -19,6 +19,7 @@
 - [Use @ui/primitives](feedback_ui_primitives.md) — Never raw HTML elements — blocked by lint-no-raw-html.sh
 - [Codex adversarial review](feedback_codex_adversarial_review.md) — MANDATORY before ExitPlanMode
 - [GitHub issue worktree workflow](feedback_gh_issue_worktree_workflow.md) — Assigned issues use worktrees from master → PR to master
+- [Ready PRs by default](feedback_ready_pr_default.md) — Open normal ready PRs to master by default; draft only by explicit request or blocked WIP
 - [No external symlinks](feedback_no_external_symlinks.md) — Open source repo. Internal symlinks only.
 - [End-to-end implementation](feedback_end_to_end_implementation.md) — Never ship half-architecture; wire the full user path
 - [P0 status, not label](feedback_p0_status_not_label.md) — P0 is issue status; never create priority labels
@@ -27,6 +28,7 @@
 - [GPU instances off by default](feedback_gpu_instances_off_by_default.md) — Keep Genfeed GPU/Fleet inference instances off unless explicitly needed
 - [Inference servers private boundary](feedback_inference_servers_private_boundary.md) — Keep Genfeed inference server implementations out of the public monorepo
 - [GenfeedAI managed provider](feedback_genfeedai_managed_provider.md) — Model Genfeed-managed inference as provider=genfeedai, enabled per customer from console
+- [Console managed inference control plane](feedback_console_managed_inference_control_plane.md) — Private console owns Genfeed-managed Fleet/model/customer assignment
 - [Concurrent automation in shared checkout](feedback_concurrent_automation_develop.md) — A background bot commits to HEAD + pushes the shared checkout; path-scope git add, never blind add -u
 - [Genfeed project kanban](feedback_genfeed_project_kanban.md) — Use project #12 Genfeed.ai as canonical; never select work from closed Mission Control #11
 - [Production deploys master-only](feedback_production_deploy_master_only.md) — Never deploy any non-master ref to production unless Vincent explicitly overrides; production deploys run from GitHub CI on master
@@ -35,7 +37,8 @@
 
 - [MongoDB Atlas URI](reference_mongodb_atlas.md) — Atlas connection string for `cloud` DB
 - [Postgres RDS](reference_postgres_rds.md) — prod `genfeed-data` + dev `local-genfeedai` instances, sslmode gotcha, PrismaService env path
-- [Production EC2](reference_prod_ec2.md) — api.genfeed.ai box: t3a.large, EIP, SSH key, deploy mechanics, never-bulk-restart + Tailscale-DNS gotchas, stale Vercel projects
+- [Production AWS Runtime](reference_prod_aws_runtime.md) — live AWS source of truth: ECS/Fargate production, AL2023 EC2 stopped as rollback host, community deploy unaffected
+- [Skills Source Repos](reference_skills_source_repos.md) — free product skills come from `genfeedai/skills`; paid Skills Pro comes from private `genfeedai/skills-pro`
 
 ## Context (loaded via CLAUDE.md @import)
 

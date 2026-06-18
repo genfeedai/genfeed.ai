@@ -1,9 +1,48 @@
 vi.mock('@genfeedai/prisma', () => ({
   Prisma: {
-    raw: (sql: string) => sql,
+    empty: { sql: '', values: [] },
+    raw: (sql: string) => ({ sql, values: [] }),
+    sql: (strings: TemplateStringsArray, ...values: unknown[]) => {
+      const parts: string[] = [];
+      const parameters: unknown[] = [];
+
+      strings.forEach((part, index) => {
+        parts.push(part);
+        if (index >= values.length) {
+          return;
+        }
+
+        const value = values[index];
+        if (isSqlFragment(value)) {
+          parts.push(value.sql);
+          parameters.push(...value.values);
+          return;
+        }
+
+        parts.push('?');
+        parameters.push(value);
+      });
+
+      return { sql: parts.join(''), values: parameters };
+    },
   },
   PrismaClient: class {},
 }));
+
+interface SqlFragmentMock {
+  sql: string;
+  values: unknown[];
+}
+
+function isSqlFragment(value: unknown): value is SqlFragmentMock {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'sql' in value &&
+    'values' in value &&
+    Array.isArray((value as { values: unknown }).values)
+  );
+}
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -25,6 +64,41 @@ describe('AnalyticsService', () => {
   const typed = <T>(value: unknown): T => value as T;
 
   let service: AnalyticsService;
+
+  interface CapturedSqlQuery {
+    sql: string;
+    values: unknown[];
+  }
+
+  const captureSqlQuery = (
+    strings: TemplateStringsArray,
+    values: unknown[],
+  ): CapturedSqlQuery => {
+    const parts: string[] = [];
+    const parameters: unknown[] = [];
+
+    strings.forEach((part, index) => {
+      parts.push(part);
+      if (index >= values.length) {
+        return;
+      }
+
+      const value = values[index];
+      if (isSqlFragment(value)) {
+        parts.push(value.sql);
+        parameters.push(...value.values);
+        return;
+      }
+
+      parts.push('?');
+      parameters.push(value);
+    });
+
+    return {
+      sql: parts.join('').replace(/\s+/g, ' ').trim(),
+      values: parameters,
+    };
+  };
 
   // Mock services
   const mockPostsService = {
@@ -90,6 +164,21 @@ describe('AnalyticsService', () => {
     organization: {
       count: vi.fn(),
     },
+  };
+
+  const captureQueryRawCalls = (
+    resultsByCall: unknown[][] = [],
+  ): CapturedSqlQuery[] => {
+    const capturedQueries: CapturedSqlQuery[] = [];
+
+    mockPrismaService.$queryRaw.mockImplementation(
+      (strings: TemplateStringsArray, ...values: unknown[]) => {
+        capturedQueries.push(captureSqlQuery(strings, values));
+        return Promise.resolve(resultsByCall[capturedQueries.length - 1] ?? []);
+      },
+    );
+
+    return capturedQueries;
   };
 
   beforeEach(async () => {
@@ -721,6 +810,23 @@ describe('AnalyticsService', () => {
       expect((result[0].youtube as Record<string, number>).views).toBe(0);
       expect((result[0].tiktok as Record<string, number>).likes).toBe(0);
     });
+
+    it('should parameterize organization and date filters', async () => {
+      const capturedQueries = captureQueryRawCalls();
+      const organizationId = "org-filter-'1";
+
+      await service.getTimeSeriesData(
+        '2025-01-01',
+        '2025-01-31',
+        organizationId,
+      );
+
+      expect(capturedQueries[0].sql).toContain('"date" >= ?');
+      expect(capturedQueries[0].sql).toContain('"date" <= ?');
+      expect(capturedQueries[0].sql).toContain('AND "organizationId" = ?');
+      expect(capturedQueries[0].sql).not.toContain(organizationId);
+      expect(capturedQueries[0].values).toContain(organizationId);
+    });
   });
 
   // ==========================================================================
@@ -791,6 +897,29 @@ describe('AnalyticsService', () => {
           where: expect.objectContaining({ id: orgId }),
         }),
       );
+    });
+
+    it('should parameterize brand and organization filters in overview SQL', async () => {
+      const capturedQueries = captureQueryRawCalls();
+      const brandId = "brand-filter-'1";
+      const organizationId = "org-filter-'1";
+
+      await service.getOverview(
+        '2025-01-01',
+        '2025-01-31',
+        brandId,
+        organizationId,
+      );
+
+      expect(capturedQueries).toHaveLength(2);
+      for (const query of capturedQueries) {
+        expect(query.sql).toContain('AND "brandId" = ?');
+        expect(query.sql).toContain('AND "organizationId" = ?');
+        expect(query.sql).not.toContain(brandId);
+        expect(query.sql).not.toContain(organizationId);
+        expect(query.values).toContain(brandId);
+        expect(query.values).toContain(organizationId);
+      }
     });
   });
 
@@ -886,6 +1015,36 @@ describe('AnalyticsService', () => {
       await service.getTopContent(undefined, undefined, 200);
 
       expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
+    });
+
+    it('should parameterize brand, platform, organization, and date filters', async () => {
+      const capturedQueries = captureQueryRawCalls();
+      const brandId = "brand-filter-'1";
+      const organizationId = "org-filter-'1";
+
+      await service.getTopContent(
+        '2025-01-01',
+        '2025-01-31',
+        10,
+        AnalyticsMetric.ENGAGEMENT,
+        brandId,
+        CredentialPlatform.YOUTUBE,
+        organizationId,
+      );
+
+      expect(capturedQueries[0].sql).toContain('pa."date" >= ?');
+      expect(capturedQueries[0].sql).toContain('pa."date" <= ?');
+      expect(capturedQueries[0].sql).toContain('AND pa."brandId" = ?');
+      expect(capturedQueries[0].sql).toContain('AND pa."platform"::text = ?');
+      expect(capturedQueries[0].sql).toContain('AND pa."organizationId" = ?');
+      expect(capturedQueries[0].sql).toContain(
+        'ORDER BY (pa."totalLikes" + pa."totalComments" + pa."totalShares" + pa."totalSaves") DESC',
+      );
+      expect(capturedQueries[0].sql).not.toContain(brandId);
+      expect(capturedQueries[0].sql).not.toContain(organizationId);
+      expect(capturedQueries[0].values).toContain(brandId);
+      expect(capturedQueries[0].values).toContain(CredentialPlatform.YOUTUBE);
+      expect(capturedQueries[0].values).toContain(organizationId);
     });
   });
 
@@ -1078,7 +1237,7 @@ describe('AnalyticsService', () => {
     });
 
     it('should call $queryRaw when filtering by brand and platform', async () => {
-      mockPrismaService.$queryRaw.mockResolvedValue([]);
+      const capturedQueries = captureQueryRawCalls();
 
       const brandId = 'brand-filter-1';
       await service.getEngagementBreakdown(
@@ -1089,6 +1248,10 @@ describe('AnalyticsService', () => {
       );
 
       expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
+      expect(capturedQueries[0].sql).toContain('AND "brandId" = ?');
+      expect(capturedQueries[0].sql).toContain('AND "platform"::text = ?');
+      expect(capturedQueries[0].values).toContain(brandId);
+      expect(capturedQueries[0].values).toContain(CredentialPlatform.YOUTUBE);
     });
   });
 

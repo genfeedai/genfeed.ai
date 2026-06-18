@@ -1,15 +1,16 @@
 # Contributing Workflows
 
-Thank you for your interest in contributing workflow templates to Genfeed!
+Thank you for contributing public workflow templates to Genfeed.
 
 ## Workflow Guidelines
 
 ### Requirements
 
-1. **Valid JSON structure** - Must match the `WorkflowFile` interface
-2. **Unique ID** - Use kebab-case (e.g., `my-awesome-workflow`)
-3. **Descriptive metadata** - Clear name, description, and category
-4. **Working workflow** - Test in Genfeed before submitting
+1. **Valid JSON structure** - Match the workflow JSON shape used in `packages/workflows/workflows`.
+2. **Unique slug** - Use kebab-case, for example `my-awesome-workflow`.
+3. **Public metadata** - Add matching metadata in `packages/workflows/src/index.ts` and `packages/workflows/metadata/catalog.json`.
+4. **Working workflow** - Import and test the workflow in Genfeed before submitting.
+5. **Generic template** - Keep the template useful for self-hosted users. Do not encode customer-specific runtime details.
 
 ### Workflow Structure
 
@@ -28,15 +29,28 @@ Thank you for your interest in contributing workflow templates to Genfeed!
 
 ### Categories
 
-- `image` - Image generation workflows
-- `video` - Video generation workflows
+- `image-generation` - Image generation workflows
+- `video-generation` - Video generation workflows
 - `full-pipeline` - Complete end-to-end workflows
+
+## Public Package Boundary
+
+`@genfeedai/workflows` can include public workflow contracts, generic workflow templates, registry metadata, and generic Comfy-compatible helpers.
+
+Do not add:
+
+- Customer-specific GenfeedAI workflow templates.
+- Private model paths, account IDs, organization IDs, brand-specific prompts, or customer assets.
+- Managed Fleet provisioning, lifecycle controls, health probes, or runtime secrets.
+- Hosted LoRA/customer runtime implementation details.
+
+If a workflow needs ComfyUI, keep it generic: template inputs, public node structure, and self-hosted adapter assumptions are fine. Managed runtime routing and customer model assignment belong outside this public package.
 
 ## Submission Process
 
 ### 1. Fork the Repository
 
-Fork [genfeedai/core](https://github.com/genfeedai/core) on GitHub.
+Fork [genfeedai/genfeed.ai](https://github.com/genfeedai/genfeed.ai) on GitHub.
 
 ### 2. Create Your Workflow
 
@@ -52,21 +66,30 @@ Update `packages/workflows/src/index.ts`:
 export const WORKFLOW_REGISTRY: Record<string, WorkflowMetadata> = {
   // ... existing workflows ...
   'your-workflow': {
-    id: 'your-workflow',
-    name: 'Your Workflow Name',
+    category: 'image-generation',
+    defaultModel: 'nano-banana-pro',
     description: 'Description of your workflow',
-    category: 'image', // or 'video' or 'full-pipeline'
-    version: 1,
+    icon: '✨',
+    inputTypes: ['text'],
+    outputTypes: ['image'],
+    slug: 'your-workflow',
     tags: ['tag1', 'tag2'],
+    tier: 'free',
+    title: 'Your Workflow Name',
+    version: 1,
   },
 };
 ```
+
+Then update `packages/workflows/metadata/catalog.json` with the same public metadata. The registry tests compare both files.
 
 ### 4. Test Your Workflow
 
 1. Import the JSON into Genfeed
 2. Verify all nodes connect properly
 3. Test execution end-to-end
+4. Run `bun test packages/workflows/__tests__/registry.spec.ts`
+5. Run `bun run --cwd packages/workflows build`
 
 ### 5. Submit a Pull Request
 
@@ -86,10 +109,14 @@ export const WORKFLOW_REGISTRY: Record<string, WorkflowMetadata> = {
 - Set appropriate default values
 - Include helpful prompts as defaults
 - Organize nodes in a logical flow (left-to-right)
+- Keep ComfyUI templates generic and self-hostable
+- Keep catalog metadata synchronized with the registry
 
 ### Don't
 
 - Include hardcoded API keys or secrets
+- Include private model paths or customer-specific LoRA paths
+- Include customer names, organization IDs, account IDs, or brand assets
 - Use deprecated node types
 - Create overly complex workflows (keep it focused)
 - Submit duplicate workflows

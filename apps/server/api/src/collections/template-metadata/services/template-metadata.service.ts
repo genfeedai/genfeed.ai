@@ -102,7 +102,7 @@ export class TemplateMetadataService {
     if (Object.keys(updateData).length > 0) {
       await this.prisma.templateMetadata.updateMany({
         data: updateData as Prisma.TemplateMetadataUpdateManyMutationInput,
-        where: { templateId },
+        where: { isDeleted: false, templateId },
       });
     }
   }
@@ -113,7 +113,7 @@ export class TemplateMetadataService {
   async delete(templateId: string): Promise<void> {
     await this.prisma.templateMetadata.updateMany({
       data: { isDeleted: true } as never,
-      where: { templateId },
+      where: { isDeleted: false, templateId },
     });
   }
 }

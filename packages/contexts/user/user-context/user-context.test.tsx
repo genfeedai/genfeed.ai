@@ -95,7 +95,10 @@ describe('UserProvider', () => {
 
     render(
       <Wrapper>
-        <UserProvider initialCurrentUser={initialUser as never}>
+        <UserProvider
+          hasInitialBootstrap
+          initialCurrentUser={initialUser as never}
+        >
           <Consumer />
         </UserProvider>
       </Wrapper>,
@@ -103,6 +106,31 @@ describe('UserProvider', () => {
 
     expect(screen.getByTestId('user-id')).toHaveTextContent('user_123');
     expect(screen.getByTestId('is-first-login')).toHaveTextContent('true');
+    expect(useAuthedServiceMock).not.toHaveBeenCalled();
+  });
+
+  it('treats a null bootstrap user as hydrated empty data', () => {
+    function Consumer() {
+      const { currentUser } = useCurrentUser();
+
+      return (
+        <div>
+          <span data-testid="user-id">{currentUser?.id ?? 'none'}</span>
+        </div>
+      );
+    }
+
+    const Wrapper = createWrapper();
+
+    render(
+      <Wrapper>
+        <UserProvider hasInitialBootstrap initialCurrentUser={null}>
+          <Consumer />
+        </UserProvider>
+      </Wrapper>,
+    );
+
+    expect(screen.getByTestId('user-id')).toHaveTextContent('none');
     expect(useAuthedServiceMock).not.toHaveBeenCalled();
   });
 

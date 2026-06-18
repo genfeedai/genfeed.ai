@@ -2,6 +2,10 @@ import type {
   AdPerformance,
   AdPerformanceDocument,
 } from '@api/collections/ad-performance/schemas/ad-performance.schema';
+import {
+  type AdPerformanceBenchmarkFields,
+  buildAdPerformanceBenchmarkFields,
+} from '@api/collections/ad-performance/utils/ad-performance-benchmark.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -60,6 +64,7 @@ export class AdPerformanceService {
 
   private toPersistencePayload(data: Record<string, unknown>): {
     brandId: string | null;
+    benchmarkFields: AdPerformanceBenchmarkFields;
     credentialId: string | null;
     data: Record<string, unknown>;
     organizationId: string;
@@ -77,6 +82,7 @@ export class AdPerformanceService {
     }
 
     return {
+      benchmarkFields: buildAdPerformanceBenchmarkFields(normalizedData),
       brandId:
         this.readString(data.brandId) ?? this.readString(data.brand) ?? null,
       credentialId:
@@ -127,6 +133,7 @@ export class AdPerformanceService {
     if (existing) {
       const updated = await this.prisma.adPerformance.update({
         data: {
+          ...payload.benchmarkFields,
           brandId: payload.brandId,
           credentialId: payload.credentialId,
           data: payload.data as never,
@@ -140,6 +147,7 @@ export class AdPerformanceService {
 
     const created = await this.prisma.adPerformance.create({
       data: {
+        ...payload.benchmarkFields,
         brandId: payload.brandId,
         credentialId: payload.credentialId,
         data: payload.data as never,
@@ -294,6 +302,7 @@ export class AdPerformanceService {
               ...this.readObjectRecord(record.data),
               scope: 'organization',
             } as never,
+            scope: 'organization',
           },
           where: { id: record.id },
         }),

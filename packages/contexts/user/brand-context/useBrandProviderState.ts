@@ -1,10 +1,5 @@
 import { useAuth, useUser } from '@clerk/nextjs';
-import type {
-  IBrand,
-  ICredential,
-  IDarkroomCapabilities,
-  IOrganizationSetting,
-} from '@genfeedai/interfaces';
+import type { IBrand, ICredential } from '@genfeedai/interfaces';
 import { Brand } from '@genfeedai/models/organization/brand.model';
 import { OrganizationSetting } from '@genfeedai/models/organization/organization-setting.model';
 import type { ProtectedBootstrapData } from '@genfeedai/props/layout/protected-bootstrap.props';
@@ -80,6 +75,7 @@ export function useBrandProviderState({
     () => (initialBootstrap?.brands ?? []).map((brand) => new Brand(brand)),
     [initialBootstrap?.brands],
   );
+  const hasInitialBootstrap = initialBootstrap != null;
   const initialBrandId = initialBootstrap?.brandId ?? '';
   const initialOrganizationId = initialBootstrap?.organizationId ?? '';
   const initialSettings = useMemo(
@@ -91,31 +87,40 @@ export function useBrandProviderState({
   );
   const initialDarkroomCapabilities =
     initialBootstrap?.darkroomCapabilities ?? null;
+  const initialDataUpdatedAt = useMemo(() => Date.now(), []);
 
-  const [brandId, setBrandId] = useState(initialBrandId || clerkData.brand);
-  const [organizationId, setOrganizationId] = useState(
-    initialOrganizationId || clerkData.organization || effectiveOrgId || '',
+  const [brandId, setBrandId] = useState(
+    hasInitialBootstrap ? initialBrandId : initialBrandId || clerkData.brand,
   );
-  const shouldFetchBrands = effectiveIsAuthLoaded && effectiveIsSignedIn;
-  const clientBootstrapCacheKey = shouldFetchBrands
+  const [organizationId, setOrganizationId] = useState(
+    hasInitialBootstrap
+      ? initialOrganizationId
+      : initialOrganizationId || clerkData.organization || effectiveOrgId || '',
+  );
+  const isBrandsFetchEnabled = effectiveIsAuthLoaded && effectiveIsSignedIn;
+  const clientBootstrapCacheKey = isBrandsFetchEnabled
     ? `protected-bootstrap:${sessionKey}`
     : undefined;
 
   useEffect(() => {
-    const resolvedOrganizationId =
-      initialOrganizationId || clerkData.organization || effectiveOrgId || '';
-    const resolvedBrandId = initialBrandId || clerkData.brand;
+    const resolvedOrganizationId = hasInitialBootstrap
+      ? initialOrganizationId
+      : initialOrganizationId || clerkData.organization || effectiveOrgId || '';
+    const resolvedBrandId = hasInitialBootstrap
+      ? initialBrandId
+      : initialBrandId || clerkData.brand;
 
     startTransition(() => {
       setOrganizationId((previousOrganizationId: string) =>
-        resolvedOrganizationId &&
+        (hasInitialBootstrap || resolvedOrganizationId) &&
         resolvedOrganizationId !== previousOrganizationId
           ? resolvedOrganizationId
           : previousOrganizationId,
       );
 
       setBrandId((previousBrandId: string) =>
-        resolvedBrandId && resolvedBrandId !== previousBrandId
+        (hasInitialBootstrap || resolvedBrandId) &&
+        resolvedBrandId !== previousBrandId
           ? resolvedBrandId
           : previousBrandId,
       );
@@ -126,20 +131,23 @@ export function useBrandProviderState({
     clerkData.organization,
     clerkData.brand,
     effectiveOrgId,
+    hasInitialBootstrap,
   ]);
 
-  const skipBrandsInitialFetch = initialBrands.length > 0;
+  const hasHydratedBootstrapBrands = hasInitialBootstrap;
 
   const {
     data: brandsData,
     isLoading: brandsLoading,
     refetch: refetchBrands,
   } = useQuery({
-    enabled: shouldFetchBrands,
-    initialData: initialBrands.length > 0 ? initialBrands : undefined,
-    initialDataUpdatedAt: initialBrands.length > 0 ? 0 : undefined,
+    enabled: isBrandsFetchEnabled,
+    initialData: hasInitialBootstrap ? initialBrands : undefined,
+    initialDataUpdatedAt: hasInitialBootstrap
+      ? initialDataUpdatedAt
+      : undefined,
     queryFn: async () => {
-      if (!shouldFetchBrands) {
+      if (!isBrandsFetchEnabled) {
         return [];
       }
 
@@ -168,7 +176,7 @@ export function useBrandProviderState({
       return data.map((brand: Partial<IBrand>) => new Brand(brand));
     },
     queryKey: ['brand-context-brands', sessionKey],
-    staleTime: skipBrandsInitialFetch ? BRAND_CONTEXT_CACHE_TTL_MS : 0,
+    staleTime: hasHydratedBootstrapBrands ? BRAND_CONTEXT_CACHE_TTL_MS : 0,
   });
 
   const refreshBrands = useCallback(async () => {
@@ -274,15 +282,18 @@ export function useBrandProviderState({
     effectiveIsAuthLoaded &&
     effectiveIsSignedIn &&
     !!scopedOrganizationId &&
-    !!scopedBrandId;
+    !!scopedBrandId &&
+    effectiveSelectedBrand?.isDarkroomEnabled === true;
   const {
     data: settings = null,
     isLoading: settingsLoading,
     refetch: refetchSettings,
   } = useQuery({
     enabled: shouldFetchSettings && !!scopedOrganizationId,
-    initialData: initialSettings ?? undefined,
-    initialDataUpdatedAt: initialSettings != null ? 0 : undefined,
+    initialData: hasInitialBootstrap ? initialSettings : undefined,
+    initialDataUpdatedAt: hasInitialBootstrap
+      ? initialDataUpdatedAt
+      : undefined,
     queryFn: async () => {
       if (!shouldFetchSettings || !scopedOrganizationId) {
         return null;
@@ -328,32 +339,11 @@ export function useBrandProviderState({
   } = useQuery({
     enabled: shouldFetchDarkroom && !!scopedOrganizationId && !!scopedBrandId,
     initialData: initialDarkroomCapabilities ?? undefined,
-    initialDataUpdatedAt: initialDarkroomCapabilities != null ? 0 : undefined,
+    initialDataUpdatedAt:
+      initialDarkroomCapabilities != null ? initialDataUpdatedAt : undefined,
     queryFn: async () => {
       if (!shouldFetchDarkroom || !scopedOrganizationId || !scopedBrandId) {
         return null;
-      }
-
-      try {
-        const bootstrap = await loadClientProtectedBootstrap(
-          clientBootstrapCacheKey,
-          getAuthService,
-        );
-
-        if (
-          bootstrap?.organizationId === scopedOrganizationId &&
-          bootstrap.brandId === scopedBrandId
-        ) {
-          return bootstrap.darkroomCapabilities;
-        }
-      } catch (error) {
-        logger.warn(
-          'Failed to load client protected bootstrap for darkroom capabilities',
-          {
-            error,
-            reportToSentry: false,
-          },
-        );
       }
 
       try {

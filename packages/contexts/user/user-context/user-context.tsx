@@ -26,11 +26,13 @@ const UserContext = createContext<UserContextValue | undefined>(undefined);
 const USER_CONTEXT_CACHE_TTL_MS = 60_000;
 
 interface UserProviderProps extends LayoutProps {
+  hasInitialBootstrap?: boolean;
   initialCurrentUser?: IUser | null;
 }
 
 export function UserProvider({
   children,
+  hasInitialBootstrap = false,
   initialCurrentUser = null,
 }: UserProviderProps) {
   const { isLoaded: isAuthLoaded, isSignedIn, orgId } = useAuth();
@@ -61,6 +63,7 @@ export function UserProvider({
     () => (initialCurrentUser ? new User(initialCurrentUser) : null),
     [initialCurrentUser],
   );
+  const initialDataUpdatedAt = useMemo(() => Date.now(), []);
 
   const queryKey = useMemo(
     () => ['user-context', clerkUserId, clerkUserUpdatedAt, effectiveOrgId],
@@ -73,8 +76,10 @@ export function UserProvider({
     refetch,
   } = useQuery({
     enabled: shouldFetch,
-    initialData: initialUser ?? undefined,
-    initialDataUpdatedAt: initialCurrentUser != null ? 0 : undefined,
+    initialData: hasInitialBootstrap ? initialUser : undefined,
+    initialDataUpdatedAt: hasInitialBootstrap
+      ? initialDataUpdatedAt
+      : undefined,
     queryFn: async () => {
       if (!effectiveIsSignedIn || !clerkUserId) {
         return null;

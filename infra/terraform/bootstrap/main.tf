@@ -44,16 +44,21 @@ variable "github_repo" {
   default     = "genfeedai/genfeed.ai"
 }
 
-variable "state_bucket_name" {
-  type    = string
-  default = "genfeed-tfstate"
+variable "github_environment" {
+  type        = string
+  description = "GitHub Environment allowed to assume the deploy role"
+  default     = "production"
+}
+
+locals {
+  state_bucket_name = "genfeed-tfstate"
 }
 
 data "aws_caller_identity" "current" {}
 
 # ── Remote state bucket (S3-native locking, no DynamoDB) ──────────────
 resource "aws_s3_bucket" "state" {
-  bucket = var.state_bucket_name
+  bucket = local.state_bucket_name
 }
 
 resource "aws_s3_bucket_versioning" "state" {
@@ -115,12 +120,12 @@ data "aws_iam_policy_document" "gha_trust" {
       variable = "token.actions.githubusercontent.com:aud"
       values   = ["sts.amazonaws.com"]
     }
-    # Restrict to this repo (any branch/PR — tighten to :ref:refs/heads/master
-    # for the deploy role if you want master-only).
+    # Restrict to the repo's protected GitHub Environment instead of every
+    # branch/PR subject in the repository.
     condition {
-      test     = "StringLike"
+      test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:*"]
+      values   = ["repo:${var.github_repo}:environment:${var.github_environment}"]
     }
   }
 }
@@ -170,6 +175,11 @@ data "aws_iam_policy_document" "gha_deploy" {
     effect    = "Allow"
     actions   = ["iam:PassRole"]
     resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/genfeed-*"]
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["ecs-tasks.amazonaws.com", "ec2.amazonaws.com"]
+    }
   }
   statement {
     sid    = "TerraformManage"
@@ -181,9 +191,31 @@ data "aws_iam_policy_document" "gha_deploy" {
       "ec2:RevokeSecurityGroup*", "ec2:CreateTags", "ec2:DeleteSecurityGroup",
       "ec2:*LaunchTemplate*", "autoscaling:*", "iam:GetRole", "iam:ListRolePolicies",
       "iam:ListAttachedRolePolicies", "iam:GetRolePolicy", "acm:*", "ssm:GetParameters",
-      "ssm:GetParameter", "ssm:DescribeParameters", "route53:*",
+      "ssm:GetParametersByPath", "ssm:GetParameter", "ssm:DescribeParameters",
+      "rds:DescribeDBInstances", "route53:*",
     ]
     resources = ["*"]
+  }
+  statement {
+    sid    = "ManageGenfeedIam"
+    effect = "Allow"
+    actions = [
+      "iam:AttachRolePolicy",
+      "iam:CreateRole",
+      "iam:DeleteRole",
+      "iam:DeleteRolePolicy",
+      "iam:DetachRolePolicy",
+      "iam:GetRole",
+      "iam:GetRolePolicy",
+      "iam:ListAttachedRolePolicies",
+      "iam:ListRolePolicies",
+      "iam:PutRolePolicy",
+      "iam:TagRole",
+      "iam:UntagRole",
+      "iam:UpdateAssumeRolePolicy",
+      "iam:UpdateRole",
+    ]
+    resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/genfeed-*"]
   }
   statement {
     sid       = "StateBucket"

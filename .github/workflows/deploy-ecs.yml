@@ -84,25 +84,36 @@ jobs:
 
       # OpenTofu, not Terraform — state is tofu in S3; mixing the two risks a
       # state-version mismatch.
-      - uses: opentofu/setup-opentofu@v1
-        with: { tofu_version: "1.12.2" }
+      - uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_version: "1.12.2"
+          tofu_wrapper: false
 
       - name: Tofu init
         working-directory: ${{ env.TF_DIR }}
         run: tofu init -input=false
+
+      - name: Register migration task definition
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          tofu apply -input=false -auto-approve \
+            -target=aws_cloudwatch_log_group.migrate \
+            -target=aws_ecs_task_definition.migrate \
+            -var="image_tag=${{ steps.tag.outputs.sha }}" \
+            -var="enable_dns_cutover=true"
 
       - name: Run DB migrations (one-off task, gated before services roll)
         working-directory: ${{ env.TF_DIR }}
         run: |
           set -euo pipefail
           CLUSTER=$(tofu output -raw cluster_name)
-          FAMILY=$(tofu output -raw migrate_task_family)
+          TASK_DEFINITION=$(tofu output -raw migrate_task_definition_arn)
           SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
           SG=$(tofu output -raw task_security_group)
-          echo "Running migrate task on $CLUSTER ($FAMILY)..."
+          echo "Running migrate task on $CLUSTER ($TASK_DEFINITION)..."
           # FARGATE — the cluster is Fargate-only (no EC2 capacity); assignPublicIp
           # DISABLED since tasks egress via NAT from the private subnets.
-          TASK_ARN=$(aws ecs run-task --cluster "$CLUSTER" --task-definition "$FAMILY" \
+          TASK_ARN=$(aws ecs run-task --cluster "$CLUSTER" --task-definition "$TASK_DEFINITION" \
             --launch-type FARGATE \
             --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG],assignPublicIp=DISABLED}" \
             --query 'tasks[0].taskArn' --output text)
@@ -114,7 +125,7 @@ jobs:
 
       - name: Tofu apply (roll services to new image)
         working-directory: ${{ env.TF_DIR }}
-        run: tofu apply -input=false -auto-approve -var="image_tag=${{ steps.tag.outputs.sha }}"
+        run: tofu apply -input=false -auto-approve -var="image_tag=${{ steps.tag.outputs.sha }}" -var="enable_dns_cutover=true"
 
       - name: Wait for services stable
         working-directory: ${{ env.TF_DIR }}

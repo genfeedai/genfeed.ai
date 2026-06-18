@@ -47,7 +47,16 @@ type AgentRunStatsAggregateResult = {
   trends?: AgentRunTrendAggregateRow[];
 };
 
+type AgentRunPageOptions = {
+  cursor?: string;
+  limit?: number;
+};
+
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_AGENT_RUN_LIMIT = 50;
+const MAX_AGENT_RUN_LIMIT = 200;
+const MAX_AGENT_RUN_BATCH_IDS = 50;
+const MAX_AGENT_RUN_CONTENT_ITEMS = 500;
 
 function getTimeRangeDays(timeRange: AgentRunTimeRange): number {
   switch (timeRange) {
@@ -324,9 +333,10 @@ export class AgentRunsService extends BaseService<
     since: Date,
     take = 200,
   ): Promise<AgentRunDocument[]> {
+    const safeTake = this.normalizeLimit(take, 200, MAX_AGENT_RUN_LIMIT);
     const docs = await this.delegate.findMany({
       orderBy: { createdAt: 'desc' },
-      take,
+      take: safeTake,
       where: {
         createdAt: { gte: since },
         isDeleted: false,
@@ -422,16 +432,28 @@ export class AgentRunsService extends BaseService<
   }
 
   @HandleErrors('get active runs', 'agent-runs')
-  async getActiveRuns(organizationId: string): Promise<AgentRunDocument[]> {
+  async getActiveRuns(
+    organizationId: string,
+    options: AgentRunPageOptions = {},
+  ): Promise<AgentRunDocument[]> {
+    const limit = this.normalizeLimit(
+      options.limit,
+      DEFAULT_AGENT_RUN_LIMIT,
+      MAX_AGENT_RUN_LIMIT,
+    );
+    const cursorDate = this.parseCursorDate(options.cursor);
+
     return (await this.delegate.findMany({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit,
       where: {
+        ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}),
         isDeleted: false,
         organizationId,
         status: {
           in: [AgentExecutionStatus.PENDING, AgentExecutionStatus.RUNNING],
         },
       },
-      orderBy: { createdAt: 'desc' },
     })) as AgentRunDocument[];
   }
 
@@ -440,13 +462,14 @@ export class AgentRunsService extends BaseService<
     organizationId: string,
     limit = 20,
   ): Promise<AgentRunDocument[]> {
+    const safeLimit = this.normalizeLimit(limit, 20, MAX_AGENT_RUN_LIMIT);
     return (await this.delegate.findMany({
       where: {
         isDeleted: false,
         organizationId,
       },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: safeLimit,
     })) as AgentRunDocument[];
   }
 
@@ -454,14 +477,24 @@ export class AgentRunsService extends BaseService<
   async getByThread(
     threadId: string,
     organizationId: string,
+    options: AgentRunPageOptions = {},
   ): Promise<AgentRunDocument[]> {
+    const limit = this.normalizeLimit(
+      options.limit,
+      DEFAULT_AGENT_RUN_LIMIT,
+      MAX_AGENT_RUN_LIMIT,
+    );
+    const cursorDate = this.parseCursorDate(options.cursor);
+
     return (await this.delegate.findMany({
       where: {
+        ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}),
         isDeleted: false,
         organizationId,
         threadId,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit,
     })) as AgentRunDocument[];
   }
 
@@ -540,20 +573,34 @@ export class AgentRunsService extends BaseService<
     if (ids.length === 0) {
       return [];
     }
+    const boundedIds = ids.slice(0, MAX_AGENT_RUN_BATCH_IDS);
 
     const [runs, postGroups, ingredientGroups] = await Promise.all([
       this.prisma.agentRun.findMany({
         select: { id: true, threadId: true },
-        where: { id: { in: ids }, isDeleted: false, organizationId },
+        take: boundedIds.length,
+        where: { id: { in: boundedIds }, isDeleted: false, organizationId },
       }),
       this.prisma.post.groupBy({
         by: ['agentRunId'],
-        where: { agentRunId: { in: ids }, isDeleted: false, organizationId },
+        orderBy: { agentRunId: 'asc' },
+        take: boundedIds.length,
+        where: {
+          agentRunId: { in: boundedIds },
+          isDeleted: false,
+          organizationId,
+        },
         _count: true,
       }),
       this.prisma.ingredient.groupBy({
         by: ['agentRunId'],
-        where: { agentRunId: { in: ids }, isDeleted: false, organizationId },
+        orderBy: { agentRunId: 'asc' },
+        take: boundedIds.length,
+        where: {
+          agentRunId: { in: boundedIds },
+          isDeleted: false,
+          organizationId,
+        },
         _count: true,
       }),
     ]);
@@ -581,6 +628,7 @@ export class AgentRunsService extends BaseService<
   ): Promise<{ posts: PostDocument[]; ingredients: IngredientDocument[] }> {
     const [posts, ingredients] = await Promise.all([
       this.prisma.post.findMany({
+        take: MAX_AGENT_RUN_CONTENT_ITEMS,
         where: {
           agentRunId: runId,
           isDeleted: false,
@@ -588,6 +636,7 @@ export class AgentRunsService extends BaseService<
         },
       }),
       this.prisma.ingredient.findMany({
+        take: MAX_AGENT_RUN_CONTENT_ITEMS,
         where: {
           agentRunId: runId,
           isDeleted: false,
@@ -600,5 +649,24 @@ export class AgentRunsService extends BaseService<
       ingredients: ingredients as unknown as IngredientDocument[],
       posts: posts as unknown as PostDocument[],
     };
+  }
+
+  private normalizeLimit(
+    value: number | undefined,
+    defaultLimit: number,
+    maxLimit: number,
+  ): number {
+    if (!Number.isFinite(value) || value == null || value <= 0) {
+      return defaultLimit;
+    }
+
+    return Math.min(Math.floor(value), maxLimit);
+  }
+
+  private parseCursorDate(cursor: string | undefined): Date | undefined {
+    if (!cursor) return undefined;
+
+    const parsed = new Date(cursor);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
   }
 }

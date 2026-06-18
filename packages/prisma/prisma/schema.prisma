@@ -1183,6 +1183,9 @@ model Ingredient {
   @@index([isDeleted, personaId, reviewStatus])
   @@index([campaign, isDeleted, personaSlug])
   @@index([externalVoiceCatalogId])
+  @@index([isDeleted, createdAt(sort: Desc)], map: "ingredients_deleted_created_at_idx")
+  @@index([isDeleted, category, createdAt(sort: Desc)], map: "ingredients_deleted_category_created_at_idx")
+  @@index([isDeleted, organizationId, createdAt(sort: Desc)], map: "ingredients_deleted_org_created_at_idx")
   @@map("ingredients")
 }
 
@@ -1635,6 +1638,11 @@ model PostAnalytics {
 
   ingredients Ingredient[] @relation("post_analytics_ingredients")
 
+  @@index([date(sort: Desc)])
+  @@index([organizationId, date(sort: Desc)])
+  @@index([brandId, date(sort: Desc)])
+  @@index([platform, date(sort: Desc)])
+  @@index([postId, date(sort: Desc)])
   @@map("post_analytics")
 }
 
@@ -1844,6 +1852,8 @@ model CreditTransaction {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([source, isDeleted, createdAt(sort: Desc)], map: "credit_transactions_source_deleted_created_at_idx")
+  @@index([source, isDeleted, organizationId, createdAt(sort: Desc)], map: "credit_transactions_source_deleted_org_created_at_idx")
   @@map("credit_transactions")
 }
 
@@ -2133,6 +2143,8 @@ model AgentMessage {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc), id])
+  @@index([threadId, isDeleted, id])
   @@map("agent_messages")
 }
 
@@ -2174,6 +2186,9 @@ model AgentRun {
   creditsUsed Int     @default(0)
   durationMs  Int?
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, status, createdAt(sort: Desc)])
+  @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc)])
   @@map("agent_runs")
 }
 
@@ -3121,19 +3136,38 @@ model AdOptimizationRecommendation {
 }
 
 model AdPerformance {
-  id             String       @id @default(cuid())
-  mongoId        String?      @unique
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  brandId        String?
-  brand          Brand?       @relation(fields: [brandId], references: [id])
-  credentialId   String?
-  credential     Credential?  @relation(fields: [credentialId], references: [id])
-  data           Json         @default("{}")
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                        String       @id @default(cuid())
+  mongoId                   String?      @unique
+  organizationId            String
+  organization              Organization @relation(fields: [organizationId], references: [id])
+  brandId                   String?
+  brand                     Brand?       @relation(fields: [brandId], references: [id])
+  credentialId              String?
+  credential                Credential?  @relation(fields: [credentialId], references: [id])
+  data                      Json         @default("{}")
+  headlineText              String?
+  ctaText                   String?
+  adPlatform                String?
+  industry                  String?
+  scope                     String?
+  spend                     Float?
+  ctr                       Float?
+  roas                      Float?
+  cpc                       Float?
+  cpa                       Float?
+  performanceScore          Float?
+  conversionRate            Float?
+  dataConfidence            Float?
+  spendBucket               String?
+  headlinePatternCategories String[]     @default([])
+  ctaPatternCategories      String[]     @default([])
+  isDeleted                 Boolean      @default(false)
+  createdAt                 DateTime     @default(now())
+  updatedAt                 DateTime     @updatedAt
 
+  @@index([isDeleted, scope, industry])
+  @@index([isDeleted, scope, adPlatform, industry])
+  @@index([isDeleted, scope, spendBucket, adPlatform, industry])
   @@map("ad_performance")
 }
 
@@ -3232,21 +3266,33 @@ model TrendRemixLineage {
   trends           Trend[]                @relation("remix_lineage_trends")
   sourceReferences TrendSourceReference[] @relation("remix_lineage_source_refs")
 
+  @@index([organizationId, brandId, isDeleted], map: "trend_remix_lineages_org_brand_deleted_idx")
+  @@index([contentDraftId, isDeleted], map: "trend_remix_lineages_content_draft_deleted_idx")
+  @@index([postId, isDeleted], map: "trend_remix_lineages_post_deleted_idx")
   @@map("trend_remix_lineages")
 }
 
 model TrendSourceReference {
-  id        String   @id @default(cuid())
-  mongoId   String?  @unique
-  data      Json     @default("{}")
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                       String    @id @default(cuid())
+  mongoId                  String?   @unique
+  canonicalUrl             String?
+  platform                 String?
+  authorHandle             String?
+  currentEngagementTotal   Int       @default(0)
+  latestTrendViralityScore Float     @default(0)
+  lastSeenAt               DateTime?
+  data                     Json      @default("{}")
+  isDeleted                Boolean   @default(false)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   links         TrendSourceReferenceLink[]
   snapshots     TrendSourceReferenceSnapshot[]
   remixLineages TrendRemixLineage[]            @relation("remix_lineage_source_refs")
 
+  @@index([canonicalUrl, platform, isDeleted], map: "trend_source_refs_url_platform_deleted_idx")
+  @@index([isDeleted, platform, authorHandle, lastSeenAt(sort: Desc)], map: "trend_source_refs_account_lookup_idx")
+  @@index([isDeleted, currentEngagementTotal(sort: Desc), latestTrendViralityScore(sort: Desc)], map: "trend_source_refs_rank_idx")
   @@map("trend_source_references")
 }
 
@@ -3261,6 +3307,8 @@ model TrendSourceReferenceLink {
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
 
+  @@index([trendId, isDeleted], map: "trend_source_reference_links_trend_deleted_idx")
+  @@index([sourceReferenceId, isDeleted], map: "trend_source_reference_links_ref_deleted_idx")
   @@map("trend_source_reference_links")
 }
 
@@ -3269,11 +3317,13 @@ model TrendSourceReferenceSnapshot {
   mongoId           String?               @unique
   sourceReferenceId String?
   sourceReference   TrendSourceReference? @relation(fields: [sourceReferenceId], references: [id])
+  snapshotDate      DateTime?
   data              Json                  @default("{}")
   isDeleted         Boolean               @default(false)
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
 
+  @@index([sourceReferenceId, snapshotDate, isDeleted], map: "trend_source_reference_snapshots_ref_date_deleted_idx")
   @@map("trend_source_reference_snapshots")
 }
 
@@ -4019,6 +4069,7 @@ model DesktopThread {
 
   @@index([userId, updatedAt(sort: Desc)])
   @@index([organizationId, updatedAt(sort: Desc)])
+  @@index([organizationId, userId, updatedAt(sort: Desc)])
   @@map("desktop_threads")
 }
 
@@ -4033,5 +4084,6 @@ model DesktopMessage {
   thread           DesktopThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
   @@index([threadId, createdAt])
+  @@index([threadId, createdAt, id])
   @@map("desktop_messages")
 }
