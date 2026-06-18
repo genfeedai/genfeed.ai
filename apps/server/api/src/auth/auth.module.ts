@@ -24,7 +24,6 @@ import { ConfigModule } from '@api/config/config.module';
 import { ClerkClientProvider } from '@api/providers/clerk.provider';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
-import { FleetModule } from '@api/services/integrations/fleet/fleet.module';
 import { forwardRef, Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 
@@ -46,7 +45,6 @@ import { PassportModule } from '@nestjs/passport';
     forwardRef(() => ConfigModule),
     forwardRef(() => CredentialsCoreModule),
     forwardRef(() => CreditsModule),
-    forwardRef(() => FleetModule),
     forwardRef(() => MembersModule),
     forwardRef(() => OrganizationsModule),
     forwardRef(() => OrganizationSettingsModule),

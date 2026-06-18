@@ -199,6 +199,21 @@ export class OrganizationsSettingsController {
       return returnNotFound('Brand', brandId);
     }
 
+    if (!brandSettings.isDarkroomEnabled) {
+      return serializeSingle(req, DarkroomCapabilitiesSerializer, {
+        _id: `darkroom-capabilities:${resolvedOrganizationId}:${brandId}`,
+        brandEnabled: false,
+        brandId,
+        fleet: {
+          images: false,
+          llm: false,
+          videos: false,
+          voices: false,
+        },
+        organizationId: resolvedOrganizationId,
+      });
+    }
+
     const [images, videos, voices, llm] = await Promise.all([
       this.fleetService.isAvailable('images'),
       this.fleetService.isAvailable('videos'),

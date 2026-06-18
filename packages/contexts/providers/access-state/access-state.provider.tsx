@@ -33,11 +33,13 @@ const AccessStateContext = createContext<AccessStateContextValue | undefined>(
 const ACCESS_STATE_CACHE_TTL_MS = 60_000;
 
 interface AccessStateProviderProps extends LayoutProps {
+  hasInitialBootstrap?: boolean;
   initialAccessState?: AccessBootstrapState | null;
 }
 
 export function AccessStateProvider({
   children,
+  hasInitialBootstrap = false,
   initialAccessState = null,
 }: AccessStateProviderProps) {
   const { isLoaded: isAuthLoaded, isSignedIn, orgId, userId } = useAuth();
@@ -51,6 +53,7 @@ export function AccessStateProvider({
   const getAuthService = useAuthedService((token: string) =>
     AuthService.getInstance(token),
   );
+  const initialDataUpdatedAt = useMemo(() => Date.now(), []);
 
   const shouldFetch =
     effectiveIsAuthLoaded &&
@@ -69,8 +72,10 @@ export function AccessStateProvider({
     refetch,
   } = useQuery<AccessBootstrapState | null>({
     enabled: shouldFetch,
-    initialData: initialAccessState ?? undefined,
-    initialDataUpdatedAt: initialAccessState != null ? 0 : undefined,
+    initialData: hasInitialBootstrap ? initialAccessState : undefined,
+    initialDataUpdatedAt: hasInitialBootstrap
+      ? initialDataUpdatedAt
+      : undefined,
     queryFn: async () => {
       if (!shouldFetch) {
         return null;

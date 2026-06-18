@@ -67,10 +67,6 @@ vi.mock('@api/common/services/access-bootstrap-cache.service', () => ({
   AccessBootstrapCacheService: class AccessBootstrapCacheService {},
 }));
 
-vi.mock('@api/config/config.service', () => ({
-  ConfigService: class ConfigService {},
-}));
-
 vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
   getIsSuperAdmin: mockGetIsSuperAdmin,
   getPublicMetadata: mockGetPublicMetadata,
@@ -80,10 +76,6 @@ vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
 
 vi.mock('@api/services/batch-generation/batch-generation.service', () => ({
   BatchGenerationService: class BatchGenerationService {},
-}));
-
-vi.mock('@api/services/integrations/fleet/fleet.service', () => ({
-  FleetService: class FleetService {},
 }));
 
 vi.mock('@serializers/helpers/plain-json.helper', () => ({
@@ -103,17 +95,11 @@ describe('AuthBootstrapService', () => {
   const brandsService = {
     findForOrganization: vi.fn(),
   };
-  const configService = {
-    get: vi.fn(),
-  };
   const creditsUtilsService = {
     getOrganizationCreditsBalance: vi.fn(),
   };
   const batchGenerationService = {
     getReviewInboxSummary: vi.fn(),
-  };
-  const fleetService = {
-    isAvailable: vi.fn(),
   };
   const membersService = {
     findOne: vi.fn(),
@@ -137,10 +123,8 @@ describe('AuthBootstrapService', () => {
       accessBootstrapCacheService as never,
       agentRunsService as never,
       brandsService as never,
-      configService as never,
       creditsUtilsService as never,
       batchGenerationService as never,
-      fleetService as never,
       membersService as never,
       organizationSettingsService as never,
       streaksService as never,
@@ -153,7 +137,6 @@ describe('AuthBootstrapService', () => {
     agentRunsService.getStats.mockResolvedValue(null);
     agentRunsService.listRecentRuns.mockResolvedValue([]);
     brandsService.findForOrganization.mockResolvedValue([]);
-    configService.get.mockReturnValue('');
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(0);
     batchGenerationService.getReviewInboxSummary.mockResolvedValue({
       approvedCount: 1,
@@ -176,7 +159,6 @@ describe('AuthBootstrapService', () => {
       ],
       rejectedCount: 0,
     });
-    fleetService.isAvailable.mockResolvedValue(true);
     membersService.findOne.mockResolvedValue(null);
     organizationSettingsService.findOne.mockResolvedValue(null);
     streaksService.getStreakSummary.mockResolvedValue(null);
@@ -334,11 +316,7 @@ describe('AuthBootstrapService', () => {
           }),
         }),
       }),
-      darkroomCapabilities: expect.objectContaining({
-        brandEnabled: true,
-        brandId,
-        organizationId,
-      }),
+      darkroomCapabilities: null,
       settings: expect.objectContaining({
         enabledModels: ['model_1'],
         organization: organizationId,
@@ -347,7 +325,6 @@ describe('AuthBootstrapService', () => {
         currentStreak: 7,
       },
     });
-    expect(fleetService.isAvailable).toHaveBeenCalledTimes(3);
     expect(usersService.findOne).toHaveBeenCalledWith(
       {
         _id: expect.any(String),

@@ -100,7 +100,10 @@ describe('AccessStateProvider', () => {
 
     render(
       <Wrapper>
-        <AccessStateProvider initialAccessState={initialAccessState}>
+        <AccessStateProvider
+          hasInitialBootstrap
+          initialAccessState={initialAccessState}
+        >
           <Consumer />
         </AccessStateProvider>
       </Wrapper>,
@@ -128,13 +131,43 @@ describe('AccessStateProvider', () => {
 
     render(
       <Wrapper>
-        <AccessStateProvider initialAccessState={initialAccessState}>
+        <AccessStateProvider
+          hasInitialBootstrap
+          initialAccessState={initialAccessState}
+        >
           <Consumer />
         </AccessStateProvider>
       </Wrapper>,
     );
 
     expect(screen.getByTestId('user-id')).toHaveTextContent('user_123');
+    expect(useAuthedServiceMock).not.toHaveBeenCalled();
+  });
+
+  it('treats a null bootstrap access state as hydrated empty data', () => {
+    function Consumer() {
+      const { accessState } = useAccessState();
+
+      return (
+        <div>
+          <span data-testid="access-state">
+            {accessState?.userId ?? 'none'}
+          </span>
+        </div>
+      );
+    }
+
+    const Wrapper = createWrapper();
+
+    render(
+      <Wrapper>
+        <AccessStateProvider hasInitialBootstrap initialAccessState={null}>
+          <Consumer />
+        </AccessStateProvider>
+      </Wrapper>,
+    );
+
+    expect(screen.getByTestId('access-state')).toHaveTextContent('none');
     expect(useAuthedServiceMock).not.toHaveBeenCalled();
   });
 });

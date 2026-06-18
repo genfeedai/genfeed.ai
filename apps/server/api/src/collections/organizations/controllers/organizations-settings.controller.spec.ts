@@ -351,7 +351,7 @@ describe('OrganizationsSettingsController', () => {
         new Error('offline'),
       );
 
-      await controller.getDarkroomCapabilities(
+      const result = await controller.getDarkroomCapabilities(
         {
           context: {
             organizationId: 'org_current',
@@ -369,6 +369,18 @@ describe('OrganizationsSettingsController', () => {
         },
         'none',
       );
+      expect(mockFleetService.isAvailable).not.toHaveBeenCalled();
+      expect(axios.get).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        brandEnabled: false,
+        fleet: {
+          images: false,
+          llm: false,
+          videos: false,
+          voices: false,
+        },
+        organizationId: 'org_current',
+      });
     });
   });
 });

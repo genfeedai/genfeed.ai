@@ -10,7 +10,6 @@ import {
   type AccessBootstrapCachePayload,
   AccessBootstrapCacheService,
 } from '@api/common/services/access-bootstrap-cache.service';
-import { ConfigService } from '@api/config/config.service';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
@@ -21,12 +20,10 @@ import {
   BatchGenerationService,
   ReviewInboxSummary,
 } from '@api/services/batch-generation/batch-generation.service';
-import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import type { IAnalytics, IBrand } from '@genfeedai/interfaces';
 import type { AgentRunStats } from '@genfeedai/types';
 import { Injectable } from '@nestjs/common';
 import { toPlainJson } from '@serializers/helpers/plain-json.helper';
-import axios from 'axios';
 
 export interface AuthBootstrapRequest extends RequestWithContext {}
 
@@ -84,10 +81,8 @@ export class AuthBootstrapService {
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     private readonly agentRunsService: AgentRunsService,
     private readonly brandsService: BrandsService,
-    private readonly configService: ConfigService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly batchGenerationService: BatchGenerationService,
-    private readonly fleetService: FleetService,
     private readonly membersService: MembersService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly streaksService: StreaksService,
@@ -159,47 +154,6 @@ export class AuthBootstrapService {
     });
   }
 
-  private async isLlmAvailable(): Promise<boolean> {
-    const llmUrl = String(this.configService.get('GPU_LLM_URL') || '');
-
-    if (!llmUrl) {
-      return false;
-    }
-
-    try {
-      await axios.get(`${llmUrl}/v1/health`, { timeout: 5000 });
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  private async buildDarkroomCapabilities(
-    organizationId: string,
-    brandId: string,
-    isBrandEnabled: boolean,
-  ) {
-    const [images, videos, voices, llm] = await Promise.all([
-      this.fleetService.isAvailable('images'),
-      this.fleetService.isAvailable('videos'),
-      this.fleetService.isAvailable('voices'),
-      this.isLlmAvailable(),
-    ]);
-
-    return {
-      brandEnabled: isBrandEnabled,
-      brandId,
-      fleet: {
-        images,
-        llm,
-        videos,
-        voices,
-      },
-      id: `darkroom-capabilities:${organizationId}:${brandId}`,
-      organizationId,
-    };
-  }
-
   private async getAccessibleBrands(
     organizationId: string,
     userId: string,
@@ -269,8 +223,8 @@ export class AuthBootstrapService {
       }
     }
 
-    const hasValidUserId = true;
-    const hasValidOrganizationId = true;
+    const hasValidUserId = Boolean(userId);
+    const hasValidOrganizationId = Boolean(organizationId);
     const isSuperAdmin = user ? getIsSuperAdmin(user, request) : false;
 
     const [dbUser, organizationSettings, creditsBalance, brands] =
@@ -341,32 +295,16 @@ export class AuthBootstrapService {
       return base.cachedPayload;
     }
 
-    const hasValidOrganizationId = true;
-    const selectedBrand = base.brands.find(
-      (candidate) => getBrandId(candidate) === base.access.brandId,
-    );
-
-    const [darkroomCapabilities, streak] = await Promise.all([
-      hasValidOrganizationId && base.access.brandId && selectedBrand
-        ? this.buildDarkroomCapabilities(
-            organizationId,
-            base.access.brandId,
-            Boolean(selectedBrand.isDarkroomEnabled),
-          )
-        : Promise.resolve(null),
-      hasValidOrganizationId && base.access.userId
-        ? this.streaksService.getStreakSummary(
-            base.access.userId,
-            organizationId,
-          )
-        : Promise.resolve(null),
-    ]);
+    const streak =
+      organizationId && userId
+        ? await this.streaksService.getStreakSummary(userId, organizationId)
+        : null;
 
     const payload: AccessBootstrapCachePayload = {
       access: base.access,
       brands: base.brands,
       currentUser: base.currentUser,
-      darkroomCapabilities,
+      darkroomCapabilities: null,
       settings: base.settings,
       streak,
     };
