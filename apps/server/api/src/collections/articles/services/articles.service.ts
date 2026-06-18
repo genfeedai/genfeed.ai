@@ -521,7 +521,7 @@ export class ArticlesService extends BaseService<
 
           // Set publishedAt if empty/null (first time publishing or missing date)
           if (!currentArticle.publishedAt) {
-            updateData.publishedAt = new Date();
+            updateData.publishedAt = new Date().toISOString();
           }
 
           // If republishing and publishedAt already exists, keep it as is (unless explicitly provided in DTO)
@@ -530,7 +530,7 @@ export class ArticlesService extends BaseService<
           // Still set scope and publishedAt for safety
           updateData.scope = ArticleScope.PUBLIC;
           if (!updateArticleDto.publishedAt) {
-            updateData.publishedAt = new Date();
+            updateData.publishedAt = new Date().toISOString();
           }
         }
       }
