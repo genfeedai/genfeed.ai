@@ -11,6 +11,11 @@ on:
         description: 'server image tag to deploy (default: current SHA)'
         required: false
         default: ''
+      allow_rollback:
+        description: 'allow deploying an image tag different from current SHA'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: deploy-ecs-production
@@ -48,11 +53,16 @@ jobs:
           # Read the dispatch input via env (never interpolate ${{ inputs }}
           # directly into a run script — that is a template-injection sink).
           INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
+          ALLOW_ROLLBACK: ${{ inputs.allow_rollback }}
           DEFAULT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           TAG="${INPUT_IMAGE_TAG:-}"
-          [ -z "$TAG" ] && TAG="$DEFAULT_SHA"
+          EXPLICIT_TAG=true
+          if [ -z "$TAG" ]; then
+            TAG="$DEFAULT_SHA"
+            EXPLICIT_TAG=false
+          fi
           # The tag flows into `docker buildx imagetools` and a terraform -var;
           # restrict it to a conservative image-tag charset so a crafted input
           # cannot inject shell or terraform. (The image must also exist in GHCR,
@@ -60,6 +70,13 @@ jobs:
           if ! printf '%s' "$TAG" | grep -Eq '^[A-Za-z0-9._-]+$'; then
             echo "::error::Invalid image_tag '$TAG' (allowed chars: A-Za-z0-9 . _ -)"; exit 1
           fi
+          if [ "$EXPLICIT_TAG" = "true" ] && [ "$TAG" != "$DEFAULT_SHA" ] && [ "$ALLOW_ROLLBACK" != "true" ]; then
+            echo "::error::Refusing to deploy non-current image tag '$TAG' from workflow SHA '$DEFAULT_SHA'. Leave image_tag empty to deploy current master, or set allow_rollback=true for an intentional rollback."; exit 1
+          fi
+          if [ "$TAG" != "$DEFAULT_SHA" ]; then
+            echo "::warning::Deploying non-current image tag '$TAG' from workflow SHA '$DEFAULT_SHA'."
+          fi
+          echo "Deploying server image tag: $TAG"
           echo "sha=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS credentials (OIDC)
