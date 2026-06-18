@@ -10,6 +10,25 @@ import { vi } from 'vitest';
 
 // Mock @genfeedai/prisma so unit tests never need the generated Prisma client
 vi.mock('@genfeedai/prisma', () => {
+  type MockSql = {
+    sql: string;
+    text: string;
+    values: unknown[];
+  };
+
+  const createSql = (sql: string, values: unknown[] = []): MockSql => ({
+    sql,
+    text: sql,
+    values,
+  });
+
+  const getSqlText = (value: unknown) => {
+    if (typeof value !== 'object' || value === null) return '?';
+    if ('sql' in value) return String(value.sql);
+    if ('text' in value) return String(value.text);
+    return '?';
+  };
+
   class PrismaClient {
     $connect = vi.fn().mockResolvedValue(undefined);
     $disconnect = vi.fn().mockResolvedValue(undefined);
@@ -34,15 +53,16 @@ vi.mock('@genfeedai/prisma', () => {
   } as const;
 
   const Prisma = {
-    empty: '',
-    raw: (value: string) => value,
-    sql: (
-      strings: TemplateStringsArray,
-      ...values: unknown[]
-    ): { strings: TemplateStringsArray; values: unknown[] } => ({
-      strings,
-      values,
-    }),
+    empty: createSql(''),
+    raw: (sql: string) => createSql(sql),
+    sql: (strings: TemplateStringsArray, ...values: unknown[]) => {
+      const sql = strings.reduce((acc, part, index) => {
+        const value = index < values.length ? getSqlText(values[index]) : '';
+        return `${acc}${part}${value}`;
+      }, '');
+
+      return createSql(sql, values);
+    },
   };
 
   return { Prisma, PrismaClient, VoiceProvider };
