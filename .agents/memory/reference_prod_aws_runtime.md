@@ -12,8 +12,9 @@ Live AWS wins over older AL2023 EC2 migration notes.
 ## Current Runtime Posture
 
 - **Region**: `us-west-1`.
-- **ECS cluster**: `genfeed-production`, Fargate-only. Live services are on
-  Fargate task definition revision `:4` for the current production image.
+- **ECS cluster**: `genfeed-production`, Fargate-only. Task definition
+  revisions change on every deploy; verify live ECS state rather than relying
+  on old EC2-era notes.
 - **Running core services**: `api`, `workers`, `files`, `mcp`, and
   `notifications` are `desired=1`, `running=1`, `pending=0`.
 - **Parked services**: `clips`, `discord`, `slack`, and `telegram` remain
@@ -22,10 +23,10 @@ Live AWS wins over older AL2023 EC2 migration notes.
   internet-facing, active. The API target group uses `targetType=ip`; health is
   green on port `3010`.
 - **Public API DNS**: Route53 `api.genfeed.ai` is now an ALB alias. Public
-  health verification after stopping EC2 returned `200` from ALB IP
-  `52.9.20.128`.
-- **Production image**:
-  `948918267147.dkr.ecr.us-west-1.amazonaws.com/genfeed/server:dbf06f145a594ba9919d9f6eff96a8e3a7b3dabd`.
+  health verification after stopping EC2 returned `200` from ALB IPs.
+- **Last verified ECS deploy**: GitHub Actions run `27759489824` completed on
+  2026-06-18 from `master` and rolled the server image tag
+  `05f7538e48cad75cbebf7a6405d09fc82d4db868`.
 - **Other public backend hostnames**: `mcp.genfeed.ai` and
   `notifications.genfeed.ai` still point to old EIP `52.52.217.255`. They need
   explicit ALB/listener/DNS work or retirement if those public names should
@@ -53,12 +54,14 @@ Live AWS wins over older AL2023 EC2 migration notes.
   deploys. It was the old Tailscale/SSH/Docker Compose path to EC2.
 - `Deploy ECS (production)` is the intended production backend deploy path. It
   is dispatch-only, production-environment gated, and master-only.
-- The 2026-06-18 workflow run copied the GHCR image to ECR but failed before
-  OpenTofu execution because `tofu` was not on PATH. The live cutover was
-  completed locally with OpenTofu 1.12.x.
-- The workflow should use `opentofu/setup-opentofu@v2` with
-  `tofu_wrapper: false`, then run migrations on Fargate, apply OpenTofu, and
-  wait for ECS services to stabilize.
+- The 2026-06-18 cutover was completed locally first, then the GitHub Actions
+  deploy path was fixed and verified green with run `27759489824`.
+- The workflow uses `opentofu/setup-opentofu@v2` with `tofu_wrapper: false`,
+  runs migrations on Fargate, applies OpenTofu with `enable_dns_cutover=true`,
+  and waits for ECS services to stabilize.
+- Keep active services on overlapping deployments (`min_healthy=100`,
+  `max_percent=200`). Workers verify Cloud Map dependency DNS at startup, so
+  stop-then-start rolls can race and temporarily remove internal records.
 
 ## Tailscale
 
