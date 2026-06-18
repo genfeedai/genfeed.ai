@@ -1,21 +1,35 @@
+import {
+  CTA_PATTERN_CATEGORIES,
+  HEADLINE_PATTERN_CATEGORIES,
+  SPEND_BUCKETS,
+} from '@api/collections/ad-performance/utils/ad-performance-benchmark.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
-type AdPerformanceData = {
-  headlineText?: string;
-  ctaText?: string;
-  ctr?: number;
-  roas?: number;
-  cpc?: number;
-  cpa?: number;
-  spend?: number;
-  performanceScore?: number;
-  adPlatform?: string;
-  industry?: string;
-  scope?: string;
-  conversionRate?: number;
-  dataConfidence?: number;
+type PatternMetricRow = {
+  category: string;
+  sampleSize: number | bigint;
+  sumConversionRate?: number | null;
+  sumCtr: number | null;
+  sumRoas?: number | null;
+};
+
+type SpendBucketMetricRow = {
+  range: string;
+  sampleSize: number | bigint;
+  sumPerformanceScore: number | null;
+  sumRoas: number | null;
+};
+
+type BenchmarkMetricRow = {
+  avgKey: string;
+  sampleSize: number | bigint;
+  sumCpa: number | null;
+  sumCpc: number | null;
+  sumCtr: number | null;
+  sumRoas: number | null;
 };
 
 @Injectable()
@@ -39,71 +53,45 @@ export class AdAggregationService {
   }> {
     this.logger.log(`${this.constructorName}: Computing top headlines`);
 
-    const patternCategories: Record<string, RegExp> = {
-      'benefit-focused': /\b(get|save|earn|boost|improve|increase)\b/i,
-      comparison: /\b(vs\.?|versus|compared|better than|unlike)\b/i,
-      'curiosity-gap': /\b(secret|surprising|you won't believe|revealed)\b/i,
-      'how-to': /^how\s+to\b/i,
-      'number-driven': /\b\d+\b/,
-      'question-based': /\?$/,
-      testimonial: /\b(review|rated|trusted|customers say)\b/i,
-      urgency:
-        /\b(limited|now|today|hurry|last chance|don't miss|ends|expires)\b/i,
-    };
+    const rows = await this.prisma.$queryRaw<PatternMetricRow[]>(
+      Prisma.sql`
+        SELECT
+          pattern.category AS "category",
+          COUNT(*)::integer AS "sampleSize",
+          COALESCE(SUM(COALESCE(ap."ctr", 0) * COALESCE(ap."dataConfidence", 1)), 0)::double precision AS "sumCtr",
+          COALESCE(SUM(CASE WHEN COALESCE(ap."roas", 0) > 0 THEN ap."roas" * COALESCE(ap."dataConfidence", 1) ELSE 0 END), 0)::double precision AS "sumRoas"
+        FROM "ad_performance" ap
+        CROSS JOIN LATERAL unnest(ap."headlinePatternCategories") AS pattern(category)
+        WHERE ap."isDeleted" = false
+          AND ap."scope" = 'public'
+          AND cardinality(ap."headlinePatternCategories") > 0
+          AND ap."headlinePatternCategories" && ${Object.keys(HEADLINE_PATTERN_CATEGORIES)}::text[]
+          ${this.industryClause(industry)}
+        GROUP BY pattern.category
+        HAVING COUNT(DISTINCT ap."organizationId") >= ${this.MIN_ORGS}
+      `,
+    );
 
-    const records = await this.prisma.adPerformance.findMany({
-      select: { data: true, organizationId: true },
-      where: { isDeleted: false },
-    });
-
-    // Filter to public scope + optional industry
-    const eligible = records.filter((r) => {
-      const d = (r.data ?? {}) as AdPerformanceData;
-      if (d.scope !== 'public') return false;
-      if (!d.headlineText) return false;
-      if (industry && d.industry !== industry) return false;
-      return true;
-    });
-
-    const patterns: Array<{
-      category: string;
-      avgCtr: number;
-      avgRoas: number;
-      sampleSize: number;
-    }> = [];
+    const rowsByCategory = new Map(rows.map((row) => [row.category, row]));
     let totalSampleSize = 0;
+    const patterns = Object.keys(HEADLINE_PATTERN_CATEGORIES).map(
+      (category) => {
+        const row = rowsByCategory.get(category);
+        if (!row) {
+          return { avgCtr: 0, avgRoas: 0, category, sampleSize: 0 };
+        }
 
-    for (const [category, regex] of Object.entries(patternCategories)) {
-      const matched = eligible.filter((r) => {
-        const d = (r.data ?? {}) as AdPerformanceData;
-        return regex.test(d.headlineText ?? '');
-      });
+        const sampleSize = this.toNumber(row.sampleSize);
+        totalSampleSize += sampleSize;
 
-      const distinctOrgs = new Set(matched.map((r) => r.organizationId));
-      if (distinctOrgs.size < this.MIN_ORGS) {
-        patterns.push({ avgCtr: 0, avgRoas: 0, category, sampleSize: 0 });
-        continue;
-      }
-
-      const sumCtr = matched.reduce((sum, r) => {
-        const d = (r.data ?? {}) as AdPerformanceData;
-        return sum + (d.ctr ?? 0) * (d.dataConfidence ?? 1);
-      }, 0);
-      const sumRoas = matched.reduce((sum, r) => {
-        const d = (r.data ?? {}) as AdPerformanceData;
-        const roas = d.roas ?? 0;
-        return sum + (roas > 0 ? roas * (d.dataConfidence ?? 1) : 0);
-      }, 0);
-
-      const count = matched.length;
-      patterns.push({
-        avgCtr: Math.round((sumCtr / count) * 10000) / 10000,
-        avgRoas: Math.round((sumRoas / count) * 10000) / 10000,
-        category,
-        sampleSize: count,
-      });
-      totalSampleSize += count;
-    }
+        return {
+          avgCtr: this.round4(this.toNumber(row.sumCtr) / sampleSize),
+          avgRoas: this.round4(this.toNumber(row.sumRoas) / sampleSize),
+          category,
+          sampleSize,
+        };
+      },
+    );
 
     return { patterns, sampleSize: totalSampleSize };
   }
@@ -119,74 +107,50 @@ export class AdAggregationService {
   }> {
     this.logger.log(`${this.constructorName}: Computing best CTAs`);
 
-    const ctaMapping: Record<string, RegExp> = {
-      'book-now': /\b(book|reserve|schedule)\b/i,
-      'contact-us': /\b(contact|call|reach out|get in touch)\b/i,
-      download: /\b(download|install|get the app)\b/i,
-      'get-started': /\b(get started|start|begin|try)\b/i,
-      'learn-more': /\b(learn more|find out|discover|explore)\b/i,
-      'shop-now': /\b(shop|buy|order|purchase)\b/i,
-      'sign-up': /\b(sign up|register|join|subscribe|create account)\b/i,
-      'try-free': /\b(free trial|try free|start free|no cost)\b/i,
-    };
+    const rows = await this.prisma.$queryRaw<PatternMetricRow[]>(
+      Prisma.sql`
+        SELECT
+          pattern.category AS "category",
+          COUNT(*)::integer AS "sampleSize",
+          COALESCE(SUM(COALESCE(ap."ctr", 0)), 0)::double precision AS "sumCtr",
+          COALESCE(SUM(CASE WHEN COALESCE(ap."conversionRate", 0) > 0 THEN ap."conversionRate" ELSE 0 END), 0)::double precision AS "sumConversionRate"
+        FROM "ad_performance" ap
+        CROSS JOIN LATERAL unnest(ap."ctaPatternCategories") AS pattern(category)
+        WHERE ap."isDeleted" = false
+          AND ap."scope" = 'public'
+          AND cardinality(ap."ctaPatternCategories") > 0
+          AND ap."ctaPatternCategories" && ${Object.keys(CTA_PATTERN_CATEGORIES)}::text[]
+          ${this.industryClause(industry)}
+        GROUP BY pattern.category
+        HAVING COUNT(DISTINCT ap."organizationId") >= ${this.MIN_ORGS}
+      `,
+    );
 
-    const records = await this.prisma.adPerformance.findMany({
-      select: { data: true, organizationId: true },
-      where: { isDeleted: false },
-    });
-
-    const eligible = records.filter((r) => {
-      const d = (r.data ?? {}) as AdPerformanceData;
-      if (d.scope !== 'public') return false;
-      if (!d.ctaText) return false;
-      if (industry && d.industry !== industry) return false;
-      return true;
-    });
-
-    const patterns: Array<{
-      category: string;
-      avgCtr: number;
-      avgConversionRate: number;
-      sampleSize: number;
-    }> = [];
+    const rowsByCategory = new Map(rows.map((row) => [row.category, row]));
     let totalSampleSize = 0;
-
-    for (const [category, regex] of Object.entries(ctaMapping)) {
-      const matched = eligible.filter((r) => {
-        const d = (r.data ?? {}) as AdPerformanceData;
-        return regex.test(d.ctaText ?? '');
-      });
-
-      const distinctOrgs = new Set(matched.map((r) => r.organizationId));
-      if (distinctOrgs.size < this.MIN_ORGS) {
-        patterns.push({
+    const patterns = Object.keys(CTA_PATTERN_CATEGORIES).map((category) => {
+      const row = rowsByCategory.get(category);
+      if (!row) {
+        return {
           avgConversionRate: 0,
           avgCtr: 0,
           category,
           sampleSize: 0,
-        });
-        continue;
+        };
       }
 
-      const sumCtr = matched.reduce((sum, r) => {
-        const d = (r.data ?? {}) as AdPerformanceData;
-        return sum + (d.ctr ?? 0);
-      }, 0);
-      const sumConvRate = matched.reduce((sum, r) => {
-        const d = (r.data ?? {}) as AdPerformanceData;
-        const cr = d.conversionRate ?? 0;
-        return sum + (cr > 0 ? cr : 0);
-      }, 0);
+      const sampleSize = this.toNumber(row.sampleSize);
+      totalSampleSize += sampleSize;
 
-      const count = matched.length;
-      patterns.push({
-        avgConversionRate: Math.round((sumConvRate / count) * 10000) / 10000,
-        avgCtr: Math.round((sumCtr / count) * 10000) / 10000,
+      return {
+        avgConversionRate: this.round4(
+          this.toNumber(row.sumConversionRate) / sampleSize,
+        ),
+        avgCtr: this.round4(this.toNumber(row.sumCtr) / sampleSize),
         category,
-        sampleSize: count,
-      });
-      totalSampleSize += count;
-    }
+        sampleSize,
+      };
+    });
 
     return { patterns, sampleSize: totalSampleSize };
   }
@@ -205,66 +169,44 @@ export class AdAggregationService {
   }> {
     this.logger.log(`${this.constructorName}: Computing optimal spend`);
 
-    const records = await this.prisma.adPerformance.findMany({
-      select: { data: true, organizationId: true },
-      where: { isDeleted: false },
-    });
+    const rows = await this.prisma.$queryRaw<SpendBucketMetricRow[]>(
+      Prisma.sql`
+        SELECT
+          ap."spendBucket" AS "range",
+          COUNT(*)::integer AS "sampleSize",
+          COALESCE(SUM(COALESCE(ap."performanceScore", 0)), 0)::double precision AS "sumPerformanceScore",
+          COALESCE(SUM(CASE WHEN COALESCE(ap."roas", 0) > 0 THEN ap."roas" ELSE 0 END), 0)::double precision AS "sumRoas"
+        FROM "ad_performance" ap
+        WHERE ap."isDeleted" = false
+          AND ap."scope" = 'public'
+          AND ap."spendBucket" IS NOT NULL
+          ${this.platformClause(platform)}
+          ${this.industryClause(industry)}
+        GROUP BY ap."spendBucket"
+        HAVING COUNT(DISTINCT ap."organizationId") >= ${this.MIN_ORGS}
+      `,
+    );
 
-    const eligible = records.filter((r) => {
-      const d = (r.data ?? {}) as AdPerformanceData;
-      if (d.scope !== 'public') return false;
-      if ((d.spend ?? 0) <= 0) return false;
-      if (platform && d.adPlatform !== platform) return false;
-      if (industry && d.industry !== industry) return false;
-      return true;
-    });
-
-    const spendBoundaries = [
-      { label: '$0-50/day', min: 0, max: 50 },
-      { label: '$50-200/day', min: 50, max: 200 },
-      { label: '$200-500/day', min: 200, max: 500 },
-      { label: '$500-1000/day', min: 500, max: 1000 },
-      { label: '$1000+/day', min: 1000, max: Infinity },
-    ];
-
-    const buckets: Array<{
-      range: string;
-      avgPerformanceScore: number;
-      avgRoas: number;
-      sampleSize: number;
-    }> = [];
-
+    const rowsByRange = new Map(rows.map((row) => [row.range, row]));
     let totalSampleSize = 0;
+    const buckets = SPEND_BUCKETS.flatMap((bucket) => {
+      const row = rowsByRange.get(bucket.label);
+      if (!row) return [];
 
-    for (const { label, min, max } of spendBoundaries) {
-      const matched = eligible.filter((r) => {
-        const d = (r.data ?? {}) as AdPerformanceData;
-        const s = d.spend ?? 0;
-        return s >= min && s < max;
-      });
+      const sampleSize = this.toNumber(row.sampleSize);
+      totalSampleSize += sampleSize;
 
-      const distinctOrgs = new Set(matched.map((r) => r.organizationId));
-      if (distinctOrgs.size < this.MIN_ORGS) continue;
-
-      const sumPerf = matched.reduce((sum, r) => {
-        const d = (r.data ?? {}) as AdPerformanceData;
-        return sum + (d.performanceScore ?? 0);
-      }, 0);
-      const sumRoas = matched.reduce((sum, r) => {
-        const d = (r.data ?? {}) as AdPerformanceData;
-        const roas = d.roas ?? 0;
-        return sum + (roas > 0 ? roas : 0);
-      }, 0);
-
-      const count = matched.length;
-      buckets.push({
-        avgPerformanceScore: Math.round((sumPerf / count) * 100) / 100,
-        avgRoas: Math.round((sumRoas / count) * 100) / 100,
-        range: label,
-        sampleSize: count,
-      });
-      totalSampleSize += count;
-    }
+      return [
+        {
+          avgPerformanceScore: this.round2(
+            this.toNumber(row.sumPerformanceScore) / sampleSize,
+          ),
+          avgRoas: this.round2(this.toNumber(row.sumRoas) / sampleSize),
+          range: bucket.label,
+          sampleSize,
+        },
+      ];
+    });
 
     return { buckets, sampleSize: totalSampleSize };
   }
@@ -295,80 +237,36 @@ export class AdAggregationService {
   }> {
     this.logger.log(`${this.constructorName}: Computing platform benchmarks`);
 
-    const records = await this.prisma.adPerformance.findMany({
-      select: { data: true, organizationId: true },
-      where: { isDeleted: false },
-    });
+    const rows = await this.prisma.$queryRaw<BenchmarkMetricRow[]>(
+      Prisma.sql`
+        SELECT
+          COALESCE(ap."adPlatform", 'unknown') AS "avgKey",
+          COUNT(*)::integer AS "sampleSize",
+          COALESCE(SUM(COALESCE(ap."ctr", 0)), 0)::double precision AS "sumCtr",
+          COALESCE(SUM(COALESCE(ap."cpc", 0)), 0)::double precision AS "sumCpc",
+          COALESCE(SUM(CASE WHEN COALESCE(ap."cpa", 0) > 0 THEN ap."cpa" ELSE 0 END), 0)::double precision AS "sumCpa",
+          COALESCE(SUM(CASE WHEN COALESCE(ap."roas", 0) > 0 THEN ap."roas" ELSE 0 END), 0)::double precision AS "sumRoas"
+        FROM "ad_performance" ap
+        WHERE ap."isDeleted" = false
+          AND ap."scope" = 'public'
+          ${this.industryClause(industry)}
+        GROUP BY COALESCE(ap."adPlatform", 'unknown')
+        HAVING COUNT(DISTINCT ap."organizationId") >= ${this.MIN_ORGS}
+      `,
+    );
 
-    const eligible = records.filter((r) => {
-      const d = (r.data ?? {}) as AdPerformanceData;
-      if (d.scope !== 'public') return false;
-      if (industry && d.industry !== industry) return false;
-      return true;
-    });
-
-    const emptyBenchmark = {
-      avgCpa: 0,
-      avgCpc: 0,
-      avgCtr: 0,
-      avgRoas: 0,
-      sampleSize: 0,
-    };
-
-    const platformGroups: Record<
-      string,
-      { data: AdPerformanceData; orgId: string }[]
-    > = {};
-    for (const r of eligible) {
-      const d = (r.data ?? {}) as AdPerformanceData;
-      const p = d.adPlatform ?? 'unknown';
-      if (!platformGroups[p]) platformGroups[p] = [];
-      platformGroups[p].push({ data: d, orgId: r.organizationId });
-    }
-
-    const benchmarkMap: Record<
-      string,
-      {
-        avgCtr: number;
-        avgCpc: number;
-        avgCpa: number;
-        avgRoas: number;
-        sampleSize: number;
-      }
-    > = {};
-    let totalSampleSize = 0;
-
-    for (const [platform, rows] of Object.entries(platformGroups)) {
-      const distinctOrgs = new Set(rows.map((r) => r.orgId));
-      if (distinctOrgs.size < this.MIN_ORGS) continue;
-
-      const count = rows.length;
-      const sumCtr = rows.reduce((s, r) => s + (r.data.ctr ?? 0), 0);
-      const sumCpc = rows.reduce((s, r) => s + (r.data.cpc ?? 0), 0);
-      const sumCpa = rows.reduce(
-        (s, r) => s + ((r.data.cpa ?? 0) > 0 ? (r.data.cpa ?? 0) : 0),
-        0,
-      );
-      const sumRoas = rows.reduce(
-        (s, r) => s + ((r.data.roas ?? 0) > 0 ? (r.data.roas ?? 0) : 0),
-        0,
-      );
-
-      benchmarkMap[platform] = {
-        avgCpa: Math.round((sumCpa / count) * 10000) / 10000,
-        avgCpc: Math.round((sumCpc / count) * 10000) / 10000,
-        avgCtr: Math.round((sumCtr / count) * 10000) / 10000,
-        avgRoas: Math.round((sumRoas / count) * 10000) / 10000,
-        sampleSize: count,
-      };
-      totalSampleSize += count;
-    }
+    const benchmarkMap = new Map(
+      rows.map((row) => [row.avgKey, this.toBenchmark(row)]),
+    );
 
     return {
-      google: benchmarkMap.google ?? { ...emptyBenchmark },
-      meta: benchmarkMap.meta ?? { ...emptyBenchmark },
-      sampleSize: totalSampleSize,
-      tiktok: benchmarkMap.tiktok ?? { ...emptyBenchmark },
+      google: benchmarkMap.get('google') ?? this.emptyBenchmark(),
+      meta: benchmarkMap.get('meta') ?? this.emptyBenchmark(),
+      sampleSize: rows.reduce(
+        (sum, row) => sum + this.toNumber(row.sampleSize),
+        0,
+      ),
+      tiktok: benchmarkMap.get('tiktok') ?? this.emptyBenchmark(),
     };
   }
 
@@ -385,66 +283,95 @@ export class AdAggregationService {
   }> {
     this.logger.log(`${this.constructorName}: Computing industry benchmarks`);
 
-    const records = await this.prisma.adPerformance.findMany({
-      select: { data: true, organizationId: true },
-      where: { isDeleted: false },
-    });
+    const rows = await this.prisma.$queryRaw<BenchmarkMetricRow[]>(
+      Prisma.sql`
+        SELECT
+          ap."industry" AS "avgKey",
+          COUNT(*)::integer AS "sampleSize",
+          COALESCE(SUM(COALESCE(ap."ctr", 0)), 0)::double precision AS "sumCtr",
+          COALESCE(SUM(COALESCE(ap."cpc", 0)), 0)::double precision AS "sumCpc",
+          COALESCE(SUM(CASE WHEN COALESCE(ap."cpa", 0) > 0 THEN ap."cpa" ELSE 0 END), 0)::double precision AS "sumCpa",
+          COALESCE(SUM(CASE WHEN COALESCE(ap."roas", 0) > 0 THEN ap."roas" ELSE 0 END), 0)::double precision AS "sumRoas"
+        FROM "ad_performance" ap
+        WHERE ap."isDeleted" = false
+          AND ap."scope" = 'public'
+          AND ap."industry" IS NOT NULL
+        GROUP BY ap."industry"
+        HAVING COUNT(DISTINCT ap."organizationId") >= ${this.MIN_ORGS}
+        ORDER BY "sampleSize" DESC
+      `,
+    );
 
-    const eligible = records.filter((r) => {
-      const d = (r.data ?? {}) as AdPerformanceData;
-      return d.scope === 'public' && Boolean(d.industry);
-    });
-
-    const industryGroups: Record<
-      string,
-      { data: AdPerformanceData; orgId: string }[]
-    > = {};
-    for (const r of eligible) {
-      const d = (r.data ?? {}) as AdPerformanceData;
-      const ind = d.industry!;
-      if (!industryGroups[ind]) industryGroups[ind] = [];
-      industryGroups[ind].push({ data: d, orgId: r.organizationId });
-    }
-
-    const industries: Array<{
-      industry: string;
-      avgCtr: number;
-      avgCpc: number;
-      avgCpa: number;
-      avgRoas: number;
-      sampleSize: number;
-    }> = [];
-    let totalSampleSize = 0;
-
-    for (const [industry, rows] of Object.entries(industryGroups)) {
-      const distinctOrgs = new Set(rows.map((r) => r.orgId));
-      if (distinctOrgs.size < this.MIN_ORGS) continue;
-
-      const count = rows.length;
-      const sumCtr = rows.reduce((s, r) => s + (r.data.ctr ?? 0), 0);
-      const sumCpc = rows.reduce((s, r) => s + (r.data.cpc ?? 0), 0);
-      const sumCpa = rows.reduce(
-        (s, r) => s + ((r.data.cpa ?? 0) > 0 ? (r.data.cpa ?? 0) : 0),
+    return {
+      industries: rows.map((row) => ({
+        ...this.toBenchmark(row),
+        industry: row.avgKey,
+      })),
+      sampleSize: rows.reduce(
+        (sum, row) => sum + this.toNumber(row.sampleSize),
         0,
-      );
-      const sumRoas = rows.reduce(
-        (s, r) => s + ((r.data.roas ?? 0) > 0 ? (r.data.roas ?? 0) : 0),
-        0,
-      );
+      ),
+    };
+  }
 
-      industries.push({
-        avgCpa: Math.round((sumCpa / count) * 10000) / 10000,
-        avgCpc: Math.round((sumCpc / count) * 10000) / 10000,
-        avgCtr: Math.round((sumCtr / count) * 10000) / 10000,
-        avgRoas: Math.round((sumRoas / count) * 10000) / 10000,
-        industry,
-        sampleSize: count,
-      });
-      totalSampleSize += count;
-    }
+  private industryClause(industry?: string) {
+    return industry
+      ? Prisma.sql`AND ap."industry" = ${industry}`
+      : Prisma.empty;
+  }
 
-    industries.sort((a, b) => b.sampleSize - a.sampleSize);
+  private platformClause(platform?: string) {
+    return platform
+      ? Prisma.sql`AND ap."adPlatform" = ${platform}`
+      : Prisma.empty;
+  }
 
-    return { industries, sampleSize: totalSampleSize };
+  private toBenchmark(row: BenchmarkMetricRow): {
+    avgCtr: number;
+    avgCpc: number;
+    avgCpa: number;
+    avgRoas: number;
+    sampleSize: number;
+  } {
+    const sampleSize = this.toNumber(row.sampleSize);
+
+    return {
+      avgCpa: this.round4(this.toNumber(row.sumCpa) / sampleSize),
+      avgCpc: this.round4(this.toNumber(row.sumCpc) / sampleSize),
+      avgCtr: this.round4(this.toNumber(row.sumCtr) / sampleSize),
+      avgRoas: this.round4(this.toNumber(row.sumRoas) / sampleSize),
+      sampleSize,
+    };
+  }
+
+  private emptyBenchmark(): {
+    avgCtr: number;
+    avgCpc: number;
+    avgCpa: number;
+    avgRoas: number;
+    sampleSize: number;
+  } {
+    return {
+      avgCpa: 0,
+      avgCpc: 0,
+      avgCtr: 0,
+      avgRoas: 0,
+      sampleSize: 0,
+    };
+  }
+
+  private toNumber(value: number | bigint | string | null | undefined): number {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'bigint') return Number(value);
+    if (typeof value === 'string') return Number(value);
+    return 0;
+  }
+
+  private round2(value: number): number {
+    return Math.round(value * 100) / 100;
+  }
+
+  private round4(value: number): number {
+    return Math.round(value * 10000) / 10000;
   }
 }
