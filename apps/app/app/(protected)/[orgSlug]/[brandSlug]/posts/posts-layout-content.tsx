@@ -6,6 +6,7 @@ import {
 } from '@contexts/posts/posts-layout-context';
 import {
   getPublisherPostsHref,
+  getPublisherPostsStatusFromPathname,
   normalizePublisherPostsStatus,
 } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -21,8 +22,10 @@ const KNOWN_SUB_ROUTES = [
   'analytics',
   'calendar',
   'newsletters',
+  'published',
   'remix',
   'review',
+  'scheduled',
 ];
 
 type PostsLayoutState = {
@@ -123,14 +126,18 @@ function PostsLayoutContentContent({ children }: { children: ReactNode }) {
   const isDetailRoute =
     pathname?.match(/^\/posts\/[^/]+$/) &&
     !KNOWN_SUB_ROUTES.includes(lastSegment ?? '');
+  const statusFromPathname = getPublisherPostsStatusFromPathname(pathname);
+  const activeStatus =
+    statusFromPathname ??
+    normalizePublisherPostsStatus(parsedSearchParams.get('status'));
   const activeTab = useMemo(() => {
     return href(
       getPublisherPostsHref({
         platform: parsedSearchParams.get('platform'),
-        status: normalizePublisherPostsStatus(parsedSearchParams.get('status')),
+        status: activeStatus,
       }),
     );
-  }, [href, parsedSearchParams]);
+  }, [activeStatus, href, parsedSearchParams]);
   const tabs = useMemo(
     () => [
       {

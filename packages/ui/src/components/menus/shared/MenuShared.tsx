@@ -30,6 +30,7 @@ export default function MenuShared({
   renderAfterNavigation,
   backHref,
   backLabel,
+  currentApp,
   sectionLabel,
   isCollapsed,
   shellChromeVariant = 'default',
@@ -182,6 +183,8 @@ export default function MenuShared({
   return (
     <div
       data-testid="sidebar-shell"
+      data-shell-current-app={currentApp ?? 'workspace'}
+      data-shell-section-label={sectionLabel ?? ''}
       className={cn(
         'flex h-full min-h-0 flex-1 flex-shrink-0',
         shellChromeVariant === 'transparent'

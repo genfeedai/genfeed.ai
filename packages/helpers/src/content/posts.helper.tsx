@@ -91,6 +91,44 @@ export interface PublisherPostsHrefOptions {
   status?: string | null;
 }
 
+export function getPublisherPostsStatusPath(
+  status?: string | string[] | null,
+): string {
+  const normalizedStatus = normalizePublisherPostsStatus(status);
+
+  if (normalizedStatus === PostStatus.SCHEDULED) {
+    return '/posts/scheduled';
+  }
+
+  if (normalizedStatus === PostStatus.PUBLIC) {
+    return '/posts/published';
+  }
+
+  return '/posts';
+}
+
+export function getPublisherPostsStatusFromPathname(
+  pathname?: string | null,
+): PublisherPostsStatus | null {
+  const segments = (pathname ?? '').split('?')[0].split('/').filter(Boolean);
+  const postsIndex = segments.lastIndexOf('posts');
+
+  if (postsIndex === -1) {
+    return null;
+  }
+
+  const statusSegment = segments[postsIndex + 1];
+  if (statusSegment === 'scheduled') {
+    return PostStatus.SCHEDULED;
+  }
+
+  if (statusSegment === 'published') {
+    return PostStatus.PUBLIC;
+  }
+
+  return null;
+}
+
 export function normalizePublisherPostsStatus(
   value?: string | string[] | null,
 ): PublisherPostsStatus {
@@ -114,17 +152,14 @@ export function getPublisherPostsHref({
   const params = new URLSearchParams();
   const normalizedStatus = normalizePublisherPostsStatus(status);
   const normalizedPlatform = normalizePostsPlatform(platform ?? undefined);
-
-  if (normalizedStatus !== PostStatus.DRAFT) {
-    params.set('status', normalizedStatus);
-  }
+  const path = getPublisherPostsStatusPath(normalizedStatus);
 
   if (normalizedPlatform !== 'all') {
     params.set('platform', normalizedPlatform);
   }
 
   const queryString = params.toString();
-  return queryString ? `/posts?${queryString}` : '/posts';
+  return queryString ? `${path}?${queryString}` : path;
 }
 
 export function getPostStatusOptions(
