@@ -1549,6 +1549,20 @@ describe('FilesController', () => {
       expect(result.expiresIn).toBe(3600);
     });
 
+    it('should preserve Skills Pro registry keys for presigned downloads', async () => {
+      const result = await controller.getPresignedDownloadUrl(
+        'skills',
+        'skills/v1/content-factory-pro/1.0.0/skill.zip',
+      );
+
+      expect(s3Service.generateS3Key).not.toHaveBeenCalled();
+      expect(s3Service.getPresignedDownloadUrl).toHaveBeenCalledWith(
+        'skills/v1/content-factory-pro/1.0.0/skill.zip',
+        3600,
+      );
+      expect(result.key).toBe('skills/v1/content-factory-pro/1.0.0/skill.zip');
+    });
+
     it('should handle presigned download URL errors', async () => {
       mockS3Service.getPresignedDownloadUrl.mockRejectedValueOnce(
         new Error('Presigned URL error'),

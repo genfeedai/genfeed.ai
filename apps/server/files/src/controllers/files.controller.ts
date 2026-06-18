@@ -31,6 +31,20 @@ import {
 import type { Response } from 'express';
 import { firstValueFrom } from 'rxjs';
 
+type S3KeyGenerator = (type: string, key: string) => string;
+
+export function resolvePresignedDownloadKey(
+  type: string,
+  key: string,
+  generateS3Key: S3KeyGenerator,
+): string {
+  if (type === 'skills') {
+    return key;
+  }
+
+  return generateS3Key(type, key);
+}
+
 @Controller('files')
 export class FilesController {
   constructor(
@@ -1260,8 +1274,11 @@ export class FilesController {
     @Param('key') key: string,
   ) {
     try {
-      // Generate S3 key: ingredients/${type}/${key}
-      const s3Key = this.s3Service.generateS3Key(type, key);
+      const s3Key = resolvePresignedDownloadKey(
+        type,
+        key,
+        this.s3Service.generateS3Key.bind(this.s3Service),
+      );
       const downloadUrl = await this.s3Service.getPresignedDownloadUrl(
         s3Key,
         3600,
