@@ -37,14 +37,28 @@ describe('PostsHelper', () => {
       PostsHelper.getPublisherPostsHref({ platform: 'all', status: 'draft' }),
     ).toBe('/posts');
     expect(PostsHelper.getPublisherPostsHref({ status: 'scheduled' })).toBe(
-      '/posts?status=scheduled',
+      '/posts/scheduled',
     );
     expect(
       PostsHelper.getPublisherPostsHref({
         platform: Platform.YOUTUBE,
         status: 'public',
       }),
-    ).toBe('/posts?status=public&platform=youtube');
+    ).toBe('/posts/published?platform=youtube');
+  });
+
+  it('should infer publisher status from canonical post paths', () => {
+    expect(
+      PostsHelper.getPublisherPostsStatusFromPathname('/posts/scheduled'),
+    ).toBe('scheduled');
+    expect(
+      PostsHelper.getPublisherPostsStatusFromPathname(
+        '/acme/brand/posts/published?platform=youtube',
+      ),
+    ).toBe('public');
+    expect(
+      PostsHelper.getPublisherPostsStatusFromPathname('/posts'),
+    ).toBeNull();
   });
 
   it('should get post platform tabs', () => {

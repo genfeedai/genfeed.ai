@@ -35,7 +35,7 @@ describe('PostsLayoutContent', () => {
     );
   });
 
-  it('renders publisher tabs with canonical query hrefs and active state', () => {
+  it('renders publisher tabs with canonical path hrefs and active state', () => {
     render(
       <PostsLayoutContent>
         <div>child content</div>
@@ -49,13 +49,31 @@ describe('PostsLayoutContent', () => {
     );
     expect(screen.getByRole('link', { name: /scheduled/i })).toHaveAttribute(
       'href',
-      '/acme-org/acme-creator/posts?status=scheduled&platform=youtube',
+      '/acme-org/acme-creator/posts/scheduled?platform=youtube',
     );
     expect(screen.getByRole('link', { name: /published/i })).toHaveAttribute(
       'href',
-      '/acme-org/acme-creator/posts?status=public&platform=youtube',
+      '/acme-org/acme-creator/posts/published?platform=youtube',
     );
     expect(screen.getByRole('link', { name: /scheduled/i })).toHaveAttribute(
+      'data-state',
+      'active',
+    );
+  });
+
+  it('uses the canonical status path to select the active publisher tab', () => {
+    usePathnameMock.mockReturnValue('/posts/published');
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams('platform=youtube'),
+    );
+
+    render(
+      <PostsLayoutContent>
+        <div>published content</div>
+      </PostsLayoutContent>,
+    );
+
+    expect(screen.getByRole('link', { name: /published/i })).toHaveAttribute(
       'data-state',
       'active',
     );

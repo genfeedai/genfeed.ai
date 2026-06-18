@@ -92,10 +92,10 @@ export class PostsPage {
       'a[href="/posts"], [role="tab"]:has-text("Drafts")',
     );
     this.scheduledTab = page.locator(
-      'a[href="/posts?status=scheduled"], [role="tab"]:has-text("Scheduled")',
+      'a[href="/posts/scheduled"], a[href$="/posts/scheduled"], a[href="/posts?status=scheduled"], [role="tab"]:has-text("Scheduled")',
     );
     this.publishedTab = page.locator(
-      'a[href="/posts?status=public"], [role="tab"]:has-text("Published")',
+      'a[href="/posts/published"], a[href$="/posts/published"], a[href="/posts?status=public"], [role="tab"]:has-text("Published")',
     );
     this.engageTab = page.locator(
       'a[href="/analytics/posts"], [role="tab"]:has-text("Analytics")',
@@ -239,12 +239,12 @@ export class PostsPage {
   }
 
   async gotoScheduled(): Promise<void> {
-    await this.page.goto('/posts?status=scheduled');
+    await this.page.goto('/posts/scheduled');
     await this.waitForPageLoad();
   }
 
   async gotoPublished(): Promise<void> {
-    await this.page.goto('/posts?status=public');
+    await this.page.goto('/posts/published');
     await this.waitForPageLoad();
   }
 
@@ -377,11 +377,11 @@ export class PostsPage {
   }
 
   async assertOnScheduledTab(): Promise<void> {
-    await expect(this.page).toHaveURL(/\/posts\?status=scheduled/);
+    await expect(this.page).toHaveURL(/\/posts\/scheduled(?:\?|$)/);
   }
 
   async assertOnPublishedTab(): Promise<void> {
-    await expect(this.page).toHaveURL(/\/posts\?status=public/);
+    await expect(this.page).toHaveURL(/\/posts\/published(?:\?|$)/);
   }
 
   async assertOnEngageTab(): Promise<void> {

@@ -122,6 +122,7 @@
     "test:workspace:watch": "TZ=UTC scripts/sh/sanitize-node-color-env.sh vitest --config vitest.config.ts",
     "test:e2e": "bunx playwright test --config=playwright/configs/playwright.config.ts",
     "test:e2e:core": "bunx playwright test --config=playwright/configs/playwright.config.ts playwright/e2e/tests/smoke playwright/e2e/tests/core --project=app-core",
+    "test:e2e:sharded": "node scripts/e2e-sharded.mjs",
     "test:e2e:core:changed": "bunx playwright test --config=playwright/configs/playwright.config.ts playwright/e2e/tests/smoke playwright/e2e/tests/core --project=app-core --only-changed=${E2E_BASE_REF:-origin/develop}",
     "test:e2e:core:failed": "bunx playwright test --config=playwright/configs/playwright.config.ts playwright/e2e/tests/smoke playwright/e2e/tests/core --project=app-core --last-failed",
     "test:e2e:authed": "bunx playwright test --config=playwright/configs/playwright.config.ts --project=app-authed",

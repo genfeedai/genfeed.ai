@@ -125,9 +125,38 @@ const appDevWebServerCommand =
   process.env.PLAYWRIGHT_WEB_SERVER_COMMAND ||
   `bun run --cwd ${appWebAppPath} dev -- --hostname ::`;
 
+function readPositiveIntEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) {
+    return fallback;
+  }
+
+  const value = Number(raw);
+  return Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
+function readNonNegativeIntEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined) {
+    return fallback;
+  }
+
+  const value = Number(raw);
+  return Number.isInteger(value) && value >= 0 ? value : fallback;
+}
+
+const expectTimeout = readPositiveIntEnv('E2E_EXPECT_TIMEOUT_MS', 60000);
+const testTimeout = readPositiveIntEnv('E2E_TEST_TIMEOUT_MS', 120000);
+const retryCount =
+  process.env.E2E_RETRIES === undefined
+    ? isCI
+      ? 2
+      : 0
+    : readNonNegativeIntEnv('E2E_RETRIES', 0);
+
 export default defineConfig({
   expect: {
-    timeout: 60000, // Dev-route content can take longer to hydrate in this app
+    timeout: expectTimeout, // Dev-route content can take longer to hydrate in this app
     toHaveScreenshot: {
       maxDiffPixels: 100,
       threshold: 0.2,
@@ -210,7 +239,7 @@ export default defineConfig({
     ['junit', { outputFile: path.join(artifactsRoot, 'report', 'junit.xml') }],
     isCI ? ['github'] : ['list'],
   ],
-  retries: isCI ? 2 : 0,
+  retries: retryCount,
 
   // Snapshot configuration
   snapshotPathTemplate: path.join(
@@ -223,7 +252,7 @@ export default defineConfig({
   // Test directory structure
   testDir: path.join(e2eRoot, 'tests'),
   testMatch: /e2e\/tests\/.+\.spec\.ts/,
-  timeout: 120000, // Give slow dev-route compiles room to settle
+  timeout: testTimeout, // Give slow dev-route compiles room to settle
 
   // Default test settings
   use: {

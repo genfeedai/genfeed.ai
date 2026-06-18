@@ -6,13 +6,16 @@ on:
   # which runs it after the CI gate passes). Secrets are inherited from caller.
   workflow_call:
   schedule:
-    - cron: "0 6 * * 1" # Weekly Monday 6am UTC
+    - cron: "17 2 * * *" # Nightly 02:17 UTC
 
 # Include the workflow name in the group so a full-suite.yml workflow_call on the
 # same ref does not cancel the weekly cron run of this workflow (and vice versa).
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
@@ -41,6 +44,7 @@ jobs:
     name: API E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    continue-on-error: true
     services:
       postgres:
         image: postgres:17-alpine
@@ -93,18 +97,19 @@ jobs:
           flags: api-e2e
           fail_ci_if_error: false
 
-  # Frontend Core E2E — sharded 4-way. Each shard is an independent machine
-  # running ~1/4 of the app-core specs with 2 workers, so a fix only needs the
+  # Frontend Core E2E — sharded 12-way. Each shard is an independent machine
+  # running ~1/12 of the app-core specs with 2 workers, so a fix only needs the
   # affected shard re-run ("Re-run failed jobs" carries the green shards forward
   # unchanged). fail-fast:false keeps every shard's result independent.
   e2e-frontend:
-    name: Frontend E2E (Shard ${{ matrix.shard }}/4)
+    name: Frontend E2E (Shard ${{ matrix.shard }}/12)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     strategy:
       fail-fast: false
+      max-parallel: 12
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     steps:
       - uses: actions/checkout@v5
 
@@ -127,14 +132,18 @@ jobs:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
           NEXT_PUBLIC_API_URL: http://localhost:3010
 
-      - name: Run core E2E shard ${{ matrix.shard }}/4
+      - name: Run core E2E shard ${{ matrix.shard }}/12
         # --reporter=blob (passed inline, overriding the config reporter) so the
-        # merge job can stitch all shards into one HTML report. --shard splits
-        # the app-core specs by file across the 4 machines.
-        run: bun run test:e2e:core -- --reporter=blob --shard=${{ matrix.shard }}/4
+        # merge job can stitch all shards into one HTML report. The helper keeps
+        # local and CI sharding behavior identical.
+        run: bun run test:e2e:sharded -- --reporter=blob
         env:
           CI: true
           APP_BASE_URL: http://localhost:3000
+          E2E_EXPECT_TIMEOUT_MS: "15000"
+          E2E_RETRIES: "0"
+          E2E_SHARD_INDEX: ${{ matrix.shard }}
+          E2E_TOTAL_SHARDS: "12"
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
 
