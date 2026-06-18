@@ -31,8 +31,8 @@
         "../../packages/client/src/schemas/index.ts"
       ],
       "@genfeedai/client/schemas/*": ["../../packages/client/src/schemas/*"],
-      "@genfeedai/enums": ["../../packages/enums/dist/index"],
-      "@genfeedai/enums/*": ["../../packages/enums/dist/*"],
+      "@genfeedai/enums": ["../../packages/enums/src/index.ts"],
+      "@genfeedai/enums/*": ["../../packages/enums/src/*"],
       "@genfeedai/constants": ["../../packages/constants/src/index.ts"],
       "@genfeedai/constants/*": ["../../packages/constants/src/*"],
       "@genfeedai/helpers": ["../../packages/helpers/src/index.ts"],

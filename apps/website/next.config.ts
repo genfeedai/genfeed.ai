@@ -11,6 +11,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 });
 const websiteDir = path.dirname(fileURLToPath(import.meta.url));
 const helpersRoot = path.resolve(websiteDir, '../../packages/helpers');
+const enumsRoot = path.resolve(websiteDir, '../../packages/enums');
 
 const config = createAppNextConfig({
   appName: 'website',
@@ -73,6 +74,7 @@ config.turbopack = {
   resolveAlias: {
     ...(config.turbopack?.resolveAlias ?? {}),
     '@genfeedai/constants': '../../packages/constants/src/index.ts',
+    '@genfeedai/enums': '../../packages/enums/src/index.ts',
     '@genfeedai/helpers': '../../packages/helpers/src/index.ts',
     '@genfeedai/interfaces': '../../packages/interfaces/src/index.ts',
     '@genfeedai/serializers': '../../packages/serializers/src/index.ts',
@@ -86,6 +88,7 @@ config.transpilePackages = [
   '@genfeedai/types',
   '@genfeedai/serializers',
   '@genfeedai/constants',
+  '@genfeedai/enums',
   '@genfeedai/helpers',
   '@genfeedai/interfaces',
 ];
@@ -101,6 +104,7 @@ config.webpack = ((webpackConfig, options) => {
 
   nextConfig.resolve.alias = {
     ...nextConfig.resolve.alias,
+    '@genfeedai/enums': path.join(enumsRoot, 'src/index.ts'),
     '@genfeedai/serializers': path.join(serializersRoot, 'src/index.ts'),
     '@genfeedai/types': path.join(
       websiteDir,
