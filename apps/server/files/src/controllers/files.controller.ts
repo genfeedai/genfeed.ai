@@ -17,6 +17,7 @@ import { UploadService } from '@files/services/upload/upload.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -30,6 +31,26 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { firstValueFrom } from 'rxjs';
+
+type S3KeyGenerator = (type: string, key: string) => string;
+
+const SKILLS_PRO_DOWNLOAD_KEY_PREFIX = 'skills/v1/';
+
+export function resolvePresignedDownloadKey(
+  type: string,
+  key: string,
+  generateS3Key: S3KeyGenerator,
+): string {
+  if (type === 'skills') {
+    if (!key.startsWith(SKILLS_PRO_DOWNLOAD_KEY_PREFIX)) {
+      throw new BadRequestException('Invalid Skills Pro download key');
+    }
+
+    return key;
+  }
+
+  return generateS3Key(type, key);
+}
 
 @Controller('files')
 export class FilesController {
@@ -1260,8 +1281,11 @@ export class FilesController {
     @Param('key') key: string,
   ) {
     try {
-      // Generate S3 key: ingredients/${type}/${key}
-      const s3Key = this.s3Service.generateS3Key(type, key);
+      const s3Key = resolvePresignedDownloadKey(
+        type,
+        key,
+        this.s3Service.generateS3Key.bind(this.s3Service),
+      );
       const downloadUrl = await this.s3Service.getPresignedDownloadUrl(
         s3Key,
         3600,
@@ -1273,6 +1297,10 @@ export class FilesController {
         key: s3Key,
       };
     } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
       this.logger.error('Failed to generate presigned download URL:', error);
       throw new HttpException(
         (error as Error)?.message ||

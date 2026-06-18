@@ -36,6 +36,7 @@
 - [MongoDB Atlas URI](reference_mongodb_atlas.md) — Atlas connection string for `cloud` DB
 - [Postgres RDS](reference_postgres_rds.md) — prod `genfeed-data` + dev `local-genfeedai` instances, sslmode gotcha, PrismaService env path
 - [Production EC2](reference_prod_ec2.md) — api.genfeed.ai box: t3a.large, EIP, SSH key, deploy mechanics, never-bulk-restart + Tailscale-DNS gotchas, stale Vercel projects
+- [Skills Source Repos](reference_skills_source_repos.md) — free product skills come from `genfeedai/skills`; paid Skills Pro comes from private `genfeedai/skills-pro`
 
 ## Context (loaded via CLAUDE.md @import)
 
