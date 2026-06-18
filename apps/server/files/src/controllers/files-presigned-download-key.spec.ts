@@ -16,6 +16,17 @@ describe('resolvePresignedDownloadKey', () => {
     expect(generateS3Key).not.toHaveBeenCalled();
   });
 
+  it('rejects Skills Pro keys outside the registry prefix', () => {
+    const generateS3Key = vi.fn(
+      (type: string, key: string) => `ingredients/${type}/${key}`,
+    );
+
+    expect(() =>
+      resolvePresignedDownloadKey('skills', 'private/skill.zip', generateS3Key),
+    ).toThrow('Invalid Skills Pro download key');
+    expect(generateS3Key).not.toHaveBeenCalled();
+  });
+
   it('keeps media downloads on the existing ingredients path', () => {
     const generateS3Key = vi.fn(
       (type: string, key: string) => `ingredients/${type}/${key}`,

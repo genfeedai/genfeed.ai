@@ -1563,6 +1563,21 @@ describe('FilesController', () => {
       expect(result.key).toBe('skills/v1/content-factory-pro/1.0.0/skill.zip');
     });
 
+    it('should reject Skills Pro keys outside the registry prefix', async () => {
+      let caughtError: unknown;
+
+      try {
+        await controller.getPresignedDownloadUrl('skills', 'private/skill.zip');
+      } catch (error) {
+        caughtError = error;
+      }
+
+      expect(caughtError).toBeInstanceOf(HttpException);
+      expect((caughtError as HttpException).getStatus()).toBe(400);
+      expect(s3Service.generateS3Key).not.toHaveBeenCalled();
+      expect(s3Service.getPresignedDownloadUrl).not.toHaveBeenCalled();
+    });
+
     it('should handle presigned download URL errors', async () => {
       mockS3Service.getPresignedDownloadUrl.mockRejectedValueOnce(
         new Error('Presigned URL error'),
