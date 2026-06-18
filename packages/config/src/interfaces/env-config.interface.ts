@@ -293,6 +293,7 @@ export interface IEnvConfig {
   DISCORD_CLIENT_SECRET?: string;
   DISCORD_REDIRECT_URI?: string;
   DISCORD_GUILD_ID?: string;
+  DISCORD_CHANNEL_ID_DEPLOYMENTS?: string;
   DISCORD_CHANNEL_ID_POSTS?: string;
   DISCORD_CHANNEL_ID_STUDIO?: string;
   DISCORD_CHANNEL_ID_USERS?: string;

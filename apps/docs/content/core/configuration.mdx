@@ -98,6 +98,7 @@ Discord is optional in Core. Configure it only when the notifications service sh
 | `DISCORD_BOT_TOKEN`           | Yes      | --      | Bot token for the Discord application installed in your server                 |
 | `DISCORD_CLIENT_ID`           | Yes      | --      | Discord application client ID                                                  |
 | `DISCORD_GUILD_ID`            | Yes      | --      | Discord server ID where the bot manages notification webhooks                  |
+| `DISCORD_CHANNEL_ID_DEPLOYMENTS` | No    | --      | Channel ID for Vercel deployment/release notifications                         |
 | `DISCORD_CHANNEL_ID_POSTS`    | No       | --      | Channel ID for published post/article notifications                            |
 | `DISCORD_CHANNEL_ID_STUDIO`   | No       | --      | Channel ID for studio/ingredient notifications                                 |
 | `DISCORD_CHANNEL_ID_USERS`    | No       | --      | Channel ID for user/account notifications                                      |
@@ -106,7 +107,7 @@ Discord is optional in Core. Configure it only when the notifications service sh
 | `DISCORD_WEBHOOK_NAME_PREFIX` | No       | --      | Optional prefix for bot-managed webhook names, such as a workspace name        |
 | `DISCORD_WEBHOOK_REASON`      | No       | --      | Optional audit-log reason used when the bot creates Discord webhooks           |
 
-The integration does not require a Genfeed-managed Discord server. Channel IDs, webhook naming, avatar branding, and webhook audit reasons are self-hosted configuration.
+The integration does not require a Genfeed-managed Discord server. Channel IDs, webhook naming, avatar branding, and webhook audit reasons are self-hosted configuration. Vercel deployment notifications are handled by the notifications service, not the standalone Discord service: configure a Vercel account webhook for `https://api.example.com/v1/webhooks/vercel/callback`, store the webhook signing secret as `VERCEL_WEBHOOK_SECRET`, and provide the Discord bot/guild/channel settings when deployment messages should be posted.
 
 ---
 

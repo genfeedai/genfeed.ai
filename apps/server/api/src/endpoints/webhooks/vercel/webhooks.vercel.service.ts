@@ -100,17 +100,24 @@ export class VercelWebhookService {
       p?.deployment?.meta?.githubCommitSha || p?.meta?.githubCommitSha;
 
     const typeLabel = String(type);
-    const color = typeLabel.includes('ready')
-      ? 0x22c55e
-      : typeLabel.includes('error') || typeLabel.includes('canceled')
-        ? 0xef4444
-        : 0x6366f1;
+    const color =
+      typeLabel.includes('ready') ||
+      typeLabel.includes('succeeded') ||
+      typeLabel.includes('promoted')
+        ? 0x22c55e
+        : typeLabel.includes('error') || typeLabel.includes('canceled')
+          ? 0xef4444
+          : typeLabel.includes('rollback')
+            ? 0xf97316
+            : 0x6366f1;
 
     const titleMap: Record<string, string> = {
       'deployment.canceled': '🛑 Deployment canceled',
       'deployment.created': '🚀 Deployment started',
       'deployment.error': '❌ Deployment failed',
+      'deployment.promoted': '✅ Deployment promoted',
       'deployment.ready': '✅ Deployment ready',
+      'deployment.rollback': '↩️ Deployment rollback accepted',
       'deployment.succeeded': '✅ Deployment succeeded',
     };
 

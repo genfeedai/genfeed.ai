@@ -164,6 +164,13 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
+  getDeploymentsWebhook(): Promise<WebhookClient | null> {
+    return this.getOrCreateWebhook(
+      this.configService.get('DISCORD_CHANNEL_ID_DEPLOYMENTS'),
+      this.getWebhookName('Deployments'),
+    );
+  }
+
   getIngredientsWebhook(): Promise<WebhookClient | null> {
     return this.getOrCreateWebhook(
       this.configService.get('DISCORD_CHANNEL_ID_STUDIO'),

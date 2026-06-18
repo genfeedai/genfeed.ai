@@ -6,6 +6,7 @@ import Joi from 'joi';
 export const discordBotSchema = {
   DISCORD_BOT_AVATAR_URL: Joi.string().uri().optional().allow(''),
   DISCORD_BOT_TOKEN: Joi.string().optional().allow(''),
+  DISCORD_CHANNEL_ID_DEPLOYMENTS: Joi.string().optional().allow(''),
   DISCORD_CHANNEL_ID_POSTS: Joi.string().optional().allow(''),
   DISCORD_CHANNEL_ID_STUDIO: Joi.string().optional().allow(''),
   DISCORD_CHANNEL_ID_USERS: Joi.string().optional().allow(''),

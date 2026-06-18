@@ -1,4 +1,5 @@
 import { IngredientCategory } from '@genfeedai/enums';
+import type { IDiscordEmbed } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -289,8 +290,24 @@ export class DiscordService {
     }
   }
 
-  async sendVercelNotification(_embed: unknown): Promise<void> {
-    // Vercel Discord webhook removed — notifications disabled
+  async sendVercelNotification(embed: IDiscordEmbed): Promise<void> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const webhookClient = await this.discordBotService.getDeploymentsWebhook();
+
+    if (!webhookClient) {
+      this.loggerService.log(`${url} skipped - webhook not available`);
+      return;
+    }
+
+    try {
+      await webhookClient.send({
+        avatarURL: this.configService.get('DISCORD_BOT_AVATAR_URL'),
+        embeds: [embed],
+        username: 'Genfeed.ai Deployments',
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+    }
   }
 
   async sendChromaticNotification(_embed: unknown): Promise<void> {
