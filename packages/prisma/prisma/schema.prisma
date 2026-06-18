@@ -1183,6 +1183,9 @@ model Ingredient {
   @@index([isDeleted, personaId, reviewStatus])
   @@index([campaign, isDeleted, personaSlug])
   @@index([externalVoiceCatalogId])
+  @@index([isDeleted, createdAt(sort: Desc)], map: "ingredients_deleted_created_at_idx")
+  @@index([isDeleted, category, createdAt(sort: Desc)], map: "ingredients_deleted_category_created_at_idx")
+  @@index([isDeleted, organizationId, createdAt(sort: Desc)], map: "ingredients_deleted_org_created_at_idx")
   @@map("ingredients")
 }
 
@@ -1844,6 +1847,8 @@ model CreditTransaction {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([source, isDeleted, createdAt(sort: Desc)], map: "credit_transactions_source_deleted_created_at_idx")
+  @@index([source, isDeleted, organizationId, createdAt(sort: Desc)], map: "credit_transactions_source_deleted_org_created_at_idx")
   @@map("credit_transactions")
 }
 

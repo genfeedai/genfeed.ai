@@ -1,6 +1,7 @@
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditTransactionCategory } from '@genfeedai/enums';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -29,6 +30,31 @@ interface LeaderCountEntry {
   organizationId: string;
   organizationName: string;
   count: number;
+}
+
+interface DailyAmountRow {
+  amount: bigint | number | string | null;
+  date: string;
+}
+
+interface DailyCountRow {
+  count: bigint | number | string;
+  date: string;
+}
+
+interface CreditLeaderRow {
+  _sum?: { amount?: unknown };
+  organizationId?: string;
+}
+
+interface IngredientCategoryRow {
+  _count?: { _all?: unknown };
+  category?: unknown;
+}
+
+interface IngredientLeaderRow {
+  _count?: { _all?: unknown };
+  organizationId?: string | null;
 }
 
 interface BusinessAnalyticsResponse {
@@ -80,6 +106,10 @@ export class BusinessAnalyticsService {
     private readonly prisma: PrismaService,
     private readonly loggerService: LoggerService,
   ) {}
+
+  private readNumber(value: unknown): number {
+    return Number(value ?? 0);
+  }
 
   @LogMethod()
   async getBusinessAnalytics(): Promise<BusinessAnalyticsResponse> {
@@ -257,22 +287,28 @@ export class BusinessAnalyticsService {
     createdAtGte?: Date,
     createdAtLt?: Date,
   ): Promise<number> {
-    const transactions = await this.prisma.creditTransaction.findMany({
-      select: { amount: true },
-      where: {
-        isDeleted: false,
-        source,
-        ...(createdAtGte || createdAtLt
-          ? {
-              createdAt: {
-                ...(createdAtGte ? { gte: createdAtGte } : {}),
-                ...(createdAtLt ? { lt: createdAtLt } : {}),
-              },
-            }
-          : {}),
-      },
-    });
-    return transactions.reduce((sum, t) => sum + (t.amount ?? 0), 0);
+    const rows = createdAtLt
+      ? await this.prisma.$queryRaw<Array<{ amount?: unknown }>>(
+          Prisma.sql`
+            SELECT COALESCE(SUM("amount"), 0) AS amount
+            FROM "credit_transactions"
+            WHERE "isDeleted" = false
+              AND "source" = ${source}
+              AND "createdAt" >= ${createdAtGte ?? new Date(0)}
+              AND "createdAt" < ${createdAtLt}
+          `,
+        )
+      : await this.prisma.$queryRaw<Array<{ amount?: unknown }>>(
+          Prisma.sql`
+            SELECT COALESCE(SUM("amount"), 0) AS amount
+            FROM "credit_transactions"
+            WHERE "isDeleted" = false
+              AND "source" = ${source}
+              AND "createdAt" >= ${createdAtGte ?? new Date(0)}
+          `,
+        );
+
+    return this.readNumber(rows[0]?.amount);
   }
 
   private async getDailyCreditSeries(
@@ -280,24 +316,25 @@ export class BusinessAnalyticsService {
     from: Date,
     to: Date,
   ): Promise<DailyAmountEntry[]> {
-    const transactions = await this.prisma.creditTransaction.findMany({
-      select: { amount: true, createdAt: true },
-      where: {
-        createdAt: { gte: from, lte: to },
-        isDeleted: false,
-        source,
-      },
-    });
+    const rows = await this.prisma.$queryRaw<DailyAmountRow[]>(
+      Prisma.sql`
+        SELECT
+          to_char(date_trunc('day', "createdAt"), 'YYYY-MM-DD') AS date,
+          COALESCE(SUM("amount"), 0) AS amount
+        FROM "credit_transactions"
+        WHERE "isDeleted" = false
+          AND "source" = ${source}
+          AND "createdAt" >= ${from}
+          AND "createdAt" <= ${to}
+        GROUP BY date_trunc('day', "createdAt")
+        ORDER BY date ASC
+      `,
+    );
 
-    const byDay = new Map<string, number>();
-    for (const t of transactions) {
-      const day = t.createdAt.toISOString().slice(0, 10);
-      byDay.set(day, (byDay.get(day) ?? 0) + (t.amount ?? 0));
-    }
-
-    return Array.from(byDay.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, amount]) => ({ amount, date }));
+    return rows.map((row) => ({
+      amount: this.readNumber(row.amount),
+      date: row.date,
+    }));
   }
 
   private async countIngredients(
@@ -323,46 +360,47 @@ export class BusinessAnalyticsService {
     from: Date,
     to: Date,
   ): Promise<DailyCountEntry[]> {
-    const ingredients = await this.prisma.ingredient.findMany({
-      select: { createdAt: true },
-      where: {
-        createdAt: { gte: from, lte: to },
-        isDeleted: false,
-      },
-    });
+    const rows = await this.prisma.$queryRaw<DailyCountRow[]>(
+      Prisma.sql`
+        SELECT
+          to_char(date_trunc('day', "createdAt"), 'YYYY-MM-DD') AS date,
+          COUNT(*) AS count
+        FROM "ingredients"
+        WHERE "isDeleted" = false
+          AND "createdAt" >= ${from}
+          AND "createdAt" <= ${to}
+        GROUP BY date_trunc('day', "createdAt")
+        ORDER BY date ASC
+      `,
+    );
 
-    const byDay = new Map<string, number>();
-    for (const i of ingredients) {
-      const day = i.createdAt.toISOString().slice(0, 10);
-      byDay.set(day, (byDay.get(day) ?? 0) + 1);
-    }
-
-    return Array.from(byDay.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, count]) => ({ count, date }));
+    return rows.map((row) => ({
+      count: this.readNumber(row.count),
+      date: row.date,
+    }));
   }
 
   private async getIngredientCategoryBreakdown(
     from: Date,
     to: Date,
   ): Promise<CategoryBreakdownEntry[]> {
-    const ingredients = await this.prisma.ingredient.findMany({
-      select: { category: true },
+    const rows = await this.prisma.ingredient.groupBy({
+      _count: { _all: true },
+      by: ['category'],
+      orderBy: { _count: { category: 'desc' } },
+      take: 20,
       where: {
         createdAt: { gte: from, lte: to },
         isDeleted: false,
       },
-    });
+    } as never);
 
-    const byCat = new Map<string, number>();
-    for (const i of ingredients) {
-      const cat = String(i.category ?? 'UNKNOWN');
-      byCat.set(cat, (byCat.get(cat) ?? 0) + 1);
-    }
-
-    return Array.from(byCat.entries())
-      .sort(([, a], [, b]) => b - a)
-      .map(([category, count]) => ({ category, count }));
+    return (rows as IngredientCategoryRow[])
+      .map((row) => ({
+        category: String(row.category ?? 'UNKNOWN'),
+        count: this.readNumber(row._count?._all),
+      }))
+      .sort((a, b) => b.count - a.count);
   }
 
   private async getLeadersByCredits(
@@ -370,39 +408,34 @@ export class BusinessAnalyticsService {
     from: Date,
     to: Date,
   ): Promise<LeaderEntry[]> {
-    const transactions = await this.prisma.creditTransaction.findMany({
-      select: { amount: true, organizationId: true },
+    const rows = await this.prisma.creditTransaction.groupBy({
+      _sum: { amount: true },
+      by: ['organizationId'],
+      orderBy: { _sum: { amount: 'desc' } },
+      take: 10,
       where: {
         createdAt: { gte: from, lte: to },
         isDeleted: false,
         source,
       },
-    });
+    } as never);
 
-    // Aggregate in-memory by organizationId
-    const byOrg = new Map<string, number>();
-    for (const t of transactions) {
-      byOrg.set(
-        t.organizationId,
-        (byOrg.get(t.organizationId) ?? 0) + (t.amount ?? 0),
-      );
-    }
-
-    const top10 = Array.from(byOrg.entries())
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 10);
-
-    if (top10.length === 0) return [];
+    const leaders = (rows as CreditLeaderRow[]).map((row) => ({
+      amount: this.readNumber(row._sum?.amount),
+      organizationId: String(row.organizationId),
+    }));
+    if (leaders.length === 0) return [];
 
     // Resolve org names
-    const orgIds = top10.map(([id]) => id);
+    const orgIds = leaders.map((leader) => leader.organizationId);
     const orgs = await this.prisma.organization.findMany({
       select: { id: true, label: true },
+      take: orgIds.length,
       where: { id: { in: orgIds }, isDeleted: false },
     });
     const orgNameMap = new Map(orgs.map((o) => [o.id, o.label ?? 'Unknown']));
 
-    return top10.map(([organizationId, amount]) => ({
+    return leaders.map(({ amount, organizationId }) => ({
       amount,
       organizationId,
       organizationName: orgNameMap.get(organizationId) ?? 'Unknown',
@@ -413,37 +446,36 @@ export class BusinessAnalyticsService {
     from: Date,
     to: Date,
   ): Promise<LeaderCountEntry[]> {
-    const ingredients = await this.prisma.ingredient.findMany({
-      select: { organizationId: true },
+    const rows = await this.prisma.ingredient.groupBy({
+      _count: { _all: true },
+      by: ['organizationId'],
+      orderBy: { _count: { organizationId: 'desc' } },
+      take: 10,
       where: {
         createdAt: { gte: from, lte: to },
         isDeleted: false,
         organizationId: { not: null },
       },
-    });
+    } as never);
 
-    // Aggregate in-memory by organizationId
-    const byOrg = new Map<string, number>();
-    for (const i of ingredients) {
-      if (!i.organizationId) continue;
-      byOrg.set(i.organizationId, (byOrg.get(i.organizationId) ?? 0) + 1);
-    }
-
-    const top10 = Array.from(byOrg.entries())
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 10);
-
-    if (top10.length === 0) return [];
+    const leaders = (rows as IngredientLeaderRow[])
+      .filter((row) => row.organizationId)
+      .map((row) => ({
+        count: this.readNumber(row._count?._all),
+        organizationId: String(row.organizationId),
+      }));
+    if (leaders.length === 0) return [];
 
     // Resolve organization names
-    const orgIds = top10.map(([id]) => id);
+    const orgIds = leaders.map((leader) => leader.organizationId);
     const orgs = await this.prisma.organization.findMany({
       select: { id: true, label: true },
+      take: orgIds.length,
       where: { id: { in: orgIds }, isDeleted: false },
     });
     const orgNameMap = new Map(orgs.map((o) => [o.id, o.label ?? 'Unknown']));
 
-    return top10.map(([organizationId, count]) => ({
+    return leaders.map(({ count, organizationId }) => ({
       count,
       organizationId,
       organizationName: orgNameMap.get(organizationId) ?? 'Unknown',
