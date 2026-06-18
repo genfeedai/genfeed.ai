@@ -42,6 +42,7 @@ describe('ClerkWebhookController', () => {
           useValue: {
             error: vi.fn(),
             log: vi.fn(),
+            warn: vi.fn(),
           },
         },
         {
@@ -155,17 +156,20 @@ describe('ClerkWebhookController', () => {
         return { verify: mockVerify };
       });
 
-      // A failed verification is expected hostile/replayed traffic — it must
-      // surface as a 400 HttpException (suppressed from Sentry), never as the
-      // raw svix error (which the catch-all filter reports as a 500).
+      // A failed verification is expected hostile/replayed traffic: return a
+      // 400 and keep it out of error-level logs/Sentry noise.
       await expect(controller.handleClerk(request)).rejects.toThrow(
         BadRequestException,
       );
 
-      expect(loggerService.error).toHaveBeenCalledWith(
+      expect(loggerService.warn).toHaveBeenCalledWith(
         'ClerkWebhookController createClerk invalid signature',
-        verificationError,
+        {
+          error: 'No matching signature found',
+          svixId: 'test-id',
+        },
       );
+      expect(loggerService.error).not.toHaveBeenCalled();
     });
 
     it('should propagate errors from webhook service', async () => {
