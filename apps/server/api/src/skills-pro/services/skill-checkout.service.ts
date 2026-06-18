@@ -14,6 +14,9 @@ type CheckoutSession = Awaited<
 type CheckoutSessionCreateParams = Parameters<
   StripeClient['checkout']['sessions']['create']
 >[0];
+type CheckoutLineItem = NonNullable<
+  CheckoutSessionCreateParams['line_items']
+>[number];
 
 @Injectable()
 export class SkillCheckoutService {
@@ -32,12 +35,7 @@ export class SkillCheckoutService {
   ): Promise<{ url: string }> {
     this.loggerService.log(`${this.constructorName} createCheckoutSession`);
 
-    const priceId = await this.resolveBundlePriceId();
-    if (!priceId) {
-      throw new BadRequestException(
-        'Skills Pro checkout is not configured. No bundle price ID found.',
-      );
-    }
+    const lineItem = await this.resolveBundleLineItem();
 
     const defaultSuccessUrl =
       this.configService.get('GENFEEDAI_APP_URL') +
@@ -47,12 +45,7 @@ export class SkillCheckoutService {
     const sessionConfig: CheckoutSessionCreateParams = {
       allow_promotion_codes: true,
       cancel_url: dto.cancelUrl || defaultCancelUrl,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [lineItem],
       metadata: {
         bundle: 'true',
         type: 'skills-pro',
@@ -76,12 +69,35 @@ export class SkillCheckoutService {
     return { url: session.url || '' };
   }
 
-  private async resolveBundlePriceId(): Promise<string | undefined> {
+  private async resolveBundleLineItem(): Promise<CheckoutLineItem> {
     const envPriceId = this.configService.get('STRIPE_PRICE_SKILLS_PRO');
     if (envPriceId) {
-      return envPriceId;
+      return { price: envPriceId, quantity: 1 };
     }
 
-    return this.skillRegistryService.getBundleStripePriceId();
+    const registryPriceId =
+      await this.skillRegistryService.getBundleStripePriceId();
+    if (registryPriceId) {
+      return { price: registryPriceId, quantity: 1 };
+    }
+
+    const bundlePriceCents =
+      await this.skillRegistryService.getBundlePriceCents();
+    if (bundlePriceCents && bundlePriceCents > 0) {
+      return {
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'Skills Pro Bundle',
+          },
+          unit_amount: bundlePriceCents,
+        },
+        quantity: 1,
+      };
+    }
+
+    throw new BadRequestException(
+      'Skills Pro checkout is not configured. No bundle price found.',
+    );
   }
 }

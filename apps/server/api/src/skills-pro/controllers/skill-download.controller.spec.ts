@@ -103,6 +103,7 @@ describe('SkillDownloadController', () => {
   describe('downloadSkill', () => {
     it('should call getDownloadUrl with receiptId and skillSlug', async () => {
       const expected = {
+        checksum: 'sha256:image-gen',
         downloadUrl:
           'https://cdn.example.com/skills/image-gen-pro.zip?token=xyz',
         expiresIn: 900,
@@ -153,6 +154,7 @@ describe('SkillDownloadController', () => {
       const downloadUrl =
         'https://s3.amazonaws.com/skills/video-editor-v2.zip?sig=abc';
       skillDownloadService.getDownloadUrl.mockResolvedValue({
+        checksum: 'sha256:video-editor',
         downloadUrl,
         expiresIn: 900,
         skill: { name: 'Video Editor', slug: 'video-editor', version: '2.0.0' },
@@ -164,6 +166,7 @@ describe('SkillDownloadController', () => {
       });
 
       expect(result.downloadUrl).toBe(downloadUrl);
+      expect(result.checksum).toBe('sha256:video-editor');
       expect(result.skill.slug).toBe('video-editor');
     });
 

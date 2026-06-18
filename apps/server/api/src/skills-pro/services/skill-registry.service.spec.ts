@@ -10,11 +10,12 @@ interface SkillRegistryEntry {
   version: string;
   s3Key: string;
   category: string;
+  checksum?: string;
 }
 
 interface CdnSkillRegistry {
   skills: SkillRegistryEntry[];
-  bundle?: { price: number; stripePriceId: string; name: string };
+  bundle?: { price: number; stripePriceId?: string; name: string };
   bundlePrice?: number;
   updatedAt: string;
 }
@@ -27,6 +28,7 @@ describe('SkillRegistryService', () => {
   const mockSkills: SkillRegistryEntry[] = [
     {
       category: 'generation',
+      checksum: 'sha256:image-gen',
       description: 'Generate images with AI',
       name: 'Image Gen Pro',
       s3Key: 'skills/image-gen-pro-v1.zip',
@@ -35,6 +37,7 @@ describe('SkillRegistryService', () => {
     },
     {
       category: 'editing',
+      checksum: 'sha256:video-editor',
       description: 'Edit videos with AI',
       name: 'Video Editor',
       s3Key: 'skills/video-editor-v2.zip',
@@ -152,6 +155,27 @@ describe('SkillRegistryService', () => {
       const result = await service.getRegistry();
 
       expect(result.bundlePrice).toBe(99);
+    });
+
+    it('should support registries without a bundle stripePriceId', async () => {
+      const cdnWithoutStripePriceId: CdnSkillRegistry = {
+        bundle: {
+          name: 'Bundle',
+          price: 2900,
+        },
+        skills: mockSkills,
+        updatedAt: '2026-01-15T00:00:00Z',
+      };
+      global.fetch = vi.fn().mockResolvedValue({
+        json: vi.fn().mockResolvedValue(cdnWithoutStripePriceId),
+        ok: true,
+      });
+
+      const result = await service.getRegistry();
+      const stripePriceId = await service.getBundleStripePriceId();
+
+      expect(result.bundlePrice).toBe(29);
+      expect(stripePriceId).toBeUndefined();
     });
 
     it('should set bundlePrice to 0 when neither bundlePrice nor bundle exist', async () => {
@@ -298,6 +322,50 @@ describe('SkillRegistryService', () => {
       await service.getBundleStripePriceId();
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('getBundlePriceCents', () => {
+    it('should return bundle price in cents from registry bundle', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        json: vi.fn().mockResolvedValue(mockCdnRegistry),
+        ok: true,
+      });
+
+      const priceCents = await service.getBundlePriceCents();
+
+      expect(priceCents).toBe(4900);
+    });
+
+    it('should convert bundlePrice dollars to cents when bundle.price is missing', async () => {
+      const cdnWithBundlePriceOnly: CdnSkillRegistry = {
+        bundlePrice: 39,
+        skills: mockSkills,
+        updatedAt: '2026-01-15T00:00:00Z',
+      };
+      global.fetch = vi.fn().mockResolvedValue({
+        json: vi.fn().mockResolvedValue(cdnWithBundlePriceOnly),
+        ok: true,
+      });
+
+      const priceCents = await service.getBundlePriceCents();
+
+      expect(priceCents).toBe(3900);
+    });
+
+    it('should return undefined when no positive bundle price exists', async () => {
+      const cdnNoBundleInfo: CdnSkillRegistry = {
+        skills: mockSkills,
+        updatedAt: '2026-01-15T00:00:00Z',
+      };
+      global.fetch = vi.fn().mockResolvedValue({
+        json: vi.fn().mockResolvedValue(cdnNoBundleInfo),
+        ok: true,
+      });
+
+      const priceCents = await service.getBundlePriceCents();
+
+      expect(priceCents).toBeUndefined();
     });
   });
 
