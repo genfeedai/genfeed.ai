@@ -38,6 +38,7 @@
 - [MongoDB Atlas URI](reference_mongodb_atlas.md) — Atlas connection string for `cloud` DB
 - [Postgres RDS](reference_postgres_rds.md) — prod `genfeed-data` + dev `local-genfeedai` instances, sslmode gotcha, PrismaService env path
 - [Production AWS Runtime](reference_prod_aws_runtime.md) — live AWS source of truth: ECS/Fargate production, AL2023 EC2 stopped as rollback host, community deploy unaffected
+- [Production Fargate + Vercel webhook](reference_production_fargate_vercel_webhook.md) — live ECS service state, Vercel webhook receiver, Discord notification sink disabled, correct webhook reset scope
 - [Skills Source Repos](reference_skills_source_repos.md) — free product skills come from `genfeedai/skills`; paid Skills Pro comes from private `genfeedai/skills-pro`
 
 ## Context (loaded via CLAUDE.md @import)
