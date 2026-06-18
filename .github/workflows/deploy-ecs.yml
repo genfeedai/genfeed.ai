@@ -99,7 +99,8 @@ jobs:
           tofu apply -input=false -auto-approve \
             -target=aws_cloudwatch_log_group.migrate \
             -target=aws_ecs_task_definition.migrate \
-            -var="image_tag=${{ steps.tag.outputs.sha }}"
+            -var="image_tag=${{ steps.tag.outputs.sha }}" \
+            -var="enable_dns_cutover=true"
 
       - name: Run DB migrations (one-off task, gated before services roll)
         working-directory: ${{ env.TF_DIR }}
@@ -124,7 +125,7 @@ jobs:
 
       - name: Tofu apply (roll services to new image)
         working-directory: ${{ env.TF_DIR }}
-        run: tofu apply -input=false -auto-approve -var="image_tag=${{ steps.tag.outputs.sha }}"
+        run: tofu apply -input=false -auto-approve -var="image_tag=${{ steps.tag.outputs.sha }}" -var="enable_dns_cutover=true"
 
       - name: Wait for services stable
         working-directory: ${{ env.TF_DIR }}

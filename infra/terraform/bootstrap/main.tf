@@ -191,7 +191,8 @@ data "aws_iam_policy_document" "gha_deploy" {
       "ec2:RevokeSecurityGroup*", "ec2:CreateTags", "ec2:DeleteSecurityGroup",
       "ec2:*LaunchTemplate*", "autoscaling:*", "iam:GetRole", "iam:ListRolePolicies",
       "iam:ListAttachedRolePolicies", "iam:GetRolePolicy", "acm:*", "ssm:GetParameters",
-      "ssm:GetParametersByPath", "ssm:GetParameter", "ssm:DescribeParameters", "route53:*",
+      "ssm:GetParametersByPath", "ssm:GetParameter", "ssm:DescribeParameters",
+      "rds:DescribeDBInstances", "route53:*",
     ]
     resources = ["*"]
   }
