@@ -10,7 +10,12 @@ permissions:
   contents: read
 
 jobs:
+  desktop-release-qa:
+    name: Desktop Release QA
+    uses: ./.github/workflows/desktop-qa.yml
+
   desktop-macos:
+    needs: desktop-release-qa
     runs-on: macos-latest
     env:
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}

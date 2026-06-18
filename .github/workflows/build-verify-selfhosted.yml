@@ -1,27 +1,18 @@
-# Build Verify (Self-Hosted) — ensures the community all-in-one image builds on PRs
+# Build Verify (Self-Hosted) — ensures the community all-in-one image builds
+# before release/full-suite runs, without slowing every pull request.
 # Mirror of build-verify.yml, but targets docker/Dockerfile.selfhosted (Redis +
 # NestJS services + Next.js in one container) instead of the microservice image.
 #
 # Why this exists: the self-hosted image is published ONLY on `release: published`
-# (see docker-publish.yml) — there is no per-PR build of it anywhere else. A break
-# in Dockerfile.selfhosted (e.g. a missing apt package, a failed `bun.sh` install)
-# is therefore invisible until a GitHub Release fails mid-publish. This guard builds
-# it on every staging/master PR (no push, just verify) so the community `docker run`
-# image can never silently break a release.
+# (see docker-publish.yml). A break in Dockerfile.selfhosted (e.g. a missing apt
+# package, a failed `bun.sh` install) should be caught while cutting a release,
+# but not paid on every PR. This guard is manual/reusable so Full Suite and
+# release prep can run it explicitly before publishing.
 name: Build Verify (Self-Hosted)
 
 on:
-  pull_request:
-    branches: [staging, master]
-    paths:
-      - 'apps/server/**'
-      - 'apps/app/**'
-      - 'packages/**'
-      - 'configs/**'
-      - 'docker/Dockerfile.selfhosted'
-      - 'docker/selfhosted-entrypoint.sh'
-      - 'package.json'
-      - 'bun.lock'
+  workflow_dispatch:
+  workflow_call:
 
 concurrency:
   group: build-verify-selfhosted-${{ github.head_ref || github.ref_name }}
