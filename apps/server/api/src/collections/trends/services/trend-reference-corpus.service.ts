@@ -59,6 +59,10 @@ interface ReferenceRecordData {
   title?: string;
 }
 
+const DEFAULT_REFERENCE_CORPUS_LIMIT = 30;
+const DEFAULT_REFERENCE_ACCOUNT_LIMIT = 20;
+const MAX_REFERENCE_QUERY_LIMIT = 100;
+
 @Injectable()
 export class TrendReferenceCorpusService {
   constructor(
@@ -409,7 +413,10 @@ export class TrendReferenceCorpusService {
     brandId: string | undefined,
     options: ReferenceQueryOptions = {},
   ): Promise<TrendSourceReferenceResult> {
-    const limit = options.limit ?? 30;
+    const limit = this.normalizeLimit(
+      options.limit,
+      DEFAULT_REFERENCE_CORPUS_LIMIT,
+    );
 
     let sourceReferenceIds: string[] | undefined;
     if (options.trendId) {
@@ -490,7 +497,10 @@ export class TrendReferenceCorpusService {
       platform?: string;
     } = {},
   ): Promise<TrendSourceAccountResult> {
-    const limit = options.limit ?? 20;
+    const limit = this.normalizeLimit(
+      options.limit,
+      DEFAULT_REFERENCE_ACCOUNT_LIMIT,
+    );
 
     type AccountKey = string; // `${platform}:${authorHandle}`
     const accountRows = await this.prisma.trendSourceReference.groupBy({
@@ -616,6 +626,17 @@ export class TrendReferenceCorpusService {
       });
       return url.replace(/[?#].*$/, '').replace(/\/$/, '');
     }
+  }
+
+  private normalizeLimit(
+    value: number | undefined,
+    defaultLimit: number,
+  ): number {
+    if (!Number.isFinite(value) || value == null || value <= 0) {
+      return defaultLimit;
+    }
+
+    return Math.min(Math.floor(value), MAX_REFERENCE_QUERY_LIMIT);
   }
 
   private getEngagementTotal(metrics?: TrendSourceItem['metrics']): number {

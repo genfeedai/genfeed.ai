@@ -349,6 +349,22 @@ describe('TrendReferenceCorpusService', () => {
     );
   });
 
+  it('caps reference lookup limits before querying', async () => {
+    await service.getReferenceCorpus('org_1', 'brand_1', { limit: 999 });
+    await service.getTopReferenceAccounts('org_1', 'brand_1', { limit: 999 });
+
+    expect(prisma.trendSourceReference.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 100,
+      }),
+    );
+    expect(prisma.trendSourceReference.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 100,
+      }),
+    );
+  });
+
   it('resolves metadata source URLs before creating org-scoped remix lineage', async () => {
     await service.recordDraftRemixLineage({
       brandId: 'brand_1',
