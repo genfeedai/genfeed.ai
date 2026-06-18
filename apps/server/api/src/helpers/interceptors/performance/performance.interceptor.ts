@@ -6,6 +6,11 @@ import {
   isPrismaQueryMetricsEnabled,
   runWithRequestPerformance,
 } from '@api/helpers/performance/request-performance.context';
+import {
+  type ApiPerformanceSeverity,
+  normalizeApiRoute,
+  recordApiPerformanceTelemetry,
+} from '@api/helpers/performance/sentry-performance-monitor';
 import { PerformanceMetrics } from '@api/shared/interfaces/performance/performance.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -136,14 +141,10 @@ export class PerformanceInterceptor implements NestInterceptor {
     const shouldLogCompletion = this.logSuccessfulRequests && !error;
     const isSlow = duration > this.slowRequestThreshold;
     const isVerySlow = duration > this.verySlowRequestThreshold;
-
-    if (!shouldLogCompletion && !isSlow && !isVerySlow && !error) {
-      return;
-    }
-
     const metrics: PerformanceMetrics = {
       duration,
       method,
+      route: normalizeApiRoute(url),
       statusCode,
       timestamp: new Date().toISOString(),
       url,
@@ -151,19 +152,34 @@ export class PerformanceInterceptor implements NestInterceptor {
       userId,
     };
     const databaseMetrics = getRequestDatabaseMetrics();
+    const errorDetails = error ? this.readError(error) : undefined;
+    const severity = this.readPerformanceSeverity(isSlow, isVerySlow, error);
+
+    recordApiPerformanceTelemetry(
+      {
+        databaseMetrics,
+        errorMessage: errorDetails?.message,
+        metrics,
+        severity,
+      },
+      this.configService,
+    );
+
+    if (!shouldLogCompletion && !isSlow && !isVerySlow && !error) {
+      return;
+    }
 
     // Check memory usage for slow requests
     const memoryStats =
       isSlow && this.memoryMonitor
         ? this.memoryMonitor.getMemoryStats()
         : undefined;
-    const errorDetails = error ? this.readError(error) : undefined;
 
     // Log based on performance thresholds
     if (isVerySlow) {
       this.logger.warn('Very slow request detected', {
         ...metrics,
-        severity: 'HIGH',
+        severity,
         ...(databaseMetrics && { database: databaseMetrics }),
         ...(errorDetails?.message && { error: errorDetails.message }),
         ...(memoryStats && {
@@ -177,7 +193,7 @@ export class PerformanceInterceptor implements NestInterceptor {
     } else if (isSlow) {
       this.logger.warn('Slow request detected', {
         ...metrics,
-        severity: 'MEDIUM',
+        severity,
         ...(databaseMetrics && { database: databaseMetrics }),
         ...(errorDetails?.message && { error: errorDetails.message }),
         ...(memoryStats && {
@@ -193,7 +209,7 @@ export class PerformanceInterceptor implements NestInterceptor {
       this.logger.debug('Request completed', {
         ...metrics,
         ...(databaseMetrics && { database: databaseMetrics }),
-        severity: 'LOW',
+        severity,
         ...(errorDetails?.message && { error: errorDetails.message }),
       });
     }
@@ -210,6 +226,26 @@ export class PerformanceInterceptor implements NestInterceptor {
         },
       });
     }
+  }
+
+  private readPerformanceSeverity(
+    isSlow: boolean,
+    isVerySlow: boolean,
+    error?: unknown,
+  ): ApiPerformanceSeverity {
+    if (error) {
+      return 'ERROR';
+    }
+
+    if (isVerySlow) {
+      return 'HIGH';
+    }
+
+    if (isSlow) {
+      return 'MEDIUM';
+    }
+
+    return 'LOW';
   }
 }
 
@@ -255,10 +291,6 @@ export class APIMetricsInterceptor implements NestInterceptor {
   }
 
   private extractEndpoint(url: string): string {
-    // Extract endpoint pattern (e.g., /v1/videos/:id becomes /v1/videos/*)
-    return url
-      .replace(/\/[0-9a-fA-F]{24}/g, '/*') // entity IDs
-      .replace(/\/\d+/g, '/*') // Numeric IDs
-      .replace(/\/[a-zA-Z0-9-_]+$/g, '/*'); // Generic IDs at the end
+    return normalizeApiRoute(url);
   }
 }
