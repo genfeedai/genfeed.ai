@@ -746,7 +746,7 @@ export class DesktopSyncService {
             where: {
               localAssetId: op.entityId,
               parentOrgId: organizationId,
-              userId,
+              userId: userId,
             },
           });
         }

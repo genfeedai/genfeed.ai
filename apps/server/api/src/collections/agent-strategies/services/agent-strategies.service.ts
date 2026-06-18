@@ -146,7 +146,7 @@ export class AgentStrategiesService extends BaseService<
    */
   async resetFailures(id: string): Promise<void> {
     await this.delegate.updateMany({
-      where: { id },
+      where: { id, isDeleted: false },
       data: { consecutiveFailures: 0 },
     });
   }
@@ -157,7 +157,7 @@ export class AgentStrategiesService extends BaseService<
    */
   async pauseStrategy(id: string): Promise<void> {
     await this.delegate.updateMany({
-      where: { id },
+      where: { id, isDeleted: false },
       data: { isActive: false, nextRunAt: null },
     });
   }
@@ -183,7 +183,7 @@ export class AgentStrategiesService extends BaseService<
    */
   async requireManualReactivation(id: string): Promise<void> {
     await this.delegate.updateMany({
-      where: { id },
+      where: { id, isDeleted: false },
       data: {
         isActive: false,
         nextRunAt: null,

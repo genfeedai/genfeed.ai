@@ -106,6 +106,7 @@ export class ProcessedTweetsService extends BaseService<
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
 
+    // sql-risk-audit: ignore bulk-write-tenant-review -- Global TTL cleanup removes processed tweet dedupe rows by processedAt age only.
     const result = await this.prisma.processedTweet.deleteMany({
       where: { processedAt: { lt: cutoffDate } },
     });

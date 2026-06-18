@@ -109,6 +109,7 @@ export class AuthDesktopService {
     const email = user.emailAddresses?.[0]?.emailAddress;
     const name = [user.firstName, user.lastName].filter(Boolean).join(' ');
 
+    // sql-risk-audit: ignore bulk-write-tenant-review -- Global TTL cleanup uses expiresAt/usedAt predicates on short-lived auth codes, not tenant content.
     await this.prisma.desktopAuthCode.deleteMany({
       where: {
         OR: [{ expiresAt: { lte: new Date() } }, { usedAt: { not: null } }],
@@ -194,7 +195,9 @@ export class AuthDesktopService {
       data: { usedAt: new Date() },
       where: {
         id: record.id,
+        organizationId: record.organizationId,
         usedAt: null,
+        userId: record.userId,
       },
     });
 
