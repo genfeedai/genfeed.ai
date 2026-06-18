@@ -9,8 +9,16 @@ const CORE_TEST_PATHS = [
   'playwright/e2e/tests/shell/page-context-contract.spec.ts',
 ];
 
+function writeStdout(message) {
+  process.stdout.write(`${message}\n`);
+}
+
+function writeStderr(message) {
+  process.stderr.write(`${message}\n`);
+}
+
 function usage() {
-  console.log(`Usage:
+  writeStdout(`Usage:
   node scripts/e2e-sharded.mjs --shard=1/12 [--project=app-core] [--scope=core|all] [--] [playwright args...]
   E2E_SHARD_INDEX=1 E2E_TOTAL_SHARDS=12 node scripts/e2e-sharded.mjs -- --reporter=blob
 
@@ -110,7 +118,7 @@ for (let i = 0; i < ownArgs.length; i += 1) {
 shard ??= readShardFromEnv();
 
 if (!shard) {
-  console.error(
+  writeStderr(
     'Missing or invalid shard. Provide --shard=N/T or E2E_SHARD_INDEX + E2E_TOTAL_SHARDS.',
   );
   usage();
@@ -118,7 +126,7 @@ if (!shard) {
 }
 
 if (!['core', 'all'].includes(scope)) {
-  console.error(`Unsupported scope "${scope}". Expected "core" or "all".`);
+  writeStderr(`Unsupported scope "${scope}". Expected "core" or "all".`);
   process.exit(1);
 }
 
@@ -137,7 +145,7 @@ if (!hasOption(playwrightArgs, '--retries')) {
 
 args.push(...playwrightArgs);
 
-console.log(
+writeStdout(
   `[e2e-sharded] running ${project || 'all projects'} shard ${shard} (scope: ${scope}, retries: ${retries})`,
 );
 
@@ -147,12 +155,12 @@ const result = spawnSync('bunx', args, {
 });
 
 if (result.error) {
-  console.error(result.error.message);
+  writeStderr(result.error.message);
   process.exit(1);
 }
 
 if (result.signal) {
-  console.error(`[e2e-sharded] terminated by signal ${result.signal}`);
+  writeStderr(`[e2e-sharded] terminated by signal ${result.signal}`);
   process.exit(1);
 }
 
