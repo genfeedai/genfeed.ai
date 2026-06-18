@@ -36,7 +36,7 @@ import {
   buildPulidFluxPrompt,
   buildZImageTurboLoraPrompt,
   buildZImageTurboPrompt,
-} from '@genfeedai/workflows';
+} from '@genfeedai/workflows/comfyui';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
