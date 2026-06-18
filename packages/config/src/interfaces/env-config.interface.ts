@@ -61,6 +61,7 @@ export interface IEnvConfig {
   STRIPE_API_VERSION?: string;
   STRIPE_PRICE_PAYG?: string;
   STRIPE_PRICE_SKILLS_PRO?: string;
+  STRIPE_PROMOTION_CODE_SKILLS_PRO?: string;
   STRIPE_PAYG_CREDITS?: number;
   STRIPE_MONTHLY_CREDITS?: number;
   STRIPE_YEARLY_CREDITS?: number;
