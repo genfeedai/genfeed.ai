@@ -60,6 +60,7 @@ function buildService() {
     },
     desktopMessage: {
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     desktopThread: {
       findMany: vi.fn(),
@@ -127,6 +128,82 @@ describe('DesktopSyncService', () => {
         }),
       }),
     );
+  });
+
+  it('pulls threads with bounded child message queries', async () => {
+    const { prisma, service } = buildService();
+    const threadUpdatedAt = new Date('2026-05-01T11:00:00.000Z');
+    const messageCreatedAt = new Date('2026-05-01T10:30:00.000Z');
+    prisma.desktopThread.findMany.mockResolvedValue([
+      {
+        createdAt: new Date('2026-05-01T10:00:00.000Z'),
+        id: 'thread-local',
+        status: 'idle',
+        title: 'Offline plan',
+        updatedAt: threadUpdatedAt,
+        workspaceId: 'workspace-local',
+      },
+    ]);
+    prisma.desktopMessage.findMany.mockResolvedValue([
+      {
+        content: 'hello',
+        createdAt: messageCreatedAt,
+        draftId: null,
+        generatedContent: null,
+        id: 'message-local',
+        role: 'user',
+      },
+    ]);
+
+    const result = await service.pullThreads(
+      makeUser(),
+      '2026-05-01T09:00:00.000Z',
+      { limit: 999, messageLimit: 999 },
+    );
+
+    expect(prisma.desktopThread.findMany).toHaveBeenCalledWith({
+      orderBy: { updatedAt: 'asc' },
+      select: {
+        createdAt: true,
+        id: true,
+        status: true,
+        title: true,
+        updatedAt: true,
+        workspaceId: true,
+      },
+      take: 101,
+      where: {
+        organizationId,
+        updatedAt: { gt: new Date('2026-05-01T09:00:00.000Z') },
+        userId,
+      },
+    });
+    expect(prisma.desktopMessage.findMany).toHaveBeenCalledWith({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: {
+        content: true,
+        createdAt: true,
+        draftId: true,
+        generatedContent: true,
+        id: true,
+        role: true,
+      },
+      take: 200,
+      where: { threadId: 'thread-local' },
+    });
+    expect(result.data).toMatchObject({
+      hasMore: false,
+      limits: {
+        messageLimit: 200,
+        threadLimit: 100,
+      },
+      threads: [
+        {
+          id: 'thread-local',
+          messages: [{ id: 'message-local' }],
+        },
+      ],
+    });
   });
 
   it('rejects thread pushes that collide with another owner', async () => {

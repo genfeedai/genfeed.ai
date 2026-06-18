@@ -74,6 +74,7 @@ export class AgentThreadsController {
     @Param('threadId') threadId: string,
     @CurrentUser() user: User,
     @Query('limit') limit?: string,
+    @Query('cursor') cursor?: string,
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
@@ -82,7 +83,7 @@ export class AgentThreadsController {
       const messages = await this.agentMessagesService.getMessagesByRoom(
         threadId,
         organizationId,
-        { limit: messageLimit },
+        { cursor, limit: messageLimit },
       );
 
       const chronological = [...messages].reverse();

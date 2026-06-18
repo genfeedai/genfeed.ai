@@ -260,6 +260,7 @@ describe('AgentRunsController', () => {
 
       expect(mockServiceMethods.getActiveRuns).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439012',
+        { cursor: undefined, limit: undefined },
       );
     });
   });

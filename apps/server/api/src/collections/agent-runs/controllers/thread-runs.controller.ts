@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Query,
   Req,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -28,11 +29,17 @@ export class ThreadRunsController {
     @Req() request: Request,
     @Param('threadId') threadId: string,
     @CurrentUser() user: User,
+    @Query('limit') limit?: string,
+    @Query('cursor') cursor?: string,
   ) {
     const publicMetadata = getPublicMetadata(user);
     const runs = await this.agentRunsService.getByThread(
       threadId,
       publicMetadata.organization,
+      {
+        cursor,
+        limit: limit ? Number.parseInt(limit, 10) : undefined,
+      },
     );
 
     return serializeCollection(request, AgentRunSerializer, { docs: runs });

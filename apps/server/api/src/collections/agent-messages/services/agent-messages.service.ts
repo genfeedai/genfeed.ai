@@ -26,6 +26,16 @@ export interface AddMessageDto {
   metadata?: Record<string, unknown>;
 }
 
+type AgentMessagePageOptions = {
+  cursor?: string;
+  limit?: number;
+  page?: number;
+};
+
+const DEFAULT_AGENT_MESSAGE_LIMIT = 50;
+const MAX_AGENT_MESSAGE_LIMIT = 100;
+const DEFAULT_AGENT_MESSAGE_BACKLOG_LIMIT = 500;
+
 @Injectable()
 export class AgentMessagesService extends BaseService<
   AgentMessageDocument,
@@ -52,18 +62,25 @@ export class AgentMessagesService extends BaseService<
   async getMessagesByRoom(
     roomId: string,
     organizationId: string,
-    options: { limit?: number; page?: number } = {},
+    options: AgentMessagePageOptions = {},
   ): Promise<AgentMessageDocument[]> {
-    const { limit = 50, page = 1 } = options;
-    const skip = (page - 1) * limit;
+    const limit = this.normalizeLimit(
+      options.limit,
+      DEFAULT_AGENT_MESSAGE_LIMIT,
+      MAX_AGENT_MESSAGE_LIMIT,
+    );
+    const page = Math.max(1, options.page ?? 1);
+    const cursorDate = this.parseCursorDate(options.cursor);
+    const skip = cursorDate ? undefined : (page - 1) * limit;
 
     return this.delegate.findMany({
       where: {
+        ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}),
         isDeleted: false,
         organizationId,
         threadId: roomId,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip,
       take: limit,
     }) as Promise<AgentMessageDocument[]>;
@@ -73,13 +90,14 @@ export class AgentMessagesService extends BaseService<
     roomId: string,
     limit = 20,
   ): Promise<AgentMessageDocument[]> {
+    const safeLimit = this.normalizeLimit(limit, 20, MAX_AGENT_MESSAGE_LIMIT);
     const messages = await this.delegate.findMany({
       where: {
         isDeleted: false,
         threadId: roomId,
       },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: safeLimit,
     });
 
     // Reverse to chronological order for LLM context
@@ -97,6 +115,7 @@ export class AgentMessagesService extends BaseService<
     afterMessageId: string,
     limit = 5,
   ): Promise<AgentMessageDocument[]> {
+    const safeLimit = this.normalizeLimit(limit, 5, MAX_AGENT_MESSAGE_LIMIT);
     // Sort descending to get the LATEST N, then reverse to chronological
     const messages = await this.delegate.findMany({
       where: {
@@ -105,7 +124,7 @@ export class AgentMessagesService extends BaseService<
         threadId: roomId,
       },
       orderBy: { id: 'desc' },
-      take: limit,
+      take: safeLimit,
     });
 
     return (messages as AgentMessageDocument[]).reverse();
@@ -140,27 +159,45 @@ export class AgentMessagesService extends BaseService<
   }
 
   /**
-   * Get ALL non-deleted messages in a thread, in chronological order.
-   * Used by compaction to process the full backlog when no prior state exists.
+   * Get a bounded page of non-deleted messages in a thread, in chronological
+   * order. Used by compaction; callers must pass a cursor or repeat if they
+   * need to process more than DEFAULT_AGENT_MESSAGE_BACKLOG_LIMIT messages.
    */
-  async getAllMessages(roomId: string): Promise<AgentMessageDocument[]> {
+  async getAllMessages(
+    roomId: string,
+    options: Pick<AgentMessagePageOptions, 'limit'> = {},
+  ): Promise<AgentMessageDocument[]> {
+    const limit = this.normalizeLimit(
+      options.limit,
+      DEFAULT_AGENT_MESSAGE_BACKLOG_LIMIT,
+      DEFAULT_AGENT_MESSAGE_BACKLOG_LIMIT,
+    );
+
     return this.delegate.findMany({
       where: {
         isDeleted: false,
         threadId: roomId,
       },
       orderBy: { id: 'asc' },
+      take: limit,
     }) as Promise<AgentMessageDocument[]>;
   }
 
   /**
-   * Get ALL non-deleted messages after a boundary, in chronological order.
-   * Used by compaction to process uncompacted messages without a fixed cap.
+   * Get a bounded page of non-deleted messages after a boundary, in
+   * chronological order.
    */
   async getAllMessagesAfter(
     roomId: string,
     afterMessageId: string,
+    options: Pick<AgentMessagePageOptions, 'limit'> = {},
   ): Promise<AgentMessageDocument[]> {
+    const limit = this.normalizeLimit(
+      options.limit,
+      DEFAULT_AGENT_MESSAGE_BACKLOG_LIMIT,
+      DEFAULT_AGENT_MESSAGE_BACKLOG_LIMIT,
+    );
+
     return this.delegate.findMany({
       where: {
         id: { gt: afterMessageId },
@@ -168,6 +205,7 @@ export class AgentMessagesService extends BaseService<
         threadId: roomId,
       },
       orderBy: { id: 'asc' },
+      take: limit,
     }) as Promise<AgentMessageDocument[]>;
   }
 
@@ -176,36 +214,67 @@ export class AgentMessagesService extends BaseService<
     targetRoomId: string,
     organizationId: string,
   ): Promise<void> {
-    const docs = await this.delegate.findMany({
-      where: {
-        isDeleted: false,
-        organizationId,
-        threadId: sourceRoomId,
-      },
-      orderBy: { createdAt: 'asc' },
-    });
+    let cursor: { id: string } | undefined;
 
-    if (!docs || docs.length === 0) {
-      return;
+    while (true) {
+      const docs = (await this.delegate.findMany({
+        ...(cursor ? { cursor, skip: 1 } : {}),
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        take: DEFAULT_AGENT_MESSAGE_BACKLOG_LIMIT,
+        where: {
+          isDeleted: false,
+          organizationId,
+          threadId: sourceRoomId,
+        },
+      })) as Array<Record<string, unknown> & { id: string }>;
+
+      if (docs.length === 0) {
+        return;
+      }
+
+      await Promise.all(
+        docs.map((doc) =>
+          this.delegate.create({
+            data: {
+              brandId: doc.brandId,
+              content: doc.content,
+              isDeleted: doc.isDeleted,
+              metadata: doc.metadata,
+              organizationId: doc.organizationId,
+              role: doc.role,
+              threadId: targetRoomId,
+              toolCallId: doc.toolCallId,
+              toolCalls: doc.toolCalls,
+              userId: doc.userId,
+            },
+          }),
+        ),
+      );
+
+      if (docs.length < DEFAULT_AGENT_MESSAGE_BACKLOG_LIMIT) {
+        return;
+      }
+
+      cursor = { id: docs[docs.length - 1].id };
+    }
+  }
+
+  private normalizeLimit(
+    value: number | undefined,
+    defaultLimit: number,
+    maxLimit: number,
+  ): number {
+    if (!Number.isFinite(value) || value == null || value <= 0) {
+      return defaultLimit;
     }
 
-    await Promise.all(
-      docs.map((doc: Record<string, unknown>) =>
-        this.delegate.create({
-          data: {
-            brandId: doc.brandId,
-            content: doc.content,
-            isDeleted: doc.isDeleted,
-            metadata: doc.metadata,
-            organizationId: doc.organizationId,
-            role: doc.role,
-            threadId: targetRoomId,
-            toolCallId: doc.toolCallId,
-            toolCalls: doc.toolCalls,
-            userId: doc.userId,
-          },
-        }),
-      ),
-    );
+    return Math.min(Math.floor(value), maxLimit);
+  }
+
+  private parseCursorDate(cursor: string | undefined): Date | undefined {
+    if (!cursor) return undefined;
+
+    const parsed = new Date(cursor);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
   }
 }

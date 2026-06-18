@@ -81,6 +81,7 @@ describe('ThreadRunsController', () => {
       expect(agentRunsService.getByThread).toHaveBeenCalledWith(
         threadId,
         orgId,
+        { cursor: undefined, limit: undefined },
       );
       expect(result).toEqual({ data: mockRuns });
     });
@@ -105,6 +106,7 @@ describe('ThreadRunsController', () => {
       expect(agentRunsService.getByThread).toHaveBeenCalledWith(
         expect.any(String),
         orgId,
+        { cursor: undefined, limit: undefined },
       );
     });
 
@@ -116,6 +118,7 @@ describe('ThreadRunsController', () => {
       expect(agentRunsService.getByThread).toHaveBeenCalledWith(
         threadId,
         expect.any(String),
+        { cursor: undefined, limit: undefined },
       );
     });
 
@@ -145,6 +148,7 @@ describe('ThreadRunsController', () => {
       expect(agentRunsService.getByThread).toHaveBeenCalledWith(
         otherThreadId,
         orgId,
+        { cursor: undefined, limit: undefined },
       );
     });
 
