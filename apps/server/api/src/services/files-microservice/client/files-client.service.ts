@@ -193,6 +193,25 @@ export class FilesClientService {
     }
   }
 
+  async resizeImageFromUrl(imageUrl: string, target: IVideoDimensions) {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.filesServiceUrl}/v1/files/processing/resize-image`,
+          {
+            height: target.height,
+            imageUrl,
+            width: target.width,
+          },
+        ),
+      );
+      return Buffer.from(response.data.data, 'base64');
+    } catch (error: unknown) {
+      this.loggerService.error('Failed to resize image from URL', error);
+      throw error;
+    }
+  }
+
   async resizeVideo(inputPath: string, target: IVideoDimensions) {
     try {
       const response = await firstValueFrom(

@@ -8,6 +8,7 @@ import { JOB_PRIORITY, JOB_TYPES } from '@files/queues/queue.constants';
 import { VideoQueueService } from '@files/queues/video-queue.service';
 import { YoutubeQueueService } from '@files/queues/youtube-queue.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
+import { FilesService } from '@files/services/files/files.service';
 import type { HookRemixJobData } from '@files/services/hook-remix/hook-remix.interfaces';
 import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
 import { ImagesSplitService } from '@files/services/images/images-split.service';
@@ -64,6 +65,7 @@ export class FilesController {
     @Inject(HttpService) private readonly httpService: HttpService,
     @Inject(ImageQueueService)
     private readonly imageQueueService: ImageQueueService,
+    @Inject(FilesService) private readonly filesService: FilesService,
     @Inject(ImagesSplitService)
     private readonly imagesSplitService: ImagesSplitService,
     private readonly logger: LoggerService,
@@ -663,6 +665,82 @@ export class FilesController {
       this.logger.error('Failed to generate thumbnail:', error);
       throw new HttpException(
         (error as Error)?.message || 'Failed to generate thumbnail',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Resize an image from a URL or base64 payload.
+   */
+  @Post('processing/resize-image')
+  async resizeImage(
+    @Body()
+    body: {
+      imageData?: string;
+      imageUrl?: string;
+      width: number;
+      height: number;
+    },
+  ) {
+    try {
+      const { imageData, imageUrl, width, height } = body;
+
+      if (!Number.isFinite(width) || width <= 0) {
+        throw new HttpException(
+          'width must be a positive number',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      if (!Number.isFinite(height) || height <= 0) {
+        throw new HttpException(
+          'height must be a positive number',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      if (!imageData && !imageUrl) {
+        throw new HttpException(
+          'imageData or imageUrl is required',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      let imageBuffer: Buffer;
+
+      if (imageData) {
+        imageBuffer = Buffer.from(imageData, 'base64');
+      } else {
+        const response = await firstValueFrom(
+          this.httpService.get(imageUrl as string, {
+            maxContentLength: 50 * 1024 * 1024,
+            responseType: 'arraybuffer',
+            timeout: 30000,
+          }),
+        );
+        imageBuffer = Buffer.from(response.data);
+      }
+
+      const resizedImage = await this.filesService.resizeImage(imageBuffer, {
+        height,
+        width,
+      });
+
+      return {
+        data: resizedImage.toString('base64'),
+        height,
+        size: resizedImage.length,
+        width,
+      };
+    } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      this.logger.error('Failed to resize image:', error);
+      throw new HttpException(
+        (error as Error)?.message || 'Failed to resize image',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

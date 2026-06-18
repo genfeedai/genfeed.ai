@@ -24,7 +24,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -43,7 +43,7 @@ describe('ImagesTransformationsController', () => {
   let _imagesService: ImagesService;
   let _metadataService: MetadataService;
   let _sharedService: SharedService;
-  let _fileQueueService: FileQueueService;
+  let _filesClientService: FilesClientService;
   let _replicateService: ReplicateService;
   let _promptBuilderService: PromptBuilderService;
   let _creditsUtilsService: CreditsUtilsService;
@@ -92,9 +92,15 @@ describe('ImagesTransformationsController', () => {
     failedGenerationService: {
       handleFailedImageGeneration: vi.fn(),
     },
-    fileQueueService: {
-      processImage: vi.fn(),
-      waitForJob: vi.fn(),
+    filesClientService: {
+      resizeImageFromUrl: vi.fn().mockResolvedValue(Buffer.from('resized')),
+      uploadToS3: vi.fn().mockResolvedValue({
+        height: 1920,
+        publicUrl: 'https://cdn.example.com/resized.jpg',
+        s3Key: 'ingredients/images/507f1f77bcf86cd799439017',
+        size: 1024 * 1024,
+        width: 1080,
+      }),
     },
     imagesService: {
       findOne: vi.fn(),
@@ -169,8 +175,8 @@ describe('ImagesTransformationsController', () => {
           useValue: mockServices.failedGenerationService,
         },
         {
-          provide: FileQueueService,
-          useValue: mockServices.fileQueueService,
+          provide: FilesClientService,
+          useValue: mockServices.filesClientService,
         },
         { provide: ImagesService, useValue: mockServices.imagesService },
         { provide: LoggerService, useValue: mockServices.loggerService },
@@ -209,7 +215,7 @@ describe('ImagesTransformationsController', () => {
     _imagesService = module.get<ImagesService>(ImagesService);
     _metadataService = module.get<MetadataService>(MetadataService);
     _sharedService = module.get<SharedService>(SharedService);
-    _fileQueueService = module.get<FileQueueService>(FileQueueService);
+    _filesClientService = module.get<FilesClientService>(FilesClientService);
     _replicateService = module.get<ReplicateService>(ReplicateService);
     _promptBuilderService =
       module.get<PromptBuilderService>(PromptBuilderService);
@@ -233,15 +239,9 @@ describe('ImagesTransformationsController', () => {
       };
 
       mockServices.imagesService.findOne.mockResolvedValue(mockImage);
-      mockServices.fileQueueService.processImage.mockResolvedValue({
-        jobId: 'job-123',
-      });
-      mockServices.fileQueueService.waitForJob.mockResolvedValue({
-        metadata: {
-          height: 1920,
-          size: 1024 * 1024,
-          width: 1080,
-        },
+      mockServices.imagesService.patch.mockResolvedValue({
+        _id: '507f1f77bcf86cd799439017',
+        status: 'generated',
       });
 
       const result = await controller.resizeImage(
@@ -253,7 +253,32 @@ describe('ImagesTransformationsController', () => {
 
       expect(mockServices.imagesService.findOne).toHaveBeenCalled();
       expect(mockServices.sharedService.saveDocuments).toHaveBeenCalled();
-      expect(mockServices.fileQueueService.processImage).toHaveBeenCalled();
+      expect(
+        mockServices.filesClientService.resizeImageFromUrl,
+      ).toHaveBeenCalledWith(
+        'https://api.example.com/ingredients/images/507f1f77bcf86cd799439014',
+        {
+          height: 1920,
+          width: 1080,
+        },
+      );
+      expect(mockServices.filesClientService.uploadToS3).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439017',
+        'images',
+        {
+          contentType: 'image/jpeg',
+          data: Buffer.from('resized'),
+          type: 'buffer',
+        },
+      );
+      expect(mockServices.metadataService.patch).toHaveBeenCalled();
+      expect(mockServices.imagesService.patch).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439017',
+        expect.objectContaining({
+          status: 'generated',
+          transformations: ['resized'],
+        }),
+      );
       expect(result).toBeDefined();
     });
 
@@ -272,16 +297,6 @@ describe('ImagesTransformationsController', () => {
 
     it('should use default dimensions when not provided', async () => {
       mockServices.imagesService.findOne.mockResolvedValue(mockImage);
-      mockServices.fileQueueService.processImage.mockResolvedValue({
-        jobId: 'job-123',
-      });
-      mockServices.fileQueueService.waitForJob.mockResolvedValue({
-        metadata: {
-          height: 1920,
-          size: 1024 * 1024,
-          width: 1080,
-        },
-      });
 
       await controller.resizeImage(
         mockRequest,
@@ -290,14 +305,14 @@ describe('ImagesTransformationsController', () => {
         {},
       );
 
-      expect(mockServices.fileQueueService.processImage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          params: {
-            height: 1920,
-            sourceId: '507f1f77bcf86cd799439014',
-            width: 1080,
-          },
-        }),
+      expect(
+        mockServices.filesClientService.resizeImageFromUrl,
+      ).toHaveBeenCalledWith(
+        'https://api.example.com/ingredients/images/507f1f77bcf86cd799439014',
+        {
+          height: 1920,
+          width: 1080,
+        },
       );
     });
   });

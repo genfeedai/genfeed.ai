@@ -8,6 +8,7 @@ import { JOB_TYPES } from '@files/queues/queue.constants';
 import { VideoQueueService } from '@files/queues/video-queue.service';
 import { YoutubeQueueService } from '@files/queues/youtube-queue.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
+import { FilesService } from '@files/services/files/files.service';
 import { ImagesSplitService } from '@files/services/images/images-split.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnail.service';
@@ -49,6 +50,7 @@ describe('FilesController', () => {
   let uploadService: UploadService;
   let videoThumbnailService: VideoThumbnailService;
   let imagesSplitService: ImagesSplitService;
+  let filesService: FilesService;
   let tempFileCleanupCron: TempFileCleanupCron;
   let ffmpegService: FFmpegService;
 
@@ -180,6 +182,10 @@ describe('FilesController', () => {
     ]),
   };
 
+  const mockFilesService = {
+    resizeImage: vi.fn().mockResolvedValue(Buffer.from('resized-image-data')),
+  };
+
   const mockTempFileCleanupCron = {
     manualCleanup: vi.fn().mockResolvedValue({
       filesDeleted: 5,
@@ -294,6 +300,9 @@ describe('FilesController', () => {
       { buffer: Buffer.from('frame3'), height: 512, width: 512 },
       { buffer: Buffer.from('frame4'), height: 512, width: 512 },
     ]);
+    mockFilesService.resizeImage.mockResolvedValue(
+      Buffer.from('resized-image-data'),
+    );
 
     mockTempFileCleanupCron.manualCleanup.mockResolvedValue({
       filesDeleted: 5,
@@ -315,6 +324,7 @@ describe('FilesController', () => {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: FileQueueService, useValue: mockFileQueueService },
         { provide: FFmpegService, useValue: mockFFmpegService },
+        { provide: FilesService, useValue: mockFilesService },
         { provide: HttpService, useValue: mockHttpService },
         { provide: ImageQueueService, useValue: mockImageQueueService },
         { provide: ImagesSplitService, useValue: mockImagesSplitService },
@@ -339,6 +349,7 @@ describe('FilesController', () => {
       VideoThumbnailService,
     );
     imagesSplitService = module.get<ImagesSplitService>(ImagesSplitService);
+    filesService = module.get<FilesService>(FilesService);
     tempFileCleanupCron = module.get<TempFileCleanupCron>(TempFileCleanupCron);
     ffmpegService = module.get<FFmpegService>(FFmpegService);
   });
@@ -365,6 +376,7 @@ describe('FilesController', () => {
       expect(uploadService).toBeDefined();
       expect(videoThumbnailService).toBeDefined();
       expect(imagesSplitService).toBeDefined();
+      expect(filesService).toBeDefined();
       expect(tempFileCleanupCron).toBeDefined();
       expect(ffmpegService).toBeDefined();
     });
@@ -973,6 +985,78 @@ describe('FilesController', () => {
       await expect(controller.generateThumbnail(body)).rejects.toThrow(
         HttpException,
       );
+    });
+  });
+
+  // ==========================================================================
+  // resizeImage
+  // ==========================================================================
+  describe('resizeImage', () => {
+    it('should resize base64 image data successfully', async () => {
+      const source = Buffer.from('image-data');
+      const result = await controller.resizeImage({
+        height: 600,
+        imageData: source.toString('base64'),
+        width: 800,
+      });
+
+      expect(filesService.resizeImage).toHaveBeenCalledWith(source, {
+        height: 600,
+        width: 800,
+      });
+      expect(result).toEqual({
+        data: Buffer.from('resized-image-data').toString('base64'),
+        height: 600,
+        size: Buffer.from('resized-image-data').length,
+        width: 800,
+      });
+    });
+
+    it('should resize image URL input successfully', async () => {
+      mockHttpService.get.mockReturnValueOnce(
+        of({
+          data: Buffer.from('downloaded-image'),
+          headers: { 'content-type': 'image/png' },
+        }),
+      );
+
+      await controller.resizeImage({
+        height: 600,
+        imageUrl: 'https://example.com/image.png',
+        width: 800,
+      });
+
+      expect(mockHttpService.get).toHaveBeenCalledWith(
+        'https://example.com/image.png',
+        {
+          maxContentLength: 50 * 1024 * 1024,
+          responseType: 'arraybuffer',
+          timeout: 30000,
+        },
+      );
+      expect(filesService.resizeImage).toHaveBeenCalledWith(
+        Buffer.from('downloaded-image'),
+        {
+          height: 600,
+          width: 800,
+        },
+      );
+    });
+
+    it('should reject missing image input', async () => {
+      await expect(
+        controller.resizeImage({ height: 600, width: 800 }),
+      ).rejects.toThrow('imageData or imageUrl is required');
+    });
+
+    it('should reject invalid dimensions', async () => {
+      await expect(
+        controller.resizeImage({
+          height: 600,
+          imageData: Buffer.from('image-data').toString('base64'),
+          width: 0,
+        }),
+      ).rejects.toThrow('width must be a positive number');
     });
   });
 

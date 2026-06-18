@@ -35,7 +35,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -53,6 +53,7 @@ import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
+  FileInputType,
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
@@ -98,7 +99,7 @@ export class ImagesTransformationsController {
     private readonly activitiesService: ActivitiesService,
     private readonly configService: ConfigService,
     private readonly failedGenerationService: FailedGenerationService,
-    private readonly fileQueueService: FileQueueService,
+    private readonly filesClientService: FilesClientService,
     private readonly imagesService: ImagesService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
@@ -144,48 +145,55 @@ export class ImagesTransformationsController {
           status: IngredientStatus.PROCESSING,
         });
 
-      // Queue image resize operation in files.genfeed service
-      const resizeJob = await this.fileQueueService.processImage({
-        clerkUserId: user.id,
-        ingredientId: ingredientData._id.toString(),
-        organizationId: publicMetadata.organization,
-        params: {
-          height: body.height || 1920,
-          sourceId: imageId,
-          width: body.width || 1080,
+      const target = {
+        height: body.height || 1920,
+        width: body.width || 1080,
+      };
+
+      const imageUrl = `${this.configService.ingredientsEndpoint}/images/${imageId}`;
+      const resizedImage = await this.filesClientService.resizeImageFromUrl(
+        imageUrl,
+        target,
+      );
+
+      const uploadMeta = await this.filesClientService.uploadToS3(
+        ingredientData._id.toString(),
+        'images',
+        {
+          contentType: 'image/jpeg',
+          data: resizedImage,
+          type: FileInputType.BUFFER,
         },
-        room: getUserRoomName(user.id),
-        type: 'resize',
-        userId: publicMetadata.user,
-      });
+      );
 
-      // Wait for the resize operation to complete
-      this.fileQueueService
-        .waitForJob(resizeJob.jobId, 30_000)
-        .then(async (result: unknown) => {
-          // The resize operation in files.genfeed should handle S3 upload
-          // Update metadata with the result from the job
-          const meta =
-            (result as { metadata?: Record<string, unknown> }).metadata || {};
+      await this.metadataService.patch(
+        metadataData._id,
+        new MetadataEntity({
+          height: uploadMeta.height ?? target.height,
+          size: uploadMeta.size ?? resizedImage.length,
+          width: uploadMeta.width ?? target.width,
+        }),
+      );
 
-          await this.metadataService.patch(metadataData._id, {
-            height: meta.height,
-            size: meta.size,
-            width: meta.width,
-          });
+      const updatedIngredient = await this.imagesService.patch(
+        ingredientData._id,
+        {
+          cdnUrl:
+            typeof uploadMeta.publicUrl === 'string'
+              ? uploadMeta.publicUrl
+              : undefined,
+          s3Key:
+            typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : undefined,
+          status: IngredientStatus.GENERATED,
+          transformations: [TransformationCategory.RESIZED],
+        },
+      );
 
-          await this.imagesService.patch(ingredientData._id, {
-            status: IngredientStatus.GENERATED,
-            transformations: [TransformationCategory.RESIZED],
-          });
-
-          // Cleanup is handled by files.genfeed service
-        })
-        .catch((error: unknown) => {
-          this.loggerService.error(`${url} resizeImage failed`, error);
-        });
-
-      return serializeSingle(request, IngredientSerializer, ingredientData);
+      return serializeSingle(
+        request,
+        IngredientSerializer,
+        updatedIngredient || ingredientData,
+      );
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
