@@ -2143,6 +2143,8 @@ model AgentMessage {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc), id])
+  @@index([threadId, isDeleted, id])
   @@map("agent_messages")
 }
 
@@ -2184,6 +2186,9 @@ model AgentRun {
   creditsUsed Int     @default(0)
   durationMs  Int?
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, status, createdAt(sort: Desc)])
+  @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc)])
   @@map("agent_runs")
 }
 
@@ -4064,6 +4069,7 @@ model DesktopThread {
 
   @@index([userId, updatedAt(sort: Desc)])
   @@index([organizationId, updatedAt(sort: Desc)])
+  @@index([organizationId, userId, updatedAt(sort: Desc)])
   @@map("desktop_threads")
 }
 
@@ -4078,5 +4084,6 @@ model DesktopMessage {
   thread           DesktopThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
   @@index([threadId, createdAt])
+  @@index([threadId, createdAt, id])
   @@map("desktop_messages")
 }

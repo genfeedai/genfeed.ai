@@ -45,6 +45,10 @@ type DesktopSyncOpPushResult = {
 const MAX_DESKTOP_ASSET_BYTES = 500 * 1024 * 1024; // 500 MB
 const MAX_PROXY_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB (body-based upload)
 const MAX_ORGANIZATION_DESKTOP_STORAGE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
+const DEFAULT_DESKTOP_THREAD_LIMIT = 50;
+const MAX_DESKTOP_THREAD_LIMIT = 100;
+const DEFAULT_DESKTOP_MESSAGE_LIMIT = 100;
+const MAX_DESKTOP_MESSAGE_LIMIT = 200;
 
 const ALLOWED_DESKTOP_MIME_TYPES = new Set([
   'image/jpeg',
@@ -146,27 +150,87 @@ export class DesktopSyncService {
     return `${organizationId}/${asset.sha256}/${safeName}`;
   }
 
+  private normalizeLimit(
+    value: number | undefined,
+    defaultLimit: number,
+    maxLimit: number,
+  ): number {
+    if (!Number.isFinite(value) || value == null || value <= 0) {
+      return defaultLimit;
+    }
+
+    return Math.min(Math.floor(value), maxLimit);
+  }
+
   @LogMethod()
-  async pullThreads(user: User, cursor?: string) {
+  async pullThreads(
+    user: User,
+    cursor?: string,
+    options: { limit?: number; messageLimit?: number } = {},
+  ) {
     const { organizationId, userId } = this.getCloudContext(user);
-    const threads = await this.prisma.desktopThread.findMany({
-      include: { messages: { orderBy: { createdAt: 'asc' } } },
-      orderBy: { updatedAt: 'desc' },
+    const threadLimit = this.normalizeLimit(
+      options.limit,
+      DEFAULT_DESKTOP_THREAD_LIMIT,
+      MAX_DESKTOP_THREAD_LIMIT,
+    );
+    const messageLimit = this.normalizeLimit(
+      options.messageLimit,
+      DEFAULT_DESKTOP_MESSAGE_LIMIT,
+      MAX_DESKTOP_MESSAGE_LIMIT,
+    );
+    const threadPage = await this.prisma.desktopThread.findMany({
+      select: {
+        createdAt: true,
+        id: true,
+        status: true,
+        title: true,
+        updatedAt: true,
+        workspaceId: true,
+      },
+      orderBy: { updatedAt: 'asc' },
+      take: threadLimit + 1,
       where: {
         organizationId,
         userId,
         ...(cursor ? { updatedAt: { gt: new Date(cursor) } } : {}),
       },
     });
+    const hasMore = threadPage.length > threadLimit;
+    const threads = hasMore ? threadPage.slice(0, threadLimit) : threadPage;
 
-    const updatedCursor = new Date().toISOString();
+    const messageEntries = await Promise.all(
+      threads.map(async (thread) => {
+        const messages = await this.prisma.desktopMessage.findMany({
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          select: {
+            content: true,
+            createdAt: true,
+            draftId: true,
+            generatedContent: true,
+            id: true,
+            role: true,
+          },
+          take: messageLimit,
+          where: { threadId: thread.id },
+        });
+
+        return [thread.id, messages.reverse()] as const;
+      }),
+    );
+    const messagesByThreadId = new Map(messageEntries);
+
+    const updatedCursor =
+      threads[threads.length - 1]?.updatedAt.toISOString() ??
+      new Date().toISOString();
 
     return {
       data: {
+        hasMore,
         threads: threads.map((t) => ({
           createdAt: t.createdAt,
           id: t.id,
-          messages: t.messages.map((m) => ({
+          messages: (messagesByThreadId.get(t.id) ?? []).map((m) => ({
             content: m.content,
             createdAt: m.createdAt,
             draftId: m.draftId,
@@ -179,6 +243,10 @@ export class DesktopSyncService {
           updatedAt: t.updatedAt,
           workspaceId: t.workspaceId,
         })),
+        limits: {
+          messageLimit,
+          threadLimit,
+        },
         updatedCursor,
       },
     };
@@ -284,6 +352,7 @@ export class DesktopSyncService {
       }),
       this.prisma.brand.findMany({
         orderBy: { updatedAt: 'desc' },
+        take: 100,
         select: {
           backgroundColor: true,
           defaultImageModel: true,

@@ -21,8 +21,15 @@ export class DesktopSyncController {
   async pullThreads(
     @CurrentUser() user: User,
     @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+    @Query('messageLimit') messageLimit?: string,
   ) {
-    return this.desktopSyncService.pullThreads(user, cursor);
+    return this.desktopSyncService.pullThreads(user, cursor, {
+      limit: limit ? Number.parseInt(limit, 10) : undefined,
+      messageLimit: messageLimit
+        ? Number.parseInt(messageLimit, 10)
+        : undefined,
+    });
   }
 
   @Post('threads')

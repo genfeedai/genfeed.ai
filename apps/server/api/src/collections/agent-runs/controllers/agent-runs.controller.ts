@@ -221,10 +221,19 @@ export class AgentRunsController extends BaseCRUDController<
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get active agent runs' })
   @ApiResponse({ description: 'Active runs returned', status: 200 })
-  async getActiveRuns(@Req() request: Request, @CurrentUser() user: User) {
+  async getActiveRuns(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query('limit') limit?: string,
+    @Query('cursor') cursor?: string,
+  ) {
     const publicMetadata = getPublicMetadata(user);
     const runs = await this.agentRunsService.getActiveRuns(
       publicMetadata.organization,
+      {
+        cursor,
+        limit: limit ? Number.parseInt(limit, 10) : undefined,
+      },
     );
     return serializeCollection(request, AgentRunSerializer, { docs: runs });
   }

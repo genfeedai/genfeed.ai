@@ -26,7 +26,8 @@ describe('AgentRunsService', () => {
     await service.getActiveRuns('org-1');
 
     expect(agentRun.findMany).toHaveBeenCalledWith({
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 50,
       where: {
         isDeleted: false,
         organizationId: 'org-1',
@@ -35,6 +36,22 @@ describe('AgentRunsService', () => {
         },
       },
     });
+  });
+
+  it('caps active runs and applies cursor dates', async () => {
+    await service.getActiveRuns('org-1', {
+      cursor: '2026-06-01T10:00:00.000Z',
+      limit: 999,
+    });
+
+    expect(agentRun.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 200,
+        where: expect.objectContaining({
+          createdAt: { lt: new Date('2026-06-01T10:00:00.000Z') },
+        }),
+      }),
+    );
   });
 
   it('counts run stats with Prisma enum values', async () => {
