@@ -12,11 +12,12 @@ npm i @genfeedai/workflows
 
 ```ts
 import { WORKFLOW_REGISTRY, getWorkflowMetadata } from '@genfeedai/workflows';
-import singleImage from '@genfeedai/workflows/workflows/single-image.json';
 
 const meta = getWorkflowMetadata('single-image');
-console.log(meta?.title, singleImage.nodes.length);
+console.log(meta?.title, WORKFLOW_REGISTRY['single-image']?.slug);
 ```
+
+Workflow JSON templates are exported from `@genfeedai/workflows/workflows/*`.
 
 Generic ComfyUI helpers are available from the explicit subpath:
 

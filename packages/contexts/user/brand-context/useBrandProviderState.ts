@@ -97,8 +97,8 @@ export function useBrandProviderState({
       ? initialOrganizationId
       : initialOrganizationId || clerkData.organization || effectiveOrgId || '',
   );
-  const shouldFetchBrands = effectiveIsAuthLoaded && effectiveIsSignedIn;
-  const clientBootstrapCacheKey = shouldFetchBrands
+  const isBrandsFetchEnabled = effectiveIsAuthLoaded && effectiveIsSignedIn;
+  const clientBootstrapCacheKey = isBrandsFetchEnabled
     ? `protected-bootstrap:${sessionKey}`
     : undefined;
 
@@ -134,20 +134,20 @@ export function useBrandProviderState({
     hasInitialBootstrap,
   ]);
 
-  const skipBrandsInitialFetch = hasInitialBootstrap;
+  const hasHydratedBootstrapBrands = hasInitialBootstrap;
 
   const {
     data: brandsData,
     isLoading: brandsLoading,
     refetch: refetchBrands,
   } = useQuery({
-    enabled: shouldFetchBrands,
+    enabled: isBrandsFetchEnabled,
     initialData: hasInitialBootstrap ? initialBrands : undefined,
     initialDataUpdatedAt: hasInitialBootstrap
       ? initialDataUpdatedAt
       : undefined,
     queryFn: async () => {
-      if (!shouldFetchBrands) {
+      if (!isBrandsFetchEnabled) {
         return [];
       }
 
@@ -176,7 +176,7 @@ export function useBrandProviderState({
       return data.map((brand: Partial<IBrand>) => new Brand(brand));
     },
     queryKey: ['brand-context-brands', sessionKey],
-    staleTime: skipBrandsInitialFetch ? BRAND_CONTEXT_CACHE_TTL_MS : 0,
+    staleTime: hasHydratedBootstrapBrands ? BRAND_CONTEXT_CACHE_TTL_MS : 0,
   });
 
   const refreshBrands = useCallback(async () => {

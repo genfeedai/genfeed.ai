@@ -272,7 +272,7 @@ describe('OrganizationsSettingsController', () => {
     const organizationId = '507f1f77bcf86cd799439012';
     const brandId = '507f1f77bcf86cd799439013';
 
-    it('should return brand flag without probing private inference runtime', async () => {
+    it('should return brand flag without probing managed fleet runtime', async () => {
       mockBrandsService.findOne.mockResolvedValue({
         _id: brandId,
         isDarkroomEnabled: true,

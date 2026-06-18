@@ -292,7 +292,10 @@ export class AuthBootstrapService {
     const organizationId = base.access.organizationId;
 
     if (base.cachedPayload) {
-      return base.cachedPayload;
+      return {
+        ...base.cachedPayload,
+        darkroomCapabilities: null,
+      };
     }
 
     const streak =

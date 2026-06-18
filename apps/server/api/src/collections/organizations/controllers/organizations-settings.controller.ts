@@ -183,6 +183,7 @@ export class OrganizationsSettingsController {
       _id: `darkroom-capabilities:${resolvedOrganizationId}:${brandId}`,
       brandEnabled: Boolean(brandSettings.isDarkroomEnabled),
       brandId,
+      // Public Core exposes the brand switch here without probing managed fleet runtime.
       fleet: {
         images: false,
         llm: false,

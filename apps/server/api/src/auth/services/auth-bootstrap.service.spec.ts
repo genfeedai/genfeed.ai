@@ -207,6 +207,51 @@ describe('AuthBootstrapService', () => {
     expect(accessBootstrapCacheService.set).not.toHaveBeenCalled();
   });
 
+  it('normalizes stale cached bootstrap darkroom capabilities', async () => {
+    const cached: AccessBootstrapCachePayload = {
+      access: {
+        brandId: 'brand_1',
+        creditsBalance: 42,
+        hasEverHadCredits: true,
+        isOnboardingCompleted: true,
+        isSuperAdmin: false,
+        organizationId: 'org_1',
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
+        subscriptionTier: SubscriptionTier.BYOK,
+        userId: 'user_1',
+      },
+      brands: [{ id: 'brand_1', label: 'Alpha' }] as never,
+      currentUser: { id: 'user_1' } as never,
+      darkroomCapabilities: {
+        brandEnabled: true,
+        fleet: {
+          images: true,
+          llm: true,
+          videos: true,
+          voices: true,
+        },
+      },
+      settings: null,
+      streak: null,
+    };
+    accessBootstrapCacheService.get.mockResolvedValue(cached);
+
+    const result = await service.getBootstrap({
+      context: { organizationId: 'org_1', userId: 'user_1' },
+      user: {
+        id: 'clerk_1',
+        publicMetadata: { brand: 'brand_1' },
+      },
+    } as never);
+
+    expect(result).toEqual({
+      ...cached,
+      darkroomCapabilities: null,
+    });
+    expect(usersService.findOne).not.toHaveBeenCalled();
+    expect(accessBootstrapCacheService.set).not.toHaveBeenCalled();
+  });
+
   it('builds a nested shell bootstrap payload from authoritative services', async () => {
     const userId = 'test-object-id';
     const organizationId = 'test-object-id';
