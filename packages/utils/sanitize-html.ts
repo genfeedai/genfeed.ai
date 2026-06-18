@@ -37,8 +37,8 @@ const URL_ATTRIBUTES = new Set([
 
 function decodeHtmlControlEntities(value: string): string {
   return value
-    .replace(/&colon;/gi, ':')
-    .replace(/&newline;|&tab;/gi, '')
+    .replace(/&colon;?/gi, ':')
+    .replace(/&newline;?|&tab;?/gi, '')
     .replace(/&#(x[0-9a-f]+|\d+);?/gi, (match, code: string) => {
       const isHex = code.toLowerCase().startsWith('x');
       const rawCodePoint = isHex ? code.slice(1) : code;
@@ -73,7 +73,11 @@ function stripUrlSpacing(value: string): string {
   for (const char of value) {
     const codePoint = char.codePointAt(0) ?? 0;
 
-    if (codePoint <= 0x20 || codePoint === 0x7f || char.trim() === '') {
+    if (
+      codePoint <= 0x20 ||
+      (codePoint >= 0x7f && codePoint <= 0x9f) ||
+      char.trim() === ''
+    ) {
       continue;
     }
 
@@ -95,6 +99,18 @@ function isUnsafeUrlValue(value: string): boolean {
   );
 }
 
+function isUnsafeSrcsetValue(value: string): boolean {
+  const candidates = unquoteAttributeValue(value)
+    .split(',')
+    .map((candidate) => candidate.trim())
+    .filter(Boolean);
+
+  return candidates.some((candidate) => {
+    const [url] = candidate.split(/\s+/, 1);
+    return Boolean(url) && isUnsafeUrlValue(url);
+  });
+}
+
 function stripUnsafeAttributes(html: string): string {
   return html.replace(
     ATTRIBUTE_PATTERN,
@@ -102,6 +118,10 @@ function stripUnsafeAttributes(html: string): string {
       const name = rawName.toLowerCase();
 
       if (name.startsWith('on') || BLOCKED_ATTRIBUTES.has(name)) {
+        return '';
+      }
+
+      if (name === 'srcset' && isUnsafeSrcsetValue(rawValue)) {
         return '';
       }
 

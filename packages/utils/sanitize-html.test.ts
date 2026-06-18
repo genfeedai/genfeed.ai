@@ -45,6 +45,22 @@ describe('sanitize-html', () => {
       expect(result).toBe('<a>bad</a><a href="https://example.com">good</a>');
     });
 
+    it('should strip unsafe URL protocols hidden behind named entities and whitespace', () => {
+      const result = sanitizeHtml(
+        '<a href="java&Tab;script&colon;alert(1)">bad</a><a href="vbscript&colon;msgbox(1)">also bad</a>',
+      );
+
+      expect(result).toBe('<a>bad</a><a>also bad</a>');
+    });
+
+    it('should strip srcset attributes containing unsafe candidates', () => {
+      const result = sanitizeHtml(
+        '<img srcset="https://example.com/a.jpg 1x, java&#x73;cript:alert(1) 2x" src="https://example.com/a.jpg">',
+      );
+
+      expect(result).toBe('<img src="https://example.com/a.jpg">');
+    });
+
     it('should strip style and srcdoc attributes', () => {
       const result = sanitizeHtml(
         '<div style="color:red"><iframe srcdoc="<p>x</p>"></iframe><p>Text</p></div>',
