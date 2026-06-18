@@ -57,9 +57,9 @@ manual rollback.
 
 ## CI/Deploy Status
 
-- `Deploy Production` is disabled manually. Its legacy backend job is also a
-  repo-level no-op so it cannot call `_Deploy` -> Tailscale -> SSH -> Docker
-  Compose if the workflow is re-enabled.
+- The old `Deploy Production` workflow was removed. It previously carried the
+  repo path to `_Deploy` -> Tailscale -> SSH -> Docker Compose for the AL2023
+  EC2 host and must not be used for normal backend deploys.
 - `Deploy ECS (production)` is active and is the normal backend deploy path.
 - Run `27756338031` failed before OpenTofu execution because `tofu` was not on
   PATH after `opentofu/setup-opentofu@v1`.

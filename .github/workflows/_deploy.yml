@@ -1,4 +1,4 @@
-# Reusable deployment workflow — called by deploy-staging.yml and deploy-production.yml
+# Reusable staging deployment workflow — called by deploy-staging.yml.
 # Consolidates change detection, testing, Docker build, and SSH deploy into one file.
 
 name: _Deploy
