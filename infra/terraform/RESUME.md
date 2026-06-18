@@ -1,8 +1,9 @@
 # RESUME - genfeed.ai ECS/Fargate migration
 
-Last verified against live AWS: 2026-06-18, after the production API cutover.
+Last verified against live AWS: 2026-06-18, after the public ALB cutover for
+API, MCP, and notifications.
 
-The managed production API is now on ECS/Fargate behind the production ALB.
+The managed production backend is now on ECS/Fargate behind the production ALB.
 The old AL2023 EC2 host is stopped, not terminated, and retained only for
 manual rollback.
 
@@ -15,9 +16,8 @@ manual rollback.
 - ALB: `genfeed-production-alb-774183965.us-west-1.elb.amazonaws.com`.
 - VPC: `vpc-0e7522e453a642bd8`.
 - ECS task SG: `sg-0630fbed0bf8faafc`.
-- Last verified server image tag:
-  `05f7538e48cad75cbebf7a6405d09fc82d4db868`. Live ECS is the source of truth
-  for current task definition revisions.
+- Live ECS is the source of truth for current task definition revisions and
+  image tags.
 - Old EC2 host: `i-0ba4418050d90bd32`, `api.genfeed.ai-al2023`,
   EIP `52.52.217.255`, stopped on 2026-06-18.
 
@@ -31,13 +31,13 @@ manual rollback.
   (`desired=1`, `running=1`, `pending=0`, rollout `COMPLETED`).
 - Parked services: `clips`, `discord`, `slack`, `telegram`
   (`desired=0`, `running=0`).
-- ALB target group is healthy for the API target (`targetType=ip`, port `3010`).
-- Route53 `api.genfeed.ai` is an ALB alias.
-- Public health verification after stopping EC2:
-  `curl https://api.genfeed.ai/v1/health` returned `200` from ALB IPs.
-- `mcp.genfeed.ai` and `notifications.genfeed.ai` still point to
-  `52.52.217.255`. Those public names need explicit ALB/listener/DNS work or
-  retirement if they should remain available without EC2.
+- ALB target groups are healthy for `api` (`targetType=ip`, port `3010`),
+  `mcp` (port `3014`), and `notifications` (port `3011`).
+- Route53 `api.genfeed.ai`, `mcp.genfeed.ai`, and
+  `notifications.genfeed.ai` are ALB aliases.
+- Public health verification after stopping EC2 returned `200` for:
+  `https://api.genfeed.ai/v1/health`, `https://mcp.genfeed.ai/v1/health`, and
+  `https://notifications.genfeed.ai/v1/health`.
 
 ## Cutover Completed
 
@@ -52,11 +52,14 @@ manual rollback.
   instance was stopped.
 - GitHub Actions deploy run `27759489824` later completed green from `master`
   with server image tag `05f7538e48cad75cbebf7a6405d09fc82d4db868`.
+- Public `mcp.genfeed.ai` and `notifications.genfeed.ai` ALB/listener/DNS
+  support was added in the follow-up cutover on 2026-06-18.
 
 ## CI/Deploy Status
 
-- `Deploy Production` is disabled manually. It was the old EC2 deploy path:
-  `_Deploy` -> Tailscale -> SSH -> Docker Compose.
+- `Deploy Production` is disabled manually. Its legacy backend job is also a
+  repo-level no-op so it cannot call `_Deploy` -> Tailscale -> SSH -> Docker
+  Compose if the workflow is re-enabled.
 - `Deploy ECS (production)` is active and is the normal backend deploy path.
 - Run `27756338031` failed before OpenTofu execution because `tofu` was not on
   PATH after `opentofu/setup-opentofu@v1`.
@@ -91,11 +94,13 @@ manual rollback.
 Rollback is manual:
 
 1. Start EC2 instance `i-0ba4418050d90bd32`.
-2. Re-point Route53 `api.genfeed.ai` to EIP `52.52.217.255`.
+2. Re-point any public backend hostnames being rolled back
+   (`api.genfeed.ai`, `mcp.genfeed.ai`, `notifications.genfeed.ai`) to EIP
+   `52.52.217.255`.
 3. Verify the old nginx/Docker API path before sending user traffic.
 
-`enable_dns_cutover=false` only destroys the Terraform-managed ALB alias record;
-it does not recreate the old manual A record.
+`enable_dns_cutover=false` only destroys Terraform-managed ALB alias records; it
+does not recreate old manual A records.
 
 ## Community Deployment Impact
 
@@ -106,8 +111,6 @@ ECR, SSM, Route53, RDS, ALB, OpenTofu, or the production VPC.
 
 ## Follow-ups
 
-- Decide whether `mcp.genfeed.ai` and `notifications.genfeed.ai` should get
-  public ALB/listener/DNS support or be retired.
 - Remove broad temporary IAM privileges from the `genfeedai` IAM user after the
   migration work is complete.
 - Per-PR Fargate previews (design in `PREVIEW.md`).

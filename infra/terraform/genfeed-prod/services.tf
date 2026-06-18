@@ -41,7 +41,7 @@ module "service" {
 
   desired_count    = each.value.desired
   register_alb     = each.value.alb
-  target_group_arn = each.value.alb ? aws_lb_target_group.api.arn : ""
+  target_group_arn = each.value.alb ? (each.key == "api" ? aws_lb_target_group.api.arn : aws_lb_target_group.public_backend[each.key].arn) : ""
   health_grace     = each.value.health_grace
 
   # Keep internal Cloud Map records present during deployments. Workers verify

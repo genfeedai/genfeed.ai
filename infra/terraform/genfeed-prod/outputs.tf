@@ -7,12 +7,19 @@ output "ecr_repository_url" {
 }
 
 output "alb_dns_name" {
-  description = "Smoke-test here before flipping api.genfeed.ai DNS."
+  description = "Smoke-test here before flipping public service DNS."
   value       = aws_lb.main.dns_name
 }
 
 output "api_url" {
   value = "https://${local.fqdn}"
+}
+
+output "public_backend_urls" {
+  description = "Public HTTPS URLs routed through the production ALB."
+  value = {
+    for name, hostname in local.public_service_hostnames : name => "https://${hostname}"
+  }
 }
 
 output "redis_primary_endpoint" {

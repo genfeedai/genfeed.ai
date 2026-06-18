@@ -1,6 +1,7 @@
 # genfeed.ai - ECS/Fargate Terraform
 
-Last verified against live AWS: 2026-06-18, after the production API cutover.
+Last verified against live AWS: 2026-06-18, after the public ALB cutover for
+API, MCP, and notifications.
 
 Managed production infrastructure for genfeed.ai only. Community self-hosting
 stays on the Docker path in `docker/Dockerfile.selfhosted` and
@@ -19,20 +20,17 @@ is stopped and retained only as a manual rollback host.
 - Running core services: `api`, `workers`, `files`, `mcp`, `notifications`
   (`desired=1`, `running=1`, `pending=0` at the last verification). Task
   definition revisions change on every deploy; live AWS is the source of truth.
-- Last verified ECS deploy: GitHub Actions run `27759489824` completed from
-  `master` with server image tag
-  `05f7538e48cad75cbebf7a6405d09fc82d4db868`.
+- Last verified ECS deploy path: GitHub Actions run `27759489824` completed
+  from `master`. Live ECS is the source of truth for current task definitions.
 - Parked services: `clips`, `discord`, `slack`, `telegram`
   (`desired=0`, `running=0`). They are still defined and can be enabled by
   changing `locals.tf`.
 - ALB: `genfeed-production-alb-774183965.us-west-1.elb.amazonaws.com`, active,
-  with a healthy IP target for `api` on port `3010`.
-- Public API DNS: Route53 `api.genfeed.ai` is an ALB alias. Post-stop health
-  verification returned `200` from ALB IPs.
-- Other public backend hostnames: `mcp.genfeed.ai` and
-  `notifications.genfeed.ai` still point to old EIP `52.52.217.255`. Add public
-  ALB/listener/DNS support or retire those records before relying on them after
-  the EC2 stop.
+  with healthy IP targets for `api` on port `3010`, `mcp` on port `3014`, and
+  `notifications` on port `3011`.
+- Public backend DNS: Route53 `api.genfeed.ai`, `mcp.genfeed.ai`, and
+  `notifications.genfeed.ai` are ALB aliases. Public health verification for
+  all three `/v1/health` endpoints returned `200` from ALB IPs.
 - Legacy EC2 host: `i-0ba4418050d90bd32` / EIP `52.52.217.255` is stopped, not
   terminated. Termination protection is enabled, and the instance/root volume
   are tagged `DoNotStart=true`, `StoppedFor=fargate-cutover-2026-06-18`, and
@@ -92,9 +90,9 @@ tofu apply -var="image_tag=<sha>"
 
 ## Production Deploy Paths
 
-- `Deploy Production` is disabled manually. It was the old Tailscale + SSH +
-  Docker Compose deploy path to the AL2023 EC2 host and should not be used for
-  normal backend deploys.
+- `Deploy Production` is disabled manually. Its legacy backend job is also a
+  no-op in repo so it cannot call the old Tailscale + SSH + Docker Compose path
+  to the AL2023 EC2 host if the workflow is re-enabled.
 - `Deploy ECS (production)` is active and is the intended backend deploy path.
   It is dispatch-only, uses the GitHub `production` environment approval, and
   refuses to run from anything except `refs/heads/master`.
@@ -105,7 +103,8 @@ tofu apply -var="image_tag=<sha>"
 
 1. Copy `ghcr.io/genfeedai/genfeed.ai/server:<sha>` to ECR.
 2. Register/run the Prisma migration task on Fargate in the private subnets.
-3. `tofu apply -var="image_tag=<sha>"` to roll services.
+3. `tofu apply -var="image_tag=<sha>" -var="enable_dns_cutover=true"` to roll
+   services and preserve public ALB aliases.
 4. Wait for every ECS service to stabilize.
 
 Active services should roll with `min_healthy=100` and `max_percent=200`.
@@ -126,6 +125,19 @@ The API cutover was completed on 2026-06-18:
    after stopping EC2.
 5. Stopped, but did not terminate, the old EC2 host.
 
+The public backend follow-up was completed on 2026-06-18:
+
+1. Attached `mcp` and `notifications` Fargate services to dedicated ALB target
+   groups with host-header HTTPS listener rules.
+2. Added ACM SNI coverage for `mcp.genfeed.ai` and
+   `notifications.genfeed.ai`.
+3. Replaced the stale Route53 A records for `mcp.genfeed.ai` and
+   `notifications.genfeed.ai`, which pointed at `52.52.217.255`, with ALB
+   aliases.
+4. Verified `api.genfeed.ai`, `mcp.genfeed.ai`, and
+   `notifications.genfeed.ai` all resolve to ALB IPs and return `200` on
+   `/v1/health`.
+
 The CI deploy path was later verified green from `master` with GitHub Actions
 run `27759489824`, using server image tag
 `05f7538e48cad75cbebf7a6405d09fc82d4db868`.
@@ -133,7 +145,9 @@ run `27759489824`, using server image tag
 Rollback is manual:
 
 1. Start EC2 instance `i-0ba4418050d90bd32`.
-2. Re-point Route53 `api.genfeed.ai` to EIP `52.52.217.255`.
+2. Re-point any public backend hostnames being rolled back
+   (`api.genfeed.ai`, `mcp.genfeed.ai`, `notifications.genfeed.ai`) to EIP
+   `52.52.217.255`.
 3. Verify the old nginx/Docker path before sending user traffic.
 
 `enable_dns_cutover=false` only removes the Terraform-managed ALB alias record;

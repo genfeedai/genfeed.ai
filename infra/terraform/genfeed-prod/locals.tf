@@ -2,6 +2,20 @@ locals {
   name_prefix = "${var.project}-${var.environment}"
   fqdn        = "${var.api_subdomain}.${var.domain}" # api.genfeed.ai
 
+  public_backend_service_names = ["mcp", "notifications"]
+  public_service_hostnames = merge(
+    { api = local.fqdn },
+    { for name in local.public_backend_service_names : name => "${name}.${var.domain}" },
+  )
+  public_target_group_prefixes = {
+    mcp           = "gpmcp"
+    notifications = "gpntf"
+  }
+  public_listener_priorities = {
+    mcp           = 20
+    notifications = 30
+  }
+
   vpc_id             = var.vpc_id
   public_subnet_ids  = var.public_subnet_ids                # ALB (internet-facing)
   private_subnet_ids = [for s in aws_subnet.private : s.id] # ECS tasks/instances + cache (NAT egress)
@@ -31,8 +45,9 @@ locals {
   # Fargate launch type: cpu/mem MUST be valid Fargate task pairs (256→512-2048,
   # 512→1024-4096, 1024→2048-8192). Each task gets its own ENI from the private
   # subnets (NAT egress) — no per-instance ENI cap. Every service registers in
-  # Cloud Map for internal DNS; only api is behind the public ALB. (Tune api/
-  # workers cpu up if boot/throughput needs it — these are lean starting points.)
+  # Cloud Map for internal DNS; api/mcp/notifications are also behind the public
+  # ALB. (Tune api/workers cpu up if boot/throughput needs it — these are lean
+  # starting points.)
   # desired=0 keeps the service + task def defined (code stays, flip on anytime)
   # but runs zero tasks => ~$0. Bots/clips are built but unused, so they're parked
   # at 0. Core set (api + its boot-required deps files/mcp/notifications, +
@@ -41,8 +56,8 @@ locals {
     api           = { filter = "@genfeedai/api", port = 3010, cpu = 1024, mem = 2048, alb = true, health_grace = 120, desired = 1 }
     workers       = { filter = "@genfeedai/workers", port = 3013, cpu = 512, mem = 2048, alb = false, health_grace = 60, desired = 1 }
     files         = { filter = "@genfeedai/files", port = 3012, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 1 }
-    mcp           = { filter = "@genfeedai/mcp", port = 3014, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 1 }
-    notifications = { filter = "@genfeedai/notifications", port = 3011, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 1 }
+    mcp           = { filter = "@genfeedai/mcp", port = 3014, cpu = 256, mem = 512, alb = true, health_grace = 60, desired = 1 }
+    notifications = { filter = "@genfeedai/notifications", port = 3011, cpu = 256, mem = 512, alb = true, health_grace = 60, desired = 1 }
     clips         = { filter = "@genfeedai/clips", port = 3015, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }
     discord       = { filter = "@genfeedai/discord", port = 3016, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }
     slack         = { filter = "@genfeedai/slack", port = 3018, cpu = 256, mem = 512, alb = false, health_grace = 60, desired = 0 }
