@@ -1,4 +1,3 @@
-import process from 'node:process';
 import { ConfigService } from '@api/config/config.service';
 import {
   APIMetricsInterceptor,
@@ -28,13 +27,8 @@ vi.mock('@sentry/nestjs', () => ({
 describe('PerformanceInterceptor', () => {
   let interceptor: PerformanceInterceptor;
   let configService: Pick<ConfigService, 'get'>;
+  let configValues: Record<string, string | undefined>;
   let loggerService: vi.Mocked<LoggerService>;
-  const originalApiQueryMetrics = process.env.API_QUERY_METRICS;
-  const originalApiPerformanceAudit = process.env.API_PERFORMANCE_AUDIT;
-  const originalApiSentryPerformanceMetrics =
-    process.env.API_SENTRY_PERFORMANCE_METRICS;
-  const originalApiSlowQueryThresholdMs =
-    process.env.API_SLOW_QUERY_THRESHOLD_MS;
 
   const mockExecutionContext = {
     getRequest: vi.fn(),
@@ -64,15 +58,12 @@ describe('PerformanceInterceptor', () => {
     vi.clearAllMocks();
     vi.mocked(Sentry.getActiveSpan).mockReturnValue(undefined);
     vi.mocked(Sentry.setMeasurement).mockImplementation(() => undefined);
-    process.env.API_SLOW_QUERY_THRESHOLD_MS = '100';
-    delete process.env.API_PERFORMANCE_AUDIT;
-    delete process.env.API_QUERY_METRICS;
-    delete process.env.API_SENTRY_PERFORMANCE_METRICS;
+    configValues = {
+      API_SLOW_QUERY_THRESHOLD_MS: '100',
+    };
 
     configService = {
-      get: vi.fn((key: string) => {
-        return process.env[key];
-      }),
+      get: vi.fn((key: string) => configValues[key]),
     } as unknown as Pick<ConfigService, 'get'>;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -99,33 +90,6 @@ describe('PerformanceInterceptor', () => {
     mockExecutionContext.getRequest.mockReturnValue(mockRequest);
     mockExecutionContext.getResponse.mockReturnValue(mockResponse);
     mockCallHandler.handle.mockReset();
-  });
-
-  afterEach(() => {
-    if (originalApiQueryMetrics === undefined) {
-      delete process.env.API_QUERY_METRICS;
-    } else {
-      process.env.API_QUERY_METRICS = originalApiQueryMetrics;
-    }
-
-    if (originalApiPerformanceAudit === undefined) {
-      delete process.env.API_PERFORMANCE_AUDIT;
-    } else {
-      process.env.API_PERFORMANCE_AUDIT = originalApiPerformanceAudit;
-    }
-
-    if (originalApiSentryPerformanceMetrics === undefined) {
-      delete process.env.API_SENTRY_PERFORMANCE_METRICS;
-    } else {
-      process.env.API_SENTRY_PERFORMANCE_METRICS =
-        originalApiSentryPerformanceMetrics;
-    }
-
-    if (originalApiSlowQueryThresholdMs === undefined) {
-      delete process.env.API_SLOW_QUERY_THRESHOLD_MS;
-    } else {
-      process.env.API_SLOW_QUERY_THRESHOLD_MS = originalApiSlowQueryThresholdMs;
-    }
   });
 
   it('should be defined', () => {
@@ -174,7 +138,7 @@ describe('PerformanceInterceptor', () => {
     });
 
     it('should attach database metrics when Prisma query metrics are enabled', async () => {
-      process.env.API_QUERY_METRICS = 'true';
+      configValues.API_QUERY_METRICS = 'true';
       mockCallHandler.handle.mockReturnValue(
         new Observable((subscriber) => {
           recordPrismaQuery(
@@ -269,7 +233,7 @@ describe('PerformanceInterceptor', () => {
     });
 
     it('should emit Sentry distribution metrics when enabled', async () => {
-      process.env.API_SENTRY_PERFORMANCE_METRICS = 'true';
+      configValues.API_SENTRY_PERFORMANCE_METRICS = 'true';
       mockExecutionContext.getRequest.mockReturnValue({
         ...mockRequest,
         url: '/v1/posts/my-post-slug',
