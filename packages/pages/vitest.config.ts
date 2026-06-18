@@ -261,7 +261,10 @@ export default defineConfig({
       },
     },
     globals: true,
-    include: ['studio/generate/utils/**/*.test.ts'],
+    include: [
+      'packages/pages/analytics/overview/analytics-overview.test.tsx',
+      'studio/generate/utils/**/*.test.ts',
+    ],
     name: '@genfeedai/pages',
     setupFiles: [path.resolve(appRoot, './vitest.setup.ts')],
     testTimeout: 15_000,

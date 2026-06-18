@@ -11,7 +11,7 @@ import type {
 } from '@services/analytics/analytics.service';
 import Card from '@ui/card/Card';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
-import Loading from '@ui/loading/default/Loading';
+import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import dynamic from 'next/dynamic';
 import { HiOutlineChartBar } from 'react-icons/hi2';
 import AnalyticsOverviewAlerts from './analytics-overview-alerts';
@@ -107,7 +107,7 @@ export default function AnalyticsOverview({
   });
 
   if (isLoading) {
-    return <Loading isFullSize={false} />;
+    return <LazyLoadingFallback variant="grid" />;
   }
 
   return (

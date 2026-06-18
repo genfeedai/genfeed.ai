@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'bun:test';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import {
   getAllWorkflows,
   getWorkflow,
@@ -16,6 +18,7 @@ describe('Workflow Registry', () => {
       'single-video',
       'image-series',
       'image-to-video',
+      'lora-dataset-generator',
       'full-pipeline',
       'ugc-factory',
     ];
@@ -28,7 +31,7 @@ describe('Workflow Registry', () => {
 
   test('getAllWorkflows should return all workflow metadata', () => {
     const workflows = getAllWorkflows();
-    expect(workflows).toHaveLength(6);
+    expect(workflows).toHaveLength(7);
 
     workflows.forEach((workflow) => {
       expect(workflow).toHaveProperty('slug');
@@ -127,7 +130,7 @@ describe('Workflow Registry', () => {
 
   test('all workflows should have required fields for marketplace', () => {
     const workflows = Object.values(WORKFLOW_REGISTRY);
-    expect(workflows.length).toBe(6);
+    expect(workflows.length).toBe(7);
 
     workflows.forEach((workflow) => {
       // Required marketplace fields
@@ -147,5 +150,28 @@ describe('Workflow Registry', () => {
       expect(workflow.inputTypes.length).toBeGreaterThan(0);
       expect(workflow.outputTypes.length).toBeGreaterThan(0);
     });
+  });
+
+  test('metadata catalog should match the public registry', () => {
+    const catalogPath = path.resolve(__dirname, '../metadata/catalog.json');
+    const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf-8')) as {
+      workflows: Array<
+        Omit<(typeof WORKFLOW_REGISTRY)[string], 'version'> & {
+          version: number;
+        }
+      >;
+    };
+
+    const catalogBySlug = new Map(
+      catalog.workflows.map((workflow) => [workflow.slug, workflow]),
+    );
+
+    expect([...catalogBySlug.keys()].sort()).toEqual(
+      Object.keys(WORKFLOW_REGISTRY).sort(),
+    );
+
+    for (const [slug, registryWorkflow] of Object.entries(WORKFLOW_REGISTRY)) {
+      expect(catalogBySlug.get(slug)).toEqual(registryWorkflow);
+    }
   });
 });

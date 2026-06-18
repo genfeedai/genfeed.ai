@@ -73,6 +73,10 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../props'),
       },
       {
+        find: '@genfeedai/pricing',
+        replacement: path.resolve(__dirname, '../pricing/src/index.ts'),
+      },
+      {
         find: /^@genfeedai\/props\/(.*)$/,
         replacement: path.resolve(__dirname, '../props/$1'),
       },

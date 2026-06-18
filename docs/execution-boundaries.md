@@ -21,6 +21,12 @@ Boundary spec version: v1.3.0.
 - Cloud signup handoff parameters are onboarding hints. They are not data replication.
 - A Cloud API key authorizes explicit Cloud service calls only. It must not be exposed to the browser.
 
+## Workflow and Runtime Package Boundary
+
+- Public workflow contracts, public workflow templates, registry metadata, and generic Comfy-compatible self-hosted helpers live in this repository.
+- Customer-specific workflow templates, managed model inventory, customer model assignment, Fleet lifecycle controls, health probes, runtime secrets, and hosted LoRA/customer runtime operations are managed Cloud responsibilities outside the public repository.
+- Self-hosted deployments may connect their own ComfyUI, LoRA, or provider infrastructure through configuration. That does not make Genfeed Cloud's managed customer runtime part of Core.
+
 ## Execution Contract
 
 Generation should resolve provider access in this order:

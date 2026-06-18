@@ -10,8 +10,6 @@ export * from './generation';
  * The actual workflow JSON files are stored in the `workflows/` directory.
  */
 
-export * from './comfyui/index';
-
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { WorkflowEdge, WorkflowNode } from '@genfeedai/types';
@@ -85,6 +83,20 @@ export const WORKFLOW_REGISTRY: Record<string, WorkflowMetadata> = {
     tags: ['video', 'interpolation', 'animation', 'transition'],
     tier: 'free',
     title: 'Image to Video Transition',
+    version: 1,
+  },
+  'lora-dataset-generator': {
+    category: 'image-generation',
+    defaultModel: 'nano-banana-pro',
+    description:
+      'Generate 20 varied training images from 3 reference identity photos across frontal, three-quarter, side profile, and variety shots',
+    icon: '📷',
+    inputTypes: ['image', 'text'],
+    outputTypes: ['image'],
+    slug: 'lora-dataset-generator',
+    tags: ['lora', 'dataset', 'training', 'portrait', 'identity'],
+    tier: 'free',
+    title: 'LoRA Dataset Generator',
     version: 1,
   },
   'single-image': {
