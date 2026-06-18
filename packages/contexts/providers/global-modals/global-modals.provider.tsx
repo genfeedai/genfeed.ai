@@ -16,7 +16,18 @@ import type {
   ModalMetadataProps,
   ModalPromptProps,
 } from '@genfeedai/props/modals/modal.props';
-import { createContext, type ReactNode, use, useCallback } from 'react';
+import {
+  scheduleModalGlobalSideEffectCleanup,
+  useRouteModalGlobalSideEffectCleanup,
+} from '@ui/utils/modal-global-side-effects';
+import { usePathname, useSearchParams } from 'next/navigation';
+import {
+  createContext,
+  type ReactNode,
+  use,
+  useCallback,
+  useEffect,
+} from 'react';
 import GlobalModalsRenderer from './GlobalModalsRenderer';
 import { useGlobalModalsState } from './useGlobalModalsState';
 
@@ -388,6 +399,19 @@ export function GlobalModalsProvider({
   children,
 }: GlobalModalsProviderProps): ReactNode {
   const state = useGlobalModalsState();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const routeKey = `${pathname ?? ''}?${searchParams?.toString() ?? ''}`;
+
+  useRouteModalGlobalSideEffectCleanup(routeKey);
+
+  useEffect(() => {
+    if (state.hasOpenGlobalModal) {
+      return;
+    }
+
+    return scheduleModalGlobalSideEffectCleanup();
+  }, [state.hasOpenGlobalModal]);
 
   const contextValue: GlobalModalsContextValue = {
     closeBrandOverlay: state.closeBrandOverlay,
