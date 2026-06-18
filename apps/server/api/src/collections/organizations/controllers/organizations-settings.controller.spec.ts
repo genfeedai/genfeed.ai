@@ -16,27 +16,18 @@ vi.mock(
   }),
 );
 
-vi.mock('axios', () => ({
-  default: {
-    get: vi.fn(),
-  },
-}));
-
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
-import { ConfigService } from '@api/config/config.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ByokService } from '@api/services/byok/byok.service';
-import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import axios from 'axios';
 import type { Request } from 'express';
 
 describe('OrganizationsSettingsController', () => {
@@ -103,14 +94,6 @@ describe('OrganizationsSettingsController', () => {
     validateKey: vi.fn().mockResolvedValue({ isValid: true }),
   };
 
-  const mockFleetService = {
-    isAvailable: vi.fn(),
-  };
-
-  const mockConfigService = {
-    get: vi.fn().mockReturnValue('http://localhost:8080'),
-  };
-
   beforeEach(async () => {
     mockReq = {} as Request;
 
@@ -140,14 +123,6 @@ describe('OrganizationsSettingsController', () => {
         {
           provide: ByokService,
           useValue: mockByokService,
-        },
-        {
-          provide: FleetService,
-          useValue: mockFleetService,
-        },
-        {
-          provide: ConfigService,
-          useValue: mockConfigService,
         },
       ],
     })
@@ -297,17 +272,10 @@ describe('OrganizationsSettingsController', () => {
     const organizationId = '507f1f77bcf86cd799439012';
     const brandId = '507f1f77bcf86cd799439013';
 
-    it('should return brand flag and fleet availability', async () => {
+    it('should return brand flag without probing private inference runtime', async () => {
       mockBrandsService.findOne.mockResolvedValue({
         _id: brandId,
         isDarkroomEnabled: true,
-      });
-      mockFleetService.isAvailable
-        .mockResolvedValueOnce(true)
-        .mockResolvedValueOnce(false)
-        .mockResolvedValueOnce(true);
-      (axios.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: { ok: true },
       });
 
       const result = await controller.getDarkroomCapabilities(
@@ -324,18 +292,15 @@ describe('OrganizationsSettingsController', () => {
         },
         'none',
       );
-      expect(mockFleetService.isAvailable).toHaveBeenNthCalledWith(1, 'images');
-      expect(mockFleetService.isAvailable).toHaveBeenNthCalledWith(2, 'videos');
-      expect(mockFleetService.isAvailable).toHaveBeenNthCalledWith(3, 'voices');
       expect(result).toMatchObject({
         _id: `darkroom-capabilities:${organizationId}:${brandId}`,
         brandEnabled: true,
         brandId,
         fleet: {
-          images: true,
-          llm: true,
+          images: false,
+          llm: false,
           videos: false,
-          voices: true,
+          voices: false,
         },
         organizationId,
       });
@@ -346,10 +311,6 @@ describe('OrganizationsSettingsController', () => {
         _id: brandId,
         isDarkroomEnabled: false,
       });
-      mockFleetService.isAvailable.mockResolvedValue(false);
-      (axios.get as ReturnType<typeof vi.fn>).mockRejectedValue(
-        new Error('offline'),
-      );
 
       const result = await controller.getDarkroomCapabilities(
         {
@@ -369,8 +330,6 @@ describe('OrganizationsSettingsController', () => {
         },
         'none',
       );
-      expect(mockFleetService.isAvailable).not.toHaveBeenCalled();
-      expect(axios.get).not.toHaveBeenCalled();
       expect(result).toMatchObject({
         brandEnabled: false,
         fleet: {

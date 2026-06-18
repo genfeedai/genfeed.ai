@@ -12,7 +12,6 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
-import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -21,7 +20,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { ByokService } from '@api/services/byok/byok.service';
-import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { ByokProvider, MemberRole } from '@genfeedai/enums';
 import type {
   IByokProviderStatus,
@@ -56,7 +54,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
-import axios from 'axios';
 
 @AutoSwagger()
 @ApiTags('organizations')
@@ -71,25 +68,8 @@ export class OrganizationsSettingsController {
     @Inject(SUBSCRIPTIONS_SERVICE)
     private readonly subscriptionsService: ISubscriptionsService,
     private readonly byokService: ByokService,
-    private readonly fleetService: FleetService,
-    private readonly configService: ConfigService,
     readonly _loggerService: LoggerService,
   ) {}
-
-  private async isLlmAvailable(): Promise<boolean> {
-    const llmUrl = String(this.configService.get('GPU_LLM_URL') || '');
-
-    if (!llmUrl) {
-      return false;
-    }
-
-    try {
-      await axios.get(`${llmUrl}/v1/health`, { timeout: 5000 });
-      return true;
-    } catch {
-      return false;
-    }
-  }
 
   private async validateDefaultAvatarIngredient(
     organizationId: string,
@@ -199,37 +179,15 @@ export class OrganizationsSettingsController {
       return returnNotFound('Brand', brandId);
     }
 
-    if (!brandSettings.isDarkroomEnabled) {
-      return serializeSingle(req, DarkroomCapabilitiesSerializer, {
-        _id: `darkroom-capabilities:${resolvedOrganizationId}:${brandId}`,
-        brandEnabled: false,
-        brandId,
-        fleet: {
-          images: false,
-          llm: false,
-          videos: false,
-          voices: false,
-        },
-        organizationId: resolvedOrganizationId,
-      });
-    }
-
-    const [images, videos, voices, llm] = await Promise.all([
-      this.fleetService.isAvailable('images'),
-      this.fleetService.isAvailable('videos'),
-      this.fleetService.isAvailable('voices'),
-      this.isLlmAvailable(),
-    ]);
-
     return serializeSingle(req, DarkroomCapabilitiesSerializer, {
       _id: `darkroom-capabilities:${resolvedOrganizationId}:${brandId}`,
       brandEnabled: Boolean(brandSettings.isDarkroomEnabled),
       brandId,
       fleet: {
-        images,
-        llm,
-        videos,
-        voices,
+        images: false,
+        llm: false,
+        videos: false,
+        voices: false,
       },
       organizationId: resolvedOrganizationId,
     });
