@@ -75,7 +75,7 @@
     "clean:generated-source": "bun run scripts/check-generated-source-artifacts.ts --fix",
     "dead-code": "bunx knip --reporter compact",
     "deploy:production": "gh workflow run deploy-ecs.yml --ref master",
-    "deploy:production:rollback": "gh workflow run deploy-ecs.yml --ref master -f allow_rollback=true",
+    "deploy:production:rollback": "bash -lc 'test -n \"$IMAGE_TAG\" || { echo \"Set IMAGE_TAG=<sha> for rollback\" >&2; exit 1; }; gh workflow run deploy-ecs.yml --ref master -f image_tag=\"$IMAGE_TAG\" -f allow_rollback=true'",
     "deps:update": "bunx npm-check-updates -u --deep --cooldown 3h --reject typescript && bun install",
     "dev": "bunx turbo run dev",
     "dev:admin:be": "bunx turbo run dev --filter=@genfeedai/api --filter=@genfeedai/notifications",
