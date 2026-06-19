@@ -149,15 +149,15 @@ function isBareProtectedPath(pathname: string): boolean {
 function isScopedWorkspacePath(pathname: string): boolean {
   const parts = pathname.split('/').filter(Boolean);
 
-  if (parts.length === 0 || parts[0] === 'admin') {
+  // Only the org-root workspace scope (/:orgSlug/~/...) gates onboarding here.
+  // Brand-scoped (/:orgSlug/:brandSlug/...) and bare protected paths are
+  // handled by their own branches above, so matching them here would fire a
+  // redundant bootstrap fetch on every authenticated navigation.
+  if (parts.length < 2 || parts[0] === 'admin') {
     return false;
   }
 
-  if (parts.length === 1) {
-    return !isBareProtectedPath(pathname);
-  }
-
-  return !isBareProtectedPath(pathname);
+  return parts[1] === '~';
 }
 
 type WorkspaceSlugs = {

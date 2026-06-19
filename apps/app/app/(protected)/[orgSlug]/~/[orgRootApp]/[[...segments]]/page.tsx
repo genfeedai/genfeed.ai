@@ -118,6 +118,17 @@ function OrgWorkflowsPage({
     return <WorkflowNewPageClient />;
   }
 
+  // Reserved index segment: /~/workflows/library mirrors the workflows root
+  // (library). Without this guard it would fall into the detail branch below
+  // and request a workflow with id 'library'.
+  if (section === 'library') {
+    return (
+      <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+        <WorkflowLibraryPage />
+      </Suspense>
+    );
+  }
+
   if (section) {
     return (
       <WorkflowDetailPageClient
@@ -183,6 +194,13 @@ export default async function OrgRootAppPage({
 
     if (section === 'new') {
       return <EditorNewPage />;
+    }
+
+    // Reserved index segment: /~/editor/projects mirrors the editor root
+    // (projects). Without this guard it would fall into the detail branch
+    // below and request an editor project with id 'projects'.
+    if (section === 'projects') {
+      return <EditorProjectsPage />;
     }
 
     if (section) {

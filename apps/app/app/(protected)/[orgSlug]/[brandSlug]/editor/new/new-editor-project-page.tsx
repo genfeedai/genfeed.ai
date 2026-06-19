@@ -24,21 +24,42 @@ function NewEditorProjectPageContent() {
     }
     creating.current = true;
 
+    const controller = new AbortController();
+
     (async () => {
       try {
         const service = await getEditorService();
+        // Aborting in cleanup runs synchronously before these awaited
+        // microtasks resolve, so a StrictMode-discarded mount bails out here
+        // before creating a project — preserving create-once semantics while
+        // still cancelling on a genuine unmount.
+        if (controller.signal.aborted) {
+          return;
+        }
+
         const project = await service.create({
           name: videoId ? 'Video Edit' : 'Untitled Project',
           sourceVideoId: videoId ?? undefined,
         });
+        if (controller.signal.aborted) {
+          return;
+        }
 
         replace(href(`/editor/${project.id}`));
       } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
         logger.error('Failed to create editor project', error);
         creating.current = false;
         replace(href('/editor'));
       }
     })();
+
+    return () => {
+      controller.abort();
+      creating.current = false;
+    };
   }, [videoId, getEditorService, href, replace]);
 
   return (

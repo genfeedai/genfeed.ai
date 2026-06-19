@@ -305,11 +305,39 @@ describe('OrgRootAppPage', () => {
     );
   });
 
+  it('renders org workflow library for the reserved library segment', async () => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'workflows',
+        orgSlug: 'acme',
+        segments: ['library'],
+      }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('workflow-library-page')).toBeInTheDocument();
+  });
+
   it('renders org editor projects', async () => {
     const element = await OrgRootAppPage({
       params: Promise.resolve({
         orgRootApp: 'editor',
         orgSlug: 'acme',
+      }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('editor-projects-page')).toBeInTheDocument();
+  });
+
+  it('renders org editor projects for the reserved projects segment', async () => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'editor',
+        orgSlug: 'acme',
+        segments: ['projects'],
       }),
     });
 

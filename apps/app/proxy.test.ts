@@ -501,6 +501,43 @@ describe('proxy', () => {
     );
   });
 
+  it('does not gate brand-scoped routes through the onboarding bootstrap check', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({ brands: [], currentUser: { id: 'user_1' } }),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/acme/moonrise-studio/posts', search: '' },
+        url: 'http://localhost:3000/acme/moonrise-studio/posts',
+      } as never,
+      {} as never,
+    );
+
+    // Brand-scoped paths must fall through, never the org-root (~) onboarding
+    // gate, and must not trigger a bootstrap fetch on every navigation.
+    expect(response.headers.get('location')).not.toBe(
+      'http://localhost:3000/onboarding',
+    );
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).endsWith('/auth/bootstrap'),
+      ),
+    ).toBe(false);
+  });
+
   it('redirects signed-in flat chat to the canonical org-scoped chat path', async () => {
     const { default: proxy } = await import('./proxy');
 
