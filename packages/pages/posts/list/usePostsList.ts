@@ -230,7 +230,7 @@ export function usePostsList({
     platformFilter,
     currentPage,
     filterSearch,
-    filterSort,
+    filterSort: filterSort || '',
     filterStatus: filterStatus || '',
     status,
   });
