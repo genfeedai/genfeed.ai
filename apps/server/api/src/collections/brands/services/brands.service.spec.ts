@@ -8,13 +8,17 @@ import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.s
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { FastlaneFormat } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 
 describe('BrandsService', () => {
   let service: BrandsService;
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
+  let llmDispatcher: { chatCompletion: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
+    llmDispatcher = { chatCompletion: vi.fn() };
     delegate = {
       count: vi.fn(),
       create: vi.fn(),
@@ -53,7 +57,7 @@ describe('BrandsService', () => {
       } as unknown as LoggerService,
       {} as CacheService,
       {} as BrandScraperService,
-      {} as LlmDispatcherService,
+      llmDispatcher as unknown as LlmDispatcherService,
       {
         invalidate: vi.fn(),
         invalidatePattern: vi.fn(),
@@ -124,5 +128,113 @@ describe('BrandsService', () => {
       ),
     ).rejects.toThrow(NotFoundException);
     expect(delegate.updateMany).not.toHaveBeenCalled();
+  });
+
+  describe('generateFastlaneIdeas', () => {
+    const organizationId = 'org_1';
+    const brandId = 'brand_1';
+
+    it('returns normalized ideas with unique generated ids for a configured brand', async () => {
+      delegate.findFirst.mockResolvedValue({
+        agentConfig: { voice: { tone: 'bold' } },
+        description: 'A bold brand',
+        id: brandId,
+        isDeleted: false,
+        label: 'Acme',
+        organizationId,
+      });
+      llmDispatcher.chatCompletion.mockResolvedValue({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify([
+                {
+                  caption: 'cap',
+                  format: 'image',
+                  hook: 'hook',
+                  platformHints: ['tiktok'],
+                  visualPrompt: 'a scene',
+                },
+                {
+                  caption: 'cap2',
+                  format: 'avatar',
+                  hook: 'hook2',
+                  platformHints: ['instagram'],
+                  speechText: 'hello there',
+                  visualPrompt: '',
+                },
+              ]),
+            },
+          },
+        ],
+      });
+
+      const result = await service.generateFastlaneIdeas(
+        brandId,
+        { count: 2, formats: ['image', 'avatar'] as FastlaneFormat[] },
+        organizationId,
+      );
+
+      expect(llmDispatcher.chatCompletion).toHaveBeenCalledTimes(1);
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBeTruthy();
+      expect(result[1].id).toBeTruthy();
+      expect(result[0].id).not.toEqual(result[1].id);
+      expect(result[0].format).toBe('image');
+      expect(result[1].speechText).toBe('hello there');
+    });
+
+    it('throws NotFoundException when the brand is not found', async () => {
+      delegate.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.generateFastlaneIdeas(
+          brandId,
+          { count: 2, formats: ['image'] as FastlaneFormat[] },
+          organizationId,
+        ),
+      ).rejects.toThrow(NotFoundException);
+      expect(llmDispatcher.chatCompletion).not.toHaveBeenCalled();
+    });
+
+    it('throws BadRequestException when the brand voice is not configured', async () => {
+      delegate.findFirst.mockResolvedValue({
+        agentConfig: {},
+        id: brandId,
+        isDeleted: false,
+        label: 'Acme',
+        organizationId,
+      });
+
+      await expect(
+        service.generateFastlaneIdeas(
+          brandId,
+          { count: 2, formats: ['image'] as FastlaneFormat[] },
+          organizationId,
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(llmDispatcher.chatCompletion).not.toHaveBeenCalled();
+    });
+
+    it('returns an empty array when the LLM response is not valid JSON', async () => {
+      delegate.findFirst.mockResolvedValue({
+        agentConfig: { voice: { tone: 'bold' } },
+        id: brandId,
+        isDeleted: false,
+        label: 'Acme',
+        organizationId,
+      });
+      llmDispatcher.chatCompletion.mockResolvedValue({
+        choices: [{ message: { content: 'not json at all' } }],
+      });
+
+      const result = await service.generateFastlaneIdeas(
+        brandId,
+        { count: 2, formats: ['image'] as FastlaneFormat[] },
+        organizationId,
+      );
+
+      expect(result).toEqual([]);
+    });
   });
 });

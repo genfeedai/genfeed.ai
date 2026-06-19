@@ -163,9 +163,9 @@ describe('useFastlaneSchedule', () => {
     expect(payload.scheduledDate).toBe('2026-12-01T10:00:00Z');
   });
 
-  it('uses PENDING status when no scheduledDate is provided', async () => {
+  it('uses SCHEDULED with an immediate scheduledDate for "post now"', async () => {
     const assets = [makeAsset('asset-1')];
-    const targets = [makeTarget('cred-a')]; // no scheduledDate
+    const targets = [makeTarget('cred-a')]; // no scheduledDate → post now
 
     const { result } = renderHook(() => useFastlaneSchedule());
 
@@ -178,8 +178,15 @@ describe('useFastlaneSchedule', () => {
       });
     });
 
-    const payload = mockPost.mock.calls[0][0] as { status: string };
-    expect(payload.status).toBe(PostStatus.PENDING);
+    // "Post now" must still be SCHEDULED (the publisher cron ignores PENDING for
+    // Instagram/YouTube) with scheduledDate set to now so it publishes immediately.
+    const payload = mockPost.mock.calls[0][0] as {
+      status: string;
+      scheduledDate?: string;
+    };
+    expect(payload.status).toBe(PostStatus.SCHEDULED);
+    expect(typeof payload.scheduledDate).toBe('string');
+    expect((payload.scheduledDate ?? '').length).toBeGreaterThan(0);
   });
 
   it('surfaces partial failures without throwing', async () => {

@@ -1,11 +1,17 @@
+import { randomUUID } from 'node:crypto';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import type {
   GenerateBrandVoiceDto,
   GeneratedBrandVoice,
 } from '@api/collections/brands/dto/generate-brand-voice.dto';
+import {
+  FASTLANE_FORMATS,
+  type GenerateFastlaneIdeasDto,
+} from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
@@ -17,6 +23,7 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { FastlaneFormat, FastlaneIdea } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -306,6 +313,145 @@ Respond ONLY with the JSON object, no markdown fences or extra text.`;
         tone: 'professional',
         values: [],
       };
+    }
+  }
+
+  /**
+   * Turns structured brand data into a batch of ready-to-produce short-form
+   * content ideas distributed across the requested formats. This is the
+   * brand-data-driven core of Fastlane — the user never writes a prompt.
+   *
+   * Org-scoped: the brand is loaded with the caller's organizationId so a brand
+   * from another org cannot be targeted. Requires a configured brand voice.
+   */
+  async generateFastlaneIdeas(
+    brandId: string,
+    dto: GenerateFastlaneIdeasDto,
+    organizationId: string,
+  ): Promise<FastlaneIdea[]> {
+    this.logger.debug('Generating fastlane ideas', {
+      brandId,
+      count: dto.count,
+      formats: dto.formats,
+      operation: 'generateFastlaneIdeas',
+      service: this.constructorName,
+    });
+
+    const brand = await this.findOne({
+      id: brandId,
+      isDeleted: false,
+      organizationId,
+    });
+    if (!brand) {
+      throw new NotFoundException('Brand not found');
+    }
+
+    const branding = buildPromptBrandingFromBrand(brand);
+    if (!branding) {
+      throw new BadRequestException('Brand voice not configured');
+    }
+
+    const brandParts = [
+      brand.label && `Brand name: ${brand.label}`,
+      brand.description && `Description: ${brand.description}`,
+      branding.tone && `Tone: ${branding.tone}`,
+      branding.voice && `Style: ${branding.voice}`,
+      branding.audience && `Audience: ${branding.audience}`,
+      Array.isArray(branding.values) &&
+        branding.values.length > 0 &&
+        `Values: ${branding.values.join(', ')}`,
+      Array.isArray(branding.messagingPillars) &&
+        branding.messagingPillars.length > 0 &&
+        `Messaging pillars: ${branding.messagingPillars.join(', ')}`,
+      Array.isArray(branding.taglines) &&
+        branding.taglines.length > 0 &&
+        `Taglines: ${branding.taglines.join(' | ')}`,
+      Array.isArray(branding.hashtags) &&
+        branding.hashtags.length > 0 &&
+        `Hashtags: ${branding.hashtags.join(' ')}`,
+      Array.isArray(branding.doNotSoundLike) &&
+        branding.doNotSoundLike.length > 0 &&
+        `Avoid sounding like: ${branding.doNotSoundLike.join(', ')}`,
+      branding.sampleOutput && `Sample voice: ${branding.sampleOutput}`,
+    ].filter(Boolean);
+
+    const angleContext = dto.angle ? `\nCreative angle: ${dto.angle}` : '';
+    const formatsList = dto.formats.join(', ');
+
+    const prompt = `You are a short-form content strategist. Using ONLY the brand profile below, generate ${dto.count} distinct, ready-to-produce short-form content ideas distributed as evenly as possible across these formats: ${formatsList}.
+
+Format meanings:
+- image: a single scroll-stopping still or slideshow frame
+- video: a short b-roll or hook-and-demo style clip
+- avatar: a UGC-style talking-avatar clip with a spoken script
+
+Return ONLY a JSON array (no markdown fences). Each element must be an object with these exact fields:
+- format: one of ${formatsList}
+- hook: a short scroll-stopping hook line (max ~12 words)
+- caption: a ready-to-publish caption with a clear call to action
+- visualPrompt: a vivid visual/scene description to feed an image or video generator
+- platformHints: array of 1-3 platforms from ["tiktok","instagram","youtube"] this idea suits
+- speechText: ONLY for format "avatar" — the spoken script (2-4 sentences); omit for other formats
+
+Brand profile:
+${brandParts.join('\n')}${angleContext}
+
+Respond ONLY with the JSON array.`;
+
+    const completion = await this.llmDispatcherService.chatCompletion(
+      {
+        max_tokens: 2000,
+        messages: [{ content: prompt, role: 'user' }],
+        model: 'anthropic/claude-sonnet-4-5-20250514',
+        temperature: 0.8,
+      },
+      organizationId,
+    );
+
+    const rawContent = completion.choices?.[0]?.message?.content?.trim() ?? '';
+
+    try {
+      const parsed = JSON.parse(rawContent) as unknown;
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      return parsed
+        .filter(
+          (item): item is Partial<FastlaneIdea> =>
+            Boolean(item) && typeof item === 'object',
+        )
+        .map((item) => {
+          const format: FastlaneFormat = FASTLANE_FORMATS.includes(
+            item.format as FastlaneFormat,
+          )
+            ? (item.format as FastlaneFormat)
+            : dto.formats[0];
+
+          return {
+            caption: typeof item.caption === 'string' ? item.caption : '',
+            format,
+            hook: typeof item.hook === 'string' ? item.hook : '',
+            id: randomUUID(),
+            platformHints: Array.isArray(item.platformHints)
+              ? item.platformHints.filter(
+                  (platform): platform is string =>
+                    typeof platform === 'string',
+                )
+              : [],
+            speechText:
+              typeof item.speechText === 'string' ? item.speechText : undefined,
+            visualPrompt:
+              typeof item.visualPrompt === 'string' ? item.visualPrompt : '',
+          } satisfies FastlaneIdea;
+        })
+        .filter((idea) => idea.hook || idea.caption || idea.visualPrompt);
+    } catch {
+      this.logger.warn('Failed to parse fastlane ideas LLM response', {
+        rawContent,
+        service: this.constructorName,
+      });
+      return [];
     }
   }
 

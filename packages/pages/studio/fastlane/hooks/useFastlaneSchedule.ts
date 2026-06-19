@@ -45,6 +45,12 @@ export function useFastlaneSchedule(): UseFastlaneScheduleReturn {
       try {
         const service = await getPostsService();
 
+        // "Post now" must use SCHEDULED with scheduledDate = now: the publisher
+        // cron only picks up posts with status in [SCHEDULED, PROCESSING] whose
+        // scheduledDate <= now (PENDING is a TikTok-specific intermediate state,
+        // so PENDING immediate posts would never publish on Instagram/YouTube).
+        const nowIso = new Date().toISOString();
+
         const posts = approved.flatMap((asset) =>
           targets.map((target: FastlaneScheduleTarget) => {
             const editedCaption = captions[asset.idea.id] ?? asset.idea.caption;
@@ -52,10 +58,6 @@ export function useFastlaneSchedule(): UseFastlaneScheduleReturn {
               asset.idea.format === 'image'
                 ? PostCategory.IMAGE
                 : PostCategory.VIDEO;
-
-            const status = target.scheduledDate
-              ? PostStatus.SCHEDULED
-              : PostStatus.PENDING;
 
             // PostsService extends BaseService<Post> with TCreate = Partial<Post>.
             // We cast via unknown to include the 'source' field that is part of
@@ -66,8 +68,8 @@ export function useFastlaneSchedule(): UseFastlaneScheduleReturn {
               label: asset.idea.hook.slice(0, 100),
               description: editedCaption,
               category,
-              status,
-              scheduledDate: target.scheduledDate ?? undefined,
+              status: PostStatus.SCHEDULED,
+              scheduledDate: target.scheduledDate ?? nowIso,
               timezone,
               groupId,
               source: 'fastlane',

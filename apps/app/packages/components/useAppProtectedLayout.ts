@@ -30,6 +30,7 @@ import {
   STUDIO_CATEGORY_CONFIG,
   useEnabledCategories,
 } from '@hooks/data/organization/use-enabled-categories/use-enabled-categories';
+import { useFastlaneEnabled } from '@hooks/data/organization/use-fastlane-enabled/use-fastlane-enabled';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useMenuItems } from '@hooks/ui/use-menu-items';
@@ -321,6 +322,8 @@ export function useAppProtectedLayout(
   const role = useUserRole();
   const { enabledCategories, isLoading: isEnabledCategoriesLoading } =
     useEnabledCategories();
+  const { isEnabled: isFastlaneEnabled, isLoading: isFastlaneLoading } =
+    useFastlaneEnabled();
 
   // Sync route context into the agent store
   useAgentPageContext(role);
@@ -376,6 +379,15 @@ export function useAppProtectedLayout(
       const studioCategory = categoryByHref.get(item.href);
 
       if (!studioCategory) {
+        // Fastlane is not a generation category — gate it on its own org flag.
+        // Hide while the flag is still loading to avoid a flash of the item.
+        if (
+          item.href === APP_ROUTES.STUDIO.FASTLANE &&
+          (!isFastlaneEnabled || isFastlaneLoading)
+        ) {
+          return items;
+        }
+
         items.push({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
@@ -395,7 +407,13 @@ export function useAppProtectedLayout(
 
       return items;
     }, []);
-  }, [enabledCategories, isEnabledCategoriesLoading, taskContextSearchParams]);
+  }, [
+    enabledCategories,
+    isEnabledCategoriesLoading,
+    isFastlaneEnabled,
+    isFastlaneLoading,
+    taskContextSearchParams,
+  ]);
 
   const composeMenuItems = useMemo(
     () =>

@@ -893,6 +893,7 @@ model OrganizationSetting {
   isGenerateImagesEnabled       Boolean           @default(true)
   isGenerateMusicEnabled        Boolean           @default(true)
   isAutoEvaluateEnabled         Boolean           @default(false)
+  isFastlaneEnabled             Boolean           @default(false)
   seatsLimit                    Int               @default(3)
   brandsLimit                   Int               @default(5)
   timezone                      String            @default("UTC")
@@ -1580,6 +1581,8 @@ model Post {
   sourceActionId        String?
   sourceWorkflowId      String?
   sourceWorkflowName    String?
+  // Origin label for the post (e.g. agent, fastlane, manual). Free-form string.
+  source                String?
   isDeleted             Boolean         @default(false)
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt

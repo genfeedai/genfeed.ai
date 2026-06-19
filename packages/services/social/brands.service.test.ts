@@ -194,6 +194,41 @@ describe('BrandsService', () => {
     });
   });
 
+  describe('generateFastlaneIdeas', () => {
+    const dto = { count: 3, formats: ['image', 'video'] as const };
+
+    it('calls POST with the fastlane ideas endpoint and dto', async () => {
+      mockPost.mockResolvedValue({ data: { data: [] } });
+
+      await service.generateFastlaneIdeas(mockBrandId, dto);
+
+      expect(mockPost).toHaveBeenCalledWith(
+        `/${mockBrandId}/fastlane/ideas`,
+        dto,
+      );
+    });
+
+    it('unwraps and returns the ideas array', async () => {
+      const ideas = [
+        { format: 'image', hook: 'a', id: 'i1' },
+        { format: 'video', hook: 'b', id: 'i2' },
+      ];
+      mockPost.mockResolvedValue({ data: { data: ideas } });
+
+      const result = await service.generateFastlaneIdeas(mockBrandId, dto);
+
+      expect(result).toEqual(ideas);
+    });
+
+    it('returns an empty array when the envelope has no data', async () => {
+      mockPost.mockResolvedValue({ data: {} });
+
+      const result = await service.generateFastlaneIdeas(mockBrandId, dto);
+
+      expect(result).toEqual([]);
+    });
+  });
+
   describe('getInstance', () => {
     it('returns a BrandsService instance', () => {
       const instance = BrandsService.getInstance(mockToken);

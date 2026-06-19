@@ -18,7 +18,9 @@ export interface BrandReadinessResult {
  *  - At least one short-form social credential connected (TikTok / Instagram / YouTube)
  *
  * Additional requirements when `formats` includes 'avatar':
- *  - defaultAvatarIngredientId (or defaultAvatarPhotoUrl) is set
+ *  - defaultAvatarIngredientId is set (the generation path only threads the
+ *    avatar ingredient id into the HeyGen payload; a photo-only avatar config
+ *    cannot drive avatar generation, so it is not accepted here)
  *  - defaultVoiceId is set
  */
 export function isBrandReadyForFastlane(
@@ -58,9 +60,7 @@ export function isBrandReadyForFastlane(
 
   // Avatar-specific requirements
   if (formats?.includes('avatar')) {
-    const hasAvatar =
-      Boolean(brand.agentConfig?.defaultAvatarIngredientId) ||
-      Boolean(brand.agentConfig?.defaultAvatarPhotoUrl);
+    const hasAvatar = Boolean(brand.agentConfig?.defaultAvatarIngredientId);
     if (!hasAvatar) {
       reasons.push('A default avatar is required for avatar generation');
     }

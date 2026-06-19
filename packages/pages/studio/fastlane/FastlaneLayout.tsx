@@ -39,9 +39,11 @@ export default function FastlaneLayout() {
     [selectedBrand, credentials, selectedFormats],
   );
 
-  const isAvatarConfigured =
-    Boolean(selectedBrand?.agentConfig?.defaultAvatarIngredientId) ||
-    Boolean(selectedBrand?.agentConfig?.defaultAvatarPhotoUrl);
+  // Avatar generation needs a default avatar *ingredient* (a photo-url-only
+  // config can't drive HeyGen generation here), matching brand-readiness.
+  const isAvatarConfigured = Boolean(
+    selectedBrand?.agentConfig?.defaultAvatarIngredientId,
+  );
 
   const avatarIngredientId =
     selectedBrand?.agentConfig?.defaultAvatarIngredientId ?? null;
@@ -58,7 +60,6 @@ export default function FastlaneLayout() {
     isLoading: isIdeasLoading,
     error,
     generateIdeas,
-    reset,
   } = useFastlaneIdeas(brandId);
 
   const { assets, isGenerating, startGeneration, failedCount } =
@@ -79,34 +80,20 @@ export default function FastlaneLayout() {
     await startGeneration(ideas);
   }, [ideas, startGeneration]);
 
+  // useFastlaneGeneration owns the asset list + generation status. Approval is a
+  // review-time concern, so it is tracked here as an overlay map and merged into
+  // the asset list for display + scheduling (see enrichedAssets below).
+  const [approvalMap, setApprovalMap] = useState<
+    Record<string, 'approved' | 'rejected'>
+  >({});
+
   const handleApprove = useCallback((ideaId: string) => {
-    // Update the asset's status — generation hook owns asset state; blitz
-    // calls back to parent so layout can drive the state update.
-    // We surface this via the generation hook's setAssets (not exposed), so
-    // we track approved/rejected via a separate local map here.
-    // DESIGN CHOICE: useFastlaneGeneration owns the asset list including status;
-    // to keep it as single source of truth, we proxy approve/reject back into it
-    // via startGeneration's returned mutators. However, since the generation hook
-    // doesn't expose setAssets directly, we achieve this by re-reading the assets
-    // array and identifying which got approved. The Blitz component calls onApprove
-    // so we need to apply the status update.
-    //
-    // Since the hook's update function is internal, we replicate the mutation here
-    // by rebuilding the asset list. The generation hook provides `assets` as state —
-    // to mutate it from outside we need to either lift the state or expose a mutator.
-    //
-    // IMPLEMENTATION: We'll lift approval/rejection state to this layout component
-    // as a separate overlay, applied when rendering.
     setApprovalMap((prev) => ({ ...prev, [ideaId]: 'approved' }));
   }, []);
 
   const handleReject = useCallback((ideaId: string) => {
     setApprovalMap((prev) => ({ ...prev, [ideaId]: 'rejected' }));
   }, []);
-
-  const [approvalMap, setApprovalMap] = useState<
-    Record<string, 'approved' | 'rejected'>
-  >({});
 
   // Merge approval status into assets for display / scheduling
   const enrichedAssets = useMemo(

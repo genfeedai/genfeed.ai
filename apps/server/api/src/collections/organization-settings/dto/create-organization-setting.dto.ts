@@ -283,6 +283,16 @@ export class CreateOrganizationSettingDto {
   })
   readonly isAutoEvaluateEnabled!: boolean;
 
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    default: false,
+    description:
+      'Whether Fastlane (brand-data-driven batch content) is enabled for the organization',
+    required: false,
+  })
+  readonly isFastlaneEnabled?: boolean;
+
   @IsNumber()
   @IsOptional()
   @Min(0)

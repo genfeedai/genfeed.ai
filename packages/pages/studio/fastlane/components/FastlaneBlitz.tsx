@@ -70,6 +70,24 @@ export default function FastlaneBlitz({
     );
   }
 
+  if (isExhausted && isGenerating) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+        <div className="gen-dot gen-dot-processing" />
+        <p className="text-sm text-muted-foreground">
+          You're caught up — more assets are still generating…
+        </p>
+        <div className="flex gap-4 text-sm text-muted-foreground">
+          <span>{approvedCount} approved</span>
+          <span>{rejectedCount} rejected</span>
+          {failedCount > 0 && (
+            <Badge variant="destructive">{failedCount} failed</Badge>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (isExhausted) {
     return (
       <div className="flex flex-col items-center justify-center gap-6 py-16 text-center">

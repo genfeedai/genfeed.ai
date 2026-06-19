@@ -119,7 +119,7 @@ describe('isBrandReadyForFastlane', () => {
     expect(result.ready).toBe(true);
   });
 
-  it('treats defaultAvatarPhotoUrl as a valid avatar substitute', () => {
+  it('does NOT accept defaultAvatarPhotoUrl alone for avatar format (needs an ingredient id)', () => {
     const brand = makeBrand({
       agentConfig: {
         voice: { tone: 'casual' },
@@ -128,7 +128,10 @@ describe('isBrandReadyForFastlane', () => {
       },
     });
     const result = isBrandReadyForFastlane(brand, [shortFormCred], ['avatar']);
-    expect(result.ready).toBe(true);
+    expect(result.ready).toBe(false);
+    expect(result.reasons.some((r) => r.toLowerCase().includes('avatar'))).toBe(
+      true,
+    );
   });
 
   it('returns not-ready when voice tone is missing', () => {

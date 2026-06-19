@@ -94,9 +94,9 @@ export function useFastlaneGeneration({
   references,
 }: UseFastlaneGenerationParams): UseFastlaneGenerationReturn {
   const [assets, setAssets] = useState<FastlaneAssetItem[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
 
   const socketSubscriptionsRef = useRef<Array<() => void>>([]);
+  const isMountedRef = useRef(true);
 
   const { subscribe } = useSocketManager();
   const notificationsService = NotificationsService.getInstance();
@@ -117,6 +117,7 @@ export function useFastlaneGeneration({
   // Cleanup all WS subscriptions on unmount
   useEffect(() => {
     return () => {
+      isMountedRef.current = false;
       for (const unsub of socketSubscriptionsRef.current) {
         try {
           unsub();
@@ -185,6 +186,11 @@ export function useFastlaneGeneration({
                 .thumbnailUrl;
             }
 
+            // The component may have unmounted while findOne was in flight.
+            if (!isMountedRef.current) {
+              return;
+            }
+
             updateAsset(idea.id, {
               status: 'ready',
               ingredientId: resolvedId,
@@ -196,6 +202,9 @@ export function useFastlaneGeneration({
               'Fastlane: failed to fetch ingredient after WS event',
               err,
             );
+            if (!isMountedRef.current) {
+              return;
+            }
             updateAsset(idea.id, {
               status: 'failed',
               errorMessage: 'Failed to load generated asset',
@@ -323,15 +332,16 @@ export function useFastlaneGeneration({
         status: 'generating',
       }));
       setAssets(initial);
-      setIsGenerating(true);
 
       await Promise.allSettled(ideas.map((idea) => dispatchIdea(idea)));
-
-      setIsGenerating(false);
     },
     [dispatchIdea],
   );
 
+  // Derived: still generating while any asset has not reached a terminal state
+  // (ready/failed). This stays true through the WebSocket phase — not just the
+  // dispatch requests — so the UI cannot advance to scheduling prematurely.
+  const isGenerating = assets.some((a) => a.status === 'generating');
   const failedCount = assets.filter((a) => a.status === 'failed').length;
   const readyCount = assets.filter((a) => a.status === 'ready').length;
 
