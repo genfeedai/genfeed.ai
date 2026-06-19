@@ -7,8 +7,9 @@ import '@notifications/instrument';
 
 bootstrap({ app: 'notifications' });
 
+import process from 'node:process';
 import { RedisIoAdapter } from '@libs/adapters/redis-io.adapter';
-import { getGenfeedCorsOrigins } from '@libs/config/cors.config';
+import { getGenfeedCorsOptions } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -44,14 +45,12 @@ async function main() {
     app.setGlobalPrefix('v1');
 
     // Enable CORS for API communication
-    app.enableCors({
-      credentials: true,
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-      origin: getGenfeedCorsOrigins({
+    app.enableCors(
+      getGenfeedCorsOptions({
         chromeExtensionId: configService.get('CHROME_EXTENSION_ID'),
         isDevelopment: configService.get('NODE_ENV') === 'development',
       }),
-    });
+    );
 
     await redisIoAdapter.connectToRedis();
     app.useWebSocketAdapter(redisIoAdapter);

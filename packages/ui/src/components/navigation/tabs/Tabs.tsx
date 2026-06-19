@@ -8,6 +8,7 @@ import type {
   TabsEnhancedProps,
   TabsItem,
 } from '@genfeedai/props/ui/navigation/tabs.props';
+import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { TabsList, Tabs as TabsRoot, TabsTrigger } from '@ui/primitives/tabs';
 import {
   getTabsListClassName,
@@ -43,6 +44,40 @@ function getRouteParts(href: string) {
     full: search ? `${path}?${search}` : path,
     path,
   };
+}
+
+function NavigationTabLink({
+  children,
+  isActive,
+  itemKey,
+  size,
+  tab,
+  variant,
+}: {
+  children: ReactNode;
+  isActive: boolean;
+  itemKey: string;
+  size: TabsEnhancedProps['size'];
+  tab: RouteTabItem;
+  variant: TabsEnhancedProps['variant'];
+}) {
+  const prefetchHref = useNavigationPrefetch(tab.href);
+
+  return (
+    <Link
+      key={itemKey}
+      href={tab.href}
+      aria-current={isActive ? 'page' : undefined}
+      data-size={size}
+      data-state={isActive ? 'active' : 'inactive'}
+      data-variant={variant}
+      onFocus={prefetchHref}
+      onMouseEnter={prefetchHref}
+      className={getTabsTriggerClassName()}
+    >
+      {children}
+    </Link>
+  );
 }
 
 function TabsContent({
@@ -224,17 +259,16 @@ function TabsContent({
             }
 
             return (
-              <Link
+              <NavigationTabLink
                 key={key}
-                href={tab.href}
-                aria-current={isActive ? 'page' : undefined}
-                data-size={size}
-                data-state={isActive ? 'active' : 'inactive'}
-                data-variant={variant}
-                className={getTabsTriggerClassName()}
+                itemKey={key}
+                isActive={isActive}
+                size={size}
+                tab={tab}
+                variant={variant}
               >
                 {content}
-              </Link>
+              </NavigationTabLink>
             );
           })}
         </div>
