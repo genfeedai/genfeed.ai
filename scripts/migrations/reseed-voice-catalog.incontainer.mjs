@@ -16,6 +16,8 @@
  *   UNIQUE (externalProvider, externalId).
  *
  * Idempotent upsert. Dry-run with --dry. Run:
+ *   # Copy this file into the container first (it is referenced as _reseed.mjs):
+ *   docker cp scripts/migrations/reseed-voice-catalog.incontainer.mjs genfeed-ai-api:/usr/src/app/_reseed.mjs
  *   docker exec -w /usr/src/app genfeed-ai-api node _reseed.mjs --dry
  *   docker exec -w /usr/src/app genfeed-ai-api node _reseed.mjs
  */
