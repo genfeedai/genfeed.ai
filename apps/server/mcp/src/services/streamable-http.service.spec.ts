@@ -1,33 +1,49 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
-import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request, Response } from 'express';
 
-// Mock MCP SDK
-const mockServerConnect = vi.fn().mockResolvedValue(undefined);
-const mockServerClose = vi.fn().mockResolvedValue(undefined);
-const mockServerSetRequestHandler = vi.fn();
-const mockTransportHandleRequest = vi.fn().mockResolvedValue(undefined);
-let mockSessionId = 'session-abc-123';
+// Hoisted trackers so the (hoisted) vi.mock factories can record every Server /
+// transport constructed — this is how we assert per-request creation and
+// teardown in the stateless transport. handleRequest is shared so the error
+// path can be driven with mockRejectedValueOnce.
+const { serverInstances, transportInstances, mockHandleRequest } = vi.hoisted(
+  () => ({
+    serverInstances: [] as Array<{
+      connect: ReturnType<typeof vi.fn>;
+      close: ReturnType<typeof vi.fn>;
+      setRequestHandler: ReturnType<typeof vi.fn>;
+    }>,
+    transportInstances: [] as Array<{
+      handleRequest: ReturnType<typeof vi.fn>;
+      close: ReturnType<typeof vi.fn>;
+      options: unknown;
+    }>,
+    mockHandleRequest: vi.fn(),
+  }),
+);
 
 vi.mock('@modelcontextprotocol/sdk/server', () => ({
   Server: class MockServer {
-    close = mockServerClose;
-    connect = mockServerConnect;
-    setRequestHandler = mockServerSetRequestHandler;
+    connect = vi.fn().mockResolvedValue(undefined);
+    close = vi.fn().mockResolvedValue(undefined);
+    setRequestHandler = vi.fn();
+    constructor() {
+      serverInstances.push(this);
+    }
   },
 }));
 
 vi.mock('@modelcontextprotocol/sdk/server/streamableHttp.js', () => ({
   StreamableHTTPServerTransport: class MockStreamableHTTPServerTransport {
-    handleRequest = mockTransportHandleRequest;
-    onclose: (() => void) | null = null;
-
-    get sessionId() {
-      return mockSessionId;
+    handleRequest = mockHandleRequest;
+    close = vi.fn().mockResolvedValue(undefined);
+    options: unknown;
+    constructor(options: unknown) {
+      this.options = options;
+      transportInstances.push(this);
     }
   },
 }));
@@ -39,9 +55,10 @@ vi.mock('@modelcontextprotocol/sdk/types.js', () => ({
   ReadResourceRequestSchema: 'ReadResourceRequestSchema',
 }));
 
+const mockSetBearerToken = vi.fn();
 vi.mock('@mcp/services/client.service', () => ({
   ClientService: class MockClientService {
-    setBearerToken = vi.fn();
+    setBearerToken = mockSetBearerToken;
   },
 }));
 
@@ -64,13 +81,16 @@ function makeReq(overrides: Partial<Request> = {}): Request {
 function makeRes(): Response & {
   status: ReturnType<typeof vi.fn>;
   json: ReturnType<typeof vi.fn>;
+  headersSent: boolean;
 } {
   const res = {
+    headersSent: false,
     json: vi.fn(),
     status: vi.fn(),
   } as unknown as Response & {
     status: ReturnType<typeof vi.fn>;
     json: ReturnType<typeof vi.fn>;
+    headersSent: boolean;
   };
   (res.status as ReturnType<typeof vi.fn>).mockReturnValue(res);
   return res;
@@ -78,54 +98,33 @@ function makeRes(): Response & {
 
 describe('StreamableHttpService', () => {
   let service: StreamableHttpService;
-  let loggerService: {
-    debug: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-  };
-  let toolRegistryService: {
-    getResources: ReturnType<typeof vi.fn>;
-    getTools: ReturnType<typeof vi.fn>;
-    handleResourceRead: ReturnType<typeof vi.fn>;
-    handleToolCall: ReturnType<typeof vi.fn>;
-  };
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    mockSessionId = 'session-abc-123';
-
-    loggerService = {
-      debug: vi.fn(),
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
-    };
-    toolRegistryService = {
-      getResources: vi.fn().mockReturnValue([]),
-      getTools: vi.fn().mockReturnValue([]),
-      handleResourceRead: vi.fn(),
-      handleToolCall: vi.fn(),
-    };
+    serverInstances.length = 0;
+    transportInstances.length = 0;
+    mockHandleRequest.mockReset();
+    mockHandleRequest.mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StreamableHttpService,
-        { provide: ToolRegistryService, useValue: toolRegistryService },
-        { provide: LoggerService, useValue: loggerService },
-        { provide: HttpService, useValue: { get: vi.fn(), post: vi.fn() } },
+        {
+          provide: LoggerService,
+          useValue: {
+            debug: vi.fn(),
+            error: vi.fn(),
+            log: vi.fn(),
+            warn: vi.fn(),
+          },
+        },
+        { provide: HttpService, useValue: { axiosRef: { create: vi.fn() } } },
         {
           provide: ConfigService,
           useValue: {
-            get: vi.fn((key: string) => {
-              if (key === 'GENFEEDAI_API_KEY') {
-                return '';
-              }
-              if (key === 'GENFEEDAI_API_URL') {
-                return 'http://localhost:3000';
-              }
-              return undefined;
-            }),
+            get: vi.fn((key: string) =>
+              key === 'GENFEEDAI_API_URL' ? 'http://localhost:3000' : '',
+            ),
           },
         },
       ],
@@ -134,153 +133,96 @@ describe('StreamableHttpService', () => {
     service = module.get<StreamableHttpService>(StreamableHttpService);
   });
 
-  afterEach(async () => {
-    if (!service) {
-      return;
-    }
-
-    clearInterval(
-      (
-        service as unknown as {
-          cleanupInterval: ReturnType<typeof setInterval>;
-        }
-      ).cleanupInterval,
-    );
-  });
-
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
   describe('handlePost', () => {
-    it('should create a new session when no session id in header', async () => {
+    it('builds a fresh stateless server + transport per request and handles it', async () => {
       const req = makeReq({ headers: {} });
       const res = makeRes();
 
       await service.handlePost(req, res);
 
-      expect(mockServerConnect).toHaveBeenCalledOnce();
-      expect(mockTransportHandleRequest).toHaveBeenCalledWith(req, res);
-    });
-
-    it('should route to existing session when session id matches', async () => {
-      const req = makeReq({ headers: {} });
-      const res = makeRes();
-
-      // Create a session first
-      await service.handlePost(req, res);
-      expect(service.getActiveSessionCount()).toBe(1);
-
-      // Second request reuses existing session
-      const req2 = makeReq({
-        headers: { 'mcp-session-id': 'session-abc-123' },
+      expect(serverInstances).toHaveLength(1);
+      expect(transportInstances).toHaveLength(1);
+      // Stateless mode: no session id generator configured.
+      expect(transportInstances[0].options).toMatchObject({
+        sessionIdGenerator: undefined,
       });
-      await service.handlePost(req2, makeRes());
-
-      expect(mockTransportHandleRequest).toHaveBeenCalledTimes(2);
-      expect(service.getActiveSessionCount()).toBe(1);
+      expect(serverInstances[0].connect).toHaveBeenCalledOnce();
+      expect(mockHandleRequest).toHaveBeenCalledWith(req, res, undefined);
     });
 
-    it('should propagate bearer token from authContext when session exists', async () => {
-      const req = makeReq({ headers: {} });
-      await service.handlePost(req, makeRes());
+    it('tears down the transport and server after every request (finally)', async () => {
+      await service.handlePost(makeReq({ headers: {} }), makeRes());
 
-      const req2 = makeReq({
+      expect(transportInstances[0].close).toHaveBeenCalledOnce();
+      expect(serverInstances[0].close).toHaveBeenCalledOnce();
+    });
+
+    it('creates an independent transport per request (no reuse)', async () => {
+      await service.handlePost(makeReq({ headers: {} }), makeRes());
+      await service.handlePost(makeReq({ headers: {} }), makeRes());
+
+      expect(transportInstances).toHaveLength(2);
+      expect(serverInstances).toHaveLength(2);
+      expect(transportInstances[0]).not.toBe(transportInstances[1]);
+    });
+
+    it('forwards a parsed body to the transport when present', async () => {
+      const body = { id: 1, jsonrpc: '2.0', method: 'initialize' };
+      const req = makeReq({ body } as unknown as Partial<Request>);
+      const res = makeRes();
+
+      await service.handlePost(req, res);
+
+      expect(mockHandleRequest).toHaveBeenCalledWith(req, res, body);
+    });
+
+    it('propagates the bearer token from authContext to the client', async () => {
+      const req = makeReq({
         authContext: { token: 'bearer-xyz' },
-        headers: { 'mcp-session-id': 'session-abc-123' },
       } as unknown as Partial<Request>);
 
-      await service.handlePost(req2, makeRes());
-      // Token was set on the client service — no error thrown
-      expect(service.getActiveSessionCount()).toBe(1);
+      await service.handlePost(req, makeRes());
+
+      expect(mockSetBearerToken).toHaveBeenCalledWith('bearer-xyz');
+    });
+
+    it('responds 500 and still tears down when handleRequest throws', async () => {
+      mockHandleRequest.mockRejectedValueOnce(new Error('boom'));
+      const res = makeRes();
+
+      await service.handlePost(makeReq({ headers: {} }), res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(transportInstances[0].close).toHaveBeenCalledOnce();
+      expect(serverInstances[0].close).toHaveBeenCalledOnce();
     });
   });
 
-  describe('handleGet', () => {
-    it('should return 400 when session id is missing', async () => {
+  describe('handleGet / handleDelete', () => {
+    it('routes GET through the same stateless per-request handler', async () => {
       const req = makeReq({ headers: {} });
       const res = makeRes();
 
       await service.handleGet(req, res);
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: expect.any(String) }),
-      );
+      expect(transportInstances).toHaveLength(1);
+      expect(mockHandleRequest).toHaveBeenCalledWith(req, res, undefined);
+      expect(transportInstances[0].close).toHaveBeenCalledOnce();
     });
 
-    it('should return 400 when session id does not match any session', async () => {
-      const req = makeReq({
-        headers: { 'mcp-session-id': 'unknown-session' },
-      });
-      const res = makeRes();
-
-      await service.handleGet(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-    });
-
-    it('should delegate to transport when session is found', async () => {
-      // Create session first
-      await service.handlePost(makeReq({ headers: {} }), makeRes());
-
-      const req = makeReq({
-        headers: { 'mcp-session-id': 'session-abc-123' },
-      });
-      const res = makeRes();
-
-      await service.handleGet(req, res);
-
-      expect(mockTransportHandleRequest).toHaveBeenCalledWith(req, res);
-    });
-  });
-
-  describe('handleDelete', () => {
-    it('should return 404 when session not found', async () => {
-      const req = makeReq({
-        headers: { 'mcp-session-id': 'ghost-session' },
-      });
+    it('routes DELETE through the same stateless per-request handler', async () => {
+      const req = makeReq({ headers: {} });
       const res = makeRes();
 
       await service.handleDelete(req, res);
 
-      expect(res.status).toHaveBeenCalledWith(404);
-    });
-
-    it('should destroy session and return 200 when found', async () => {
-      // Create session
-      await service.handlePost(makeReq({ headers: {} }), makeRes());
-      expect(service.getActiveSessionCount()).toBe(1);
-
-      const req = makeReq({
-        headers: { 'mcp-session-id': 'session-abc-123' },
-      });
-      const res = makeRes();
-
-      await service.handleDelete(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ status: 'session closed' });
-      expect(service.getActiveSessionCount()).toBe(0);
-    });
-  });
-
-  describe('getActiveSessionCount', () => {
-    it('should return 0 initially', () => {
-      expect(service.getActiveSessionCount()).toBe(0);
-    });
-
-    it('should increment as sessions are created', async () => {
-      await service.handlePost(makeReq({ headers: {} }), makeRes());
-      expect(service.getActiveSessionCount()).toBe(1);
-    });
-
-    it('should throw when transport generates no session id', async () => {
-      mockSessionId = undefined as unknown as string;
-
-      await expect(
-        service.handlePost(makeReq({ headers: {} }), makeRes()),
-      ).rejects.toThrow('Transport did not generate a session ID');
+      expect(transportInstances).toHaveLength(1);
+      expect(mockHandleRequest).toHaveBeenCalledWith(req, res, undefined);
+      expect(serverInstances[0].close).toHaveBeenCalledOnce();
     });
   });
 });
