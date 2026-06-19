@@ -42,6 +42,9 @@ function build() {
       status: 'PENDING',
       toolName: 'create_post',
     }),
+    executeAgentTool: vi
+      .fn()
+      .mockResolvedValue({ data: { id: 'post-1' }, success: true }),
     getApproval: vi.fn(),
     resolveApproval: vi
       .fn()
@@ -116,6 +119,37 @@ describe('ToolRegistryService — approval queue', () => {
       'apr-1',
       'approve',
       expect.objectContaining({ content: expect.any(Array) }),
+    );
+  });
+
+  it('approving a queued gated tool executes it directly without re-queuing another approval', async () => {
+    // Regression guard: create_post is BOTH an approval-required tool and an
+    // agent-executor tool. Approving its queued action must run it through
+    // executeTool (which bypasses the approval gate) — NOT re-enter the gate
+    // and queue a second approval, which would be an infinite loop.
+    const { client, registry } = build();
+    client.getApproval.mockResolvedValue({
+      arguments: { content: 'hello' },
+      id: 'apr-1',
+      status: 'PENDING',
+      toolName: 'create_post',
+    });
+
+    const result = (await registry.handleToolCall({
+      arguments: { approvalId: 'apr-1', decision: 'approve' },
+      name: 'resolve_approval',
+    })) as { isError?: boolean; content: { text: string }[] };
+
+    expect(client.executeAgentTool).toHaveBeenCalledWith('create_post', {
+      content: 'hello',
+    });
+    // The approval gate was NOT re-applied on execution.
+    expect(client.createApproval).not.toHaveBeenCalled();
+    expect(result.isError).toBeFalsy();
+    expect(client.resolveApproval).toHaveBeenCalledWith(
+      'apr-1',
+      'approve',
+      expect.anything(),
     );
   });
 

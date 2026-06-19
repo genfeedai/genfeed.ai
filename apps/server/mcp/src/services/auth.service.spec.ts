@@ -135,6 +135,23 @@ describe('AuthService (MCP)', () => {
       expect(noRole.role).toBe('user');
     });
 
+    it('maps an unrecognized future role to the user tier (deny-by-default)', async () => {
+      // A role string the MCP server does not know about (e.g. a new 'billing'
+      // org role added later) must NOT silently elevate — it falls through to
+      // the user tier so admin-gated tools stay denied until the mapping is
+      // updated deliberately.
+      mockHttpService.get.mockReturnValue(
+        whoamiResponse({
+          organization: { id: 'o' },
+          role: 'billing',
+          user: { id: 'u' },
+        }),
+      );
+
+      const result = await service.authenticateRequest(apiKey);
+      expect(result.role).toBe('user');
+    });
+
     it('preserves the superadmin tier', async () => {
       mockHttpService.get.mockReturnValue(
         whoamiResponse({
