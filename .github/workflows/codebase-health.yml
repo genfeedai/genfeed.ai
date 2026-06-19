@@ -37,10 +37,13 @@ jobs:
           fail-on-issues: false
 
       - name: Upload SARIF
+        # fallow v2 writes its SARIF to fallow-results.sarif (FALLOW_SARIF_FILE),
+        # not fallow.sarif — the old path silently never existed, which only
+        # surfaced once the health step stopped erroring on the bad CLI command.
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: fallow.sarif
+          sarif_file: fallow-results.sarif
 
   dead-code:
     name: Dead Code & Unused Deps
