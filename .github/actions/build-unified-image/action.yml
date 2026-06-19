@@ -2,8 +2,8 @@ name: 'Build and Push Unified Server Image'
 description: 'Builds and pushes the single Docker image containing all NestJS server services'
 
 # Restored after the cloud -> genfeed.ai migration dropped this composite
-# action while _deploy.yml kept referencing it (every Deploy Production /
-# Deploy Staging run failed at "Can't find action.yml"). Ported from
+# action while _deploy.yml kept referencing it (Deploy Staging failed at
+# "Can't find action.yml"). Ported from
 # genfeedai/cloud with three adaptations: GitHub-hosted buildx instead of
 # Blacksmith, a single SENTRY_AUTH_TOKEN secret (matching the current
 # Dockerfile.server secret mount and _deploy.yml input), and a disk-space

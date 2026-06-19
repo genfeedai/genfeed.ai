@@ -13,7 +13,7 @@ topics: [deployment, production, git, ci]
 
 **How to apply:**
 - Release flow is trunk-based: short-lived branch -> PR -> `master` -> production deploy via GitHub CI. `staging`/`production` are deploy environments driven by CI/tags, NOT branches.
-- Do not run `Deploy Production` from any ref other than `master`.
+- Do not run `Deploy ECS (production)` from any ref other than `master`.
 - Do not deploy production from local Vercel CLI unless Vincent explicitly asks for that emergency exception.
 - If production needs a hotfix, land it on `master` via `hotfix/xxx` PR, then deploy from GitHub CI.
 - When touching deployment workflows, preserve or strengthen the master-only production guard.

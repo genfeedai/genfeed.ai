@@ -90,9 +90,9 @@ tofu apply -var="image_tag=<sha>"
 
 ## Production Deploy Paths
 
-- `Deploy Production` is disabled manually. Its legacy backend job is also a
-  no-op in repo so it cannot call the old Tailscale + SSH + Docker Compose path
-  to the AL2023 EC2 host if the workflow is re-enabled.
+- The old `Deploy Production` workflow was removed. It previously carried the
+  legacy Tailscale + SSH + Docker Compose production path to the AL2023 EC2
+  host and must not be recreated for normal backend deploys.
 - `Deploy ECS (production)` is active and is the intended backend deploy path.
   It is dispatch-only, uses the GitHub `production` environment approval, and
   refuses to run from anything except `refs/heads/master`.

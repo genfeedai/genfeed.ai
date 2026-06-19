@@ -25,7 +25,7 @@ import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
-import { getGenfeedCorsOrigins } from '@libs/config/cors.config';
+import { getGenfeedCorsOptions } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   buildBullMQConnection,
@@ -94,14 +94,12 @@ async function main() {
 
     docsService.setGptActionsSpec(gptActionsSpec);
 
-    app.enableCors({
-      credentials: true,
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-      origin: getGenfeedCorsOrigins({
+    app.enableCors(
+      getGenfeedCorsOptions({
         chromeExtensionId: configService.get('CHROME_EXTENSION_ID'),
         isDevelopment: nodeEnv === 'development',
       }),
-    });
+    );
 
     app.setGlobalPrefix('v1');
 

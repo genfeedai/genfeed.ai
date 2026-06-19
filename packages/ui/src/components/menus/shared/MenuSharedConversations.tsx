@@ -2,6 +2,7 @@
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Kbd } from '@genfeedai/ui';
+import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { HiPlus } from 'react-icons/hi2';
@@ -22,6 +23,8 @@ export default function MenuSharedConversations({
   newChatHref,
   onCollapsedChange,
 }: MenuSharedConversationsProps) {
+  const prefetchNewChatHref = useNavigationPrefetch(newChatHref);
+
   return (
     <div
       data-testid="sidebar-conversations-section"
@@ -47,6 +50,8 @@ export default function MenuSharedConversations({
         <div className="pb-1">
           <Link
             href={newChatHref}
+            onFocus={prefetchNewChatHref}
+            onMouseEnter={prefetchNewChatHref}
             className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 cursor-pointer hover:bg-foreground/[0.035] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
             <HiPlus className="size-4 text-foreground/42 group-hover:text-foreground/78" />
