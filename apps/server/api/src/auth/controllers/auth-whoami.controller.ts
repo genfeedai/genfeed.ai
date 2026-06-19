@@ -1,6 +1,7 @@
 import { MembersService } from '@api/collections/members/services/members.service';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Get, Req } from '@nestjs/common';
 
 type AuthWhoamiUser = {
@@ -26,7 +27,10 @@ type AuthWhoamiRequest = {
  */
 @Controller('auth')
 export class AuthWhoamiController {
-  constructor(private readonly membersService: MembersService) {}
+  constructor(
+    private readonly membersService: MembersService,
+    private readonly logger: LoggerService,
+  ) {}
 
   @Get('whoami')
   async whoami(@Req() req: AuthWhoamiRequest) {
@@ -91,7 +95,18 @@ export class AuthWhoamiController {
 
       const role = member?.role as unknown as { key?: string } | undefined;
       return role?.key ?? '';
-    } catch {
+    } catch (error: unknown) {
+      // Fail closed: an unresolved role denies admin-gated tools downstream.
+      // Log so a persistent membership-lookup failure (e.g. DB outage) is
+      // visible rather than silently stripping everyone's role.
+      this.logger.warn(
+        'whoami: failed to resolve organization role, defaulting to none',
+        {
+          error: (error as Error)?.message,
+          organizationId: String(organizationId),
+          userId: String(userId),
+        },
+      );
       return '';
     }
   }

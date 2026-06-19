@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('McpApprovalsService', () => {
   const mcpApproval = {
+    count: vi.fn(),
     create: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
@@ -28,6 +29,7 @@ describe('McpApprovalsService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mcpApproval.count.mockResolvedValue(0);
 
     service = new McpApprovalsService(
       { mcpApproval } as unknown as PrismaService,
@@ -85,6 +87,23 @@ describe('McpApprovalsService', () => {
         }),
       );
       expect(result).toEqual(fakeApproval);
+    });
+
+    it('throws BadRequestException when the org has reached the pending limit', async () => {
+      mcpApproval.count.mockResolvedValue(100);
+
+      await expect(
+        service.createPending('org-1', 'user-1', 'delete_file', {}),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mcpApproval.count).toHaveBeenCalledWith({
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+          status: 'PENDING',
+        },
+      });
+      expect(mcpApproval.create).not.toHaveBeenCalled();
     });
 
     it('does NOT throw if publishNotification fails (swallows error)', async () => {

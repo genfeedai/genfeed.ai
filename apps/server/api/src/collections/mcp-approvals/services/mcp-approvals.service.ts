@@ -12,6 +12,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+/**
+ * Hard ceiling on concurrently-PENDING approvals per organization. Caps the
+ * blast radius of a buggy or hostile MCP client that queues write tools in a
+ * loop — once an org has this many unresolved approvals, new requests are
+ * rejected until some are approved/declined.
+ */
+const MAX_PENDING_APPROVALS_PER_ORG = 100;
+
 @Injectable()
 export class McpApprovalsService extends BaseService<
   McpApprovalDocument,
@@ -32,6 +40,20 @@ export class McpApprovalsService extends BaseService<
     toolName: string,
     args: Record<string, unknown>,
   ): Promise<McpApprovalDocument> {
+    const pendingCount = await this.delegate.count({
+      where: {
+        isDeleted: false,
+        organizationId,
+        status: McpApprovalStatus.PENDING,
+      },
+    });
+
+    if (pendingCount >= MAX_PENDING_APPROVALS_PER_ORG) {
+      throw new BadRequestException(
+        `Organization has reached the maximum of ${MAX_PENDING_APPROVALS_PER_ORG} pending MCP approvals. Resolve existing requests before queueing more.`,
+      );
+    }
+
     const approval = (await this.delegate.create({
       data: {
         organizationId,

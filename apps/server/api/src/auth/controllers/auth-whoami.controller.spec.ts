@@ -1,6 +1,7 @@
 import { AuthWhoamiController } from '@api/auth/controllers/auth-whoami.controller';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 const buildReq = (
@@ -15,13 +16,23 @@ describe('AuthWhoamiController', () => {
   const mockMembersService = {
     findOne: vi.fn(),
   };
+  const mockLogger = {
+    debug: vi.fn(),
+    error: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
+  };
 
   beforeEach(async () => {
     mockMembersService.findOne.mockReset().mockResolvedValue(null);
+    mockLogger.warn.mockReset();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthWhoamiController],
-      providers: [{ provide: MembersService, useValue: mockMembersService }],
+      providers: [
+        { provide: MembersService, useValue: mockMembersService },
+        { provide: LoggerService, useValue: mockLogger },
+      ],
     })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
@@ -118,7 +129,7 @@ describe('AuthWhoamiController', () => {
       expect(result.data.role).toBe('');
     });
 
-    it('never throws on a membership-lookup failure (returns empty role)', async () => {
+    it('never throws on a membership-lookup failure (returns empty role) and logs a warning', async () => {
       mockMembersService.findOne.mockRejectedValue(new Error('db down'));
 
       const result = await controller.whoami(
@@ -128,6 +139,14 @@ describe('AuthWhoamiController', () => {
       );
 
       expect(result.data.role).toBe('');
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('failed to resolve organization role'),
+        expect.objectContaining({
+          error: 'db down',
+          organizationId: 'org_abc',
+          userId: 'user_1',
+        }),
+      );
     });
 
     it('should return API key context', async () => {

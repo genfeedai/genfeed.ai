@@ -212,7 +212,7 @@ export class ToolRegistryService {
       content: [
         {
           text:
-            '⏳ This action requires approval before it runs.\n\n' +
+            'This action requires approval before it runs.\n\n' +
             `Approval ID: ${approval.id}\n` +
             `Tool: ${approval.toolName}\n` +
             `Status: ${approval.status}\n\n` +
