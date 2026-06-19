@@ -139,6 +139,7 @@ jobs:
   report-failure:
     name: Report failure
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [release-e2e]
     if: failure()
     steps:

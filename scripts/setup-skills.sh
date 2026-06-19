@@ -184,6 +184,12 @@ case "${1:-}" in
     check_integrity
     ;;
   --check)
+    # .claude/skills/ is gitignored and the no-arg generation path is skipped
+    # under CI (see the GITHUB_ACTIONS guard above), so a bare integrity check in
+    # CI always fails on "missing symlink". Materialize them first, then
+    # validate — frontmatter presence and the no-external-symlink invariant are
+    # the checks that actually carry signal here.
+    generate_symlinks
     check_integrity
     ;;
   "")
