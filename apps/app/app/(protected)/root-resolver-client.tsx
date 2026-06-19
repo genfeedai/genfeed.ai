@@ -66,7 +66,7 @@ export default function ProtectedRootResolver() {
             : 'Opening onboarding...';
         nextUrl =
           hasOrganization && fallbackOrgSlug
-            ? `/${fallbackOrgSlug}/~`
+            ? `/${fallbackOrgSlug}/~/overview`
             : '/onboarding';
       }
     } else {
@@ -77,7 +77,7 @@ export default function ProtectedRootResolver() {
           : 'Opening onboarding...';
       nextUrl =
         hasOrganization && fallbackOrgSlug
-          ? `/${fallbackOrgSlug}/~`
+          ? `/${fallbackOrgSlug}/~/overview`
           : '/onboarding';
     }
 

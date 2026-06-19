@@ -17,9 +17,11 @@ export type PostsListSearchParams = Promise<{
 
 export async function renderPostsListPage({
   searchParams,
+  scope = PageScope.PUBLISHER,
   statusOverride,
 }: {
   searchParams: PostsListSearchParams;
+  scope?: PageScope;
   statusOverride?: PublisherPostsStatus;
 }) {
   const { page, platform, search, sort, status } = await searchParams;
@@ -32,7 +34,7 @@ export async function renderPostsListPage({
     currentPage,
     platformFilter:
       normalizedPlatform !== 'all' ? normalizedPlatform : undefined,
-    scope: PageScope.PUBLISHER,
+    scope,
     search,
     sort,
     status: normalizedStatus,
@@ -43,7 +45,7 @@ export async function renderPostsListPage({
       initialPostPresets={initialData.postPresets}
       initialPosts={initialData.posts}
       platform={normalizedPlatform}
-      scope={PageScope.PUBLISHER}
+      scope={scope}
       status={normalizedStatus}
     />
   );

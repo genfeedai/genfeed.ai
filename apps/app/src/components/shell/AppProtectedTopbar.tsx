@@ -49,17 +49,22 @@ function AppProtectedTopbarContent({
   const { push } = useRouter();
   const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
     useBrand();
-  // useOrgUrl resolves the brand from the active-brand context when the route has
-  // no [brandSlug] (org-level `/:org/~/...` pages). Use the resolved values so the
-  // app switcher can still link into brand-scoped apps (Library/Posts/Studio/…)
-  // instead of falling back to `/:org/~/overview` and trapping the user there.
+  // Route props are authoritative; only fall back to useOrgUrl when the shell is
+  // rendered without route context. On org-level `/:org/~/...` pages
+  // effectiveBrandSlug stays undefined so the app switcher links into org-scoped
+  // views instead of trapping a stale brand. The brand context (brandId/brands)
+  // still drives the brand switcher itself.
   const {
     href,
     brandSlug: resolvedBrandSlug,
     orgSlug: resolvedOrgSlug,
   } = useOrgUrl();
+  const explicitBrandSlug = brandSlug || undefined;
+  const hasExplicitOrgScope = Boolean(orgSlug);
   const effectiveOrgSlug = orgSlug || resolvedOrgSlug;
-  const effectiveBrandSlug = brandSlug || resolvedBrandSlug;
+  const effectiveBrandSlug = hasExplicitOrgScope
+    ? explicitBrandSlug
+    : (explicitBrandSlug ?? resolvedBrandSlug) || undefined;
   const effectiveBrandId = brandId || getBrandEntityId(selectedBrand);
 
   const handleBrandChange = useCallback(
