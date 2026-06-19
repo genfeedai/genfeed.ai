@@ -153,6 +153,20 @@ export function useGlobalModalsState() {
   const [postRemixTrigger, setPostRemixTrigger] = useState(0);
 
   const publishIngredient = publishIngredients[0] ?? null;
+  const hasOpenGlobalModal =
+    publishIngredients.length > 0 ||
+    confirmQueue.length > 0 ||
+    uploadConfig != null ||
+    galleryConfig != null ||
+    ingredientOverlayData?.ingredient != null ||
+    exportConfig != null ||
+    credentialData != null ||
+    promptConfig != null ||
+    metadataConfig != null ||
+    brandOverlayData != null ||
+    postMetadataOverlayData?.post != null ||
+    generateIllustrationConfig != null ||
+    postRemixData != null;
 
   const openPostBatchModal = useCallback(
     (ingredient: IIngredient | IIngredient[]) => {
@@ -433,6 +447,7 @@ export function useGlobalModalsState() {
     handleBrandOverlayConfirm,
     handlePostConfirm,
     handlePostCreated,
+    hasOpenGlobalModal,
     ingredientOverlayData,
     ingredientOverlayTrigger,
     metadataConfig,

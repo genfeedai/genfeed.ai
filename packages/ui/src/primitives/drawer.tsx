@@ -3,6 +3,7 @@
 import type { ComponentProps, HTMLAttributes } from 'react';
 import { Drawer as DrawerPrimitive } from 'vaul';
 import { cn } from '../lib/utils';
+import { useModalContentGlobalSideEffectCleanup } from '../utils/modal-global-side-effects';
 
 const Drawer = ({
   shouldScaleBackground = true,
@@ -46,6 +47,8 @@ function DrawerContent({
 }: ComponentProps<typeof DrawerPrimitive.Content> & {
   ref?: React.Ref<React.ComponentRef<typeof DrawerPrimitive.Content>>;
 }) {
+  useModalContentGlobalSideEffectCleanup();
+
   return (
     <DrawerPortal>
       <DrawerOverlay />
