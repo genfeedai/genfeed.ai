@@ -607,6 +607,18 @@ export default defineConfig({
         find: /^@ui\/charts$/,
         replacement: path.resolve(repoRoot, './packages/ui/src/charts.ts'),
       },
+      // Non-component top-level UI sources live at packages/ui/src/<dir>, not
+      // under src/components. tsconfig resolves @ui/* against src/* first, so
+      // these must be enumerated ahead of the src/components catch-all below
+      // (matches the primitives/generators/dashboard/core/semantic entries).
+      {
+        find: /^@ui\/utils$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/utils'),
+      },
+      {
+        find: /^@ui\/utils\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/utils/$1'),
+      },
       {
         find: /^@ui\/components\/(.*)$/,
         replacement: path.resolve(repoRoot, './packages/ui/src/components/$1'),

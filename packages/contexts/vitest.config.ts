@@ -120,6 +120,13 @@ export default defineConfig({
         find: '@services',
         replacement: path.resolve(__dirname, '../services'),
       },
+      // Non-component UI sources live at packages/ui/src/<dir>, not under
+      // src/components — must precede the broad '@ui' -> src/components mapping
+      // so @ui/utils/* resolves the way tsconfig (@ui/* -> src/*) does.
+      {
+        find: /^@ui\/utils\/(.*)$/,
+        replacement: path.resolve(__dirname, '../ui/src/utils/$1'),
+      },
       {
         find: '@ui',
         replacement: path.resolve(__dirname, '../ui/src/components'),
