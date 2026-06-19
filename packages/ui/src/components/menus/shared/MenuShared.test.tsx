@@ -144,8 +144,8 @@ vi.mock('@ui/buttons/credits/ButtonCredits', () => ({
   default: () => <div data-testid="button-credits" />,
 }));
 
-vi.mock('@ui/menus/workspace-switcher/WorkspaceSwitcher', () => ({
-  default: () => <div data-testid="workspace-switcher" />,
+vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
+  default: () => <div data-testid="organization-switcher" />,
 }));
 
 vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
@@ -220,11 +220,11 @@ describe('MenuShared', () => {
     ).toBeTruthy();
   });
 
-  it('renders the workspace switcher inside the sidebar header shell', () => {
+  it('renders the organization switcher inside the sidebar header shell', () => {
     render(<MenuShared config={config} />);
 
     expect(screen.getByTestId('sidebar-header-shell')).toBeInTheDocument();
-    expect(screen.getByTestId('workspace-switcher')).toBeInTheDocument();
+    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
   });
 
   it('attaches the actionable inbox count to the workspace inbox row', () => {

@@ -1,10 +1,15 @@
-import type { SwitcherDropdownFooterAction } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
-import { render } from '@testing-library/react';
+import type {
+  SwitcherDropdownFooterAction,
+  SwitcherDropdownItem,
+} from '@genfeedai/props/ui/menus/switcher-dropdown.props';
+import { render, screen } from '@testing-library/react';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockPush = vi.fn();
 let capturedFooterActions: SwitcherDropdownFooterAction[] = [];
+let capturedItems: SwitcherDropdownItem[] = [];
+let capturedMinWidth: number | undefined;
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({
@@ -59,11 +64,26 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
 vi.mock('@ui/menus/switcher-dropdown/SwitcherDropdown', () => ({
   default: ({
     footerActions = [],
+    items = [],
+    minWidth,
+    renderTrigger,
   }: {
     footerActions?: SwitcherDropdownFooterAction[];
+    items?: SwitcherDropdownItem[];
+    minWidth?: number;
+    renderTrigger: (state: {
+      isDisabled: boolean;
+      isOpen: boolean;
+    }) => React.ReactNode;
   }) => {
     capturedFooterActions = footerActions;
-    return <div data-testid="switcher-dropdown" />;
+    capturedItems = items;
+    capturedMinWidth = minWidth;
+    return (
+      <div data-testid="switcher-dropdown">
+        {renderTrigger({ isDisabled: false, isOpen: false })}
+      </div>
+    );
   },
 }));
 
@@ -72,6 +92,7 @@ describe('MenuBrandSwitcher', () => {
     {
       id: 'brand_1',
       label: 'Test Brand',
+      organization: { slug: 'test-org' },
       slug: 'test-brand',
       thumbnailUrl: '',
     },
@@ -79,6 +100,8 @@ describe('MenuBrandSwitcher', () => {
 
   beforeEach(() => {
     capturedFooterActions = [];
+    capturedItems = [];
+    capturedMinWidth = undefined;
     mockPush.mockReset();
   });
 
@@ -100,7 +123,23 @@ describe('MenuBrandSwitcher', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('should expose brand settings and creation actions', () => {
+  it('renders a labeled trigger for topbar placement', () => {
+    render(
+      <MenuBrandSwitcher
+        variant="labeled"
+        brands={brandsWithSlug}
+        brandId="brand_1"
+        onBrandChange={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Switch brand' }),
+    ).toHaveTextContent('Test Brand');
+    expect(capturedMinWidth).toBe(260);
+  });
+
+  it('should expose brand settings row action and creation footer action', () => {
     render(
       <MenuBrandSwitcher
         brands={brandsWithSlug}
@@ -110,11 +149,13 @@ describe('MenuBrandSwitcher', () => {
     );
 
     expect(capturedFooterActions.map((action) => action.label)).toEqual([
-      'Settings',
       'New Brand',
     ]);
+    expect(capturedItems[0]?.trailingAction?.ariaLabel).toBe(
+      'Open Test Brand settings',
+    );
 
-    capturedFooterActions[0]?.onAction();
+    capturedItems[0]?.trailingAction?.onAction();
 
     expect(mockPush).toHaveBeenCalledWith('/test-org/test-brand/settings');
   });

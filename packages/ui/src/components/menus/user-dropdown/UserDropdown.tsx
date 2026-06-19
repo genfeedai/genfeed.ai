@@ -30,14 +30,18 @@ interface DropdownItem {
 interface UserDropdownProps {
   userName: string;
   userEmail: string;
+  settingsScope?: 'all' | 'user';
+  side?: 'top' | 'bottom';
 }
 
 export default function UserDropdown({
+  settingsScope = 'all',
+  side = 'top',
   userName,
   userEmail,
 }: UserDropdownProps) {
   const { orgHref } = useOrgUrl();
-  const dropdownItems: DropdownItem[] = [
+  const allDropdownItems: DropdownItem[] = [
     { href: '/settings', icon: HiOutlineUser, label: 'Personal' },
     {
       href: orgHref('/settings'),
@@ -51,6 +55,12 @@ export default function UserDropdown({
       label: 'Help',
     },
   ];
+  const dropdownItems =
+    settingsScope === 'user'
+      ? allDropdownItems.filter((item) =>
+          ['Personal', 'Help'].includes(item.label),
+        )
+      : allDropdownItems;
 
   return (
     <DropdownMenu>
@@ -64,7 +74,7 @@ export default function UserDropdown({
           <HiOutlineCog6Tooth className="size-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="end" className="w-56">
+      <DropdownMenuContent side={side} align="end" className="w-56">
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col gap-1">
             <p className="text-sm font-medium leading-none">{userName}</p>

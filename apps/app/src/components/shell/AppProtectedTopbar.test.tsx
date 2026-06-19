@@ -27,6 +27,28 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    brandId: 'brand',
+    brands: [
+      {
+        id: 'brand',
+        label: 'Acme Brand',
+        organization: { id: 'org', slug: 'acme' },
+        slug: 'brand',
+      },
+    ],
+    selectedBrand: {
+      id: 'brand',
+      label: 'Acme Brand',
+      organization: { id: 'org', slug: 'acme' },
+      slug: 'brand',
+    },
+    setBrandId: vi.fn(),
+    setOrganizationId: vi.fn(),
+  }),
+}));
+
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     children,
@@ -47,6 +69,12 @@ vi.mock('@ui/primitives/button', () => ({
     >
       {children}
     </button>
+  ),
+}));
+
+vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
+  default: ({ variant }: { variant?: string }) => (
+    <div data-testid="brand-switcher">{variant}</div>
   ),
 }));
 
@@ -90,6 +118,8 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/acme/brand/workspace/overview',
+  useRouter: () => ({ push: vi.fn() }),
   useSearchParams: () => mockSearchParams,
 }));
 
@@ -101,13 +131,20 @@ describe('AppProtectedTopbar', () => {
     appSwitcherSpy.mockClear();
   });
 
-  it('renders the section switcher before the right-side controls', () => {
+  it('renders the brand switcher on the left and app switcher with right-side controls', () => {
     render(<AppProtectedTopbar orgSlug="acme" currentApp="studio" />);
 
+    const brandSwitcher = screen.getByTestId('brand-switcher');
     const switcher = screen.getByTestId('app-switcher');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
 
+    expect(brandSwitcher).toHaveTextContent('labeled');
+    expect(switcher).toHaveTextContent('icon');
     expect(switcher).toBeInTheDocument();
+    expect(
+      brandSwitcher.compareDocumentPosition(switcher) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(
       switcher.compareDocumentPosition(cloudSyncIndicator) &
         Node.DOCUMENT_POSITION_FOLLOWING,

@@ -5,4 +5,5 @@ export interface BrandSwitcherProps {
   brandId: string;
   isUpdatingBrand?: boolean;
   onBrandChange?: (brandId: string) => void;
+  variant?: 'avatar' | 'labeled';
 }

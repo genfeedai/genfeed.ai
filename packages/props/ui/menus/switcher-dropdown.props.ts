@@ -5,6 +5,11 @@ export interface SwitcherDropdownItem {
   label: string;
   isActive: boolean;
   imageUrl?: string;
+  trailingAction?: {
+    ariaLabel: string;
+    icon: ComponentType<{ className?: string }>;
+    onAction: () => void;
+  };
 }
 
 export interface SwitcherDropdownFooterAction {

@@ -3,7 +3,6 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import { Modal } from '@ui/modals/compound/modal.compound';
@@ -17,6 +16,7 @@ import { HiChevronDown, HiOutlineCog6Tooth } from 'react-icons/hi2';
 interface OrgEntry {
   id: string;
   label: string;
+  slug: string;
   isActive: boolean;
   brand: { id: string; label: string } | null;
 }
@@ -26,7 +26,6 @@ export default function OrganizationSwitcher() {
     OrganizationsService.getInstance(token),
   );
   const { push } = useRouter();
-  const { orgHref } = useOrgUrl();
 
   const [isSwitching, setIsSwitching] = useState(false);
   const [orgs, setOrgs] = useState<OrgEntry[]>([]);
@@ -105,9 +104,12 @@ export default function OrganizationSwitcher() {
 
   const activeOrg = orgs.find((o) => o.isActive);
   const displayLabel = error ?? activeOrg?.label ?? 'Organization';
-  const handleOpenOrganizationSettings = useCallback(() => {
-    push(orgHref('/settings'));
-  }, [orgHref, push]);
+  const handleOpenOrganizationSettings = useCallback(
+    (organizationSlug: string) => {
+      push(`/${organizationSlug}/~/settings`);
+    },
+    [push],
+  );
 
   return (
     <>
@@ -117,6 +119,11 @@ export default function OrganizationSwitcher() {
           id: o.id,
           isActive: o.isActive,
           label: o.label,
+          trailingAction: {
+            ariaLabel: `Open ${o.label} settings`,
+            icon: HiOutlineCog6Tooth,
+            onAction: () => handleOpenOrganizationSettings(o.slug),
+          },
         }))}
         renderTrigger={({ isOpen }) => (
           <div
@@ -150,11 +157,6 @@ export default function OrganizationSwitcher() {
         isDisabled={isSwitching}
         hasSearch={orgs.length >= 5}
         footerActions={[
-          {
-            icon: HiOutlineCog6Tooth,
-            label: 'Organization Settings',
-            onAction: handleOpenOrganizationSettings,
-          },
           {
             label: 'New Organization',
             onAction: () => setCreateModalOpen(true),
