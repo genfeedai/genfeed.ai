@@ -142,6 +142,7 @@ export function useAppProtectedLayout(
   const hasSecondaryTopbar =
     !isAdminRoute && pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
+  const isMoodboardRoute = pathname === APP_ROUTES.LIBRARY.MOODBOARD;
   const isWorkflowsRoute =
     pathname.startsWith(APP_ROUTE_PREFIXES.WORKFLOWS) ||
     pathname.startsWith(APP_ROUTE_PREFIXES.ORCHESTRATION);
@@ -167,7 +168,10 @@ export function useAppProtectedLayout(
                   : 'workspace';
 
   const shouldMountAgentPanel =
-    isTerminalDockAvailable() && !isEditorCanvasRoute && !isConversationRoute;
+    isTerminalDockAvailable() &&
+    !isEditorCanvasRoute &&
+    !isMoodboardRoute &&
+    !isConversationRoute;
   const shouldInitAgentApiService =
     shouldMountAgentPanel || isConversationRoute;
 
@@ -490,6 +494,7 @@ export function useAppProtectedLayout(
     isFocusedOnboardingRoute,
     isLibraryLandingRoute,
     isLibraryRoute,
+    isMoodboardRoute,
     isOrgRoute,
     isPromptBarRoute,
     isSettingsRoute,

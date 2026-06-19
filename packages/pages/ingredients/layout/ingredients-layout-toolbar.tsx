@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, PageScope } from '@genfeedai/enums';
 import type {
   IFilters,
@@ -10,7 +11,11 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import Link from 'next/link';
-import { HiArrowTopRightOnSquare, HiArrowUpTray } from 'react-icons/hi2';
+import {
+  HiArrowTopRightOnSquare,
+  HiArrowUpTray,
+  HiOutlineSquares2X2,
+} from 'react-icons/hi2';
 import type { IngredientsLayoutConfig } from './ingredients-layout.config';
 
 type IngredientsLayoutToolbarProps = {
@@ -52,6 +57,19 @@ export default function IngredientsLayoutToolbar({
           variant={ButtonVariant.SECONDARY}
           onClick={onUpload}
         />
+      )}
+
+      {scope === PageScope.BRAND && (
+        <PrimitiveButton
+          asChild
+          tooltip="Mood board"
+          variant={ButtonVariant.SECONDARY}
+        >
+          <Link href={APP_ROUTES.LIBRARY.MOODBOARD}>
+            <HiOutlineSquares2X2 />
+            Mood board
+          </Link>
+        </PrimitiveButton>
       )}
 
       {scope !== PageScope.SUPERADMIN && config.showStudioLink && (

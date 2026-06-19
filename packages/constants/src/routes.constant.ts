@@ -99,6 +99,7 @@ export const APP_ROUTES = {
     GIFS: '/library/gifs',
     IMAGES: '/library/images',
     INGREDIENTS: '/library/ingredients',
+    MOODBOARD: '/library/moodboard',
     MUSIC: '/library/music',
     ROOT: '/library/ingredients',
     VIDEOS: '/library/videos',

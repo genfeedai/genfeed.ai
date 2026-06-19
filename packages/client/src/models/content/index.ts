@@ -3,6 +3,7 @@ export * from './caption.model';
 export * from './ingredient.model';
 export * from './knowledge-base.model';
 export * from './model.model';
+export * from './mood-board.model';
 export * from './newsletter.model';
 export * from './post.model';
 export * from './prompt.model';

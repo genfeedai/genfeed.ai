@@ -698,6 +698,7 @@ model Organization {
   activities                    Activity[]
   apiKeys                       ApiKey[]
   creatorAnalyses               CreatorAnalysis[]
+  moodBoards                    MoodBoard[]                    @relation("org_moodboard")
 
   @@index([isDefault])
   @@index([category])
@@ -792,10 +793,30 @@ model Brand {
   contextBases               ContextBase[]              @relation("context_base_source_brand")
   schedules                  Schedule[]
   bookmarks                  Bookmark[]
+  moodBoard                  MoodBoard?                 @relation("brand_moodboard")
 
   @@index([isDefault])
   @@index([organizationId, isDeleted, label], map: "brands_org_deleted_label_idx")
   @@map("brands")
+}
+
+// One mood board per brand. `layout` stores only positions keyed by asset id
+// ([{ assetId, position: { x, y }, width?, z? }]); asset content is fetched
+// live from ingredients and merged by assetId so the board stays self-healing.
+model MoodBoard {
+  id             String       @id @default(cuid())
+  brandId        String       @unique
+  brand          Brand        @relation("brand_moodboard", fields: [brandId], references: [id])
+  organizationId String
+  organization   Organization @relation("org_moodboard", fields: [organizationId], references: [id])
+  layout         Json         @default("[]")
+  metadata       Json?
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, isDeleted])
+  @@map("mood_boards")
 }
 
 model Member {
