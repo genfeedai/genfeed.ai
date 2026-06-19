@@ -20,6 +20,13 @@ export default defineConfig({
         replacement: path.resolve(appRoot, './tests/server-only.stub.ts'),
       },
       {
+        find: /^@testing-library\/react$/,
+        replacement: path.resolve(
+          appRoot,
+          './node_modules/@testing-library/react',
+        ),
+      },
+      {
         find: /^@pages$/,
         replacement: pagesRoot,
       },
@@ -264,6 +271,8 @@ export default defineConfig({
     include: [
       'packages/pages/analytics/overview/analytics-overview.test.tsx',
       'studio/generate/utils/**/*.test.ts',
+      'studio/fastlane/**/*.test.ts',
+      'studio/fastlane/**/*.test.tsx',
     ],
     name: '@genfeedai/pages',
     setupFiles: [path.resolve(appRoot, './vitest.setup.ts')],
