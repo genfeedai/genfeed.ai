@@ -65,6 +65,11 @@ jobs:
       - name: Report coverage to Codecov
         uses: codecov/codecov-action@v6
         if: always()
+        # Coverage is a best-effort weekly report, not a gate. Without a
+        # CODECOV_TOKEN (public repo / forks) the uploader exits non-zero even
+        # with fail_ci_if_error:false, which reds the job. Never let the upload
+        # fail the workflow.
+        continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: ${{ matrix.package }}/coverage
@@ -102,6 +107,11 @@ jobs:
       - name: Report coverage to Codecov
         uses: codecov/codecov-action@v6
         if: always()
+        # Coverage is a best-effort weekly report, not a gate. Without a
+        # CODECOV_TOKEN (public repo / forks) the uploader exits non-zero even
+        # with fail_ci_if_error:false, which reds the job. Never let the upload
+        # fail the workflow.
+        continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: packages/hooks/coverage
@@ -184,6 +194,11 @@ jobs:
       - name: Report coverage to Codecov
         uses: codecov/codecov-action@v6
         if: always()
+        # Coverage is a best-effort weekly report, not a gate. Without a
+        # CODECOV_TOKEN (public repo / forks) the uploader exits non-zero even
+        # with fail_ci_if_error:false, which reds the job. Never let the upload
+        # fail the workflow.
+        continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: apps/app/coverage
@@ -268,6 +283,11 @@ jobs:
       - name: Report coverage to Codecov
         uses: codecov/codecov-action@v6
         if: always()
+        # Coverage is a best-effort weekly report, not a gate. Without a
+        # CODECOV_TOKEN (public repo / forks) the uploader exits non-zero even
+        # with fail_ci_if_error:false, which reds the job. Never let the upload
+        # fail the workflow.
+        continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: apps/server/api/coverage
@@ -330,6 +350,8 @@ jobs:
       - name: Report E2E coverage to Codecov (shard ${{ matrix.shard }})
         uses: codecov/codecov-action@v6
         if: always()
+        # Best-effort upload; never let a missing token / empty report red the job.
+        continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: playwright-report/coverage/lcov.info
