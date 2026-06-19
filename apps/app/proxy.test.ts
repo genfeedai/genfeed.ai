@@ -140,6 +140,47 @@ describe('proxy', () => {
     );
   });
 
+  it('redirects signed-in root to org overview when no brand is selected', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            access: {},
+            brands: [{ id: 'brand_1', slug: 'moonrise-studio' }],
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (url.endsWith('/organizations/mine')) {
+        return new Response(
+          JSON.stringify([{ isActive: true, slug: 'acme' }]),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/' },
+        url: 'http://localhost:3000/',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/~/overview',
+    );
+  });
+
   it('redirects signed-in root to onboarding when no workspace exists', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
@@ -294,6 +335,207 @@ describe('proxy', () => {
     expect(response.headers.get('location')).toBe(
       'http://localhost:3000/acme/moonrise-studio/workspace/overview',
     );
+  });
+
+  it('redirects signed-in flat protected routes to org views when no brand is selected', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            access: {},
+            brands: [{ id: 'brand_1', slug: 'moonrise-studio' }],
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (url.endsWith('/organizations/mine')) {
+        return new Response(
+          JSON.stringify([{ isActive: true, slug: 'acme' }]),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const postsResponse = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/posts', search: '' },
+        url: 'http://localhost:3000/posts',
+      } as never,
+      {} as never,
+    );
+
+    expect(postsResponse.status).toBe(307);
+    expect(postsResponse.headers.get('location')).toBe(
+      'http://localhost:3000/acme/~/posts',
+    );
+
+    const workspaceResponse = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/workspace/overview', search: '' },
+        url: 'http://localhost:3000/workspace/overview',
+      } as never,
+      {} as never,
+    );
+
+    expect(workspaceResponse.status).toBe(307);
+    expect(workspaceResponse.headers.get('location')).toBe(
+      'http://localhost:3000/acme/~/overview',
+    );
+  });
+
+  it('keeps personal settings canonical when no brand is selected', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            access: {},
+            brands: [{ id: 'brand_1', slug: 'moonrise-studio' }],
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (url.endsWith('/organizations/mine')) {
+        return new Response(
+          JSON.stringify([{ isActive: true, slug: 'acme' }]),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/settings/personal', search: '' },
+        url: 'http://localhost:3000/settings/personal',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/settings',
+    );
+  });
+
+  it('redirects signed-in bare protected routes to onboarding when no projects exist', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            brands: [],
+            currentUser: { id: 'user_1' },
+          }),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/workspace/overview', search: '' },
+        url: 'http://localhost:3000/workspace/overview',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/onboarding',
+    );
+  });
+
+  it('redirects scoped app routes to onboarding when no projects exist', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            brands: [],
+            currentUser: { id: 'user_1' },
+          }),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/acme/~/overview', search: '' },
+        url: 'http://localhost:3000/acme/~/overview',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/onboarding',
+    );
+  });
+
+  it('does not gate brand-scoped routes through the onboarding bootstrap check', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({ brands: [], currentUser: { id: 'user_1' } }),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/acme/moonrise-studio/posts', search: '' },
+        url: 'http://localhost:3000/acme/moonrise-studio/posts',
+      } as never,
+      {} as never,
+    );
+
+    // Brand-scoped paths must fall through, never the org-root (~) onboarding
+    // gate, and must not trigger a bootstrap fetch on every navigation.
+    expect(response.headers.get('location')).not.toBe(
+      'http://localhost:3000/onboarding',
+    );
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).endsWith('/auth/bootstrap'),
+      ),
+    ).toBe(false);
   });
 
   it('redirects signed-in flat chat to the canonical org-scoped chat path', async () => {

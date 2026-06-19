@@ -28,17 +28,19 @@ function AppProtectedTopbarContent({
   brandSlug,
 }: TopbarProps = {}) {
   const searchParams = useSearchParams();
-  // useOrgUrl resolves the brand from the active-brand context when the route has
-  // no [brandSlug] (org-level `/:org/~/...` pages). Use the resolved values so the
-  // app switcher can still link into brand-scoped apps (Library/Posts/Studio/…)
-  // instead of falling back to `/:org/~/overview` and trapping the user there.
+  // Route props are authoritative. Only fall back to useOrgUrl when the shell
+  // is rendered without route context.
   const {
     href,
     brandSlug: resolvedBrandSlug,
     orgSlug: resolvedOrgSlug,
   } = useOrgUrl();
+  const explicitBrandSlug = brandSlug || undefined;
+  const hasExplicitOrgScope = Boolean(orgSlug);
   const effectiveOrgSlug = orgSlug || resolvedOrgSlug;
-  const effectiveBrandSlug = brandSlug || resolvedBrandSlug;
+  const effectiveBrandSlug = hasExplicitOrgScope
+    ? explicitBrandSlug
+    : (explicitBrandSlug ?? resolvedBrandSlug) || undefined;
 
   const taskId = searchParams.get('taskId');
   const taskTitle = searchParams.get('taskTitle');
