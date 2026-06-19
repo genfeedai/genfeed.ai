@@ -60,6 +60,7 @@ import { ImagesModule } from '@api/collections/images/images.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { InsightsModule } from '@api/collections/insights/insights.module';
 import { LinksModule } from '@api/collections/links/links.module';
+import { McpApprovalsModule } from '@api/collections/mcp-approvals/mcp-approvals.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -282,6 +283,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     TasksModule,
     LinksModule,
     MarketplaceIntegrationModule,
+    McpApprovalsModule,
     MembersModule,
     MetadataModule,
     ModelsModule,

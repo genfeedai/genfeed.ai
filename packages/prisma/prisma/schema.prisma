@@ -567,6 +567,7 @@ model User {
   outreachCampaigns        OutreachCampaign[]
   captions                 Caption[]
   personaAssignments       Persona[]                 @relation("persona_assigned_members")
+  mcpApprovals             McpApproval[]
 
   @@index([isDefault])
   @@index([appSource])
@@ -698,11 +699,42 @@ model Organization {
   activities                    Activity[]
   apiKeys                       ApiKey[]
   creatorAnalyses               CreatorAnalysis[]
+  mcpApprovals                  McpApproval[]
 
   @@index([isDefault])
   @@index([category])
   @@index([accountType])
   @@map("organizations")
+}
+
+enum McpApprovalStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+/// A deferred, human-approvable MCP write action. Mutating MCP tools persist a
+/// PENDING row instead of executing; a human resolves it (APPROVED/DECLINED) and
+/// only an approved action runs. Mirrors the AgentRun org/user/status/json shape.
+model McpApproval {
+  id             String            @id @default(cuid())
+  mongoId        String?           @unique
+  organizationId String
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  userId         String
+  user           User              @relation(fields: [userId], references: [id])
+  toolName       String
+  arguments      Json              @default("{}")
+  status         McpApprovalStatus @default(PENDING)
+  result         Json?
+  resolvedAt     DateTime?
+  isDeleted      Boolean           @default(false)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, status, isDeleted])
+  @@map("mcp_approvals")
 }
 
 model Brand {

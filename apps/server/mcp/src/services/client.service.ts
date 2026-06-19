@@ -17,6 +17,10 @@ import type {
   WorkflowTemplateResource,
 } from '@mcp/shared/interfaces/api-response.interface';
 import type {
+  McpApprovalDecision,
+  McpApprovalResource,
+} from '@mcp/shared/interfaces/approval.interface';
+import type {
   ArticleCreationParams,
   ArticleResponse,
   ArticleSearchParams,
@@ -159,6 +163,68 @@ export class ClientService {
       this.logError(`executing agent tool ${name}`, error as ApiError);
       throw new Error(
         this.getErrorMessage(error as ApiError, `Failed to execute ${name}`),
+      );
+    }
+  }
+
+  /**
+   * Persist a PENDING approval for a mutating MCP tool call. The API notifies a
+   * reviewer; nothing executes until the approval is resolved.
+   */
+  async createApproval(
+    toolName: string,
+    args: Record<string, unknown>,
+  ): Promise<McpApprovalResource> {
+    try {
+      const response = await this.client.post('/mcp-approvals', {
+        arguments: args,
+        toolName,
+      });
+      return response.data?.data as McpApprovalResource;
+    } catch (error: unknown) {
+      this.logError(`creating approval for ${toolName}`, error as ApiError);
+      throw new Error(
+        this.getErrorMessage(
+          error as ApiError,
+          `Failed to create approval for ${toolName}`,
+        ),
+      );
+    }
+  }
+
+  async getApproval(approvalId: string): Promise<McpApprovalResource | null> {
+    try {
+      const response = await this.client.get(
+        `/mcp-approvals/${encodeURIComponent(approvalId)}`,
+      );
+      return (response.data?.data as McpApprovalResource) ?? null;
+    } catch (error: unknown) {
+      this.logError(`fetching approval ${approvalId}`, error as ApiError);
+      throw new Error(
+        this.getErrorMessage(error as ApiError, 'Failed to fetch approval'),
+      );
+    }
+  }
+
+  /**
+   * Resolve an approval. On `approve`, the caller passes the execution `result`
+   * so it is persisted alongside the APPROVED status.
+   */
+  async resolveApproval(
+    approvalId: string,
+    decision: McpApprovalDecision,
+    result?: Record<string, unknown>,
+  ): Promise<McpApprovalResource> {
+    try {
+      const response = await this.client.post(
+        `/mcp-approvals/${encodeURIComponent(approvalId)}/resolve`,
+        { decision, ...(result ? { result } : {}) },
+      );
+      return response.data?.data as McpApprovalResource;
+    } catch (error: unknown) {
+      this.logError(`resolving approval ${approvalId}`, error as ApiError);
+      throw new Error(
+        this.getErrorMessage(error as ApiError, 'Failed to resolve approval'),
       );
     }
   }

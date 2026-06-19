@@ -1,0 +1,126 @@
+import { CreateMcpApprovalDto } from '@api/collections/mcp-approvals/dto/create-mcp-approval.dto';
+import { ResolveMcpApprovalDto } from '@api/collections/mcp-approvals/dto/resolve-mcp-approval.dto';
+import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
+import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
+import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
+import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import type { User } from '@clerk/backend';
+import { McpApprovalStatus } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+
+type McpApprovalResponse = {
+  id: string;
+  status: McpApprovalStatus;
+  toolName: string;
+  arguments: Record<string, unknown>;
+  result: Record<string, unknown> | null;
+  resolvedAt: Date | null;
+  createdAt: Date;
+};
+
+@ApiTags('MCP Approvals')
+@AutoSwagger()
+@Controller('mcp-approvals')
+export class McpApprovalsController {
+  constructor(
+    private readonly service: McpApprovalsService,
+    private readonly logger: LoggerService,
+  ) {}
+
+  private toResponse(approval: McpApprovalDocument): McpApprovalResponse {
+    return {
+      id: approval.id,
+      status: approval.status as McpApprovalStatus,
+      toolName: approval.toolName,
+      arguments: (approval.arguments as Record<string, unknown>) ?? {},
+      result: (approval.result as Record<string, unknown> | null) ?? null,
+      resolvedAt: approval.resolvedAt as Date | null,
+      createdAt: approval.createdAt as Date,
+    };
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a pending MCP approval request' })
+  @ApiResponse({ description: 'Approval created', status: HttpStatus.CREATED })
+  async create(
+    @CurrentUser() user: User,
+    @Body() dto: CreateMcpApprovalDto,
+  ): Promise<{ data: McpApprovalResponse }> {
+    const { organization, user: userId } = getPublicMetadata(user);
+    const result = await this.service.createPending(
+      organization,
+      userId,
+      dto.toolName,
+      dto.arguments,
+    );
+    return { data: this.toResponse(result) };
+  }
+
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'List MCP approval requests for the organization' })
+  @ApiResponse({ description: 'Approvals returned', status: HttpStatus.OK })
+  async findAll(
+    @CurrentUser() user: User,
+    @Query('status') status?: McpApprovalStatus,
+  ): Promise<{ data: McpApprovalResponse[] }> {
+    const { organization } = getPublicMetadata(user);
+    const list = await this.service.findByOrganization(organization, status);
+    return { data: list.map((a) => this.toResponse(a)) };
+  }
+
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get a single MCP approval by ID' })
+  @ApiResponse({ description: 'Approval returned', status: HttpStatus.OK })
+  async findOne(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<{ data: McpApprovalResponse }> {
+    const { organization } = getPublicMetadata(user);
+    const approval = await this.service.findOne({
+      id,
+      organizationId: organization,
+      isDeleted: false,
+    });
+
+    if (!approval) {
+      throw new NotFoundException('MCP approval not found');
+    }
+
+    return { data: this.toResponse(approval) };
+  }
+
+  @Post(':id/resolve')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resolve (approve or decline) an MCP approval' })
+  @ApiResponse({ description: 'Approval resolved', status: HttpStatus.OK })
+  async resolve(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: ResolveMcpApprovalDto,
+  ): Promise<{ data: McpApprovalResponse }> {
+    const { organization } = getPublicMetadata(user);
+    const result = await this.service.resolve(
+      id,
+      organization,
+      dto.decision,
+      dto.result,
+    );
+    return { data: this.toResponse(result) };
+  }
+}

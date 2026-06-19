@@ -76,6 +76,7 @@ describe('ToolRegistryService', () => {
     getVideoAnalytics: ReturnType<typeof vi.fn>;
     listImages: ReturnType<typeof vi.fn>;
     createArticle: ReturnType<typeof vi.fn>;
+    createApproval: ReturnType<typeof vi.fn>;
     getWorkflowStatus: ReturnType<typeof vi.fn>;
     getOrganizationAnalytics: ReturnType<typeof vi.fn>;
     setBearerToken: ReturnType<typeof vi.fn>;
@@ -92,6 +93,11 @@ describe('ToolRegistryService', () => {
         {
           provide: ClientService,
           useValue: {
+            createApproval: vi.fn().mockResolvedValue({
+              id: 'apr-art-1',
+              status: 'PENDING',
+              toolName: 'create_article',
+            }),
             createArticle: vi.fn().mockResolvedValue({
               id: 'art-1',
               status: 'draft',
@@ -265,16 +271,25 @@ describe('ToolRegistryService', () => {
     expect((result as { isError: boolean }).isError).toBe(true);
   });
 
-  it('handleToolCall create_article requires topic', async () => {
+  it('handleToolCall create_article queues a pending approval instead of executing', async () => {
+    // create_article is an approval-gated mutation: it must persist a pending
+    // approval (human-in-the-loop) rather than run immediately. Execution-time
+    // arg validation (e.g. "topic required") only happens once approved.
     const result = await service.handleToolCall({
-      arguments: {},
+      arguments: { topic: 'AI News' },
       name: 'create_article',
     });
 
-    expect((result as { isError: boolean }).isError).toBe(true);
+    expect(clientService.createApproval).toHaveBeenCalledWith(
+      'create_article',
+      {
+        topic: 'AI News',
+      },
+    );
+    expect(clientService.createArticle).not.toHaveBeenCalled();
     expect(
       (result as { content: { text: string }[] }).content[0].text,
-    ).toContain('topic required');
+    ).toContain('requires approval');
   });
 
   it('handleResourceRead returns video analytics for analytics URI', async () => {
