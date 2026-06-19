@@ -26,6 +26,7 @@ jobs:
   validate-master-ref:
     name: Validate master ref
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Require master for self-hosted publish
         run: |
