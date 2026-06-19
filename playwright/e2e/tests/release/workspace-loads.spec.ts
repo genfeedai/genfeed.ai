@@ -40,7 +40,9 @@ test.describe('Released image — workspace shell', () => {
     ).toHaveCount(0);
 
     // Shell chrome mounted (protected layout resolved).
-    const switcher = page.getByTestId('workspace-switcher-trigger');
+    const switcher = page
+      .getByTestId('desktop-sidebar-rail')
+      .getByTestId('workspace-switcher-trigger');
     await expect(switcher, 'workspace switcher must mount').toBeVisible({
       timeout: 30_000,
     });

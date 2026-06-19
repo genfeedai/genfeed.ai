@@ -1,9 +1,9 @@
 'use client';
 
-import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
 import type { IEditorProject } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
@@ -74,7 +74,7 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 export default function EditorProjectsPage() {
-  const _brandId = useBrandId();
+  const { href } = useOrgUrl();
   const [projects, setProjects] = useState<IEditorProject[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -122,7 +122,7 @@ export default function EditorProjectsPage() {
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <Link
-              href="/studio/video"
+              href={href('/studio/video')}
               className="flex size-8 shrink-0 items-center justify-center rounded-lg text-foreground/40 transition-colors duration-150 hover:bg-white/[0.06] hover:text-foreground"
               aria-label="Back to Studio"
             >
@@ -137,7 +137,7 @@ export default function EditorProjectsPage() {
         </div>
 
         <Link
-          href="/editor/new"
+          href={href('/editor/new')}
           className="inline-flex items-center gap-2 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <HiOutlinePlus className="size-4" />
@@ -185,7 +185,7 @@ export default function EditorProjectsPage() {
           </h3>
           <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
-              <Link key={project.id} href={`/editor/${project.id}`}>
+              <Link key={project.id} href={href(`/editor/${project.id}`)}>
                 <Card
                   variant={CardVariant.DEFAULT}
                   className="group cursor-pointer p-6 transition-all hover:ring-1 hover:ring-primary/30"
@@ -244,7 +244,7 @@ export default function EditorProjectsPage() {
             </p>
 
             <Link
-              href="/editor/new"
+              href={href('/editor/new')}
               className="inline-flex items-center gap-2 bg-primary px-6 py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
               <HiOutlinePlus className="size-5" />

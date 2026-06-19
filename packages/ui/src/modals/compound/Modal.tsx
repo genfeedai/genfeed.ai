@@ -11,6 +11,7 @@ import {
   useMemo,
 } from 'react';
 import { cn } from '../../lib/utils';
+import { useModalContentGlobalSideEffectCleanup } from '../../utils/modal-global-side-effects';
 
 /**
  * Compound Modal Component
@@ -106,6 +107,7 @@ function ModalContent({
   ...props
 }: ModalContentProps) {
   const modalContextValue = useMemo(() => ({ size }), [size]);
+  useModalContentGlobalSideEffectCleanup();
 
   return (
     <ModalPortal>

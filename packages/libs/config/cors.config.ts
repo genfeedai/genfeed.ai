@@ -25,6 +25,16 @@ export interface CorsOriginConfig {
   additionalOrigins?: (string | RegExp)[];
 }
 
+export const GENFEED_CORS_ALLOWED_METHODS = 'GET,HEAD,PUT,PATCH,POST,DELETE';
+export const GENFEED_CORS_PREFLIGHT_MAX_AGE_SECONDS = 600;
+
+export interface GenfeedCorsOptions {
+  credentials: true;
+  maxAge: number;
+  methods: string;
+  origin: (string | RegExp)[];
+}
+
 /**
  * Get CORS origins configuration for Genfeed.ai services
  *
@@ -86,6 +96,17 @@ export function getGenfeedCorsOrigins(
   // Production without ID = no extension access (fail secure)
 
   return [...productionOrigins, ...additionalOrigins];
+}
+
+export function getGenfeedCorsOptions(
+  config: CorsOriginConfig,
+): GenfeedCorsOptions {
+  return {
+    credentials: true,
+    maxAge: GENFEED_CORS_PREFLIGHT_MAX_AGE_SECONDS,
+    methods: GENFEED_CORS_ALLOWED_METHODS,
+    origin: getGenfeedCorsOrigins(config),
+  };
 }
 
 /**

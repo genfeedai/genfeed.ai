@@ -39,9 +39,9 @@ Live AWS wins over older AL2023 EC2 migration notes.
   Amazon Linux 2023, `t3a.large`, EIP `52.52.217.255`.
 - **State**: stopped on 2026-06-18 after the API DNS cutover. It was not
   terminated.
-- **Guards**: `Deploy Production` is disabled manually in GitHub Actions; its
-  legacy backend job is a repo-level no-op; instance termination protection is
-  enabled; instance and root volume are tagged `DoNotStart=true`,
+- **Guards**: the old `Deploy Production` workflow has been removed from the
+  repo; instance termination protection is enabled; instance and root volume are
+  tagged `DoNotStart=true`,
   `StoppedFor=fargate-cutover-2026-06-18`, and
   `CutoverSnapshot=snap-0232fb7b41809e8e0`.
 - **Rollback role only**: rollback means manually re-pointing affected public
@@ -52,9 +52,9 @@ Live AWS wins over older AL2023 EC2 migration notes.
 
 ## Deployment Path
 
-- `Deploy Production` is disabled and should not be used for normal backend
-  deploys. Its backend job is a no-op so it cannot call the old
-  Tailscale/SSH/Docker Compose path to EC2 if the workflow is re-enabled.
+- The old `Deploy Production` workflow was removed and should not be restored
+  for normal backend deploys. It carried the old Tailscale/SSH/Docker Compose
+  path to EC2.
 - `Deploy ECS (production)` is the intended production backend deploy path. It
   is dispatch-only, production-environment gated, and master-only.
 - The 2026-06-18 cutover was completed locally first, then the GitHub Actions

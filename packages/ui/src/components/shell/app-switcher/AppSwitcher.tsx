@@ -35,14 +35,14 @@ const CONTENT_APPS: AppSwitcherItemConfig[] = [
     id: 'library',
     label: 'Library',
     route: (org, brand) =>
-      brand ? `/${org}/${brand}/library/ingredients` : `/${org}/~/overview`,
+      brand ? `/${org}/${brand}/library/ingredients` : `/${org}/~/library`,
   },
   {
     icon: HiOutlineDocumentText,
     id: 'posts',
     label: 'Posts',
     route: (org, brand) =>
-      brand ? `/${org}/${brand}/posts` : `/${org}/~/overview`,
+      brand ? `/${org}/${brand}/posts` : `/${org}/~/posts`,
   },
 ];
 
@@ -65,28 +65,28 @@ const PLATFORM_APPS: AppSwitcherItemConfig[] = [
     id: 'studio',
     label: 'Studio',
     route: (org, brand) =>
-      brand ? `/${org}/${brand}/studio/image` : `/${org}/~/overview`,
+      brand ? `/${org}/${brand}/studio/image` : `/${org}/~/studio/image`,
   },
   {
     icon: HiOutlineChartBar,
     id: 'workflows',
     label: 'Workflows',
     route: (org, brand) =>
-      brand ? `/${org}/${brand}/workflows` : `/${org}/~/overview`,
+      brand ? `/${org}/${brand}/workflows` : `/${org}/~/workflows`,
   },
   {
     icon: HiOutlinePencilSquare,
     id: 'editor',
     label: 'Editor',
     route: (org, brand) =>
-      brand ? `/${org}/${brand}/editor` : `/${org}/~/overview`,
+      brand ? `/${org}/${brand}/editor` : `/${org}/~/editor`,
   },
   {
     icon: HiOutlineRectangleGroup,
     id: 'compose',
     label: 'Write',
     route: (org, brand) =>
-      brand ? `/${org}/${brand}/compose/post` : `/${org}/~/overview`,
+      brand ? `/${org}/${brand}/compose/post` : `/${org}/~/posts`,
   },
   {
     icon: HiOutlineChartBarSquare,
