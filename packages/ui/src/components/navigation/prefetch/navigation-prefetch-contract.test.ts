@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 const navigationSurfaces = [
@@ -13,7 +12,11 @@ const navigationSurfaces = [
   'navigation/tabs/Tabs.tsx',
 ] as const;
 
-const componentsRoot = fileURLToPath(new URL('../../', import.meta.url));
+// Resolve from cwd (the package root under `cd packages/ui && vitest`) rather
+// than import.meta.url — under --coverage the module URL is not a file: URL,
+// so fileURLToPath() throws ERR_INVALID_URL_SCHEME. Mirrors the cwd-based
+// resolution used by the apps/app protected-pages source contract.
+const componentsRoot = join(process.cwd(), 'src/components');
 
 describe('navigation prefetch wiring', () => {
   it.each(navigationSurfaces)('keeps %s wired to route prefetch', (surface) => {

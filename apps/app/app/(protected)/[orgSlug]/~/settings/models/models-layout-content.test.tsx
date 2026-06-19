@@ -6,6 +6,14 @@ import ModelsLayoutContent from './models-layout-content';
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand', orgSlug: 'acme' }),
   usePathname: () => '/acme/~/settings/models/all',
+  useRouter: () => ({
+    back: vi.fn(),
+    forward: vi.fn(),
+    prefetch: vi.fn(),
+    push: vi.fn(),
+    refresh: vi.fn(),
+    replace: vi.fn(),
+  }),
   useSearchParams: () => new URLSearchParams(),
 }));
 
