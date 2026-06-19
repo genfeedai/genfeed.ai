@@ -1,4 +1,5 @@
 import { LoggerService } from '@libs/logger/logger.service';
+import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
 import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -40,6 +41,13 @@ const MOCK_TOOLS = [
   },
   {
     name: 'get_ad_performance_insights',
+    // Matches production (source.ts) — this tool is user-tier, not admin.
+    requiredRole: 'user',
+    surfaces: { mcp: true },
+  },
+  // A genuinely admin-gated tool, mirroring production, for the role-gate test.
+  {
+    name: 'get_darkroom_health',
     requiredRole: 'admin',
     surfaces: { mcp: true },
   },
@@ -201,6 +209,36 @@ describe('ToolRegistryService', () => {
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('vid-1');
+  });
+
+  describe('role gating', () => {
+    // NOTE: actual deny/allow enforcement is covered by
+    // tool-registry.role.integration.spec.ts using the REAL checkToolRole.
+    // Here checkToolRole is mocked, so we only assert the gate is *invoked*
+    // for role-gated tools and *skipped* for ungated ones.
+    it('invokes the role gate with the request role for a role-gated tool', async () => {
+      const adminScoped = new ToolRegistryService(
+        clientService as unknown as ClientService,
+        logger as unknown as LoggerService,
+        'admin',
+      );
+
+      await adminScoped.handleToolCall({
+        arguments: {},
+        name: 'get_darkroom_health',
+      });
+
+      expect(McpAuthGuard.checkToolRole).toHaveBeenCalledWith('admin', 'admin');
+    });
+
+    it('does not gate tools without a requiredRole', async () => {
+      await service.handleToolCall({
+        arguments: { description: 'x', title: 'y' },
+        name: 'generate_video',
+      });
+
+      expect(McpAuthGuard.checkToolRole).not.toHaveBeenCalled();
+    });
   });
 
   it('handleToolCall get_credits_balance proxies through executeAgentTool', async () => {

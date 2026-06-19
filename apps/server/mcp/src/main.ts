@@ -8,7 +8,7 @@ import { getGenfeedCorsOrigins } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { AppModule } from '@mcp/app.module';
 import { ConfigService } from '@mcp/config/config.service';
-import { AuthService } from '@mcp/services/auth.service';
+import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ServerService } from '@mcp/services/server.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { Logger } from '@nestjs/common';
@@ -21,6 +21,7 @@ interface AuthenticatedRequest extends Request {
     token?: string;
     userId?: string;
     organizationId?: string;
+    role?: McpRole;
   };
 }
 
@@ -74,6 +75,7 @@ async function main(): Promise<void> {
 
     req.authContext = {
       organizationId: authResult.organizationId,
+      role: authResult.role || 'user',
       token,
       userId: authResult.userId,
     };

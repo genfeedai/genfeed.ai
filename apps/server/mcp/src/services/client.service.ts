@@ -60,6 +60,7 @@ import type {
   WorkflowResponse,
   WorkflowTemplate,
 } from '@mcp/shared/interfaces/workflow.interface';
+import { resolveApiBaseUrl } from '@mcp/shared/utils/api-url.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import type { AxiosInstance } from 'axios';
@@ -113,7 +114,9 @@ export class ClientService {
   ) {
     this.bearerToken =
       (this.configService.get('GENFEEDAI_API_KEY') as string) || '';
-    const baseURL = this.configService.get('GENFEEDAI_API_URL');
+    const baseURL = resolveApiBaseUrl(
+      this.configService.get('GENFEEDAI_API_URL') as string | undefined,
+    );
 
     this.client = this.httpService.axiosRef.create({
       baseURL,

@@ -1,4 +1,6 @@
+import { MembersService } from '@api/collections/members/services/members.service';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { Controller, Get, Req } from '@nestjs/common';
 
 type AuthWhoamiUser = {
@@ -24,14 +26,18 @@ type AuthWhoamiRequest = {
  */
 @Controller('auth')
 export class AuthWhoamiController {
+  constructor(private readonly membersService: MembersService) {}
+
   @Get('whoami')
-  whoami(@Req() req: AuthWhoamiRequest) {
+  async whoami(@Req() req: AuthWhoamiRequest) {
     const user = req.user;
     const meta = user?.publicMetadata || {};
     const mongoUserId = ObjectIdUtil.isValid(meta.user)
       ? String(meta.user)
       : '';
     const clerkUserId = user?.id || '';
+
+    const role = await this.resolveOrganizationRole(meta);
 
     return {
       data: {
@@ -40,6 +46,7 @@ export class AuthWhoamiController {
           id: meta.organization || '',
           name: meta.organizationName || '',
         },
+        role,
         scopes: meta.scopes || ['*'],
         user: {
           clerkId: clerkUserId,
@@ -51,5 +58,41 @@ export class AuthWhoamiController {
         },
       },
     };
+  }
+
+  /**
+   * Resolve the caller's organization role key (a `MemberRole` value: owner |
+   * admin | creator | analytics | user | support) from their active membership.
+   * Returns `''` when membership/role can't be resolved so downstream role
+   * gating (e.g. the MCP server's tool guard) denies by default rather than
+   * silently elevating. Never throws — identity introspection must not 500 on a
+   * membership-lookup hiccup.
+   */
+  private async resolveOrganizationRole(
+    meta: Record<string, unknown>,
+  ): Promise<string> {
+    const userId = meta.user;
+    const organizationId = meta.organization;
+
+    if (!userId || !organizationId) {
+      return '';
+    }
+
+    try {
+      const member = await this.membersService.findOne(
+        {
+          isActive: true,
+          isDeleted: false,
+          organization: String(organizationId),
+          user: String(userId),
+        },
+        [PopulateBuilder.withFields('role', ['_id', 'key', 'label'])],
+      );
+
+      const role = member?.role as unknown as { key?: string } | undefined;
+      return role?.key ?? '';
+    } catch {
+      return '';
+    }
   }
 }

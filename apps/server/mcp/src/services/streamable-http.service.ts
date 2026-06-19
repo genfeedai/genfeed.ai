@@ -1,5 +1,6 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
+import { type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { Server } from '@modelcontextprotocol/sdk/server';
@@ -18,6 +19,7 @@ interface AuthContext {
   token?: string;
   userId?: string;
   organizationId?: string;
+  role?: McpRole;
 }
 
 interface AuthenticatedRequest extends Request {
@@ -103,7 +105,11 @@ export class StreamableHttpService {
 
   private buildServer(authContext?: AuthContext): Server {
     const clientService = this.createClientService(authContext?.token);
-    const toolRegistry = new ToolRegistryService(clientService, this.logger);
+    const toolRegistry = new ToolRegistryService(
+      clientService,
+      this.logger,
+      authContext?.role ?? 'user',
+    );
 
     const server = new Server(
       {

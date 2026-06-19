@@ -1,4 +1,5 @@
 import { AuthWhoamiController } from '@api/auth/controllers/auth-whoami.controller';
+import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -11,10 +12,16 @@ const buildReq = (
 
 describe('AuthWhoamiController', () => {
   let controller: AuthWhoamiController;
+  const mockMembersService = {
+    findOne: vi.fn(),
+  };
 
   beforeEach(async () => {
+    mockMembersService.findOne.mockReset().mockResolvedValue(null);
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthWhoamiController],
+      providers: [{ provide: MembersService, useValue: mockMembersService }],
     })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
@@ -30,7 +37,9 @@ describe('AuthWhoamiController', () => {
   describe('whoami', () => {
     const mongoUserId = '507f191e810c19729de860ee'.toString();
 
-    it('should return full user context for authenticated user', () => {
+    it('should return full user context for authenticated user', async () => {
+      mockMembersService.findOne.mockResolvedValue({ role: { key: 'admin' } });
+
       const req = buildReq({
         emailAddresses: [{ emailAddress: 'john@example.com' }],
         firstName: 'John',
@@ -45,7 +54,7 @@ describe('AuthWhoamiController', () => {
         },
       });
 
-      const result = controller.whoami(req);
+      const result = await controller.whoami(req);
 
       expect(result).toEqual({
         data: {
@@ -54,6 +63,7 @@ describe('AuthWhoamiController', () => {
             id: 'org_abc',
             name: 'Test Org',
           },
+          role: 'admin',
           scopes: ['read', 'write'],
           user: {
             clerkId: 'clerk_user_123',
@@ -65,7 +75,62 @@ describe('AuthWhoamiController', () => {
       });
     });
 
-    it('should return API key context', () => {
+    it('resolves the organization role from the active membership', async () => {
+      mockMembersService.findOne.mockResolvedValue({ role: { key: 'owner' } });
+
+      const result = await controller.whoami(
+        buildReq({
+          id: 'clerk_user_123',
+          publicMetadata: { organization: 'org_abc', user: 'user_1' },
+        }),
+      );
+
+      expect(mockMembersService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isActive: true,
+          isDeleted: false,
+          organization: 'org_abc',
+          user: 'user_1',
+        }),
+        expect.any(Array),
+      );
+      expect(result.data.role).toBe('owner');
+    });
+
+    it('returns an empty role when the user has no membership', async () => {
+      mockMembersService.findOne.mockResolvedValue(null);
+
+      const result = await controller.whoami(
+        buildReq({
+          publicMetadata: { organization: 'org_abc', user: 'user_1' },
+        }),
+      );
+
+      expect(result.data.role).toBe('');
+    });
+
+    it('skips the lookup and returns empty role when org or user is missing', async () => {
+      const result = await controller.whoami(
+        buildReq({ publicMetadata: { user: 'user_1' } }),
+      );
+
+      expect(mockMembersService.findOne).not.toHaveBeenCalled();
+      expect(result.data.role).toBe('');
+    });
+
+    it('never throws on a membership-lookup failure (returns empty role)', async () => {
+      mockMembersService.findOne.mockRejectedValue(new Error('db down'));
+
+      const result = await controller.whoami(
+        buildReq({
+          publicMetadata: { organization: 'org_abc', user: 'user_1' },
+        }),
+      );
+
+      expect(result.data.role).toBe('');
+    });
+
+    it('should return API key context', async () => {
       const req = buildReq({
         email: 'api@example.com',
         id: 'apikey_123',
@@ -78,21 +143,44 @@ describe('AuthWhoamiController', () => {
         },
       });
 
-      const result = controller.whoami(req);
+      const result = await controller.whoami(req);
 
       expect(result.data.isApiKey).toBe(true);
       expect(result.data.organization.id).toBe('org_def');
       expect(result.data.scopes).toEqual(['generate']);
+      // No membership stubbed → role resolves to '' (deny-by-default downstream).
+      expect(result.data.role).toBe('');
     });
 
-    it('should handle missing publicMetadata gracefully', () => {
+    it('resolves the role for an API key whose user has a membership', async () => {
+      mockMembersService.findOne.mockResolvedValue({ role: { key: 'admin' } });
+
+      const result = await controller.whoami(
+        buildReq({
+          id: 'apikey_123',
+          publicMetadata: {
+            isApiKey: true,
+            organization: 'org_def',
+            user: 'user_789',
+          },
+        }),
+      );
+
+      expect(mockMembersService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ organization: 'org_def', user: 'user_789' }),
+        expect.any(Array),
+      );
+      expect(result.data.role).toBe('admin');
+    });
+
+    it('should handle missing publicMetadata gracefully', async () => {
       const req = buildReq({
         emailAddresses: [{ emailAddress: 'test@test.com' }],
         firstName: 'Test',
         id: 'user_123',
       });
 
-      const result = controller.whoami(req);
+      const result = await controller.whoami(req);
 
       expect(result.data.isApiKey).toBe(false);
       expect(result.data.organization.id).toBe('');
@@ -101,7 +189,7 @@ describe('AuthWhoamiController', () => {
       expect(result.data.user.id).toBe('');
     });
 
-    it('should handle missing email addresses', () => {
+    it('should handle missing email addresses', async () => {
       const req = buildReq({
         firstName: 'Test',
         id: 'user_123',
@@ -110,12 +198,12 @@ describe('AuthWhoamiController', () => {
         },
       });
 
-      const result = controller.whoami(req);
+      const result = await controller.whoami(req);
 
       expect(result.data.user.email).toBe('');
     });
 
-    it('should handle user with only firstName (no lastName)', () => {
+    it('should handle user with only firstName (no lastName)', async () => {
       const req = buildReq({
         emailAddresses: [{ emailAddress: 'test@test.com' }],
         firstName: 'Solo',
@@ -125,12 +213,12 @@ describe('AuthWhoamiController', () => {
         },
       });
 
-      const result = controller.whoami(req);
+      const result = await controller.whoami(req);
 
       expect(result.data.user.name).toBe('Solo');
     });
 
-    it('should handle user with no firstName', () => {
+    it('should handle user with no firstName', async () => {
       const req = buildReq({
         emailAddresses: [{ emailAddress: 'test@test.com' }],
         id: 'user_123',
@@ -139,12 +227,12 @@ describe('AuthWhoamiController', () => {
         },
       });
 
-      const result = controller.whoami(req);
+      const result = await controller.whoami(req);
 
       expect(result.data.user.name).toBe('');
     });
 
-    it('should fallback to user.email when emailAddresses is empty', () => {
+    it('should fallback to user.email when emailAddresses is empty', async () => {
       const req = buildReq({
         email: 'fallback@example.com',
         emailAddresses: [],
@@ -155,27 +243,27 @@ describe('AuthWhoamiController', () => {
         },
       });
 
-      const result = controller.whoami(req);
+      const result = await controller.whoami(req);
 
       expect(result.data.user.email).toBe('fallback@example.com');
     });
 
-    it('should keep mongo user id empty when publicMetadata.user is missing', () => {
+    it('should keep mongo user id empty when publicMetadata.user is missing', async () => {
       const req = buildReq({
         id: 'clerk_user_id',
         publicMetadata: {},
       });
 
-      const result = controller.whoami(req);
+      const result = await controller.whoami(req);
 
       expect(result.data.user.id).toBe('');
       expect(result.data.user.clerkId).toBe('clerk_user_id');
     });
 
-    it('should handle completely empty user object', () => {
+    it('should handle completely empty user object', async () => {
       const req = buildReq({});
 
-      const result = controller.whoami(req);
+      const result = await controller.whoami(req);
 
       expect(result.data.isApiKey).toBe(false);
       expect(result.data.organization.id).toBe('');
@@ -187,17 +275,16 @@ describe('AuthWhoamiController', () => {
       expect(result.data.user.name).toBe('');
     });
 
-    it('should handle undefined user gracefully', () => {
+    it('should handle undefined user gracefully', async () => {
       const req = buildReq();
 
-      // Access to undefined user returns defaults
-      const result = controller.whoami(req);
+      const result = await controller.whoami(req);
 
       expect(result.data.isApiKey).toBe(false);
       expect(result.data.scopes).toEqual(['*']);
     });
 
-    it('should return empty mongo user id when metadata user id is not a valid ObjectId', () => {
+    it('should return empty mongo user id when metadata user id is not a valid ObjectId', async () => {
       const req = buildReq({
         id: 'clerk_user_id',
         publicMetadata: {
@@ -205,13 +292,13 @@ describe('AuthWhoamiController', () => {
         },
       });
 
-      const result = controller.whoami(req);
+      const result = await controller.whoami(req);
 
       expect(result.data.user.id).toBe('');
       expect(result.data.user.clerkId).toBe('clerk_user_id');
     });
 
-    it('should trim name when lastName has trailing spaces', () => {
+    it('should trim name when lastName has trailing spaces', async () => {
       const req = buildReq({
         emailAddresses: [],
         firstName: 'John',
@@ -219,12 +306,12 @@ describe('AuthWhoamiController', () => {
         publicMetadata: {},
       });
 
-      const result = controller.whoami(req);
+      const result = await controller.whoami(req);
 
       expect(result.data.user.name).toBe('John Doe');
     });
 
-    it('should handle both firstName and empty lastName', () => {
+    it('should handle both firstName and empty lastName', async () => {
       const req = buildReq({
         emailAddresses: [],
         firstName: 'Alice',
@@ -232,12 +319,12 @@ describe('AuthWhoamiController', () => {
         publicMetadata: {},
       });
 
-      const result = controller.whoami(req);
+      const result = await controller.whoami(req);
 
       expect(result.data.user.name).toBe('Alice');
     });
 
-    it('should return default scopes as ["*"] when not provided', () => {
+    it('should return default scopes as ["*"] when not provided', async () => {
       const req = buildReq({
         id: 'user_123',
         publicMetadata: {
@@ -245,7 +332,7 @@ describe('AuthWhoamiController', () => {
         },
       });
 
-      const result = controller.whoami(req);
+      const result = await controller.whoami(req);
 
       expect(result.data.scopes).toEqual(['*']);
     });

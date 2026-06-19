@@ -167,4 +167,49 @@ describe('McpAuthGuard', () => {
       await expect(guard.canActivate(context)).rejects.toThrow('Invalid token');
     });
   });
+
+  // Exercises the REAL static gate (no mocks) — this is the logic that actually
+  // denies/allows role-gated MCP tools once the caller's role is threaded in.
+  describe('checkToolRole (role gate)', () => {
+    it('denies a user-tier caller a tool requiring admin', () => {
+      expect(() => McpAuthGuard.checkToolRole('user', 'admin')).toThrow(
+        "Tool requires 'admin' role, but user has 'user'",
+      );
+    });
+
+    it('denies a user-tier caller a tool requiring superadmin', () => {
+      expect(() => McpAuthGuard.checkToolRole('user', 'superadmin')).toThrow();
+    });
+
+    it('allows an admin caller an admin-gated tool', () => {
+      expect(() => McpAuthGuard.checkToolRole('admin', 'admin')).not.toThrow();
+    });
+
+    it('allows a higher tier to satisfy a lower requirement', () => {
+      expect(() => McpAuthGuard.checkToolRole('admin', 'user')).not.toThrow();
+      expect(() =>
+        McpAuthGuard.checkToolRole('superadmin', 'admin'),
+      ).not.toThrow();
+    });
+
+    it('allows a user-tier caller a user-gated tool', () => {
+      expect(() => McpAuthGuard.checkToolRole('user', 'user')).not.toThrow();
+    });
+
+    it('denies by default when no required role is defined', () => {
+      expect(() => McpAuthGuard.checkToolRole('superadmin', undefined)).toThrow(
+        'deny-by-default',
+      );
+    });
+  });
+
+  describe('hasRequiredRole (hierarchy)', () => {
+    it('honors the user < admin < superadmin hierarchy', () => {
+      expect(AuthService.hasRequiredRole('admin', 'admin')).toBe(true);
+      expect(AuthService.hasRequiredRole('superadmin', 'admin')).toBe(true);
+      expect(AuthService.hasRequiredRole('admin', 'user')).toBe(true);
+      expect(AuthService.hasRequiredRole('user', 'admin')).toBe(false);
+      expect(AuthService.hasRequiredRole('admin', 'superadmin')).toBe(false);
+    });
+  });
 });

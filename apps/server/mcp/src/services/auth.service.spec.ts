@@ -5,9 +5,16 @@ import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 
+const WHOAMI_URL = 'https://api.genfeed.ai/v1/auth/whoami';
+
+function whoamiResponse(data: Record<string, unknown>, status = 200) {
+  return of({ data: { data }, status });
+}
+
 describe('AuthService (MCP)', () => {
   let service: AuthService;
 
+  // GENFEEDAI_API_URL is configured WITHOUT /v1; the service normalizes it.
   const mockConfigService = {
     get: vi.fn().mockReturnValue('https://api.genfeed.ai'),
   };
@@ -28,18 +35,9 @@ describe('AuthService (MCP)', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
-        {
-          provide: HttpService,
-          useValue: mockHttpService,
-        },
-        {
-          provide: ConfigService,
-          useValue: mockConfigService,
-        },
-        {
-          provide: LoggerService,
-          useValue: mockLoggerService,
-        },
+        { provide: HttpService, useValue: mockHttpService },
+        { provide: ConfigService, useValue: mockConfigService },
+        { provide: LoggerService, useValue: mockLoggerService },
       ],
     }).compile();
 
@@ -55,6 +53,9 @@ describe('AuthService (MCP)', () => {
   });
 
   describe('authenticateRequest', () => {
+    const apiKey = `gf_${'a'.repeat(30)}`;
+    const jwtToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${'a'.repeat(30)}`;
+
     it('should return invalid for short token', async () => {
       const result: AuthResult = await service.authenticateRequest('short');
       expect(result.valid).toBe(false);
@@ -67,94 +68,128 @@ describe('AuthService (MCP)', () => {
       expect(result.error).toBe('Invalid token format');
     });
 
-    it('should validate API key and return user context', async () => {
-      const apiKey = `gf_${'a'.repeat(30)}`;
-      mockHttpService.post.mockReturnValue(
-        of({
-          data: {
-            organizationId: 'org-123',
-            userId: 'user-456',
-            valid: true,
-          },
-          status: 200,
+    it('resolves identity for an API key via the /v1 whoami endpoint', async () => {
+      mockHttpService.get.mockReturnValue(
+        whoamiResponse({
+          isApiKey: true,
+          organization: { id: 'org-123' },
+          role: 'admin',
+          user: { id: 'user-456' },
         }),
       );
 
       const result: AuthResult = await service.authenticateRequest(apiKey);
 
-      expect(mockHttpService.post).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/api-keys/validate',
-        { key: apiKey },
-        { timeout: 5000 },
-      );
-      expect(result.valid).toBe(true);
-      expect(result.userId).toBe('user-456');
-      expect(result.organizationId).toBe('org-123');
+      expect(mockHttpService.get).toHaveBeenCalledWith(WHOAMI_URL, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+        timeout: 5000,
+      });
+      expect(result).toMatchObject({
+        organizationId: 'org-123',
+        role: 'admin',
+        userId: 'user-456',
+        valid: true,
+      });
     });
 
-    it('should return invalid for invalid API key', async () => {
-      const apiKey = `gf_${'a'.repeat(30)}`;
-      mockHttpService.post.mockReturnValue(
-        of({ data: { valid: false }, status: 200 }),
-      );
-
-      const result: AuthResult = await service.authenticateRequest(apiKey);
-      expect(result.valid).toBe(false);
-      expect(result.error).toBe('Invalid API key');
-    });
-
-    it('should validate JWT token and return user context', async () => {
-      const jwtToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${'a'.repeat(30)}`;
+    it('resolves identity for a Clerk JWT via the same whoami endpoint', async () => {
       mockHttpService.get.mockReturnValue(
-        of({
-          data: {
-            data: [
-              {
-                attributes: {
-                  organization: 'org-789',
-                },
-                id: 'user-123',
-              },
-            ],
-          },
-          status: 200,
+        whoamiResponse({
+          isApiKey: false,
+          organization: { id: 'org-789' },
+          role: 'owner',
+          user: { id: 'user-123' },
         }),
       );
 
       const result: AuthResult = await service.authenticateRequest(jwtToken);
 
-      expect(mockHttpService.get).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/accounts',
-        {
-          headers: {
-            Authorization: `Bearer ${jwtToken}`,
-          },
-          timeout: 5000,
-        },
-      );
-      expect(result.valid).toBe(true);
-      expect(result.userId).toBe('user-123');
-      expect(result.organizationId).toBe('org-789');
+      expect(mockHttpService.get).toHaveBeenCalledWith(WHOAMI_URL, {
+        headers: { Authorization: `Bearer ${jwtToken}` },
+        timeout: 5000,
+      });
+      // `owner` is the highest org role → maps to the admin MCP tier.
+      expect(result).toMatchObject({
+        organizationId: 'org-789',
+        role: 'admin',
+        userId: 'user-123',
+        valid: true,
+      });
     });
 
-    it('should return invalid with error on non-401 error (network issues)', async () => {
-      const jwtToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${'a'.repeat(30)}`;
+    it('maps non-privileged and missing roles to the user tier', async () => {
+      mockHttpService.get.mockReturnValueOnce(
+        whoamiResponse({
+          organization: { id: 'o' },
+          role: 'creator',
+          user: { id: 'u' },
+        }),
+      );
+      const creator = await service.authenticateRequest(apiKey);
+      expect(creator.role).toBe('user');
+
+      mockHttpService.get.mockReturnValueOnce(
+        whoamiResponse({ organization: { id: 'o' }, user: { id: 'u' } }),
+      );
+      const noRole = await service.authenticateRequest(apiKey);
+      expect(noRole.role).toBe('user');
+    });
+
+    it('preserves the superadmin tier', async () => {
+      mockHttpService.get.mockReturnValue(
+        whoamiResponse({
+          organization: { id: 'o' },
+          role: 'superadmin',
+          user: { id: 'u' },
+        }),
+      );
+
+      const result = await service.authenticateRequest(apiKey);
+      expect(result.role).toBe('superadmin');
+    });
+
+    it('keeps an empty-role (no membership) caller authenticated at the user tier', async () => {
+      // Empty role legitimately occurs (self-hosted single-tenant has no
+      // memberships; a removed member). We keep the caller authenticated but
+      // deny-by-default for admin tools by mapping to the user tier. The API
+      // re-enforces membership on the actual tool calls.
+      mockHttpService.get.mockReturnValue(
+        whoamiResponse({
+          organization: { id: 'o' },
+          role: '',
+          user: { id: 'u' },
+        }),
+      );
+
+      const result = await service.authenticateRequest(apiKey);
+      expect(result.valid).toBe(true);
+      expect(result.role).toBe('user');
+    });
+
+    it('returns invalid when whoami responds with a non-200 status', async () => {
+      mockHttpService.get.mockReturnValue(whoamiResponse({}, 204));
+
+      const result = await service.authenticateRequest(jwtToken);
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Invalid token');
+    });
+
+    it('returns a transient error on network failure', async () => {
       mockHttpService.get.mockReturnValue(
         throwError(() => new Error('Network error')),
       );
 
-      const result: AuthResult = await service.authenticateRequest(jwtToken);
+      const result = await service.authenticateRequest(jwtToken);
       expect(result.valid).toBe(false);
       expect(result.error).toBe('Auth service temporarily unavailable');
     });
 
-    it('should return invalid on 401 authentication error', async () => {
-      const jwtToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${'a'.repeat(30)}`;
+    it('returns invalid on a 401 from whoami', async () => {
       mockHttpService.get.mockReturnValue(
         throwError(() => ({ response: { status: 401 } })),
       );
 
-      const result: AuthResult = await service.authenticateRequest(jwtToken);
+      const result = await service.authenticateRequest(jwtToken);
       expect(result.valid).toBe(false);
       expect(result.error).toBe('Invalid bearer token');
     });

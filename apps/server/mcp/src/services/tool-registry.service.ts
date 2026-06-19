@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/tools';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
+import { type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import type {
   McpResource,
@@ -19,7 +20,7 @@ import { handleDarkroomGenerationTool } from '@mcp/tools/darkroom-generation.too
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
 import { handleTrainingPipelineTool } from '@mcp/tools/training-pipeline.tool';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 interface ToolCallParams {
   name: string;
@@ -39,6 +40,11 @@ export class ToolRegistryService {
   constructor(
     private readonly clientService: ClientService,
     private readonly logger: LoggerService,
+    // Per-request callers (`StreamableHttpService.buildServer`) pass the
+    // authenticated caller's role via `new ToolRegistryService(...)`. When
+    // resolved as a DI singleton (e.g. `ServerService`), there is no per-request
+    // role, so it falls back to `'user'` — deny-by-default for admin tools.
+    @Optional() private readonly requestRole: McpRole = 'user',
   ) {}
 
   getTools(): McpTool[] {
@@ -82,14 +88,8 @@ export class ToolRegistryService {
       }
 
       if (canonicalTool.requiredRole) {
-        const request = (
-          this.clientService as unknown as {
-            currentRequest?: { authContext?: { role?: string } };
-          }
-        ).currentRequest;
-        const userRole = request?.authContext?.role || 'user';
         McpAuthGuard.checkToolRole(
-          userRole as 'user' | 'admin' | 'superadmin',
+          this.requestRole,
           canonicalTool.requiredRole,
         );
       }
