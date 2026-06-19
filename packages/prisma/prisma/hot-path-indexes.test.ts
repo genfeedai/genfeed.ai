@@ -37,6 +37,10 @@ describe('app shell hot-path Prisma indexes', () => {
     hotPathIndexes,
   )('keeps %s in schema and migration source', (indexName) => {
     expect(schemaSource).toContain(`map: "${indexName}"`);
-    expect(migrationSource).toContain(`CREATE INDEX "${indexName}"`);
+    // Built CONCURRENTLY so the deploy never ACCESS EXCLUSIVE-locks these hot
+    // tables. Guardrail: a plain `CREATE INDEX` regression must fail CI.
+    expect(migrationSource).toContain(
+      `CREATE INDEX CONCURRENTLY "${indexName}"`,
+    );
   });
 });
