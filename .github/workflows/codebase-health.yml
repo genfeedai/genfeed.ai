@@ -24,6 +24,8 @@ jobs:
           # Pin the binary so a CLI-contract change can't silently break this
           # weekly job again — the @v2 action otherwise floats to the latest
           # fallow release (a flag rename to >=2.x is what red-lined this job).
+          # Pinned 2026-06-19 (#684); revisit once the fallow CLI contract is
+          # stable, then consider letting it float again or adding Renovate.
           version: '2.96.0'
           # fallow v2 takes a bare subcommand here; flags moved to dedicated
           # inputs below (the old `health --score --hotspots --min-score 60`
@@ -56,6 +58,7 @@ jobs:
 
       - uses: fallow-rs/fallow@v2
         with:
+          # Keep in sync with the health job's pin above (pinned 2026-06-19, #684).
           version: '2.96.0'
           command: dead-code
           # The --unused-* / --circular-deps flags are now the issue-types input.
