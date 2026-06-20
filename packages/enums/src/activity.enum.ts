@@ -33,6 +33,7 @@ export enum ActivitySource {
   WEB = 'web',
   BOT_GENERATION = 'bot-generate',
   VOICE_GENERATION = 'voice-generate',
+  TREND_SCAN = 'trend-scan',
 }
 
 export enum ActivityKey {

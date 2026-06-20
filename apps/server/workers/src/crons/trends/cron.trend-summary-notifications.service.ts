@@ -4,20 +4,16 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ParseMode } from '@genfeedai/enums';
+import {
+  buildTrendDigestHtml,
+  buildTrendDigestMessage,
+  type TrendDigestItem,
+} from '@genfeedai/helpers';
 import type { Setting } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-
-interface TrendSummary {
-  platform: string;
-  topic: string;
-  viralScore: number;
-  type: 'video' | 'hashtag' | 'sound' | 'topic';
-  url?: string;
-  usageCount?: number;
-}
 
 type TrendRecord = {
   description?: string;
@@ -168,7 +164,7 @@ export class CronTrendSummaryNotificationsService {
       this.getTrendingSounds(),
     ]);
 
-    const trends: TrendSummary[] = [
+    const trends: TrendDigestItem[] = [
       ...viralVideos,
       ...trendingHashtags,
       ...trendingSounds,
@@ -181,9 +177,12 @@ export class CronTrendSummaryNotificationsService {
       return;
     }
 
-    // Build summary message
-    const summaryMessage = this.buildSummaryMessage(trends, minViralScore);
-    const summaryHtml = this.buildSummaryHtml(trends, minViralScore);
+    // Build summary message via the shared digest builder
+    const summaryMessage = buildTrendDigestMessage(trends, { minViralScore });
+    const summaryHtml = buildTrendDigestHtml(trends, {
+      appUrl: process.env.GENFEEDAI_APP_URL ?? '',
+      minViralScore,
+    });
 
     // Send via configured channels
     if (
@@ -222,7 +221,9 @@ export class CronTrendSummaryNotificationsService {
     }
   }
 
-  private async getViralVideos(minViralScore: number): Promise<TrendSummary[]> {
+  private async getViralVideos(
+    minViralScore: number,
+  ): Promise<TrendDigestItem[]> {
     try {
       const videos = await this.trendsService.getViralVideos({
         limit: 10,
@@ -245,7 +246,7 @@ export class CronTrendSummaryNotificationsService {
 
   private async getTrendingHashtags(
     minViralScore: number,
-  ): Promise<TrendSummary[]> {
+  ): Promise<TrendDigestItem[]> {
     try {
       const hashtags = await this.trendsService.getTrendingHashtags({
         limit: 10,
@@ -269,7 +270,7 @@ export class CronTrendSummaryNotificationsService {
     }
   }
 
-  private async getTrendingSounds(): Promise<TrendSummary[]> {
+  private async getTrendingSounds(): Promise<TrendDigestItem[]> {
     try {
       const sounds = await this.trendsService.getTrendingSounds({
         limit: 10,
@@ -292,171 +293,5 @@ export class CronTrendSummaryNotificationsService {
       this.loggerService.error('Failed to get trending sounds', error);
       return [];
     }
-  }
-
-  private buildSummaryMessage(
-    trends: TrendSummary[],
-    minViralScore: number,
-  ): string {
-    const lines: string[] = [
-      `*Your Trend Summary*`,
-      `_Filtered for viral score >= ${minViralScore}_`,
-      ``,
-    ];
-
-    // Group by type
-    const videos = trends.filter((t) => t.type === 'video');
-    const hashtags = trends.filter((t) => t.type === 'hashtag');
-    const sounds = trends.filter((t) => t.type === 'sound');
-
-    if (videos.length > 0) {
-      lines.push(`*Viral Videos:*`);
-      videos.slice(0, 5).forEach((v, i) => {
-        lines.push(
-          `${i + 1}. ${v.topic} (${v.platform}, score: ${v.viralScore})`,
-        );
-      });
-      lines.push(``);
-    }
-
-    if (hashtags.length > 0) {
-      lines.push(`*Trending Hashtags:*`);
-      hashtags.slice(0, 5).forEach((h, i) => {
-        const count = h.usageCount
-          ? ` - ${this.formatNumber(h.usageCount)} posts`
-          : '';
-        lines.push(`${i + 1}. ${h.topic}${count}`);
-      });
-      lines.push(``);
-    }
-
-    if (sounds.length > 0) {
-      lines.push(`*Trending Sounds:*`);
-      sounds.slice(0, 5).forEach((s, i) => {
-        const count = s.usageCount
-          ? ` - ${this.formatNumber(s.usageCount)} uses`
-          : '';
-        lines.push(`${i + 1}. ${s.topic}${count}`);
-      });
-    }
-
-    lines.push(``);
-    lines.push(`_Use these trends to create viral content!_`);
-
-    return lines.join('\n');
-  }
-
-  private buildSummaryHtml(
-    trends: TrendSummary[],
-    minViralScore: number,
-  ): string {
-    const videos = trends.filter((t) => t.type === 'video');
-    const hashtags = trends.filter((t) => t.type === 'hashtag');
-    const sounds = trends.filter((t) => t.type === 'sound');
-
-    let html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; background: #f5f5f5; }
-          .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 24px; }
-          h1 { color: #1a1a1a; margin-bottom: 8px; }
-          .subtitle { color: #666; font-size: 14px; margin-bottom: 24px; }
-          .section { margin-bottom: 24px; }
-          .section-title { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #eee; }
-          .trend-item { padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
-          .trend-item:last-child { border-bottom: none; }
-          .trend-name { font-weight: 500; color: #1a1a1a; }
-          .trend-meta { font-size: 12px; color: #888; margin-top: 4px; }
-          .viral-score { display: inline-block; background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
-          .platform { display: inline-block; background: #e5e7eb; color: #374151; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 4px; }
-          .footer { margin-top: 24px; padding-top: 16px; border-top: 1px solid #eee; text-align: center; color: #888; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h1>Your Trend Summary</h1>
-          <p class="subtitle">Filtered for viral score >= ${minViralScore}</p>
-    `;
-
-    if (videos.length > 0) {
-      html += `<div class="section"><div class="section-title">Viral Videos</div>`;
-      videos.slice(0, 5).forEach((v) => {
-        html += `
-          <div class="trend-item">
-            <div class="trend-name">${this.escapeHtml(v.topic)}</div>
-            <div class="trend-meta">
-              <span class="viral-score">Score: ${v.viralScore}</span>
-              <span class="platform">${v.platform}</span>
-              ${v.usageCount ? `<span> • ${this.formatNumber(v.usageCount)} views</span>` : ''}
-            </div>
-          </div>
-        `;
-      });
-      html += `</div>`;
-    }
-
-    if (hashtags.length > 0) {
-      html += `<div class="section"><div class="section-title">Trending Hashtags</div>`;
-      hashtags.slice(0, 5).forEach((h) => {
-        html += `
-          <div class="trend-item">
-            <div class="trend-name">${this.escapeHtml(h.topic)}</div>
-            <div class="trend-meta">
-              <span class="platform">${h.platform}</span>
-              ${h.usageCount ? `<span> • ${this.formatNumber(h.usageCount)} posts</span>` : ''}
-            </div>
-          </div>
-        `;
-      });
-      html += `</div>`;
-    }
-
-    if (sounds.length > 0) {
-      html += `<div class="section"><div class="section-title">Trending Sounds</div>`;
-      sounds.slice(0, 5).forEach((s) => {
-        html += `
-          <div class="trend-item">
-            <div class="trend-name">${this.escapeHtml(s.topic)}</div>
-            <div class="trend-meta">
-              ${s.usageCount ? `<span>${this.formatNumber(s.usageCount)} uses</span>` : ''}
-            </div>
-          </div>
-        `;
-      });
-      html += `</div>`;
-    }
-
-    html += `
-          <div class="footer">
-            Use these trends to create viral content!<br>
-            <a href="${process.env.GENFEEDAI_APP_URL ?? ''}">Open Genfeed</a>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-
-    return html;
-  }
-
-  private formatNumber(num: number): string {
-    if (num >= 1000000) {
-      return `${(num / 1000000).toFixed(1)}M`;
-    }
-    if (num >= 1000) {
-      return `${(num / 1000).toFixed(1)}K`;
-    }
-    return num.toString();
-  }
-
-  private escapeHtml(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
   }
 }

@@ -108,6 +108,43 @@ export function useWorkflowLibraryPage() {
     [getService],
   );
 
+  const handleToggleSchedule = useCallback(
+    async (id: string, enabled: boolean) => {
+      const previous = workflows.find((w) => w._id === id);
+      if (!previous?.schedule) return;
+
+      // Optimistic update
+      setWorkflows((prev) =>
+        prev.map((w) =>
+          w._id === id ? { ...w, isScheduleEnabled: enabled } : w,
+        ),
+      );
+
+      try {
+        const service = await getService();
+        await service.setSchedule(id, {
+          enabled,
+          schedule: previous.schedule,
+          timezone: previous.timezone,
+        });
+      } catch (err) {
+        // Revert on error
+        setWorkflows((prev) =>
+          prev.map((w) =>
+            w._id === id
+              ? { ...w, isScheduleEnabled: previous.isScheduleEnabled }
+              : w,
+          ),
+        );
+        logger.error('Failed to toggle workflow schedule', {
+          error: err,
+          workflowId: id,
+        });
+      }
+    },
+    [getService, workflows],
+  );
+
   // Filter client-side for instant feedback during debounce
   const filteredWorkflows = useMemo(() => {
     if (!searchInput || searchInput === debouncedSearch) return workflows;
@@ -131,6 +168,7 @@ export function useWorkflowLibraryPage() {
     loadWorkflows,
     handleDuplicate,
     handleDelete,
+    handleToggleSchedule,
     filteredWorkflows,
   };
 }

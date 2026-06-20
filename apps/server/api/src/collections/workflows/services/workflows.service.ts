@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { type WorkflowExecutionDocument } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
@@ -49,6 +50,9 @@ import {
   NotFoundException,
   Optional,
 } from '@nestjs/common';
+
+/** Template id for the predetermined per-org Daily Trends Digest workflow. */
+const DAILY_TRENDS_DIGEST_TEMPLATE_ID = 'daily-trends-digest';
 
 @Injectable()
 export class WorkflowsService extends BaseService<
@@ -157,6 +161,41 @@ export class WorkflowsService extends BaseService<
     }
 
     return EntityFactory.fromDocument(WorkflowEntity, workflow);
+  }
+
+  /**
+   * Idempotently seeds the predetermined "Daily Trends Digest" workflow for an
+   * organization. Seeded OFF (`isScheduleEnabled: false`) so it stays invisible
+   * to the scheduler until the owner enables it from the workflow list UI.
+   * Safe to call repeatedly (e.g. on every org bootstrap + a one-time backfill).
+   */
+  async ensureDailyTrendsDigestWorkflow(
+    userId: string,
+    organizationId: string,
+  ): Promise<void> {
+    const existing = await this.prisma.workflow.findFirst({
+      select: { id: true },
+      where: {
+        isDeleted: false,
+        metadata: {
+          equals: DAILY_TRENDS_DIGEST_TEMPLATE_ID,
+          path: ['sourceTemplateId'],
+        },
+        organizationId,
+      },
+    });
+
+    if (existing) {
+      return;
+    }
+
+    await this.createWorkflow(userId, organizationId, {
+      isScheduleEnabled: false,
+      label: 'Daily Trends Digest',
+      schedule: '0 7 * * *',
+      templateId: DAILY_TRENDS_DIGEST_TEMPLATE_ID,
+      timezone: 'UTC',
+    } as CreateWorkflowDto);
   }
 
   async executeWorkflow(workflowId: string): Promise<void> {

@@ -3,12 +3,14 @@ import { CaptionEntity } from '@api/collections/captions/entities/caption.entity
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import {
@@ -23,17 +25,21 @@ import type {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
 import { ConfigService } from '@api/config/config.service';
+import { CacheService } from '@api/services/cache/services/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS, TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
 import {
+  ActivitySource,
   CaptionFormat,
   CaptionLanguage,
   type CredentialPlatform,
@@ -47,6 +53,7 @@ import {
   PostStatus,
   TransformationCategory,
 } from '@genfeedai/enums';
+import { buildTrendDigestHtml } from '@genfeedai/helpers';
 import type {
   ExecutableEdge,
   ExecutableNode,
@@ -71,12 +78,15 @@ import {
   createPublishExecutor,
   createReframeExecutor,
   createSendDmExecutor,
+  createSendEmailExecutor,
   createTextToSpeechExecutor,
+  createTrendDigestExecutor,
   createTrendTriggerExecutor,
   createUpscaleExecutor,
   type KeywordTriggerPlatform,
   type NodeExecutor,
   type SocialPlatform,
+  type TrendDigestEntry,
   type TrendPlatform,
   type TrendTriggerOutput,
   WorkflowEngine,
@@ -240,6 +250,11 @@ export class WorkflowEngineAdapterService {
     @Optional() private readonly brandsService?: BrandsService,
     @Optional()
     private readonly performanceSummaryService?: PerformanceSummaryService,
+    @Optional() private readonly trendsService?: TrendsService,
+    @Optional() private readonly notificationsService?: NotificationsService,
+    @Optional() private readonly cacheService?: CacheService,
+    @Optional() private readonly prismaService?: PrismaService,
+    @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -266,6 +281,8 @@ export class WorkflowEngineAdapterService {
     this.registerBrandContextExecutor();
     this.registerAnalyticsFeedbackExecutor();
     this.registerTrendTriggerExecutor();
+    this.registerTrendDigestExecutor();
+    this.registerSendEmailExecutor();
     this.registerPublishExecutor();
   }
 
@@ -625,6 +642,252 @@ export class WorkflowEngineAdapterService {
       executor.nodeType,
       this.wrapEngineExecutor(executor),
     );
+  }
+
+  /**
+   * Registers the generic sendEmail action node, wiring it to the
+   * NotificationsService email transport. No-op registration if the transport
+   * is unavailable (e.g. lightweight unit context) — the node then throws a
+   * clear "sender not configured" error if it is ever invoked.
+   */
+  private registerSendEmailExecutor(): void {
+    if (!this.notificationsService) {
+      this.loggerService.warn(
+        `${this.logContext} NotificationsService unavailable — sendEmail node disabled`,
+      );
+      return;
+    }
+
+    const notifications = this.notificationsService;
+    const executor = createSendEmailExecutor(async ({ to, subject, html }) => {
+      await notifications.sendEmail(to, subject, html);
+    });
+
+    this.engine.registerExecutor(
+      executor.nodeType,
+      this.wrapEngineExecutor(executor),
+    );
+  }
+
+  /**
+   * Registers the trendDigest action node. It assembles a curated daily digest
+   * from the existing global trend corpus (deterministic — no scrape, no LLM),
+   * resolving the org owner recipient, enforcing a durable per-day idempotency
+   * marker (multi-replica safe via Redis SET NX), pre-checking credits, and
+   * rendering the branded email. The actual charge happens post-send in
+   * {@link applyScheduledDigestCharge}.
+   */
+  private registerTrendDigestExecutor(): void {
+    if (
+      !this.trendsService ||
+      !this.prismaService ||
+      !this.cacheService ||
+      !this.creditsUtilsService
+    ) {
+      this.loggerService.warn(
+        `${this.logContext} dependencies unavailable — trendDigest node disabled`,
+      );
+      return;
+    }
+
+    const trends = this.trendsService;
+    const prisma = this.prismaService;
+    const cache = this.cacheService;
+    const credits = this.creditsUtilsService;
+    const appUrl = String(this.configService.get('GENFEEDAI_APP_URL') ?? '');
+
+    const executor = createTrendDigestExecutor();
+
+    executor.setOwnerResolver(async (organizationId) => {
+      const organization = await prisma.organization.findFirst({
+        select: { user: { select: { email: true } }, userId: true },
+        where: { id: organizationId, isDeleted: false },
+      });
+      if (!organization) {
+        return null;
+      }
+      return {
+        email: organization.user?.email ?? null,
+        userId: organization.userId ?? null,
+      };
+    });
+
+    executor.setTrendsProvider(({ topN, minViralScore }) =>
+      this.buildDigestTrends(trends, topN, minViralScore),
+    );
+
+    executor.setIdempotencyGuard((key, ttlSeconds) =>
+      cache.acquireLock(key, ttlSeconds),
+    );
+
+    executor.setCreditsChecker((organizationId, cost) =>
+      credits.checkOrganizationCreditsAvailable(organizationId, cost),
+    );
+
+    executor.setRenderer((items, options) => ({
+      html: buildTrendDigestHtml(items, {
+        appUrl,
+        headerTitle: options.headerTitle,
+        minViralScore: options.minViralScore,
+      }),
+      subject: `Your daily trends — ${items.length} trending ${
+        items.length === 1 ? 'topic' : 'topics'
+      }`,
+    }));
+
+    this.engine.registerExecutor(
+      executor.nodeType,
+      this.wrapEngineExecutor(executor),
+    );
+  }
+
+  /**
+   * Fetches the curated top-N trends from the existing corpus and maps them to
+   * the engine's structural trend shape. Mirrors the per-user digest fetch
+   * (viral videos + trending hashtags + trending sounds), ranked by score.
+   */
+  private async buildDigestTrends(
+    trends: TrendsService,
+    topN: number,
+    minViralScore: number,
+  ): Promise<TrendDigestEntry[]> {
+    type RawTrend = {
+      platform?: string;
+      title?: string;
+      description?: string;
+      hashtag?: string;
+      soundName?: string;
+      url?: string;
+      playUrl?: string;
+      views?: number;
+      playCount?: number;
+      postCount?: number;
+      viewCount?: number;
+      usageCount?: number;
+      viralScore?: number;
+      viralityScore?: number;
+    };
+
+    const safeFetch = async (
+      fetcher: () => Promise<unknown>,
+    ): Promise<RawTrend[]> => {
+      try {
+        return ((await fetcher()) as RawTrend[]) ?? [];
+      } catch (error) {
+        this.loggerService.error(
+          `${this.logContext} trend digest fetch failed`,
+          { error },
+        );
+        return [];
+      }
+    };
+
+    const [videos, hashtags, sounds] = await Promise.all([
+      safeFetch(() => trends.getViralVideos({ limit: 10, minViralScore })),
+      safeFetch(() => trends.getTrendingHashtags({ limit: 10 })),
+      safeFetch(() => trends.getTrendingSounds({ limit: 10 })),
+    ]);
+
+    const mapped: TrendDigestEntry[] = [
+      ...videos.map((video) => ({
+        platform: video.platform || 'tiktok',
+        topic: video.title || video.description || 'Trending Video',
+        type: 'video' as const,
+        url: video.url,
+        usageCount: video.views || video.playCount,
+        viralScore: video.viralScore || 0,
+      })),
+      ...hashtags
+        .filter((hashtag) => (hashtag.viralityScore || 0) >= minViralScore)
+        .map((hashtag) => ({
+          platform: hashtag.platform || 'tiktok',
+          topic: `#${hashtag.hashtag}`,
+          type: 'hashtag' as const,
+          usageCount: hashtag.postCount || hashtag.viewCount,
+          viralScore: hashtag.viralityScore || 0,
+        })),
+      ...sounds
+        .filter((sound) => (sound.usageCount || 0) >= 10000)
+        .map((sound) => ({
+          platform: 'tiktok',
+          topic: sound.soundName || 'Trending Sound',
+          type: 'sound' as const,
+          url: sound.playUrl,
+          usageCount: sound.usageCount,
+          viralScore: sound.viralityScore || 80,
+        })),
+    ];
+
+    return mapped.sort((a, b) => b.viralScore - a.viralScore).slice(0, topN);
+  }
+
+  /**
+   * Deducts credits for a completed scheduled digest exactly once. Reads the
+   * serializable node outputs (trendDigest payload + sendEmail result) and
+   * charges only when the digest was rendered (skipped === false) AND the email
+   * was sent. Guarded by a durable, non-released per-day Redis marker so a retry
+   * or multi-replica run can never double-charge.
+   */
+  async applyScheduledDigestCharge(
+    workflowId: string,
+    summaries: Array<{ nodeType: string; output?: Record<string, unknown> }>,
+  ): Promise<void> {
+    if (!this.creditsUtilsService || !this.cacheService) {
+      return;
+    }
+
+    const digest = summaries.find(
+      (summary) => summary.nodeType === 'trendDigest',
+    )?.output;
+    const email = summaries.find(
+      (summary) => summary.nodeType === 'sendEmail',
+    )?.output;
+
+    if (!digest || digest.skipped !== false) {
+      return;
+    }
+    if (!email || email.sent !== true) {
+      return;
+    }
+
+    const orgId = typeof digest.orgId === 'string' ? digest.orgId : null;
+    const ownerUserId =
+      typeof digest.ownerUserId === 'string' ? digest.ownerUserId : null;
+    const creditCost =
+      typeof digest.creditCost === 'number'
+        ? digest.creditCost
+        : TREND_DIGEST_CREDIT_COST;
+
+    if (!orgId || !ownerUserId) {
+      return;
+    }
+
+    const charged = await this.cacheService.acquireLock(
+      `workflow-digest-charged:${workflowId}:${this.digestUtcDateKey()}`,
+      93_600,
+    );
+    if (!charged) {
+      return;
+    }
+
+    try {
+      await this.creditsUtilsService.deductCreditsFromOrganization(
+        orgId,
+        ownerUserId,
+        creditCost,
+        'Daily trends digest',
+        ActivitySource.TREND_SCAN,
+      );
+    } catch (error) {
+      this.loggerService.error(
+        `${this.logContext} trend digest charge failed`,
+        { error, organizationId: orgId, workflowId },
+      );
+    }
+  }
+
+  private digestUtcDateKey(): string {
+    return new Date().toISOString().slice(0, 10);
   }
 
   private registerPublishExecutor(): void {

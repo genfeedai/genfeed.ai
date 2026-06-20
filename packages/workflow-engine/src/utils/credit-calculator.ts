@@ -41,7 +41,13 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   // ----- publish / output (free — billed by platform API limits, not credits) -----
   publish: 0,
   sendDm: 0,
+  // sendEmail is free at the node level; the trends digest is charged explicitly
+  // by the workflow adapter post-run hook after a confirmed send (see trendDigest).
+  sendEmail: 0,
   socialPublish: 0,
+  // trendDigest assembles the email payload only; the credit is deducted by the
+  // adapter post-run hook on a confirmed send, not via the engine accumulator.
+  trendDigest: 0,
   webhook: 0, // legacy alias
 
   // ----- text / content generation -----

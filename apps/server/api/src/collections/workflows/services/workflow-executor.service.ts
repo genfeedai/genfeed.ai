@@ -683,12 +683,17 @@ export class WorkflowExecutorService {
         workflowLabel,
       });
 
-      // Update workflow status
+      // Update workflow status. Scheduled (recurring) workflows must stay
+      // ACTIVE so the scheduler keeps firing them — the per-run state lives on
+      // the WorkflowExecution record, not on Workflow.status.
       await this.prisma.workflow.update({
         data: {
           executionCount: { increment: 1 },
           lastExecutedAt: new Date(),
-          status: WorkflowStatus.RUNNING,
+          status:
+            trigger === WorkflowExecutionTrigger.SCHEDULED
+              ? WorkflowStatus.ACTIVE
+              : WorkflowStatus.RUNNING,
         },
         where: { id: workflowId },
       });
@@ -747,17 +752,37 @@ export class WorkflowExecutorService {
           }
         }
 
-        // Update workflow status
+        // Update workflow status. Scheduled (recurring) workflows are re-armed
+        // to ACTIVE on every run regardless of outcome — a terminal COMPLETED/
+        // FAILED would drop them out of the scheduler's ACTIVE filter.
         await this.prisma.workflow.update({
           data: {
             completedAt: new Date(),
             status:
-              finalStatus === WorkflowExecutionStatus.COMPLETED
-                ? WorkflowStatus.COMPLETED
-                : WorkflowStatus.FAILED,
+              trigger === WorkflowExecutionTrigger.SCHEDULED
+                ? WorkflowStatus.ACTIVE
+                : finalStatus === WorkflowExecutionStatus.COMPLETED
+                  ? WorkflowStatus.COMPLETED
+                  : WorkflowStatus.FAILED,
           } as never,
           where: { id: workflowId },
         });
+
+        // Charge for paid scheduled actions (e.g. trends digest) exactly once,
+        // after a confirmed send, guarded by a durable per-day marker.
+        if (
+          trigger === WorkflowExecutionTrigger.SCHEDULED &&
+          finalStatus === WorkflowExecutionStatus.COMPLETED
+        ) {
+          const nodeSummaries = this.buildNodeSummaries(
+            result,
+            executableWorkflow.nodes,
+          );
+          await this.engineAdapter.applyScheduledDigestCharge(
+            workflowId,
+            nodeSummaries,
+          );
+        }
 
         await this.emitEvent(
           workflowId,
@@ -825,7 +850,15 @@ export class WorkflowExecutorService {
       );
 
       await this.prisma.workflow.update({
-        data: { status: WorkflowStatus.FAILED } as never,
+        // Scheduled workflows stay ACTIVE even after a failed run so the
+        // scheduler retries on the next tick; the failure is recorded on the
+        // WorkflowExecution record.
+        data: {
+          status:
+            trigger === WorkflowExecutionTrigger.SCHEDULED
+              ? WorkflowStatus.ACTIVE
+              : WorkflowStatus.FAILED,
+        } as never,
         where: { id: workflowId },
       });
 

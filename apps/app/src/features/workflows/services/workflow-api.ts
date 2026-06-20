@@ -49,6 +49,16 @@ export interface WorkflowSummary {
     remoteId: string;
     syncDirection: 'push' | 'pull';
   } | null;
+  schedule?: string;
+  timezone?: string;
+  isScheduleEnabled?: boolean;
+}
+
+/** Payload for POST /workflows/:id/schedule */
+export interface SetScheduleInput {
+  enabled: boolean;
+  schedule: string;
+  timezone?: string;
 }
 
 /** Payload for creating a new workflow */
@@ -411,6 +421,19 @@ export class WorkflowApiService extends HTTPBaseService {
       await this.instance.delete(`/${id}`);
     } catch (error) {
       logger.error('Failed to delete workflow', { error, workflowId: id });
+      throw error;
+    }
+  }
+
+  /** Enable or disable the schedule for a workflow (POST /workflows/:id/schedule) */
+  async setSchedule(id: string, body: SetScheduleInput): Promise<void> {
+    try {
+      await this.instance.post(`/${id}/schedule`, body);
+    } catch (error) {
+      logger.error('Failed to set workflow schedule', {
+        error,
+        workflowId: id,
+      });
       throw error;
     }
   }

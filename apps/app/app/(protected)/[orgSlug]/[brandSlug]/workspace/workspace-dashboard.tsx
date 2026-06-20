@@ -6,11 +6,13 @@ import {
   ButtonVariant,
 } from '@genfeedai/enums';
 import type { IAgentRun } from '@genfeedai/interfaces';
+import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
 import type { AgentRunStats, AgentRunTrendPoint } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
+import { OverviewTrendsPanel } from '@ui/overview/OverviewTrendsPanel';
 import { Button } from '@ui/primitives/button';
 import {
   Table,
@@ -62,9 +64,12 @@ interface ReviewInboxSummary {
 
 interface DashboardProps {
   activeRuns: IAgentRun[];
+  isTrendsLoading?: boolean;
   reviewInbox: ReviewInboxSummary;
   runs: IAgentRun[];
   stats: AgentRunStats | null;
+  trendsHref?: string;
+  trendItems?: TrendItem[];
   workspaceTasks: Task[];
 }
 
@@ -799,9 +804,12 @@ export function DashboardRecentTasks({
 
 export function WorkspaceDashboard({
   activeRuns,
+  isTrendsLoading = false,
   reviewInbox,
   runs,
   stats,
+  trendsHref = '/research/discovery',
+  trendItems = [],
   workspaceTasks,
 }: DashboardProps) {
   return (
@@ -821,6 +829,12 @@ export function WorkspaceDashboard({
         <DashboardRecentActivity workspaceTasks={workspaceTasks} />
         <DashboardRecentTasks workspaceTasks={workspaceTasks} />
       </DashboardGrid>
+
+      <OverviewTrendsPanel
+        trends={trendItems}
+        isLoading={isTrendsLoading}
+        viewAllHref={trendsHref}
+      />
     </div>
   );
 }

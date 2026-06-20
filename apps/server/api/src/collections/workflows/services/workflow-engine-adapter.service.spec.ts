@@ -1173,6 +1173,101 @@ describe('WorkflowEngineAdapterService', () => {
     });
   });
 
+  describe('applyScheduledDigestCharge', () => {
+    const CACHE_INDEX = 25; // 0-based position of cacheService
+    const CREDITS_INDEX = 27; // 0-based position of creditsUtilsService
+
+    const makeChargeAdapter = (
+      cacheService: unknown,
+      creditsUtilsService: unknown,
+    ) => {
+      const args = new Array(28).fill(undefined);
+      args[0] = { ingredientsEndpoint: 'https://ingredients.example.com' };
+      args[1] = loggerService;
+      args[CACHE_INDEX] = cacheService;
+      args[CREDITS_INDEX] = creditsUtilsService;
+      return new WorkflowEngineAdapterService(...args);
+    };
+
+    const readySummaries = (sent = true) => [
+      {
+        nodeType: 'trendDigest',
+        output: {
+          creditCost: 5,
+          orgId: 'org-1',
+          ownerUserId: 'user-1',
+          skipped: false,
+        },
+      },
+      { nodeType: 'sendEmail', output: { sent } },
+    ];
+
+    it('deducts exactly once on a confirmed send', async () => {
+      const acquireLock = vi.fn().mockResolvedValue(true);
+      const deduct = vi.fn().mockResolvedValue(undefined);
+      const adapter = makeChargeAdapter(
+        { acquireLock },
+        { deductCreditsFromOrganization: deduct },
+      );
+
+      await adapter.applyScheduledDigestCharge('wf-1', readySummaries());
+
+      expect(acquireLock).toHaveBeenCalledTimes(1);
+      expect(acquireLock.mock.calls[0][0]).toMatch(
+        /^workflow-digest-charged:wf-1:\d{4}-\d{2}-\d{2}$/,
+      );
+      expect(deduct).toHaveBeenCalledWith(
+        'org-1',
+        'user-1',
+        5,
+        'Daily trends digest',
+        'trend-scan',
+      );
+    });
+
+    it('does not charge when the digest was skipped', async () => {
+      const deduct = vi.fn();
+      const adapter = makeChargeAdapter(
+        { acquireLock: vi.fn().mockResolvedValue(true) },
+        { deductCreditsFromOrganization: deduct },
+      );
+
+      await adapter.applyScheduledDigestCharge('wf-1', [
+        {
+          nodeType: 'trendDigest',
+          output: { reason: 'no-trends', skipped: true },
+        },
+        { nodeType: 'sendEmail', output: { sent: false } },
+      ]);
+
+      expect(deduct).not.toHaveBeenCalled();
+    });
+
+    it('does not charge when the email was not sent', async () => {
+      const deduct = vi.fn();
+      const adapter = makeChargeAdapter(
+        { acquireLock: vi.fn().mockResolvedValue(true) },
+        { deductCreditsFromOrganization: deduct },
+      );
+
+      await adapter.applyScheduledDigestCharge('wf-1', readySummaries(false));
+
+      expect(deduct).not.toHaveBeenCalled();
+    });
+
+    it('does not double-charge when the daily marker is already held', async () => {
+      const deduct = vi.fn();
+      const adapter = makeChargeAdapter(
+        { acquireLock: vi.fn().mockResolvedValue(false) },
+        { deductCreditsFromOrganization: deduct },
+      );
+
+      await adapter.applyScheduledDigestCharge('wf-1', readySummaries());
+
+      expect(deduct).not.toHaveBeenCalled();
+    });
+  });
+
   describe('convertStepsToExecutableWorkflow - multiple dependencies', () => {
     it('should create edges for all dependencies', () => {
       const steps = [
