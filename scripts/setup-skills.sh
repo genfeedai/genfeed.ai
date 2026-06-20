@@ -56,7 +56,9 @@ SYNC_SKILLS=(
   nestjs-queue-architect
   nestjs-testing-expert
   nextjs-validator
-  open-source-checker
+  # open-source-checker: excluded — its references/ docs are a catalog of secret
+  # detection regexes (mysql://[^:]+:[^@]+@..., etc.) that secretlint flags as
+  # real credentials. Keeping it out of sync avoids tripping the pre-commit hook.
   package-architect
   performance-expert
   production-audit

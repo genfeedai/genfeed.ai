@@ -1,7 +1,7 @@
 {
-  "name": "bun-validator",
+  "name": "shadcn",
   "version": "1.0.0",
-  "description": "Validate Bun workspace configuration and detect common monorepo issues",
+  "description": "shadcn/ui component library best practices and patterns (formerly shadcn-ui). This skill should be u",
   "author": {
     "name": "Ship Shit Dev",
     "email": "hello@shipshit.dev",

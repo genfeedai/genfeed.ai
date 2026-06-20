@@ -1,7 +1,7 @@
 {
-  "name": "bun-validator",
-  "version": "1.0.0",
-  "description": "Validate Bun workspace configuration and detect common monorepo issues",
+  "name": "turborepo",
+  "version": "2.9.7-canary.12",
+  "description": "|",
   "author": {
     "name": "Ship Shit Dev",
     "email": "hello@shipshit.dev",
