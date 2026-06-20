@@ -207,7 +207,12 @@ jobs:
           # Mirrors the Vitae GCP db-migrate "Create pre-migration Cloud SQL backup".
           # If create/wait fails, the job stops HERE — before the migrate task can
           # touch the database — so a bad migration is always recoverable.
-          SNAP_ID="pre-migrate-${IMAGE_SHA}-$(date -u +%Y%m%d%H%M%S)"
+          # RDS snapshot identifiers allow only letters, digits and single
+          # hyphens — but the image tag charset permits '.' and '_' (e.g.
+          # release_2026.06.20), which would fail-closed the snapshot and block
+          # the deploy. Sanitize for the id; keep the raw tag in git_sha below.
+          SAFE_SHA="$(printf '%s' "${IMAGE_SHA}" | tr '._' '-' | tr -s '-' | sed 's/-$//')"
+          SNAP_ID="pre-migrate-${SAFE_SHA}-$(date -u +%Y%m%d%H%M%S)"
           echo "Creating pre-migration snapshot ${SNAP_ID} of ${RDS_INSTANCE_ID}..."
           aws rds create-db-snapshot \
             --db-instance-identifier "$RDS_INSTANCE_ID" \

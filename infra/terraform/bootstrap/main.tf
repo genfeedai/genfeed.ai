@@ -192,13 +192,26 @@ data "aws_iam_policy_document" "gha_deploy" {
       "ec2:*LaunchTemplate*", "autoscaling:*", "iam:GetRole", "iam:ListRolePolicies",
       "iam:ListAttachedRolePolicies", "iam:GetRolePolicy", "acm:*", "ssm:GetParameters",
       "ssm:GetParametersByPath", "ssm:GetParameter", "ssm:DescribeParameters",
-      "rds:DescribeDBInstances", "route53:*",
-      # Pre-migration safety snapshot taken by deploy-ecs.yml before the migrate
-      # task runs (fail-closed). Mirrors the Vitae GCP "gcloud sql backups create"
-      # pre-migration step. Keep these if the broader wildcard is ever tightened.
-      "rds:CreateDBSnapshot", "rds:DescribeDBSnapshots", "rds:AddTagsToResource",
+      # rds:Describe* are read-only and don't support resource-level scoping;
+      # the pre-migration snapshot WRITE actions are scoped separately below.
+      "rds:DescribeDBInstances", "rds:DescribeDBSnapshots", "route53:*",
     ]
     resources = ["*"]
+  }
+  statement {
+    # Least-privilege for the deploy-ecs.yml pre-migration snapshot (mirrors the
+    # Vitae GCP "gcloud sql backups create" step): create/tag only the genfeed-data
+    # snapshots, never account-wide.
+    sid    = "RdsPreMigrationSnapshot"
+    effect = "Allow"
+    actions = [
+      "rds:CreateDBSnapshot",
+      "rds:AddTagsToResource",
+    ]
+    resources = [
+      "arn:aws:rds:*:${data.aws_caller_identity.current.account_id}:db:genfeed-data",
+      "arn:aws:rds:*:${data.aws_caller_identity.current.account_id}:snapshot:pre-migrate-*",
+    ]
   }
   statement {
     sid    = "ManageGenfeedIam"
