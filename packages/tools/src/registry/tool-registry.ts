@@ -3,7 +3,7 @@ import type {
   ToolCategory,
   ToolRequiredRole,
 } from '../interfaces/tool-definition.interface.js';
-import { SOURCE_TOOLS } from './source.js';
+import { SOURCE_TOOLS } from './source/index.js';
 
 const UI_ACTION_MAP: Partial<
   Record<string, CanonicalToolDefinition['uiActionType']>
