@@ -193,6 +193,10 @@ data "aws_iam_policy_document" "gha_deploy" {
       "iam:ListAttachedRolePolicies", "iam:GetRolePolicy", "acm:*", "ssm:GetParameters",
       "ssm:GetParametersByPath", "ssm:GetParameter", "ssm:DescribeParameters",
       "rds:DescribeDBInstances", "route53:*",
+      # Pre-migration safety snapshot taken by deploy-ecs.yml before the migrate
+      # task runs (fail-closed). Mirrors the Vitae GCP "gcloud sql backups create"
+      # pre-migration step. Keep these if the broader wildcard is ever tightened.
+      "rds:CreateDBSnapshot", "rds:DescribeDBSnapshots", "rds:AddTagsToResource",
     ]
     resources = ["*"]
   }
