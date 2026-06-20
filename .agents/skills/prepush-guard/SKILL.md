@@ -22,7 +22,7 @@ Use when preparing to push changes.
 ## Execution checklist
 
 1. Format changed files (or full repo when needed):
-   - `npx biome check --write .`
+   - `bunx biome check --write .`
 2. Lint:
    - `bunx turbo lint`
 3. Type-check:
