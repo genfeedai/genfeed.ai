@@ -565,4 +565,83 @@ export class IngredientsService extends BaseService<
 
     return where;
   }
+
+  /**
+   * Count persona-scoped darkroom assets for an organization. Encapsulates the
+   * raw Prisma aggregation so darkroom callers don't reach into `.prisma.*`.
+   */
+  async countPersonaAssets(organizationId: string): Promise<number> {
+    return this.prisma.ingredient.count({
+      where: { isDeleted: false, organizationId, personaId: { not: null } },
+    });
+  }
+
+  /**
+   * Group persona-scoped darkroom assets by ingredient status.
+   */
+  async groupPersonaAssetsByStatus(
+    organizationId: string,
+  ): Promise<Array<{ status: string | null; count: number }>> {
+    const groups = await this.prisma.ingredient.groupBy({
+      _count: { id: true },
+      by: ['status'],
+      where: { isDeleted: false, organizationId, personaId: { not: null } },
+    });
+
+    return groups.map((group) => ({
+      count: group._count.id,
+      status: group.status,
+    }));
+  }
+
+  /**
+   * Group persona-scoped darkroom assets by review status.
+   */
+  async groupPersonaAssetsByReviewStatus(
+    organizationId: string,
+  ): Promise<Array<{ reviewStatus: string | null; count: number }>> {
+    const groups = await this.prisma.ingredient.groupBy({
+      _count: { id: true },
+      by: ['reviewStatus'],
+      where: { isDeleted: false, organizationId, personaId: { not: null } },
+    });
+
+    return groups.map((group) => ({
+      count: group._count.id,
+      reviewStatus: group.reviewStatus,
+    }));
+  }
+
+  /**
+   * Group persona-scoped darkroom assets by campaign + review status, with the
+   * earliest creation timestamp per group.
+   */
+  async groupPersonaAssetCampaigns(organizationId: string): Promise<
+    Array<{
+      campaign: string | null;
+      reviewStatus: string | null;
+      count: number;
+      earliestCreatedAt: Date | null;
+    }>
+  > {
+    const groups = await this.prisma.ingredient.groupBy({
+      _count: { id: true },
+      _min: { createdAt: true },
+      by: ['campaign', 'reviewStatus'],
+      orderBy: { campaign: 'asc' },
+      where: {
+        campaign: { not: null },
+        isDeleted: false,
+        organizationId,
+        personaId: { not: null },
+      },
+    });
+
+    return groups.map((group) => ({
+      campaign: group.campaign,
+      count: group._count.id,
+      earliestCreatedAt: group._min.createdAt ?? null,
+      reviewStatus: group.reviewStatus,
+    }));
+  }
 }
