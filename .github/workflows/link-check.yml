@@ -20,7 +20,7 @@ name: Link Check
 
 on:
   pull_request:
-    branches: [develop, staging, master]
+    branches: [master]
   workflow_dispatch:
 
 concurrency:
