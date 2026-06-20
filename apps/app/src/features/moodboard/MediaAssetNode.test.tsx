@@ -8,10 +8,12 @@ import { MediaAssetNode } from '@/features/moodboard/MediaAssetNode';
 import type { MediaAssetNodeProps } from '@/features/moodboard/moodboard.types';
 
 vi.mock('next/image', () => ({
-  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
-    // biome-ignore lint/a11y/useAltText: alt is forwarded via props
+  default: ({
+    alt = '',
+    ...props
+  }: React.ImgHTMLAttributes<HTMLImageElement>) => (
     // biome-ignore lint/performance/noImgElement: test stub for next/image
-    <img {...props} />
+    <img alt={alt} {...props} />
   ),
 }));
 

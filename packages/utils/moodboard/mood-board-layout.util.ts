@@ -72,16 +72,23 @@ export function mergeMoodBoardLayout(
 
   const liveIds = new Set(assets.map((asset) => asset.id));
 
-  // Band where freshly added (un-positioned) assets start, kept clear of saved tiles.
-  const maxSavedY = savedLayout.reduce((max, item) => {
+  // Band where freshly added (un-positioned) assets start, kept clear of saved
+  // tiles. Tracked as an explicit two-state (presence + value) rather than an
+  // infinity sentinel.
+  let hasSavedLiveItem = false;
+  let maxSavedY = 0;
+  for (const item of savedLayout) {
     if (!liveIds.has(item.assetId)) {
-      return max;
+      continue;
     }
-    return Math.max(max, item.position?.y ?? 0);
-  }, Number.NEGATIVE_INFINITY);
+    const y = item.position?.y ?? 0;
+    if (!hasSavedLiveItem || y > maxSavedY) {
+      maxSavedY = y;
+      hasSavedLiveItem = true;
+    }
+  }
 
-  const hasSaved = Number.isFinite(maxSavedY);
-  const newAssetBaseY = hasSaved
+  const newAssetBaseY = hasSavedLiveItem
     ? maxSavedY + MOOD_BOARD_TILE_HEIGHT + MOOD_BOARD_GRID_GAP
     : 0;
 

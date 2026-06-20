@@ -8,15 +8,13 @@ import { Button } from '@ui/primitives/button';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 import MoodBoardCanvas from '@/features/moodboard/MoodBoardCanvas';
+import type { CanvasMessageProps } from '@/features/moodboard/moodboard.types';
 import { useMoodBoardCanvas } from '@/features/moodboard/use-mood-board-canvas';
 
 function CanvasMessage({
   title,
   children,
-}: {
-  title: string;
-  children?: React.ReactNode;
-}): React.JSX.Element {
+}: CanvasMessageProps): React.JSX.Element {
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center gap-3 bg-background gen-grain gen-vignette">
       <p className="text-base font-medium text-foreground/85">{title}</p>

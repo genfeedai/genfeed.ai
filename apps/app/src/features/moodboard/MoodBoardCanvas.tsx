@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
 import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
 import { Button } from '@ui/primitives/button';
 import {
@@ -9,7 +8,6 @@ import {
   BackgroundVariant,
   Controls,
   MiniMap,
-  type NodeChange,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
@@ -18,18 +16,12 @@ import '@xyflow/react/dist/style.css';
 import { useCallback, useMemo, useState } from 'react';
 import { HiArrowsPointingOut, HiXMark } from 'react-icons/hi2';
 import { MediaAssetNode } from '@/features/moodboard/MediaAssetNode';
-import type { MediaAssetFlowNode } from '@/features/moodboard/moodboard.types';
+import type {
+  MediaAssetFlowNode,
+  MoodBoardCanvasProps,
+} from '@/features/moodboard/moodboard.types';
 
 const NODE_TYPES = { mediaAsset: MediaAssetNode };
-
-export interface MoodBoardCanvasProps {
-  assets: IIngredient[];
-  nodes: MediaAssetFlowNode[];
-  onNodesChange: (changes: NodeChange<MediaAssetFlowNode>[]) => void;
-  onNodeDragStop: () => void;
-  onClose: () => void;
-  isTruncated?: boolean;
-}
 
 function MoodBoardCanvasInner({
   assets,
@@ -42,13 +34,10 @@ function MoodBoardCanvasInner({
   const { fitView } = useReactFlow();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  const assetIndexById = useMemo(() => {
-    const map = new Map<string, number>();
-    assets.forEach((asset, index) => {
-      map.set(asset.id, index);
-    });
-    return map;
-  }, [assets]);
+  const assetIndexById = useMemo(
+    () => new Map(assets.map((asset, index) => [asset.id, index])),
+    [assets],
+  );
 
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: MediaAssetFlowNode) => {
@@ -115,14 +104,12 @@ function MoodBoardCanvasInner({
         </div>
       </div>
 
-      {lightboxIndex !== null && (
-        <MediaLightbox
-          items={assets}
-          startIndex={lightboxIndex}
-          open={lightboxIndex !== null}
-          onClose={() => setLightboxIndex(null)}
-        />
-      )}
+      <MediaLightbox
+        items={assets}
+        startIndex={lightboxIndex ?? 0}
+        open={lightboxIndex !== null}
+        onClose={() => setLightboxIndex(null)}
+      />
     </div>
   );
 }

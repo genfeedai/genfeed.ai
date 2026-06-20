@@ -1,28 +1,19 @@
 'use client';
 
-import type { IIngredient, IMoodBoardLayoutItem } from '@genfeedai/interfaces';
 import {
   mergeMoodBoardLayout,
   toMoodBoardLayout,
 } from '@genfeedai/utils/moodboard/mood-board-layout.util';
 import { applyNodeChanges, type NodeChange } from '@xyflow/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { MediaAssetFlowNode } from '@/features/moodboard/moodboard.types';
+import type {
+  MediaAssetFlowNode,
+  UseMoodBoardCanvasParams,
+  UseMoodBoardCanvasResult,
+} from '@/features/moodboard/moodboard.types';
 
 /** Matches the workflow canvas autosave cadence. */
 export const MOOD_BOARD_AUTOSAVE_DEBOUNCE_MS = 2000;
-
-interface UseMoodBoardCanvasParams {
-  assets: IIngredient[];
-  savedLayout: IMoodBoardLayoutItem[];
-  onPersist: (layout: IMoodBoardLayoutItem[]) => void;
-}
-
-interface UseMoodBoardCanvasResult {
-  nodes: MediaAssetFlowNode[];
-  onNodesChange: (changes: NodeChange<MediaAssetFlowNode>[]) => void;
-  onNodeDragStop: () => void;
-}
 
 /**
  * Owns the React Flow node state for the mood board: hydrates nodes from live

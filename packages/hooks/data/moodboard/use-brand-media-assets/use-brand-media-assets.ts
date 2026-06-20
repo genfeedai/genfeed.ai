@@ -13,6 +13,7 @@ import {
 } from '@genfeedai/utils/media/ingredient-type.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { UseBrandMediaAssetsResult } from './use-brand-media-assets.types';
 
 const PAGE_SIZE = 100;
 /** Safety cap so a huge brand can never spin the canvas into thousands of nodes. */
@@ -24,15 +25,6 @@ const DISPLAYABLE_STATUSES = [
 
 interface PageableService {
   findAll(query: Record<string, unknown>): Promise<IIngredient[]>;
-}
-
-export interface UseBrandMediaAssetsResult {
-  assets: IIngredient[];
-  isLoading: boolean;
-  error: Error | null;
-  /** True when the safety cap was hit and not all assets are shown. */
-  isTruncated: boolean;
-  refresh: () => void;
 }
 
 function isVisualMediaIngredient(ingredient: IIngredient): boolean {
