@@ -37,6 +37,29 @@ function parseDatabaseUrl(connectionString: string): URL | undefined {
   }
 }
 
+/**
+ * Remove `sslmode`/`ssl` query params once we have resolved TLS into an explicit
+ * `ssl` object. node-postgres honours the explicit `ssl` config we pass to the
+ * adapter, so the URL params are redundant — and leaving `sslmode` in the
+ * connection string makes pg emit the `sslmode` deprecation warning and (worse)
+ * makes us hostage to pg's upcoming change to `sslmode=require` semantics.
+ * Resolving TLS in code keeps behaviour identical across pg upgrades.
+ */
+function stripSslParams(connectionString: string): string {
+  const databaseUrl = parseDatabaseUrl(connectionString);
+  if (!databaseUrl) {
+    return connectionString;
+  }
+  let mutated = false;
+  for (const key of ['sslmode', 'ssl'] as const) {
+    if (databaseUrl.searchParams.has(key)) {
+      databaseUrl.searchParams.delete(key);
+      mutated = true;
+    }
+  }
+  return mutated ? databaseUrl.toString() : connectionString;
+}
+
 function readConfiguredPostgresCa(
   caFilePaths: readonly (string | undefined)[] = [],
 ): string | undefined {
@@ -76,14 +99,20 @@ export function createPrismaPgConfig(
   }
 
   if (sslMode === 'no-verify') {
-    return { connectionString, ssl: { rejectUnauthorized: false } };
+    return {
+      connectionString: stripSslParams(connectionString),
+      ssl: { rejectUnauthorized: false },
+    };
   }
 
   const ca =
     readConfiguredPostgresCa(options.caFilePaths) ??
     readBundledRdsCa(databaseUrl);
   if (ca) {
-    return { connectionString, ssl: { ca, rejectUnauthorized: true } };
+    return {
+      connectionString: stripSslParams(connectionString),
+      ssl: { ca, rejectUnauthorized: true },
+    };
   }
 
   if (sslMode === 'verify-ca' || sslMode === 'verify-full') {
@@ -93,7 +122,10 @@ export function createPrismaPgConfig(
   }
 
   if (sslMode === 'require') {
-    return { connectionString, ssl: { rejectUnauthorized: false } };
+    return {
+      connectionString: stripSslParams(connectionString),
+      ssl: { rejectUnauthorized: false },
+    };
   }
 
   return { connectionString };
