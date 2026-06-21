@@ -124,6 +124,18 @@ export default defineConfig({
       // src/components — must precede the broad '@ui' -> src/components mapping
       // so @ui/utils/* resolves the way tsconfig (@ui/* -> src/*) does.
       {
+        find: /^@ui\/primitives$/,
+        replacement: path.resolve(__dirname, '../ui/src/primitives'),
+      },
+      {
+        find: /^@ui\/primitives\/(.*)$/,
+        replacement: path.resolve(__dirname, '../ui/src/primitives/$1'),
+      },
+      {
+        find: /^@ui\/utils$/,
+        replacement: path.resolve(__dirname, '../ui/src/utils'),
+      },
+      {
         find: /^@ui\/utils\/(.*)$/,
         replacement: path.resolve(__dirname, '../ui/src/utils/$1'),
       },
