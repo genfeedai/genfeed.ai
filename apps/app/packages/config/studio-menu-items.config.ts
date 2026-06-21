@@ -1,7 +1,9 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
+  HiBolt,
   HiMusicalNote,
+  HiOutlineBolt,
   HiOutlineMusicalNote,
   HiOutlinePhoto,
   HiOutlinePlayCircle,
@@ -54,6 +56,14 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.STUDIO.BATCH],
     outline: HiOutlineRectangleStack,
     solid: HiRectangleStack,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.STUDIO.FASTLANE,
+    label: 'Fastlane',
+    matchPaths: [APP_ROUTES.STUDIO.FASTLANE],
+    outline: HiOutlineBolt,
+    solid: HiBolt,
   },
 ];
 

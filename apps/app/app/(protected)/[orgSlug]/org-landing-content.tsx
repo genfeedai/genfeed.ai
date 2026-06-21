@@ -76,6 +76,11 @@ export default function OrgLandingContent() {
       return;
     }
 
+    if (brands.length === 0) {
+      replace('/onboarding');
+      return;
+    }
+
     if (brands.length <= 1 && primaryBrandSlug) {
       replace(`/${orgSlug}/${primaryBrandSlug}/workspace/overview`);
     }

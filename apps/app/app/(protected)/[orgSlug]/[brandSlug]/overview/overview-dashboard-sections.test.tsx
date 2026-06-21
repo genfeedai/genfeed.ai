@@ -1,5 +1,6 @@
 import { AgentExecutionStatus, AgentExecutionTrigger } from '@genfeedai/enums';
 import type { IAgentRun } from '@genfeedai/interfaces';
+import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import { render, screen } from '@testing-library/react';
 import type { Key, ReactNode } from 'react';
@@ -10,6 +11,7 @@ import {
   OverviewPublishingInboxSection,
   OverviewStatusBadge,
   OverviewTopStatStrip,
+  OverviewTrendsPanel,
 } from './overview-dashboard-sections';
 
 vi.mock('next/link', () => ({
@@ -289,5 +291,63 @@ describe('Overview dashboard sections', () => {
       'href',
       '/posts/review',
     );
+  });
+
+  it('renders the overview trends panel with top trends and view-all link', () => {
+    const trends: TrendItem[] = [
+      {
+        createdAt: '2026-06-01T00:00:00.000Z',
+        expiresAt: '2026-06-08T00:00:00.000Z',
+        growthRate: 1.5,
+        id: 'trend-a',
+        isCurrent: true,
+        mentions: 1200,
+        platform: 'instagram',
+        requiresAuth: false,
+        topic: 'Reels growth',
+        viralityScore: 950,
+      },
+      {
+        createdAt: '2026-06-01T00:00:00.000Z',
+        expiresAt: '2026-06-08T00:00:00.000Z',
+        growthRate: 1.1,
+        id: 'trend-b',
+        isCurrent: true,
+        mentions: 800,
+        platform: 'tiktok',
+        requiresAuth: false,
+        topic: 'AI comedy skits',
+        viralityScore: 720,
+      },
+    ];
+
+    render(
+      <OverviewTrendsPanel
+        isLoading={false}
+        trends={trends}
+        viewAllHref="/research/discovery"
+      />,
+    );
+
+    expect(screen.getByText('Social Trends')).toBeInTheDocument();
+    expect(screen.getByText('Research Trends')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /view all/i })).toHaveAttribute(
+      'href',
+      '/research/discovery',
+    );
+    expect(screen.getByText('Reels growth')).toBeInTheDocument();
+    expect(screen.getByText('AI comedy skits')).toBeInTheDocument();
+  });
+
+  it('renders the overview trends panel empty state', () => {
+    render(
+      <OverviewTrendsPanel
+        isLoading={false}
+        trends={[]}
+        viewAllHref="/research/discovery"
+      />,
+    );
+
+    expect(screen.getByText('No trends yet.')).toBeInTheDocument();
   });
 });

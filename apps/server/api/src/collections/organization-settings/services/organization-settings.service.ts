@@ -3,6 +3,8 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { CreateOrganizationSettingDto } from '@api/collections/organization-settings/dto/create-organization-setting.dto';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
+// biome-ignore lint/style/useImportType: resolved at runtime via ModuleRef as a DI token
+import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import {
@@ -38,6 +40,65 @@ export class OrganizationSettingsService extends BaseService<
       this.modelsService = this.moduleRef.get(ModelsService, { strict: false });
     }
     return this.modelsService;
+  }
+
+  /**
+   * Org-bootstrap chokepoint: all organization-creation paths (Clerk webhook,
+   * OrganizationsController, UserSetupService) funnel through settings creation.
+   * After creating settings we idempotently seed the predetermined Daily Trends
+   * Digest workflow (OFF by default). Failures never block settings creation.
+   */
+  async create(
+    createDto: CreateOrganizationSettingDto,
+    populate?: Parameters<
+      BaseService<
+        OrganizationSettingDocument,
+        CreateOrganizationSettingDto,
+        UpdateOrganizationSettingDto
+      >['create']
+    >[1],
+  ): Promise<OrganizationSettingDocument> {
+    const settings = await super.create(createDto, populate ?? []);
+    await this.provisionDefaultWorkflows(settings);
+    return settings;
+  }
+
+  private async provisionDefaultWorkflows(
+    settings: OrganizationSettingDocument,
+  ): Promise<void> {
+    try {
+      const settingsRecord = settings as unknown as {
+        organization?: unknown;
+        organizationId?: unknown;
+      };
+      const organizationId = String(
+        settingsRecord.organizationId ?? settingsRecord.organization ?? '',
+      );
+      if (!organizationId) {
+        return;
+      }
+
+      const organization = await this.prisma.organization.findFirst({
+        select: { userId: true },
+        where: { id: organizationId, isDeleted: false },
+      });
+      if (!organization?.userId) {
+        return;
+      }
+
+      const workflowsService = this.moduleRef.get(WorkflowsService, {
+        strict: false,
+      });
+      await workflowsService.ensureDailyTrendsDigestWorkflow(
+        organization.userId,
+        organizationId,
+      );
+    } catch (error) {
+      this.logger?.error(
+        'Failed to provision Daily Trends Digest workflow',
+        error,
+      );
+    }
   }
 
   private readJourneyState(

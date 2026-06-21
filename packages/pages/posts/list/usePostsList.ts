@@ -27,6 +27,10 @@ import {
 } from '@pages/posts/list/components/posts-credential.helpers';
 import { generatePosts } from '@pages/posts/list/components/posts-generate.helpers';
 import { fetchPosts } from '@pages/posts/list/components/posts-query.helpers';
+import {
+  buildPostsListQueryKey,
+  getDefaultPostsSort,
+} from '@pages/posts/list/posts-list-query';
 import type { ContentProps } from '@props/layout/content.props';
 import {
   useConfirmDeleteModal,
@@ -50,15 +54,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 export const VIEW_TYPE_GRID = ViewType.GRID;
 export const VIEW_TYPE_TABLE = ViewType.TABLE;
 
-export const getDefaultSort = (status?: PostStatus): string => {
-  if (status === PostStatus.SCHEDULED) {
-    return 'scheduledDate: 1';
-  }
-  if (status === PostStatus.PUBLIC) {
-    return 'scheduledDate: -1';
-  }
-  return 'createdAt: -1';
-};
+export const getDefaultSort = getDefaultPostsSort;
 
 export interface UsePostsListParams {
   initialPostPresets?: IPreset[];
@@ -225,20 +221,19 @@ export function usePostsList({
 
   const queryClient = useQueryClient();
 
-  const postsQueryKey = [
-    'posts-list',
+  const postsQueryKey = buildPostsListQueryKey({
+    adminBrand,
+    adminOrg,
     scope,
     brandId,
     organizationId,
     platformFilter,
-    filterSearch,
-    filterStatus,
-    filterSort,
     currentPage,
+    filterSearch,
+    filterSort: filterSort || '',
+    filterStatus: filterStatus || '',
     status,
-    adminOrg,
-    adminBrand,
-  ] as const;
+  });
 
   const {
     data: posts = [],

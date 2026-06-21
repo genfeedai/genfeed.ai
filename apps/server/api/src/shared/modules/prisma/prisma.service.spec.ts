@@ -57,8 +57,47 @@ describe('createPrismaPgConfig', () => {
   it('maps sslmode=no-verify to encrypted TLS without chain verification', () => {
     const connectionString = pgUrl('db.example.com', '?sslmode=no-verify');
 
+    // sslmode is resolved into the explicit ssl object and stripped from the
+    // URL so pg never re-parses it (no deprecation warning, pg-upgrade safe).
     expect(createPrismaPgConfig(connectionString)).toEqual({
-      connectionString,
+      connectionString: pgUrl('db.example.com'),
+      ssl: { rejectUnauthorized: false },
+    });
+  });
+
+  it('maps sslmode=require to encrypted TLS without chain verification', () => {
+    const connectionString = pgUrl('db.example.com', '?sslmode=require');
+
+    expect(createPrismaPgConfig(connectionString)).toEqual({
+      connectionString: pgUrl('db.example.com'),
+      ssl: { rejectUnauthorized: false },
+    });
+  });
+
+  it('lets an available CA win over sslmode=require and strips the param', () => {
+    const connectionString = pgUrl('db.example.com', '?sslmode=require');
+
+    expect(
+      createPrismaPgConfig(connectionString, {
+        caFilePaths: [writeCaFile('require-ca')],
+      }),
+    ).toEqual({
+      connectionString: pgUrl('db.example.com'),
+      ssl: { ca: 'require-ca', rejectUnauthorized: true },
+    });
+  });
+
+  it('preserves other query params when stripping sslmode', () => {
+    const connectionString = pgUrl(
+      'db.example.com',
+      '?schema=public&sslmode=no-verify&connection_limit=5',
+    );
+
+    expect(createPrismaPgConfig(connectionString)).toEqual({
+      connectionString: pgUrl(
+        'db.example.com',
+        '?schema=public&connection_limit=5',
+      ),
       ssl: { rejectUnauthorized: false },
     });
   });

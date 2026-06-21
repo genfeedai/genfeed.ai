@@ -700,6 +700,7 @@ model Organization {
   apiKeys                       ApiKey[]
   creatorAnalyses               CreatorAnalysis[]
   mcpApprovals                  McpApproval[]
+  moodBoards                    MoodBoard[]                    @relation("org_moodboard")
 
   @@index([isDefault])
   @@index([category])
@@ -824,9 +825,30 @@ model Brand {
   contextBases               ContextBase[]              @relation("context_base_source_brand")
   schedules                  Schedule[]
   bookmarks                  Bookmark[]
+  moodBoard                  MoodBoard?                 @relation("brand_moodboard")
 
   @@index([isDefault])
+  @@index([organizationId, isDeleted, label], map: "brands_org_deleted_label_idx")
   @@map("brands")
+}
+
+// One mood board per brand. `layout` stores only positions keyed by asset id
+// ([{ assetId, position: { x, y }, width?, z? }]); asset content is fetched
+// live from ingredients and merged by assetId so the board stays self-healing.
+model MoodBoard {
+  id             String       @id @default(cuid())
+  brandId        String       @unique
+  brand          Brand        @relation("brand_moodboard", fields: [brandId], references: [id])
+  organizationId String
+  organization   Organization @relation("org_moodboard", fields: [organizationId], references: [id])
+  layout         Json         @default("[]")
+  metadata       Json?
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, isDeleted])
+  @@map("mood_boards")
 }
 
 model Member {
@@ -847,6 +869,7 @@ model Member {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
+  @@index([organizationId, userId, isDeleted], map: "members_org_user_deleted_idx")
   @@map("members")
 }
 
@@ -923,6 +946,7 @@ model OrganizationSetting {
   isGenerateImagesEnabled       Boolean           @default(true)
   isGenerateMusicEnabled        Boolean           @default(true)
   isAutoEvaluateEnabled         Boolean           @default(false)
+  isFastlaneEnabled             Boolean           @default(false)
   seatsLimit                    Int               @default(3)
   brandsLimit                   Int               @default(5)
   timezone                      String            @default("UTC")
@@ -1610,6 +1634,8 @@ model Post {
   sourceActionId        String?
   sourceWorkflowId      String?
   sourceWorkflowName    String?
+  // Origin label for the post (e.g. agent, fastlane, manual). Free-form string.
+  source                String?
   isDeleted             Boolean         @default(false)
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
@@ -1638,6 +1664,10 @@ model Post {
   @@index([isDeleted, nextScheduledDate, status])
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([brandId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, status, createdAt(sort: Desc)], map: "posts_org_deleted_status_created_at_idx")
+  @@index([brandId, isDeleted, status, createdAt(sort: Desc)], map: "posts_brand_deleted_status_created_at_idx")
+  @@index([brandId, credentialId, isDeleted, createdAt(sort: Desc)], map: "posts_brand_credential_deleted_created_at_idx")
+  @@index([brandId, platform, isDeleted, createdAt(sort: Desc)], map: "posts_brand_platform_deleted_created_at_idx")
   @@map("posts")
 }
 
@@ -2221,6 +2251,7 @@ model AgentRun {
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, isDeleted, status, createdAt(sort: Desc)])
   @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, status, completedAt(sort: Desc)], map: "agent_runs_org_deleted_status_completed_at_idx")
   @@map("agent_runs")
 }
 
@@ -2551,6 +2582,8 @@ model ContentRun {
   contentPerformances ContentPerformance[]
   contentDrafts       ContentDraft[]
 
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "content_runs_org_brand_deleted_created_at_idx")
+  @@index([organizationId, brandId, isDeleted, status, createdAt(sort: Desc)], map: "content_runs_org_brand_deleted_status_created_at_idx")
   @@map("content_runs")
 }
 
@@ -3050,6 +3083,10 @@ model Activity {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  @@index([isDeleted, createdAt(sort: Desc)], map: "activities_deleted_created_at_idx")
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "activities_org_deleted_created_at_idx")
+  @@index([brandId, isDeleted, createdAt(sort: Desc)], map: "activities_brand_deleted_created_at_idx")
+  @@index([userId, isDeleted, createdAt(sort: Desc)], map: "activities_user_deleted_created_at_idx")
   @@map("activities")
 }
 
@@ -3956,6 +3993,9 @@ model Batch {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "batches_org_deleted_created_at_idx")
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "batches_org_brand_deleted_created_at_idx")
+  @@index([organizationId, isDeleted, status, createdAt(sort: Desc)], map: "batches_org_deleted_status_created_at_idx")
   @@map("batches")
 }
 

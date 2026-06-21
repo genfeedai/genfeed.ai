@@ -64,6 +64,11 @@ const SETTING_GROUPS: SettingGroup[] = [
         label: 'Auto Evaluation',
         type: 'boolean',
       },
+      {
+        key: 'isFastlaneEnabled',
+        label: 'Fastlane',
+        type: 'boolean',
+      },
     ],
   },
   {

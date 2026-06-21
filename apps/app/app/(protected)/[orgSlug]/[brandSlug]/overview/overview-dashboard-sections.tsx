@@ -11,12 +11,15 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
+import { OverviewTrendsPanel } from '@ui/overview/OverviewTrendsPanel';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { HiOutlineArrowRight } from 'react-icons/hi2';
+
+export { OverviewTrendsPanel };
 
 const PlatformTimeSeriesChart = dynamic(
   () =>

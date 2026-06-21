@@ -19,5 +19,6 @@ export * from './post-quick-actions.constant';
 export * from './routes.constant';
 export * from './settings-scope.constant';
 export * from './theme.constant';
+export * from './trends.constant';
 export * from './upload.constant';
 export * from './variation-presets.constant';

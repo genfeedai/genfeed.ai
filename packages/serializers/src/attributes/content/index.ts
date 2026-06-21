@@ -22,6 +22,7 @@ export * from '@serializers/attributes/content/fanvue-subscriber.attributes';
 export * from '@serializers/attributes/content/fanvue-sync-log.attributes';
 export * from '@serializers/attributes/content/insight.attributes';
 export * from '@serializers/attributes/content/link.attributes';
+export * from '@serializers/attributes/content/mood-board.attributes';
 export * from '@serializers/attributes/content/news.attributes';
 export * from '@serializers/attributes/content/newsletter.attributes';
 export * from '@serializers/attributes/content/optimization.attributes';

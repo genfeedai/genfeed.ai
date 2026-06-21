@@ -1,8 +1,11 @@
+'use client';
+
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuItemProps } from '@genfeedai/props/navigation/menu.props';
 import ComingSoonBadge from '@ui/badges/ComingSoonBadge';
 import Badge from '@ui/display/badge/Badge';
+import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Link from 'next/link';
@@ -23,6 +26,7 @@ export default function MenuItem({
 }: MenuItemProps) {
   const isIconVariant = variant === 'icon';
   const shouldRenderBadge = typeof badgeCount === 'number' && badgeCount > 0;
+  const prefetchHref = useNavigationPrefetch(href);
 
   // Determine layout: horizontal when expanded on desktop, vertical otherwise
   const isHorizontalLayout = isIconVariant && !isCollapsed;
@@ -167,6 +171,8 @@ export default function MenuItem({
       <Link
         href={href}
         onClick={onClick}
+        onFocus={prefetchHref}
+        onMouseEnter={prefetchHref}
         className={contentClasses}
         aria-label={accessibleLabel}
       >

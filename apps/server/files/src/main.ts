@@ -14,6 +14,10 @@ import path from 'node:path';
 import { AppModule } from '@files/app.module';
 import { ConfigService } from '@files/config/config.service';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
+import {
+  GENFEED_CORS_ALLOWED_METHODS,
+  GENFEED_CORS_PREFLIGHT_MAX_AGE_SECONDS,
+} from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -48,7 +52,8 @@ async function main() {
 
     app.enableCors({
       credentials: true,
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+      maxAge: GENFEED_CORS_PREFLIGHT_MAX_AGE_SECONDS,
+      methods: GENFEED_CORS_ALLOWED_METHODS,
       origin: configService.get('GENFEEDAI_API_URL'),
     });
 

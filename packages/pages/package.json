@@ -4,6 +4,9 @@
     "@tanstack/react-query": "5.101.0"
   },
   "description": "Shared page-level compositions for Genfeed applications",
+  "devDependencies": {
+    "@testing-library/react": "16.3.2"
+  },
   "exports": {
     "./*": "./*"
   },

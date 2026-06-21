@@ -18,6 +18,7 @@ export class OrganizationSettingEntity extends BaseEntity {
   declare readonly isGenerateMusicEnabled: boolean;
 
   declare readonly isAutoEvaluateEnabled: boolean;
+  declare readonly isFastlaneEnabled: boolean;
 
   declare readonly isWebhookEnabled: boolean;
   declare readonly webhookEndpoint: string | undefined;

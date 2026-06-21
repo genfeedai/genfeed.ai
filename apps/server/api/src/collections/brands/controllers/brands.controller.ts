@@ -3,6 +3,7 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-templates.constant';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { GenerateBrandVoiceDto } from '@api/collections/brands/dto/generate-brand-voice.dto';
+import { GenerateFastlaneIdeasDto } from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
 import { ToggleBrandSkillDto } from '@api/collections/brands/dto/toggle-brand-skill.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
@@ -387,6 +388,53 @@ export class BrandsController extends BaseCRUDController<
     );
 
     return { data: voice };
+  }
+
+  @Post(':id/fastlane/ideas')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async generateFastlaneIdeas(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() generateFastlaneIdeasDto: GenerateFastlaneIdeasDto,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+    const organizationId = publicMetadata.organization?.toString();
+
+    if (!organizationId) {
+      throw new HttpException(
+        {
+          detail: 'Organization context is required',
+          title: 'Forbidden',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Backend flag guard: the studio `studio` FeatureGate does NOT enforce
+    // isFastlaneEnabled, so a direct call here must be rejected when the org
+    // flag is off — before any LLM work is metered.
+    const settings = await this.organizationSettingsService.findOne({
+      isDeleted: false,
+      organization: organizationId,
+    });
+
+    if (!settings?.isFastlaneEnabled) {
+      throw new HttpException(
+        {
+          detail: 'Fastlane is not enabled for this organization',
+          title: 'Forbidden',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    const ideas = await this.brandsService.generateFastlaneIdeas(
+      id,
+      generateFastlaneIdeasDto,
+      organizationId,
+    );
+
+    return { data: ideas };
   }
 
   @Patch(':id/agent-config/enabled-skills')

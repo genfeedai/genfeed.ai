@@ -1,6 +1,6 @@
 # E2E Architecture — Genfeed.ai
 
-> **Last verified:** 2026-06-07 (against `origin/develop` @ `5cf4b64f2`, live run #27087679298)
+> **Last verified:** 2026-06-19 (against `master`, live run #27803494712 — nightly, all 12 shards green)
 > **Source of truth:** `.github/workflows/e2e.yml`, `playwright/`, `apps/server/api/test/`, `packages/prisma/`
 
 End-to-end testing runs **entirely on GitHub-hosted runners** (free for this public/OSS repo).
@@ -16,10 +16,13 @@ to trigger. Nothing about the MacStudio process is disabled here.
 ```yaml
 on:
   workflow_dispatch:            # manual — pick ANY branch via the ref dropdown
+  workflow_call:                # reusable — full-suite.yml chains CI → E2E
   schedule:
-    - cron: "0 6 * * 1"        # weekly Monday 06:00 UTC
+    - cron: "17 2 * * *"        # nightly 02:17 UTC
 concurrency:
-  group: e2e-${{ github.ref }} # one run per ref; new run cancels in-progress
+  # workflow name in the group so a full-suite.yml workflow_call does not cancel
+  # the nightly cron run of this workflow (and vice versa).
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 ```
 
@@ -27,8 +30,8 @@ concurrency:
   short-lived feature branch. CLI: `gh workflow run e2e.yml --ref <branch>`.
   `workflow_dispatch` checks out **that branch** and runs its copy of the workflow + tests.
   (Trunk-based: `develop`/`staging` branches no longer exist.)
-- **Weekly review:** the `schedule` trigger always runs on the **default branch = `master`**
-  (GitHub runs scheduled workflows only from the default branch). This is the weekly master review.
+- **Nightly review:** the `schedule` trigger always runs on the **default branch = `master`**
+  (GitHub runs scheduled workflows only from the default branch). This is the nightly master review.
 - **Availability:** the workflow only appears in the Actions UI / runs on schedule when the file
   exists on `master`. `master` is the single trunk.
 - **Free compute:** public repo → unlimited GitHub Actions minutes on `ubuntu-latest`.
@@ -37,17 +40,22 @@ Top-level env: `TURBO_TOKEN` (secret) + `TURBO_TEAM` (var) enable Turborepo remo
 
 ---
 
-## 2. Jobs (4, all parallel — no `needs:` between them)
+## 2. Jobs (6 — the frontend suite is now sharded 12-way with a gate aggregator)
 
 | Job id | Display name | Runner / timeout | Blocking? | What it runs |
 |---|---|---|---|---|
-| `e2e-route-coverage` | E2E Route Coverage Gate | ubuntu / 5m | **yes** | `node scripts/e2e-route-coverage.mjs` |
-| `e2e-api` | API E2E Tests | ubuntu / 20m | **yes** (despite "incomplete" comment) | `bun run --cwd apps/server/api test:e2e:ci` |
-| `e2e-frontend` | Frontend Core E2E Tests | ubuntu / 40m | **yes** | `bun run test:e2e:core` |
-| `e2e-frontend-coverage` | Frontend E2E Code Coverage | ubuntu / 45m | **no** (`continue-on-error: true`) | `bun run test:e2e:coverage` |
+| `e2e-route-coverage` | E2E Route Coverage Gate | ubuntu / 5m | **yes** (via gate) | `node scripts/e2e-route-coverage.mjs` |
+| `e2e-api` | API E2E Tests | ubuntu / 20m | **DISABLED** (`if: false`) | was `test:e2e:ci` — DI/path-alias broken, see §6 |
+| `e2e-frontend` | Frontend E2E (Shard N/12) | ubuntu / 45m | **yes** (via gate) | matrix 12 shards, `fail-fast:false`, `bun run test:e2e:sharded -- --reporter=blob` |
+| `e2e-merge-reports` | Merge E2E Reports | ubuntu / 10m | no (`if: always()`) | `playwright merge-reports` → single HTML report |
+| `e2e-gate` | E2E Gate (all shards) | ubuntu / 5m | **yes — the aggregator** | bash check of `e2e-route-coverage` + `e2e-frontend` results (fails on any shard failure OR cancellation) |
+| `e2e-frontend-authed` | Frontend Authed E2E (real Clerk) | ubuntu / 40m | no (`continue-on-error`, gated by `E2E_AUTHED_ENABLED` var) | `bun run test:e2e:authed` |
 
-Overall run conclusion = failure if **route-coverage, api, or frontend** fail. The coverage job is
-report-only and never gates the run.
+`e2e-gate` is the single job that represents the suite's pass/fail (it `needs:` route-coverage +
+frontend). It exits 1 if route coverage failed or any shard failed/was cancelled. Re-running only the
+failed shard + gate carries the green shards forward. **Frontend code-coverage moved out of this
+workflow** — it now lives in `coverage.yml` (weekly), not here. The old single `e2e-frontend` /
+`e2e-frontend-coverage` jobs in §2.3/§2.4 below are superseded by the sharded layout above.
 
 ### 2.1 `e2e-route-coverage` — static gate (fastest signal)
 - No app build, no DB. Pure static analysis (`scripts/e2e-route-coverage.mjs`).
@@ -209,7 +217,8 @@ Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`,
 - **`workers: 1` + `fullyParallel: true`** is contradictory; masks races that surface if workers increase.
 - **Playwright browser cache** has no restore-key fallback — any `bun.lock` change forces full Chromium re-download.
 - **Visual baselines** (`__screenshots__/`) are OS/font-sensitive — diffs across environments.
-- **Not a required PR gate** — runs weekly/manual only, so regressions can sit up to a week.
+- **Not a required PR gate** — runs nightly/manual only, so a regression can sit up to a day before
+  the nightly catches it.
 
 ---
 

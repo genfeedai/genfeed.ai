@@ -3,8 +3,6 @@ import {
   DialogClose as ShipDialogClose,
   DialogContent as ShipDialogContent,
   DialogDescription as ShipDialogDescription,
-  DialogFooter as ShipDialogFooter,
-  DialogHeader as ShipDialogHeader,
   DialogOverlay as ShipDialogOverlay,
   DialogPortal as ShipDialogPortal,
   DialogTitle as ShipDialogTitle,
@@ -13,6 +11,7 @@ import {
 import { X } from 'lucide-react';
 import type { ComponentPropsWithRef, HTMLAttributes } from 'react';
 import { cn } from '../lib/utils';
+import { useModalContentGlobalSideEffectCleanup } from '../utils/modal-global-side-effects';
 
 const Dialog = ShipDialog;
 
@@ -49,6 +48,8 @@ function DialogContent({
   showCloseButton = true,
   ...props
 }: DialogContentProps) {
+  useModalContentGlobalSideEffectCleanup();
+
   return (
     <ShipDialogContent
       ref={ref}

@@ -1195,6 +1195,51 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     },
   },
 
+  sendEmail: {
+    category: 'output',
+    configSchema: {},
+    description: 'Send a single email (subject + HTML body) to a recipient',
+    icon: 'HiMail',
+    inputs: {
+      html: { label: 'HTML Body', type: 'text' },
+      subject: { label: 'Subject', type: 'text' },
+      to: { label: 'To', type: 'text' },
+    },
+    label: 'Send Email',
+    outputs: {
+      sent: { label: 'Sent', type: 'boolean' },
+    },
+  },
+
+  trendDigest: {
+    category: 'processing',
+    configSchema: {
+      minViralScore: {
+        default: 70,
+        label: 'Min Viral Score',
+        max: 100,
+        min: 0,
+        type: 'number',
+      },
+      topN: {
+        default: 5,
+        label: 'Number of Trends',
+        type: 'number',
+      },
+    },
+    description:
+      'Assemble a curated daily trends digest email from the global trend corpus',
+    icon: 'HiTrendingUp',
+    inputs: {},
+    isPremium: true,
+    label: 'Trend Digest',
+    outputs: {
+      html: { label: 'HTML Body', type: 'text' },
+      subject: { label: 'Subject', type: 'text' },
+      to: { label: 'Recipient', type: 'text' },
+    },
+  },
+
   'output-export': {
     category: 'output',
     configSchema: {

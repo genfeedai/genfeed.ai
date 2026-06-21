@@ -1,4 +1,8 @@
 import { loadPostsPageData } from '@app-server/posts-page-data.server';
+import {
+  prefetchServerQuery,
+  ServerQueryHydrationBoundary,
+} from '@app-server/query-hydration.server';
 import { PageScope } from '@genfeedai/enums';
 import {
   normalizePostsPlatform,
@@ -6,6 +10,10 @@ import {
   type PublisherPostsStatus,
 } from '@helpers/content/posts.helper';
 import PostsList from '@pages/posts/list/posts-list';
+import {
+  buildPostsListQueryKey,
+  getDefaultPostsSort,
+} from '@pages/posts/list/posts-list-query';
 
 export type PostsListSearchParams = Promise<{
   page?: string;
@@ -17,9 +25,11 @@ export type PostsListSearchParams = Promise<{
 
 export async function renderPostsListPage({
   searchParams,
+  scope = PageScope.PUBLISHER,
   statusOverride,
 }: {
   searchParams: PostsListSearchParams;
+  scope?: PageScope;
   statusOverride?: PublisherPostsStatus;
 }) {
   const { page, platform, search, sort, status } = await searchParams;
@@ -32,19 +42,41 @@ export async function renderPostsListPage({
     currentPage,
     platformFilter:
       normalizedPlatform !== 'all' ? normalizedPlatform : undefined,
-    scope: PageScope.PUBLISHER,
+    scope,
     search,
     sort,
     status: normalizedStatus,
   });
+  const platformFilter =
+    normalizedPlatform !== 'all' ? normalizedPlatform : undefined;
+  const filterSort = sort || getDefaultPostsSort(normalizedStatus);
+
+  await prefetchServerQuery({
+    queryFn: () => initialData.posts,
+    queryKey: buildPostsListQueryKey({
+      adminBrand: '',
+      adminOrg: '',
+      brandId: initialData.brandId,
+      currentPage,
+      filterSearch: search || '',
+      filterSort,
+      filterStatus: normalizedStatus || '',
+      organizationId: initialData.organizationId,
+      platformFilter,
+      scope,
+      status: normalizedStatus,
+    }),
+  });
 
   return (
-    <PostsList
-      initialPostPresets={initialData.postPresets}
-      initialPosts={initialData.posts}
-      platform={normalizedPlatform}
-      scope={PageScope.PUBLISHER}
-      status={normalizedStatus}
-    />
+    <ServerQueryHydrationBoundary>
+      <PostsList
+        initialPostPresets={initialData.postPresets}
+        initialPosts={initialData.posts}
+        platform={normalizedPlatform}
+        scope={scope}
+        status={normalizedStatus}
+      />
+    </ServerQueryHydrationBoundary>
   );
 }

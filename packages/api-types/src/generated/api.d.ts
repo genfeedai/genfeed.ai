@@ -24,6 +24,7 @@ export interface components {
       creativeVersion?: string;
       scheduleSlot?: string;
       publishIntent?: string;
+      source?: string;
       publicationDate?: string;
       quoteTweetId?: string;
       repeatDaysOfWeek?: number[];

@@ -4,7 +4,7 @@ import '@mcp/instrument';
 bootstrap({ app: 'mcp' });
 
 import process from 'node:process';
-import { getGenfeedCorsOrigins } from '@libs/config/cors.config';
+import { getGenfeedCorsOptions } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { AppModule } from '@mcp/app.module';
 import { ConfigService } from '@mcp/config/config.service';
@@ -40,15 +40,13 @@ async function main(): Promise<void> {
 
   const port = configService.get('PORT');
 
-  app.enableCors({
-    credentials: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    origin: getGenfeedCorsOrigins({
+  app.enableCors(
+    getGenfeedCorsOptions({
       additionalOrigins: ['https://mcp.genfeed.ai'],
       chromeExtensionId: configService.get('CHROME_EXTENSION_ID'),
       isDevelopment: configService.get('NODE_ENV') === 'development',
     }),
-  });
+  );
 
   const expressApp = app.getHttpAdapter().getInstance();
 

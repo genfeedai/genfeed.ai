@@ -64,6 +64,7 @@ import { McpApprovalsModule } from '@api/collections/mcp-approvals/mcp-approvals
 import { MembersModule } from '@api/collections/members/members.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { MoodBoardsModule } from '@api/collections/mood-boards/mood-boards.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
 import { OptimizersModule } from '@api/collections/optimizers/optimizers.module';
@@ -287,6 +288,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     MembersModule,
     MetadataModule,
     ModelsModule,
+    MoodBoardsModule,
     MusicsModule,
     NewslettersModule,
     OptimizersModule,

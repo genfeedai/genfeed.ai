@@ -5,8 +5,9 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import MenuItem from '@ui/menus/item/MenuItem';
+import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
-import WorkspaceSwitcher from '@ui/menus/workspace-switcher/WorkspaceSwitcher';
+import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -38,6 +39,7 @@ export default function MenuShared({
   showPrimaryItems = true,
   conversationActions,
   renderFooterSlot,
+  showUserProfile = true,
 }: MenuSharedProps) {
   const { push } = useRouter();
 
@@ -71,6 +73,10 @@ export default function MenuShared({
     renderAfterNavigation,
     renderFooterSlot,
   });
+  const resolvedBackHref = backHref
+    ? (prefixHref({ href: backHref }) ?? backHref)
+    : undefined;
+  const prefetchBackHref = useNavigationPrefetch(resolvedBackHref);
 
   const secondaryNavigationContent =
     secondaryItems.length > 0 ? (
@@ -114,7 +120,9 @@ export default function MenuShared({
       {backHref && (
         <div className="pb-1">
           <Link
-            href={prefixHref({ href: backHref }) ?? backHref}
+            href={resolvedBackHref ?? backHref}
+            onFocus={prefetchBackHref}
+            onMouseEnter={prefetchBackHref}
             className={cn(
               'group flex h-7 w-full items-center gap-2 rounded px-2.5 py-1 transition-colors duration-150',
               'text-foreground/72 hover:bg-foreground/[0.035] hover:text-foreground',
@@ -205,7 +213,7 @@ export default function MenuShared({
           )}
         >
           {sharedCollapseControl}
-          <WorkspaceSwitcher />
+          <OrganizationSwitcher />
         </div>
 
         {/* Body — fades out when collapsed, pointer-events disabled */}
@@ -292,7 +300,9 @@ export default function MenuShared({
           )}
         </div>
 
-        <SidebarUserProfile isCollapsed={isCollapsed} />
+        {showUserProfile ? (
+          <SidebarUserProfile isCollapsed={isCollapsed} />
+        ) : null}
       </div>
     </div>
   );

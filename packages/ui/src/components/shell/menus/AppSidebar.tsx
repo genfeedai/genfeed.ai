@@ -31,6 +31,7 @@ export interface AppSidebarProps extends BaseMenuProps {
   sidebarWidth?: MenuSharedProps['sidebarWidth'];
   conversationActions?: MenuSharedProps['conversationActions'];
   renderFooterSlot?: MenuSharedProps['renderFooterSlot'];
+  showUserProfile?: MenuSharedProps['showUserProfile'];
   items: MenuShellConfig['items'];
   logoHref?: string;
 }
@@ -56,6 +57,7 @@ export default function AppSidebar({
   sidebarWidth,
   conversationActions,
   renderFooterSlot,
+  showUserProfile = false,
   items,
   logoHref = '/',
 }: AppSidebarProps) {
@@ -89,6 +91,7 @@ export default function AppSidebar({
       sidebarWidth={sidebarWidth}
       conversationActions={conversationActions}
       renderFooterSlot={renderFooterSlot}
+      showUserProfile={showUserProfile}
     />
   );
 }

@@ -6,6 +6,7 @@ import { ParseMode } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronTrendSummaryNotificationsService } from '@workers/crons/trends/cron.trend-summary-notifications.service';
+import { ConfigService } from '@workers/config/config.service';
 
 vi.mock('@nestjs/schedule', () => ({
   Cron: () => () => undefined,
@@ -131,6 +132,10 @@ describe('CronTrendSummaryNotificationsService', () => {
         { provide: CacheService, useValue: cacheService },
         { provide: NotificationsService, useValue: notificationsService },
         { provide: LoggerService, useValue: loggerService },
+        {
+          provide: ConfigService,
+          useValue: { get: vi.fn().mockReturnValue('https://app.genfeed.ai') },
+        },
       ],
     }).compile();
 
@@ -247,6 +252,59 @@ describe('CronTrendSummaryNotificationsService', () => {
           type: 'discord',
           userId: 'user-1',
         }),
+      );
+    });
+  });
+
+  describe('threshold filtering', () => {
+    it('drops hashtags below the user minViralScore threshold', async () => {
+      prismaService.setting.findMany.mockResolvedValue([
+        {
+          ...mockSettings[0],
+          isTrendNotificationsEmail: false,
+          isTrendNotificationsInApp: false,
+          trendNotificationsMinViralScore: 70,
+        },
+      ]);
+      // Only the hashtag path contributes trends; the service filters in-process.
+      trendsService.getViralVideos.mockResolvedValue([]);
+      trendsService.getTrendingSounds.mockResolvedValue([]);
+      trendsService.getTrendingHashtags.mockResolvedValue([
+        {
+          hashtag: 'belowthreshold',
+          platform: 'tiktok',
+          postCount: 1000,
+          viralityScore: 50,
+        },
+        {
+          hashtag: 'abovethreshold',
+          platform: 'tiktok',
+          postCount: 500000,
+          viralityScore: 85,
+        },
+      ]);
+
+      await service.sendHourlyTrendSummaries();
+
+      expect(notificationsService.sendTelegramMessage).toHaveBeenCalledTimes(1);
+      const telegramMessage =
+        notificationsService.sendTelegramMessage.mock.calls[0][1];
+      expect(telegramMessage).toContain('#abovethreshold');
+      expect(telegramMessage).not.toContain('#belowthreshold');
+    });
+
+    it('skips sending entirely when no trends are above threshold', async () => {
+      trendsService.getViralVideos.mockResolvedValue([]);
+      trendsService.getTrendingHashtags.mockResolvedValue([]);
+      trendsService.getTrendingSounds.mockResolvedValue([]);
+
+      await service.sendHourlyTrendSummaries();
+
+      expect(notificationsService.sendEmail).not.toHaveBeenCalled();
+      expect(notificationsService.sendTelegramMessage).not.toHaveBeenCalled();
+      expect(notificationsService.sendNotification).not.toHaveBeenCalled();
+      expect(loggerService.debug).toHaveBeenCalledWith(
+        expect.stringContaining('No trends above threshold'),
       );
     });
   });

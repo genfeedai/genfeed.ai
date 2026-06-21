@@ -32,6 +32,7 @@ export * from '@workflow-engine/executors/saas/publish-executor';
 export * from '@workflow-engine/executors/saas/reframe-executor';
 export * from '@workflow-engine/executors/saas/rss-input-executor';
 export * from '@workflow-engine/executors/saas/send-dm-executor';
+export * from '@workflow-engine/executors/saas/send-email-executor';
 export {
   createSocialPublishExecutor,
   SocialPublishExecutor,
@@ -43,6 +44,7 @@ export {
 export * from '@workflow-engine/executors/saas/sound-overlay-executor';
 // Text to speech executor
 export * from '@workflow-engine/executors/saas/text-to-speech-executor';
+export * from '@workflow-engine/executors/saas/trend-digest-executor';
 export * from '@workflow-engine/executors/saas/trend-trigger-executor';
 export * from '@workflow-engine/executors/saas/tweet-input-executor';
 export * from '@workflow-engine/executors/saas/tweet-remix-executor';

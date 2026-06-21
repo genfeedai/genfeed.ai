@@ -56,7 +56,9 @@ SYNC_SKILLS=(
   nestjs-queue-architect
   nestjs-testing-expert
   nextjs-validator
-  open-source-checker
+  # open-source-checker: excluded — its references/ directory contains connection-string
+  # regex examples that secretlint flags as real credentials. Keeping it out of sync
+  # avoids tripping the pre-commit hook.
   package-architect
   performance-expert
   production-audit
@@ -184,6 +186,12 @@ case "${1:-}" in
     check_integrity
     ;;
   --check)
+    # .claude/skills/ is gitignored and the no-arg generation path is skipped
+    # under CI (see the GITHUB_ACTIONS guard above), so a bare integrity check in
+    # CI always fails on "missing symlink". Materialize them first, then
+    # validate — frontmatter presence and the no-external-symlink invariant are
+    # the checks that actually carry signal here.
+    generate_symlinks
     check_integrity
     ;;
   "")

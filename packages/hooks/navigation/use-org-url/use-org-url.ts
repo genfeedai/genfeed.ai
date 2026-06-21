@@ -36,8 +36,8 @@ function getBrandOrganizationSlug(brand: IBrand | null | undefined): string {
  * Central navigation utility for org-scoped URLs.
  *
  * Reads `orgSlug` and `brandSlug` from the current route params.
- * Falls back to the active brand slug from context when on org-level
- * pages where `[brandSlug]` is not in the URL (e.g. `/:orgSlug/~/settings`).
+ * Falls back to the active brand from context only when route params are
+ * unavailable. Org-level routes with `/:orgSlug/~/...` stay brandless.
  *
  * @example
  * ```tsx
@@ -51,14 +51,17 @@ export function useOrgUrl(): OrgUrlContext {
   const params = useParams<{ orgSlug: string; brandSlug: string }>();
   const { selectedBrand } = useBrand();
 
-  const orgSlug =
-    params.orgSlug ?? getBrandOrganizationSlug(selectedBrand) ?? '';
-  const brandSlug = params.brandSlug ?? selectedBrand?.slug ?? '';
+  const routeOrgSlug = typeof params.orgSlug === 'string' ? params.orgSlug : '';
+  const routeBrandSlug =
+    typeof params.brandSlug === 'string' ? params.brandSlug : '';
+
+  const orgSlug = routeOrgSlug || getBrandOrganizationSlug(selectedBrand);
+  const brandSlug = routeBrandSlug || (routeOrgSlug ? '' : selectedBrand?.slug);
 
   const orgHref = (path: string) => createOrganizationAppRoute(orgSlug, path);
 
   return {
-    brandSlug,
+    brandSlug: brandSlug ?? '',
     href: (path: string) =>
       brandSlug ? createBrandAppRoute(orgSlug, brandSlug, path) : orgHref(path),
     orgHref,

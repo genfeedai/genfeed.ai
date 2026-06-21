@@ -112,6 +112,10 @@ import {
   SendDmExecutor,
 } from '@workflow-engine/executors/saas/send-dm-executor';
 import {
+  createSendEmailExecutor,
+  SendEmailExecutor,
+} from '@workflow-engine/executors/saas/send-email-executor';
+import {
   createSocialPublishExecutor,
   SocialPublishExecutor,
 } from '@workflow-engine/executors/saas/social-publish-executor';
@@ -123,6 +127,10 @@ import {
   createTextToSpeechExecutor,
   TextToSpeechExecutor,
 } from '@workflow-engine/executors/saas/text-to-speech-executor';
+import {
+  createTrendDigestExecutor,
+  TrendDigestExecutor,
+} from '@workflow-engine/executors/saas/trend-digest-executor';
 import {
   createTrendTriggerExecutor,
   TrendTriggerExecutor,
@@ -411,6 +419,13 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     nodeType: 'sendDm',
     requiresResolver: true,
   },
+  sendEmail: {
+    description: 'Sends a single email via the notifications publisher',
+    executorClass: SendEmailExecutor,
+    factory: () => createSendEmailExecutor(),
+    nodeType: 'sendEmail',
+    requiresResolver: true,
+  },
   socialPublish: {
     description: 'Publishes video to a single social media platform',
     executorClass: SocialPublishExecutor,
@@ -431,6 +446,14 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     executorClass: TextToSpeechExecutor,
     factory: () => createTextToSpeechExecutor(),
     nodeType: 'textToSpeech',
+    requiresResolver: true,
+  },
+  trendDigest: {
+    description:
+      'Assembles a curated daily trends digest email from the global trend corpus',
+    executorClass: TrendDigestExecutor,
+    factory: () => createTrendDigestExecutor(),
+    nodeType: 'trendDigest',
     requiresResolver: true,
   },
   trendTrigger: {
@@ -649,6 +672,14 @@ export class ExecutorRegistryInstance {
   }
 
   /**
+   * Get the trend digest executor for resolver/provider injection
+   */
+  getTrendDigestExecutor(): TrendDigestExecutor | undefined {
+    const executor = this.executors.get('trendDigest');
+    return executor instanceof TrendDigestExecutor ? executor : undefined;
+  }
+
+  /**
    * Get the sound overlay executor for processor injection
    */
   getSoundOverlayExecutor(): SoundOverlayExecutor | undefined {
@@ -744,6 +775,14 @@ export class ExecutorRegistryInstance {
   getSendDmExecutor(): SendDmExecutor | undefined {
     const executor = this.executors.get('sendDm');
     return executor instanceof SendDmExecutor ? executor : undefined;
+  }
+
+  /**
+   * Get the send email executor for sender injection
+   */
+  getSendEmailExecutor(): SendEmailExecutor | undefined {
+    const executor = this.executors.get('sendEmail');
+    return executor instanceof SendEmailExecutor ? executor : undefined;
   }
 
   /**

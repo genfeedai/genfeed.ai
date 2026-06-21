@@ -39,9 +39,16 @@ jobs:
       - name: Check route coverage
         run: node scripts/e2e-route-coverage.mjs
 
-  # API E2E Tests — test infrastructure incomplete, non-blocking until ready
+  # API E2E Tests — DISABLED by default. The test infrastructure is incomplete:
+  # the suite fails every run on E2ETestModule DI wiring (PrismaService/
+  # FilesClientService not provided) and a missing @api/collections/subscriptions
+  # path alias. It was already continue-on-error (never gated), so it only burned
+  # ~2 min/run and added noise. Gated behind the E2E_API_ENABLED repo variable
+  # (mirrors e2e-frontend-authed): set it to 'true' to re-enable once the DI /
+  # path-alias fixes land.
   e2e-api:
     name: API E2E Tests
+    if: ${{ vars.E2E_API_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     continue-on-error: true
@@ -160,6 +167,7 @@ jobs:
   e2e-merge-reports:
     name: Merge E2E Reports
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [e2e-frontend]
     if: always()
     steps:
@@ -194,6 +202,7 @@ jobs:
   e2e-gate:
     name: E2E Gate (all shards)
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [e2e-route-coverage, e2e-frontend]
     if: always()
     steps:

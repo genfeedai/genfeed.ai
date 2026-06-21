@@ -228,6 +228,7 @@ export class UserSetupService {
       brandsLimit: 5,
       enabledModels: enabledModelIds,
       isAutoEvaluateEnabled: false,
+      isFastlaneEnabled: false,
       isGenerateArticlesEnabled: false,
       isGenerateImagesEnabled: true,
       isGenerateMusicEnabled: true,
