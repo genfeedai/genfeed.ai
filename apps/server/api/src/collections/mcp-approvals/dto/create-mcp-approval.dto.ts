@@ -3,11 +3,12 @@ import {
   MaxJsonBytes,
 } from '@api/collections/mcp-approvals/validators/max-json-bytes.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsObject, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsObject, IsString, MaxLength } from 'class-validator';
 
 export class CreateMcpApprovalDto {
   @ApiProperty({ description: 'Name of the MCP tool to be executed' })
   @IsString()
+  @IsNotEmpty()
   @MaxLength(200)
   toolName!: string;
 

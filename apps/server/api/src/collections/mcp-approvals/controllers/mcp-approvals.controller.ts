@@ -2,10 +2,13 @@ import { CreateMcpApprovalDto } from '@api/collections/mcp-approvals/dto/create-
 import { ResolveMcpApprovalDto } from '@api/collections/mcp-approvals/dto/resolve-mcp-approval.dto';
 import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import type { User } from '@clerk/backend';
+import { MemberRole } from '@genfeedai/enums';
 import { McpApprovalStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -16,8 +19,10 @@ import {
   HttpStatus,
   NotFoundException,
   Param,
+  ParseEnumPipe,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
@@ -76,7 +81,8 @@ export class McpApprovalsController {
   @ApiResponse({ description: 'Approvals returned', status: HttpStatus.OK })
   async findAll(
     @CurrentUser() user: User,
-    @Query('status') status?: McpApprovalStatus,
+    @Query('status', new ParseEnumPipe(McpApprovalStatus, { optional: true }))
+    status?: McpApprovalStatus,
   ): Promise<{ data: McpApprovalResponse[] }> {
     const { organization } = getPublicMetadata(user);
     const list = await this.service.findByOrganization(organization, status);
@@ -107,6 +113,8 @@ export class McpApprovalsController {
 
   @Post(':id/resolve')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({ summary: 'Resolve (approve or decline) an MCP approval' })
   @ApiResponse({ description: 'Approval resolved', status: HttpStatus.OK })
   async resolve(

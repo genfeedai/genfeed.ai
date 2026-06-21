@@ -50,10 +50,17 @@ export class AuthService {
 
       if (response.status === 200) {
         const data = response.data?.data ?? {};
+        const organizationId: string | undefined = data.organization?.id;
+        const userId: string | undefined = data.user?.id;
+
+        if (!organizationId || !userId) {
+          return { error: 'Token resolved but identity is incomplete', valid: false };
+        }
+
         return {
-          organizationId: data.organization?.id,
+          organizationId,
           role: this.resolveRole(data.role),
-          userId: data.user?.id,
+          userId,
           valid: true,
         };
       }

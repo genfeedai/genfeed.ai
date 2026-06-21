@@ -1121,7 +1121,7 @@ export class ClientService {
   async listMetaAdAccounts(): Promise<unknown[]> {
     try {
       const response = await this.client.get(
-        '/v1/integrations/meta-ads/accounts',
+        '/integrations/meta-ads/accounts',
       );
       return response.data?.data || response.data || [];
     } catch (error: unknown) {
@@ -1137,7 +1137,7 @@ export class ClientService {
   ): Promise<unknown[]> {
     try {
       const response = await this.client.get(
-        '/v1/integrations/meta-ads/campaigns',
+        '/integrations/meta-ads/campaigns',
         { params: { adAccountId, limit, status } },
       );
       return response.data?.data || response.data || [];
@@ -1155,7 +1155,7 @@ export class ClientService {
   ): Promise<unknown> {
     try {
       const response = await this.client.get(
-        `/v1/integrations/meta-ads/campaigns/${campaignId}/insights`,
+        `/integrations/meta-ads/campaigns/${campaignId}/insights`,
         { params: { datePreset, since, until } },
       );
       return response.data?.data || response.data;
@@ -1171,7 +1171,7 @@ export class ClientService {
   ): Promise<unknown> {
     try {
       const response = await this.client.get(
-        `/v1/integrations/meta-ads/adsets/${adSetId}/insights`,
+        `/integrations/meta-ads/adsets/${adSetId}/insights`,
         { params: { datePreset } },
       );
       return response.data?.data || response.data;
@@ -1184,7 +1184,7 @@ export class ClientService {
   async getMetaAdInsights(adId: string, datePreset?: string): Promise<unknown> {
     try {
       const response = await this.client.get(
-        `/v1/integrations/meta-ads/ads/${adId}/insights`,
+        `/integrations/meta-ads/ads/${adId}/insights`,
         { params: { datePreset } },
       );
       return response.data?.data || response.data;
@@ -1200,7 +1200,7 @@ export class ClientService {
   ): Promise<unknown[]> {
     try {
       const response = await this.client.get(
-        '/v1/integrations/meta-ads/creatives',
+        '/integrations/meta-ads/creatives',
         { params: { adAccountId, limit } },
       );
       return response.data?.data || response.data || [];
@@ -1216,7 +1216,7 @@ export class ClientService {
   ): Promise<unknown> {
     try {
       const response = await this.client.get(
-        '/v1/integrations/meta-ads/campaigns/compare',
+        '/integrations/meta-ads/campaigns/compare',
         { params: { campaignIds: campaignIds.join(','), datePreset } },
       );
       return response.data?.data || response.data;
@@ -1233,7 +1233,7 @@ export class ClientService {
   ): Promise<unknown[]> {
     try {
       const response = await this.client.get(
-        '/v1/integrations/meta-ads/top-performers',
+        '/integrations/meta-ads/top-performers',
         { params: { adAccountId, limit, metric } },
       );
       return response.data?.data || response.data || [];
@@ -1248,7 +1248,7 @@ export class ClientService {
   async listGoogleAdsCustomers(): Promise<unknown[]> {
     try {
       const response = await this.client.get(
-        '/v1/integrations/google-ads/customers',
+        '/integrations/google-ads/customers',
       );
       return response.data?.data || response.data || [];
     } catch (error: unknown) {
@@ -1265,7 +1265,7 @@ export class ClientService {
   ): Promise<unknown[]> {
     try {
       const response = await this.client.get(
-        '/v1/integrations/google-ads/campaigns',
+        '/integrations/google-ads/campaigns',
         { params: { customerId, limit, loginCustomerId, status } },
       );
       return response.data?.data || response.data || [];
@@ -1285,7 +1285,7 @@ export class ClientService {
   ): Promise<unknown> {
     try {
       const response = await this.client.get(
-        `/v1/integrations/google-ads/campaigns/${campaignId}/metrics`,
+        `/integrations/google-ads/campaigns/${campaignId}/metrics`,
         {
           params: {
             customerId,
@@ -1312,7 +1312,7 @@ export class ClientService {
   ): Promise<unknown> {
     try {
       const response = await this.client.get(
-        `/v1/integrations/google-ads/ad-groups/${adGroupId}/insights`,
+        `/integrations/google-ads/ad-groups/${adGroupId}/insights`,
         {
           params: { customerId, endDate, loginCustomerId, startDate },
         },
@@ -1333,7 +1333,7 @@ export class ClientService {
   ): Promise<unknown[]> {
     try {
       const response = await this.client.get(
-        '/v1/integrations/google-ads/keywords',
+        '/integrations/google-ads/keywords',
         {
           params: { customerId, endDate, limit, loginCustomerId, startDate },
         },
@@ -1358,7 +1358,7 @@ export class ClientService {
   ): Promise<unknown[]> {
     try {
       const response = await this.client.get(
-        `/v1/integrations/google-ads/search-terms/${campaignId}`,
+        `/integrations/google-ads/search-terms/${campaignId}`,
         {
           params: { customerId, endDate, limit, loginCustomerId, startDate },
         },
@@ -1577,7 +1577,7 @@ export class ClientService {
     platform?: string;
   }): Promise<unknown> {
     try {
-      const response = await this.client.get('/v1/ad-insights/benchmarks', {
+      const response = await this.client.get('/ad-insights/benchmarks', {
         params,
       });
       return response.data?.data || response.data;
@@ -1592,7 +1592,7 @@ export class ClientService {
     platform?: string;
   }): Promise<unknown[]> {
     try {
-      const response = await this.client.get('/v1/ad-insights/top-headlines', {
+      const response = await this.client.get('/ad-insights/top-headlines', {
         params,
       });
       return response.data?.data || response.data || [];
@@ -1609,7 +1609,7 @@ export class ClientService {
   }): Promise<unknown> {
     try {
       const response = await this.client.post(
-        '/v1/ad-insights/suggest-headlines',
+        '/ad-insights/suggest-headlines',
         params,
       );
       return response.data?.data || response.data;
@@ -1627,7 +1627,7 @@ export class ClientService {
   }): Promise<unknown> {
     try {
       const response = await this.client.post(
-        '/v1/ad-insights/generate-variations',
+        '/ad-insights/generate-variations',
         params,
       );
       return response.data?.data || response.data;
@@ -1642,7 +1642,7 @@ export class ClientService {
     platform?: string;
   }): Promise<unknown> {
     try {
-      const response = await this.client.get('/v1/ad-insights/benchmarks', {
+      const response = await this.client.get('/ad-insights/benchmarks', {
         params,
       });
       return response.data?.data || response.data;

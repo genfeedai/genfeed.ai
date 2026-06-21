@@ -195,14 +195,11 @@ export class ToolRegistryService {
       approval.arguments ?? {},
     );
 
-    await this.clientService
-      .resolveApproval(approvalId, 'approve', result as Record<string, unknown>)
-      .catch((error: unknown) =>
-        this.logger.error(
-          `Failed to persist approval result ${approvalId}:`,
-          error,
-        ),
-      );
+    await this.clientService.resolveApproval(
+      approvalId,
+      'approve',
+      result as Record<string, unknown>,
+    );
 
     return result;
   }
