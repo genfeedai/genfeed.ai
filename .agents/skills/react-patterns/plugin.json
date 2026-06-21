@@ -1,7 +1,7 @@
 {
-  "name": "bun-validator",
+  "name": "react-patterns",
   "version": "1.0.0",
-  "description": "Validate Bun workspace configuration and detect common monorepo issues",
+  "description": "Modern React patterns and principles. Hooks, composition, performance, TypeScript best practices.",
   "author": {
     "name": "Ship Shit Dev",
     "email": "hello@shipshit.dev",
