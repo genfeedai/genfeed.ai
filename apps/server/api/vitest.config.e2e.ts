@@ -181,6 +181,16 @@ export default defineConfig({
         find: /^@test\/(.*)$/,
         replacement: path.resolve(serviceDir, './test/$1'),
       },
+      // @billing-providers resolves to the OSS stub in test/CI (no EE billing).
+      // SubscriptionsModule uses this alias at import time; without it Vite
+      // cannot resolve the module and the DI graph fails to compile.
+      {
+        find: '@billing-providers',
+        replacement: path.resolve(
+          serviceDir,
+          './src/common/subscriptions/billing.providers.oss',
+        ),
+      },
     ],
   },
   test: {
