@@ -85,6 +85,7 @@ export default function MenuBrandSwitcher({
       renderTrigger={({ isOpen }) => (
         <Button
           type="button"
+          data-testid="brand-switcher-trigger"
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           className={cn(

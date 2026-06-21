@@ -176,10 +176,6 @@ vi.mock('@ui/menus/sidebar-action-trigger/SidebarActionTrigger', () => ({
   ),
 }));
 
-vi.mock('@ui/topbars/workspace-switcher/TopbarWorkspaceSwitcher', () => ({
-  default: () => <div data-testid="workspace-switcher">Workspace Switcher</div>,
-}));
-
 vi.mock('@app-config/menu-items.config', () => ({
   APP_LOGO_HREF: '/workspace/overview',
   APP_MENU_ITEMS: [{ href: '/workspace', label: 'Workspace' }],

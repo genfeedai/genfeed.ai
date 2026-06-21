@@ -124,7 +124,7 @@ test.describe('Shell — navigation interactions', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('workspace switcher opens and shows org / brand actions', async ({
+  test('brand switcher opens and shows per-brand settings actions', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(`${BRAND_BASE}/workspace/overview`, {
@@ -133,21 +133,31 @@ test.describe('Shell — navigation interactions', () => {
     await settle(authenticatedPage);
 
     const trigger = authenticatedPage
-      .getByTestId('workspace-switcher-trigger')
+      .getByTestId('brand-switcher-trigger')
       .first();
 
-    if (await trigger.isVisible().catch(() => false)) {
-      await trigger.click({ timeout: 5_000 }).catch(() => {});
-      await settle(authenticatedPage);
+    // Mandatory: a brand-scoped route always mounts the brand switcher. A silent
+    // skip here is what hid #570 — never mask the switcher's absence.
+    await expect(
+      trigger,
+      'brand switcher trigger should be visible',
+    ).toBeVisible({ timeout: 10_000 });
+    await trigger.click({ timeout: 5_000 });
+    await settle(authenticatedPage);
 
-      await expect(
-        authenticatedPage.getByText('Organization settings').first(),
-      ).toBeVisible({ timeout: 5_000 });
-
-      // Close the popover without navigating away.
-      await authenticatedPage.keyboard.press('Escape').catch(() => {});
-      await settle(authenticatedPage);
+    // The open dropdown lists each brand with an "Open … settings" action, which
+    // only renders inside the popover. Soft-checked: omitted for brands with no
+    // slug.
+    const settingsAction = authenticatedPage
+      .getByLabel(/open .+ settings/i)
+      .first();
+    if (await settingsAction.isVisible().catch(() => false)) {
+      await expect(settingsAction).toBeVisible();
     }
+
+    // Close the popover without navigating away.
+    await authenticatedPage.keyboard.press('Escape').catch(() => {});
+    await settle(authenticatedPage);
 
     await assertHealthy(authenticatedPage);
   });

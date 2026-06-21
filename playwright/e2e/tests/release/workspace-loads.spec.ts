@@ -6,10 +6,10 @@ import { expect, test } from '@playwright/test';
  * This is deliberately stronger than "Next served HTML". The overview server
  * loader swallows API failures into empty UI (overview-page-data.server.ts), so
  * a shell-only assertion would go green even with the API down. Instead we bind
- * to the protected layout's bootstrap result: the workspace switcher trigger
- * only shows the seeded label ("Default Workspace" / "Default Brand") once
- * AuthBootstrapService returned the seeded org/brand. So requiring that label
- * proves the web app fetched live data from the real API.
+ * to the protected layout's bootstrap result: the brand switcher trigger (in the
+ * protected topbar — #667 reworked the switchers into it) only shows the seeded
+ * "Default Brand" label once AuthBootstrapService returned the seeded org/brand.
+ * So requiring that label proves the web app fetched live data from the real API.
  */
 
 const SEEDED_WORKSPACE_PATH = '/default/default/workspace/overview';
@@ -39,20 +39,19 @@ test.describe('Released image — workspace shell', () => {
       'workspace rendered a framework error overlay',
     ).toHaveCount(0);
 
-    // Shell chrome mounted (protected layout resolved).
-    const switcher = page
-      .getByTestId('desktop-sidebar-rail')
-      .getByTestId('workspace-switcher-trigger');
-    await expect(switcher, 'workspace switcher must mount').toBeVisible({
+    // Shell chrome mounted (protected layout resolved). The brand switcher trigger
+    // lives in the protected topbar (#667 reworked the switchers into it).
+    const switcher = page.getByTestId('brand-switcher-trigger');
+    await expect(switcher, 'brand switcher must mount').toBeVisible({
       timeout: 30_000,
     });
 
-    // Seed-bound: the switcher label is the seeded "Default …" workspace/brand,
-    // which only appears when bootstrap returned the seeded org/brand from the
+    // Seed-bound: the trigger shows the seeded "Default Brand" label, which only
+    // appears once AuthBootstrapService returned the seeded org/brand from the
     // live API. This is the assertion that proves real integration.
     await expect(
       switcher,
-      'switcher must show the seeded "Default" workspace label',
+      'switcher must show the seeded "Default" brand label',
     ).toContainText(/default/i, { timeout: 30_000 });
   });
 });

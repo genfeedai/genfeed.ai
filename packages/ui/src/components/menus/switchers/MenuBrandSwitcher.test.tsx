@@ -139,6 +139,24 @@ describe('MenuBrandSwitcher', () => {
     expect(capturedMinWidth).toBe(260);
   });
 
+  it('exposes the brand-switcher-trigger testid showing the brand label (E2E contract)', () => {
+    // The release/shell E2E specs bind to this testid + the seeded brand label
+    // to prove the shell fetched live org/brand data. Guard the contract here so
+    // a refactor that drops it fails fast in unit tests, not only nightly E2E.
+    render(
+      <MenuBrandSwitcher
+        variant="labeled"
+        brands={brandsWithSlug}
+        brandId="brand_1"
+        onBrandChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('brand-switcher-trigger')).toHaveTextContent(
+      'Test Brand',
+    );
+  });
+
   it('should expose brand settings row action and creation footer action', () => {
     render(
       <MenuBrandSwitcher
