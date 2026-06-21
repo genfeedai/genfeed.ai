@@ -64,3 +64,6 @@ test-results/
 # Agent scratch dirs at any depth (apps/<name>/.agents/, apps/<surface>/<name>/.agents/)
 # Covers apps/app/.agents, apps/mobile/app/.agents, apps/extensions/browser/app/.agents, etc.
 **/apps/**/.agents/
+# Stray nested clone/worktree scratch dir — never a real git worktree, never committed.
+# Without this, `git add -A` grabs its placeholder files into unrelated commits.
+.clone/
