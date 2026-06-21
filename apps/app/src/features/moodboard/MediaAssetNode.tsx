@@ -1,12 +1,15 @@
 'use client';
 
 import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
-import { MOOD_BOARD_TILE_WIDTH } from '@genfeedai/utils/moodboard/mood-board-layout.util';
+import {
+  MOOD_BOARD_DEFAULT_ASPECT_RATIO,
+  MOOD_BOARD_TILE_WIDTH,
+} from '@genfeedai/utils/moodboard/mood-board-layout.util';
 import Image from 'next/image';
 import { memo } from 'react';
 import type { MediaAssetNodeProps } from '@/features/moodboard/moodboard.types';
 
-const DEFAULT_ASPECT_RATIO = 4 / 5;
+const DEFAULT_ASPECT_RATIO = MOOD_BOARD_DEFAULT_ASPECT_RATIO;
 
 function resolveAspectRatio(width?: number, height?: number): number {
   if (typeof width === 'number' && typeof height === 'number' && height > 0) {

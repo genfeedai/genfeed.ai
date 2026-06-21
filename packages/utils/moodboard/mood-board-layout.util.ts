@@ -8,6 +8,32 @@ export const MOOD_BOARD_TILE_WIDTH = 280;
 export const MOOD_BOARD_TILE_HEIGHT = 320;
 export const MOOD_BOARD_GRID_GAP = 32;
 export const MOOD_BOARD_DEFAULT_COLUMNS = 5;
+/**
+ * Fallback aspect ratio (width / height) when an ingredient has no usable
+ * dimensions. Must match `MediaAssetNode`, which renders each tile at
+ * `width: MOOD_BOARD_TILE_WIDTH; aspectRatio`.
+ */
+export const MOOD_BOARD_DEFAULT_ASPECT_RATIO = 4 / 5;
+
+/**
+ * The rendered height (in canvas units) of a tile for the given ingredient.
+ * Tiles are fixed-width and keep the asset's aspect ratio, so height varies — a
+ * portrait asset is taller than {@link MOOD_BOARD_TILE_HEIGHT}. Mirrors the
+ * `MediaAssetNode` sizing so auto-placement can sit below saved tiles without
+ * overlapping their lower edge.
+ */
+export function moodBoardTileHeight(ingredient?: {
+  metadataWidth?: number;
+  metadataHeight?: number;
+}): number {
+  const width = ingredient?.metadataWidth;
+  const height = ingredient?.metadataHeight;
+  const aspectRatio =
+    typeof width === 'number' && typeof height === 'number' && height > 0
+      ? width / height
+      : MOOD_BOARD_DEFAULT_ASPECT_RATIO;
+  return MOOD_BOARD_TILE_WIDTH / aspectRatio;
+}
 
 /**
  * A canvas-ready asset: a live ingredient paired with the position it should
@@ -71,25 +97,29 @@ export function mergeMoodBoardLayout(
   );
 
   const liveIds = new Set(assets.map((asset) => asset.id));
+  const ingredientById = new Map(assets.map((asset) => [asset.id, asset]));
 
   // Band where freshly added (un-positioned) assets start, kept clear of saved
-  // tiles. Tracked as an explicit two-state (presence + value) rather than an
-  // infinity sentinel.
+  // tiles. Use each saved tile's BOTTOM edge (y + its rendered height), not just
+  // its top-left y — tiles are variable height, so keying off y alone let a new
+  // row overlap the lower portion of a taller saved tile. Tracked as an explicit
+  // two-state (presence + value) rather than an infinity sentinel.
   let hasSavedLiveItem = false;
-  let maxSavedY = 0;
+  let maxSavedBottom = 0;
   for (const item of savedLayout) {
     if (!liveIds.has(item.assetId)) {
       continue;
     }
     const y = item.position?.y ?? 0;
-    if (!hasSavedLiveItem || y > maxSavedY) {
-      maxSavedY = y;
+    const bottom = y + moodBoardTileHeight(ingredientById.get(item.assetId));
+    if (!hasSavedLiveItem || bottom > maxSavedBottom) {
+      maxSavedBottom = bottom;
       hasSavedLiveItem = true;
     }
   }
 
   const newAssetBaseY = hasSavedLiveItem
-    ? maxSavedY + MOOD_BOARD_TILE_HEIGHT + MOOD_BOARD_GRID_GAP
+    ? maxSavedBottom + MOOD_BOARD_GRID_GAP
     : 0;
 
   let newAssetIndex = 0;

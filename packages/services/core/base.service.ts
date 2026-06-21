@@ -234,11 +234,14 @@ export abstract class BaseService<
     }
   }
 
-  public findAll(query: Record<string, unknown> = {}): Promise<T[]> {
+  public findAll(
+    query: Record<string, unknown> = {},
+    signal?: AbortSignal,
+  ): Promise<T[]> {
     return this.executeWithErrorHandling(
       `GET ${this.baseURL}`,
       this.instance
-        .get<JsonApiResponseDocument>('', { params: query })
+        .get<JsonApiResponseDocument>('', { params: query, signal })
         .then((res) => res.data)
         .then(async (res) => {
           const page = (query as { page?: number }).page;
