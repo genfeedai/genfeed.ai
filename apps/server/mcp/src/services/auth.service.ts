@@ -1,5 +1,6 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
+import { resolveApiBaseUrl } from '@mcp/shared/utils/api-url.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
@@ -29,32 +30,17 @@ export class AuthService {
         return { error: 'Invalid token format', valid: false };
       }
 
-      const isApiKey = bearerToken.startsWith('gf_');
-      const apiUrl = this.configService.get('GENFEEDAI_API_URL');
+      const baseUrl = resolveApiBaseUrl(
+        this.configService.get('GENFEEDAI_API_URL') as string | undefined,
+      );
 
-      if (isApiKey) {
-        const response = await firstValueFrom(
-          this.httpService.post(
-            `${apiUrl}/api-keys/validate`,
-            { key: bearerToken },
-            { timeout: 5000 },
-          ),
-        );
-
-        if (response.data?.valid === true) {
-          return {
-            organizationId: response.data?.organizationId,
-            role: this.resolveRole(response.data?.role),
-            userId: response.data?.userId,
-            valid: true,
-          };
-        }
-
-        return { error: 'Invalid API key', valid: false };
-      }
-
+      // Single identity endpoint for BOTH token types: the API's global
+      // CombinedAuthGuard routes `gf_` keys → ApiKeyAuthGuard and Clerk JWTs →
+      // ClerkGuard, then `/auth/whoami` returns the resolved org/user/role for
+      // either. This replaces the old split paths (`/api-keys/validate` for
+      // keys + the non-existent `/accounts` route for sessions).
       const response = await firstValueFrom(
-        this.httpService.get(`${apiUrl}/accounts`, {
+        this.httpService.get(`${baseUrl}/auth/whoami`, {
           headers: {
             Authorization: `Bearer ${bearerToken}`,
           },
@@ -63,12 +49,21 @@ export class AuthService {
       );
 
       if (response.status === 200) {
-        const account = response.data?.data?.[0] || response.data?.data;
+        const data = response.data?.data ?? {};
+        const organizationId: string | undefined = data.organization?.id;
+        const userId: string | undefined = data.user?.id;
+
+        if (!organizationId || !userId) {
+          return {
+            error: 'Token resolved but identity is incomplete',
+            valid: false,
+          };
+        }
+
         return {
-          organizationId:
-            account?.attributes?.organization || account?.organizationId,
-          role: this.resolveRole(account?.attributes?.role || account?.role),
-          userId: account?.id || account?.attributes?.userId,
+          organizationId,
+          role: this.resolveRole(data.role),
+          userId,
           valid: true,
         };
       }
@@ -93,9 +88,22 @@ export class AuthService {
     }
   }
 
+  /**
+   * Map a Genfeed organization role key (`MemberRole`: owner | admin | creator
+   * | analytics | user | support) to the coarse MCP role tier used for tool
+   * gating. `owner` is the highest org role, so it must satisfy `admin`-gated
+   * tools (otherwise org owners are denied every admin MCP tool).
+   *
+   * Anything unrecognised — including an empty string, which whoami returns when
+   * the caller has no active membership (a removed member, or self-hosted
+   * single-tenant where memberships aren't modelled) — maps to the `user` tier.
+   * This is deliberate deny-by-default for the 14 admin-gated tools while still
+   * permitting user-tier tools; the API independently re-enforces membership on
+   * the actual calls, so a no-membership caller cannot mutate another org.
+   */
   private resolveRole(role?: string): McpRole {
     if (role === 'superadmin') return 'superadmin';
-    if (role === 'admin') return 'admin';
+    if (role === 'owner' || role === 'admin') return 'admin';
     return 'user';
   }
 

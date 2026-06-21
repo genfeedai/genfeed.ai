@@ -67,9 +67,9 @@ describe('ClientService (MCP)', () => {
     expect(service).toBeDefined();
   });
 
-  it('should initialize with API configuration', () => {
+  it('should initialize with API configuration (base normalized to /v1)', () => {
     expect(mockHttpService.axiosRef.create).toHaveBeenCalledWith({
-      baseURL: 'https://api.genfeed.ai',
+      baseURL: 'https://api.genfeed.ai/v1',
       headers: {
         Authorization: 'Bearer test-api-key',
         'Content-Type': 'application/json',

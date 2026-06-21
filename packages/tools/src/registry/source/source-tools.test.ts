@@ -124,6 +124,7 @@ const EXPECTED_TOOL_NAMES = [
   'render_dashboard',
   'replicate_top_ingredient',
   'request_asset',
+  'resolve_approval',
   'resolve_handle',
   'run_captioning',
   'schedule_post',
@@ -158,7 +159,7 @@ function countLines(filePath: string): number {
 }
 
 describe('SOURCE_TOOLS registry split (#692)', () => {
-  it('exposes exactly 119 tool definitions', () => {
+  it('exposes exactly 120 tool definitions', () => {
     expect(SOURCE_TOOLS).toHaveLength(EXPECTED_TOOL_NAMES.length);
   });
 
@@ -183,7 +184,7 @@ describe('SOURCE_TOOLS registry split (#692)', () => {
   it('partitions tools by their declared surface', () => {
     expect(OVERLAP_TOOLS).toHaveLength(11);
     expect(AGENT_ONLY_TOOLS).toHaveLength(54);
-    expect(MCP_ONLY_TOOLS).toHaveLength(54);
+    expect(MCP_ONLY_TOOLS).toHaveLength(55);
     expect(
       OVERLAP_TOOLS.every((tool) => tool.surfaces.agent && tool.surfaces.mcp),
     ).toBe(true);

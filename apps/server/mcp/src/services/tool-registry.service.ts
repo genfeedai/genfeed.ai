@@ -6,7 +6,9 @@ import {
 } from '@genfeedai/tools';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
+import { type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
+import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
 import type {
   McpResource,
   McpTool,
@@ -19,7 +21,7 @@ import { handleDarkroomGenerationTool } from '@mcp/tools/darkroom-generation.too
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
 import { handleTrainingPipelineTool } from '@mcp/tools/training-pipeline.tool';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 interface ToolCallParams {
   name: string;
@@ -34,11 +36,38 @@ const AGENT_EXECUTOR_TOOL_NAMES: ReadonlySet<string> = new Set<string>(
   Object.values(AgentToolName),
 );
 
+/**
+ * Mutating MCP tools that must NOT execute immediately — instead they persist a
+ * pending approval (human-in-the-loop) and only run once approved. Names are the
+ * canonical tool names from `packages/tools/src/registry/source.ts`. High-risk
+ * and expensive mutations (content creation, training, destructive ops, GPU
+ * generation). Extend deliberately.
+ */
+const APPROVAL_REQUIRED_TOOLS: ReadonlySet<string> = new Set<string>([
+  'generate_content_batch',
+  'create_post',
+  'create_article',
+  'create_avatar',
+  'start_training',
+  'delete_dataset',
+  'control_comfyui',
+  'run_captioning',
+  'generate_face_test',
+  'generate_bootstrap',
+  'generate_pulid',
+  'generate_darkroom_content',
+]);
+
 @Injectable()
 export class ToolRegistryService {
   constructor(
     private readonly clientService: ClientService,
     private readonly logger: LoggerService,
+    // Per-request callers (`StreamableHttpService.buildServer`) pass the
+    // authenticated caller's role via `new ToolRegistryService(...)`. When
+    // resolved as a DI singleton (e.g. `ServerService`), there is no per-request
+    // role, so it falls back to `'user'` — deny-by-default for admin tools.
+    @Optional() private readonly requestRole: McpRole = 'user',
   ) {}
 
   getTools(): McpTool[] {
@@ -73,28 +102,28 @@ export class ToolRegistryService {
         throw new Error(`Unknown tool: ${name}`);
       }
 
-      if (AGENT_EXECUTOR_TOOL_NAMES.has(name)) {
-        const result = await this.clientService.executeAgentTool(
-          name,
-          args ?? {},
-        );
-        return this.toMcpResult(result);
-      }
-
       if (canonicalTool.requiredRole) {
-        const request = (
-          this.clientService as unknown as {
-            currentRequest?: { authContext?: { role?: string } };
-          }
-        ).currentRequest;
-        const userRole = request?.authContext?.role || 'user';
         McpAuthGuard.checkToolRole(
-          userRole as 'user' | 'admin' | 'superadmin',
+          this.requestRole,
           canonicalTool.requiredRole,
         );
       }
 
-      return await this.handleLegacyTool(name, args ?? {});
+      // The resolver runs the deferred action; it must not be gated as a write.
+      if (name === 'resolve_approval') {
+        return await this.handleResolveApproval(args ?? {});
+      }
+
+      // Mutating tools persist a pending approval instead of executing.
+      if (APPROVAL_REQUIRED_TOOLS.has(name)) {
+        const approval = await this.clientService.createApproval(
+          name,
+          args ?? {},
+        );
+        return this.pendingApprovalResult(approval);
+      }
+
+      return await this.executeTool(name, args ?? {});
     } catch (error: unknown) {
       this.logger.error(`Error handling tool call ${name}:`, error);
       return {
@@ -107,6 +136,93 @@ export class ToolRegistryService {
         isError: true,
       };
     }
+  }
+
+  /**
+   * Dispatch a tool to its actual implementation (agent-executor proxy or the
+   * legacy/external handlers). Used both for normal calls that passed the gates
+   * and for executing an approved deferred action.
+   */
+  private async executeTool(name: string, args: Record<string, unknown>) {
+    if (AGENT_EXECUTOR_TOOL_NAMES.has(name)) {
+      const result = await this.clientService.executeAgentTool(name, args);
+      return this.toMcpResult(result);
+    }
+
+    return this.handleLegacyTool(name, args);
+  }
+
+  /**
+   * Approve or decline a previously-queued write. On approval, the original tool
+   * is executed (bypassing the approval gate) and its result is persisted on the
+   * approval record. `resolve_approval` is admin-gated upstream, so a user-tier
+   * agent cannot self-approve its own queued write.
+   */
+  private async handleResolveApproval(args: Record<string, unknown>) {
+    const approvalId = String(args.approvalId ?? '');
+    const decision =
+      args.decision === 'approve'
+        ? 'approve'
+        : args.decision === 'decline'
+          ? 'decline'
+          : null;
+
+    if (!approvalId || !decision) {
+      throw new Error(
+        'approvalId and decision (approve | decline) are required',
+      );
+    }
+
+    if (decision === 'decline') {
+      await this.clientService.resolveApproval(approvalId, 'decline');
+      return this.textResult(
+        `Approval ${approvalId} declined. The action was not executed.`,
+      );
+    }
+
+    const approval = await this.clientService.getApproval(approvalId);
+    if (!approval) {
+      throw new Error(`Approval ${approvalId} not found`);
+    }
+    if (approval.status !== 'PENDING') {
+      throw new Error(
+        `Approval ${approvalId} is already ${approval.status.toLowerCase()}`,
+      );
+    }
+
+    const result = await this.executeTool(
+      approval.toolName,
+      approval.arguments ?? {},
+    );
+
+    await this.clientService.resolveApproval(
+      approvalId,
+      'approve',
+      result as Record<string, unknown>,
+    );
+
+    return result;
+  }
+
+  private pendingApprovalResult(approval: McpApprovalResource) {
+    return {
+      content: [
+        {
+          text:
+            'This action requires approval before it runs.\n\n' +
+            `Approval ID: ${approval.id}\n` +
+            `Tool: ${approval.toolName}\n` +
+            `Status: ${approval.status}\n\n` +
+            'A reviewer has been notified. To proceed, call `resolve_approval` ' +
+            `with approvalId "${approval.id}" and decision "approve" (or "decline" to cancel).`,
+          type: 'text',
+        },
+      ],
+    };
+  }
+
+  private textResult(text: string) {
+    return { content: [{ text, type: 'text' }] };
   }
 
   private toMcpResult(result: AgentToolResult) {

@@ -5,7 +5,6 @@ import { Public } from '@mcp/guards/mcp-auth.guard';
 import { MCPService } from '@mcp/mcp/services/mcp.service';
 import { ClientService } from '@mcp/services/client.service';
 import { ServerService } from '@mcp/services/server.service';
-import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { Body, Controller, Get, Param, Post, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
@@ -19,7 +18,6 @@ export class McpController {
     private readonly mcpService: MCPService,
     private readonly clientService: ClientService,
     private readonly serverService: ServerService,
-    private readonly streamableHttpService: StreamableHttpService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -54,7 +52,6 @@ export class McpController {
       methods: ['POST', 'GET', 'DELETE'],
       protocol: 'MCP 2025-03-26',
       serverRunning: this.serverService.isServerRunning(),
-      sessions: this.streamableHttpService.getActiveSessionCount(),
       transport: 'streamable-http',
     };
   }
@@ -93,7 +90,6 @@ export class McpController {
       },
       message: this.mcpService.getHello(),
       serverRunning: this.serverService.isServerRunning(),
-      sessions: this.streamableHttpService.getActiveSessionCount(),
       status: 'healthy',
       timestamp: new Date().toISOString(),
       version: '1.0.0',

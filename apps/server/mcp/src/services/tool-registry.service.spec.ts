@@ -1,4 +1,5 @@
 import { LoggerService } from '@libs/logger/logger.service';
+import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
 import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -40,6 +41,13 @@ const MOCK_TOOLS = [
   },
   {
     name: 'get_ad_performance_insights',
+    // Matches production (source.ts) — this tool is user-tier, not admin.
+    requiredRole: 'user',
+    surfaces: { mcp: true },
+  },
+  // A genuinely admin-gated tool, mirroring production, for the role-gate test.
+  {
+    name: 'get_darkroom_health',
     requiredRole: 'admin',
     surfaces: { mcp: true },
   },
@@ -68,6 +76,7 @@ describe('ToolRegistryService', () => {
     getVideoAnalytics: ReturnType<typeof vi.fn>;
     listImages: ReturnType<typeof vi.fn>;
     createArticle: ReturnType<typeof vi.fn>;
+    createApproval: ReturnType<typeof vi.fn>;
     getWorkflowStatus: ReturnType<typeof vi.fn>;
     getOrganizationAnalytics: ReturnType<typeof vi.fn>;
     setBearerToken: ReturnType<typeof vi.fn>;
@@ -84,6 +93,11 @@ describe('ToolRegistryService', () => {
         {
           provide: ClientService,
           useValue: {
+            createApproval: vi.fn().mockResolvedValue({
+              id: 'apr-art-1',
+              status: 'PENDING',
+              toolName: 'create_article',
+            }),
             createArticle: vi.fn().mockResolvedValue({
               id: 'art-1',
               status: 'draft',
@@ -203,6 +217,36 @@ describe('ToolRegistryService', () => {
     ).toContain('vid-1');
   });
 
+  describe('role gating', () => {
+    // NOTE: actual deny/allow enforcement is covered by
+    // tool-registry.role.integration.spec.ts using the REAL checkToolRole.
+    // Here checkToolRole is mocked, so we only assert the gate is *invoked*
+    // for role-gated tools and *skipped* for ungated ones.
+    it('invokes the role gate with the request role for a role-gated tool', async () => {
+      const adminScoped = new ToolRegistryService(
+        clientService as unknown as ClientService,
+        logger as unknown as LoggerService,
+        'admin',
+      );
+
+      await adminScoped.handleToolCall({
+        arguments: {},
+        name: 'get_darkroom_health',
+      });
+
+      expect(McpAuthGuard.checkToolRole).toHaveBeenCalledWith('admin', 'admin');
+    });
+
+    it('does not gate tools without a requiredRole', async () => {
+      await service.handleToolCall({
+        arguments: { description: 'x', title: 'y' },
+        name: 'generate_video',
+      });
+
+      expect(McpAuthGuard.checkToolRole).not.toHaveBeenCalled();
+    });
+  });
+
   it('handleToolCall get_credits_balance proxies through executeAgentTool', async () => {
     const result = await service.handleToolCall({
       arguments: {},
@@ -227,16 +271,25 @@ describe('ToolRegistryService', () => {
     expect((result as { isError: boolean }).isError).toBe(true);
   });
 
-  it('handleToolCall create_article requires topic', async () => {
+  it('handleToolCall create_article queues a pending approval instead of executing', async () => {
+    // create_article is an approval-gated mutation: it must persist a pending
+    // approval (human-in-the-loop) rather than run immediately. Execution-time
+    // arg validation (e.g. "topic required") only happens once approved.
     const result = await service.handleToolCall({
-      arguments: {},
+      arguments: { topic: 'AI News' },
       name: 'create_article',
     });
 
-    expect((result as { isError: boolean }).isError).toBe(true);
+    expect(clientService.createApproval).toHaveBeenCalledWith(
+      'create_article',
+      {
+        topic: 'AI News',
+      },
+    );
+    expect(clientService.createArticle).not.toHaveBeenCalled();
     expect(
       (result as { content: { text: string }[] }).content[0].text,
-    ).toContain('topic required');
+    ).toContain('requires approval');
   });
 
   it('handleResourceRead returns video analytics for analytics URI', async () => {

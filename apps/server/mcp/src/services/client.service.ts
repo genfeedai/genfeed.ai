@@ -17,6 +17,10 @@ import type {
   WorkflowTemplateResource,
 } from '@mcp/shared/interfaces/api-response.interface';
 import type {
+  McpApprovalDecision,
+  McpApprovalResource,
+} from '@mcp/shared/interfaces/approval.interface';
+import type {
   ArticleCreationParams,
   ArticleResponse,
   ArticleSearchParams,
@@ -60,6 +64,7 @@ import type {
   WorkflowResponse,
   WorkflowTemplate,
 } from '@mcp/shared/interfaces/workflow.interface';
+import { resolveApiBaseUrl } from '@mcp/shared/utils/api-url.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import type { AxiosInstance } from 'axios';
@@ -113,7 +118,9 @@ export class ClientService {
   ) {
     this.bearerToken =
       (this.configService.get('GENFEEDAI_API_KEY') as string) || '';
-    const baseURL = this.configService.get('GENFEEDAI_API_URL');
+    const baseURL = resolveApiBaseUrl(
+      this.configService.get('GENFEEDAI_API_URL') as string | undefined,
+    );
 
     this.client = this.httpService.axiosRef.create({
       baseURL,
@@ -156,6 +163,68 @@ export class ClientService {
       this.logError(`executing agent tool ${name}`, error as ApiError);
       throw new Error(
         this.getErrorMessage(error as ApiError, `Failed to execute ${name}`),
+      );
+    }
+  }
+
+  /**
+   * Persist a PENDING approval for a mutating MCP tool call. The API notifies a
+   * reviewer; nothing executes until the approval is resolved.
+   */
+  async createApproval(
+    toolName: string,
+    args: Record<string, unknown>,
+  ): Promise<McpApprovalResource> {
+    try {
+      const response = await this.client.post('/mcp-approvals', {
+        arguments: args,
+        toolName,
+      });
+      return response.data?.data as McpApprovalResource;
+    } catch (error: unknown) {
+      this.logError(`creating approval for ${toolName}`, error as ApiError);
+      throw new Error(
+        this.getErrorMessage(
+          error as ApiError,
+          `Failed to create approval for ${toolName}`,
+        ),
+      );
+    }
+  }
+
+  async getApproval(approvalId: string): Promise<McpApprovalResource | null> {
+    try {
+      const response = await this.client.get(
+        `/mcp-approvals/${encodeURIComponent(approvalId)}`,
+      );
+      return (response.data?.data as McpApprovalResource) ?? null;
+    } catch (error: unknown) {
+      this.logError(`fetching approval ${approvalId}`, error as ApiError);
+      throw new Error(
+        this.getErrorMessage(error as ApiError, 'Failed to fetch approval'),
+      );
+    }
+  }
+
+  /**
+   * Resolve an approval. On `approve`, the caller passes the execution `result`
+   * so it is persisted alongside the APPROVED status.
+   */
+  async resolveApproval(
+    approvalId: string,
+    decision: McpApprovalDecision,
+    result?: Record<string, unknown>,
+  ): Promise<McpApprovalResource> {
+    try {
+      const response = await this.client.post(
+        `/mcp-approvals/${encodeURIComponent(approvalId)}/resolve`,
+        { decision, ...(result ? { result } : {}) },
+      );
+      return response.data?.data as McpApprovalResource;
+    } catch (error: unknown) {
+      this.logError(`resolving approval ${approvalId}`, error as ApiError);
+      throw new Error(
+        this.getErrorMessage(error as ApiError, 'Failed to resolve approval'),
       );
     }
   }
@@ -1051,9 +1120,7 @@ export class ClientService {
 
   async listMetaAdAccounts(): Promise<unknown[]> {
     try {
-      const response = await this.client.get(
-        '/v1/integrations/meta-ads/accounts',
-      );
+      const response = await this.client.get('/integrations/meta-ads/accounts');
       return response.data?.data || response.data || [];
     } catch (error: unknown) {
       this.logError('listing Meta ad accounts', error as ApiError);
@@ -1068,7 +1135,7 @@ export class ClientService {
   ): Promise<unknown[]> {
     try {
       const response = await this.client.get(
-        '/v1/integrations/meta-ads/campaigns',
+        '/integrations/meta-ads/campaigns',
         { params: { adAccountId, limit, status } },
       );
       return response.data?.data || response.data || [];
@@ -1086,7 +1153,7 @@ export class ClientService {
   ): Promise<unknown> {
     try {
       const response = await this.client.get(
-        `/v1/integrations/meta-ads/campaigns/${campaignId}/insights`,
+        `/integrations/meta-ads/campaigns/${campaignId}/insights`,
         { params: { datePreset, since, until } },
       );
       return response.data?.data || response.data;
@@ -1102,7 +1169,7 @@ export class ClientService {
   ): Promise<unknown> {
     try {
       const response = await this.client.get(
-        `/v1/integrations/meta-ads/adsets/${adSetId}/insights`,
+        `/integrations/meta-ads/adsets/${adSetId}/insights`,
         { params: { datePreset } },
       );
       return response.data?.data || response.data;
@@ -1115,7 +1182,7 @@ export class ClientService {
   async getMetaAdInsights(adId: string, datePreset?: string): Promise<unknown> {
     try {
       const response = await this.client.get(
-        `/v1/integrations/meta-ads/ads/${adId}/insights`,
+        `/integrations/meta-ads/ads/${adId}/insights`,
         { params: { datePreset } },
       );
       return response.data?.data || response.data;
@@ -1131,7 +1198,7 @@ export class ClientService {
   ): Promise<unknown[]> {
     try {
       const response = await this.client.get(
-        '/v1/integrations/meta-ads/creatives',
+        '/integrations/meta-ads/creatives',
         { params: { adAccountId, limit } },
       );
       return response.data?.data || response.data || [];
@@ -1147,7 +1214,7 @@ export class ClientService {
   ): Promise<unknown> {
     try {
       const response = await this.client.get(
-        '/v1/integrations/meta-ads/campaigns/compare',
+        '/integrations/meta-ads/campaigns/compare',
         { params: { campaignIds: campaignIds.join(','), datePreset } },
       );
       return response.data?.data || response.data;
@@ -1164,7 +1231,7 @@ export class ClientService {
   ): Promise<unknown[]> {
     try {
       const response = await this.client.get(
-        '/v1/integrations/meta-ads/top-performers',
+        '/integrations/meta-ads/top-performers',
         { params: { adAccountId, limit, metric } },
       );
       return response.data?.data || response.data || [];
@@ -1179,7 +1246,7 @@ export class ClientService {
   async listGoogleAdsCustomers(): Promise<unknown[]> {
     try {
       const response = await this.client.get(
-        '/v1/integrations/google-ads/customers',
+        '/integrations/google-ads/customers',
       );
       return response.data?.data || response.data || [];
     } catch (error: unknown) {
@@ -1196,7 +1263,7 @@ export class ClientService {
   ): Promise<unknown[]> {
     try {
       const response = await this.client.get(
-        '/v1/integrations/google-ads/campaigns',
+        '/integrations/google-ads/campaigns',
         { params: { customerId, limit, loginCustomerId, status } },
       );
       return response.data?.data || response.data || [];
@@ -1216,7 +1283,7 @@ export class ClientService {
   ): Promise<unknown> {
     try {
       const response = await this.client.get(
-        `/v1/integrations/google-ads/campaigns/${campaignId}/metrics`,
+        `/integrations/google-ads/campaigns/${campaignId}/metrics`,
         {
           params: {
             customerId,
@@ -1243,7 +1310,7 @@ export class ClientService {
   ): Promise<unknown> {
     try {
       const response = await this.client.get(
-        `/v1/integrations/google-ads/ad-groups/${adGroupId}/insights`,
+        `/integrations/google-ads/ad-groups/${adGroupId}/insights`,
         {
           params: { customerId, endDate, loginCustomerId, startDate },
         },
@@ -1264,7 +1331,7 @@ export class ClientService {
   ): Promise<unknown[]> {
     try {
       const response = await this.client.get(
-        '/v1/integrations/google-ads/keywords',
+        '/integrations/google-ads/keywords',
         {
           params: { customerId, endDate, limit, loginCustomerId, startDate },
         },
@@ -1289,7 +1356,7 @@ export class ClientService {
   ): Promise<unknown[]> {
     try {
       const response = await this.client.get(
-        `/v1/integrations/google-ads/search-terms/${campaignId}`,
+        `/integrations/google-ads/search-terms/${campaignId}`,
         {
           params: { customerId, endDate, limit, loginCustomerId, startDate },
         },
@@ -1508,7 +1575,7 @@ export class ClientService {
     platform?: string;
   }): Promise<unknown> {
     try {
-      const response = await this.client.get('/v1/ad-insights/benchmarks', {
+      const response = await this.client.get('/ad-insights/benchmarks', {
         params,
       });
       return response.data?.data || response.data;
@@ -1523,7 +1590,7 @@ export class ClientService {
     platform?: string;
   }): Promise<unknown[]> {
     try {
-      const response = await this.client.get('/v1/ad-insights/top-headlines', {
+      const response = await this.client.get('/ad-insights/top-headlines', {
         params,
       });
       return response.data?.data || response.data || [];
@@ -1540,7 +1607,7 @@ export class ClientService {
   }): Promise<unknown> {
     try {
       const response = await this.client.post(
-        '/v1/ad-insights/suggest-headlines',
+        '/ad-insights/suggest-headlines',
         params,
       );
       return response.data?.data || response.data;
@@ -1558,7 +1625,7 @@ export class ClientService {
   }): Promise<unknown> {
     try {
       const response = await this.client.post(
-        '/v1/ad-insights/generate-variations',
+        '/ad-insights/generate-variations',
         params,
       );
       return response.data?.data || response.data;
@@ -1573,7 +1640,7 @@ export class ClientService {
     platform?: string;
   }): Promise<unknown> {
     try {
-      const response = await this.client.get('/v1/ad-insights/benchmarks', {
+      const response = await this.client.get('/ad-insights/benchmarks', {
         params,
       });
       return response.data?.data || response.data;

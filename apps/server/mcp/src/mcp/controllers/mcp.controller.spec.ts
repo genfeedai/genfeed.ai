@@ -3,7 +3,6 @@ import { McpController } from '@mcp/mcp/controllers/mcp.controller';
 import { MCPService } from '@mcp/mcp/services/mcp.service';
 import { ClientService } from '@mcp/services/client.service';
 import { ServerService } from '@mcp/services/server.service';
-import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('McpController', () => {
@@ -48,13 +47,6 @@ describe('McpController', () => {
     setBearerToken: vi.fn(),
   };
 
-  const mockStreamableHttpService = {
-    getActiveSessionCount: vi.fn().mockReturnValue(0),
-    handleDeleteRequest: vi.fn(),
-    handleGetRequest: vi.fn(),
-    handlePostRequest: vi.fn(),
-  };
-
   const mockLoggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -69,7 +61,6 @@ describe('McpController', () => {
         { provide: MCPService, useValue: mockMcpService },
         { provide: ClientService, useValue: mockClientService },
         { provide: ServerService, useValue: mockServerService },
-        { provide: StreamableHttpService, useValue: mockStreamableHttpService },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
     }).compile();
@@ -94,7 +85,6 @@ describe('McpController', () => {
       expect(result).toHaveProperty('serverRunning', true);
       expect(result).toHaveProperty('version', '1.0.0');
       expect(result).toHaveProperty('endpoints');
-      expect(result).toHaveProperty('sessions', 0);
     });
   });
 
