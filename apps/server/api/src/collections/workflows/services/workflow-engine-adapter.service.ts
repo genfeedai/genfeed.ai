@@ -862,10 +862,16 @@ export class WorkflowEngineAdapterService {
       return;
     }
 
-    // Deduct credits FIRST — only set the durable daily marker after a
-    // confirmed successful deduction. Setting the marker before the deduction
-    // is incorrect: a transient failure would leave the marker set for ~26 h
-    // and permanently skip that day's charge.
+    // Acquire the durable daily marker FIRST (atomic SET NX). Only the winning
+    // replica/retry proceeds to deduct — this is what prevents a double charge
+    // across concurrent scheduler replicas. If the marker already exists, the
+    // charge for today is already (being) handled, so skip.
+    const chargeKey = `workflow-digest-charged:${workflowId}:${this.digestUtcDateKey()}`;
+    const charged = await this.cacheService.acquireLock(chargeKey, 93_600);
+    if (!charged) {
+      return;
+    }
+
     try {
       await this.creditsUtilsService.deductCreditsFromOrganization(
         orgId,
@@ -879,24 +885,9 @@ export class WorkflowEngineAdapterService {
         `${this.logContext} trend digest charge failed`,
         { error, organizationId: orgId, workflowId },
       );
-      // Do not set the lock — allow a retry on the next scheduled run.
-      return;
-    }
-
-    // Deduction succeeded — now acquire the idempotency lock to prevent
-    // double-charging on concurrent replicas or retries within the same day.
-    const charged = await this.cacheService.acquireLock(
-      `workflow-digest-charged:${workflowId}:${this.digestUtcDateKey()}`,
-      93_600,
-    );
-    if (!charged) {
-      // Another replica already set the marker after a successful deduction —
-      // this path should be unreachable in practice (the caller guards with
-      // a per-execution check), but log it so we can detect unexpected retries.
-      this.loggerService.warn(
-        `${this.logContext} digest already marked as charged for today — skipping duplicate`,
-        { organizationId: orgId, workflowId },
-      );
+      // Release the marker so the next scheduled run can retry the charge —
+      // a transient deduction failure must not permanently skip today's charge.
+      await this.cacheService.releaseLock(chargeKey);
     }
   }
 

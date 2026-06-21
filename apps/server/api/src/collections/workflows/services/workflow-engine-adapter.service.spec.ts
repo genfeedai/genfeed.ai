@@ -1266,6 +1266,26 @@ describe('WorkflowEngineAdapterService', () => {
 
       expect(deduct).not.toHaveBeenCalled();
     });
+
+    it('releases the marker so a transient deduction failure can retry', async () => {
+      const acquireLock = vi.fn().mockResolvedValue(true);
+      const releaseLock = vi.fn().mockResolvedValue(true);
+      const deduct = vi
+        .fn()
+        .mockRejectedValue(new Error('transient credits failure'));
+      const adapter = makeChargeAdapter(
+        { acquireLock, releaseLock },
+        { deductCreditsFromOrganization: deduct },
+      );
+
+      await adapter.applyScheduledDigestCharge('wf-1', readySummaries());
+
+      expect(deduct).toHaveBeenCalledTimes(1);
+      expect(releaseLock).toHaveBeenCalledTimes(1);
+      expect(releaseLock.mock.calls[0][0]).toMatch(
+        /^workflow-digest-charged:wf-1:\d{4}-\d{2}-\d{2}$/,
+      );
+    });
   });
 
   describe('convertStepsToExecutableWorkflow - multiple dependencies', () => {
