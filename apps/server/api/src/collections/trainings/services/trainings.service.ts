@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import process from 'node:process';
 import { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
 import { UpdateTrainingDto } from '@api/collections/trainings/dto/update-training.dto';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
@@ -282,5 +283,33 @@ export class TrainingsService extends BaseService<
     return typeof value === 'string' && value.trim().length > 0
       ? value
       : undefined;
+  }
+
+  /**
+   * Count an organization's trainings. Encapsulates the raw Prisma aggregation
+   * so darkroom callers don't reach into `.prisma.*`.
+   */
+  async countTrainingsByOrganization(organizationId: string): Promise<number> {
+    return this.prisma.training.count({
+      where: { isDeleted: false, organizationId },
+    });
+  }
+
+  /**
+   * Group an organization's trainings by stage.
+   */
+  async groupTrainingsByStage(
+    organizationId: string,
+  ): Promise<Array<{ stage: string | null; count: number }>> {
+    const groups = await this.prisma.training.groupBy({
+      _count: { id: true },
+      by: ['stage'],
+      where: { isDeleted: false, organizationId },
+    });
+
+    return groups.map((group) => ({
+      count: group._count.id,
+      stage: group.stage,
+    }));
   }
 }
