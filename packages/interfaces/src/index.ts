@@ -79,6 +79,7 @@ export * from './content/content-run.interface';
 export * from './content/content-run-service.contract';
 export * from './content/enhancement-response.interface';
 export * from './content/generation-payload.interface';
+export * from './content/media-provenance.interface';
 export * from './content/model.interface';
 export * from './content/mood-board.interface';
 export * from './content/persona.interface';

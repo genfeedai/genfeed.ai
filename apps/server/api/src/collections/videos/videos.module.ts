@@ -18,10 +18,12 @@ import { OrganizationSettingsModule } from '@api/collections/organization-settin
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { VideosCaptionsController } from '@api/collections/videos/controllers/captions/videos-captions.controller';
+import { VideosProvenanceController } from '@api/collections/videos/controllers/provenance/videos-provenance.controller';
 import { VideosRelationshipsController } from '@api/collections/videos/controllers/relationships/videos-relationships.controller';
 import { VideosUploadController } from '@api/collections/videos/controllers/upload/videos-upload.controller';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
+import { VideoProvenanceService } from '@api/collections/videos/services/video-provenance.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { VotesModule } from '@api/collections/votes/votes.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -47,12 +49,17 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   controllers: [
     VideosCaptionsController,
+    VideosProvenanceController,
     // Core controllers only - transformations and generation in sub-modules
     VideosController,
     VideosRelationshipsController,
     VideosUploadController,
   ],
-  exports: [VideoMusicOrchestrationService, VideosService],
+  exports: [
+    VideoMusicOrchestrationService,
+    VideoProvenanceService,
+    VideosService,
+  ],
   imports: [
     forwardRef(() => ActivitiesModule),
     forwardRef(() => AssetsModule),
@@ -90,6 +97,7 @@ import { forwardRef, Module } from '@nestjs/common';
     ModelRegistrationService,
     ModelsGuard,
     VideoMusicOrchestrationService,
+    VideoProvenanceService,
     VideosService,
   ],
 })
