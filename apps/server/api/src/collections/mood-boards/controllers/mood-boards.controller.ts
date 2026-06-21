@@ -36,13 +36,19 @@ export class MoodBoardsController {
   @Get()
   async findByBrand(
     @Req() request: Request,
+    @CurrentUser() user: User,
     @Query('brand') brandId: string,
   ): Promise<JsonApiSingleResponse> {
     if (!brandId) {
       throw new NotFoundException('Query param `brand` is required');
     }
 
-    const data = await this.service.findOrCreateByBrand(brandId);
+    const { organization: organizationId } = getPublicMetadata(user);
+
+    const data = await this.service.findOrCreateByBrand(
+      brandId,
+      organizationId,
+    );
     return serializeSingle(request, MoodBoardSerializer, data);
   }
 

@@ -1,6 +1,7 @@
 import { MoodBoardsController } from '@api/collections/mood-boards/controllers/mood-boards.controller';
 import { UpdateMoodBoardDto } from '@api/collections/mood-boards/dto/update-mood-board.dto';
 import { MoodBoardsService } from '@api/collections/mood-boards/services/mood-boards.service';
+import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -76,21 +77,51 @@ describe('MoodBoardsController', () => {
   });
 
   describe('findByBrand', () => {
-    it('returns serialized board for valid brandId', async () => {
+    const mockUser = { publicMetadata: { organization: 'org-1' } } as never;
+
+    it('returns serialized board scoped to the caller organization', async () => {
       service.findOrCreateByBrand.mockResolvedValueOnce(mockMoodBoard as never);
 
       const result = await controller.findByBrand(
         mockRequest as never,
+        mockUser,
         'brand-1',
       );
 
-      expect(service.findOrCreateByBrand).toHaveBeenCalledWith('brand-1');
+      expect(service.findOrCreateByBrand).toHaveBeenCalledWith(
+        'brand-1',
+        'org-1',
+      );
       expect(result).toBeDefined();
+    });
+
+    it('threads the caller organization (not a foreign one) into the service', async () => {
+      vi.mocked(getPublicMetadata).mockReturnValueOnce({
+        organization: 'org-2',
+      } as never);
+      service.findOrCreateByBrand.mockResolvedValueOnce(mockMoodBoard as never);
+
+      await controller.findByBrand(mockRequest as never, mockUser, 'brand-1');
+
+      expect(service.findOrCreateByBrand).toHaveBeenCalledWith(
+        'brand-1',
+        'org-2',
+      );
+    });
+
+    it('propagates NotFoundException when the brand is not in the caller org', async () => {
+      service.findOrCreateByBrand.mockRejectedValueOnce(
+        new NotFoundException('Brand brand-1 not found'),
+      );
+
+      await expect(
+        controller.findByBrand(mockRequest as never, mockUser, 'brand-1'),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('throws NotFoundException when brandId missing', async () => {
       await expect(
-        controller.findByBrand(mockRequest as never, ''),
+        controller.findByBrand(mockRequest as never, mockUser, ''),
       ).rejects.toThrow(NotFoundException);
     });
   });
