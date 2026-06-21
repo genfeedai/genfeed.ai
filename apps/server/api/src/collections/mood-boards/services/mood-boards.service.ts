@@ -20,14 +20,6 @@ export class MoodBoardsService extends BaseService<
   }
 
   async findOrCreateByBrand(brandId: string): Promise<MoodBoardDocument> {
-    const existing = await this.prisma.moodBoard.findFirst({
-      where: { brandId, isDeleted: false },
-    });
-
-    if (existing) {
-      return existing as MoodBoardDocument;
-    }
-
     const brand = await this.prisma.brand.findFirst({
       select: { organizationId: true },
       where: { id: brandId, isDeleted: false },
@@ -37,14 +29,16 @@ export class MoodBoardsService extends BaseService<
       throw new NotFoundException(`Brand ${brandId} not found`);
     }
 
-    const created = await this.prisma.moodBoard.create({
-      data: {
+    const record = await this.prisma.moodBoard.upsert({
+      create: {
         brandId,
         layout: [],
         organizationId: brand.organizationId,
       },
+      update: {},
+      where: { brandId },
     });
 
-    return created as MoodBoardDocument;
+    return record as MoodBoardDocument;
   }
 }

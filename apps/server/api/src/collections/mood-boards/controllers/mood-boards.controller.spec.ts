@@ -6,6 +6,10 @@ import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+  getPublicMetadata: vi.fn(() => ({ organization: 'org-1' })),
+}));
+
 vi.mock('@genfeedai/serializers', () => ({
   MoodBoardSerializer: {
     serialize: vi.fn((data: unknown) => ({ data })),
@@ -92,13 +96,25 @@ describe('MoodBoardsController', () => {
   });
 
   describe('update', () => {
+    const mockUser = { publicMetadata: { organization: 'org-1' } } as never;
+
     it('patches board when found', async () => {
       const dto: UpdateMoodBoardDto = { layout: [] };
       service.findOne.mockResolvedValueOnce(mockMoodBoard as never);
       service.patch.mockResolvedValueOnce(mockMoodBoard as never);
 
-      const result = await controller.update(mockRequest as never, 'mb-1', dto);
+      const result = await controller.update(
+        mockRequest as never,
+        mockUser,
+        'mb-1',
+        dto,
+      );
 
+      expect(service.findOne).toHaveBeenCalledWith({
+        id: 'mb-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      });
       expect(service.patch).toHaveBeenCalledWith('mb-1', dto);
       expect(result).toBeDefined();
     });
@@ -108,6 +124,7 @@ describe('MoodBoardsController', () => {
 
       const result = await controller.update(
         mockRequest as never,
+        mockUser,
         'missing-id',
         {} as UpdateMoodBoardDto,
       );

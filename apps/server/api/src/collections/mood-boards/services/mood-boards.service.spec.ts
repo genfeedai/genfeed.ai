@@ -21,10 +21,9 @@ const mockPrisma = {
     findFirst: vi.fn(),
   },
   moodBoard: {
-    create: vi.fn(),
-    findFirst: vi.fn(),
     findMany: vi.fn(),
     update: vi.fn(),
+    upsert: vi.fn(),
   },
 };
 
@@ -53,37 +52,39 @@ describe('MoodBoardsService', () => {
   });
 
   describe('findOrCreateByBrand', () => {
-    it('returns existing board when found', async () => {
-      mockPrisma.moodBoard.findFirst.mockResolvedValueOnce(mockMoodBoard);
+    it('returns existing board via upsert when brand exists', async () => {
+      mockPrisma.brand.findFirst.mockResolvedValueOnce({
+        organizationId: 'org-1',
+      });
+      mockPrisma.moodBoard.upsert.mockResolvedValueOnce(mockMoodBoard);
 
       const result = await service.findOrCreateByBrand('brand-1');
 
       expect(result).toEqual(mockMoodBoard);
-      expect(mockPrisma.moodBoard.create).not.toHaveBeenCalled();
-    });
-
-    it('creates board when none exists for brand', async () => {
-      const newBoard = { ...mockMoodBoard, id: 'mb-new' };
-      mockPrisma.moodBoard.findFirst.mockResolvedValueOnce(null);
-      mockPrisma.brand.findFirst.mockResolvedValueOnce({
-        organizationId: 'org-1',
-      });
-      mockPrisma.moodBoard.create.mockResolvedValueOnce(newBoard);
-
-      const result = await service.findOrCreateByBrand('brand-1');
-
-      expect(result).toEqual(newBoard);
-      expect(mockPrisma.moodBoard.create).toHaveBeenCalledWith({
-        data: {
+      expect(mockPrisma.moodBoard.upsert).toHaveBeenCalledWith({
+        create: {
           brandId: 'brand-1',
           layout: [],
           organizationId: 'org-1',
         },
+        update: {},
+        where: { brandId: 'brand-1' },
       });
     });
 
+    it('creates board when none exists for brand', async () => {
+      const newBoard = { ...mockMoodBoard, id: 'mb-new' };
+      mockPrisma.brand.findFirst.mockResolvedValueOnce({
+        organizationId: 'org-1',
+      });
+      mockPrisma.moodBoard.upsert.mockResolvedValueOnce(newBoard);
+
+      const result = await service.findOrCreateByBrand('brand-1');
+
+      expect(result).toEqual(newBoard);
+    });
+
     it('throws NotFoundException when brand not found', async () => {
-      mockPrisma.moodBoard.findFirst.mockResolvedValueOnce(null);
       mockPrisma.brand.findFirst.mockResolvedValueOnce(null);
 
       await expect(
