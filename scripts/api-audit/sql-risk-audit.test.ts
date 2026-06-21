@@ -95,6 +95,48 @@ describe('sql risk audit', () => {
       ]),
     );
   });
+
+  it('classifies aggregate/groupBy as bounded aggregate-scan-review, not unbounded-read', () => {
+    writeFixture(
+      'apps/server/api/src/analytics/analytics.service.ts',
+      `
+      export class AnalyticsService {
+        constructor(private readonly prisma: PrismaService) {}
+
+        async totals(organizationId: string) {
+          return this.prisma.postAnalytics.aggregate({
+            _sum: { totalViews: true },
+            where: { organizationId },
+          });
+        }
+
+        async byDate(organizationId: string) {
+          return this.prisma.postAnalytics.groupBy({
+            _avg: { engagementRate: true },
+            by: ['date'],
+            where: { organizationId },
+          });
+        }
+      }
+      `,
+    );
+
+    const result = runSqlRiskAudit({ rootDir: testDir });
+    const categories = result.findings.map((finding) => finding.category);
+
+    // The migrated SQL-aggregation pattern must not be flagged as an unbounded
+    // row read (the pre-fix false positive) and must not raise severity.
+    expect(categories).not.toContain('unbounded-read');
+    expect(
+      result.findings.filter(
+        (finding) => finding.category === 'aggregate-scan-review',
+      ),
+    ).toHaveLength(2);
+    expect(
+      result.findings.every((finding) => finding.severity !== 'high'),
+    ).toBe(true);
+    expect(result.summary.high).toBe(0);
+  });
 });
 
 function writeFixture(relativePath: string, content: string): void {

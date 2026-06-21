@@ -68,6 +68,7 @@ export interface SqlRiskAuditOptions {
 }
 
 interface CliOptions extends SqlRiskAuditOptions {
+  failOnHigh: boolean;
   isJsonOutput: boolean;
   out?: string;
 }
@@ -290,7 +291,7 @@ function createFindingsForCall(call: PrismaCall): SqlRiskFinding[] {
     );
   }
 
-  if (isCollectionRead(call.method) && !hasPagination(callText)) {
+  if (isRowCollectionRead(call.method) && !hasPagination(callText)) {
     findings.push(
       createFinding(
         call,
@@ -301,13 +302,30 @@ function createFindingsForCall(call: PrismaCall): SqlRiskFinding[] {
     );
   }
 
-  if (isCollectionRead(call.method) && hasBroadInclude(callText)) {
+  if (isRowCollectionRead(call.method) && hasBroadInclude(callText)) {
     findings.push(
       createFinding(
         call,
         'broad-include',
         'medium',
         'Prefer select or a narrower include so reload paths do not hydrate unused relation graphs.',
+      ),
+    );
+  }
+
+  // `aggregate`/`groupBy` are SQL-side aggregations: an `aggregate` returns a
+  // single row and a `groupBy` is bounded by group cardinality, so "add
+  // pagination" never applies. Flagging them as `unbounded-read` (the behaviour
+  // before this rule existed) produced false positives against the exact
+  // SQL-aggregation pattern the analytics services were migrated to. The real
+  // residual risk is an unindexed scan, so surface that at low severity instead.
+  if (isAggregateRead(call.method)) {
+    findings.push(
+      createFinding(
+        call,
+        'aggregate-scan-review',
+        'low',
+        'Aggregate/groupBy results are bounded; pagination does not apply. Confirm the where clause (and any high-cardinality group key) is index-backed.',
       ),
     );
   }
@@ -381,10 +399,16 @@ function looksLikePrismaReceiver(receiver: string, method: string): boolean {
   );
 }
 
-function isCollectionRead(method: string): boolean {
-  return (
-    method === 'findMany' || method === 'aggregate' || method === 'groupBy'
-  );
+// Reads that return an unbounded set of entity rows and therefore need
+// pagination. `aggregate`/`groupBy` are deliberately excluded — they aggregate
+// server-side and are handled by `isAggregateRead`.
+function isRowCollectionRead(method: string): boolean {
+  return method === 'findMany';
+}
+
+// SQL-side aggregations whose result set is bounded by construction.
+function isAggregateRead(method: string): boolean {
+  return method === 'aggregate' || method === 'groupBy';
 }
 
 function isBulkWrite(method: string): boolean {
@@ -457,12 +481,14 @@ function escapeMarkdownCell(value: string): string {
 }
 
 function parseArgs(argv: string[]): CliOptions {
-  const options: CliOptions = { isJsonOutput: false };
+  const options: CliOptions = { failOnHigh: false, isJsonOutput: false };
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--json') {
       options.isJsonOutput = true;
+    } else if (arg === '--fail-on-high') {
+      options.failOnHigh = true;
     } else if (arg === '--out') {
       options.out = readRequiredArg(argv, index, arg);
       index += 1;
@@ -508,4 +534,24 @@ if (isMainModule()) {
     : formatSqlRiskAudit(result);
 
   writeOutput(body, options.out);
+
+  // `--fail-on-high` turns the audit into a CI gate: any high-severity finding
+  // (unsafe raw SQL or an unguarded bulk write) fails the build so prior
+  // tenant-scoping work cannot silently regress.
+  if (options.failOnHigh && result.summary.high > 0) {
+    const highFindings = result.findings.filter(
+      (finding) => finding.severity === 'high',
+    );
+    process.stderr.write(
+      `\nSQL risk audit failed: ${result.summary.high} high-severity finding(s).\n` +
+        highFindings
+          .map(
+            (finding) =>
+              `  - ${finding.category} ${finding.file}:${finding.line} (${finding.method})`,
+          )
+          .join('\n') +
+        '\n',
+    );
+    process.exitCode = 1;
+  }
 }

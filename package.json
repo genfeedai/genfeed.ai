@@ -45,6 +45,7 @@
     "audit:api:endpoints": "bun run scripts/api-audit/endpoint-inventory.ts",
     "audit:api:smoke": "bun run scripts/api-audit/openapi-smoke.ts",
     "audit:api:sql": "bun run scripts/api-audit/sql-risk-audit.ts",
+    "audit:api:sql:ci": "bun run scripts/api-audit/sql-risk-audit.ts --fail-on-high",
     "postinstall": "scripts/setup-skills.sh",
     "setup:skills": "scripts/setup-skills.sh",
     "setup:skills:sync": "scripts/setup-skills.sh --sync",
