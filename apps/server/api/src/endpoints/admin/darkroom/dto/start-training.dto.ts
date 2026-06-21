@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator';
 
@@ -10,8 +11,12 @@ export class StartTrainingDto {
   @ApiProperty({ description: 'Training label' })
   readonly label!: string;
 
+  // Validate each id at the HTTP boundary so a malformed id can never reach
+  // ObjectIdUtil.toObjectId (which returns null) and get non-null-asserted into
+  // a null entry in the persisted `sources` array. @IsEntityId mirrors exactly
+  // what toObjectId accepts (ObjectId / UUID / CUID / CUID2 / ULID).
   @IsArray()
-  @IsString({ each: true })
+  @IsEntityId({ each: true })
   @ApiProperty({ description: 'Source ingredient IDs', type: [String] })
   readonly sourceIds!: string[];
 
