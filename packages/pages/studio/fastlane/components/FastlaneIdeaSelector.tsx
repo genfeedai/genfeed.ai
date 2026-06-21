@@ -18,6 +18,8 @@ const FORMAT_LABELS: Record<FastlaneFormat, string> = {
   avatar: 'Avatar',
 };
 
+// Keep in sync with FASTLANE_MIN_IDEAS / FASTLANE_MAX_IDEAS on the API DTO
+// (generate-fastlane-ideas.dto.ts) — the server enforces these same bounds.
 const MIN_COUNT = 3;
 const MAX_COUNT = 9;
 

@@ -19,6 +19,14 @@ export const FASTLANE_FORMATS: readonly FastlaneFormat[] = [
   'avatar',
 ] as const;
 
+/**
+ * Idea-count bounds for a Fastlane batch. These mirror the UI stepper limits in
+ * `FastlaneIdeaSelector` (the only consumer of this endpoint) so the server
+ * rejects counts the UI can never produce, instead of silently accepting 1–12.
+ */
+export const FASTLANE_MIN_IDEAS = 3;
+export const FASTLANE_MAX_IDEAS = 9;
+
 export class GenerateFastlaneIdeasDto {
   @IsArray()
   @ArrayMinSize(1)
@@ -31,11 +39,11 @@ export class GenerateFastlaneIdeasDto {
   readonly formats!: FastlaneFormat[];
 
   @IsInt()
-  @Min(1)
-  @Max(12)
+  @Min(FASTLANE_MIN_IDEAS)
+  @Max(FASTLANE_MAX_IDEAS)
   @ApiProperty({
     default: 6,
-    description: 'Number of ideas to generate (1-12)',
+    description: `Number of ideas to generate (${FASTLANE_MIN_IDEAS}-${FASTLANE_MAX_IDEAS})`,
   })
   readonly count!: number;
 
