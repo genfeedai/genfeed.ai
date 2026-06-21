@@ -186,12 +186,14 @@ jobs:
         working-directory: ${{ env.TF_DIR }}
         run: tofu init -input=false
 
-      - name: Register migration task definition
+      - name: Register migration + boot-smoke task definitions
         working-directory: ${{ env.TF_DIR }}
         run: |
           tofu apply -input=false -auto-approve \
             -target=aws_cloudwatch_log_group.migrate \
             -target=aws_ecs_task_definition.migrate \
+            -target=aws_cloudwatch_log_group.boot_smoke \
+            -target=aws_ecs_task_definition.boot_smoke \
             -var="image_tag=${{ steps.image.outputs.sha }}" \
             -var="enable_dns_cutover=true"
 
@@ -244,6 +246,29 @@ jobs:
             --query 'tasks[0].containers[0].exitCode' --output text)
           echo "migrate exit code: $CODE"
           [ "$CODE" = "0" ] || { echo "::error::migration failed"; exit 1; }
+
+      - name: Boot smoke — verify new image boots (gated before services roll)
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          set -euo pipefail
+          # Run the api with BOOT_SMOKE=1 as a one-off task: it fully initializes
+          # (catching crash-on-boot like the #711 circular-dep TDZ) then exits 0.
+          # If it can't boot, fail HERE — before any service rolls — so a bad
+          # image never reaches traffic (vs. rolling then circuit-breaker rollback).
+          CLUSTER=$(tofu output -raw cluster_name)
+          TASK_DEFINITION=$(tofu output -raw boot_smoke_task_definition_arn)
+          SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
+          SG=$(tofu output -raw task_security_group)
+          echo "Running boot smoke on $CLUSTER ($TASK_DEFINITION)..."
+          TASK_ARN=$(aws ecs run-task --cluster "$CLUSTER" --task-definition "$TASK_DEFINITION" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG],assignPublicIp=DISABLED}" \
+            --query 'tasks[0].taskArn' --output text)
+          aws ecs wait tasks-stopped --cluster "$CLUSTER" --tasks "$TASK_ARN"
+          CODE=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[0].exitCode' --output text)
+          echo "boot smoke exit code: $CODE"
+          [ "$CODE" = "0" ] || { echo "::error::API failed to boot (crash-on-boot) — aborting before rolling services"; exit 1; }
 
       - name: Tofu apply (roll services to new image)
         working-directory: ${{ env.TF_DIR }}
