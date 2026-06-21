@@ -39,6 +39,7 @@ export const API_ENDPOINTS = {
   MEMBERS: '/members',
   MODELS: '/models',
   MONITORED_ACCOUNTS: '/monitored-accounts',
+  MOOD_BOARDS: '/mood-boards',
   MOODS: '/elements/moods',
   NEWS: '/news',
   ONBOARDING: '/onboarding',

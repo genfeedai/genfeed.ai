@@ -23,6 +23,7 @@ export * from '@serializers/server/content/fanvue-subscriber.serializer';
 export * from '@serializers/server/content/fanvue-sync-log.serializer';
 export * from '@serializers/server/content/insight.serializer';
 export * from '@serializers/server/content/link.serializer';
+export * from '@serializers/server/content/mood-board.serializer';
 export * from '@serializers/server/content/news.serializer';
 export * from '@serializers/server/content/newsletter.serializer';
 export * from '@serializers/server/content/optimization.serializer';

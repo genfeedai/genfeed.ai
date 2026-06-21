@@ -23,6 +23,7 @@ export * from '@serializers/configs/content/fanvue-sync-log.config';
 export * from '@serializers/configs/content/ingredient.config';
 export * from '@serializers/configs/content/insight.config';
 export * from '@serializers/configs/content/link.config';
+export * from '@serializers/configs/content/mood-board.config';
 export * from '@serializers/configs/content/news.config';
 export * from '@serializers/configs/content/newsletter.config';
 export * from '@serializers/configs/content/optimization.config';

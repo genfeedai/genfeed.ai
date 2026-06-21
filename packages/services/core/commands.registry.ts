@@ -30,6 +30,7 @@ import {
   HiOutlineMusicalNote,
   HiOutlinePaperAirplane,
   HiOutlinePhoto,
+  HiOutlineSquares2X2,
   HiOutlineUserCircle,
   HiOutlineVideoCamera,
   HiOutlineWrenchScrewdriver,
@@ -108,6 +109,20 @@ export function createNavigationCommands(
       label: 'Go to Library',
       priority: 10,
       shortcut: ['⌘', '3'],
+    },
+    {
+      action: () => {
+        navigate(`${brandPath}/library/moodboard`);
+      },
+      category: 'navigation',
+      condition: () => EnvironmentService.currentApp !== 'app',
+      description: 'Arrange all your generated assets on one canvas',
+      icon: HiOutlineSquares2X2,
+      id: 'nav-moodboard',
+      keywords: ['mood', 'board', 'moodboard', 'canvas', 'gallery', 'assets'],
+      label: 'Go to Mood Board',
+      priority: 9,
+      shortcut: ['⌘', '7'],
     },
     {
       action: () => {

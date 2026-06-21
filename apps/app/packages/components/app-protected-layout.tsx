@@ -111,6 +111,7 @@ function AppLayoutWithDynamicMenu({
     isFocusedOnboardingRoute,
     isLibraryLandingRoute,
     isLibraryRoute,
+    isMoodboardRoute,
     isOrgRoute,
     isPromptBarRoute,
     isSettingsRoute,
@@ -158,7 +159,7 @@ function AppLayoutWithDynamicMenu({
   );
 
   const menuComponent = useMemo(() => {
-    if (isFocusedOnboardingRoute || isEditorCanvasRoute) {
+    if (isFocusedOnboardingRoute || isEditorCanvasRoute || isMoodboardRoute) {
       return undefined;
     }
 
@@ -208,6 +209,7 @@ function AppLayoutWithDynamicMenu({
     isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryRoute,
+    isMoodboardRoute,
     isOrgRoute,
     isSettingsRoute,
     isStudioRoute,
@@ -225,7 +227,7 @@ function AppLayoutWithDynamicMenu({
   ]);
 
   const topbarComponent =
-    isEditorCanvasRoute || isFocusedOnboardingRoute
+    isEditorCanvasRoute || isFocusedOnboardingRoute || isMoodboardRoute
       ? undefined
       : isAdminRoute
         ? AdminTopbar
@@ -255,7 +257,7 @@ function AppLayoutWithDynamicMenu({
     </>
   );
 
-  if (isEditorCanvasRoute) {
+  if (isEditorCanvasRoute || isMoodboardRoute) {
     return (
       <CommandPaletteProvider>
         <CommandPaletteInitializer />
