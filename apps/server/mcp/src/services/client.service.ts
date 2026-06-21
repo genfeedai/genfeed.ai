@@ -1120,9 +1120,7 @@ export class ClientService {
 
   async listMetaAdAccounts(): Promise<unknown[]> {
     try {
-      const response = await this.client.get(
-        '/integrations/meta-ads/accounts',
-      );
+      const response = await this.client.get('/integrations/meta-ads/accounts');
       return response.data?.data || response.data || [];
     } catch (error: unknown) {
       this.logError('listing Meta ad accounts', error as ApiError);

@@ -54,7 +54,10 @@ export class AuthService {
         const userId: string | undefined = data.user?.id;
 
         if (!organizationId || !userId) {
-          return { error: 'Token resolved but identity is incomplete', valid: false };
+          return {
+            error: 'Token resolved but identity is incomplete',
+            valid: false,
+          };
         }
 
         return {
