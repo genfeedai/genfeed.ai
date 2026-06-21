@@ -1,6 +1,7 @@
 import { McpApprovalsController } from '@api/collections/mcp-approvals/controllers/mcp-approvals.controller';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -33,6 +34,7 @@ describe('McpApprovalsController', () => {
   let controller: McpApprovalsController;
 
   const mockServiceMethods = {
+    attachResult: vi.fn(),
     createPending: vi.fn(),
     findByOrganization: vi.fn(),
     findOne: vi.fn(),
@@ -58,6 +60,8 @@ describe('McpApprovalsController', () => {
       ],
     })
       .overrideGuard(ClerkGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
       .compile();
 
@@ -207,6 +211,50 @@ describe('McpApprovalsController', () => {
           decision: 'approve',
         }),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('POST /:id/result', () => {
+    it('attaches result then returns the refreshed approval, org-scoped', async () => {
+      const withResult = {
+        ...fakeApproval,
+        status: 'APPROVED',
+        result: { output: 42 },
+      };
+      mockServiceMethods.attachResult.mockResolvedValue(undefined);
+      mockServiceMethods.findOne.mockResolvedValue(withResult);
+
+      const result = await controller.attachResult(
+        mockUser as never,
+        'approval-1',
+        { result: { output: 42 } },
+      );
+
+      expect(mockServiceMethods.attachResult).toHaveBeenCalledWith(
+        'approval-1',
+        'org-abc',
+        { output: 42 },
+      );
+      expect(mockServiceMethods.findOne).toHaveBeenCalledWith({
+        id: 'approval-1',
+        organizationId: 'org-abc',
+        isDeleted: false,
+      });
+      expect(result.data).toMatchObject({
+        id: 'approval-1',
+        result: { output: 42 },
+      });
+    });
+
+    it('throws NotFoundException when the approval is gone after the write', async () => {
+      mockServiceMethods.attachResult.mockResolvedValue(undefined);
+      mockServiceMethods.findOne.mockResolvedValue(null);
+
+      await expect(
+        controller.attachResult(mockUser as never, 'missing', {
+          result: {},
+        }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

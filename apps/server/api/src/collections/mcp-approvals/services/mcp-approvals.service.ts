@@ -110,30 +110,69 @@ export class McpApprovalsService extends BaseService<
     decision: 'approve' | 'decline',
     result?: Record<string, unknown>,
   ): Promise<McpApprovalDocument> {
-    const existing = (await this.delegate.findFirst({
-      where: { id, organizationId, isDeleted: false },
-    })) as McpApprovalDocument | null;
-
-    if (!existing) {
-      throw new NotFoundException('MCP approval not found');
-    }
-
-    if (existing.status !== McpApprovalStatus.PENDING) {
-      throw new BadRequestException('Approval already resolved');
-    }
-
     const status =
       decision === 'approve'
         ? McpApprovalStatus.APPROVED
         : McpApprovalStatus.DECLINED;
 
-    return (await this.delegate.update({
-      where: { id },
+    // Atomic claim: the PENDING status is part of the WHERE clause, so the
+    // transition itself is the concurrency fence. Two callers racing to resolve
+    // the same approval cannot both succeed — whoever flips PENDING first wins,
+    // and the loser's updateMany matches 0 rows. This is what lets the MCP layer
+    // safely gate tool execution on a successful resolve (no double-execution).
+    const { count } = await this.delegate.updateMany({
+      where: {
+        id,
+        organizationId,
+        isDeleted: false,
+        status: McpApprovalStatus.PENDING,
+      },
       data: {
         status,
         resolvedAt: new Date(),
         ...(result !== undefined && { result }),
       },
+    });
+
+    if (count === 0) {
+      // Either the approval does not exist / is cross-org, or it was already
+      // resolved by a concurrent caller. Distinguish the two for a clear error.
+      const existing = (await this.delegate.findFirst({
+        where: { id, organizationId, isDeleted: false },
+      })) as McpApprovalDocument | null;
+
+      if (!existing) {
+        throw new NotFoundException('MCP approval not found');
+      }
+
+      throw new BadRequestException('Approval already resolved');
+    }
+
+    return (await this.delegate.findFirst({
+      where: { id, organizationId, isDeleted: false },
     })) as McpApprovalDocument;
+  }
+
+  /**
+   * Attach the execution result to an already-APPROVED approval. Used by the MCP
+   * layer after it has atomically claimed the approval (via {@link resolve}) and
+   * executed the underlying tool, so the audit record carries the tool output
+   * (or the execution error). Scoped to APPROVED rows so it cannot resurrect or
+   * mutate a PENDING/DECLINED approval.
+   */
+  async attachResult(
+    id: string,
+    organizationId: string,
+    result: Record<string, unknown>,
+  ): Promise<void> {
+    await this.delegate.updateMany({
+      where: {
+        id,
+        organizationId,
+        isDeleted: false,
+        status: McpApprovalStatus.APPROVED,
+      },
+      data: { result },
+    });
   }
 }

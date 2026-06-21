@@ -1,3 +1,4 @@
+import { AttachMcpApprovalResultDto } from '@api/collections/mcp-approvals/dto/attach-mcp-approval-result.dto';
 import { CreateMcpApprovalDto } from '@api/collections/mcp-approvals/dto/create-mcp-approval.dto';
 import { ResolveMcpApprovalDto } from '@api/collections/mcp-approvals/dto/resolve-mcp-approval.dto';
 import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
@@ -130,5 +131,34 @@ export class McpApprovalsController {
       dto.result,
     );
     return { data: this.toResponse(result) };
+  }
+
+  @Post(':id/result')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @ApiOperation({
+    summary: 'Attach the execution result to an approved MCP approval',
+  })
+  @ApiResponse({ description: 'Result attached', status: HttpStatus.OK })
+  async attachResult(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: AttachMcpApprovalResultDto,
+  ): Promise<{ data: McpApprovalResponse }> {
+    const { organization } = getPublicMetadata(user);
+    await this.service.attachResult(id, organization, dto.result);
+
+    const approval = await this.service.findOne({
+      id,
+      organizationId: organization,
+      isDeleted: false,
+    });
+
+    if (!approval) {
+      throw new NotFoundException('MCP approval not found');
+    }
+
+    return { data: this.toResponse(approval) };
   }
 }

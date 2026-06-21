@@ -180,28 +180,66 @@ export class ToolRegistryService {
       );
     }
 
-    const approval = await this.clientService.getApproval(approvalId);
-    if (!approval) {
-      throw new Error(`Approval ${approvalId} not found`);
-    }
-    if (approval.status !== 'PENDING') {
-      throw new Error(
-        `Approval ${approvalId} is already ${approval.status.toLowerCase()}`,
-      );
-    }
-
-    const result = await this.executeTool(
-      approval.toolName,
-      approval.arguments ?? {},
-    );
-
-    await this.clientService.resolveApproval(
+    // Atomically CLAIM the approval (PENDING -> APPROVED) BEFORE executing the
+    // tool. The API resolves via a conditional updateMany on status=PENDING, so
+    // a concurrent resolve_approval for the same id loses the race and throws
+    // "already resolved" here — which means the underlying tool runs at most
+    // once even though the MCP server is stateless and handles each request in
+    // isolation. (Previously the claim happened AFTER execution, leaving a
+    // TOCTOU window where two callers could both execute an irreversible tool.)
+    const approval = await this.clientService.resolveApproval(
       approvalId,
       'approve',
+    );
+
+    // Defense-in-depth: only execute tools that are actually approval-gated, so
+    // a stray approval row created for a non-write tool cannot be run via the
+    // admin resolve path.
+    if (!APPROVAL_REQUIRED_TOOLS.has(approval.toolName)) {
+      const message = `Approval ${approvalId} references non-approval-gated tool "${approval.toolName}"; not executed.`;
+      await this.attachApprovalResultSafe(approvalId, { error: message });
+      throw new Error(message);
+    }
+
+    let result: Awaited<ReturnType<typeof this.executeTool>>;
+    try {
+      result = await this.executeTool(
+        approval.toolName,
+        approval.arguments ?? {},
+      );
+    } catch (error: unknown) {
+      // The approval is already claimed; record the failure on the audit row so
+      // the outcome is observable rather than a silently-APPROVED-but-failed row.
+      await this.attachApprovalResultSafe(approvalId, {
+        error: (error as Error)?.message ?? String(error),
+      });
+      throw error;
+    }
+
+    await this.attachApprovalResultSafe(
+      approvalId,
       result as Record<string, unknown>,
     );
 
     return result;
+  }
+
+  /**
+   * Persist a result/error on an approved approval without letting an audit-write
+   * failure mask the actual tool outcome.
+   */
+  private async attachApprovalResultSafe(
+    approvalId: string,
+    result: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await this.clientService.attachApprovalResult(approvalId, result);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to attach result to approval ${approvalId}:`,
+        error,
+      );
+    }
   }
 
   private pendingApprovalResult(approval: McpApprovalResource) {
