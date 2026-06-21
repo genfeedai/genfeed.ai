@@ -187,16 +187,16 @@ test.describe('Shell — chrome interactions', () => {
     await settle(authenticatedPage);
 
     const trigger = authenticatedPage
-      .getByTestId('workspace-switcher-trigger')
+      .getByTestId('brand-switcher-trigger')
       .first();
 
     if (await trigger.isVisible().catch(() => false)) {
       await trigger.click({ timeout: 5_000 }).catch(() => {});
       await settle(authenticatedPage);
 
-      // Exercise the brand-settings shortcut entry then dismiss.
+      // Exercise the per-brand settings shortcut then dismiss.
       const brandSettings = authenticatedPage
-        .locator('button:has-text("Brand settings")')
+        .getByLabel(/open .+ settings/i)
         .first();
       if (await brandSettings.isVisible().catch(() => false)) {
         await expect(brandSettings).toBeVisible();
