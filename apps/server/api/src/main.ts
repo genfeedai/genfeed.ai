@@ -292,5 +292,17 @@ async function main() {
   }
 }
 
+// Hermetic boot-check gate (CI, on PRs): by the time module evaluation reaches
+// here, every import above — including AppModule and its whole provider graph —
+// has loaded. A circular-import TDZ (e.g. #711's "Cannot access 'X' before
+// initialization") throws during that import and crashes the process before this
+// line, so exit 0 here means the compiled graph loads cleanly. We exit BEFORE
+// NestFactory/config so the check needs no env, DB, or Redis — unlike BOOT_SMOKE
+// (the full deploy-time init). Note: vitest can't reproduce this TDZ (its SWC/ESM
+// resolution differs); only the compiled build does, which is what CI runs here.
+if (process.env.BOOT_CHECK === '1') {
+  process.exit(0);
+}
+
 void main();
 setupGracefulShutdown();
