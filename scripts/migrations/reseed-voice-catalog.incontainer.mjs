@@ -15,18 +15,18 @@
  *   (DEFAULT now), updatedAt (no default → set here).
  *   UNIQUE (externalProvider, externalId).
  *
- * Idempotent upsert. Dry-run with --dry. Run:
+ * Idempotent upsert. Dry-run by default; pass --live to write. Run:
  *   # Copy this file into the container first (it is referenced as _reseed.mjs):
  *   docker cp scripts/migrations/reseed-voice-catalog.incontainer.mjs genfeed-ai-api:/usr/src/app/_reseed.mjs
- *   docker exec -w /usr/src/app genfeed-ai-api node _reseed.mjs --dry
- *   docker exec -w /usr/src/app genfeed-ai-api node _reseed.mjs
+ *   docker exec -w /usr/src/app genfeed-ai-api node _reseed.mjs          # dry-run (default)
+ *   docker exec -w /usr/src/app genfeed-ai-api node _reseed.mjs --live   # live writes
  */
 
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
 
 const { Client } = pg;
-const DRY = process.argv.includes('--dry');
+const DRY = !process.argv.includes('--live');
 
 function genId() {
   // Unique string PK (Prisma cuid is app-generated; any unique string is valid).
@@ -77,12 +77,6 @@ async function fetchHeyGen() {
 }
 
 async function main() {
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-  });
-  await client.connect();
-
   let voices = [];
   try {
     const [el, hg] = await Promise.all([fetchElevenLabs(), fetchHeyGen()]);
@@ -92,7 +86,6 @@ async function main() {
     );
   } catch (err) {
     console.error('Provider fetch failed:', err.message);
-    await client.end();
     process.exit(1);
   }
 
@@ -100,9 +93,14 @@ async function main() {
     console.log(
       `[DRY] would upsert ${voices.length} catalog voices. No writes.`,
     );
-    await client.end();
     return;
   }
+
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+  });
+  await client.connect();
 
   let created = 0;
   let updated = 0;
