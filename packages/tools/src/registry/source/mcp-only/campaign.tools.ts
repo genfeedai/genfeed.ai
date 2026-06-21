@@ -147,7 +147,7 @@ export const MCP_CAMPAIGN_TOOLS: SourceTool[] = [
     parameters: {
       properties: {
         campaignIds: {
-          description: 'Comma-separated campaign IDs to compare',
+          description: 'Array of campaign IDs to compare',
           items: { type: 'string' },
           type: 'array',
         },
