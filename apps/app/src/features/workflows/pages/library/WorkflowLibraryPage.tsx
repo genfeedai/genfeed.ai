@@ -5,6 +5,7 @@ import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Switch } from '@ui/primitives/switch';
 import { Cloud, CloudUpload } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -36,6 +37,7 @@ export default function WorkflowLibraryPage() {
     loadWorkflows,
     handleDuplicate,
     handleDelete,
+    handleToggleSchedule,
     filteredWorkflows,
   } = useWorkflowLibraryPage();
 
@@ -200,6 +202,17 @@ export default function WorkflowLibraryPage() {
                     >
                       {workflow.lifecycle}
                     </span>
+                    {workflow.schedule ? (
+                      <span role="none" onClick={(e) => e.preventDefault()}>
+                        <Switch
+                          checked={workflow.isScheduleEnabled ?? false}
+                          aria-label={`${workflow.isScheduleEnabled ? 'Disable' : 'Enable'} schedule for ${workflow.name}`}
+                          onCheckedChange={(checked) =>
+                            handleToggleSchedule(workflow._id, checked)
+                          }
+                        />
+                      </span>
+                    ) : null}
                     <WorkflowCardDropdown
                       onDuplicate={() => handleDuplicate(workflow._id)}
                       onDelete={() => handleDelete(workflow._id)}

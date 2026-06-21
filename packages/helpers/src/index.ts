@@ -12,4 +12,5 @@ export * from './model-capability.helper';
 export * from './quality-routing.helper';
 export * from './serializer.helper';
 export * from './social-url.helper';
+export * from './trends/trend-digest.helper';
 export * from './video-duration.helper';

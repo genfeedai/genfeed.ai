@@ -4,8 +4,7 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { ConfigService } from '@api/config/config.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
-import { WorkflowStatus as PrismaWorkflowStatus } from '@genfeedai/prisma';
+import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
@@ -62,7 +61,10 @@ export class WorkflowSchedulerService implements OnModuleInit {
           isDeleted: false,
           isScheduleEnabled: true,
           schedule: { not: null },
-          status: 'ACTIVE',
+          // Canonical workflow status is the lowercase enum value ('active');
+          // the column is a drifted String (see schema). Must match what
+          // createWorkflow / the executor persist, or scheduled rows never load.
+          status: WorkflowStatus.ACTIVE,
         },
       });
 
@@ -165,7 +167,10 @@ export class WorkflowSchedulerService implements OnModuleInit {
         where: {
           id: workflowId,
           isDeleted: false,
-          status: 'ACTIVE',
+          // Canonical workflow status is the lowercase enum value ('active');
+          // the column is a drifted String (see schema). Must match what
+          // createWorkflow / the executor persist, or scheduled rows never load.
+          status: WorkflowStatus.ACTIVE,
         },
       });
 

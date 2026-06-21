@@ -9,6 +9,7 @@ import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
+import { useTrends } from '@hooks/data/trends/use-trends/use-trends';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   PlatformTimeSeriesDataPoint,
@@ -39,6 +40,7 @@ import {
   OverviewPerformanceChartSection,
   OverviewPublishingInboxSection,
   OverviewTopStatStrip,
+  OverviewTrendsPanel,
 } from './overview-dashboard-sections';
 
 interface SectionStat {
@@ -270,6 +272,7 @@ export default function OverviewPageContent({
   initialTimeSeriesData = EMPTY_TIME_SERIES,
 }: OverviewPageContentProps) {
   const { href } = useOrgUrl();
+  const { trends, isLoading: isTrendsLoading } = useTrends();
   const {
     activeRuns,
     analytics,
@@ -445,6 +448,14 @@ export default function OverviewPageContent({
           <OverviewPublishingInboxSection
             readyCount={reviewInbox.readyCount}
             recentItems={reviewInbox.recentItems}
+          />
+        </div>
+
+        <div className="min-w-0" data-testid="overview-trends-section">
+          <OverviewTrendsPanel
+            trends={trends}
+            isLoading={isTrendsLoading}
+            viewAllHref={href('/research/discovery')}
           />
         </div>
       </div>

@@ -48,6 +48,27 @@ vi.mock('@ui/dashboard/DashboardGrid', () => ({
   ),
 }));
 
+vi.mock('@ui/overview/OverviewTrendsPanel', () => ({
+  OverviewTrendsPanel: ({
+    isLoading,
+    trends,
+    viewAllHref,
+  }: {
+    isLoading: boolean;
+    trends: unknown[];
+    viewAllHref: string;
+  }) => (
+    <div data-testid="overview-trends-panel">
+      <a href={viewAllHref}>View All</a>
+      {isLoading ? (
+        <div data-testid="trends-loading">Loading</div>
+      ) : trends.length === 0 ? (
+        <div data-testid="trends-empty">No trends yet.</div>
+      ) : null}
+    </div>
+  ),
+}));
+
 vi.mock('@ui/primitives/button', () => ({
   Button: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
@@ -288,5 +309,33 @@ describe('workspace dashboard sections', () => {
     expect(screen.getByTestId('dashboard-stats-strip')).toBeVisible();
     expect(screen.getByText('Recent Activity')).toBeVisible();
     expect(screen.getByText('Recent Tasks')).toBeVisible();
+    expect(screen.getByTestId('overview-trends-panel')).toBeVisible();
+  });
+
+  it('renders the trends panel with the configured viewAllHref', () => {
+    render(
+      <WorkspaceDashboard
+        activeRuns={[]}
+        reviewInbox={{
+          approvedCount: 0,
+          changesRequestedCount: 0,
+          pendingCount: 0,
+          readyCount: 0,
+          recentItems: [],
+          rejectedCount: 0,
+        }}
+        runs={[]}
+        stats={null}
+        trendsHref="/org/brand/research/discovery"
+        trendItems={[]}
+        workspaceTasks={[]}
+      />,
+    );
+
+    const trendsPanel = screen.getByTestId('overview-trends-panel');
+    expect(trendsPanel.querySelector('a')).toHaveAttribute(
+      'href',
+      '/org/brand/research/discovery',
+    );
   });
 });

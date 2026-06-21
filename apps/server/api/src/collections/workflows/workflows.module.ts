@@ -12,6 +12,7 @@ import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
@@ -41,6 +42,7 @@ import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
+import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { WorkflowExecutorModule } from '@api/services/workflow-executor/workflow-executor.module';
@@ -74,10 +76,12 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => MetadataModule),
     forwardRef(() => MusicsModule),
     forwardRef(() => NewslettersModule),
+    forwardRef(() => NotificationsModule),
     forwardRef(() => NotificationsPublisherModule),
     forwardRef(() => OpenRouterModule),
     forwardRef(() => PostsModule),
     forwardRef(() => SharedModule),
+    forwardRef(() => TrendsModule),
     forwardRef(() => TwitterModule),
     forwardRef(() => VideoGenerationModule),
     forwardRef(() => VideosModule),

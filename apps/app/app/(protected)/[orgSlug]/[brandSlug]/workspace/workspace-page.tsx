@@ -3,6 +3,8 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { AgentRunStats } from '@genfeedai/types';
+import { useTrends } from '@hooks/data/trends/use-trends/use-trends';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import type { Task } from '@services/management/tasks.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
@@ -58,6 +60,8 @@ function WorkspacePageContentContent({
   initialTimeSeriesData,
   section = 'overview',
 }: WorkspacePageContentProps) {
+  const { href } = useOrgUrl();
+  const { trends: trendItems, isLoading: isTrendsLoading } = useTrends();
   const {
     activityItems,
     busyTaskId,
@@ -183,9 +187,12 @@ function WorkspacePageContentContent({
       {isOverviewSection ? (
         <WorkspaceDashboard
           activeRuns={initialActiveRuns}
+          isTrendsLoading={isTrendsLoading}
           reviewInbox={initialReviewInbox}
           runs={initialRuns}
           stats={initialStats}
+          trendsHref={href('/research/discovery')}
+          trendItems={trendItems}
           workspaceTasks={workspaceTasks}
         />
       ) : null}

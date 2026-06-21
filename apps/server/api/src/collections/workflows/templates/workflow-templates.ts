@@ -1,4 +1,5 @@
 import { CONTENT_LOOP_TEMPLATE } from '@api/collections/workflows/templates/content-loop.template';
+import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
 import { GENERATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/generation-templates';
 import { WorkflowStepCategory } from '@genfeedai/enums';
 
@@ -46,6 +47,7 @@ export interface WorkflowTemplate {
 export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
   ...GENERATION_WORKFLOW_TEMPLATES,
   'content-loop': CONTENT_LOOP_TEMPLATE,
+  'daily-trends-digest': DAILY_TRENDS_DIGEST_TEMPLATE,
   'ad-remix-review': {
     category: 'ads',
     description:
