@@ -6,6 +6,7 @@ import { ParseMode } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronTrendSummaryNotificationsService } from '@workers/crons/trends/cron.trend-summary-notifications.service';
+import { ConfigService } from '@workers/config/config.service';
 
 vi.mock('@nestjs/schedule', () => ({
   Cron: () => () => undefined,
@@ -131,6 +132,10 @@ describe('CronTrendSummaryNotificationsService', () => {
         { provide: CacheService, useValue: cacheService },
         { provide: NotificationsService, useValue: notificationsService },
         { provide: LoggerService, useValue: loggerService },
+        {
+          provide: ConfigService,
+          useValue: { get: vi.fn().mockReturnValue('https://app.genfeed.ai') },
+        },
       ],
     }).compile();
 

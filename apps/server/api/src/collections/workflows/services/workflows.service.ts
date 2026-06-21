@@ -16,6 +16,7 @@ import {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -168,34 +169,88 @@ export class WorkflowsService extends BaseService<
    * organization. Seeded OFF (`isScheduleEnabled: false`) so it stays invisible
    * to the scheduler until the owner enables it from the workflow list UI.
    * Safe to call repeatedly (e.g. on every org bootstrap + a one-time backfill).
+   *
+   * Race protection: the check-and-insert runs inside a SERIALIZABLE transaction
+   * using the same `tx` client for both the read and the write. Two concurrent
+   * callers cannot both observe "not found" and both insert — Postgres guarantees
+   * that at most one of the two transactions commits; the other receives a
+   * serialization error and this method silently returns (no row was seeded twice).
    */
   async ensureDailyTrendsDigestWorkflow(
     userId: string,
     organizationId: string,
   ): Promise<void> {
-    const existing = await this.prisma.workflow.findFirst({
-      select: { id: true },
-      where: {
-        isDeleted: false,
-        metadata: {
-          equals: DAILY_TRENDS_DIGEST_TEMPLATE_ID,
-          path: ['sourceTemplateId'],
-        },
-        organizationId,
+    const where = {
+      isDeleted: false,
+      metadata: {
+        equals: DAILY_TRENDS_DIGEST_TEMPLATE_ID,
+        path: ['sourceTemplateId'],
       },
+      organizationId,
+    };
+
+    // Fast path: most calls hit an already-seeded org.
+    const preCheck = await this.prisma.workflow.findFirst({
+      select: { id: true },
+      where,
     });
 
-    if (existing) {
+    if (preCheck) {
       return;
     }
 
-    await this.createWorkflow(userId, organizationId, {
-      isScheduleEnabled: false,
-      label: 'Daily Trends Digest',
-      schedule: '0 7 * * *',
-      templateId: DAILY_TRENDS_DIGEST_TEMPLATE_ID,
-      timezone: 'UTC',
-    } as CreateWorkflowDto);
+    // Serializable transaction: both the re-check AND the insert use the same
+    // `tx` client so Postgres can detect a concurrent conflicting write and
+    // serialise the two callers correctly.
+    try {
+      await this.prisma.$transaction(
+        async (tx) => {
+          const existing = await tx.workflow.findFirst({
+            select: { id: true },
+            where,
+          });
+
+          if (existing) {
+            return;
+          }
+
+          await tx.workflow.create({
+            data: {
+              edges: DAILY_TRENDS_DIGEST_TEMPLATE.edges as never,
+              executionCount: 0,
+              isDeleted: false,
+              isScheduleEnabled: false,
+              label: 'Daily Trends Digest',
+              metadata: {
+                sourceTemplateId: DAILY_TRENDS_DIGEST_TEMPLATE_ID,
+                sourceType: 'seeded-template',
+              },
+              nodes: DAILY_TRENDS_DIGEST_TEMPLATE.nodes as never,
+              organizationId,
+              progress: 0,
+              schedule: '0 7 * * *',
+              status: WorkflowStatus.ACTIVE,
+              steps: [],
+              timezone: 'UTC',
+              userId,
+            },
+          });
+        },
+        { isolationLevel: 'Serializable' },
+      );
+    } catch (error) {
+      // A serialization failure means a concurrent caller already seeded this
+      // workflow — treat it as success.
+      const errorCode = (error as { code?: string }).code;
+      if (errorCode === 'P2034') {
+        this.logger?.debug(
+          'ensureDailyTrendsDigestWorkflow: serialization conflict — workflow already seeded by concurrent request',
+          { organizationId },
+        );
+        return;
+      }
+      throw error;
+    }
   }
 
   async executeWorkflow(workflowId: string): Promise<void> {

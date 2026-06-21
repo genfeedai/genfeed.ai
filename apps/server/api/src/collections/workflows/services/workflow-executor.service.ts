@@ -686,9 +686,15 @@ export class WorkflowExecutorService {
       // Update workflow status. Scheduled (recurring) workflows must stay
       // ACTIVE so the scheduler keeps firing them — the per-run state lives on
       // the WorkflowExecution record, not on Workflow.status.
+      //
+      // executionCount is NOT incremented here for SCHEDULED runs because the
+      // scheduler already increments it in executeScheduledWorkflow() before
+      // dispatching. Incrementing again would double-count every scheduled run.
       await this.prisma.workflow.update({
         data: {
-          executionCount: { increment: 1 },
+          ...(trigger !== WorkflowExecutionTrigger.SCHEDULED && {
+            executionCount: { increment: 1 },
+          }),
           lastExecutedAt: new Date(),
           status:
             trigger === WorkflowExecutionTrigger.SCHEDULED

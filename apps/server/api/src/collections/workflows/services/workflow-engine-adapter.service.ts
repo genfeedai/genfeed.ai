@@ -862,14 +862,10 @@ export class WorkflowEngineAdapterService {
       return;
     }
 
-    const charged = await this.cacheService.acquireLock(
-      `workflow-digest-charged:${workflowId}:${this.digestUtcDateKey()}`,
-      93_600,
-    );
-    if (!charged) {
-      return;
-    }
-
+    // Deduct credits FIRST — only set the durable daily marker after a
+    // confirmed successful deduction. Setting the marker before the deduction
+    // is incorrect: a transient failure would leave the marker set for ~26 h
+    // and permanently skip that day's charge.
     try {
       await this.creditsUtilsService.deductCreditsFromOrganization(
         orgId,
@@ -882,6 +878,24 @@ export class WorkflowEngineAdapterService {
       this.loggerService.error(
         `${this.logContext} trend digest charge failed`,
         { error, organizationId: orgId, workflowId },
+      );
+      // Do not set the lock — allow a retry on the next scheduled run.
+      return;
+    }
+
+    // Deduction succeeded — now acquire the idempotency lock to prevent
+    // double-charging on concurrent replicas or retries within the same day.
+    const charged = await this.cacheService.acquireLock(
+      `workflow-digest-charged:${workflowId}:${this.digestUtcDateKey()}`,
+      93_600,
+    );
+    if (!charged) {
+      // Another replica already set the marker after a successful deduction —
+      // this path should be unreachable in practice (the caller guards with
+      // a per-execution check), but log it so we can detect unexpected retries.
+      this.loggerService.warn(
+        `${this.logContext} digest already marked as charged for today — skipping duplicate`,
+        { organizationId: orgId, workflowId },
       );
     }
   }

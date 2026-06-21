@@ -1,4 +1,3 @@
-import process from 'node:process';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
@@ -14,6 +13,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { ConfigService } from '@workers/config/config.service';
 
 type TrendRecord = {
   description?: string;
@@ -46,6 +46,7 @@ export class CronTrendSummaryNotificationsService {
     private readonly cacheService: CacheService,
     private readonly notificationsService: NotificationsService,
     private readonly loggerService: LoggerService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -180,7 +181,7 @@ export class CronTrendSummaryNotificationsService {
     // Build summary message via the shared digest builder
     const summaryMessage = buildTrendDigestMessage(trends, { minViralScore });
     const summaryHtml = buildTrendDigestHtml(trends, {
-      appUrl: process.env.GENFEEDAI_APP_URL ?? '',
+      appUrl: this.configService.get('GENFEEDAI_APP_URL') ?? '',
       minViralScore,
     });
 
