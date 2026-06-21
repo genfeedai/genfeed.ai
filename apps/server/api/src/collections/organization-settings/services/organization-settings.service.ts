@@ -3,8 +3,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { CreateOrganizationSettingDto } from '@api/collections/organization-settings/dto/create-organization-setting.dto';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
-// biome-ignore lint/style/useImportType: resolved at runtime via ModuleRef as a DI token
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import type { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import {
@@ -86,9 +85,18 @@ export class OrganizationSettingsService extends BaseService<
         return;
       }
 
-      const workflowsService = this.moduleRef.get(WorkflowsService, {
-        strict: false,
-      });
+      // Load the class for the ModuleRef token via a relative dynamic import.
+      // A top-level value import of workflows.service here completes a module
+      // cycle (workflows → … → organization-settings) that TDZ-crashes the API
+      // on boot: "Cannot access 'OrganizationSettingsService' before
+      // initialization". Deferring the load to call time breaks the cycle.
+      const { WorkflowsService } = await import(
+        '../../workflows/services/workflows.service'
+      );
+      const workflowsService = this.moduleRef.get<WorkflowsService>(
+        WorkflowsService,
+        { strict: false },
+      );
       await workflowsService.ensureDailyTrendsDigestWorkflow(
         organization.userId,
         organizationId,
