@@ -269,10 +269,26 @@ async function main() {
 
     expressApp.use('/admin/queues', bullBoardAuth, serverAdapter.getRouter());
 
+    if (process.env.BOOT_SMOKE === '1') {
+      // Boot smoke (used as a pre-roll gate in deploy-ecs before services roll):
+      // fully initialize the app — which surfaces crash-on-boot bugs like the
+      // circular-dependency TDZ that shipped because CI has no boot test — then
+      // exit cleanly without listening. Any boot failure throws into the catch
+      // below, which exits non-zero so the gate fails.
+      await app.init();
+      await app.close();
+      logger.debug('Boot smoke OK — API initialized cleanly.');
+      process.exit(0);
+    }
+
     await app.listen(port);
     logger.debug(`API service is running on port ${port}`);
   } catch (error: unknown) {
     logger.error('Failed to start API service:', error);
+    if (process.env.BOOT_SMOKE === '1') {
+      // Fail the boot-smoke gate loudly — never let a startup error pass as green.
+      process.exit(1);
+    }
   }
 }
 

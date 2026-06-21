@@ -89,3 +89,45 @@ resource "aws_ecs_task_definition" "migrate" {
     }
   }])
 }
+
+# ── One-off boot smoke (run via `aws ecs run-task` BEFORE services roll) ─
+# Boots the api with BOOT_SMOKE=1 so it fully initializes (catching crash-on-boot
+# bugs like the circular-dependency TDZ in #711 that CI's lack of a boot test let
+# ship) then exits 0 — without listening. Uses the api service's full env so the
+# boot path is realistic. If the new image can't boot, the deploy fails HERE,
+# before any service rolls.
+resource "aws_cloudwatch_log_group" "boot_smoke" {
+  name              = "/ecs/${local.name_prefix}/boot-smoke"
+  retention_in_days = 30
+}
+
+resource "aws_ecs_task_definition" "boot_smoke" {
+  family                   = "${local.name_prefix}-boot-smoke"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = local.services.api.cpu
+  memory                   = local.services.api.mem
+  execution_role_arn       = aws_iam_role.execution.arn
+  task_role_arn            = aws_iam_role.task.arn
+
+  container_definitions = jsonencode([{
+    name      = "boot-smoke"
+    image     = local.image
+    essential = true
+    command   = ["bun", "--filter", local.services.api.filter, "start:prod"]
+    secrets   = local.task_secrets
+    environment = concat(local.internal_env, [
+      { name = "PORT", value = tostring(local.services.api.port) },
+      { name = "SERVICE_NAME", value = "api" },
+      { name = "BOOT_SMOKE", value = "1" },
+    ])
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.boot_smoke.name
+        "awslogs-region"        = var.region
+        "awslogs-stream-prefix" = "boot-smoke"
+      }
+    }
+  }])
+}
