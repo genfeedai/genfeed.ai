@@ -215,7 +215,12 @@ vi.mock('@ui-constants/media.constant', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/constants', () => ({
+vi.mock('@genfeedai/constants', async (importOriginal) => ({
+  // Keep the real (pure) route helpers — createBrandAppRoute /
+  // createOrganizationAppRoute are used via useOrgUrl to build the exact
+  // brand-scoped routes these tests assert. Only the model-metadata lookups
+  // are overridden with deterministic test values.
+  ...(await importOriginal<typeof import('@genfeedai/constants')>()),
   getModelDefaultDuration: vi.fn().mockReturnValue(5),
   getModelDurations: vi.fn().mockReturnValue([5, 10]),
   getModelMaxOutputs: vi.fn().mockReturnValue(4),
