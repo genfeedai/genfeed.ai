@@ -423,6 +423,7 @@ export const createTestOrganizationSetting = (
   createdAt: new Date(),
   enabledModels: [],
   isDeleted: false,
+  isFastlaneEnabled: false,
   isGenerateArticlesEnabled: true,
   isGenerateImagesEnabled: true,
   isGenerateMusicEnabled: true,

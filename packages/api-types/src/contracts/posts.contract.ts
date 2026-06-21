@@ -71,6 +71,7 @@ export const createPostSchema = z.object({
   repeatFrequency: z.nativeEnum(PostFrequency).optional(),
   repeatInterval: z.number().int().positive().optional(),
   scheduledDate: dateStringSchema.optional(),
+  source: optionalStringSchema,
   status: z.nativeEnum(PostStatus),
   tags: objectIdArraySchema().optional(),
   timezone: timezoneSchema.optional(),

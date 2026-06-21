@@ -301,4 +301,13 @@ export class CreatePostDto {
   @IsOptional()
   @IsString()
   readonly publishIntent?: string;
+
+  @ApiProperty({
+    description:
+      'Origin label for the post (e.g. agent, fastlane, manual). Free-form string.',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  readonly source?: string;
 }

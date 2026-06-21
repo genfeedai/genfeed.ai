@@ -167,6 +167,7 @@ export const APP_ROUTES = {
     AVATAR: '/studio/avatar',
     BATCH: '/studio/batch',
     CLIPS: '/studio/clips',
+    FASTLANE: '/studio/fastlane',
     IMAGE: '/studio/image',
     MUSIC: '/studio/music',
     ROOT: '/studio',
