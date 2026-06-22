@@ -42,6 +42,26 @@ describe('mergeMoodBoardLayout', () => {
     expect(fresh?.position.y).toBeGreaterThanOrEqual(MOOD_BOARD_TILE_HEIGHT);
   });
 
+  it('places new assets below the true bottom edge of a tall saved tile', () => {
+    // A portrait tile (400x800 → aspectRatio 0.5) renders 560 tall
+    // (MOOD_BOARD_TILE_WIDTH 280 / 0.5), well past the default tile height.
+    const tall = {
+      ...asset('tall'),
+      metadataWidth: 400,
+      metadataHeight: 800,
+    } as IIngredient;
+
+    const { seeds } = mergeMoodBoardLayout(
+      [tall, asset('fresh')],
+      [saved('tall', 0, 0)],
+    );
+
+    const fresh = seeds.find((seed) => seed.assetId === 'fresh');
+    // Must clear the saved tile's rendered bottom (560), not just the default
+    // tile height (320) — the previous implementation overlapped here.
+    expect(fresh?.position.y).toBeGreaterThan(560);
+  });
+
   it('places all assets from origin when there is no saved layout', () => {
     const { seeds } = mergeMoodBoardLayout([asset('a'), asset('b')], []);
 

@@ -377,6 +377,19 @@ describe('BaseService', () => {
       });
     });
 
+    it('forwards an AbortSignal to the request config so the fetch is cancellable', async () => {
+      const mockResponse = { data: { data: [] } };
+      service.getInstanceForTest().get.mockResolvedValue(mockResponse);
+      const controller = new AbortController();
+
+      await service.findAll({ page: 1 }, controller.signal);
+
+      expect(service.getInstanceForTest().get).toHaveBeenCalledWith('', {
+        params: { page: 1 },
+        signal: controller.signal,
+      });
+    });
+
     it('should set pagination when page is provided', async () => {
       const mockResponse = {
         data: {

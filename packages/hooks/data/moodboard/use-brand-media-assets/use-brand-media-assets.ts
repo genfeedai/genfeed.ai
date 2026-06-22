@@ -24,7 +24,10 @@ const DISPLAYABLE_STATUSES = [
 ];
 
 interface PageableService {
-  findAll(query: Record<string, unknown>): Promise<IIngredient[]>;
+  findAll(
+    query: Record<string, unknown>,
+    signal?: AbortSignal,
+  ): Promise<IIngredient[]>;
 }
 
 function isVisualMediaIngredient(ingredient: IIngredient): boolean {
@@ -53,13 +56,18 @@ async function fetchAllPages(
       break;
     }
 
-    const batch = await service.findAll({
-      brand: brandId,
-      lightweight: true,
-      status: DISPLAYABLE_STATUSES,
-      limit: PAGE_SIZE,
-      page,
-    });
+    const batch = await service.findAll(
+      {
+        brand: brandId,
+        lightweight: true,
+        status: DISPLAYABLE_STATUSES,
+        limit: PAGE_SIZE,
+        page,
+      },
+      // Forward the abort signal so an in-flight page request is cancelled on
+      // unmount, not just checked between pages.
+      signal,
+    );
 
     collected.push(...batch);
 
