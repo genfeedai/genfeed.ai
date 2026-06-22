@@ -10,6 +10,7 @@
 - [Settings Routing](project_settings_routing.md) — canonical personal/org/brand settings URL shapes
 - [Desktop BYOK Generation](project_desktop_byok_generation.md) — desktop local/BYOK generation works without Clerk; Clerk is sync-only
 - [TS6.0/Prisma-7 build regression](project_ts6_prisma7_build_regression.md) — **BUILD REGRESSION RESOLVED 2026-06-03** (develop CI green @ 2e66b0aa8). Root cause was stale turbo cache + mv-dist-src hack, not ~2020 real errors; removed the hack + fixed ~7 Prisma-7 Document interfaces. Stage 4 + migration-apply still pending.
+- **Deployment Modes & Auth Refactor (2026-06-22)** — canonical 3-mode model (SaaS / Community / Desktop as `deployment × client` axes) locked in [ADR-DEPLOYMENT-MODES](architecture/ADR-DEPLOYMENT-MODES.md). Two P0 epics: **#735** Clerk → Better Auth (own self-hostable auth across ALL modes incl. SaaS; phased dual-run; headless API-keys UI+CLI #747) and **#740** deployment modes (canonical mode #742, switcher #743, CI rework #744, community-just-works #745, release QA #746). Multi-tenancy stays EE/SaaS; managed credits cloud-only; Community = funnel charter. Supersedes the auth half of #95.
 
 ## Feedback (user corrections — permanent)
 
@@ -79,6 +80,7 @@
 - [PLG Boundary](architecture/ADR-PLG-BOUNDARY-OSS-CLOUD.md) — OSS vs cloud feature split
 - [Workflow-Backed Agents](architecture/ADR-WORKFLOW-BACKED-RECURRING-AGENT-AUTOMATION.md) — recurring agent automation
 - [Skills, Routines, and Memory Boundary](architecture/ADR-SKILLS-ROUTINES-MEMORY-BOUNDARY.md) — OSS single-player loop vs cloud collaborative governance
+- [Deployment Modes & Auth](architecture/ADR-DEPLOYMENT-MODES.md) — 3 product modes (SaaS/Community/Desktop) as `deployment × client` axes; Clerk → Better Auth everywhere; brand-always/org-SaaS-only switcher; multi-tenancy = EE/SaaS; managed credits cloud-only; Community funnel charter. Epics #735, #740. (contributor doc: `docs/deployment-modes.md`)
 
 ## Rules (symlinked to .claude/rules/)
 
