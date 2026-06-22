@@ -36,8 +36,11 @@ function genId() {
 async function fetchElevenLabs() {
   const key = process.env.ELEVENLABS_API_KEY;
   if (!key) {
-    console.error('ELEVENLABS_API_KEY missing — skipping ElevenLabs');
-    return [];
+    // Throw rather than return [] so a missing credential fails the run loudly
+    // (caught by main() -> exit 1), instead of silently reporting "0 voices" as
+    // success and — in live mode — writing nothing while exiting 0. Matches the
+    // .ts variant's fail-closed behavior.
+    throw new Error('ELEVENLABS_API_KEY is not set');
   }
   const res = await fetch('https://api.elevenlabs.io/v1/voices', {
     headers: { 'xi-api-key': key, accept: 'application/json' },
@@ -56,8 +59,8 @@ async function fetchElevenLabs() {
 async function fetchHeyGen() {
   const key = process.env.HEYGEN_KEY;
   if (!key) {
-    console.error('HEYGEN_KEY missing — skipping HeyGen');
-    return [];
+    // Fail closed on a missing credential (see fetchElevenLabs).
+    throw new Error('HEYGEN_KEY is not set');
   }
   const res = await fetch('https://api.heygen.com/v2/voices', {
     headers: { 'X-Api-Key': key, accept: 'application/json' },
