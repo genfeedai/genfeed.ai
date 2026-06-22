@@ -1,5 +1,7 @@
 import {
   createServiceConfig,
+  falSchema,
+  huggingFaceSchema,
   type IEnvConfig,
   microservicesSchema,
   postgresSchema,
@@ -24,6 +26,11 @@ export class ConfigService extends createServiceConfig<WorkersEnvConfig>({
     // microservices URLs default to localhost in self-hosted instead of
     // silently resolving to undefined.
     microservicesSchema,
+    // #484: workers' model-discovery reads these AI-provider keys
+    // (fal-discovery.service, hugging-face-discovery.service). Both are optional
+    // fragments — absence is tolerated at runtime, presence is schema-documented.
+    falSchema,
+    huggingFaceSchema,
   ],
   extend: {
     GF_DEV_ENABLE_SCHEDULERS: Joi.string()
@@ -39,6 +46,23 @@ export class ConfigService extends createServiceConfig<WorkersEnvConfig>({
     GENFEEDAI_APP_URL: Joi.string().uri().optional().allow(''),
     GENFEEDAI_CDN_URL: Joi.string().uri().optional().allow(''),
     GENFEEDAI_WEBHOOKS_URL: Joi.string().uri().optional().allow(''),
+    // #484: more vars workers consumes via configService.get() but never
+    // validated. Kept optional (no required/conditionalRequired) so a service
+    // that runs without them does not crash at boot, and AWS_REGION carries no
+    // default so the llm-idle cron's own `|| 'us-east-1'` fallback is preserved.
+    // - OPENROUTER_API_KEY: clip-factory/clip-analyze processors
+    // - REPLICATE_KEY: model-watcher cron + model-discovery service (soft-fails)
+    // - AWS_*: llm-idle cron's EC2Client credentials/region
+    // - GPU_LLM_INSTANCE_ID: llm-idle cron (gpuFleetSchema is not exported from
+    //   @genfeedai/config, so the single consumed key is inlined here)
+    // - SERVICE_NAME: health-response label (main.ts)
+    AWS_ACCESS_KEY_ID: Joi.string().optional().allow(''),
+    AWS_REGION: Joi.string().optional(),
+    AWS_SECRET_ACCESS_KEY: Joi.string().optional().allow(''),
+    GPU_LLM_INSTANCE_ID: Joi.string().optional().allow(''),
+    OPENROUTER_API_KEY: Joi.string().optional().allow(''),
+    REPLICATE_KEY: Joi.string().optional().allow(''),
+    SERVICE_NAME: Joi.string().optional().allow(''),
   },
 }) {
   public get isDevSchedulersEnabled(): boolean {

@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { ConfigService } from '@mcp/config/config.service';
 
 describe('ConfigService (MCP)', () => {
@@ -54,5 +55,30 @@ describe('ConfigService (MCP)', () => {
     expect(service.isStaging).toBe(true);
     expect(service.isDevelopment).toBe(false);
     expect(service.isProduction).toBe(false);
+  });
+
+  describe('consumed env-var schema coverage (#484)', () => {
+    // main.ts reads CHROME_EXTENSION_ID for CORS; it must be validated.
+    it('validates CHROME_EXTENSION_ID', () => {
+      expect(ConfigService.schema.describe().keys).toHaveProperty(
+        'CHROME_EXTENSION_ID',
+      );
+    });
+
+    it('accepts a well-formed 32-char CHROME_EXTENSION_ID', () => {
+      process.env.CHROME_EXTENSION_ID = 'a'.repeat(32);
+
+      expect(() => new ConfigService()).not.toThrow();
+
+      delete process.env.CHROME_EXTENSION_ID;
+    });
+
+    it('rejects a malformed CHROME_EXTENSION_ID at startup', () => {
+      process.env.CHROME_EXTENSION_ID = 'too-short';
+
+      expect(() => new ConfigService()).toThrow(/CHROME_EXTENSION_ID/);
+
+      delete process.env.CHROME_EXTENSION_ID;
+    });
   });
 });

@@ -134,6 +134,21 @@ describe('createServiceConfig', () => {
     );
   });
 
+  it('exposes the composed schema for introspection (#484)', () => {
+    const ServiceConfig = createServiceConfig<SampleEnvConfig>({
+      appName: 'sample',
+      schemas: [sharedFragment],
+      extend: { SAMPLE_INLINE: Joi.string().optional().allow('') },
+    });
+
+    const keys = ServiceConfig.schema.describe().keys;
+
+    // baseSchema + fragment + extend keys are all present on the static schema.
+    expect(keys).toHaveProperty('PORT');
+    expect(keys).toHaveProperty('SAMPLE_SHARED');
+    expect(keys).toHaveProperty('SAMPLE_INLINE');
+  });
+
   it('exposes subclass getters backed by validated config', () => {
     class ConfigService extends createServiceConfig<SampleEnvConfig>({
       appName: 'sample',
