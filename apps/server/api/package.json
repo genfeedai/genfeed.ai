@@ -22,6 +22,7 @@
     "@prisma/adapter-pg": "7.8.0",
     "archiver": "8.0.0",
     "bcrypt": "6.0.0",
+    "better-auth": "^1.6.20",
     "compression": "1.8.1",
     "cookie-parser": "1.4.7",
     "effect": "3.21.2",
