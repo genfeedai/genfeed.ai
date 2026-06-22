@@ -8,6 +8,7 @@ export * from './deserializer.helper';
 export * from './formatting/cn/cn.util';
 export * from './generation-controls.helper';
 export * from './generation-eta.helper';
+export * from './media/provenance/provenance.helper';
 export * from './model-capability.helper';
 export * from './quality-routing.helper';
 export * from './serializer.helper';
