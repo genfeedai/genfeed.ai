@@ -90,6 +90,39 @@ export async function resolveClerkToken(
   return (await getToken(opts)) ?? getPlaywrightJwtToken();
 }
 
+/**
+ * Unified token resolver for the Clerk → Better Auth dual run (epic #735).
+ *
+ * - **Better Auth on:** returns the JWT minted by the `jwt` plugin's
+ *   `authClient.token()` (the Clerk `getToken` callback is ignored), falling
+ *   back to the Playwright E2E JWT.
+ * - **Better Auth off (default):** delegates to {@link resolveClerkToken}
+ *   unchanged — so the Clerk path is byte-for-byte identical and existing tests
+ *   that mock `resolveClerkToken` keep intercepting.
+ *
+ * This is the single token choke point every authenticated frontend surface
+ * flows through; migrating a call site is a mechanical `resolveClerkToken` ->
+ * `resolveAuthToken` rename (the signature is backward-compatible).
+ */
+export async function resolveAuthToken(
+  getToken: ClerkTokenGetter,
+  opts?: {
+    forceRefresh?: boolean;
+    template?: string;
+  },
+): Promise<string | null> {
+  // Read the flag inline (no static import) and load the Better Auth client via
+  // a dynamic import only when it is on. This keeps `better-auth/react` (and its
+  // React hooks) out of `@genfeedai/helpers`' static graph, so this module stays
+  // server/RSC-safe and adds zero cost to the default Clerk path.
+  if (process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED === 'true') {
+    const { getBetterAuthToken } = await import('@genfeedai/auth-client');
+    return (await getBetterAuthToken()) ?? getPlaywrightJwtToken();
+  }
+
+  return resolveClerkToken(getToken, opts);
+}
+
 export function hasPlaywrightJwtToken(): boolean {
   return getPlaywrightJwtToken() !== null;
 }

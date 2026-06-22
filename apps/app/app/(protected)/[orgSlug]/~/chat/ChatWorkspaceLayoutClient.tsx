@@ -9,7 +9,7 @@ import {
 } from '@genfeedai/agent';
 import {
   getPlaywrightAuthState,
-  resolveClerkToken,
+  resolveAuthToken,
 } from '@helpers/auth/clerk.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
@@ -73,7 +73,7 @@ function ChatWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
     () =>
       new AgentApiService({
         baseUrl: process.env.NEXT_PUBLIC_API_ENDPOINT ?? '',
-        getToken: async () => resolveClerkToken(getToken),
+        getToken: async () => resolveAuthToken(getToken),
       }),
     [getToken],
   );
@@ -85,7 +85,7 @@ function ChatWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
 
     completedRef.current = true;
 
-    const effectiveToken = await resolveClerkToken(getToken);
+    const effectiveToken = await resolveAuthToken(getToken);
     if (effectiveToken) {
       const funnelService = OnboardingFunnelService.getInstance(effectiveToken);
       await funnelService.completeFunnel();
@@ -101,7 +101,7 @@ function ChatWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
   const handleOAuthConnect = useCallback(
     async (platform: string) => {
       try {
-        const token = await resolveClerkToken(getToken);
+        const token = await resolveAuthToken(getToken);
         if (!token) {
           return;
         }

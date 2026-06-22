@@ -2,7 +2,7 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { AgentApiService, AgentFullPage } from '@genfeedai/agent';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { useUserRole } from '@hooks/auth/use-user-role';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCallback, useMemo } from 'react';
@@ -30,7 +30,7 @@ export default function AgentPageContent({
     () =>
       new AgentApiService({
         baseUrl: process.env.NEXT_PUBLIC_API_ENDPOINT ?? '',
-        getToken: async () => resolveClerkToken(getToken),
+        getToken: async () => resolveAuthToken(getToken),
       }),
     [getToken],
   );

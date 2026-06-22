@@ -77,6 +77,18 @@ export default defineConfig({
         replacement: path.join(ENUMS_SRC, '$1'),
       },
       {
+        find: /^@genfeedai\/auth-client$/,
+        replacement: path.resolve(__dirname, '../auth-client/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/auth-client\/(.*)$/,
+        replacement: path.resolve(__dirname, '../auth-client/src/$1'),
+      },
+      {
+        find: /^@genfeedai\/hooks\/(.*)$/,
+        replacement: path.resolve(__dirname, './$1'),
+      },
+      {
         find: /^@genfeedai\/helpers$/,
         replacement: path.join(HELPERS_SRC, 'index.ts'),
       },

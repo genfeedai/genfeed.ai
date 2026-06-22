@@ -2,7 +2,7 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import { resolveClerkToken } from '@genfeedai/helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@genfeedai/helpers/auth/clerk.helper';
 import { formatRecurringSchedule } from '@genfeedai/helpers/formatting/recurring-schedule/recurring-schedule.helper';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
@@ -86,7 +86,7 @@ export default function SchedulePanel({
 
     try {
       setIsSaving(true);
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       const response = await fetch(
         `${EnvironmentService.apiEndpoint}/workflows/${workflowId}/schedule`,
         {
@@ -119,7 +119,7 @@ export default function SchedulePanel({
   const handleRemoveSchedule = useCallback(async () => {
     try {
       setIsSaving(true);
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       const response = await fetch(
         `${EnvironmentService.apiEndpoint}/workflows/${workflowId}/schedule`,
         {

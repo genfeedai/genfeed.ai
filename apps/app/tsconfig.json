@@ -43,6 +43,8 @@
       "@cloud-types/*": ["../../packages/types/src/*"],
       "@genfeedai/agent": ["../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../packages/agent/src/*"],
+      "@genfeedai/auth-client": ["../../packages/auth-client/src/index.ts"],
+      "@genfeedai/auth-client/*": ["../../packages/auth-client/src/*"],
       "@genfeedai/contexts": ["../../packages/contexts/index.ts"],
       "@genfeedai/contexts/*": ["../../packages/contexts/*"],
       "@genfeedai/config": ["../../packages/config/src/index.ts"],

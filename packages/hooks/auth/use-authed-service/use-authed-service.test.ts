@@ -1,5 +1,5 @@
 import { useAuth } from '@clerk/nextjs';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import {
   clearTokenCache,
   useAuthedService,
@@ -11,13 +11,20 @@ vi.mock('@clerk/nextjs', () => ({
   useAuth: vi.fn(() => ({ getToken: vi.fn() })),
 }));
 
+// Better Auth off (default): the module-selected identity hook resolves to the
+// Clerk path, and the token choke point delegates to the Clerk getToken.
+vi.mock('@genfeedai/auth-client', () => ({
+  isBetterAuthEnabled: () => false,
+  useBetterAuthIdentity: vi.fn(),
+}));
+
 vi.mock('@helpers/auth/clerk.helper', () => ({
-  resolveClerkToken: vi.fn(),
+  resolveAuthToken: vi.fn(),
 }));
 
 describe('useAuthedService', () => {
   const getTokenMock = vi.fn();
-  const mockResolveClerkToken = resolveClerkToken as unknown as ReturnType<
+  const mockResolveAuthToken = resolveAuthToken as unknown as ReturnType<
     typeof vi.fn
   >;
   const mockUseAuth = useAuth as unknown as ReturnType<typeof vi.fn>;
@@ -39,7 +46,7 @@ describe('useAuthedService', () => {
     clearTokenCache();
     orgIdMock = 'org-123';
     userIdMock = 'user-123';
-    mockResolveClerkToken.mockImplementation(async (getToken, opts) =>
+    mockResolveAuthToken.mockImplementation(async (getToken, opts) =>
       getToken(opts),
     );
     mockUseAuth.mockReturnValue({
@@ -99,13 +106,13 @@ describe('useAuthedService', () => {
 
   it('falls back to the playwright jwt token when Clerk returns null', async () => {
     const mockService = vi.fn();
-    mockResolveClerkToken.mockResolvedValue('playwright-jwt');
+    mockResolveAuthToken.mockResolvedValue('playwright-jwt');
 
     const { result } = renderHook(() => useAuthedService(mockService));
 
     await result.current();
 
-    expect(resolveClerkToken).toHaveBeenCalledWith(getTokenMock, undefined);
+    expect(resolveAuthToken).toHaveBeenCalledWith(getTokenMock, undefined);
     expect(mockService).toHaveBeenCalledWith('playwright-jwt');
   });
 

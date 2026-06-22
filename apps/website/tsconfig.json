@@ -33,6 +33,8 @@
       "@genfeedai/client/schemas/*": ["../../packages/client/src/schemas/*"],
       "@genfeedai/enums": ["../../packages/enums/src/index.ts"],
       "@genfeedai/enums/*": ["../../packages/enums/src/*"],
+      "@genfeedai/auth-client": ["../../packages/auth-client/src/index.ts"],
+      "@genfeedai/auth-client/*": ["../../packages/auth-client/src/*"],
       "@genfeedai/constants": ["../../packages/constants/src/index.ts"],
       "@genfeedai/constants/*": ["../../packages/constants/src/*"],
       "@genfeedai/helpers": ["../../packages/helpers/src/index.ts"],

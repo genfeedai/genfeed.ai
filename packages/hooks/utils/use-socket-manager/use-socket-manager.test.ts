@@ -26,7 +26,7 @@ vi.mock('@clerk/nextjs', () => ({
 
 vi.mock('@helpers/auth/clerk.helper', () => ({
   getPlaywrightAuthState: vi.fn(() => null),
-  resolveClerkToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
+  resolveAuthToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
 }));
 
 vi.mock('@genfeedai/services/core/socket-manager.service', () => ({

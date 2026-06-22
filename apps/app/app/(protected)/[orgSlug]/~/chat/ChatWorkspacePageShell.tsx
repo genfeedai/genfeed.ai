@@ -2,7 +2,7 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { AgentFullPage } from '@genfeedai/agent';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { TasksService } from '@services/management/tasks.service';
 import { useRouter } from 'next/navigation';
@@ -30,7 +30,7 @@ export function ChatWorkspacePageShell({
 
   const handleCreateFollowUpTasks = useCallback(
     async (taskId: string) => {
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       if (!token) {
         throw new Error('Authentication token unavailable.');
       }

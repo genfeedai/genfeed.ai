@@ -9,7 +9,7 @@ import type { OnboardingProviderProps } from '@genfeedai/props/onboarding/onboar
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { UpdateUserOnboardingPayload } from '@genfeedai/services/onboarding/user-onboarding.service';
 import { UserOnboardingService } from '@genfeedai/services/onboarding/user-onboarding.service';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   createContext,
@@ -61,7 +61,7 @@ export default function OnboardingProvider({
   }, [isLoading, currentUser]);
 
   const getService = useCallback(async () => {
-    const token = await resolveClerkToken(getToken);
+    const token = await resolveAuthToken(getToken);
     if (!token) {
       throw new Error('Not authenticated');
     }

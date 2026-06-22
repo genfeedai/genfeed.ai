@@ -1,6 +1,10 @@
 import 'server-only';
 
 import { auth } from '@clerk/nextjs/server';
+import {
+  getBetterAuthServerToken,
+  isBetterAuthEnabled,
+} from '@genfeedai/auth-client/server';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
 import { AuthService } from '@services/auth/auth.service';
 import { logger } from '@services/core/logger.service';
@@ -24,6 +28,27 @@ export const getServerAuthToken = cache(async (): Promise<string> => {
 
   if (await isServerBootstrapBypassed()) {
     return '';
+  }
+
+  // Better Auth dual run (#735): when enabled, the server-side bearer JWT is
+  // minted by forwarding the BA session cookies to the jwt plugin's /token
+  // endpoint. Takes precedence over Clerk so flipping the flag swaps RSC auth.
+  if (isBetterAuthEnabled()) {
+    try {
+      const cookieStore = await cookies();
+      const cookieHeader = cookieStore
+        .getAll()
+        .map((cookie) => `${cookie.name}=${cookie.value}`)
+        .join('; ');
+
+      return (await getBetterAuthServerToken(cookieHeader)) ?? '';
+    } catch (error) {
+      logger.warn('Better Auth token unavailable during protected bootstrap', {
+        error,
+        reportToSentry: false,
+      });
+      return '';
+    }
   }
 
   if (isDesktopShell) {

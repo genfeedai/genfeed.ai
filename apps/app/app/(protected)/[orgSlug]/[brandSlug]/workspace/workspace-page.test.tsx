@@ -20,7 +20,7 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   replace: vi.fn(),
   requestChanges: vi.fn(),
-  resolveClerkToken: vi.fn(),
+  resolveAuthToken: vi.fn(),
   subscribe: vi.fn(),
   trashOutput: vi.fn(),
   unkeepOutput: vi.fn(),
@@ -39,7 +39,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@helpers/auth/clerk.helper', () => ({
-  resolveClerkToken: mocks.resolveClerkToken,
+  resolveAuthToken: mocks.resolveAuthToken,
 }));
 
 vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
@@ -164,7 +164,7 @@ function makeInspectorTask(overrides: Record<string, unknown> = {}) {
 describe('WorkspacePageContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.resolveClerkToken.mockResolvedValue('token-1');
+    mocks.resolveAuthToken.mockResolvedValue('token-1');
     mocks.subscribe.mockReturnValue(vi.fn());
     mocks.agentRunsList.mockResolvedValue([]);
     mocks.getActiveRuns.mockResolvedValue([]);

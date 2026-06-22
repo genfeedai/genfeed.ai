@@ -37,6 +37,13 @@ const hasClerkKeys =
   Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim()) &&
   Boolean(process.env.CLERK_SECRET_KEY?.trim());
 const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
+// Better Auth dual-run flag (#735). NEXT_PUBLIC_ so it is inlined into the
+// middleware bundle — a plain server env is unreadable in edge middleware.
+// Precedence: the BA guard below only fires when !isCloudConnected (no Clerk
+// keys). If both Clerk keys AND this flag are set (a misconfiguration), Clerk
+// wins and the BA guard is skipped — keep BA and Clerk keys mutually exclusive.
+const isBetterAuthEnabled =
+  process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED === 'true';
 const ONBOARDING_PATH = '/onboarding';
 const SEEDED_WORKSPACE_PATH = '/default/default/workspace/overview';
 
@@ -710,6 +717,23 @@ const clerkProxy = isCloudConnected
     )
   : null;
 
+/**
+ * Public (no-session) routes under the Better Auth guard. Unlike the keyless
+ * self-hosted branch, /login, /sign-up and /logout are real auth pages here.
+ * /oauth/* are integration callbacks and must never be gated.
+ */
+function isBetterAuthPublicRoute(pathname: string): boolean {
+  return (
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/sign-in') ||
+    pathname.startsWith('/sign-up') ||
+    pathname.startsWith('/logout') ||
+    pathname.startsWith('/onboarding') ||
+    pathname.startsWith('/oauth') ||
+    pathname.startsWith('/request-access')
+  );
+}
+
 export default async function proxy(req: NextRequest, event: NextFetchEvent) {
   if (req.nextUrl.pathname === '/playwright-ready') {
     return NextResponse.next();
@@ -798,6 +822,29 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
         return response;
       }
 
+      return redirectPreservingSearch(req, '/login');
+    }
+
+    return NextResponse.next();
+  }
+
+  // Better Auth dual run (#735): self-hosted / Community with first-party auth.
+  // Unlike the keyless branch below, /login, /sign-up and /logout are REAL auth
+  // pages, so they stay public; every other route requires a BA session cookie
+  // (the API still validates the JWT — this is a cheap presence gate).
+  if (isBetterAuthEnabled && !isCloudConnected) {
+    const { pathname } = req.nextUrl;
+
+    if (isBetterAuthPublicRoute(pathname)) {
+      return NextResponse.next();
+    }
+
+    const hasBetterAuthSession = Boolean(
+      req.cookies.get('better-auth.session_token')?.value ||
+        req.cookies.get('__Secure-better-auth.session_token')?.value,
+    );
+
+    if (!hasBetterAuthSession) {
       return redirectPreservingSearch(req, '/login');
     }
 

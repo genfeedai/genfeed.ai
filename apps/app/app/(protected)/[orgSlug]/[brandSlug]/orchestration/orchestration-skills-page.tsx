@@ -2,7 +2,7 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { type Skill, SkillsService } from '@services/content/skills.service';
@@ -156,7 +156,7 @@ export default function OrchestrationSkillsPage() {
   } = state;
 
   const getSkillsService = useCallback(async () => {
-    const token = await resolveClerkToken(getToken);
+    const token = await resolveAuthToken(getToken);
     if (!token) {
       throw new Error('Authentication token unavailable');
     }

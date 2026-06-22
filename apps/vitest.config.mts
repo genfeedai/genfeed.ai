@@ -78,6 +78,17 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/agent/src/$1'),
       },
       {
+        find: /^@genfeedai\/auth-client$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/auth-client/src/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/auth-client\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/auth-client/src/$1'),
+      },
+      {
         find: /^@genfeedai\/config$/,
         replacement: path.resolve(repoRoot, './packages/config/src/index.ts'),
       },

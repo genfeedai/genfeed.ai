@@ -17,7 +17,13 @@ vi.mock('@clerk/nextjs', () => ({
 vi.mock('@genfeedai/helpers/auth/clerk.helper', () => ({
   getPlaywrightAuthState: () => getPlaywrightAuthStateMock(),
   hasPlaywrightJwtToken: () => hasPlaywrightJwtTokenMock(),
-  resolveClerkToken: vi.fn().mockResolvedValue('jwt-token'),
+  resolveAuthToken: (getToken: () => Promise<string | null>) => getToken(),
+}));
+
+// Better Auth off (default): the shared identity dispatcher resolves to Clerk.
+vi.mock('@genfeedai/auth-client', () => ({
+  isBetterAuthEnabled: () => false,
+  useBetterAuthIdentity: vi.fn(),
 }));
 
 vi.mock('@genfeedai/contexts/ui/asset-selection-context', () => ({

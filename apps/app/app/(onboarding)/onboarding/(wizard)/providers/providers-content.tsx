@@ -3,7 +3,7 @@
 import { useAuth } from '@clerk/nextjs';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import type { OnboardingAccessMode } from '@genfeedai/interfaces';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
@@ -137,7 +137,7 @@ export default function ProvidersContent() {
 
     const loadReadiness = async () => {
       try {
-        const token = await resolveClerkToken(getToken);
+        const token = await resolveAuthToken(getToken);
         if (!token || cancelled) {
           setLoading(false);
           return;

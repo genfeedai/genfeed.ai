@@ -2,7 +2,7 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { useCallback, useEffect, useState } from 'react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
@@ -66,7 +66,7 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
       setEnabledSlugs(nextSlugs);
 
       try {
-        const token = await resolveClerkToken(getToken);
+        const token = await resolveAuthToken(getToken);
         if (!token) throw new Error('No auth token');
 
         const response = await fetch(

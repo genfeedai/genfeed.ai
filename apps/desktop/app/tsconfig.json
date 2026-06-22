@@ -6,6 +6,8 @@
       "@components/*": ["../../../packages/ui/src/components/*"],
       "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
+      "@genfeedai/auth-client": ["../../../packages/auth-client/src/index.ts"],
+      "@genfeedai/auth-client/*": ["../../../packages/auth-client/src/*"],
       "@genfeedai/contexts/*": ["../../../packages/contexts/*"],
       "@genfeedai/desktop-contracts": [
         "../../../packages/desktop-contracts/src/index.ts"

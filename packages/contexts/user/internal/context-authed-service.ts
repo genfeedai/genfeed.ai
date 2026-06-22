@@ -1,7 +1,7 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { useCallback, useEffect, useRef } from 'react';
 
 const tokenCache = new Map<
@@ -73,7 +73,7 @@ function getCachedToken(
     return cached.promise;
   }
 
-  const promise = resolveClerkToken(getTokenFn, tokenOptions).then((token) => {
+  const promise = resolveAuthToken(getTokenFn, tokenOptions).then((token) => {
     if (!token) {
       tokenCache.delete(cacheKey);
       throw new ContextAuthenticationTokenUnavailableError();
@@ -107,7 +107,7 @@ export function useContextAuthedService<T>(
   factory: (token: string) => T,
   template?: string,
 ) {
-  const { getToken, orgId, userId } = useAuth();
+  const { getToken, orgId, userId } = useAuthIdentity();
   const factoryRef = useRef(factory);
   const getTokenRef = useRef(
     getToken as (opts?: TokenOptions) => Promise<string | null>,

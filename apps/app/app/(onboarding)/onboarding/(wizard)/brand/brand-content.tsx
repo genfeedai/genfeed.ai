@@ -2,7 +2,7 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { LinkCategory, type OrganizationCategory } from '@genfeedai/enums';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
 import { OnboardingService } from '@services/onboarding/onboarding.service';
@@ -90,7 +90,7 @@ function BrandContentContent() {
 
     const prefill = async () => {
       try {
-        const token = await resolveClerkToken(getToken);
+        const token = await resolveAuthToken(getToken);
         if (!token || controller.signal.aborted) {
           return;
         }
@@ -143,7 +143,7 @@ function BrandContentContent() {
     async (category: OrganizationCategory) => {
       setAccountType(category);
       try {
-        const token = await resolveClerkToken(getToken);
+        const token = await resolveAuthToken(getToken);
         if (token) {
           const service = OnboardingFunnelService.getInstance(token);
           await service.setAccountType(category);
@@ -173,7 +173,7 @@ function BrandContentContent() {
       setSubmitting(true);
 
       try {
-        const token = await resolveClerkToken(getToken);
+        const token = await resolveAuthToken(getToken);
         if (!token) {
           return;
         }
@@ -220,7 +220,7 @@ function BrandContentContent() {
     setSubmitting(true);
 
     try {
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       if (!token) {
         return;
       }

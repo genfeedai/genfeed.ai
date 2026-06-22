@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import {
   OnboardingService,
   type ProactiveWorkspaceResponse,
@@ -91,7 +91,7 @@ export default function ProactiveContent() {
     let isCancelled = false;
 
     const loadWorkspace = async (mode: 'claim' | 'refresh') => {
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       if (!token) {
         return;
       }

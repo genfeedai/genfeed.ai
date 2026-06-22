@@ -48,7 +48,7 @@ const mocks = vi.hoisted(() => ({
   onOpenChange: vi.fn(),
   onTaskCreated: vi.fn(),
   promptPost: vi.fn(),
-  resolveClerkToken: vi.fn(),
+  resolveAuthToken: vi.fn(),
   websocketOptions: undefined as
     | {
         onError: () => void;
@@ -70,7 +70,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@helpers/auth/clerk.helper', () => ({
-  resolveClerkToken: mocks.resolveClerkToken,
+  resolveAuthToken: mocks.resolveAuthToken,
 }));
 
 vi.mock('@hooks/utils/use-websocket-prompt/use-websocket-prompt', () => ({
@@ -346,7 +346,7 @@ describe('WorkspaceTaskComposer', () => {
     mocks.editorOptions = undefined;
     mocks.websocketOptions = undefined;
     mocks.getToken.mockResolvedValue('clerk-token');
-    mocks.resolveClerkToken.mockResolvedValue('api-token');
+    mocks.resolveAuthToken.mockResolvedValue('api-token');
     mocks.createTask.mockResolvedValue({
       id: 'task-1',
       request: 'Create a product launch brief',
@@ -627,7 +627,7 @@ describe('WorkspaceTaskComposer', () => {
   });
 
   it('surfaces auth, facecam load, enhancement, and create failures', async () => {
-    mocks.resolveClerkToken.mockResolvedValueOnce(null);
+    mocks.resolveAuthToken.mockResolvedValueOnce(null);
     renderComposer();
     fillRequest('Create a product image');
 
@@ -636,7 +636,7 @@ describe('WorkspaceTaskComposer', () => {
       await screen.findByText('Authentication token unavailable.'),
     ).toBeVisible();
 
-    mocks.resolveClerkToken.mockResolvedValue('api-token');
+    mocks.resolveAuthToken.mockResolvedValue('api-token');
     mocks.fetch.mockResolvedValueOnce(new Response('{}', { status: 500 }));
     fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
     expect(
@@ -689,13 +689,13 @@ describe('WorkspaceTaskComposer', () => {
       ...mocks.brandContext,
       organizationId: 'org-1',
     };
-    mocks.resolveClerkToken.mockResolvedValueOnce(null);
+    mocks.resolveAuthToken.mockResolvedValueOnce(null);
     fireEvent.click(screen.getByRole('button', { name: /create task/i }));
     expect(
       await screen.findByText('Authentication token unavailable.'),
     ).toBeVisible();
 
-    mocks.resolveClerkToken.mockResolvedValue('api-token');
+    mocks.resolveAuthToken.mockResolvedValue('api-token');
     mocks.fetch
       .mockResolvedValueOnce(new Response('{}', { status: 404 }))
       .mockResolvedValueOnce(new Response('{}', { status: 403 }));

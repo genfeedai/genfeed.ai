@@ -1,9 +1,9 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import type { IAgentRun } from '@genfeedai/interfaces';
 import { AgentRunsService } from '@genfeedai/services/ai/agent-runs.service';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 
@@ -25,7 +25,7 @@ export interface UseActiveAgentRunsOptions {
 export function useActiveAgentRuns(
   options: UseActiveAgentRunsOptions = {},
 ): UseActiveAgentRunsReturn {
-  const { getToken, orgId, userId } = useAuth();
+  const { getToken, orgId, userId } = useAuthIdentity();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const shouldRevalidateOnMount =
@@ -38,7 +38,7 @@ export function useActiveAgentRuns(
   } = useQuery({
     queryKey: ['active-agent-runs', userId ?? 'anonymous', orgId ?? 'no-org'],
     queryFn: async () => {
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       if (!token) return [];
 
       const service = AgentRunsService.getInstance(token);

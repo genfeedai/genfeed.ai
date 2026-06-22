@@ -3,7 +3,7 @@
 import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { type AgentApiConfig, AgentSettings } from '@genfeedai/agent';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import Container from '@ui/layout/container/Container';
 import { useMemo } from 'react';
 import { HiOutlineCog6Tooth } from 'react-icons/hi2';
@@ -15,7 +15,7 @@ export default function AgentConfigurationPage() {
   const apiConfig = useMemo<AgentApiConfig>(
     () => ({
       baseUrl: process.env.NEXT_PUBLIC_API_ENDPOINT ?? '',
-      getToken: async () => resolveClerkToken(getToken),
+      getToken: async () => resolveAuthToken(getToken),
     }),
     [getToken],
   );
