@@ -9,6 +9,7 @@ import {
   sentryOptionalSchema,
   telegramBotSchema,
   twitchSchema,
+  webhooksSchema,
 } from '@genfeedai/config';
 import { Injectable, Logger } from '@nestjs/common';
 import Joi from 'joi';
@@ -25,6 +26,9 @@ export class ConfigService extends createServiceConfig<IEnvConfig>({
     telegramBotSchema,
     resendSchema,
     twitchSchema,
+    // #484: main.ts reads CHROME_EXTENSION_ID for CORS; webhooksSchema is the
+    // canonical home (length-32 constraint fails fast on a malformed value).
+    webhooksSchema,
   ],
   extend: {
     API_BASE_URL: Joi.string().uri().default('http://localhost:3010'),
@@ -37,6 +41,20 @@ export class ConfigService extends createServiceConfig<IEnvConfig>({
     // Notifications-specific
     GENFEEDAI_APP_URL: Joi.string().uri().optional().allow(''),
     GENFEED_TERMINAL_CWD: Joi.string().optional().allow(''),
+    // #484: more vars notifications consumes but never validated. Optional so a
+    // deployment without them still boots; GENFEED_CLOUD/NEXT_PUBLIC_GENFEED_CLOUD
+    // are kept format-free (not .valid('true','false')) so an existing cloud env
+    // with an unconventional value is not rejected at boot.
+    // - SLACK_NOTIFICATION_BOT_TOKEN: slack.service
+    // - GENFEED_CLOUD / NEXT_PUBLIC_GENFEED_CLOUD: terminal.service cloud gate
+    // - VALIDATION_*: validation.config file-upload limits
+    GENFEED_CLOUD: Joi.string().optional().allow(''),
+    NEXT_PUBLIC_GENFEED_CLOUD: Joi.string().optional().allow(''),
+    SLACK_NOTIFICATION_BOT_TOKEN: Joi.string().optional().allow(''),
+    VALIDATION_AUDIO_FORMATS: Joi.string().optional().allow(''),
+    VALIDATION_IMAGE_FORMATS: Joi.string().optional().allow(''),
+    VALIDATION_MAX_FILE_SIZE: Joi.string().optional().allow(''),
+    VALIDATION_VIDEO_FORMATS: Joi.string().optional().allow(''),
   },
 }) {
   private readonly logger = new Logger(ConfigService.name);

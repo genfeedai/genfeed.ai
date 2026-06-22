@@ -51,7 +51,7 @@ export interface CreateServiceConfigOptions {
  */
 export function createServiceConfig<T extends Partial<IEnvConfig> = IEnvConfig>(
   options: CreateServiceConfigOptions,
-): new () => BaseConfigService<T> {
+): (new () => BaseConfigService<T>) & { readonly schema: Joi.ObjectSchema } {
   const {
     appName,
     workingDir = 'apps/server',
@@ -62,6 +62,14 @@ export function createServiceConfig<T extends Partial<IEnvConfig> = IEnvConfig>(
   const schema = Joi.object(Object.assign({}, baseSchema, ...schemas, extend));
 
   class ServiceConfigService extends BaseConfigService<T> {
+    /**
+     * The composed Joi schema (baseSchema + fragments + extend) this service
+     * validates against. Exposed for introspection/tests so a service's
+     * env-var contract can be asserted without instantiating it (e.g.
+     * verifying every consumed var is covered — issue #484).
+     */
+    static readonly schema: Joi.ObjectSchema = schema;
+
     constructor() {
       super(schema, { appName, workingDir });
     }

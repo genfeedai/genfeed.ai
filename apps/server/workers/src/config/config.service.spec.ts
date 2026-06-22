@@ -144,4 +144,49 @@ describe('ConfigService (Workers)', () => {
       );
     });
   });
+
+  describe('consumed env-var schema coverage (#484)', () => {
+    // Every env var the workers service reads via configService.get() must be
+    // part of its validation schema so misconfiguration is visible and the
+    // schema is the single source of truth (no silent passthrough).
+    const consumedKeys = [
+      'OPENROUTER_API_KEY', // clip-factory / clip-analyze processors
+      'REPLICATE_KEY', // model-watcher cron + model-discovery service
+      'AWS_REGION', // llm-idle cron EC2Client
+      'AWS_ACCESS_KEY_ID', // llm-idle cron EC2Client
+      'AWS_SECRET_ACCESS_KEY', // llm-idle cron EC2Client
+      'FAL_API_KEY', // fal-discovery service
+      'HUGGINGFACE_API_KEY', // hugging-face-discovery service
+      'GPU_LLM_INSTANCE_ID', // llm-idle cron
+      'SERVICE_NAME', // health-response label
+    ] as const;
+
+    it.each(consumedKeys)('validates %s', (key) => {
+      expect(ConfigService.schema.describe().keys).toHaveProperty(key);
+    });
+
+    it('keeps the new consumed vars optional (absent does not throw)', () => {
+      for (const key of consumedKeys) {
+        delete process.env[key];
+      }
+
+      expect(() => new ConfigService()).not.toThrow();
+    });
+
+    it('does not inject an AWS_REGION default (cron fallback preserved)', () => {
+      delete process.env.AWS_REGION;
+      configService = new ConfigService();
+
+      expect(configService.get('AWS_REGION')).toBeUndefined();
+    });
+
+    it('flows a provided REPLICATE_KEY through the validated config', () => {
+      process.env.REPLICATE_KEY = 'r8_test_key';
+      configService = new ConfigService();
+
+      expect(configService.get('REPLICATE_KEY')).toBe('r8_test_key');
+
+      delete process.env.REPLICATE_KEY;
+    });
+  });
 });
