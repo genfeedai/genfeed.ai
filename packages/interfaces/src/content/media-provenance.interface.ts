@@ -128,3 +128,46 @@ export interface IMediaProvenancePackage {
   manifest: IMediaProvenanceManifest;
   transcriptSidecar: IMediaTranscriptSidecar;
 }
+
+/*
+ * Read shapes consumed by the API provenance export service. They describe the
+ * narrow projection of DB rows the service reads when assembling a package, kept
+ * here (not inline in the service) so the type contracts stay centralized.
+ */
+
+/** Caller scope used to constrain a provenance lookup to the requester's user/org. */
+export interface IProvenanceScope {
+  organizationId?: string;
+  userId?: string;
+}
+
+/** Read shape of the fields the provenance export consumes from a video Ingredient row. */
+export interface IVideoProvenanceRecord {
+  _id?: string;
+  id?: string;
+  category?: string;
+  cdnUrl?: string | null;
+  s3Key?: string | null;
+  mimeType?: string | null;
+  fileSize?: number | null;
+  language?: string | null;
+  metadataId?: string | null;
+  modelUsed?: string | null;
+  loraUsed?: string | null;
+  generationPrompt?: string | null;
+  negativePrompt?: string | null;
+  generationSeed?: number | null;
+  generationSource?: string | null;
+  workflowUsed?: string | null;
+  generationCompletedAt?: Date | string | null;
+}
+
+/** Read shape of the fields the provenance export consumes from a Metadata row. */
+export interface IMetadataProvenanceRecord {
+  duration?: number | null;
+  width?: number | null;
+  height?: number | null;
+  fps?: number | null;
+  resolution?: string | null;
+  hasAudio?: boolean | null;
+}

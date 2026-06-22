@@ -6,46 +6,12 @@ import { buildMediaProvenancePackage } from '@genfeedai/helpers';
 import type {
   IMediaProvenanceInput,
   IMediaProvenancePackage,
+  IMetadataProvenanceRecord,
+  IProvenanceScope,
+  IVideoProvenanceRecord,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
-
-/** Caller scope used to constrain the lookup to the requester's user/org. */
-interface ProvenanceScope {
-  organizationId?: string;
-  userId?: string;
-}
-
-/** Read shape of the fields this service consumes from a video Ingredient row. */
-interface VideoProvenanceRecord {
-  _id?: string;
-  id?: string;
-  category?: string;
-  cdnUrl?: string | null;
-  s3Key?: string | null;
-  mimeType?: string | null;
-  fileSize?: number | null;
-  language?: string | null;
-  metadataId?: string | null;
-  modelUsed?: string | null;
-  loraUsed?: string | null;
-  generationPrompt?: string | null;
-  negativePrompt?: string | null;
-  generationSeed?: number | null;
-  generationSource?: string | null;
-  workflowUsed?: string | null;
-  generationCompletedAt?: Date | string | null;
-}
-
-/** Read shape of the fields this service consumes from a Metadata row. */
-interface MetadataRecord {
-  duration?: number | null;
-  width?: number | null;
-  height?: number | null;
-  fps?: number | null;
-  resolution?: string | null;
-  hasAudio?: boolean | null;
-}
 
 function toIsoString(value: Date | string | null | undefined): string | null {
   if (value instanceof Date) {
@@ -76,7 +42,7 @@ export class VideoProvenanceService {
 
   async buildProvenance(
     videoId: string,
-    scope: ProvenanceScope = {},
+    scope: IProvenanceScope = {},
   ): Promise<IMediaProvenancePackage> {
     this.loggerService.debug(`${this.constructorName} buildProvenance`, {
       videoId,
@@ -107,7 +73,7 @@ export class VideoProvenanceService {
 
     const video = (await this.videosService.findOne(
       where,
-    )) as unknown as VideoProvenanceRecord | null;
+    )) as unknown as IVideoProvenanceRecord | null;
 
     if (!video || video.category !== IngredientCategory.VIDEO) {
       throw new NotFoundException(
@@ -120,7 +86,8 @@ export class VideoProvenanceService {
     const metadata = video.metadataId
       ? ((await this.metadataService.findOne({
           _id: video.metadataId,
-        })) as unknown as MetadataRecord | null)
+          isDeleted: false,
+        })) as unknown as IMetadataProvenanceRecord | null)
       : null;
 
     const captions = (await this.captionsService.find({

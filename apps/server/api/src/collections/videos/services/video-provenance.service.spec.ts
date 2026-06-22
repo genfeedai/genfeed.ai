@@ -119,6 +119,11 @@ describe('VideoProvenanceService', () => {
       _id: 'video-1',
       isDeleted: false,
     });
+    // Soft-deleted metadata must never leak into the provenance package.
+    expect(metadataService.findOne).toHaveBeenCalledWith({
+      _id: 'meta-1',
+      isDeleted: false,
+    });
   });
 
   it('throws NotFound when the video does not exist', async () => {
