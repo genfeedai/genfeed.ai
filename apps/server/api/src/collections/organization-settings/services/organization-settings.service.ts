@@ -17,6 +17,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ModuleRef } from '@nestjs/core';
+import * as Sentry from '@sentry/nestjs';
 
 @Injectable()
 export class OrganizationSettingsService extends BaseService<
@@ -102,10 +103,15 @@ export class OrganizationSettingsService extends BaseService<
         organizationId,
       );
     } catch (error) {
+      // Swallowed so a non-critical provisioning step never fails org creation,
+      // but reported to Sentry as well as the log: otherwise new-org workflow
+      // seeding can fail silently for every org (e.g. a future DI/module-graph
+      // regression) with nothing but a log line nobody is watching.
       this.logger?.error(
         'Failed to provision Daily Trends Digest workflow',
         error,
       );
+      Sentry.captureException(error);
     }
   }
 
