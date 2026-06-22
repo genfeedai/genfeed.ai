@@ -207,8 +207,11 @@ export class ClientService {
   }
 
   /**
-   * Resolve an approval. On `approve`, the caller passes the execution `result`
-   * so it is persisted alongside the APPROVED status.
+   * Resolve an approval (atomic CLAIM on the API: PENDING -> APPROVED/DECLINED).
+   * Throws if the approval was already resolved, which is what lets the caller
+   * gate tool execution on a successful claim. The optional `result` is accepted
+   * for completeness, but the MCP flow persists the execution outcome separately
+   * via {@link attachApprovalResult} after the tool has run.
    */
   async resolveApproval(
     approvalId: string,
@@ -225,6 +228,35 @@ export class ClientService {
       this.logError(`resolving approval ${approvalId}`, error as ApiError);
       throw new Error(
         this.getErrorMessage(error as ApiError, 'Failed to resolve approval'),
+      );
+    }
+  }
+
+  /**
+   * Attach the tool execution result (or error) to an already-APPROVED approval.
+   * Called after the approval has been atomically claimed via {@link resolveApproval}
+   * and the tool has run, so the audit record reflects the outcome.
+   */
+  async attachApprovalResult(
+    approvalId: string,
+    result: Record<string, unknown>,
+  ): Promise<McpApprovalResource> {
+    try {
+      const response = await this.client.post(
+        `/mcp-approvals/${encodeURIComponent(approvalId)}/result`,
+        { result },
+      );
+      return response.data?.data as McpApprovalResource;
+    } catch (error: unknown) {
+      this.logError(
+        `attaching result to approval ${approvalId}`,
+        error as ApiError,
+      );
+      throw new Error(
+        this.getErrorMessage(
+          error as ApiError,
+          'Failed to attach approval result',
+        ),
       );
     }
   }

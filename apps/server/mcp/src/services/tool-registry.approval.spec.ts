@@ -37,6 +37,9 @@ vi.mock('@mcp/guards/mcp-auth.guard', () => ({
 
 function build() {
   const client = {
+    attachApprovalResult: vi
+      .fn()
+      .mockResolvedValue({ id: 'apr-1', status: 'APPROVED' }),
     createApproval: vi.fn().mockResolvedValue({
       id: 'apr-1',
       status: 'PENDING',
@@ -46,9 +49,14 @@ function build() {
       .fn()
       .mockResolvedValue({ data: { id: 'post-1' }, success: true }),
     getApproval: vi.fn(),
-    resolveApproval: vi
-      .fn()
-      .mockResolvedValue({ id: 'apr-1', status: 'APPROVED' }),
+    // resolveApproval now performs the atomic CLAIM (PENDING -> APPROVED) and
+    // returns the claimed approval, so its default resolves with toolName + args.
+    resolveApproval: vi.fn().mockResolvedValue({
+      arguments: { content: 'hello' },
+      id: 'apr-1',
+      status: 'APPROVED',
+      toolName: 'create_post',
+    }),
     getVideoStatus: vi
       .fn()
       .mockResolvedValue({ progress: 100, status: 'completed' }),
@@ -97,13 +105,13 @@ describe('ToolRegistryService — approval queue', () => {
     expect(result.content[0].text).toContain('declined');
   });
 
-  it('approves an approval: executes the deferred tool and persists the result', async () => {
+  it('approves an approval: CLAIMS first, executes the deferred tool, then persists the result', async () => {
     const { client, registry } = build();
-    client.getApproval.mockResolvedValue({
-      arguments: { videoId: 'v1' },
+    client.resolveApproval.mockResolvedValue({
+      arguments: { content: 'hello' },
       id: 'apr-1',
-      status: 'PENDING',
-      toolName: 'get_video_status',
+      status: 'APPROVED',
+      toolName: 'create_post',
     });
 
     const result = (await registry.handleToolCall({
@@ -111,13 +119,17 @@ describe('ToolRegistryService — approval queue', () => {
       name: 'resolve_approval',
     })) as { content: { text: string }[] };
 
+    // The claim happens BEFORE execution and carries no result yet (the atomic
+    // PENDING -> APPROVED fence). getApproval is no longer part of the flow.
+    expect(client.resolveApproval).toHaveBeenCalledWith('apr-1', 'approve');
+    expect(client.getApproval).not.toHaveBeenCalled();
     // The deferred tool actually ran...
-    expect(client.getVideoStatus).toHaveBeenCalledWith('v1');
-    expect(result.content[0].text).toContain('completed');
-    // ...and the execution result was persisted back on the approval.
-    expect(client.resolveApproval).toHaveBeenCalledWith(
+    expect(client.executeAgentTool).toHaveBeenCalledWith('create_post', {
+      content: 'hello',
+    });
+    // ...and the execution result was persisted via the dedicated result path.
+    expect(client.attachApprovalResult).toHaveBeenCalledWith(
       'apr-1',
-      'approve',
       expect.objectContaining({ content: expect.any(Array) }),
     );
   });
@@ -128,10 +140,10 @@ describe('ToolRegistryService — approval queue', () => {
     // executeTool (which bypasses the approval gate) — NOT re-enter the gate
     // and queue a second approval, which would be an infinite loop.
     const { client, registry } = build();
-    client.getApproval.mockResolvedValue({
+    client.resolveApproval.mockResolvedValue({
       arguments: { content: 'hello' },
       id: 'apr-1',
-      status: 'PENDING',
+      status: 'APPROVED',
       toolName: 'create_post',
     });
 
@@ -146,16 +158,33 @@ describe('ToolRegistryService — approval queue', () => {
     // The approval gate was NOT re-applied on execution.
     expect(client.createApproval).not.toHaveBeenCalled();
     expect(result.isError).toBeFalsy();
-    expect(client.resolveApproval).toHaveBeenCalledWith(
-      'apr-1',
-      'approve',
-      expect.anything(),
-    );
   });
 
-  it('refuses to approve an already-resolved approval', async () => {
+  it('refuses to approve when the claim loses the race (already resolved)', async () => {
+    // The API rejects the concurrent claim (updateMany matched 0 rows), so the
+    // client throws and the tool must NOT execute — closing the TOCTOU window.
     const { client, registry } = build();
-    client.getApproval.mockResolvedValue({
+    client.resolveApproval.mockRejectedValue(
+      new Error('Approval already resolved'),
+    );
+
+    const result = (await registry.handleToolCall({
+      arguments: { approvalId: 'apr-1', decision: 'approve' },
+      name: 'resolve_approval',
+    })) as { isError?: boolean; content: { text: string }[] };
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain('already resolved');
+    expect(client.executeAgentTool).not.toHaveBeenCalled();
+    expect(client.getVideoStatus).not.toHaveBeenCalled();
+  });
+
+  it('refuses to execute a non-approval-gated tool referenced by an approval', async () => {
+    // Defense-in-depth: a claimed approval whose toolName is not in the
+    // approval-required set must not run via the admin resolve path.
+    const { client, registry } = build();
+    client.resolveApproval.mockResolvedValue({
+      arguments: { videoId: 'v1' },
       id: 'apr-1',
       status: 'APPROVED',
       toolName: 'get_video_status',
@@ -167,8 +196,35 @@ describe('ToolRegistryService — approval queue', () => {
     })) as { isError?: boolean; content: { text: string }[] };
 
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain('already approved');
+    expect(result.content[0].text).toContain('non-approval-gated');
     expect(client.getVideoStatus).not.toHaveBeenCalled();
+    expect(client.executeAgentTool).not.toHaveBeenCalled();
+    expect(client.attachApprovalResult).toHaveBeenCalledWith(
+      'apr-1',
+      expect.objectContaining({ error: expect.any(String) }),
+    );
+  });
+
+  it('records the error on the approval when execution fails after claiming', async () => {
+    const { client, registry } = build();
+    client.resolveApproval.mockResolvedValue({
+      arguments: { content: 'hello' },
+      id: 'apr-1',
+      status: 'APPROVED',
+      toolName: 'create_post',
+    });
+    client.executeAgentTool.mockRejectedValue(new Error('boom'));
+
+    const result = (await registry.handleToolCall({
+      arguments: { approvalId: 'apr-1', decision: 'approve' },
+      name: 'resolve_approval',
+    })) as { isError?: boolean; content: { text: string }[] };
+
+    expect(result.isError).toBe(true);
+    expect(client.attachApprovalResult).toHaveBeenCalledWith(
+      'apr-1',
+      expect.objectContaining({ error: expect.stringContaining('boom') }),
+    );
   });
 
   it('errors when resolve_approval is missing arguments', async () => {

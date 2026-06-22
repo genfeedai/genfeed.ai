@@ -12,6 +12,7 @@ describe('McpApprovalsService', () => {
     findFirst: vi.fn(),
     findMany: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
   };
 
   const mockLogger: Partial<LoggerService> = {
@@ -132,29 +133,29 @@ describe('McpApprovalsService', () => {
   });
 
   describe('resolve', () => {
-    it('updates status to APPROVED and sets resolvedAt + result', async () => {
-      const existing = {
+    it('atomically flips PENDING -> APPROVED via updateMany and sets resolvedAt + result', async () => {
+      const updated = {
         id: 'approval-3',
         organizationId: 'org-1',
-        status: 'PENDING',
-      };
-      const updated = {
-        ...existing,
         status: 'APPROVED',
-        resolvedAt: expect.any(Date),
+        resolvedAt: new Date(),
+        result: { ok: true },
       };
-      mcpApproval.findFirst.mockResolvedValue(existing);
-      mcpApproval.update.mockResolvedValue(updated);
+      mcpApproval.updateMany.mockResolvedValue({ count: 1 });
+      mcpApproval.findFirst.mockResolvedValue(updated);
 
       const result = await service.resolve('approval-3', 'org-1', 'approve', {
         ok: true,
       });
 
-      expect(mcpApproval.findFirst).toHaveBeenCalledWith({
-        where: { id: 'approval-3', organizationId: 'org-1', isDeleted: false },
-      });
-      expect(mcpApproval.update).toHaveBeenCalledWith({
-        where: { id: 'approval-3' },
+      // The PENDING status is in the WHERE clause — this is the concurrency fence.
+      expect(mcpApproval.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'approval-3',
+          organizationId: 'org-1',
+          isDeleted: false,
+          status: 'PENDING',
+        },
         data: expect.objectContaining({
           status: 'APPROVED',
           resolvedAt: expect.any(Date),
@@ -165,40 +166,39 @@ describe('McpApprovalsService', () => {
     });
 
     it('updates status to DECLINED when decision is decline', async () => {
-      const existing = {
+      mcpApproval.updateMany.mockResolvedValue({ count: 1 });
+      mcpApproval.findFirst.mockResolvedValue({
         id: 'approval-4',
         organizationId: 'org-1',
-        status: 'PENDING',
-      };
-      mcpApproval.findFirst.mockResolvedValue(existing);
-      mcpApproval.update.mockResolvedValue({ ...existing, status: 'DECLINED' });
+        status: 'DECLINED',
+      });
 
       await service.resolve('approval-4', 'org-1', 'decline');
 
-      expect(mcpApproval.update).toHaveBeenCalledWith({
-        where: { id: 'approval-4' },
+      expect(mcpApproval.updateMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({ id: 'approval-4', status: 'PENDING' }),
         data: expect.objectContaining({ status: 'DECLINED' }),
       });
     });
 
     it('does not include result key when result is undefined', async () => {
-      const existing = {
+      mcpApproval.updateMany.mockResolvedValue({ count: 1 });
+      mcpApproval.findFirst.mockResolvedValue({
         id: 'approval-5',
         organizationId: 'org-1',
-        status: 'PENDING',
-      };
-      mcpApproval.findFirst.mockResolvedValue(existing);
-      mcpApproval.update.mockResolvedValue({ ...existing, status: 'APPROVED' });
+        status: 'APPROVED',
+      });
 
       await service.resolve('approval-5', 'org-1', 'approve');
 
-      const updateCall = mcpApproval.update.mock.calls[0][0] as {
+      const updateCall = mcpApproval.updateMany.mock.calls[0][0] as {
         data: Record<string, unknown>;
       };
       expect(updateCall.data).not.toHaveProperty('result');
     });
 
     it('throws NotFoundException when approval not found or cross-org', async () => {
+      mcpApproval.updateMany.mockResolvedValue({ count: 0 });
       mcpApproval.findFirst.mockResolvedValue(null);
 
       await expect(
@@ -206,17 +206,40 @@ describe('McpApprovalsService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('throws BadRequestException when status is not PENDING', async () => {
-      const existing = {
+    it('throws BadRequestException when the approval was already resolved (lost race)', async () => {
+      // updateMany matched 0 rows because status was no longer PENDING, but the
+      // row still exists for this org — i.e. a concurrent caller won the race.
+      mcpApproval.updateMany.mockResolvedValue({ count: 0 });
+      mcpApproval.findFirst.mockResolvedValue({
         id: 'approval-6',
         organizationId: 'org-1',
         status: 'APPROVED',
-      };
-      mcpApproval.findFirst.mockResolvedValue(existing);
+      });
 
       await expect(
         service.resolve('approval-6', 'org-1', 'approve'),
       ).rejects.toThrow(BadRequestException);
+
+      // Critically, no second writer flipped the row a second time.
+      expect(mcpApproval.updateMany).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('attachResult', () => {
+    it('writes result only to an APPROVED row scoped to the org', async () => {
+      mcpApproval.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.attachResult('approval-7', 'org-1', { output: 42 });
+
+      expect(mcpApproval.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'approval-7',
+          organizationId: 'org-1',
+          isDeleted: false,
+          status: 'APPROVED',
+        },
+        data: { result: { output: 42 } },
+      });
     });
   });
 
