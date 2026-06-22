@@ -25,6 +25,7 @@ import {
   Notification,
   shell,
 } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import { DesktopAppShellService } from './main/app-shell.service';
 import {
   buildDesktopFailureScreenUrl,
@@ -48,6 +49,7 @@ import { DesktopSyncService } from './main/sync.service';
 import { DesktopTelemetryService } from './main/telemetry.service';
 import { DesktopTerminalService } from './main/terminal.service';
 import { DesktopTrayService } from './main/tray.service';
+import { DesktopUpdaterService } from './main/updater.service';
 import { DesktopWorkspaceService } from './main/workspace.service';
 
 const configService = new DesktopConfigService();
@@ -909,6 +911,20 @@ app.whenReady().then(async () => {
     trayService.initialize(mainWindow, emitQuickGenerate);
     shortcutsService.register(mainWindow, emitQuickGenerate);
   }
+
+  const updaterService = new DesktopUpdaterService({
+    autoUpdater,
+    isPackaged: app.isPackaged,
+    notify: ({ body, title }) => {
+      if (Notification.isSupported()) {
+        void new Notification({ body, title }).show();
+      }
+    },
+    onError: (error, context) => {
+      telemetryService.captureException(error, context);
+    },
+  });
+  updaterService.initialize();
 
   const deepLinkArgument = process.argv.find((value: string) =>
     value.startsWith('genfeedai-desktop://'),
