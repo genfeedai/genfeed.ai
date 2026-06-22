@@ -19,10 +19,16 @@ export class MoodBoardsService extends BaseService<
     super(prisma, 'moodBoard', logger);
   }
 
-  async findOrCreateByBrand(brandId: string): Promise<MoodBoardDocument> {
+  async findOrCreateByBrand(
+    brandId: string,
+    organizationId: string,
+  ): Promise<MoodBoardDocument> {
+    // Scope the brand lookup to the caller's organization so a user from one
+    // org cannot read (or upsert-create) the mood board of a brand owned by
+    // another org. Mirrors the org-scoping the PATCH handler already applies.
     const brand = await this.prisma.brand.findFirst({
       select: { organizationId: true },
-      where: { id: brandId, isDeleted: false },
+      where: { id: brandId, isDeleted: false, organizationId },
     });
 
     if (!brand) {
