@@ -27,22 +27,27 @@ export default function FastlaneBlitz({
   const approvedCount = assets.filter((a) => a.status === 'approved').length;
   const rejectedCount = assets.filter((a) => a.status === 'rejected').length;
 
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeDir, setSwipeDir] = useState<'left' | 'right' | null>(null);
 
-  const currentAsset = readyAssets[currentIndex] ?? null;
-  const isExhausted = currentIndex >= readyAssets.length;
+  // The card under review is always the first still-`ready` asset. Approving or
+  // rejecting flips that asset's status in the parent, so it drops out of
+  // `readyAssets` and the queue advances on its own — there is no index to keep
+  // in sync. A previous integer-index approach skipped every other asset,
+  // because the list shrank by one on each swipe while the index moved forward.
+  const reviewedCount = approvedCount + rejectedCount;
+  const currentAsset = readyAssets[0] ?? null;
+  const isExhausted = readyAssets.length === 0;
 
   function triggerSwipe(dir: 'left' | 'right') {
     if (!currentAsset || swipeDir) return;
+    const { id } = currentAsset.idea;
     setSwipeDir(dir);
     setTimeout(() => {
       if (dir === 'right') {
-        onApprove(currentAsset.idea.id);
+        onApprove(id);
       } else {
-        onReject(currentAsset.idea.id);
+        onReject(id);
       }
-      setCurrentIndex((i) => i + 1);
       setSwipeDir(null);
     }, 250);
   }
@@ -140,7 +145,8 @@ export default function FastlaneBlitz({
       )}
 
       <p className="gen-label-sm text-muted-foreground">
-        {currentIndex + 1} / {readyAssets.length} — ← reject · approve →
+        {reviewedCount + 1} / {reviewedCount + readyAssets.length} — ← reject ·
+        approve →
       </p>
 
       {/* Card */}
