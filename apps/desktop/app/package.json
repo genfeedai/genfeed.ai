@@ -42,6 +42,14 @@
           "genfeedai-desktop"
         ]
       }
+    ],
+    "publish": [
+      {
+        "owner": "genfeedai",
+        "provider": "github",
+        "releaseType": "release",
+        "repo": "genfeed.ai"
+      }
     ]
   },
   "dependencies": {
@@ -54,6 +62,7 @@
     "@sentry/browser": "10.56.0",
     "@xterm/addon-fit": "0.11.0",
     "@xterm/xterm": "6.0.0",
+    "electron-updater": "6.8.3",
     "next": "16.2.7",
     "node-pty": "1.1.0",
     "react": "19.2.7",
@@ -85,7 +94,7 @@
   "scripts": {
     "build": "bun run build:native && bun run build:app-shell && bun run copy:app-shell",
     "build:app-shell": "node ./scripts/build-app-shell.cjs",
-    "build:main": "bunx esbuild src/main.ts --bundle --format=esm --platform=node --target=node20 --outfile=dist/main.js --external:electron --external:@electric-sql/pglite --external:@electric-sql/pglite/* --external:@electric-sql/pglite-socket --external:@prisma/client --external:@prisma/client/* --external:node-pty --tsconfig=tsconfig.json",
+    "build:main": "bunx esbuild src/main.ts --bundle --format=esm --platform=node --target=node20 --outfile=dist/main.js --external:electron --external:@electric-sql/pglite --external:@electric-sql/pglite/* --external:@electric-sql/pglite-socket --external:@prisma/client --external:@prisma/client/* --external:node-pty --external:electron-updater --tsconfig=tsconfig.json",
     "build:native": "bun run clean && bun run build:main && bun run build:preload && bun run copy:assets",
     "build:preload": "bunx esbuild src/preload.ts --bundle --format=esm --platform=node --target=node20 --outfile=dist/preload.js --external:electron --tsconfig=tsconfig.json",
     "build:release": "bun run build && bun run prepare:release",
