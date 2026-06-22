@@ -6,8 +6,10 @@ bootstrap({ app: 'api' });
 
 import { timingSafeEqual } from 'node:crypto';
 import { dirname, join } from 'node:path';
+import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { AppModule } from '@api/app.module';
+import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { ConfigService } from '@api/config/config.service';
 import { DocsService } from '@api/endpoints/docs/docs.service';
@@ -118,6 +120,17 @@ async function main() {
       '/v1/webhooks/vercel',
       express.raw({ limit: '10mb', type: 'application/json' }),
     );
+
+    // Better Auth (epic #735, dual-run) parses its own request bodies, so its
+    // handler must be mounted BEFORE express.json(). No-op while the flag is off
+    // — the Clerk path is entirely unaffected.
+    const betterAuthService = app.get(BetterAuthService, { strict: false });
+    if (betterAuthService?.isEnabled) {
+      app.use(betterAuthService.basePath, betterAuthService.nodeHandler);
+      logger.debug(
+        `Better Auth handler mounted at ${betterAuthService.basePath}`,
+      );
+    }
 
     app.use(express.json({ limit: '50mb' }));
 

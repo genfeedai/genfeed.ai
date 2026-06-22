@@ -206,12 +206,12 @@ export interface ISubscriptionsService {
   ): Promise<ISubscriptionOssReadModel>;
 
   /**
-   * Mirror subscription state into Clerk public metadata. Always-on webhook
-   * path. Returns `void`; the OSS no-op is a no-op (Clerk metadata sync is an
-   * enterprise concern). `subscription` is `unknown` so OSS never imports the
-   * enterprise Clerk-sync shape.
+   * Persist subscription state to the DB (OrganizationSetting.subscriptionTier).
+   * Always-on webhook path. Returns `void`; the OSS no-op is a no-op (enterprise
+   * billing state is only relevant on paid installs). `subscription` is `unknown`
+   * so OSS never imports the enterprise sync shape.
    */
-  syncSubscriptionToClerkMetadata(
+  syncSubscriptionState(
     subscription: unknown,
     stripeSubscriptionId?: string,
     stripePriceId?: string,

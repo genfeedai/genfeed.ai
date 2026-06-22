@@ -26,12 +26,10 @@
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { CustomersModule } from '@api/collections/customers/customers.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
-import { UsersModule } from '@api/collections/users/users.module';
 import type { BillingProviderFragment } from '@api/common/subscriptions/billing.providers.oss';
 import { OssSubscriptionAttributionsService } from '@api/common/subscriptions/oss-subscription-attributions.service';
 import { OssSubscriptionsService } from '@api/common/subscriptions/oss-subscriptions.service';
 import { OssUserSubscriptionsService } from '@api/common/subscriptions/oss-user-subscriptions.service';
-import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
 import { isEEEnabled } from '@genfeedai/config';
 import {
   SUBSCRIPTION_ATTRIBUTIONS_SERVICE,
@@ -49,7 +47,6 @@ export const subscriptions: BillingProviderFragment = {
   controllers: [SubscriptionsController],
   exports: [SubscriptionsService, SUBSCRIPTIONS_SERVICE],
   imports: [
-    forwardRef(() => ClerkModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => CustomersModule),
     forwardRef(() => OrganizationsModule),
@@ -68,7 +65,6 @@ export const subscriptions: BillingProviderFragment = {
           require('@api/services/integrations/stripe/stripe.module') as typeof import('@api/services/integrations/stripe/stripe.module')
         ).StripeModule,
     ),
-    forwardRef(() => UsersModule),
   ],
   providers: [
     SubscriptionsService,

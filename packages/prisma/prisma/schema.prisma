@@ -491,8 +491,16 @@ model User {
   handle                   String          @unique
   firstName                String?
   lastName                 String?
-  email                    String?
+  email                    String?         @unique
   avatar                   String?
+  // Better Auth (epic #735, dual-run beside Clerk). `name`/`emailVerified` are
+  // the BA core user fields (BA `image` maps onto `avatar` above via config);
+  // `isSuperAdmin` moves the super-admin flag off Clerk publicMetadata into the
+  // DB so it survives the Clerk cutover. All nullable/defaulted so the migration
+  // applies cleanly over existing rows.
+  name                     String?
+  emailVerified            Boolean         @default(false)
+  isSuperAdmin             Boolean         @default(false)
   isDefault                Boolean         @default(false)
   isDeleted                Boolean         @default(false)
   isInvited                Boolean         @default(false)
@@ -510,6 +518,8 @@ model User {
   organizations            Organization[]
   brands                   Brand[]
   members                  Member[]
+  sessions                 Session[]
+  accounts                 Account[]
   settings                 Setting?
   credentials              Credential[]
   apiKeys                  ApiKey[]
@@ -886,6 +896,76 @@ model Role {
   members Member[]
 
   @@map("roles")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BETTER AUTH (epic #735) — first-party auth, dual-run beside Clerk (#736).
+// Better Auth model → genfeed table:
+//   Session      → sessions          (active first-party sessions)
+//   Account      → user_credentials  (password hash + linked OAuth accounts)
+//   Verification → auth_tokens        (magic-link + email-verification tokens)
+//   Jwks         → auth_jwks          (jwt-plugin signing keys; JWKS source)
+// The BA `user` model maps onto the existing `User` model above. The org/member
+// and admin plugins are deferred (they require remapping the custom
+// Organization/Member/Role models); Phase 1 resolves org/brand from the existing
+// tables, matching the Clerk path.
+// ═══════════════════════════════════════════════════════════════
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("user_credentials")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("auth_tokens")
+}
+
+model Jwks {
+  id         String    @id @default(cuid())
+  publicKey  String
+  privateKey String
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime?
+
+  @@map("auth_jwks")
 }
 
 // ═══════════════════════════════════════════════════════════════

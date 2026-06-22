@@ -21,6 +21,7 @@ export {
   awsSchema,
 } from './aws.schema';
 export { baseSchema } from './base.schema';
+export { betterAuthSchema } from './better-auth.schema';
 export {
   clerkMinimalSchema,
   clerkSchema,

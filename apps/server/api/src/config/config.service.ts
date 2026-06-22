@@ -5,6 +5,7 @@ import {
   BaseConfigService,
   // Base
   baseSchema,
+  betterAuthSchema,
   clerkSchema,
   conditionalRequired,
   darkroomSchema,
@@ -36,6 +37,12 @@ import { Injectable } from '@nestjs/common';
 import Joi from 'joi';
 
 interface ApiEnvConfig extends IEnvConfig {
+  BETTER_AUTH_ENABLED?: 'true' | 'false';
+  BETTER_AUTH_SECRET?: string;
+  BETTER_AUTH_URL?: string;
+  BETTER_AUTH_TRUSTED_ORIGINS?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
   API_PERFORMANCE_AUDIT?: 'true' | 'false';
   API_QUERY_METRICS?: 'true' | 'false';
   API_SENTRY_PERFORMANCE_METRICS?: 'true' | 'false';
@@ -109,6 +116,7 @@ const apiSchema = Joi.object({
   ...redisSchema,
   ...awsSchema,
   ...clerkSchema,
+  ...betterAuthSchema,
   ...sentrySchema,
   ...stripeSchema,
   ...webhooksSchema,

@@ -5,6 +5,7 @@ export { IS_CLOUD, IS_EE } from './edition';
 export {
   conditionalRequired,
   conditionalRequiredNumber,
+  IS_BETTER_AUTH_ENABLED,
   IS_SELF_HOSTED,
   SELF_HOSTED_REQUIRED,
 } from './helpers';
