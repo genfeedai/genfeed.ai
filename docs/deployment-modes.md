@@ -19,7 +19,7 @@ summary; the canonical, decision-of-record version is the ADR at
 
 ## Choosing a mode (env)
 
-- **SaaS** — `GENFEED_CLOUD=1` (+ Clerk, AWS, Stripe).
+- **SaaS** — `GENFEED_CLOUD=1` (+ Better Auth, AWS, Stripe).
 - **Community** — leave `GENFEED_CLOUD` unset. Zero-config runs single-user with
   no auth and seeds a default workspace. Turn on a login wall (Better Auth) for a
   team — still one org. Auth is self-hostable; no SaaS auth vendor, works offline.
