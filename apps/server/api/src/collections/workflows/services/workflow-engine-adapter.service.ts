@@ -712,8 +712,8 @@ export class WorkflowEngineAdapterService {
       };
     });
 
-    executor.setTrendsProvider(({ topN, minViralScore }) =>
-      this.buildDigestTrends(trends, topN, minViralScore),
+    executor.setTrendsProvider(({ topN, minViralScore, platforms }) =>
+      this.buildDigestTrends(trends, topN, minViralScore, platforms),
     );
 
     executor.setIdempotencyGuard((key, ttlSeconds) =>
@@ -750,6 +750,7 @@ export class WorkflowEngineAdapterService {
     trends: TrendsService,
     topN: number,
     minViralScore: number,
+    platforms: string[],
   ): Promise<TrendDigestEntry[]> {
     type RawTrend = {
       platform?: string;
@@ -818,7 +819,18 @@ export class WorkflowEngineAdapterService {
         })),
     ];
 
-    return mapped.sort((a, b) => b.viralScore - a.viralScore).slice(0, topN);
+    // Honour the configured platform filter. The fetchers return a mixed-platform
+    // corpus, so a workflow that narrows `platforms` (e.g. just ['youtube']) must
+    // actually constrain the digest. An empty list is treated as "no constraint".
+    const allowed = new Set(
+      platforms.map((platform) => platform.toLowerCase()),
+    );
+    const filtered =
+      allowed.size > 0
+        ? mapped.filter((entry) => allowed.has(entry.platform.toLowerCase()))
+        : mapped;
+
+    return filtered.sort((a, b) => b.viralScore - a.viralScore).slice(0, topN);
   }
 
   /**
@@ -859,6 +871,13 @@ export class WorkflowEngineAdapterService {
         : TREND_DIGEST_CREDIT_COST;
 
     if (!orgId || !ownerUserId) {
+      // The digest was rendered and the email was sent, but we cannot resolve who
+      // to bill (org has a null owner userId). Charging is skipped — log it so the
+      // billing gap is observable instead of silently giving away the delivery.
+      this.loggerService.warn(
+        `${this.logContext} trend digest charge skipped — missing orgId or ownerUserId after delivery`,
+        { orgId, ownerUserId, workflowId },
+      );
       return;
     }
 

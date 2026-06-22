@@ -1267,6 +1267,30 @@ describe('WorkflowEngineAdapterService', () => {
       expect(deduct).not.toHaveBeenCalled();
     });
 
+    it('warns and skips (no charge, no lock) when the owner userId is missing after delivery', async () => {
+      const acquireLock = vi.fn().mockResolvedValue(true);
+      const deduct = vi.fn();
+      const adapter = makeChargeAdapter(
+        { acquireLock },
+        { deductCreditsFromOrganization: deduct },
+      );
+
+      await adapter.applyScheduledDigestCharge('wf-1', [
+        {
+          nodeType: 'trendDigest',
+          output: { creditCost: 5, orgId: 'org-1', skipped: false },
+        },
+        { nodeType: 'sendEmail', output: { sent: true } },
+      ]);
+
+      expect(deduct).not.toHaveBeenCalled();
+      expect(acquireLock).not.toHaveBeenCalled();
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('charge skipped'),
+        expect.objectContaining({ orgId: 'org-1', ownerUserId: null }),
+      );
+    });
+
     it('releases the marker so a transient deduction failure can retry', async () => {
       const acquireLock = vi.fn().mockResolvedValue(true);
       const releaseLock = vi.fn().mockResolvedValue(true);
@@ -1285,6 +1309,44 @@ describe('WorkflowEngineAdapterService', () => {
       expect(releaseLock.mock.calls[0][0]).toMatch(
         /^workflow-digest-charged:wf-1:\d{4}-\d{2}-\d{2}$/,
       );
+    });
+  });
+
+  describe('buildDigestTrends platform filter', () => {
+    const makeTrends = () => ({
+      getViralVideos: vi.fn().mockResolvedValue([
+        {
+          platform: 'youtube',
+          title: 'YT vid',
+          url: 'u1',
+          views: 100,
+          viralScore: 90,
+        },
+        {
+          platform: 'tiktok',
+          title: 'TT vid',
+          url: 'u2',
+          views: 100,
+          viralScore: 80,
+        },
+      ]),
+      getTrendingHashtags: vi.fn().mockResolvedValue([]),
+      getTrendingSounds: vi.fn().mockResolvedValue([]),
+    });
+
+    it('keeps only entries on the configured platforms', async () => {
+      const result = await service.buildDigestTrends(makeTrends(), 10, 0, [
+        'youtube',
+      ]);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].platform).toBe('youtube');
+    });
+
+    it('treats an empty platform list as no constraint', async () => {
+      const result = await service.buildDigestTrends(makeTrends(), 10, 0, []);
+
+      expect(result).toHaveLength(2);
     });
   });
 
