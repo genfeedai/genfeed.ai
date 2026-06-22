@@ -18,7 +18,7 @@ The generation story in the current repo spans a small set of stable entrypoints
 - [`apps/server/api/src/services/batch-generation/batch-generation.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/batch-generation/batch-generation.service.ts)
   - builds batch plans
   - delegates actual generation to `ContentGeneratorService`
-- [`packages/tools/src/registry/source.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/tools/src/registry/source.ts)
+- [`packages/tools/src/registry/source/index.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/tools/src/registry/source/index.ts)
   - defines the canonical agent-visible generation tools
 - [`packages/tools/src/registry/tool-registry.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/tools/src/registry/tool-registry.ts)
   - assigns generation tool categories and UI action cards
@@ -41,7 +41,7 @@ For v1, the important point is not every experimental flow. It is the stable pat
 
 ## Stable `generate_*` Tool Surface
 
-The v1 stable generation tools are the agent-facing tools that create generation work or route users into a generation review flow. Their metadata is defined in `packages/tools/src/registry/source.ts` and rendered through the canonical registry in `packages/tools/src/registry/tool-registry.ts`.
+The v1 stable generation tools are the agent-facing tools that create generation work or route users into a generation review flow. Their metadata is defined in `packages/tools/src/registry/source/index.ts` and rendered through the canonical registry in `packages/tools/src/registry/tool-registry.ts`.
 
 | Tool                     | Stable input contract                                                                                   | Execution path                                                                                            | Output contract                                               |
 | ------------------------ | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
@@ -58,7 +58,7 @@ These are the stable tool names callers should depend on for v1. Lower-level wor
 
 | Layer              | Files                                                                                         | Responsibility                                                                           |
 | ------------------ | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Tool metadata      | `packages/tools/src/registry/source.ts`, `packages/tools/src/registry/tool-registry.ts` | Defines tool names, parameters, categories, and UI action card types                     |
+| Tool metadata      | `packages/tools/src/registry/source/index.ts`, `packages/tools/src/registry/tool-registry.ts` | Defines tool names, parameters, categories, and UI action card types                     |
 | Agent dispatch     | `apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`        | Converts tool calls into internal API requests and normalizes preview-card responses     |
 | Media APIs         | `/v1/images`, `/v1/videos`, `/v1/musics`, `/v1/voices/generate`                               | Own request validation, model selection, credits, persistence, and completion polling    |
 | Skill execution    | `apps/server/api/src/services/skill-executor/*`                                               | Runs content skills such as `image-generation` and records Content Runs                  |
