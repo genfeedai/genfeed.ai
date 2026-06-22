@@ -187,6 +187,21 @@ describe('DesktopGenerationService', () => {
     expect(jobs[0]?.type).toBe('generation');
   });
 
+  it('throws and records no job when generating offline without a provider configured', async () => {
+    const database = createDatabaseMock();
+    const service = new DesktopGenerationService(
+      database as unknown as DesktopGenerationStore,
+    );
+
+    await expect(service.generateContent(generationParams)).rejects.toThrow(
+      'Configure a local generation provider before generating content.',
+    );
+
+    // The provider guard short-circuits before any job is created or any
+    // network call is attempted, so no orphaned sync job is left behind.
+    expect(Array.from(database.syncJobs.values())).toHaveLength(0);
+  });
+
   it('injects saved trend brief context into the local provider prompt', () => {
     const prompt = __desktopGenerationServiceTestUtils.buildUserPrompt({
       ...generationParams,
