@@ -189,7 +189,7 @@ export function AppSwitcher({
   const activeLabel = activeApp?.label ?? 'Workspace';
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         {variant === 'labeled' ? (
           <Button
@@ -217,7 +217,7 @@ export function AppSwitcher({
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        align="start"
+        align="end"
         sideOffset={8}
         className="w-48"
         onCloseAutoFocus={(event) => {
