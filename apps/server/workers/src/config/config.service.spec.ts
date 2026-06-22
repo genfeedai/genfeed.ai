@@ -166,11 +166,23 @@ describe('ConfigService (Workers)', () => {
     });
 
     it('keeps the new consumed vars optional (absent does not throw)', () => {
+      const previous: Record<string, string | undefined> = {};
       for (const key of consumedKeys) {
+        previous[key] = process.env[key];
         delete process.env[key];
       }
 
-      expect(() => new ConfigService()).not.toThrow();
+      try {
+        expect(() => new ConfigService()).not.toThrow();
+      } finally {
+        for (const key of consumedKeys) {
+          if (previous[key] === undefined) {
+            delete process.env[key];
+          } else {
+            process.env[key] = previous[key];
+          }
+        }
+      }
     });
 
     it('does not inject an AWS_REGION default (cron fallback preserved)', () => {
