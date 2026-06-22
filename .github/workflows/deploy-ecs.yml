@@ -241,7 +241,28 @@ jobs:
             --launch-type FARGATE \
             --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG],assignPublicIp=DISABLED}" \
             --query 'tasks[0].taskArn' --output text)
-          aws ecs wait tasks-stopped --cluster "$CLUSTER" --tasks "$TASK_ARN"
+          # run-task emits the literal "None" when the tasks[] array is empty
+          # (capacity / IAM / quota failure). Guard so we fail with an actionable
+          # message instead of a cryptic "wait" parameter-validation error.
+          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "None" ]; then
+            echo "::error::ECS run-task launched no migrate task (capacity, IAM, or quota failure)"; exit 1
+          fi
+          # Bound the wait: bare 'aws ecs wait tasks-stopped' polls silently for
+          # up to ~10 min then fails opaquely. Poll describe-tasks with a deadline
+          # and surface lastStatus / stoppedReason for fast diagnosis.
+          DEADLINE=$((SECONDS + 600))
+          while :; do
+            STATUS=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
+              --query 'tasks[0].lastStatus' --output text)
+            [ "$STATUS" = "STOPPED" ] && break
+            if [ "$SECONDS" -ge "$DEADLINE" ]; then
+              REASON=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
+                --query 'tasks[0].stoppedReason' --output text)
+              echo "::error::migrate task did not stop within 10m (last status: $STATUS, reason: $REASON)"; exit 1
+            fi
+            echo "  migrate task status: $STATUS ($((DEADLINE - SECONDS))s remaining)"
+            sleep 6
+          done
           CODE=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
             --query 'tasks[0].containers[0].exitCode' --output text)
           echo "migrate exit code: $CODE"
@@ -264,7 +285,28 @@ jobs:
             --launch-type FARGATE \
             --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG],assignPublicIp=DISABLED}" \
             --query 'tasks[0].taskArn' --output text)
-          aws ecs wait tasks-stopped --cluster "$CLUSTER" --tasks "$TASK_ARN"
+          # run-task emits the literal "None" when the tasks[] array is empty
+          # (capacity / IAM / quota failure). Guard so we fail with an actionable
+          # message instead of a cryptic "wait" parameter-validation error.
+          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "None" ]; then
+            echo "::error::ECS run-task launched no boot-smoke task (capacity, IAM, or quota failure)"; exit 1
+          fi
+          # Bound the wait: bare 'aws ecs wait tasks-stopped' polls silently for
+          # up to ~10 min then fails opaquely. Poll describe-tasks with a deadline
+          # and surface lastStatus / stoppedReason for fast diagnosis.
+          DEADLINE=$((SECONDS + 600))
+          while :; do
+            STATUS=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
+              --query 'tasks[0].lastStatus' --output text)
+            [ "$STATUS" = "STOPPED" ] && break
+            if [ "$SECONDS" -ge "$DEADLINE" ]; then
+              REASON=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
+                --query 'tasks[0].stoppedReason' --output text)
+              echo "::error::boot smoke task did not stop within 10m (last status: $STATUS, reason: $REASON)"; exit 1
+            fi
+            echo "  boot smoke task status: $STATUS ($((DEADLINE - SECONDS))s remaining)"
+            sleep 6
+          done
           CODE=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
             --query 'tasks[0].containers[0].exitCode' --output text)
           echo "boot smoke exit code: $CODE"
