@@ -1,8 +1,6 @@
-import process from 'node:process';
 import { InviteMemberDto } from '@api/collections/members/dto/invite-member.dto';
-import { MemberEntity } from '@api/collections/members/entities/member.entity';
+import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { RolesService } from '@api/collections/roles/services/roles.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -18,7 +16,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import type { User } from '@clerk/backend';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
@@ -47,8 +44,7 @@ export class MembersController {
 
   constructor(
     private readonly membersService: MembersService,
-    private readonly clerkService: ClerkService,
-    private readonly rolesService: RolesService,
+    private readonly invitationService: InvitationService,
     readonly _loggerService: LoggerService,
   ) {}
 
@@ -103,7 +99,7 @@ export class MembersController {
   /**
    * POST /members/invite
    * Send an invitation to join the current organization.
-   * Creates a Clerk invitation and a pending member record.
+   * Creates a self-hosted invitation and sends an accept email.
    */
   @Post('invite')
   @RateLimit({ limit: 10, scope: 'organization', windowMs: 60000 })
@@ -121,59 +117,29 @@ export class MembersController {
         HttpStatus.BAD_REQUEST,
       );
     }
-
-    // Check for existing active member with this email
-    const existingClerkUser = await this.clerkService.getUserByEmail(dto.email);
-    if (existingClerkUser) {
-      const clerkMeta = existingClerkUser.publicMetadata as Record<
-        string,
-        unknown
-      >;
-      const existingMember = await this.membersService.findOne({
-        isActive: true,
-        isDeleted: false,
-        organization: orgId,
-        user: clerkMeta.user as string,
-      });
-      if (existingMember) {
-        throw new HttpException(
-          {
-            detail: 'User is already a member of this organization',
-            title: 'Conflict',
-          },
-          HttpStatus.CONFLICT,
-        );
-      }
+    if (!publicMetadata.user) {
+      throw new HttpException(
+        { detail: 'Inviting user not found in metadata', title: 'Bad Request' },
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
-    // Resolve role (default to 'member' if not specified)
-    let roleId = dto.role;
-    if (!roleId) {
-      const memberRole = await this.rolesService.findOne({ key: 'member' });
-      if (memberRole) {
-        roleId = memberRole._id;
-      }
-    }
-
-    // Create Clerk invitation
-    const invitation = await this.clerkService.createInvitation(
-      dto.email,
-      `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.genfeed.ai'}/overview?org=${orgId}`,
-      {
-        invitedByUser: publicMetadata.user,
-        organization: orgId,
-        role: roleId?.toString(),
-        ...(dto.firstName && { firstName: dto.firstName }),
-        ...(dto.lastName && { lastName: dto.lastName }),
-      },
-    );
+    const invitation = await this.invitationService.createInvitation({
+      defaultRoleKey: 'member',
+      email: dto.email,
+      firstName: dto.firstName,
+      invitedByUserId: String(publicMetadata.user),
+      lastName: dto.lastName,
+      organizationId: orgId,
+      roleId: dto.role,
+    });
 
     return {
       data: {
         email: dto.email,
         id: invitation.id,
         organization: orgId,
-        role: roleId?.toString() ?? null,
+        role: invitation.roleId,
         status: invitation.status,
       },
     };
@@ -196,18 +162,13 @@ export class MembersController {
       );
     }
 
-    // Fetch all pending invitations from Clerk and filter by org
-    const invitations = await this.clerkService.listInvitations('pending');
-
-    const orgInvitations = invitations.filter((inv) => {
-      const meta = inv.publicMetadata as Record<string, unknown>;
-      return meta?.organization === orgId;
-    });
+    const invitations =
+      await this.invitationService.listPendingInvitations(orgId);
 
     return {
-      data: orgInvitations.map((inv) => ({
+      data: invitations.map((inv) => ({
         createdAt: inv.createdAt,
-        email: inv.emailAddress,
+        email: inv.email,
         id: inv.id,
         status: inv.status,
       })),
@@ -234,28 +195,7 @@ export class MembersController {
       );
     }
 
-    const invitation = await this.clerkService.getInvitation(invitationId);
-
-    if (!invitation) {
-      throw new HttpException(
-        { detail: 'Invitation not found', title: 'Not Found' },
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    // Verify invitation belongs to this org
-    const meta = invitation.publicMetadata as Record<string, unknown>;
-    if (meta?.organization !== orgId) {
-      throw new HttpException(
-        {
-          detail: 'Invitation does not belong to this organization',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    await this.clerkService.revokeInvitation(invitationId);
+    await this.invitationService.revokeInvitation(invitationId, orgId);
 
     return { data: { id: invitationId, status: 'revoked' } };
   }
@@ -279,39 +219,22 @@ export class MembersController {
         HttpStatus.BAD_REQUEST,
       );
     }
-
-    // Verify invitation exists and belongs to this org
-    const invitation = await this.clerkService.getInvitation(invitationId);
-
-    if (!invitation) {
+    if (!publicMetadata.user) {
       throw new HttpException(
-        { detail: 'Invitation not found', title: 'Not Found' },
-        HttpStatus.NOT_FOUND,
+        { detail: 'Inviting user not found in metadata', title: 'Bad Request' },
+        HttpStatus.BAD_REQUEST,
       );
     }
 
-    const meta = invitation.publicMetadata as Record<string, unknown>;
-    if (meta?.organization !== orgId) {
-      throw new HttpException(
-        {
-          detail: 'Invitation does not belong to this organization',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    // Revoke old and create new invitation with same params
-    await this.clerkService.revokeInvitation(invitationId);
-    const newInvitation = await this.clerkService.createInvitation(
-      invitation.emailAddress,
-      `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.genfeed.ai'}/overview?org=${orgId}`,
-      invitation.publicMetadata as Record<string, unknown>,
-    );
+    const newInvitation = await this.invitationService.resendInvitation({
+      invitationId,
+      invitedByUserId: String(publicMetadata.user),
+      organizationId: orgId,
+    });
 
     return {
       data: {
-        email: newInvitation.emailAddress,
+        email: newInvitation.email,
         id: newInvitation.id,
         status: newInvitation.status,
       },

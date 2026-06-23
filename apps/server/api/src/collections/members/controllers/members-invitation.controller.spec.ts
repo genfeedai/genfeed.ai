@@ -1,14 +1,13 @@
 import { MembersController } from '@api/collections/members/controllers/members.controller';
+import type { InvitationService } from '@api/collections/members/services/invitation.service';
 import type { MembersService } from '@api/collections/members/services/members.service';
-import type { RolesService } from '@api/collections/roles/services/roles.service';
-import type { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import type { User } from '@clerk/backend';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
-const userId = '507f191e810c19729de860ee'.toString();
-const orgId = '507f191e810c19729de860ee'.toString();
-const brandId = '507f191e810c19729de860ee'.toString();
+const userId = '507f191e810c19729de860ee';
+const orgId = '507f191e810c19729de860ee';
+const brandId = '507f191e810c19729de860ee';
 
 const makeUser = (overrides: Record<string, unknown> = {}): User =>
   ({
@@ -22,23 +21,33 @@ const makeUser = (overrides: Record<string, unknown> = {}): User =>
     },
   }) as unknown as User;
 
+const now = new Date('2026-06-23T12:00:00.000Z');
+
+const invitation = {
+  acceptedAt: null,
+  createdAt: now,
+  email: 'new@example.com',
+  expiresAt: new Date('2026-06-30T12:00:00.000Z'),
+  id: 'inv_123',
+  invitedByUserId: userId,
+  organizationId: orgId,
+  revokedAt: null,
+  roleId: 'role_member',
+  status: 'pending' as const,
+  updatedAt: now,
+};
+
 const mockMembersService = {
-  find: vi.fn(),
   findAll: vi.fn(),
   findOne: vi.fn(),
 } as unknown as MembersService;
 
-const mockClerkService = {
+const mockInvitationService = {
   createInvitation: vi.fn(),
-  getInvitation: vi.fn(),
-  getUserByEmail: vi.fn(),
-  listInvitations: vi.fn(),
+  listPendingInvitations: vi.fn(),
+  resendInvitation: vi.fn(),
   revokeInvitation: vi.fn(),
-} as unknown as ClerkService;
-
-const mockRolesService = {
-  findOne: vi.fn(),
-} as unknown as RolesService;
+} as unknown as InvitationService;
 
 const mockLoggerService = {
   debug: vi.fn(),
@@ -50,8 +59,7 @@ const mockLoggerService = {
 function buildController() {
   return new MembersController(
     mockMembersService,
-    mockClerkService,
-    mockRolesService,
+    mockInvitationService,
     mockLoggerService,
   );
 }
@@ -61,10 +69,10 @@ describe('MembersController — invitation endpoints', () => {
     vi.clearAllMocks();
   });
 
-  // ─── POST /members/invite ─────────────────────────────────────────────────
   describe('POST /members/invite', () => {
     it('throws 400 when organization missing from metadata', async () => {
       const controller = buildController();
+
       await expect(
         controller.invite(
           { email: 'test@example.com' },
@@ -81,140 +89,81 @@ describe('MembersController — invitation endpoints', () => {
       );
     });
 
-    it('throws 409 when user is already a member', async () => {
+    it('creates a self-hosted invitation with default member role semantics', async () => {
       const controller = buildController();
-      vi.mocked(mockClerkService.getUserByEmail).mockResolvedValue({
-        publicMetadata: { user: '507f191e810c19729de860ee'.toString() },
-      } as never);
-      vi.mocked(mockMembersService.findOne).mockResolvedValue({
-        _id: '507f191e810c19729de860ee',
-      } as never);
-
-      await expect(
-        controller.invite({ email: 'existing@example.com' }, makeUser()),
-      ).rejects.toThrow(
-        new HttpException(
-          {
-            detail: 'User is already a member of this organization',
-            title: 'Conflict',
-          },
-          HttpStatus.CONFLICT,
-        ),
+      vi.mocked(mockInvitationService.createInvitation).mockResolvedValue(
+        invitation,
       );
-    });
-
-    it('creates invitation with default member role when role not specified', async () => {
-      const controller = buildController();
-      const roleId = '507f191e810c19729de860ee';
-
-      vi.mocked(mockClerkService.getUserByEmail).mockResolvedValue(null);
-      vi.mocked(mockRolesService.findOne).mockResolvedValue({
-        _id: roleId,
-        key: 'member',
-      } as never);
-      vi.mocked(mockClerkService.createInvitation).mockResolvedValue({
-        id: 'inv_123',
-        status: 'pending',
-      } as never);
 
       const result = await controller.invite(
-        { email: 'new@example.com' },
+        { email: 'new@example.com', firstName: 'New', lastName: 'User' },
         makeUser(),
       );
 
-      expect(mockClerkService.createInvitation).toHaveBeenCalledWith(
-        'new@example.com',
-        expect.stringContaining(`org=${orgId}`),
-        expect.objectContaining({
-          invitedByUser: userId,
+      expect(mockInvitationService.createInvitation).toHaveBeenCalledWith({
+        defaultRoleKey: 'member',
+        email: 'new@example.com',
+        firstName: 'New',
+        invitedByUserId: userId,
+        lastName: 'User',
+        organizationId: orgId,
+        roleId: undefined,
+      });
+      expect(result).toEqual({
+        data: {
+          email: 'new@example.com',
+          id: 'inv_123',
           organization: orgId,
-          role: roleId.toString(),
-        }),
-      );
-      expect(result).toMatchObject({
-        data: { email: 'new@example.com', id: 'inv_123', status: 'pending' },
+          role: 'role_member',
+          status: 'pending',
+        },
       });
     });
 
-    it('uses provided role when specified', async () => {
+    it('passes a provided role through to the invitation service', async () => {
       const controller = buildController();
-      const customRole = '507f191e810c19729de860ee';
-
-      vi.mocked(mockClerkService.getUserByEmail).mockResolvedValue(null);
-      vi.mocked(mockClerkService.createInvitation).mockResolvedValue({
-        id: 'inv_456',
-        status: 'pending',
-      } as never);
+      vi.mocked(mockInvitationService.createInvitation).mockResolvedValue({
+        ...invitation,
+        roleId: 'role_custom',
+      });
 
       await controller.invite(
-        { email: 'new@example.com', role: customRole },
+        { email: 'new@example.com', role: 'role_custom' },
         makeUser(),
       );
 
-      expect(mockClerkService.createInvitation).toHaveBeenCalledWith(
-        'new@example.com',
-        expect.any(String),
-        expect.objectContaining({ role: customRole.toString() }),
-      );
-    });
-
-    it('includes firstName/lastName in metadata when provided', async () => {
-      const controller = buildController();
-      vi.mocked(mockClerkService.getUserByEmail).mockResolvedValue(null);
-      vi.mocked(mockRolesService.findOne).mockResolvedValue(null);
-      vi.mocked(mockClerkService.createInvitation).mockResolvedValue({
-        id: 'inv_789',
-        status: 'pending',
-      } as never);
-
-      await controller.invite(
-        { email: 'j@example.com', firstName: 'Jane', lastName: 'Doe' },
-        makeUser(),
-      );
-
-      expect(mockClerkService.createInvitation).toHaveBeenCalledWith(
-        'j@example.com',
-        expect.any(String),
-        expect.objectContaining({ firstName: 'Jane', lastName: 'Doe' }),
+      expect(mockInvitationService.createInvitation).toHaveBeenCalledWith(
+        expect.objectContaining({ roleId: 'role_custom' }),
       );
     });
   });
 
-  // ─── GET /members/invitations/pending ─────────────────────────────────────
   describe('GET /members/invitations/pending', () => {
     it('throws 400 when organization missing', async () => {
       const controller = buildController();
+
       await expect(
         controller.listInvitations(makeUser({ organization: undefined })),
       ).rejects.toThrow(HttpException);
     });
 
-    it('returns only invitations for current org', async () => {
+    it('returns pending invitations for current org', async () => {
       const controller = buildController();
-      vi.mocked(mockClerkService.listInvitations).mockResolvedValue([
-        {
-          createdAt: 1000,
-          emailAddress: 'a@test.com',
-          id: 'inv_1',
-          publicMetadata: { organization: orgId },
-          status: 'pending',
-        },
-        {
-          createdAt: 2000,
-          emailAddress: 'b@test.com',
-          id: 'inv_2',
-          publicMetadata: { organization: 'other-org' },
-          status: 'pending',
-        },
-      ] as never);
+      vi.mocked(mockInvitationService.listPendingInvitations).mockResolvedValue(
+        [invitation],
+      );
 
       const result = await controller.listInvitations(makeUser());
+
+      expect(mockInvitationService.listPendingInvitations).toHaveBeenCalledWith(
+        orgId,
+      );
       expect(result).toEqual({
         data: [
           {
-            createdAt: 1000,
-            email: 'a@test.com',
-            id: 'inv_1',
+            createdAt: now,
+            email: 'new@example.com',
+            id: 'inv_123',
             status: 'pending',
           },
         ],
@@ -222,10 +171,10 @@ describe('MembersController — invitation endpoints', () => {
     });
   });
 
-  // ─── DELETE /members/invitations/:id ──────────────────────────────────────
   describe('DELETE /members/invitations/:invitationId', () => {
     it('throws 400 when org missing', async () => {
       const controller = buildController();
+
       await expect(
         controller.revokeInvitation(
           'inv_1',
@@ -234,105 +183,46 @@ describe('MembersController — invitation endpoints', () => {
       ).rejects.toThrow(HttpException);
     });
 
-    it('throws 404 when invitation not found', async () => {
-      const controller = buildController();
-      vi.mocked(mockClerkService.getInvitation).mockResolvedValue(null);
-
-      await expect(
-        controller.revokeInvitation('inv_xxx', makeUser()),
-      ).rejects.toThrow(
-        new HttpException(
-          { detail: 'Invitation not found', title: 'Not Found' },
-          HttpStatus.NOT_FOUND,
-        ),
-      );
-    });
-
-    it('throws 403 when invitation belongs to different org', async () => {
-      const controller = buildController();
-      vi.mocked(mockClerkService.getInvitation).mockResolvedValue({
-        id: 'inv_1',
-        publicMetadata: { organization: 'other-org' },
-      } as never);
-
-      await expect(
-        controller.revokeInvitation('inv_1', makeUser()),
-      ).rejects.toThrow(
-        new HttpException(
-          {
-            detail: 'Invitation does not belong to this organization',
-            title: 'Forbidden',
-          },
-          HttpStatus.FORBIDDEN,
-        ),
-      );
-    });
-
     it('revokes invitation successfully', async () => {
       const controller = buildController();
-      vi.mocked(mockClerkService.getInvitation).mockResolvedValue({
+      vi.mocked(mockInvitationService.revokeInvitation).mockResolvedValue({
+        ...invitation,
         id: 'inv_1',
-        publicMetadata: { organization: orgId },
-      } as never);
-      vi.mocked(mockClerkService.revokeInvitation).mockResolvedValue(
-        undefined as never,
-      );
+        revokedAt: now,
+        status: 'revoked',
+      });
 
       const result = await controller.revokeInvitation('inv_1', makeUser());
-      expect(mockClerkService.revokeInvitation).toHaveBeenCalledWith('inv_1');
+
+      expect(mockInvitationService.revokeInvitation).toHaveBeenCalledWith(
+        'inv_1',
+        orgId,
+      );
       expect(result).toEqual({ data: { id: 'inv_1', status: 'revoked' } });
     });
   });
 
-  // ─── POST /members/invitations/:id/resend ─────────────────────────────────
   describe('POST /members/invitations/:id/resend', () => {
-    it('throws 404 when invitation not found', async () => {
+    it('resends a pending invitation', async () => {
       const controller = buildController();
-      vi.mocked(mockClerkService.getInvitation).mockResolvedValue(null);
-
-      await expect(
-        controller.resendInvitation('inv_xxx', makeUser()),
-      ).rejects.toThrow(HttpException);
-    });
-
-    it('throws 403 when invitation belongs to different org', async () => {
-      const controller = buildController();
-      vi.mocked(mockClerkService.getInvitation).mockResolvedValue({
-        id: 'inv_1',
-        publicMetadata: { organization: 'wrong-org' },
-      } as never);
-
-      await expect(
-        controller.resendInvitation('inv_1', makeUser()),
-      ).rejects.toThrow(HttpException);
-    });
-
-    it('revokes old invitation and creates new one', async () => {
-      const controller = buildController();
-      vi.mocked(mockClerkService.getInvitation).mockResolvedValue({
-        emailAddress: 'test@example.com',
-        id: 'inv_old',
-        publicMetadata: { organization: orgId, role: 'member' },
-      } as never);
-      vi.mocked(mockClerkService.revokeInvitation).mockResolvedValue(
-        undefined as never,
-      );
-      vi.mocked(mockClerkService.createInvitation).mockResolvedValue({
-        emailAddress: 'test@example.com',
+      vi.mocked(mockInvitationService.resendInvitation).mockResolvedValue({
+        ...invitation,
         id: 'inv_new',
-        status: 'pending',
-      } as never);
+      });
 
       const result = await controller.resendInvitation('inv_old', makeUser());
 
-      expect(mockClerkService.revokeInvitation).toHaveBeenCalledWith('inv_old');
-      expect(mockClerkService.createInvitation).toHaveBeenCalledWith(
-        'test@example.com',
-        expect.stringContaining(`org=${orgId}`),
-        { organization: orgId, role: 'member' },
-      );
-      expect(result).toMatchObject({
-        data: { email: 'test@example.com', id: 'inv_new', status: 'pending' },
+      expect(mockInvitationService.resendInvitation).toHaveBeenCalledWith({
+        invitationId: 'inv_old',
+        invitedByUserId: userId,
+        organizationId: orgId,
+      });
+      expect(result).toEqual({
+        data: {
+          email: 'new@example.com',
+          id: 'inv_new',
+          status: 'pending',
+        },
       });
     });
   });
