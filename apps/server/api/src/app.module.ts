@@ -6,6 +6,8 @@
 
 import process from 'node:process';
 import { AuthModule } from '@api/auth/auth.module';
+import { BetterAuthModule } from '@api/auth/better-auth/better-auth.module';
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { AgentCampaignsModule } from '@api/collections/agent-campaigns/agent-campaigns.module';
 import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memories.module';
@@ -233,6 +235,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ArticlesModule,
     AssetsModule,
     AuthModule,
+    BetterAuthModule,
     AvatarsModule,
     BookmarksModule,
     // BusinessAnalyticsModule — EE (gated below)
@@ -459,6 +462,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     RequestContextCacheService,
     ClerkGuard,
     ApiKeyAuthGuard,
+    BetterAuthGuard,
     {
       provide: APP_GUARD,
       useClass: CombinedAuthGuard,

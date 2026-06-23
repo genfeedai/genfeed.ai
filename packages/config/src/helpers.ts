@@ -43,3 +43,16 @@ export const SELF_HOSTED_REQUIRED: Joi.StringSchema = IS_SELF_HOSTED_FLAG
  * Use this in guards, middleware, and runtime checks.
  */
 export const IS_SELF_HOSTED: boolean = IS_SELF_HOSTED_FLAG;
+
+/**
+ * Better Auth dual-run switch (epic #735). When true, the first-party Better
+ * Auth handler/strategy/guard are active beside Clerk; when false (default)
+ * they are inert and every request flows through Clerk unchanged.
+ *
+ * Sourced from the environment here (mirroring IS_SELF_HOSTED) so guards and the
+ * bootstrap can branch on it without a ConfigService injection. The matching
+ * `betterAuthSchema` keeps the var declared for the env-coverage gate, and
+ * `BetterAuthModule` fail-fast validates the dependent secrets when it is on.
+ */
+export const IS_BETTER_AUTH_ENABLED: boolean =
+  process.env.BETTER_AUTH_ENABLED === 'true';

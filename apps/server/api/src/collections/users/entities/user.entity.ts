@@ -11,6 +11,10 @@ export class UserEntity extends BaseEntity implements User {
   declare readonly lastName: string | null;
   declare readonly email: string | null;
   declare readonly avatar: string | null;
+  // Better Auth (epic #735) — first-party identity columns on the User model.
+  declare readonly name: string | null;
+  declare readonly emailVerified: boolean;
+  declare readonly isSuperAdmin: boolean;
 
   declare readonly isInvited: boolean;
 

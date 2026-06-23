@@ -1,10 +1,8 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
-import { UsersService } from '@api/collections/users/services/users.service';
 import { ConfigService } from '@api/config/config.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import {
   type StripeCustomer,
   StripeService,
@@ -26,8 +24,9 @@ import type { CreateSubscriptionDto } from '../dto/create-subscription.dto';
 import type { UpdateSubscriptionDto } from '../dto/update-subscription.dto';
 import type { SubscriptionDocument } from '../schemas/subscription.schema';
 
-type ClerkSyncSubscription = {
+type SubscriptionStateSync = {
   _id?: string;
+  organization?: string;
   user?: string;
   stripePriceId?: string | null;
   stripeSubscriptionId?: string | null;
@@ -59,10 +58,6 @@ export class SubscriptionsService
   implements ISubscriptionsService
 {
   public readonly constructorName: string = String(this.constructor.name);
-
-  private optionalString(value: string | null | undefined): string | undefined {
-    return value ?? undefined;
-  }
 
   private requireString(
     value: string | null | undefined,
@@ -140,10 +135,8 @@ export class SubscriptionsService
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly configService: ConfigService,
-    private readonly usersService: UsersService,
     private readonly stripeService: StripeService,
     private readonly customersService: CustomersService,
-    private readonly clerkService: ClerkService,
     @Inject(forwardRef(() => CreditsUtilsService))
     private readonly creditsUtilsService: CreditsUtilsService,
   ) {
@@ -151,68 +144,43 @@ export class SubscriptionsService
   }
 
   /**
-   * Syncs subscription data to Clerk public metadata
+   * Persists subscription state to the DB.
+   * When `subscriptionTier` is provided and the subscription carries an
+   * `organization` reference, writes `subscriptionTier` to
+   * `OrganizationSetting` via Prisma so the request-context middleware can
+   * read it without touching Clerk.
    */
-  async syncSubscriptionToClerkMetadata(
-    subscription: ClerkSyncSubscription,
-    stripeSubscriptionId?: string,
-    stripePriceId?: string,
-    status?: string,
+  async syncSubscriptionState(
+    subscription: SubscriptionStateSync,
+    _stripeSubscriptionId?: string,
+    _stripePriceId?: string,
+    _status?: string,
     subscriptionTier?: string,
   ) {
     try {
-      if (!subscription.user) {
-        return this.logger.warn(
-          `${this.constructorName} subscription missing user reference`,
-          {
-            subscriptionId: subscription._id,
-          },
-        );
-      }
+      const organizationId = subscription.organization
+        ? String(subscription.organization)
+        : undefined;
 
-      const user = await this.usersService.findOne({
-        _id: subscription.user,
-      });
-
-      if (!user) {
-        return this.logger.warn(
-          `${this.constructorName} user not found for subscription`,
-          {
-            subscriptionId: subscription._id,
-          },
-        );
-      }
-
-      const clerkUserId = user.clerkId;
-      if (!clerkUserId) {
-        this.logger.warn(`${this.constructorName} user missing clerkId`, {
-          userId: user._id ?? user.id,
+      if (organizationId && subscriptionTier) {
+        await this.prisma.organizationSetting.updateMany({
+          data: { subscriptionTier },
+          where: { organizationId },
         });
-        return;
+
+        this.logger.log('Subscription tier persisted to DB', {
+          organizationId,
+          subscriptionTier,
+        });
+      } else {
+        this.logger.log('Subscription state sync skipped (no tier to write)', {
+          hasOrganizationId: Boolean(organizationId),
+          hasSubscriptionTier: Boolean(subscriptionTier),
+          subscriptionId: subscription._id,
+        });
       }
-
-      // Update Clerk public metadata
-      await this.clerkService.updateUserPublicMetadata(clerkUserId, {
-        stripePriceId:
-          this.optionalString(stripePriceId) ??
-          this.optionalString(subscription.stripePriceId),
-        stripeSubscriptionId:
-          this.optionalString(stripeSubscriptionId) ??
-          this.optionalString(subscription.stripeSubscriptionId),
-        stripeSubscriptionStatus:
-          this.optionalString(status) ??
-          this.optionalString(subscription.status),
-        ...(subscriptionTier ? { subscriptionTier } : {}),
-      });
-
-      this.logger.log('Subscription synced to Clerk metadata', {
-        clerkUserId,
-        status: status || subscription.status,
-        stripeSubscriptionId:
-          stripeSubscriptionId || subscription.stripeSubscriptionId,
-      });
     } catch (error: unknown) {
-      this.logger.error('Failed to sync subscription to Clerk metadata', error);
+      this.logger.error('Failed to sync subscription state to DB', error);
     }
   }
 
@@ -396,8 +364,8 @@ export class SubscriptionsService
         },
       );
 
-      // Sync subscription data to Clerk metadata
-      await this.syncSubscriptionToClerkMetadata(updatedSubscription);
+      // Sync subscription state to DB
+      await this.syncSubscriptionState(updatedSubscription);
 
       // Reset credits to new plan's allocation when changing subscription type
       const previousPlan = subscription.type ?? subscription.plan ?? undefined;

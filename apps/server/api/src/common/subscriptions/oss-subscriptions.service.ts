@@ -20,7 +20,7 @@ function enterpriseBillingUnavailable(): never {
  * present. Two behavioural rules, enforced by the contract docs:
  *
  * - **Always-on webhook paths** (`findOne`, `patch`, `findByStripeCustomerId`,
- *   `syncWithStripe`, `syncSubscriptionToClerkMetadata`, `findAll`,
+ *   `syncWithStripe`, `syncSubscriptionState`, `findAll`,
  *   `findByOrganizationId`) return domain-safe values and NEVER throw — the
  *   Stripe webhook fires continuously and a throw would 500 it on a
  *   self-hosted install that never provisioned billing.
@@ -77,7 +77,7 @@ export class OssSubscriptionsService implements ISubscriptionsService {
     return enterpriseBillingUnavailable();
   }
 
-  async syncSubscriptionToClerkMetadata(
+  async syncSubscriptionState(
     _subscription: unknown,
     _stripeSubscriptionId?: string,
     _stripePriceId?: string,

@@ -37,7 +37,7 @@ describe('OssSubscriptionsService', () => {
       service.patch('sub_1', { status: 'active' }),
     ).resolves.toBeNull();
     await expect(
-      service.syncSubscriptionToClerkMetadata({ user: 'user-1' }),
+      service.syncSubscriptionState({ organization: 'org-1' }),
     ).resolves.toBeUndefined();
   });
 

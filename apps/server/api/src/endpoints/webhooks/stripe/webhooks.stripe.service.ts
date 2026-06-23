@@ -205,8 +205,8 @@ export class StripeWebhookService {
         subscriptionData,
       );
 
-      // Sync subscription data to Clerk metadata
-      await this.subscriptionsService.syncSubscriptionToClerkMetadata(
+      // Sync subscription state to DB
+      await this.subscriptionsService.syncSubscriptionState(
         updatedSubscription,
         subscription.id,
         subscription.items.data[0].price.id,
@@ -222,8 +222,8 @@ export class StripeWebhookService {
           url,
         );
 
-        // Sync tier to Clerk metadata
-        await this.subscriptionsService.syncSubscriptionToClerkMetadata(
+        // Sync tier to DB
+        await this.subscriptionsService.syncSubscriptionState(
           updatedSubscription,
           subscription.id,
           subscription.items.data[0].price.id,
@@ -289,8 +289,8 @@ export class StripeWebhookService {
         );
       }
 
-      // Sync subscription data to Clerk metadata
-      await this.subscriptionsService.syncSubscriptionToClerkMetadata(
+      // Sync subscription state to DB
+      await this.subscriptionsService.syncSubscriptionState(
         updatedSubscription,
         subscription.id,
         subscription.items.data[0]?.price?.id,
@@ -390,8 +390,8 @@ export class StripeWebhookService {
         );
       }
 
-      // Sync subscription data to Clerk metadata
-      await this.subscriptionsService.syncSubscriptionToClerkMetadata(
+      // Sync subscription state to DB
+      await this.subscriptionsService.syncSubscriptionState(
         updatedSubscription,
         subscription.id,
         undefined,
@@ -1540,8 +1540,8 @@ export class StripeWebhookService {
           },
         );
 
-        // Sync subscription data to Clerk metadata
-        await this.subscriptionsService.syncSubscriptionToClerkMetadata(
+        // Sync subscription state to DB
+        await this.subscriptionsService.syncSubscriptionState(
           updatedSubscription,
         );
 

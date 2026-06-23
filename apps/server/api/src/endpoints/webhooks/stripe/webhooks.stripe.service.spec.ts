@@ -15,7 +15,7 @@ describe('StripeWebhookService invoice handlers', () => {
   const subscriptionsService = {
     findOne: vi.fn(),
     patch: vi.fn(),
-    syncSubscriptionToClerkMetadata: vi.fn(),
+    syncSubscriptionState: vi.fn(),
   };
   const creditsUtilsService = {
     addOrganizationCreditsWithExpiration: vi.fn(),
