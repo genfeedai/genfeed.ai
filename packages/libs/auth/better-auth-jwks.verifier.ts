@@ -1,3 +1,7 @@
+import type {
+  IBetterAuthJwksVerifierOptions,
+  IBetterAuthVerifiedClaims,
+} from '@genfeedai/interfaces';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 /**
@@ -8,17 +12,25 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
  */
 export const BETTER_AUTH_JWKS_PATH = '/v1/auth/jwks';
 
-/** Verified Better Auth JWT claims the websocket gateways rely on. */
-export interface IBetterAuthVerifiedClaims {
-  /** Subject — the Prisma `User.id` (the jwt plugin sets `sub = user.id`). */
-  sub: string;
-  /** Active organization id signed by the API for DB-less websocket authz. */
-  organizationId?: string;
+/** Normalizes the issuer/audience base URL to match the API JWT config. */
+export function normalizeBetterAuthBaseUrl(baseUrl: string): string {
+  return baseUrl.replace(/\/+$/, '');
 }
 
 /** Builds the JWKS URL from a Better Auth base URL, tolerating trailing slashes. */
 export function resolveBetterAuthJwksUrl(baseUrl: string): string {
-  return `${baseUrl.replace(/\/+$/, '')}${BETTER_AUTH_JWKS_PATH}`;
+  return `${normalizeBetterAuthBaseUrl(baseUrl)}${BETTER_AUTH_JWKS_PATH}`;
+}
+
+export function createBetterAuthJwksVerifierOptions(
+  baseUrl: string,
+): IBetterAuthJwksVerifierOptions {
+  const normalizedBaseUrl = normalizeBetterAuthBaseUrl(baseUrl);
+  return {
+    audience: normalizedBaseUrl,
+    issuer: normalizedBaseUrl,
+    jwksUrl: resolveBetterAuthJwksUrl(normalizedBaseUrl),
+  };
 }
 
 /**
@@ -33,8 +45,8 @@ export function resolveBetterAuthJwksUrl(baseUrl: string): string {
 export class BetterAuthJwksVerifier {
   private readonly jwks: ReturnType<typeof createRemoteJWKSet>;
 
-  constructor(jwksUrl: string) {
-    this.jwks = createRemoteJWKSet(new URL(jwksUrl));
+  constructor(private readonly options: IBetterAuthJwksVerifierOptions) {
+    this.jwks = createRemoteJWKSet(new URL(options.jwksUrl));
   }
 
   /**
@@ -43,7 +55,10 @@ export class BetterAuthJwksVerifier {
    * treat a throw as "unauthenticated".
    */
   async verify(token: string): Promise<IBetterAuthVerifiedClaims> {
-    const { payload } = await jwtVerify(token, this.jwks);
+    const { payload } = await jwtVerify(token, this.jwks, {
+      audience: this.options.audience,
+      issuer: this.options.issuer,
+    });
 
     if (typeof payload.sub !== 'string' || payload.sub.length === 0) {
       throw new Error('Better Auth JWT is missing a subject (sub) claim');

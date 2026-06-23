@@ -35,6 +35,11 @@ function createTerminalService(isAvailable = true) {
     attach: vi.fn(),
     createSession: vi.fn(),
     getBetterAuthJwksUrl: vi.fn(() => 'http://localhost:3010/v1/auth/jwks'),
+    getBetterAuthJwksVerifierOptions: vi.fn(() => ({
+      audience: 'http://localhost:3010',
+      issuer: 'http://localhost:3010',
+      jwksUrl: 'http://localhost:3010/v1/auth/jwks',
+    })),
     isAvailable: vi.fn(() => isAvailable),
     killAllForSocket: vi.fn(),
     killSession: vi.fn(),

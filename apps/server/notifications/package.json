@@ -3,6 +3,7 @@
     "@clerk/backend": "3.4.14",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/enums": "workspace:*",
+    "@genfeedai/interfaces": "workspace:*",
     "@slack/web-api": "7.16.0",
     "jose": "^6.2.3",
     "node-pty": "1.1.0"

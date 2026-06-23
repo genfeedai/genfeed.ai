@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { IBetterAuthJwtUserPayloadSource } from '@genfeedai/interfaces';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { jwt, magicLink } from 'better-auth/plugins';
@@ -193,12 +194,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
           // because DB-less websocket consumers cannot verify membership at
           // connection time.
           definePayload: async ({ user }) => {
-            const typed = user as unknown as {
-              id?: string;
-              email?: string | null;
-              name?: string | null;
-              isSuperAdmin?: boolean;
-            };
+            const typed = user as unknown as IBetterAuthJwtUserPayloadSource;
             const userId = getString(typed.id);
             const organizationId = userId
               ? await resolveBetterAuthJwtOrganizationId(prisma, userId)

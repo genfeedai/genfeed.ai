@@ -3,7 +3,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
-import { resolveBetterAuthJwksUrl } from '@libs/auth/better-auth-jwks.verifier';
+import type { IBetterAuthJwksVerifierOptions } from '@genfeedai/interfaces';
+import {
+  createBetterAuthJwksVerifierOptions,
+  resolveBetterAuthJwksUrl,
+} from '@libs/auth/better-auth-jwks.verifier';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@notifications/config/config.service';
 import type {
@@ -191,11 +195,19 @@ export class TerminalService {
    * localhost so a default local boot works (epic #735, Phase 4 — D3).
    */
   getBetterAuthJwksUrl(): string {
+    return resolveBetterAuthJwksUrl(this.getBetterAuthBaseUrl());
+  }
+
+  getBetterAuthJwksVerifierOptions(): IBetterAuthJwksVerifierOptions {
+    return createBetterAuthJwksVerifierOptions(this.getBetterAuthBaseUrl());
+  }
+
+  private getBetterAuthBaseUrl(): string {
     const baseUrl =
       this.configService.get('BETTER_AUTH_URL') ||
       this.configService.get('API_BASE_URL') ||
       'http://localhost:3010';
-    return resolveBetterAuthJwksUrl(baseUrl);
+    return baseUrl;
   }
 
   /**

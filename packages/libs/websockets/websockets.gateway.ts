@@ -1,6 +1,6 @@
 import {
   BetterAuthJwksVerifier,
-  resolveBetterAuthJwksUrl,
+  createBetterAuthJwksVerifierOptions,
 } from '@libs/auth/better-auth-jwks.verifier';
 import type {
   AssetStatusData,
@@ -205,10 +205,9 @@ export class WebSocketGateway
     userId?: string;
     organizationId?: string;
   }> {
-    const queryUserId = client.handshake.query.userId as string | undefined;
     const token = this.extractToken(client);
     if (!token) {
-      return { userId: queryUserId };
+      return {};
     }
 
     try {
@@ -225,7 +224,7 @@ export class WebSocketGateway
         `Failed to verify Better Auth token for client ${client.id}: ${errorMessage}`,
         { ...this.context, error },
       );
-      return { userId: queryUserId };
+      return {};
     }
   }
 
@@ -238,8 +237,9 @@ export class WebSocketGateway
           this.context,
         );
       }
+      const betterAuthBaseUrl = configuredUrl || 'http://localhost:3010';
       this.betterAuthVerifier = new BetterAuthJwksVerifier(
-        resolveBetterAuthJwksUrl(configuredUrl || 'http://localhost:3010'),
+        createBetterAuthJwksVerifierOptions(betterAuthBaseUrl),
       );
     }
     return this.betterAuthVerifier;

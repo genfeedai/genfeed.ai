@@ -18,7 +18,11 @@ vi.mock('@libs/auth/better-auth-jwks.verifier', () => ({
   BetterAuthJwksVerifier: class {
     verify = verifyMock;
   },
-  resolveBetterAuthJwksUrl: (baseUrl: string) => `${baseUrl}/v1/auth/jwks`,
+  createBetterAuthJwksVerifierOptions: (baseUrl: string) => ({
+    audience: baseUrl,
+    issuer: baseUrl,
+    jwksUrl: `${baseUrl}/v1/auth/jwks`,
+  }),
 }));
 
 describe('WebSocketGateway', () => {
@@ -108,20 +112,16 @@ describe('WebSocketGateway', () => {
     );
   });
 
-  it('connects query-identity clients without joining an org room', async () => {
+  it('disconnects query-identity clients without a verified token', async () => {
     const socket = createMockSocket();
 
     await gateway.handleConnection(socket as Socket);
 
-    expect(socket.join).toHaveBeenCalledWith('user:user-123');
-    expect(socket.join).not.toHaveBeenCalledWith('org-org-123');
-    expect(socket.emit).toHaveBeenCalledWith(
+    expect(socket.disconnect).toHaveBeenCalledOnce();
+    expect(socket.join).not.toHaveBeenCalled();
+    expect(socket.emit).not.toHaveBeenCalledWith(
       'connected',
-      expect.objectContaining({
-        organizationId: undefined,
-        socketId: 'socket-123',
-        userId: 'user-123',
-      }),
+      expect.any(Object),
     );
   });
 
@@ -206,7 +206,7 @@ describe('WebSocketGateway', () => {
     );
   });
 
-  it('falls back to query identity when Better Auth verification throws', async () => {
+  it('disconnects when Better Auth verification throws', async () => {
     mockConfigService.get.mockReturnValue('http://localhost:3010');
     verifyMock.mockRejectedValue(new Error('invalid signature'));
     const socket = createMockSocket({
@@ -222,12 +222,14 @@ describe('WebSocketGateway', () => {
 
     await gateway.handleConnection(socket as Socket);
 
-    // A failed verify must not connect with forged token claims — it degrades
-    // to the query user identity only, never the query org room.
     expect(verifyMock).toHaveBeenCalledWith('bad.token.here');
-    expect(socket.disconnect).not.toHaveBeenCalled();
-    expect(socket.join).toHaveBeenCalledWith('user:user-query');
+    expect(socket.disconnect).toHaveBeenCalledOnce();
+    expect(socket.join).not.toHaveBeenCalledWith('user:user-query');
     expect(socket.join).not.toHaveBeenCalledWith('org-org-query');
+    expect(socket.emit).not.toHaveBeenCalledWith(
+      'connected',
+      expect.any(Object),
+    );
     expect(mockLoggerService.warn).toHaveBeenCalledWith(
       expect.stringContaining('Failed to verify Better Auth token'),
       expect.any(Object),

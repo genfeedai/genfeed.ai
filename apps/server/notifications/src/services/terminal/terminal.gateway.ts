@@ -263,7 +263,7 @@ export class TerminalGateway
   private getBetterAuthVerifier(): BetterAuthJwksVerifier {
     if (!this.betterAuthVerifier) {
       this.betterAuthVerifier = new BetterAuthJwksVerifier(
-        this.terminalService.getBetterAuthJwksUrl(),
+        this.terminalService.getBetterAuthJwksVerifierOptions(),
       );
     }
     return this.betterAuthVerifier;
