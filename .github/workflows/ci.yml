@@ -161,35 +161,47 @@ jobs:
             BASE="HEAD~1"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "scope=full" >> "$GITHUB_OUTPUT"
             echo "No parent commit available; running React Doctor"
             exit 0
           fi
 
           CHANGED_FILES="$(git diff --name-only --diff-filter=ACMR "$BASE" HEAD)"
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
 
-          if printf '%s\n' "$CHANGED_FILES" | grep -E '^(package\.json$|(apps/(app|website|docs|desktop|mobile|extensions)|packages/(ui|hooks|contexts|providers|pages|workflow-ui|agent))/)' >/dev/null; then
+          if printf '%s\n' "$CHANGED_FILES" | grep -E '^(apps/(app|website|docs|desktop|mobile|extensions)|packages/(ui|hooks|contexts|providers|pages|workflow-ui|agent))/' >/dev/null; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No React surface changes detected"
           fi
 
-          if printf '%s\n' "$CHANGED_FILES" | grep -qx 'package.json'; then
-            echo "scope=full" >> "$GITHUB_OUTPUT"
-            echo "Root package metadata changed; using full React Doctor scan"
-          else
-            echo "scope=changed" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Setup Bun environment
+        if: steps.react_changes.outputs.changed == 'true'
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: '1.3.14'
+          cache-turbo: 'false'
 
       - name: Run React Doctor
         if: steps.react_changes.outputs.changed == 'true'
-        uses: millionco/react-doctor@v2.1.0
-        with:
-          directory: '.'
-          scope: ${{ steps.react_changes.outputs.scope || 'changed' }}
-          blocking: 'error'
-          version: '0.4.2'
+        run: |
+          BASE="${{ steps.react_changes.outputs.base }}"
+
+          if [ -n "$BASE" ]; then
+            CHANGED_FILES="${RUNNER_TEMP:-/tmp}/react-doctor-changed-files.txt"
+            git diff --name-only --diff-filter=ACMR "$BASE" HEAD \
+              | grep -E '^(apps/(app|website|docs|desktop|mobile|extensions)|packages/(ui|hooks|contexts|providers|pages|workflow-ui|agent))/' \
+              > "$CHANGED_FILES" || true
+
+            if [ ! -s "$CHANGED_FILES" ]; then
+              echo "No React source files to scan"
+              exit 0
+            fi
+
+            REACT_DOCTOR_BASE_SHA="$BASE" bunx react-doctor@0.4.2 . --blocking error --project '*' --changed-files-from "$CHANGED_FILES"
+          else
+            bunx react-doctor@0.4.2 . --blocking error --project '*' --diff false
+          fi
 
   architecture-guards:
     name: Architecture Guards
