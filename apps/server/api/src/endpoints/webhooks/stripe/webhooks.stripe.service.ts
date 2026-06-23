@@ -1,3 +1,5 @@
+import { BETTER_AUTH_USER_CREATED_EVENT } from '@api/auth/better-auth/better-auth.constants';
+import type { IBetterAuthUserCreatedEvent } from '@api/auth/better-auth/better-auth.types';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -11,7 +13,6 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { ConfigService } from '@api/config/config.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import {
   type ManagedCheckoutResult,
   ManagedStripeCheckoutService,
@@ -51,6 +52,7 @@ import {
 } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { nanoid } from 'nanoid';
 
 type StripeEvent = {
@@ -75,7 +77,6 @@ export class StripeWebhookService {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly activitiesService: ActivitiesService,
     private readonly usersService: UsersService,
-    private readonly clerkService: ClerkService,
     private readonly stripeService: StripeService,
     private readonly managedStripeCheckoutService: ManagedStripeCheckoutService,
     private readonly organizationsService: OrganizationsService,
@@ -88,6 +89,7 @@ export class StripeWebhookService {
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     private readonly userSetupService: UserSetupService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async handleWebhookEvent(event: StripeEvent, url: string) {
@@ -680,51 +682,54 @@ export class StripeWebhookService {
     const firstName = session.metadata?.firstName?.trim() || undefined;
     const lastName = session.metadata?.lastName?.trim() || undefined;
 
-    let clerkUser = await this.clerkService.getUserByEmail(email);
-
-    if (!clerkUser) {
-      clerkUser = await this.clerkService.createUser({
-        emailAddress: [email],
-        firstName,
-        lastName,
-        skipLegalChecks: true,
-        skipPasswordRequirement: true,
-      });
-    }
-
+    // Find or create the DB user by email. Better Auth keys identity off the
+    // email, so there is no Clerk round-trip and managed-checkout users carry no
+    // clerkId (epic #735, Phase 4 — D2).
     let dbUser = await this.usersService.findOne({
-      clerkId: clerkUser.id,
+      email,
       isDeleted: false,
     });
 
-    if (!dbUser) {
-      const existingUserByEmail = await this.usersService.findOne({
-        email,
-        isDeleted: false,
-      });
+    let isNewUser = false;
 
-      if (existingUserByEmail) {
-        dbUser = await this.usersService.patch(
-          String(existingUserByEmail._id),
-          {
-            clerkId: clerkUser.id,
+    if (!dbUser) {
+      try {
+        dbUser = await this.usersService.create(
+          new UserEntity({
             email,
-            firstName: firstName || existingUserByEmail.firstName || undefined,
-            lastName: lastName || existingUserByEmail.lastName || undefined,
-          },
+            firstName,
+            handle: generateLabel('user'),
+            lastName,
+          }) as Parameters<UsersService['create']>[0],
         );
+        isNewUser = true;
+      } catch (error: unknown) {
+        // A concurrent provisioning (a second checkout session for the same
+        // email) can win the users.email unique-index race (#764). Reuse the row
+        // it created instead of failing the webhook; re-throw anything that is
+        // not a uniqueness conflict.
+        if ((error as { code?: string })?.code !== 'P2002') {
+          throw error;
+        }
+        dbUser = await this.usersService.findOne({ email, isDeleted: false });
+        if (!dbUser) {
+          throw error;
+        }
       }
     }
 
-    if (!dbUser) {
-      dbUser = await this.usersService.create(
-        new UserEntity({
-          clerkId: clerkUser.id,
-          email,
-          firstName,
-          handle: generateLabel('user'),
-          lastName,
-        }) as Parameters<UsersService['create']>[0],
+    // Provision org / settings / brand / member / credits via the same
+    // idempotent listener a Better Auth signup drives (reuses Phase B). Awaited,
+    // so a brand-new user's resources exist before the credit grant below;
+    // returning managed-checkout customers already have them and skip the emit.
+    if (isNewUser) {
+      const userCreatedEvent: IBetterAuthUserCreatedEvent = {
+        email,
+        userId: String(dbUser._id),
+      };
+      await this.eventEmitter.emitAsync(
+        BETTER_AUTH_USER_CREATED_EVENT,
+        userCreatedEvent,
       );
     }
 
