@@ -241,22 +241,23 @@ describe('ClerkWebhookService', () => {
         user: '507f1f77bcf86cd799439099',
       });
       (membersService.patch as vi.Mock).mockResolvedValue({});
-      (clerkService.updateUserPublicMetadata as vi.Mock).mockResolvedValue({});
 
       await service.handleWebhookEvent(event, url);
 
-      expect(clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
-        'user_123456',
-        expect.objectContaining({
-          isOnboardingCompleted: false,
-          proactiveLeadId: 'lead_123',
-        }),
-      );
+      // Phase C: identity state is DB-authoritative — no Clerk write-back.
+      expect(clerkService.updateUserPublicMetadata).not.toHaveBeenCalled();
+      // Proactive onboarding users are NOT immediately marked as onboarding
+      // completed — that only happens for plain B2B signups (no isInvited).
       expect(usersService.patch).not.toHaveBeenCalledWith(
         mockUser._id,
         expect.objectContaining({
           isOnboardingCompleted: true,
         }),
+      );
+      // Shadow org ownership is transferred to the real user in the DB.
+      expect(organizationsService.patch).toHaveBeenCalledWith(
+        mockOrganization._id.toString(),
+        expect.objectContaining({ user: mockUser._id }),
       );
     });
 
@@ -320,7 +321,7 @@ describe('ClerkWebhookService', () => {
       });
     });
 
-    it('should update Clerk metadata with brand and organization for existing user', async () => {
+    it('should resolve brand and organization from DB for existing user (no Clerk write-back)', async () => {
       const event = asWebhookEvent({
         data: { id: 'user_123456' },
         type: 'user.updated',
@@ -334,21 +335,29 @@ describe('ClerkWebhookService', () => {
         mockOrganization,
       );
       (brandsService.findOne as vi.Mock).mockResolvedValue(mockBrand);
-      (clerkService.updateUserPublicMetadata as vi.Mock).mockResolvedValue({});
 
       await service.handleWebhookEvent(event, url);
 
-      expect(clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
-        'user_123456',
+      // Phase C: identity state is DB-authoritative — no Clerk write-back.
+      expect(clerkService.updateUserPublicMetadata).not.toHaveBeenCalled();
+      // DB user projection is updated with latest profile data from Clerk.
+      expect(usersService.patch).toHaveBeenCalledWith(
+        mockUser._id,
         expect.objectContaining({
-          brand: mockBrand._id,
-          organization: expect.anything(),
-          user: mockUser._id,
+          email: mockClerkUser.emailAddresses[0].emailAddress,
+        }),
+      );
+      // Org and brand are resolved from the DB and logged.
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('processed successfully'),
+        expect.objectContaining({
+          brandId: mockBrand._id,
+          organizationId: mockOrganization._id,
         }),
       );
     });
 
-    it('should update Clerk metadata with undefined brand and org when neither found', async () => {
+    it('should not write to Clerk when no org or brand found for existing user', async () => {
       const event = asWebhookEvent({
         data: { id: 'user_123456' },
         type: 'user.updated',
@@ -360,16 +369,17 @@ describe('ClerkWebhookService', () => {
       (usersService.patch as vi.Mock).mockResolvedValue(mockUser);
       (organizationsService.findOne as vi.Mock).mockResolvedValue(null);
       (brandsService.findOne as vi.Mock).mockResolvedValue(null);
-      (clerkService.updateUserPublicMetadata as vi.Mock).mockResolvedValue({});
 
       await service.handleWebhookEvent(event, url);
 
-      expect(clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
-        'user_123456',
+      // Phase C: identity state is DB-authoritative — no Clerk write-back
+      // even when org/brand are absent.
+      expect(clerkService.updateUserPublicMetadata).not.toHaveBeenCalled();
+      // DB user projection still gets profile update.
+      expect(usersService.patch).toHaveBeenCalledWith(
+        mockUser._id,
         expect.objectContaining({
-          brand: undefined,
-          organization: undefined,
-          user: mockUser._id,
+          email: mockClerkUser.emailAddresses[0].emailAddress,
         }),
       );
     });
@@ -783,8 +793,9 @@ describe('ClerkWebhookService', () => {
 
       await service.handleWebhookEvent(event, url);
 
+      // Phase C: DB user projection is updated; no Clerk write-back.
       expect(usersService.patch).toHaveBeenCalled();
-      expect(clerkService.updateUserPublicMetadata).toHaveBeenCalled();
+      expect(clerkService.updateUserPublicMetadata).not.toHaveBeenCalled();
     });
 
     it('should handle very long metadata values', async () => {
@@ -812,16 +823,18 @@ describe('ClerkWebhookService', () => {
         mockOrganization,
       );
       (brandsService.findOne as vi.Mock).mockResolvedValue(mockBrand);
-      (clerkService.updateUserPublicMetadata as vi.Mock).mockResolvedValue({});
 
       await service.handleWebhookEvent(event, url);
 
-      expect(clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
-        'user_123456',
+      // Phase C: DB update still fires cleanly with exotic metadata values;
+      // no Clerk write-back regardless of metadata size.
+      expect(usersService.patch).toHaveBeenCalledWith(
+        mockUser._id,
         expect.objectContaining({
-          user: mockUser._id,
+          email: mockClerkUser.emailAddresses[0].emailAddress,
         }),
       );
+      expect(clerkService.updateUserPublicMetadata).not.toHaveBeenCalled();
     });
 
     it('should handle special characters in metadata', async () => {
@@ -850,16 +863,18 @@ describe('ClerkWebhookService', () => {
         mockOrganization,
       );
       (brandsService.findOne as vi.Mock).mockResolvedValue(mockBrand);
-      (clerkService.updateUserPublicMetadata as vi.Mock).mockResolvedValue({});
 
       await service.handleWebhookEvent(event, url);
 
-      expect(clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
-        'user_123456',
+      // Phase C: DB update still fires cleanly with special-char metadata;
+      // no Clerk write-back regardless of metadata content.
+      expect(usersService.patch).toHaveBeenCalledWith(
+        mockUser._id,
         expect.objectContaining({
-          user: mockUser._id,
+          email: mockClerkUser.emailAddresses[0].emailAddress,
         }),
       );
+      expect(clerkService.updateUserPublicMetadata).not.toHaveBeenCalled();
     });
   });
 });

@@ -221,9 +221,12 @@ export class OrganizationsMembersController {
           userId: String(existingUser._id),
         } as unknown as Parameters<typeof this.membersService.create>[0]);
 
-        // Update their metadata to include this organization
-        await this.clerkService.updateUserPublicMetadata(existingClerkUser.id, {
-          organization: organizationId,
+        // Switch the invited user's active org to the org they were just added
+        // to, preserving the pre-Phase-C behavior now that routing is
+        // DB-authoritative (epic #735 — User.lastUsedOrganizationId replaces the
+        // Clerk publicMetadata.organization write-back).
+        await this.usersService.patch(String(existingUser._id), {
+          lastUsedOrganizationId: organizationId,
         });
 
         return serializeSingle(request, MemberSerializer, member);

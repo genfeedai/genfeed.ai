@@ -503,10 +503,12 @@ export class StripeWebhookService {
           sessionId: session.id,
         });
 
-        // Mark onboarding complete for BYOK users
-        await this.markOnboardingCompleteFromSession(session, url, {
-          subscriptionTier: SubscriptionTier.BYOK,
-        });
+        // Mark onboarding complete for BYOK users (tier persisted to org settings)
+        await this.markOnboardingCompleteFromSession(
+          session,
+          url,
+          SubscriptionTier.BYOK,
+        );
       } else if (session.mode === 'payment') {
         // One-time payment (pay-as-you-go credits)
         const subscription =
@@ -545,12 +547,9 @@ export class StripeWebhookService {
           _id: subscription.user,
         });
 
-        if (dbUser?.clerkId) {
-          await this.clerkService.updateUserPublicMetadata(dbUser.clerkId, {
-            balance: newBalance,
-            isOnboardingCompleted: true,
-          });
-        }
+        // Balance (credit-balance table) and isOnboardingCompleted (User row)
+        // are persisted to the DB below (epic #735, Phase C — no Clerk
+        // publicMetadata write-back).
         if (dbUser?._id) {
           await this.accessBootstrapCacheService.invalidateForUser(
             dbUser._id.toString(),
@@ -804,11 +803,6 @@ export class StripeWebhookService {
       new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
     );
 
-    const balance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        String(organization._id),
-      );
-
     const existingApiKey = await this.apiKeysService.findOne(
       {
         category: ApiKeyCategory.GENFEEDAI,
@@ -874,18 +868,9 @@ export class StripeWebhookService {
       });
     }
 
-    await this.clerkService.updateUserPublicMetadata(clerkUser.id, {
-      balance,
-      brand: String(brand._id),
-      clerkId: clerkUser.id,
-      hasEverHadCredits: true,
-      isOnboardingCompleted: true,
-      organization: String(organization._id),
-      stripeCustomerId:
-        typeof session.customer === 'string' ? session.customer : undefined,
-      user: String(dbUser._id),
-    });
-
+    // User row (onboarding + stripeCustomerId), org settings (hasEverHadCredits),
+    // and credit balance are all persisted to the DB above; both identity
+    // resolvers route from the DB (epic #735, Phase C — no Clerk write-back).
     await this.accessBootstrapCacheService.invalidateForUser(
       String(dbUser._id),
     );
@@ -1035,13 +1020,8 @@ export class StripeWebhookService {
       session,
     );
 
-    // Update Clerk metadata with new balance
-    if (dbUser.clerkId) {
-      await this.clerkService.updateUserPublicMetadata(dbUser.clerkId, {
-        balance: newBalance,
-      });
-    }
-
+    // Balance is persisted to the credit-balance table above (epic #735,
+    // Phase C — no Clerk publicMetadata write-back).
     await this.activitiesService.create({
       brand: organizationId,
       key: ActivityKey.CREDITS_ADD,
@@ -1282,7 +1262,7 @@ export class StripeWebhookService {
   private async markOnboardingCompleteFromSession(
     session: StripeCheckoutSession,
     url: string,
-    extraClerkMetadata?: Record<string, unknown>,
+    subscriptionTier?: SubscriptionTier,
   ): Promise<void> {
     // Try finding user via subscription
     const subscription = await this.subscriptionsService.findByStripeCustomerId(
@@ -1312,11 +1292,34 @@ export class StripeWebhookService {
       return;
     }
 
-    if (dbUser.clerkId) {
-      await this.clerkService.updateUserPublicMetadata(dbUser.clerkId, {
-        isOnboardingCompleted: true,
-        ...extraClerkMetadata,
-      });
+    // Persist the subscription tier to the org settings (epic #735, Phase C —
+    // OrganizationSetting.subscriptionTier replaces the Clerk metadata write;
+    // updateOrganizationTierAndModels is the canonical tier writer).
+    if (subscriptionTier) {
+      const organizationId = subscription?.organization
+        ? String(subscription.organization)
+        : String(
+            (
+              await this.organizationsService.findOne({
+                isDeleted: false,
+                user: String(dbUser._id),
+              })
+            )?._id ?? '',
+          );
+      if (organizationId) {
+        await this.updateOrganizationTierAndModels(
+          organizationId,
+          subscriptionTier,
+          url,
+        );
+      } else {
+        // The tier is now DB-canonical (no Clerk fallback), so surface a failure
+        // to resolve the org rather than silently dropping the tier write.
+        this.loggerService.warn(
+          `${url} could not resolve organization to persist subscription tier`,
+          { sessionId: session.id, subscriptionTier, userId: dbUser._id },
+        );
+      }
     }
     await this.accessBootstrapCacheService.invalidateForUser(
       String(dbUser._id),
@@ -1636,22 +1639,8 @@ export class StripeWebhookService {
             );
           }
 
-          // Sync to Clerk metadata so frontend can read without API call
-          try {
-            const dbUser = await this.usersService.findOne({
-              _id: subscription.user,
-            });
-            if (dbUser?.clerkId) {
-              await this.clerkService.updateUserPublicMetadata(dbUser.clerkId, {
-                hasEverHadCredits: true,
-              });
-            }
-          } catch (error: unknown) {
-            this.loggerService.warn(
-              `${url} failed to sync hasEverHadCredits to Clerk`,
-              { error: (error as Error)?.message },
-            );
-          }
+          // hasEverHadCredits is persisted to OrganizationSetting above and read
+          // from the DB on bootstrap (epic #735, Phase C — no Clerk write-back).
         }
 
         // Mark onboarding as completed server-side on first subscription payment
@@ -1668,12 +1657,8 @@ export class StripeWebhookService {
                 onboardingStepsCompleted: ['brand', 'plan'],
               });
 
-              if (dbUser.clerkId) {
-                await this.clerkService.updateUserPublicMetadata(
-                  dbUser.clerkId,
-                  { isOnboardingCompleted: true },
-                );
-              }
+              // isOnboardingCompleted is persisted on the User row above (epic
+              // #735, Phase C — no Clerk publicMetadata write-back).
               await this.accessBootstrapCacheService.invalidateForUser(
                 String(dbUser._id),
               );

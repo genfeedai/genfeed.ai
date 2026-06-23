@@ -7,7 +7,6 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 
@@ -18,7 +17,6 @@ describe('UsersController', () => {
   let brandsService: Record<string, ReturnType<typeof vi.fn>>;
   let organizationsService: Record<string, ReturnType<typeof vi.fn>>;
   let subscriptionsService: Record<string, ReturnType<typeof vi.fn>>;
-  let clerkService: Record<string, ReturnType<typeof vi.fn>>;
   let membersService: Record<string, ReturnType<typeof vi.fn>>;
   let filesClientService: Record<string, ReturnType<typeof vi.fn>>;
   let requestContextCacheService: Record<string, ReturnType<typeof vi.fn>>;
@@ -67,9 +65,6 @@ describe('UsersController', () => {
       patch: vi.fn(),
     };
     subscriptionsService = { findOne: vi.fn() };
-    clerkService = {
-      updateUserPublicMetadata: vi.fn().mockResolvedValue({}),
-    };
     membersService = {
       findOne: vi.fn(),
       setLastUsedBrand: vi.fn().mockResolvedValue({}),
@@ -94,7 +89,6 @@ describe('UsersController', () => {
       subscriptionsService as unknown as ISubscriptionsService,
       organizationsService as unknown as OrganizationsService,
       settingsService as unknown as SettingsService,
-      clerkService as unknown as ClerkService,
       filesClientService as unknown as FilesClientService,
       mockLogger as unknown as LoggerService,
       membersService as unknown as MembersService,
@@ -381,7 +375,7 @@ describe('UsersController', () => {
   });
 
   describe('updateBrandSelection', () => {
-    it('should select brand and update clerk metadata', async () => {
+    it('should select brand and persist last-used brand on member', async () => {
       const selectedBrandId = '507f191e810c19729de860ee';
       brandsService.selectBrandForUser.mockResolvedValue({
         _id: selectedBrandId,
@@ -394,26 +388,35 @@ describe('UsersController', () => {
         selectedBrandId.toString(),
       );
 
-      expect(clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
-        'clerk_user_123',
-        { brand: selectedBrandId },
+      expect(membersService.setLastUsedBrand).toHaveBeenCalledWith(
+        {
+          isActive: true,
+          isDeleted: false,
+          organization: orgId,
+          user: userId,
+        },
+        selectedBrandId,
       );
-      expect(membersService.setLastUsedBrand).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
   });
 
   describe('clearBrandSelection', () => {
-    it('should clear brand selection and remove brand metadata', async () => {
+    it('should clear brand selection and clear last-used brand on member', async () => {
       await controller.clearBrandSelection(mockUser);
 
       expect(brandsService.clearBrandSelectionForUser).toHaveBeenCalledWith(
         userId,
         orgId,
       );
-      expect(clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
-        'clerk_user_123',
-        { brand: undefined },
+      expect(membersService.setLastUsedBrand).toHaveBeenCalledWith(
+        {
+          isActive: true,
+          isDeleted: false,
+          organization: orgId,
+          user: userId,
+        },
+        null,
       );
       expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
         'clerk_user_123',

@@ -4,7 +4,6 @@ import { MembersService } from '@api/collections/members/services/members.servic
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { UnauthorizedException } from '@nestjs/common';
 
@@ -22,9 +21,6 @@ describe('AuthIdentityResolverService', () => {
   const membersService = {
     find: vi.fn(),
   };
-  const clerkService = {
-    updateUserPublicMetadata: vi.fn(),
-  };
   const userSetupService = {
     initializeUserResources: vi.fn(),
   };
@@ -38,7 +34,6 @@ describe('AuthIdentityResolverService', () => {
     organizationsService as unknown as OrganizationsService,
     brandsService as unknown as BrandsService,
     membersService as unknown as MembersService,
-    clerkService as unknown as ClerkService,
     loggerService as unknown as LoggerService,
     userSetupService as unknown as UserSetupService,
   );
@@ -81,10 +76,9 @@ describe('AuthIdentityResolverService', () => {
       resolvedBy: 'metadata',
       userId: 'user_current',
     });
-    expect(clerkService.updateUserPublicMetadata).not.toHaveBeenCalled();
   });
 
-  it('resolves legacy metadata via mongoId fields and repairs Clerk metadata', async () => {
+  it('resolves legacy metadata via mongoId fields', async () => {
     usersService.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
       _id: '507f1f77bcf86cd799439011',
       id: 'user_current',
@@ -107,7 +101,6 @@ describe('AuthIdentityResolverService', () => {
       _id: '507f1f77bcf86cd799439013',
       id: 'brand_current',
     });
-    clerkService.updateUserPublicMetadata.mockResolvedValue(undefined);
 
     const result = await service.resolve({
       id: 'user_clerk_2',
@@ -125,14 +118,6 @@ describe('AuthIdentityResolverService', () => {
       resolvedBy: 'metadata',
       userId: 'user_current',
     });
-    expect(clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
-      'user_clerk_2',
-      {
-        brand: 'brand_current',
-        organization: 'org_current',
-        user: 'user_current',
-      },
-    );
   });
 
   it('resolves active Clerk organization metadata via clerkOrganizationId', async () => {
@@ -155,7 +140,6 @@ describe('AuthIdentityResolverService', () => {
     brandsService.findOne.mockResolvedValueOnce({
       _id: 'brand_current',
     });
-    clerkService.updateUserPublicMetadata.mockResolvedValue(undefined);
 
     const result = await service.resolve({
       id: 'user_clerk_4',
@@ -173,14 +157,6 @@ describe('AuthIdentityResolverService', () => {
       resolvedBy: 'metadata',
       userId: 'user_current',
     });
-    expect(clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
-      'user_clerk_4',
-      {
-        brand: 'brand_current',
-        organization: 'org_current',
-        user: 'user_current',
-      },
-    );
   });
 
   it('repairs stale organization metadata and seeds missing membership when the user cannot access that organization', async () => {
@@ -207,7 +183,6 @@ describe('AuthIdentityResolverService', () => {
       organizationSettings: {},
       userSettings: {},
     });
-    clerkService.updateUserPublicMetadata.mockResolvedValue(undefined);
 
     const result = await service.resolve({
       id: 'user_clerk_3',
@@ -228,17 +203,9 @@ describe('AuthIdentityResolverService', () => {
     expect(userSetupService.initializeUserResources).toHaveBeenCalledWith(
       'user_current',
     );
-    expect(clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
-      'user_clerk_3',
-      {
-        brand: 'brand_owner',
-        organization: 'org_owner',
-        user: 'user_current',
-      },
-    );
   });
 
-  it('repairs fully stale Clerk metadata after resolving the user by current Clerk id', async () => {
+  it('resolves fully stale metadata user by current Clerk id and repairs workspace', async () => {
     usersService.findOne
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
@@ -259,7 +226,6 @@ describe('AuthIdentityResolverService', () => {
       organizationSettings: {},
       userSettings: {},
     });
-    clerkService.updateUserPublicMetadata.mockResolvedValue(undefined);
 
     const result = await service.resolve({
       id: 'user_clerk_current',
@@ -285,14 +251,6 @@ describe('AuthIdentityResolverService', () => {
       resolvedBy: 'lookup',
       userId: 'user_current',
     });
-    expect(clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
-      'user_clerk_current',
-      {
-        brand: 'brand_repaired',
-        organization: 'org_repaired',
-        user: 'user_current',
-      },
-    );
   });
 
   it('throws when lookup cannot resolve current user id', async () => {
@@ -322,7 +280,6 @@ describe('AuthIdentityResolverService', () => {
       organizationSettings: {},
       userSettings: {},
     });
-    clerkService.updateUserPublicMetadata.mockResolvedValue(undefined);
 
     const result = await service.resolve({
       emailAddresses: [
@@ -375,5 +332,60 @@ describe('AuthIdentityResolverService', () => {
     // Only the clerkId lookup runs; no email lookup, no write.
     expect(usersService.findOne).toHaveBeenCalledTimes(1);
     expect(usersService.patch).not.toHaveBeenCalled();
+  });
+
+  // epic #735, Phase C — DB-authoritative active org/brand. These lock in that
+  // the DB markers win over the (frozen, post-cutover) Clerk publicMetadata
+  // candidates, so switching keeps working without any Clerk write-back.
+  it('prefers User.lastUsedOrganizationId over the stale publicMetadata organization', async () => {
+    usersService.findOne.mockResolvedValueOnce({
+      _id: 'user_current',
+      lastUsedOrganizationId: 'org_active',
+    });
+    membersService.find.mockResolvedValue([
+      { lastUsedBrandId: 'brand_active', organizationId: 'org_active' },
+    ]);
+    // findAccessibleOrganization('org_active') resolves the owned org
+    organizationsService.findOne.mockResolvedValueOnce({
+      _id: 'org_active',
+      userId: 'user_current',
+    });
+    brandsService.findOne.mockResolvedValueOnce({ _id: 'brand_active' });
+
+    const result = await service.resolve({
+      id: 'user_clerk_active',
+      publicMetadata: {
+        brand: 'brand_stale',
+        organization: 'org_stale',
+        user: 'user_current',
+      },
+    } as never);
+
+    expect(result.organizationId).toBe('org_active');
+    expect(result.brandId).toBe('brand_active');
+    expect(result.userId).toBe('user_current');
+  });
+
+  it('prefers Member.lastUsedBrandId over the stale publicMetadata brand', async () => {
+    usersService.findOne.mockResolvedValueOnce({ _id: 'user_current' });
+    membersService.find.mockResolvedValue([
+      { lastUsedBrandId: 'brand_last_used', organizationId: 'org_current' },
+    ]);
+    organizationsService.findOne.mockResolvedValueOnce({
+      _id: 'org_current',
+      userId: 'user_current',
+    });
+    brandsService.findOne.mockResolvedValueOnce({ _id: 'brand_last_used' });
+
+    const result = await service.resolve({
+      id: 'user_clerk_brand',
+      publicMetadata: {
+        brand: 'brand_stale_candidate',
+        organization: 'org_current',
+        user: 'user_current',
+      },
+    } as never);
+
+    expect(result.brandId).toBe('brand_last_used');
   });
 });

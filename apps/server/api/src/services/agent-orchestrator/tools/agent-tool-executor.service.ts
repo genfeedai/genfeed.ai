@@ -1857,11 +1857,8 @@ export class AgentToolExecutorService {
         }
       }
 
-      if (this.clerkService) {
-        await this.clerkService.updateUserPublicMetadata(ctx.userId, {
-          isOnboardingCompleted: true,
-        });
-      }
+      // isOnboardingCompleted is persisted on the User row above (epic #735,
+      // Phase C — no Clerk publicMetadata write-back).
     }
 
     return {
@@ -1901,11 +1898,8 @@ export class AgentToolExecutorService {
       }
     }
 
-    if (this.clerkService) {
-      await this.clerkService.updateUserPublicMetadata(ctx.userId, {
-        isOnboardingCompleted: true,
-      });
-    }
+    // isOnboardingCompleted is persisted on the User row above (epic #735,
+    // Phase C — no Clerk publicMetadata write-back).
 
     return {
       creditsUsed: 0,

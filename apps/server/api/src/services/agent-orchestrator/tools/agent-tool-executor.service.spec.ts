@@ -1491,9 +1491,8 @@ describe('AgentToolExecutorService', () => {
 
     expect(result.success).toBe(true);
     expect(organizationsService.patch).toHaveBeenCalled();
-    expect(usersService.patch).toHaveBeenCalled();
-    expect(clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
-      'user_clerk_123',
+    expect(usersService.patch).toHaveBeenCalledWith(
+      expect.anything(),
       expect.objectContaining({
         isOnboardingCompleted: true,
       }),

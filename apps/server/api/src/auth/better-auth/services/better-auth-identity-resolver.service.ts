@@ -58,6 +58,10 @@ export class BetterAuthIdentityResolverService {
     }
 
     const isSuperAdmin = userRecord?.isSuperAdmin === true;
+    const lastUsedOrganizationId = getRecordId(
+      userRecord,
+      'lastUsedOrganizationId',
+    );
 
     const members = await this.membersService.find({
       isActive: true,
@@ -68,6 +72,7 @@ export class BetterAuthIdentityResolverService {
     const organizationId = await this.resolveOrganizationId(
       resolvedUserId,
       members,
+      lastUsedOrganizationId,
     );
     const brandId = organizationId
       ? await this.resolveBrandId(organizationId, members)
@@ -81,10 +86,52 @@ export class BetterAuthIdentityResolverService {
     };
   }
 
-  private async resolveOrganizationId(
+  private async findAccessibleOrganizationId(
+    candidate: string,
     userId: string,
     members: MemberDocument[],
   ): Promise<string | undefined> {
+    const organization = await this.organizationsService.findOne({
+      _id: candidate,
+      isDeleted: false,
+    });
+    const organizationId = getEntityId(
+      organization as Record<string, unknown> | null | undefined,
+    );
+    if (!organizationId) {
+      return undefined;
+    }
+
+    const isMember = members.some(
+      (member) => getMemberOrganizationId(member) === organizationId,
+    );
+    const isOwner =
+      getRecordId(organization as Record<string, unknown>, 'userId') ===
+        userId ||
+      getRecordId(organization as Record<string, unknown>, 'user') === userId;
+
+    return isMember || isOwner ? organizationId : undefined;
+  }
+
+  private async resolveOrganizationId(
+    userId: string,
+    members: MemberDocument[],
+    lastUsedOrganizationId?: string,
+  ): Promise<string | undefined> {
+    // DB-authoritative active org (epic #735, Phase C): prefer the user's
+    // `lastUsedOrganizationId` (validated against live membership/ownership) so
+    // multi-org switching is honoured without any Clerk publicMetadata.
+    if (lastUsedOrganizationId) {
+      const accessibleOrgId = await this.findAccessibleOrganizationId(
+        lastUsedOrganizationId,
+        userId,
+        members,
+      );
+      if (accessibleOrgId) {
+        return accessibleOrgId;
+      }
+    }
+
     const ownerOrg = await this.organizationsService.findOne({
       isDeleted: false,
       user: userId,

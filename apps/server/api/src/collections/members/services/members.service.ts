@@ -33,10 +33,33 @@ export class MembersService extends BaseService<
 
   async setLastUsedBrand(
     filter: Record<string, unknown>,
-    brandId: string,
+    brandId: string | null,
   ): Promise<void> {
+    // Map legacy relation aliases (`organization`/`user`) to their scalar FKs
+    // before hitting Prisma — `updateMany` validates `where` against the scalar
+    // columns, so a raw `{ organization: id }` throws "Unknown argument".
+    const where = this.processSearchParams(filter) as {
+      organizationId?: unknown;
+      userId?: unknown;
+    };
+
+    // Refuse to run without an org + user scope: Prisma omits `undefined` where
+    // clauses, so a missing scope would silently widen the updateMany to every
+    // member row across all tenants. Skip (no-op) instead.
+    if (!where.organizationId || !where.userId) {
+      this.logger.warn(
+        'setLastUsedBrand skipped: filter missing organizationId/userId scope',
+        {
+          filter,
+          operation: 'setLastUsedBrand',
+          service: this.constructorName,
+        },
+      );
+      return;
+    }
+
     await this.prisma.member.updateMany({
-      where: filter as never,
+      where: where as never,
       data: { lastUsedBrandId: brandId },
     });
   }

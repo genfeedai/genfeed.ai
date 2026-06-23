@@ -6,7 +6,6 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { BusinessLogicException } from '@api/helpers/exceptions/business/business-logic.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { EventBusService } from '@api/shared/services/event-bus/event-bus.service';
@@ -32,7 +31,6 @@ describe('CreditsUtilsService', () => {
     findOne: vi.fn(),
     patch: vi.fn(),
   };
-  const clerkService = { updateUserPublicMetadata: vi.fn() };
   const websocketService = { emit: vi.fn() };
   const accessBootstrapCacheService = { invalidateForOrganization: vi.fn() };
 
@@ -54,7 +52,6 @@ describe('CreditsUtilsService', () => {
       creditBalanceService as unknown as CreditBalanceService,
       creditTransactionsService as unknown as CreditTransactionsService,
       organizationSettingsService as unknown as OrganizationSettingsService,
-      clerkService as unknown as ClerkService,
       websocketService as unknown as NotificationsPublisherService,
       accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
       withTransactionUtil

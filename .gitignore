@@ -49,6 +49,7 @@ apps/desktop/app/release/
 .worktrees/
 .agents/SESSIONS/
 .agents/plans/
+.agents/memory/local/
 .clawpatch/
 .genfeed/
 

@@ -91,4 +91,23 @@ describe('BetterAuthIdentityResolverService', () => {
       organization: 'org_3',
     });
   });
+
+  // epic #735, Phase C — active org is DB-authoritative via User.lastUsedOrganizationId
+  // (validated against live membership), so multi-org switching works without Clerk.
+  it('prefers the user lastUsedOrganizationId when the user is a member', async () => {
+    usersService.findOne.mockResolvedValue({
+      id: 'user_4',
+      lastUsedOrganizationId: 'org_pref',
+    });
+    membersService.find.mockResolvedValue([
+      { lastUsedBrandId: 'brand_pref', organizationId: 'org_pref' },
+    ]);
+    organizationsService.findOne.mockResolvedValue({ id: 'org_pref' });
+    brandsService.findOne.mockResolvedValue({ id: 'brand_pref' });
+
+    const identity = await resolver.resolve('user_4');
+
+    expect(identity.organizationId).toBe('org_pref');
+    expect(identity.brandId).toBe('brand_pref');
+  });
 });
