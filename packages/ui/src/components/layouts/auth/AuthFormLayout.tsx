@@ -5,19 +5,34 @@ import type { AuthFormLayoutProps } from '@genfeedai/props/layout/auth-form-layo
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Image from 'next/image';
 
-export default function AuthFormLayout({ children }: AuthFormLayoutProps) {
+const LOGO_DIMENSIONS = {
+  compact: 48,
+  default: 80,
+} as const;
+
+export default function AuthFormLayout({
+  children,
+  logoSize = 'default',
+}: AuthFormLayoutProps) {
   const logoUrl = useThemeLogo();
+  const logoDimension = LOGO_DIMENSIONS[logoSize];
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center">
+    <div
+      className={`min-h-screen flex flex-col justify-center items-center ${
+        logoSize === 'compact' ? 'bg-background px-4 text-foreground' : ''
+      }`}
+    >
       <div className="mb-4">
         {logoUrl && (
           <Image
             src={logoUrl}
-            className="mx-auto mb-20 object-contain dark:invert"
+            className={`mx-auto object-contain dark:invert ${
+              logoSize === 'compact' ? 'mb-8' : 'mb-20'
+            }`}
             alt={EnvironmentService.LOGO_ALT}
-            width={80}
-            height={80}
+            width={logoDimension}
+            height={logoDimension}
             priority
           />
         )}

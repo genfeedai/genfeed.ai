@@ -74,4 +74,17 @@ describe('AuthFormLayout', () => {
     const logo = screen.getByRole('img');
     expect(logo).toHaveAttribute('src', '/mock-logo.png');
   });
+
+  it('should support compact logo sizing', () => {
+    render(
+      <AuthFormLayout logoSize="compact">
+        <div>Content</div>
+      </AuthFormLayout>,
+    );
+
+    const logo = screen.getByRole('img');
+    expect(logo).toHaveAttribute('width', '48');
+    expect(logo).toHaveAttribute('height', '48');
+    expect(logo).toHaveClass('mb-8');
+  });
 });
