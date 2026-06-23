@@ -16,7 +16,6 @@ import { ProactiveOnboardingService } from '@api/endpoints/onboarding/proactive-
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
-import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
 import { ComfyUIModule } from '@api/services/integrations/comfyui/comfyui.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
@@ -29,7 +28,6 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => BatchGenerationModule),
     forwardRef(() => BrandScraperModule),
     forwardRef(() => BrandsModule),
-    forwardRef(() => ClerkModule),
     forwardRef(() => ComfyUIModule),
     forwardRef(() => CommonModule),
     forwardRef(() => CreditsModule),

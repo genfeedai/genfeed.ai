@@ -29,7 +29,6 @@ import { IntegrationsModule } from '@api/endpoints/integrations/integrations.mod
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
-import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { forwardRef, Module } from '@nestjs/common';
 
@@ -47,7 +46,6 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => ActivitiesModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => ByokModule),
-    forwardRef(() => ClerkModule),
     forwardRef(() => CommonModule),
     forwardRef(() => CredentialsCoreModule),
     forwardRef(() => CreditsModule),
