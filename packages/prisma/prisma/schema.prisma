@@ -525,6 +525,8 @@ model User {
   organizations            Organization[]
   brands                   Brand[]
   members                  Member[]
+  invitationsSent          Invitation[]            @relation("invitation_invited_by")
+  invitationsAccepted      Invitation[]            @relation("invitation_accepted_by")
   sessions                 Session[]
   accounts                 Account[]
   settings                 Setting?
@@ -615,6 +617,7 @@ model Organization {
   // Ownership relations
   brands                        Brand[]
   members                       Member[]
+  invitations                   Invitation[]
   settings                      OrganizationSetting?
   credentials                   Credential[]
   orgIntegrations               OrgIntegration[]
@@ -890,6 +893,36 @@ model Member {
   @@map("members")
 }
 
+model Invitation {
+  id               String       @id @default(cuid())
+  mongoId          String?      @unique
+  email            String
+  firstName        String?
+  lastName         String?
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  invitedByUserId  String
+  invitedByUser    User         @relation("invitation_invited_by", fields: [invitedByUserId], references: [id])
+  roleId           String
+  role             Role         @relation(fields: [roleId], references: [id])
+  tokenHash        String       @unique
+  redirectUrl      String?
+  expiresAt        DateTime
+  acceptedAt       DateTime?
+  acceptedByUserId String?
+  acceptedByUser   User?        @relation("invitation_accepted_by", fields: [acceptedByUserId], references: [id])
+  revokedAt        DateTime?
+  isDeleted        Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([organizationId, email, isDeleted], map: "invitations_org_email_deleted_idx")
+  @@index([organizationId, acceptedAt, revokedAt, isDeleted], map: "invitations_org_status_idx")
+  @@index([email, isDeleted], map: "invitations_email_deleted_idx")
+  @@index([expiresAt, acceptedAt, revokedAt, isDeleted], map: "invitations_expiry_status_idx")
+  @@map("invitations")
+}
+
 model Role {
   id           String   @id @default(cuid())
   mongoId      String?  @unique
@@ -900,7 +933,8 @@ model Role {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  members Member[]
+  members     Member[]
+  invitations Invitation[]
 
   @@map("roles")
 }

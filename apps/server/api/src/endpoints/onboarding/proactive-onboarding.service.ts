@@ -1,6 +1,7 @@
 import { BrandEntity } from '@api/collections/brands/entities/brand.entity';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -14,7 +15,6 @@ import type {
 } from '@api/endpoints/onboarding/dto/proactive-onboarding.dto';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
@@ -70,7 +70,7 @@ export class ProactiveOnboardingService {
     private readonly organizationsService: OrganizationsService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly batchGenerationService: BatchGenerationService,
-    private readonly clerkService: ClerkService,
+    private readonly invitationService: InvitationService,
     private readonly usersService: UsersService,
     private readonly membersService: MembersService,
     private readonly postsService: PostsService,
@@ -447,7 +447,7 @@ export class ProactiveOnboardingService {
   }
 
   /**
-   * Step 3: Send Clerk invitation to lead
+   * Step 3: Send self-hosted invitation to lead
    */
   async sendInvitation(
     leadId: string,
@@ -487,14 +487,22 @@ export class ProactiveOnboardingService {
 
       const shadowOrgUserId = this.resolveOrganizationOwnerId(shadowOrg);
 
-      // Send Clerk invitation with proactive onboarding metadata
       const redirectUrl = this.getProactiveRedirectUrl();
+      const roleId = await this.resolveDefaultRoleId();
+      const nameParts = (lead.data.name ?? '').trim().split(/\s+/);
+      const firstName = nameParts[0] || undefined;
+      const lastName =
+        nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined;
 
-      await this.clerkService.createInvitation(lead.data.email, redirectUrl, {
-        isProactiveOnboarding: true,
-        leadId,
+      await this.invitationService.createInvitation({
+        defaultRoleKey: 'user',
+        email: lead.data.email,
+        firstName,
+        invitedByUserId: shadowOrgUserId,
+        lastName,
         organizationId: lead.proactiveOrganizationId,
-        userId: shadowOrgUserId,
+        redirectUrl,
+        roleId,
       });
 
       const invitedAt = new Date();
@@ -906,10 +914,11 @@ export class ProactiveOnboardingService {
 
   private resolveOrganizationOwnerId(shadowOrg: {
     _id?: string;
-    user?: string | null;
-    userId?: string | null;
+    user?: unknown;
+    userId?: unknown;
   }): string {
-    const ownerId = shadowOrg.user ?? shadowOrg.userId;
+    const ownerId =
+      this.toIdString(shadowOrg.user) ?? this.toIdString(shadowOrg.userId);
 
     if (!ownerId) {
       throw new BadRequestException(
@@ -917,7 +926,26 @@ export class ProactiveOnboardingService {
       );
     }
 
-    return ownerId.toString();
+    return ownerId;
+  }
+
+  private toIdString(value: unknown): string | undefined {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    if (value && typeof value === 'object') {
+      const candidate = value as { _id?: unknown; id?: unknown };
+
+      if (typeof candidate._id === 'string') {
+        return candidate._id;
+      }
+      if (typeof candidate.id === 'string') {
+        return candidate.id;
+      }
+    }
+
+    return undefined;
   }
 
   private async resolveDefaultRoleId(): Promise<string> {

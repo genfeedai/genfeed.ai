@@ -10,6 +10,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { InviteMemberDto } from '@api/collections/members/dto/invite-member.dto';
 import { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto';
+import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -25,6 +26,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -33,7 +35,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import type { User } from '@clerk/backend';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
@@ -74,7 +75,7 @@ export class OrganizationsMembersController {
     private readonly settingsService: SettingsService,
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
-    private readonly clerkService: ClerkService,
+    private readonly invitationService: InvitationService,
     private readonly brandsService: BrandsService,
   ) {}
 
@@ -129,37 +130,14 @@ export class OrganizationsMembersController {
       return returnNotFound(this.constructorName, organizationId);
     }
 
-    // Check if a Clerk user already exists with this email
-    const existingClerkUser = await this.clerkService.getUserByEmail(
-      inviteDto.email,
-    );
+    const invitedByUserId = this.getInvitedByUserId(_user, organization);
+    const existingUser = await this.usersService.findOne({
+      email: inviteDto.email,
+      isInvited: false,
+      isDeleted: false,
+    });
 
-    let existingUser;
-
-    if (existingClerkUser) {
-      // User already has a Clerk brand
-      existingUser = await this.usersService.findOne({
-        clerkId: existingClerkUser.id,
-      });
-
-      if (!existingUser) {
-        // Create user record for existing Clerk user
-        const emailPrefix = inviteDto.email.split('@')[0];
-        const randomSuffix = Math.random().toString(36).substring(2, 8);
-        const handle = `${emailPrefix}-${randomSuffix}`;
-
-        existingUser = await this.usersService.create({
-          avatar: existingClerkUser.imageUrl || undefined,
-          clerkId: existingClerkUser.id,
-          email: inviteDto.email,
-          firstName:
-            inviteDto.firstName || existingClerkUser.firstName || undefined,
-          handle,
-          lastName:
-            inviteDto.lastName || existingClerkUser.lastName || undefined,
-        });
-      }
-
+    if (existingUser) {
       // Check if member already exists for this organization
       const member = await this.membersService.findOne({
         organization: organizationId,
@@ -171,13 +149,7 @@ export class OrganizationsMembersController {
         return serializeSingle(request, MemberSerializer, member);
       }
 
-      // Continue to create member for existing Clerk user below
-    } else {
-      // For new users (not yet in Clerk), check if email is already invited to another org
-      // We need to check if there's a pending invitation for this email in another org
-      // This would be stored in Clerk's invitation system, but we can also check our DB
-      // No Clerk user exists yet - we'll create the member after they sign up
-      // For now, just send the Clerk invitation
+      // Continue to create member for existing first-party user below
     }
 
     // Determine role to assign
@@ -196,8 +168,8 @@ export class OrganizationsMembersController {
       roleToAssign = defaultRole._id;
     }
 
-    if (existingClerkUser && existingUser) {
-      // Only create member for existing Clerk users
+    if (existingUser) {
+      // Existing first-party users can be added immediately.
       const limit = (
         request as unknown as { seatsLimit?: { id: string; current: number } }
       ).seatsLimit;
@@ -215,7 +187,7 @@ export class OrganizationsMembersController {
 
         // Create the member record for existing user
         const member = await this.membersService.create({
-          isActive: true, // Always active for existing Clerk users
+          isActive: true,
           organizationId,
           roleId: String(roleToAssign),
           userId: String(existingUser._id),
@@ -269,12 +241,8 @@ export class OrganizationsMembersController {
         // Create new user
         const handle = generateLabel('user');
 
-        // Generate a temporary Clerk ID (will be updated when user signs up)
-        const tempClerkId = `pending_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-
         // Create the user with isInvited flag
         newUser = await this.usersService.create({
-          clerkId: tempClerkId, // Temporary ID until they sign up
           email: inviteDto.email,
           firstName: inviteDto.firstName || undefined,
           handle,
@@ -321,18 +289,16 @@ export class OrganizationsMembersController {
           userId: String(newUser._id),
         } as unknown as Parameters<typeof this.membersService.create>[0]);
 
-        // Send Clerk invitation with metadata including the user ID
-        await this.clerkService.createInvitation(
-          inviteDto.email,
-          `${this.configService.get('GENFEEDAI_APP_URL')}/login?org=${organizationId}`,
-          {
-            invitedFirstName: inviteDto.firstName,
-            invitedLastName: inviteDto.lastName,
-            organizationId: organizationId,
-            roleId: roleToAssign.toString(),
-            userId: newUser._id, // Include the pre-created user ID
-          },
-        );
+        await this.invitationService.createInvitation({
+          defaultRoleKey: 'user',
+          email: inviteDto.email,
+          firstName: inviteDto.firstName,
+          invitedByUserId,
+          lastName: inviteDto.lastName,
+          organizationId,
+          redirectUrl: this.getInvitationRedirectUrl(organizationId),
+          roleId: String(roleToAssign),
+        });
 
         return serializeSingle(request, MemberSerializer, member);
       } catch (error: unknown) {
@@ -415,5 +381,57 @@ export class OrganizationsMembersController {
     );
 
     return serializeSingle(request, MemberSerializer, updatedMember);
+  }
+
+  private getInvitedByUserId(
+    user: User,
+    organization: { user?: unknown; userId?: unknown },
+  ): string {
+    const publicMetadata = getPublicMetadata(user);
+    const userId =
+      this.toIdString(publicMetadata.user) ??
+      this.toIdString(organization.user) ??
+      this.toIdString(organization.userId);
+
+    if (!userId) {
+      throw new HttpException(
+        {
+          detail: 'Unable to resolve inviting user',
+          title: 'Bad Request',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    return String(userId);
+  }
+
+  private toIdString(value: unknown): string | undefined {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    if (value && typeof value === 'object') {
+      const candidate = value as { _id?: unknown; id?: unknown };
+
+      if (typeof candidate._id === 'string') {
+        return candidate._id;
+      }
+      if (typeof candidate.id === 'string') {
+        return candidate.id;
+      }
+    }
+
+    return undefined;
+  }
+
+  private getInvitationRedirectUrl(organizationId: string): string | undefined {
+    const appUrl = this.configService.get('GENFEEDAI_APP_URL');
+
+    if (typeof appUrl !== 'string' || appUrl.length === 0) {
+      return undefined;
+    }
+
+    return `${appUrl.replace(/\/$/, '')}/login?org=${organizationId}`;
   }
 }

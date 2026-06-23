@@ -12,6 +12,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { InviteMemberDto } from '@api/collections/members/dto/invite-member.dto';
 import { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto';
+import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsMembersController } from '@api/collections/organizations/controllers/organizations-members.controller';
@@ -23,7 +24,6 @@ import { ConfigService } from '@api/config/config.service';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -93,10 +93,8 @@ describe('OrganizationsMembersController', () => {
     get: vi.fn(),
   };
 
-  const mockClerkService = {
+  const mockInvitationService = {
     createInvitation: vi.fn(),
-    getUserByEmail: vi.fn(),
-    updateUserPublicMetadata: vi.fn(),
   };
 
   const mockBrandsService = {
@@ -140,8 +138,8 @@ describe('OrganizationsMembersController', () => {
           useValue: mockConfigService,
         },
         {
-          provide: ClerkService,
-          useValue: mockClerkService,
+          provide: InvitationService,
+          useValue: mockInvitationService,
         },
         {
           provide: BrandsService,
@@ -214,13 +212,16 @@ describe('OrganizationsMembersController', () => {
 
     it('should invite a member to organization', async () => {
       mockOrganizationsService.findOne.mockResolvedValue(mockOrganization);
-      mockClerkService.getUserByEmail.mockResolvedValue(null);
       mockUsersService.findOne.mockResolvedValue(null);
       mockRolesService.findOne.mockResolvedValue({
         _id: '507f1f77bcf86cd799439014',
         key: 'user',
       });
       mockMembersService.create.mockResolvedValue(mockMember);
+      mockInvitationService.createInvitation.mockResolvedValue({
+        id: 'inv_123',
+        status: 'pending',
+      });
 
       const request = {
         seatsLimit: {
@@ -245,6 +246,15 @@ describe('OrganizationsMembersController', () => {
       );
 
       expect(organizationsService.findOne).toHaveBeenCalled();
+      expect(mockInvitationService.createInvitation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          defaultRoleKey: 'user',
+          email: inviteDto.email,
+          invitedByUserId: '507f1f77bcf86cd799439012',
+          organizationId: '507f1f77bcf86cd799439013',
+          roleId: '507f1f77bcf86cd799439014',
+        }),
+      );
       expect(result).toBeDefined();
     });
   });
