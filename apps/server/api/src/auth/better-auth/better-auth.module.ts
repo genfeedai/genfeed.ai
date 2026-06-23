@@ -1,12 +1,14 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
+import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { ConfigService } from '@api/config/config.service';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IS_BETTER_AUTH_ENABLED } from '@genfeedai/config';
 import { forwardRef, Module } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PassportModule } from '@nestjs/passport';
 
 import {
@@ -14,12 +16,16 @@ import {
   resolveBetterAuthBaseUrl,
   resolveGoogleConfig,
 } from './better-auth.config';
-import { BETTER_AUTH_INSTANCE } from './better-auth.constants';
+import {
+  BETTER_AUTH_INSTANCE,
+  BETTER_AUTH_USER_CREATED_EVENT,
+} from './better-auth.constants';
 import {
   type BetterAuthInstance,
   createBetterAuthInstance,
 } from './better-auth.factory';
 import { BetterAuthService } from './better-auth.service';
+import { UserProvisioningListener } from './listeners/user-provisioning.listener';
 import { BetterAuthStrategy } from './passport/better-auth.strategy';
 import { BetterAuthIdentityResolverService } from './services/better-auth-identity-resolver.service';
 import { BetterAuthMailerService } from './services/better-auth-mailer.service';
@@ -41,6 +47,7 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
     forwardRef(() => OrganizationsModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => MembersModule),
+    forwardRef(() => UserSetupModule),
     NotificationsModule,
   ],
   providers: [
@@ -48,13 +55,20 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
     BetterAuthIdentityResolverService,
     BetterAuthStrategy,
     BetterAuthService,
+    UserProvisioningListener,
     {
-      inject: [PrismaService, ConfigService, BetterAuthMailerService],
+      inject: [
+        PrismaService,
+        ConfigService,
+        BetterAuthMailerService,
+        EventEmitter2,
+      ],
       provide: BETTER_AUTH_INSTANCE,
       useFactory: (
         prisma: PrismaService,
         config: ConfigService,
         mailer: BetterAuthMailerService,
+        eventEmitter: EventEmitter2,
       ): BetterAuthInstance | null => {
         // Off by default — the instance stays null and the Clerk path is the
         // only one wired. Flip BETTER_AUTH_ENABLED per-environment to light up.
@@ -80,6 +94,11 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
             config.get('GOOGLE_CLIENT_ID'),
             config.get('GOOGLE_CLIENT_SECRET'),
           ),
+          // Awaited so provisioning completes before the create resolves; the
+          // UserProvisioningListener (@OnEvent) runs under Nest DI.
+          onUserCreated: async (event) => {
+            await eventEmitter.emitAsync(BETTER_AUTH_USER_CREATED_EVENT, event);
+          },
           prisma,
           secret,
           sendMagicLink: (params) => mailer.sendMagicLink(params),

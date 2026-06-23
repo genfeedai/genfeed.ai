@@ -46,6 +46,12 @@ export interface IBetterAuthMagicLinkParams {
   token: string;
 }
 
+/** Payload emitted after Better Auth creates a new user row. */
+export interface IBetterAuthUserCreatedEvent {
+  userId: string;
+  email: string | null;
+}
+
 /** Options for {@link createBetterAuthInstance}. */
 export interface ICreateBetterAuthOptions {
   prisma: PrismaClient;
@@ -54,4 +60,11 @@ export interface ICreateBetterAuthOptions {
   trustedOrigins: string[];
   google?: IBetterAuthGoogleConfig;
   sendMagicLink: (params: IBetterAuthMagicLinkParams) => Promise<void>;
+  /**
+   * Invoked (and awaited) from the `user.create.after` hook so a newly created
+   * user is provisioned — org / settings / brand / member / credits — before the
+   * create completes. Replaces the Clerk `user.created` webhook (epic #735,
+   * Phase 4).
+   */
+  onUserCreated?: (event: IBetterAuthUserCreatedEvent) => Promise<void>;
 }

@@ -13,3 +13,10 @@ export const BETTER_AUTH_BASE_PATH = '/v1/auth';
 
 /** DI token for the constructed Better Auth instance. */
 export const BETTER_AUTH_INSTANCE = Symbol('BETTER_AUTH_INSTANCE');
+
+/**
+ * Emitted (awaited via `emitAsync`) from the `user.create.after` hook so a new
+ * user is provisioned before the create completes. Replaces the Clerk
+ * `user.created` webhook (epic #735, Phase 4).
+ */
+export const BETTER_AUTH_USER_CREATED_EVENT = 'better-auth.user.created';
