@@ -206,30 +206,17 @@ export class WebSocketGateway
     organizationId?: string;
   }> {
     const queryUserId = client.handshake.query.userId as string | undefined;
-    const queryOrgId = client.handshake.query.organizationId as
-      | string
-      | undefined;
-
     const token = this.extractToken(client);
     if (!token) {
-      return { organizationId: queryOrgId, userId: queryUserId };
+      return { userId: queryUserId };
     }
 
     try {
-      const { sub } = await this.getBetterAuthVerifier().verify(token);
+      const { organizationId, sub } =
+        await this.getBetterAuthVerifier().verify(token);
 
-      // Better Auth JWTs carry only identity (`sub` = User.id), not organization
-      // (that is resolved DB-side at bootstrap). The org room therefore falls
-      // back to the client-supplied query param.
-      //
-      // SECURITY (epic #735, Phase 4 — follow-up): the Clerk token previously
-      // embedded the user's org, so this trusts an unverified query value where
-      // it used to trust a signed claim — a token-authenticated client could
-      // join another org's broadcast room. The user room (keyed on the verified
-      // `sub`) is unaffected. Harden by verifying membership of the resolved
-      // userId in the claimed org before joining `org-<id>`.
       return {
-        organizationId: queryOrgId,
+        organizationId,
         userId: sub,
       };
     } catch (error: unknown) {
@@ -238,7 +225,7 @@ export class WebSocketGateway
         `Failed to verify Better Auth token for client ${client.id}: ${errorMessage}`,
         { ...this.context, error },
       );
-      return { organizationId: queryOrgId, userId: queryUserId };
+      return { userId: queryUserId };
     }
   }
 

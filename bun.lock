@@ -1005,6 +1005,7 @@
       "name": "@genfeedai/libs",
       "version": "0.1.0",
       "dependencies": {
+        "@genfeedai/enums": "workspace:*",
         "jose": "^6.2.3",
       },
     },

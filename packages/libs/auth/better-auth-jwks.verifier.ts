@@ -12,6 +12,8 @@ export const BETTER_AUTH_JWKS_PATH = '/v1/auth/jwks';
 export interface IBetterAuthVerifiedClaims {
   /** Subject — the Prisma `User.id` (the jwt plugin sets `sub = user.id`). */
   sub: string;
+  /** Active organization id signed by the API for DB-less websocket authz. */
+  organizationId?: string;
 }
 
 /** Builds the JWKS URL from a Better Auth base URL, tolerating trailing slashes. */
@@ -47,6 +49,13 @@ export class BetterAuthJwksVerifier {
       throw new Error('Better Auth JWT is missing a subject (sub) claim');
     }
 
-    return { sub: payload.sub };
+    return {
+      organizationId:
+        typeof payload.organizationId === 'string' &&
+        payload.organizationId.length > 0
+          ? payload.organizationId
+          : undefined,
+      sub: payload.sub,
+    };
   }
 }

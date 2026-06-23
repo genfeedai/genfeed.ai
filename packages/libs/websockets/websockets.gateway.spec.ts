@@ -108,17 +108,17 @@ describe('WebSocketGateway', () => {
     );
   });
 
-  it('should connect a client and join user/org rooms', async () => {
+  it('connects query-identity clients without joining an org room', async () => {
     const socket = createMockSocket();
 
     await gateway.handleConnection(socket as Socket);
 
     expect(socket.join).toHaveBeenCalledWith('user:user-123');
-    expect(socket.join).toHaveBeenCalledWith('org-org-123');
+    expect(socket.join).not.toHaveBeenCalledWith('org-org-123');
     expect(socket.emit).toHaveBeenCalledWith(
       'connected',
       expect.objectContaining({
-        organizationId: 'org-123',
+        organizationId: undefined,
         socketId: 'socket-123',
         userId: 'user-123',
       }),
@@ -142,6 +142,7 @@ describe('WebSocketGateway', () => {
   it('resolves websocket identity from a verified Better Auth token', async () => {
     mockConfigService.get.mockReturnValue('http://localhost:3010');
     verifyMock.mockResolvedValue({
+      organizationId: 'org-signed',
       sub: 'aaaaaaaa-0000-0000-0000-000000000001',
     });
     const socket = createMockSocket({
@@ -162,12 +163,44 @@ describe('WebSocketGateway', () => {
     expect(socket.join).toHaveBeenCalledWith(
       'user:aaaaaaaa-0000-0000-0000-000000000001',
     );
-    // Org is not embedded in the BA JWT, so it falls back to the query param.
-    expect(socket.join).toHaveBeenCalledWith('org-org-query');
+    // Signed org wins over the forged query org.
+    expect(socket.join).toHaveBeenCalledWith('org-org-signed');
+    expect(socket.join).not.toHaveBeenCalledWith('org-org-query');
     expect(socket.emit).toHaveBeenCalledWith(
       'connected',
       expect.objectContaining({
-        organizationId: 'org-query',
+        organizationId: 'org-signed',
+        userId: 'aaaaaaaa-0000-0000-0000-000000000001',
+      }),
+    );
+  });
+
+  it('does not join an org room when a verified token has no org claim', async () => {
+    mockConfigService.get.mockReturnValue('http://localhost:3010');
+    verifyMock.mockResolvedValue({
+      sub: 'aaaaaaaa-0000-0000-0000-000000000001',
+    });
+    const socket = createMockSocket({
+      handshake: {
+        auth: { token: 'header.payload.signature' },
+        headers: {},
+        query: {
+          organizationId: 'org-query',
+          userId: 'user-query',
+        },
+      } as Socket['handshake'],
+    });
+
+    await gateway.handleConnection(socket as Socket);
+
+    expect(socket.join).toHaveBeenCalledWith(
+      'user:aaaaaaaa-0000-0000-0000-000000000001',
+    );
+    expect(socket.join).not.toHaveBeenCalledWith('org-org-query');
+    expect(socket.emit).toHaveBeenCalledWith(
+      'connected',
+      expect.objectContaining({
+        organizationId: undefined,
         userId: 'aaaaaaaa-0000-0000-0000-000000000001',
       }),
     );
@@ -189,11 +222,12 @@ describe('WebSocketGateway', () => {
 
     await gateway.handleConnection(socket as Socket);
 
-    // A failed verify must not connect with a forged subject — it degrades to
-    // the query identity (the unauthenticated fallback), never the bad token.
+    // A failed verify must not connect with forged token claims — it degrades
+    // to the query user identity only, never the query org room.
     expect(verifyMock).toHaveBeenCalledWith('bad.token.here');
     expect(socket.disconnect).not.toHaveBeenCalled();
     expect(socket.join).toHaveBeenCalledWith('user:user-query');
+    expect(socket.join).not.toHaveBeenCalledWith('org-org-query');
     expect(mockLoggerService.warn).toHaveBeenCalledWith(
       expect.stringContaining('Failed to verify Better Auth token'),
       expect.any(Object),

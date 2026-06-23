@@ -1,0 +1,126 @@
+import { describe, expect, it, vi } from 'vitest';
+import { resolveBetterAuthJwtOrganizationId } from './better-auth.factory';
+import type { ICreateBetterAuthOptions } from './better-auth.types';
+
+type PrismaForBetterAuth = ICreateBetterAuthOptions['prisma'];
+
+function createPrismaMock() {
+  return {
+    member: {
+      findFirst: vi.fn(),
+    },
+    organization: {
+      findFirst: vi.fn(),
+    },
+    user: {
+      findUnique: vi.fn(),
+    },
+  };
+}
+
+describe('resolveBetterAuthJwtOrganizationId', () => {
+  it('prefers lastUsedOrganizationId when the user can access it', async () => {
+    const prisma = createPrismaMock();
+    prisma.user.findUnique.mockResolvedValue({
+      lastUsedOrganizationId: 'org_active',
+    });
+    prisma.organization.findFirst.mockResolvedValue({ id: 'org_active' });
+
+    await expect(
+      resolveBetterAuthJwtOrganizationId(
+        prisma as unknown as PrismaForBetterAuth,
+        'user_1',
+      ),
+    ).resolves.toBe('org_active');
+
+    expect(prisma.organization.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        id: 'org_active',
+        isDeleted: false,
+        OR: [
+          { userId: 'user_1' },
+          {
+            members: {
+              some: {
+                isActive: true,
+                isDeleted: false,
+                userId: 'user_1',
+              },
+            },
+          },
+        ],
+      },
+    });
+    expect(prisma.member.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('falls back to an owned organization when lastUsedOrganizationId is inaccessible', async () => {
+    const prisma = createPrismaMock();
+    prisma.user.findUnique.mockResolvedValue({
+      lastUsedOrganizationId: 'org_stale',
+    });
+    prisma.organization.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'org_owner' });
+
+    await expect(
+      resolveBetterAuthJwtOrganizationId(
+        prisma as unknown as PrismaForBetterAuth,
+        'user_2',
+      ),
+    ).resolves.toBe('org_owner');
+
+    expect(prisma.organization.findFirst).toHaveBeenLastCalledWith({
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+      where: {
+        isDeleted: false,
+        userId: 'user_2',
+      },
+    });
+  });
+
+  it('falls back to an active membership organization when the user owns none', async () => {
+    const prisma = createPrismaMock();
+    prisma.user.findUnique.mockResolvedValue({
+      lastUsedOrganizationId: null,
+    });
+    prisma.organization.findFirst.mockResolvedValue(null);
+    prisma.member.findFirst.mockResolvedValue({
+      organizationId: 'org_member',
+    });
+
+    await expect(
+      resolveBetterAuthJwtOrganizationId(
+        prisma as unknown as PrismaForBetterAuth,
+        'user_3',
+      ),
+    ).resolves.toBe('org_member');
+
+    expect(prisma.member.findFirst).toHaveBeenCalledWith({
+      orderBy: { createdAt: 'asc' },
+      select: { organizationId: true },
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organization: { isDeleted: false },
+        userId: 'user_3',
+      },
+    });
+  });
+
+  it('returns undefined when no accessible organization exists', async () => {
+    const prisma = createPrismaMock();
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.organization.findFirst.mockResolvedValue(null);
+    prisma.member.findFirst.mockResolvedValue(null);
+
+    await expect(
+      resolveBetterAuthJwtOrganizationId(
+        prisma as unknown as PrismaForBetterAuth,
+        'user_4',
+      ),
+    ).resolves.toBeUndefined();
+  });
+});
