@@ -5,7 +5,7 @@ import { UpdateElementSoundDto } from '@api/collections/elements/sounds/dto/upda
 import { ElementsSoundsService } from '@api/collections/elements/sounds/services/sounds.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
 import { SoundCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -50,7 +50,7 @@ describe('ElementsSoundsController', () => {
       brand: '507f191e810c19729de860ee'.toString(),
       organization: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
-    } as IClerkPublicMetadata,
+    } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockUserWithoutOrg = {
@@ -58,7 +58,7 @@ describe('ElementsSoundsController', () => {
     publicMetadata: {
       brand: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
-    } as IClerkPublicMetadata,
+    } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockRequest = {

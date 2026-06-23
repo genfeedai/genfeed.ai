@@ -62,7 +62,7 @@ const isLive = args.has('--live');
 const BATCH_SIZE = 100;
 
 // ---------------------------------------------------------------------------
-// Env loading (same pattern as clerk-org-member-sync-backfill.ts)
+// Env loading (same pattern as auth-provider-org-member-sync-backfill.ts)
 // ---------------------------------------------------------------------------
 
 for (const envPath of [

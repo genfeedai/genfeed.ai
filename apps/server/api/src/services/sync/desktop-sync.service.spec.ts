@@ -9,7 +9,7 @@ vi.mock('@api/helpers/decorators/log/log-method.decorator', () => ({
   LogMethod: () => () => undefined,
 }));
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: mockGetPublicMetadata,
 }));
 
@@ -47,7 +47,7 @@ const userId = '507f191e810c19729de860ee';
 const organizationId = '607f191e810c19729de860ee';
 const brandId = '707f191e810c19729de860ee';
 
-const makeUser = (): User => ({ id: 'user_clerk' }) as unknown as User;
+const makeUser = (): User => ({ id: 'user_authProvider' }) as unknown as User;
 
 function buildService() {
   const prisma = {

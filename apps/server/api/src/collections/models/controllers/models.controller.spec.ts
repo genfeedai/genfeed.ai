@@ -6,7 +6,7 @@ import type { UpdateModelDto } from '@api/collections/models/dto/update-model.dt
 import { ModelsService } from '@api/collections/models/services/models.service';
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { ModelSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -67,7 +67,7 @@ describe('ModelsController', () => {
       isSuperAdmin: true,
       organization: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
-    } as IClerkPublicMetadata,
+    } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockRegularUser = {
@@ -77,7 +77,7 @@ describe('ModelsController', () => {
       isSuperAdmin: false,
       organization: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
-    } as IClerkPublicMetadata,
+    } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockOrgId = '507f191e810c19729de860ee'.toString();

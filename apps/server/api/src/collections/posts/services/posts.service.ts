@@ -360,19 +360,23 @@ export class PostsService extends BaseService<
     });
 
     try {
-      const user = post.user as unknown as { clerkId?: string };
-      const clerkUserId: string | undefined =
-        typeof user === 'object' && user?.clerkId ? user.clerkId : undefined;
+      const user = post.user as unknown as { authProviderId?: string };
+      const authProviderUserId: string | undefined =
+        typeof user === 'object' && user?.authProviderId
+          ? user.authProviderId
+          : undefined;
 
       await this.fileQueueService?.uploadYoutube({
         brandId: post.brand.toString(),
-        clerkUserId,
+        authProviderUserId,
         credentialId: credential._id.toString(),
         description: post.description || '',
         ingredientId: ingredient._id.toString(),
         organizationId: post.organization.toString(),
         postId,
-        room: clerkUserId ? getUserRoomName(clerkUserId) : undefined,
+        room: authProviderUserId
+          ? getUserRoomName(authProviderUserId)
+          : undefined,
         scheduledDate: post.scheduledDate ?? undefined,
         status: originalStatus,
         tags:

@@ -1,7 +1,7 @@
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { AnalyticsSyncController } from '@api/collections/content-performance/controllers/analytics-sync.controller';
 import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
 import { EmailDigestService } from '@api/collections/content-performance/services/email-digest.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { QueueService } from '@api/queues/core/queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -61,7 +61,7 @@ describe('AnalyticsSyncController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })

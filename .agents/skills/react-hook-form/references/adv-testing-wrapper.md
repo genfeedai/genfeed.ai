@@ -1,13 +1,13 @@
 ---
-title: Create Test Wrapper with QueryClient and AuthProvider
+title: Create Test Wrapper with QueryClient and Auth Context
 impact: LOW
 impactDescription: enables proper hook testing with required context providers
 tags: adv, testing, wrapper, vitest, react-testing-library
 ---
 
-## Create Test Wrapper with QueryClient and AuthProvider
+## Create Test Wrapper with QueryClient and Auth Context
 
-Hook tests require proper context providers. Create a reusable wrapper function that provides QueryClient, AuthProvider, and any other required context for your forms.
+Hook tests require proper context providers. Create a reusable wrapper function that provides QueryClient, auth context, and any other required context for your forms.
 
 **Incorrect (missing providers causes hook errors):**
 

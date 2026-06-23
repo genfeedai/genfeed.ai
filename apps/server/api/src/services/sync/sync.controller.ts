@@ -26,8 +26,9 @@ export class SyncController {
     @Param('id') id: string,
     @Req() req: Request,
   ) {
-    const clerkToken = req.headers.authorization?.replace('Bearer ', '') ?? '';
-    return this.syncService.pushWorkflow(user, id, clerkToken);
+    const authProviderToken =
+      req.headers.authorization?.replace('Bearer ', '') ?? '';
+    return this.syncService.pushWorkflow(user, id, authProviderToken);
   }
 
   @Post('workflows/pull/:cloudId')
@@ -38,7 +39,8 @@ export class SyncController {
     @Param('cloudId') cloudId: string,
     @Req() req: Request,
   ) {
-    const clerkToken = req.headers.authorization?.replace('Bearer ', '') ?? '';
-    return this.syncService.pullWorkflow(user, cloudId, clerkToken);
+    const authProviderToken =
+      req.headers.authorization?.replace('Bearer ', '') ?? '';
+    return this.syncService.pullWorkflow(user, cloudId, authProviderToken);
   }
 }

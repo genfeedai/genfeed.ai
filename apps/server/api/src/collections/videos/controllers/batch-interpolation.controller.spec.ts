@@ -1,4 +1,4 @@
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
     brand: '507f1f77bcf86cd799439014',
     organization: '507f1f77bcf86cd799439013',
@@ -29,6 +29,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
@@ -42,7 +43,6 @@ import { BatchInterpolationController } from '@api/collections/videos/controller
 import type { BatchInterpolationDto } from '@api/collections/videos/dto/batch-interpolation.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { ConfigService } from '@api/config/config.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -69,7 +69,7 @@ describe('BatchInterpolationController', () => {
   const mockReq = {} as Request;
 
   const mockUser = {
-    id: 'user_clerk_123',
+    id: 'user_authProvider_123',
     publicMetadata: {
       brand: '507f1f77bcf86cd799439014',
       organization: '507f1f77bcf86cd799439013',
@@ -222,7 +222,7 @@ describe('BatchInterpolationController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })

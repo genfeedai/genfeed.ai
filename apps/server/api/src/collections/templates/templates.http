@@ -4,7 +4,7 @@
 
 ### Variables
 @baseUrl = http://localhost:3000
-@token = your_clerk_jwt_token_here
+@token = your_better_auth_jwt_token_here
 @templateId = replace_with_actual_template_id
 
 ### 1. Create template

@@ -21,7 +21,7 @@ const storeState = {
   activeThreadId: 'thread-existing' as string | null,
 };
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: vi.fn().mockResolvedValue('token'),
     isLoaded: true,

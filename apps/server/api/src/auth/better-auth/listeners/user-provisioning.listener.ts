@@ -9,7 +9,7 @@ import type { IBetterAuthUserCreatedEvent } from '../better-auth.types';
 /**
  * Provisions a newly created Better Auth user — organization, settings, brand,
  * member and credit balance — by reusing the idempotent
- * {@link UserSetupService.initializeUserResources} chain (the same one the Clerk
+ * {@link UserSetupService.initializeUserResources} chain (the same one the legacy auth provider
  * `user.created` webhook drove). First-party replacement for that webhook
  * (epic #735, Phase 4).
  *

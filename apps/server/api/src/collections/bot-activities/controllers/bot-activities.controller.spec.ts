@@ -1,4 +1,4 @@
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
     brand: 'brand-123',
     organization: 'org-123',
@@ -11,11 +11,11 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { BotActivitiesController } from '@api/collections/bot-activities/controllers/bot-activities.controller';
 import { BotActivitiesService } from '@api/collections/bot-activities/services/bot-activities.service';
 import { FeatureFlagGuard } from '@api/feature-flag/feature-flag.guard';
 import { FeatureFlagService } from '@api/feature-flag/feature-flag.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -59,7 +59,7 @@ describe('BotActivitiesController', () => {
     })
       .overrideGuard(FeatureFlagGuard)
       .useValue({ canActivate: () => true })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

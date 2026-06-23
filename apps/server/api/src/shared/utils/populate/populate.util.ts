@@ -127,7 +127,7 @@ export const PopulatePatterns = {
     'firstName',
     'lastName',
     'email',
-    'clerkId',
+    'authProviderId',
   ]),
 };
 
@@ -163,7 +163,14 @@ export function createUserLookupPipeline(
 ): PipelineStage[] {
   const projection =
     mode === 'minimal'
-      ? { _id: 1, clerkId: 1, email: 1, firstName: 1, handle: 1, lastName: 1 }
+      ? {
+          _id: 1,
+          authProviderId: 1,
+          email: 1,
+          firstName: 1,
+          handle: 1,
+          lastName: 1,
+        }
       : {};
 
   return [];

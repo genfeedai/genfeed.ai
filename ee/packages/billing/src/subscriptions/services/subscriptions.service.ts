@@ -38,7 +38,7 @@ type SubscriptionStateSync = {
  * `findByOrganizationId`, `findAll`) is locked by
  * {@link import('@genfeedai/interfaces/billing').ISubscriptionsService}.
  *
- * The other methods on this class (Stripe sync, plan changes, Clerk metadata
+ * The other methods on this class (Stripe sync, plan changes, legacy auth provider metadata
  * sync, preview subscription change) are enterprise-only and move to
  * `ee/packages/billing/` in Phase C Layer 2 (tracked in issue #87).
  *
@@ -87,7 +87,7 @@ export class SubscriptionsService
 
   /**
    * The DB column is `plan`; the in-memory field consumers branch on
-   * (Stripe invoice.paid credit allocation, Clerk sync, tier resolution)
+   * (Stripe invoice.paid credit allocation, legacy auth provider sync, tier resolution)
    * is `type`. Overriding here guarantees EVERY BaseService read path
    * (findOne/findAll/patch/create) populates it — previously only
    * findByOrganizationId/findByStripeCustomerId did, so webhook handlers
@@ -148,7 +148,7 @@ export class SubscriptionsService
    * When `subscriptionTier` is provided and the subscription carries an
    * `organization` reference, writes `subscriptionTier` to
    * `OrganizationSetting` via Prisma so the request-context middleware can
-   * read it without touching Clerk.
+   * read it without touching legacy auth provider.
    */
   async syncSubscriptionState(
     subscription: SubscriptionStateSync,

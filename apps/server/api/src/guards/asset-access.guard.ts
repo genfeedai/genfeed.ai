@@ -68,11 +68,11 @@ export class AssetAccessGuard implements CanActivate {
     // Check permissions based on scope
     switch (assetScope) {
       case AssetScope.ORGANIZATION: {
-        const assetUserClerkId = this.getRefClerkId(asset.user);
+        const assetUserAuthProviderId = this.getRefAuthProviderId(asset.user);
         const assetUserObjectId = this.getRefId(asset.user);
 
         if (
-          assetUserClerkId === user.id ||
+          assetUserAuthProviderId === user.id ||
           assetUserObjectId === user.publicMetadata?.user
         ) {
           return true;
@@ -93,11 +93,13 @@ export class AssetAccessGuard implements CanActivate {
       }
 
       case AssetScope.BRAND: {
-        const brandAssetUserClerkId = this.getRefClerkId(asset.user);
+        const brandAssetUserAuthProviderId = this.getRefAuthProviderId(
+          asset.user,
+        );
         const brandAssetUserObjectId = this.getRefId(asset.user);
 
         if (
-          brandAssetUserClerkId === user.id ||
+          brandAssetUserAuthProviderId === user.id ||
           brandAssetUserObjectId === user.publicMetadata?.user
         ) {
           return true;
@@ -118,11 +120,13 @@ export class AssetAccessGuard implements CanActivate {
       }
 
       case AssetScope.USER: {
-        const userAssetUserClerkId = this.getRefClerkId(asset.user);
+        const userAssetUserAuthProviderId = this.getRefAuthProviderId(
+          asset.user,
+        );
         const userAssetUserObjectId = this.getRefId(asset.user);
 
         if (
-          userAssetUserClerkId === user.id ||
+          userAssetUserAuthProviderId === user.id ||
           userAssetUserObjectId === user.publicMetadata?.user
         ) {
           return true;
@@ -146,13 +150,13 @@ export class AssetAccessGuard implements CanActivate {
     return ref?._id?.toString() ?? ref?.id?.toString();
   }
 
-  private getRefClerkId(
-    ref: string | { clerkId?: string | null } | null | undefined,
+  private getRefAuthProviderId(
+    ref: string | { authProviderId?: string | null } | null | undefined,
   ): string | undefined {
     if (typeof ref === 'string') {
       return undefined;
     }
 
-    return ref?.clerkId ?? undefined;
+    return ref?.authProviderId ?? undefined;
   }
 }

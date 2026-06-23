@@ -72,7 +72,7 @@ jobs:
       # Mock all external service keys
       REPLICATE_API_TOKEN: test-mock-key
       STRIPE_SECRET_KEY: test-mock-key
-      CLERK_SECRET_KEY: test-mock-clerk-key
+      BETTER_AUTH_SECRET: test-better-auth-secret
     steps:
       - uses: actions/checkout@v5
 
@@ -133,10 +133,10 @@ jobs:
           # inlined at build time and is the master switch for the proxy.ts auth
           # bypass (middleware can't read a plain server env at request time on
           # edge), disables live sockets (use-socket-manager), and bypasses the
-          # Clerk publishable-key requirement client-side (AppProviders).
+          # Better Auth publishable-key requirement client-side (AppProviders).
           NEXT_PUBLIC_PLAYWRIGHT_TEST: "true"
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
           NEXT_PUBLIC_API_URL: http://localhost:3010
 
       - name: Run core E2E shard ${{ matrix.shard }}/12
@@ -151,8 +151,8 @@ jobs:
           E2E_RETRIES: "0"
           E2E_SHARD_INDEX: ${{ matrix.shard }}
           E2E_TOTAL_SHARDS: "12"
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
 
       - name: Upload blob report (shard ${{ matrix.shard }})
         uses: actions/upload-artifact@v4
@@ -219,15 +219,15 @@ jobs:
           fi
           echo "All required E2E checks passed."
 
-  # Real-Clerk authenticated smoke (Playwright `app-authed` project). Exercises
-  # the GENUINE clerkMiddleware path via a real Clerk test-instance session — no
-  # proxy.ts bypass — so it must be built with a REAL Clerk client (bypass flag
+  # Real-Better Auth authenticated smoke (Playwright `app-authed` project). Exercises
+  # the GENUINE authMiddleware path via a real Better Auth test-instance session — no
+  # proxy.ts bypass — so it must be built with a REAL Better Auth client (bypass flag
   # OFF) and given the real test-instance secrets. Dormant + non-blocking until
   # the secrets land: gated behind the E2E_AUTHED_ENABLED repo variable and
   # continue-on-error, so it never affects the gate while it hardens. mac-studio
   # already runs this path locally; this makes CI ready to trigger on demand.
   e2e-frontend-authed:
-    name: Frontend Authed E2E (real Clerk)
+    name: Frontend Authed E2E (real Better Auth)
     if: ${{ vars.E2E_AUTHED_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -242,28 +242,26 @@ jobs:
           install-command: "bun install"
           cache-playwright: "true"
 
-      - name: Build app (real Clerk client, bypass OFF)
+      - name: Build app (real Better Auth client, bypass OFF)
         run: bunx turbo run build --filter=@genfeedai/app
         env:
-          # CRUCIAL: build with the bypass flag OFF so AppProviders mounts a REAL
-          # ClerkProvider with the real publishable key. With the flag ON it forces
-          # publishableKey:'' (__internal_bypassMissingPublishableKey), leaving no
-          # real window.Clerk for clerk.signIn to use. NEXT_PUBLIC_* is inlined at
-          # build time, so this MUST be set here — not just at runtime.
+          # CRUCIAL: build with the bypass flag OFF so the app uses the real
+          # Better Auth browser session path. NEXT_PUBLIC_* is inlined at build
+          # time, so this MUST be set here — not just at runtime.
           NEXT_PUBLIC_PLAYWRIGHT_TEST: "false"
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
           NEXT_PUBLIC_API_URL: http://localhost:3010
 
-      - name: Run authed E2E (clerk-setup + app-authed)
+      - name: Run authed E2E (Better Auth setup + app-authed)
         run: bun run test:e2e:authed
         env:
           CI: true
           APP_BASE_URL: http://localhost:3000
           NEXT_PUBLIC_PLAYWRIGHT_TEST: "false"
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
-          E2E_CLERK_USER_PASSWORD: ${{ secrets.E2E_CLERK_USER_PASSWORD }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
+          E2E_BETTER_AUTH_SESSION_TOKEN: ${{ secrets.E2E_BETTER_AUTH_SESSION_TOKEN }}
 
       - name: Upload authed Playwright report
         uses: actions/upload-artifact@v4

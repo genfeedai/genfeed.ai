@@ -1,5 +1,5 @@
 import type {
-  ClerkWebhookPayload,
+  AuthWebhookPayload,
   HeygenWebhookPayload,
   KlingAIWebhookPayload,
   LeonardoAIWebhookPayload,
@@ -56,9 +56,9 @@ describe('WebhookPayloadInterface', () => {
     });
   });
 
-  describe('ClerkWebhookPayload', () => {
-    it('should have required Clerk properties', () => {
-      const payload: ClerkWebhookPayload = {
+  describe('AuthWebhookPayload', () => {
+    it('should have required legacy auth provider properties', () => {
+      const payload: AuthWebhookPayload = {
         data: {
           email: 'test@example.com',
           id: 'user_123',

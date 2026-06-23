@@ -1,7 +1,7 @@
 import Joi from 'joi';
 
 /**
- * Better Auth — first-party, self-hostable auth (Clerk replacement, epic #735).
+ * Better Auth — first-party, self-hostable auth (legacy auth provider replacement, epic #735).
  *
  * Better Auth is the first-party runtime auth provider. The secret remains
  * optional at the schema level so local/offline services can boot without auth;

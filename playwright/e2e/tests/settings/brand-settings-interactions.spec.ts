@@ -6,7 +6,7 @@ import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
 /**
  * E2E interaction coverage for BRAND settings surfaces.
  *
- * Routes live under `/test-org/brand-1/settings/...`. Auth, Clerk and the API
+ * Routes live under `/test-org/brand-1/settings/...`. Auth, Better Auth and the API
  * (including settings PATCH/PUT writes) are fully mocked, so toggling switches,
  * editing fields, changing selects and saving are all safe and resolve as
  * success. Interactions are best-effort: selectors fall back to `tryClick` and

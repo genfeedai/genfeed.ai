@@ -3,7 +3,7 @@ import {
   getIsSuperAdmin,
   getStripeSubscriptionStatus,
   getSubscriptionTier,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

@@ -12,7 +12,7 @@ Genfeed ("we," "our," or "us") is committed to protecting your privacy. This Pri
 ### 1. Authentication Information
 
 - **OAuth Tokens**: We store authentication tokens securely in your browser's local storage (chrome.storage.local) to maintain your login session
-- **User Account Data**: When you authenticate via Clerk, we receive your user ID, email address, name, and organization information
+- **User Account Data**: When you authenticate via Better Auth, we receive your user ID, email address, name, and organization information
 - **Session Information**: We store session data locally to keep you logged in across browser sessions
 
 ### 2. Content Data
@@ -31,7 +31,7 @@ Genfeed ("we," "our," or "us") is committed to protecting your privacy. This Pri
 
 - **Extension Storage**: We use Chrome's local storage API to store your preferences, authentication tokens, and cached data
 - **Tab Information**: We access information about open tabs to detect when you're on Twitter/X and activate Extension features
-- **Cookies**: We use cookies for authentication and session management via Clerk
+- **Cookies**: We use cookies for authentication and session management via Better Auth
 
 ## How We Use Your Information
 
@@ -73,10 +73,10 @@ Genfeed ("we," "our," or "us") is committed to protecting your privacy. This Pri
 
 ### Services We Use
 
-1. **Clerk** - Authentication provider
+1. **Better Auth** - Authentication provider
    - **Data Shared**: Email, name, user ID
    - **Purpose**: User authentication and session management
-   - **Privacy Policy**: https://clerk.com/privacy
+   - **Privacy Policy**: https://authProvider.com/privacy
 
 2. **OpenAI** - AI content generation
    - **Data Shared**: Prompts and content for generation

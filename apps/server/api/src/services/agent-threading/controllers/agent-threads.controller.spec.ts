@@ -20,7 +20,7 @@ describe('Threading AgentThreadsController', () => {
   const userId = 'user_current';
   const threadId = 'thread_current';
   const mockUser = {
-    id: 'clerk_123',
+    id: 'authProvider_123',
     publicMetadata: {
       organization: organizationId,
       user: userId,

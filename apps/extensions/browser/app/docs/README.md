@@ -24,8 +24,8 @@ Plasmo-based extension that brings GenFeed's AI workflows to multiple social med
 
 ```bash
 pnpm install
-# Create .env file with your Clerk publishable key
-echo "PLASMO_PUBLIC_CLERK_PUBLISHABLE_KEY=your_key_here" > .env
+# Create .env file with the API endpoint
+echo "PLASMO_PUBLIC_API_ENDPOINT=http://local.genfeed.ai:3010/v1" > .env
 pnpm dev                # generates build/chrome-mv3-dev
 ```
 

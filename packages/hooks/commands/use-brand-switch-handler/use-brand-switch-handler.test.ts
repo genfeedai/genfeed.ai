@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useUser: vi.fn(),
 }));
 
@@ -23,7 +23,7 @@ vi.mock('@genfeedai/services/organization/users.service', () => ({
   },
 }));
 
-import { useUser } from '@clerk/nextjs';
+import { useUser } from '@genfeedai/auth-client/react';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useBrandSwitchHandler } from '@hooks/commands/use-brand-switch-handler/use-brand-switch-handler';

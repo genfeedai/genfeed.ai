@@ -1,4 +1,4 @@
 export type {
   IAuthPublicMetadata,
-  IAuthPublicMetadata as IClerkPublicMetadata,
+  IAuthPublicMetadata as IAuthPublicMetadata,
 } from '@api/auth/interfaces/authenticated-user.interface';

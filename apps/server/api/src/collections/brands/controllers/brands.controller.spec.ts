@@ -20,7 +20,7 @@ import { AnalyticsAggregationService } from '@api/collections/posts/services/ana
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { BrandSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { REQUEST } from '@nestjs/core';
@@ -58,7 +58,7 @@ describe('BrandsController', () => {
       isSuperAdmin: false,
       organization: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
-    } as IClerkPublicMetadata,
+    } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockBrand = {
@@ -218,7 +218,7 @@ describe('BrandsController', () => {
       const superAdmin = {
         ...mockUser,
         publicMetadata: {
-          ...(mockUser.publicMetadata as IClerkPublicMetadata),
+          ...(mockUser.publicMetadata as IAuthPublicMetadata),
           isSuperAdmin: true,
         },
       } as unknown as User;

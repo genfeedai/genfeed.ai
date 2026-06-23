@@ -188,7 +188,7 @@ const createSetting = (partial: Partial<ISetting> = {}): ISetting => ({
 
 const createUser = (partial: Partial<IUser> = {}): IUser => ({
   ...createBaseEntity<IUser>(partial),
-  clerkId: 'clerk_123',
+  authProviderId: 'authProvider_123',
   email: 'test@example.com',
   firstName: 'Test',
   handle: 'test-user',

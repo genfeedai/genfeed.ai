@@ -18,7 +18,7 @@ import { initializeRendererTelemetry } from './telemetry';
 import type { DesktopAgentRunHandoff } from './views/AgentsView';
 
 const emptyBootstrap: IDesktopBootstrap = {
-  clerkId: null,
+  betterAuthId: null,
   environment: {
     apiEndpoint: '',
     appEndpoint: '',
@@ -356,12 +356,12 @@ export const App = () => {
   const shouldShowWizard =
     onboardingLoaded &&
     !onboardingCompleted &&
-    !bootstrap.clerkId &&
+    !bootstrap.betterAuthId &&
     bootstrap.session !== null;
 
   const shouldShowReconnect =
     !isDismissedReconnect &&
-    bootstrap.clerkId !== null &&
+    bootstrap.betterAuthId !== null &&
     bootstrap.session === null;
 
   /* ─── Render ─── */

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsProfilePage from './settings-profile-page';
 import '@testing-library/jest-dom/vitest';
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useUser: vi.fn(() => ({
     isLoaded: true,
     user: {

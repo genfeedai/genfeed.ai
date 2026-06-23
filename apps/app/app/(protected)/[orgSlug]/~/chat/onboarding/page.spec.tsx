@@ -4,7 +4,7 @@ vi.mock('@genfeedai/agent', () => ({
   AgentFullPage: () => null,
 }));
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: vi.fn().mockResolvedValue('token'),
   }),

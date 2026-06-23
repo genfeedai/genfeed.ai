@@ -7,7 +7,7 @@ import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeSingle,
@@ -118,7 +118,7 @@ export class VideosEditsController {
       const videoUrl = `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
       this.fileQueueService
         .processVideo({
-          clerkUserId: user.id,
+          authProviderUserId: user.id,
           ingredientId: ingredientData._id.toString(),
           organizationId: publicMetadata.organization,
           params: {
@@ -257,7 +257,7 @@ export class VideosEditsController {
       const videoUrl = `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
       this.fileQueueService
         .processVideo({
-          clerkUserId: user.id,
+          authProviderUserId: user.id,
           ingredientId: ingredientData._id.toString(),
           organizationId: publicMetadata.organization,
           params: {

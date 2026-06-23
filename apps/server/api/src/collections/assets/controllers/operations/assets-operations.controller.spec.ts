@@ -1,3 +1,4 @@
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AssetsOperationsController } from '@api/collections/assets/controllers/operations/assets-operations.controller';
 import type { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
@@ -10,7 +11,6 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { ConfigService } from '@api/config/config.service';
 import { ValidationConfigService } from '@api/config/services/validation.config';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -182,7 +182,7 @@ describe('AssetsOperationsController', () => {
         { provide: NotificationsPublisherService, useValue: websocketService },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })

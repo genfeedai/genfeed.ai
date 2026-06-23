@@ -10,7 +10,7 @@ import {
  *
  * Targets render + interaction code paths across overview, orchestrator,
  * hire, the agent wizard, library, runs, analytics, autopilot, configuration,
- * the agent detail route, and content-run detail. All API + Clerk traffic is
+ * the agent detail route, and content-run detail. All API + Better Auth traffic is
  * mocked by the auth fixture; unknown local API routes auto-return empty
  * collections so every page renders without bespoke mocks.
  *

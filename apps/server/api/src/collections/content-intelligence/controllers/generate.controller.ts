@@ -3,7 +3,7 @@ import { GenerateContentDto } from '@api/collections/content-intelligence/dto/ge
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';

@@ -6,7 +6,7 @@ import { AgentOrchestratorController } from '@api/services/agent-orchestrator/ag
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { LoggerService } from '@libs/logger/logger.service';
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
     organization: '507f191e810c19729de860ea',
     user: '507f191e810c19729de860ea',
@@ -74,7 +74,7 @@ describe('AgentOrchestratorController', () => {
   describe('chat', () => {
     it('should call orchestrator service with correct params', async () => {
       const user = {
-        id: 'clerk_123',
+        id: 'authProvider_123',
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
@@ -103,7 +103,7 @@ describe('AgentOrchestratorController', () => {
 
     it('should strip Bearer prefix from auth header', async () => {
       const user = {
-        id: 'clerk_456',
+        id: 'authProvider_456',
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
@@ -126,7 +126,7 @@ describe('AgentOrchestratorController', () => {
     it('should resolve user from usersService before calling chat', async () => {
       const userId = '507f191e810c19729de860ea';
       const user = {
-        id: 'clerk_789',
+        id: 'authProvider_789',
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
       usersService.findOne.mockResolvedValue({ _id: userId });
@@ -147,7 +147,7 @@ describe('AgentOrchestratorController', () => {
 
     it('should pass threadId through to service', async () => {
       const user = {
-        id: 'clerk_000',
+        id: 'authProvider_000',
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
@@ -171,7 +171,7 @@ describe('AgentOrchestratorController', () => {
   describe('chatStream', () => {
     it('should return threadId from the streaming chat response', async () => {
       const user = {
-        id: 'clerk_222',
+        id: 'authProvider_222',
         publicMetadata: { organization: 'org', user: 'usr' },
       } as unknown as User;
       usersService.findOne.mockResolvedValue({
@@ -201,7 +201,7 @@ describe('AgentOrchestratorController', () => {
 
   describe('goals', () => {
     it('should list goals for the current organization', async () => {
-      const user = { id: 'clerk_123' } as unknown as User;
+      const user = { id: 'authProvider_123' } as unknown as User;
       agentGoalsService.list.mockResolvedValue([{ _id: 'goal-1' }]);
 
       const result = await controller.listGoals(user, 'brand-1');
@@ -214,7 +214,7 @@ describe('AgentOrchestratorController', () => {
     });
 
     it('should create a goal for the current user and org', async () => {
-      const user = { id: 'clerk_123' } as unknown as User;
+      const user = { id: 'authProvider_123' } as unknown as User;
       usersService.findOne.mockResolvedValue({
         _id: '507f191e810c19729de860ea',
       });
@@ -242,7 +242,7 @@ describe('AgentOrchestratorController', () => {
     });
 
     it('should refresh a goal by id', async () => {
-      const user = { id: 'clerk_123' } as unknown as User;
+      const user = { id: 'authProvider_123' } as unknown as User;
       agentGoalsService.refreshProgress.mockResolvedValue({
         _id: 'goal-1',
         progressPercent: 25,
@@ -258,7 +258,7 @@ describe('AgentOrchestratorController', () => {
     });
 
     it('should update a goal by id', async () => {
-      const user = { id: 'clerk_123' } as unknown as User;
+      const user = { id: 'authProvider_123' } as unknown as User;
       agentGoalsService.update.mockResolvedValue({
         _id: 'goal-1',
         targetValue: 2000,

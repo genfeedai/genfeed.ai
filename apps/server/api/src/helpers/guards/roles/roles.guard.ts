@@ -4,9 +4,9 @@ import { RoleEntity } from '@api/collections/roles/entities/role.entity';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { MemberRole } from '@genfeedai/enums';
 import {
@@ -45,7 +45,7 @@ export class RolesGuard implements CanActivate {
       );
     }
 
-    const publicMetadata: IClerkPublicMetadata = getPublicMetadata(user);
+    const publicMetadata: IAuthPublicMetadata = getPublicMetadata(user);
 
     // SUPERADMIN BYPASS: Platform-level superadmin has access to everything
     if (getIsSuperAdmin(user, req)) {
@@ -169,7 +169,7 @@ export class RolesGuard implements CanActivate {
    */
   private extractOrganizationId(
     req: Request,
-    publicMetadata: IClerkPublicMetadata,
+    publicMetadata: IAuthPublicMetadata,
   ): string | null {
     // 1. Check explicit org params (e.g., /organizations/:organizationId/...)
     const params = req.params as unknown as Record<string, string | undefined>;

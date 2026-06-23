@@ -105,5 +105,5 @@ test.describe('My Area', () => {
 Fixtures (from `auth.fixture.ts`): `authenticatedPage` (brand member),
 `adminPage` (`/admin/*`), `automationPage`, `unauthenticatedPage`. Tenant slugs
 are `test-org` / `brand-1`; brand routes are `/test-org/brand-1/…`, org routes
-`/test-org/~/…`, admin `/admin/…`. Auth, Clerk and all API calls are mocked; a
+`/test-org/~/…`, admin `/admin/…`. Auth, Better Auth and all API calls are mocked; a
 strict network guard fails the test on any real outbound call.

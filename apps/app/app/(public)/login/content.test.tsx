@@ -1,30 +1,24 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginPage from './content';
-import '@testing-library/jest-dom/vitest';
 
-const pushMock = vi.fn();
-const useAuthMock = vi.fn(() => ({ isLoaded: true, isSignedIn: false }));
-const signInMock = vi.fn(
-  ({ fallbackRedirectUrl }: { fallbackRedirectUrl?: string }) => (
-    <div
-      data-fallback-redirect-url={fallbackRedirectUrl}
-      data-testid="clerk-signin"
-    >
-      Sign In Component
-    </div>
-  ),
-);
+const authClientMocks = vi.hoisted(() => ({
+  email: vi.fn(),
+  magicLink: vi.fn(),
+  social: vi.fn(),
+}));
 
-vi.mock('@clerk/nextjs', () => ({
-  SignIn: (props: { fallbackRedirectUrl?: string }) => signInMock(props),
-  useAuth: () => useAuthMock(),
+vi.mock('@genfeedai/auth-client', () => ({
+  signIn: {
+    email: authClientMocks.email,
+    magicLink: authClientMocks.magicLink,
+    social: authClientMocks.social,
+  },
 }));
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: pushMock,
-  }),
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
 vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
@@ -33,58 +27,101 @@ vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
   ),
 }));
 
+const getEmailInput = () => screen.getByRole('textbox', { name: /^Email/ });
+
 describe('LoginPage', () => {
   beforeEach(() => {
-    pushMock.mockClear();
-    signInMock.mockClear();
-    useAuthMock.mockReset();
-    useAuthMock.mockReturnValue({ isLoaded: true, isSignedIn: false });
+    authClientMocks.email.mockReset();
+    authClientMocks.email.mockResolvedValue({});
+    authClientMocks.magicLink.mockReset();
+    authClientMocks.magicLink.mockResolvedValue({});
+    authClientMocks.social.mockReset();
+    window.history.replaceState({}, '', '/login');
   });
 
-  it('uses / as the sign-in fallback redirect', async () => {
+  it('renders the Better Auth magic-link form', () => {
     render(<LoginPage />);
 
-    await waitFor(() => {
-      expect(screen.getByTestId('clerk-signin')).toHaveAttribute(
-        'data-fallback-redirect-url',
-        '/',
-      );
-    });
-  });
-
-  it('redirects signed-in users to /', async () => {
-    useAuthMock.mockReturnValueOnce({ isLoaded: true, isSignedIn: true });
-
-    render(<LoginPage />);
-
-    await waitFor(() => {
-      expect(pushMock).toHaveBeenCalledWith('/');
-    });
-  });
-
-  it('should render without crashing', () => {
-    const { container } = render(<LoginPage />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should render AuthFormLayout wrapper', () => {
-    render(<LoginPage />);
     expect(screen.getByTestId('auth-form-layout')).toBeInTheDocument();
+    expect(getEmailInput()).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Email me a sign-in link' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Continue with Google' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Use email and password' }),
+    ).toBeInTheDocument();
   });
 
-  it('should render Clerk SignIn component after mount', async () => {
+  it('sends a magic-link sign-in with the default callback URL', async () => {
     render(<LoginPage />);
+
+    fireEvent.change(getEmailInput(), {
+      target: { value: 'user@example.com' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Email me a sign-in link' }),
+    );
+
     await waitFor(() => {
-      expect(screen.getByTestId('clerk-signin')).toBeInTheDocument();
+      expect(authClientMocks.magicLink).toHaveBeenCalledWith({
+        callbackURL: '/',
+        email: 'user@example.com',
+      });
+    });
+    expect(screen.getByText('Check your email')).toBeInTheDocument();
+  });
+
+  it('preserves callbackUrl when requesting a magic link', async () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/login?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+    );
+
+    render(<LoginPage />);
+
+    fireEvent.change(getEmailInput(), {
+      target: { value: 'cli@example.com' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Email me a sign-in link' }),
+    );
+
+    await waitFor(() => {
+      expect(authClientMocks.magicLink).toHaveBeenCalledWith({
+        callbackURL: '/oauth/cli?port=4321',
+        email: 'cli@example.com',
+      });
     });
   });
 
-  it('should not render SignIn before component is mounted', () => {
-    const { container } = render(<LoginPage />);
-    // Initially should not have SignIn rendered
-    const signIn = container.querySelector('[data-testid="clerk-signin"]');
-    if (!signIn) {
-      expect(signIn).toBeNull();
-    }
+  it('shows and submits the email password fallback', async () => {
+    render(<LoginPage />);
+
+    fireEvent.change(getEmailInput(), {
+      target: { value: 'saved@example.com' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Use email and password' }),
+    );
+    fireEvent.change(screen.getByLabelText(/^Password/), {
+      target: { value: 'correct horse battery staple' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Sign in with email and password',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(authClientMocks.email).toHaveBeenCalledWith({
+        callbackURL: '/',
+        email: 'saved@example.com',
+        password: 'correct horse battery staple',
+      });
+    });
   });
 });

@@ -5,7 +5,7 @@ import {
   useConfirmModal,
 } from './global-modals.provider';
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useUser: () => ({
     user: { reload: vi.fn() },
   }),

@@ -1,7 +1,7 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 
 /**
  * Utility class for legacy id validation and conversion.
@@ -180,7 +180,7 @@ export class ObjectIdUtil {
    */
   static enrichWithUserContext(
     dto: Record<string, unknown>,
-    publicMetadata: IClerkPublicMetadata,
+    publicMetadata: IAuthPublicMetadata,
   ): Record<string, unknown> {
     if (!publicMetadata?.user) {
       throw new ValidationException('User context is required');
@@ -228,7 +228,7 @@ export class ObjectIdUtil {
    */
   static async createSecureQuery(
     baseQuery: Record<string, unknown>,
-    userContext?: IClerkPublicMetadata,
+    userContext?: IAuthPublicMetadata,
   ): Promise<Record<string, unknown>> {
     const processedQuery: Record<string, unknown> =
       (await ObjectIdUtil.processSearchParams(

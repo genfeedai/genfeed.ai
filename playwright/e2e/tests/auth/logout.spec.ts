@@ -9,7 +9,7 @@ import {
  * E2E Tests for Logout Flow
  *
  * These tests verify logout functionality and session management.
- * All authentication is mocked - no real Clerk calls occur.
+ * All authentication is mocked - no real Better Auth calls occur.
  *
  * CRITICAL: No real authentication occurs - all responses are mocked.
  */
@@ -143,12 +143,12 @@ test.describe('Logout Flow', () => {
       await simulateLogout(authenticatedPage);
 
       // Check local storage
-      const hasClerkData = await authenticatedPage.evaluate(() => {
-        return localStorage.getItem('__clerk_client_jwt');
+      const hasBetterAuthData = await authenticatedPage.evaluate(() => {
+        return localStorage.getItem('__better_auth_client_jwt');
       });
 
-      // Clerk data should be cleared
-      expect(hasClerkData).toBeFalsy();
+      // Better Auth data should be cleared
+      expect(hasBetterAuthData).toBeFalsy();
     });
   });
 

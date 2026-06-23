@@ -7,7 +7,7 @@ import type {
 import { WorkflowFormatConverterService } from '@api/collections/workflows/services/workflow-format-converter.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { ConfigService } from '@api/config/config.service';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import {
@@ -161,7 +161,7 @@ export class SyncService {
   async pushWorkflow(
     user: User,
     localWorkflowId: string,
-    clerkToken: string,
+    authProviderToken: string,
   ): Promise<PushWorkflowResponse> {
     const { organization } = getPublicMetadata(user);
 
@@ -205,7 +205,7 @@ export class SyncService {
           rewrittenFormat,
           {
             headers: {
-              Authorization: `Bearer ${clerkToken}`,
+              Authorization: `Bearer ${authProviderToken}`,
               'Content-Type': 'application/json',
             },
           },
@@ -259,7 +259,7 @@ export class SyncService {
   async pullWorkflow(
     user: User,
     remoteWorkflowId: string,
-    clerkToken: string,
+    authProviderToken: string,
   ): Promise<PullWorkflowResponse> {
     const { organization, user: userId } = getPublicMetadata(user);
     const apiUrl = this.configService.get('GENFEEDAI_API_URL');
@@ -271,7 +271,7 @@ export class SyncService {
         this.httpService.get<Record<string, unknown>>(
           `${apiUrl}/v1/workflows/${remoteWorkflowId}`,
           {
-            headers: { Authorization: `Bearer ${clerkToken}` },
+            headers: { Authorization: `Bearer ${authProviderToken}` },
           },
         ),
       );

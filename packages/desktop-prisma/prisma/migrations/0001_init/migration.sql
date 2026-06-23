@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS organizations (
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   organization_id TEXT NOT NULL REFERENCES organizations (id) ON DELETE CASCADE,
-  clerk_id TEXT UNIQUE,
+  authProvider_id TEXT UNIQUE,
   email TEXT,
   name TEXT NOT NULL,
   created_at TEXT NOT NULL,

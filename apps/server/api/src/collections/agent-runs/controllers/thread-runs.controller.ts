@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { AgentRunSerializer } from '@genfeedai/serializers';
 import {

@@ -31,6 +31,7 @@ vi.mock('@api/collections/templates/services/templates.service', () => ({
   TemplatesService: class {},
 }));
 
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
@@ -52,7 +53,6 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import type { TagEntity } from '@api/collections/tags/entities/tag.entity';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { ConfigService } from '@api/config/config.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -116,7 +116,7 @@ describe('ImagesOperationsController', () => {
   const mockTagId = '507f191e810c19729de860ee';
 
   const mockUser = {
-    id: 'clerk_user_123',
+    id: 'authProvider_user_123',
     publicMetadata: {
       brand: mockBrandId.toString(),
       organization: mockOrgId.toString(),
@@ -422,7 +422,7 @@ describe('ImagesOperationsController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: vi.fn().mockResolvedValue(true) })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: vi.fn().mockResolvedValue(true) })

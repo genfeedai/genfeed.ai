@@ -6,10 +6,11 @@ export class CreateMemberDto {
   @IsString()
   @IsOptional()
   @ApiProperty({
-    description: 'Clerk organization membership ID used to synchronize state',
+    description:
+      'legacy auth provider organization membership ID used to synchronize state',
     required: false,
   })
-  readonly clerkMembershipId?: string | null;
+  readonly authProviderMembershipId?: string | null;
 
   @IsEntityId()
   @ApiProperty({

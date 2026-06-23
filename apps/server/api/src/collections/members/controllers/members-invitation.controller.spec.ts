@@ -11,7 +11,7 @@ const brandId = '507f191e810c19729de860ee';
 
 const makeUser = (overrides: Record<string, unknown> = {}): User =>
   ({
-    id: 'clerk-user-1',
+    id: 'authProvider-user-1',
     publicMetadata: {
       brand: brandId,
       isSuperAdmin: false,

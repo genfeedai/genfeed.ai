@@ -487,16 +487,16 @@ enum BatchStatus {
 model User {
   id                       String          @id @default(cuid())
   mongoId                  String?         @unique
-  clerkId                  String?         @unique
+  authProviderId                  String?         @unique
   handle                   String          @unique
   firstName                String?
   lastName                 String?
   email                    String?         @unique
   avatar                   String?
-  // Better Auth (epic #735, dual-run beside Clerk). `name`/`emailVerified` are
+  // Better Auth (epic #735, dual-run beside legacy auth provider). `name`/`emailVerified` are
   // the BA core user fields (BA `image` maps onto `avatar` above via config);
-  // `isSuperAdmin` moves the super-admin flag off Clerk publicMetadata into the
-  // DB so it survives the Clerk cutover. All nullable/defaulted so the migration
+  // `isSuperAdmin` moves the super-admin flag off legacy auth provider publicMetadata into the
+  // DB so it survives the legacy auth provider cutover. All nullable/defaulted so the migration
   // applies cleanly over existing rows.
   name                     String?
   emailVerified            Boolean         @default(false)
@@ -511,10 +511,10 @@ model User {
   onboardingStepsCompleted String[]        @default([])
   appSource                AppSource       @default(GENFEED)
   stripeCustomerId         String?
-  // Active-organization pointer (epic #735, Phase C). Replaces the Clerk
+  // Active-organization pointer (epic #735, Phase C). Replaces the legacy auth provider
   // `publicMetadata.organization` routing candidate so the user's current org
-  // survives the Clerk cutover and multi-org switching is DB-authoritative for
-  // both the Clerk and Better Auth identity resolvers. Plain id (validated
+  // survives the legacy auth provider cutover and multi-org switching is DB-authoritative for
+  // both the legacy auth provider and Better Auth identity resolvers. Plain id (validated
   // against live membership at resolve time); no FK so leaving/deleting an org
   // never blocks. Brand stays per-membership via `Member.lastUsedBrandId`.
   lastUsedOrganizationId   String?
@@ -597,7 +597,7 @@ model User {
 model Organization {
   id                        String                @id @default(cuid())
   mongoId                   String?               @unique
-  clerkOrganizationId       String?               @unique
+  authProviderOrganizationId       String?               @unique
   userId                    String
   user                      User                  @relation(fields: [userId], references: [id])
   label                     String
@@ -874,7 +874,7 @@ model MoodBoard {
 model Member {
   id                String       @id @default(cuid())
   mongoId           String?      @unique
-  clerkMembershipId String?      @unique
+  authProviderMembershipId String?      @unique
   organizationId    String
   organization      Organization @relation(fields: [organizationId], references: [id])
   userId            String
@@ -940,7 +940,7 @@ model Role {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// BETTER AUTH (epic #735) — first-party auth, dual-run beside Clerk (#736).
+// BETTER AUTH (epic #735) — first-party auth, dual-run beside legacy auth provider (#736).
 // Better Auth model → genfeed table:
 //   Session      → sessions          (active first-party sessions)
 //   Account      → user_credentials  (password hash + linked OAuth accounts)
@@ -949,7 +949,7 @@ model Role {
 // The BA `user` model maps onto the existing `User` model above. The org/member
 // and admin plugins are deferred (they require remapping the custom
 // Organization/Member/Role models); Phase 1 resolves org/brand from the existing
-// tables, matching the Clerk path.
+// tables, matching the legacy auth provider path.
 // ═══════════════════════════════════════════════════════════════
 
 model Session {

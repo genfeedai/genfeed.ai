@@ -53,7 +53,7 @@ describe('RunsMeteringService', () => {
   it('should emit metering events for billing hooks', async () => {
     await service.record({
       actionType: RunActionType.GENERATE,
-      authType: RunAuthType.CLERK,
+      authType: RunAuthType.BETTER_AUTH,
       organizationId: '507f1f77bcf86cd799439011',
       progress: 10,
       runId: 'run-1',

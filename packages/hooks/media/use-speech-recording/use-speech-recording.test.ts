@@ -2,7 +2,7 @@ import { useSpeechRecording } from '@hooks/media/use-speech-recording/use-speech
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: vi.fn().mockReturnValue({
     getToken: vi.fn().mockResolvedValue('mock-token'),
   }),

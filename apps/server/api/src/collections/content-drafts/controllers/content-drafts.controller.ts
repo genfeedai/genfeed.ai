@@ -5,7 +5,7 @@ import { ContentDraftsQueryDto } from '@api/collections/content-drafts/dto/conte
 import { EditContentDraftDto } from '@api/collections/content-drafts/dto/edit-content-draft.dto';
 import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,

@@ -4,14 +4,11 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * Local-only: hydrate the Playwright RUNNER process from `apps/app/.env.local`
- * (the developer's Clerk dev instance) when `E2E_AUTHED_LOCAL=1`.
+ * when `E2E_AUTHED_LOCAL=1`.
  *
  * Why this exists: `next dev` auto-loads `apps/app/.env.local`, so the web
- * server already sees the Clerk keys. The runner that executes clerk.setup.ts
- * does NOT — it runs from the repo root and only sees its own env. This loader
- * bridges the dev-instance keys (CLERK_SECRET_KEY / NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
- * into the runner so `clerk-setup` can provision + sign in `+clerk_test` users
- * against the dev instance without any new CI secret.
+ * server already sees local env. The runner that executes `auth.setup.ts` does
+ * NOT — it runs from the repo root and only sees its own env.
  *
  * Safety: gated behind an explicit flag (never runs for the mocked `app-core`
  * suite), never overrides an already-set var (so the launching script's
@@ -25,7 +22,7 @@ function loadDevEnvLocal(): void {
   const envPath = path.resolve(process.cwd(), 'apps/app/.env.local');
   if (!fs.existsSync(envPath)) {
     console.warn(
-      `[e2e] E2E_AUTHED_LOCAL=1 but ${envPath} not found — clerk-setup will fail with a missing-key error.`,
+      `[e2e] E2E_AUTHED_LOCAL=1 but ${envPath} not found — better-auth-setup may fail with a missing-key error.`,
     );
     return;
   }
@@ -72,17 +69,16 @@ loadDevEnvLocal();
  *
  * Key Features:
  * - All API calls are mocked to prevent real backend operations
- * - Authentication is mocked via Clerk fixtures
+ * - Authentication is mocked via Better Auth fixtures
  * - Tests run in parallel for faster execution
  * - Multiple browser and device configurations supported
  *
  * CRITICAL: The default `app-core` project uses API interceptors to mock all
  * responses — no real AI generation, billing, or external service calls occur.
- * The opt-in `app-authed` project is the one exception: it provisions and signs
- * in real `+clerk_test` users against a Clerk TEST instance (see
- * playwright/e2e/clerk.setup.ts) so protected routes exercise the genuine
- * clerkMiddleware path. That project is flag-gated in CI (E2E_AUTHED_ENABLED)
- * and never runs as part of the default mocked suite.
+ * The opt-in `app-authed` project is the one exception: it reuses a valid
+ * Better Auth storageState so protected routes exercise the genuine
+ * authMiddleware path. That project is flag-gated (E2E_AUTHED_ENABLED) and
+ * never runs as part of the default mocked suite.
  *
  * @see https://playwright.dev/docs/test-configuration
  */
@@ -153,6 +149,9 @@ const retryCount =
       ? 2
       : 0
     : readNonNegativeIntEnv('E2E_RETRIES', 0);
+const shouldRunAuthedProject =
+  process.env.E2E_AUTHED_ENABLED === '1' ||
+  process.env.E2E_AUTHED_LOCAL === '1';
 
 export default defineConfig({
   expect: {
@@ -178,26 +177,24 @@ export default defineConfig({
 
   // Test project configurations
   projects: [
-    // Real-Clerk auth bootstrap: provisions +clerk_test users and writes
-    // storageState under playwright/artifacts/.clerk for the authenticated projects.
-    // Requires the real test-instance secret (see playwright/e2e/clerk.setup.ts).
-    {
-      name: 'clerk-setup',
-      testDir: e2eRoot,
-      testMatch: /clerk\.setup\.ts/,
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: appBaseURL,
-      },
-    },
+    ...(shouldRunAuthedProject
+      ? [
+          {
+            name: 'better-auth-setup',
+            testDir: e2eRoot,
+            testMatch: /auth\.setup\.ts/,
+            use: {
+              ...devices['Desktop Chrome'],
+              baseURL: appBaseURL,
+            },
+          },
+        ]
+      : []),
     {
       name: 'app-core',
-      // app-core mocks auth (fake cookies + Clerk FAPI mock + the
-      // __playwright_test bypass) and never establishes a real session. The
+      // app-core mocks auth and never establishes a real session. The
       // *.authed.spec.ts smoke runs ONLY under `app-authed`, which supplies a
-      // genuine Clerk storageState from clerk-setup. If app-core picked them up
-      // it would hit the real clerkMiddleware path with no session and every
-      // protected route would bounce to /login. Keep them out of this project.
+      // genuine Better Auth storageState from better-auth-setup.
       testIgnore: [
         /marketplace\/.+\.spec\.ts/,
         /website\/.+\.spec\.ts/,
@@ -211,19 +208,24 @@ export default defineConfig({
         },
       },
     },
-    // Real-Clerk authenticated smoke: reuses the storageState from clerk-setup
-    // so protected routes hit the genuine clerkMiddleware path (no mock bypass).
-    // Enable once the real secret is wired; see playwright/e2e/clerk.setup.ts.
-    {
-      name: 'app-authed',
-      dependencies: ['clerk-setup'],
-      testMatch: /smoke\/.+\.authed\.spec\.ts/,
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: appBaseURL,
-        storageState: path.join(artifactsRoot, '.clerk', 'user.json'),
-      },
-    },
+    ...(shouldRunAuthedProject
+      ? [
+          {
+            name: 'app-authed',
+            dependencies: ['better-auth-setup'],
+            testMatch: /smoke\/.+\.authed\.spec\.ts/,
+            use: {
+              ...devices['Desktop Chrome'],
+              baseURL: appBaseURL,
+              storageState: path.join(
+                artifactsRoot,
+                '.better-auth',
+                'user.json',
+              ),
+            },
+          },
+        ]
+      : []),
   ],
 
   // Reporter configuration

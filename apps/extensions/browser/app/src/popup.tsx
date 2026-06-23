@@ -1,4 +1,4 @@
-import { ClerkProvider, useAuth } from '@clerk/chrome-extension';
+import { useAuth } from '@genfeedai/auth-client/react';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
@@ -167,16 +167,5 @@ export default function IndexPopup() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
-  const extensionUrl = chrome.runtime.getURL('.');
-
-  return (
-    <ClerkProvider
-      publishableKey={process.env.PLASMO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? ''}
-      afterSignOutUrl={`${extensionUrl}/popup.html`}
-      signInFallbackRedirectUrl={`${extensionUrl}/popup.html`}
-      signUpFallbackRedirectUrl={`${extensionUrl}/popup.html`}
-    >
-      <PopupContent />
-    </ClerkProvider>
-  );
+  return <PopupContent />;
 }

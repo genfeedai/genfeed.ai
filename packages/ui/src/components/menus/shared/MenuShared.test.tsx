@@ -22,11 +22,11 @@ const {
   mockPush: vi.fn(),
 }));
 
-// @clerk/nextjs is already mocked globally in setup.ts
+// @genfeedai/auth-client/react is already mocked globally in setup.ts
 // Add UserButton that's not in the global mock
-vi.mock('@clerk/nextjs', () => {
+vi.mock('@genfeedai/auth-client/react', () => {
   return {
-    ClerkProvider: ({ children }: { children: React.ReactNode }) => (
+    BetterAuthProvider: ({ children }: { children: React.ReactNode }) => (
       <>{children}</>
     ),
     SignedIn: ({ children }: { children: React.ReactNode }) => <>{children}</>,

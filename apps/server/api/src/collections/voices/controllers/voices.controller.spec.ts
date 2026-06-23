@@ -176,7 +176,7 @@ describe('VoicesController', () => {
       });
     });
 
-    it('ignores tenant override query params and scopes to Clerk metadata', async () => {
+    it('ignores tenant override query params and scopes to legacy auth provider metadata', async () => {
       const brandId = '507f191e810c19729de860ee';
       const organizationId = '507f191e810c19729de860ee';
       const user = createMockUser({
@@ -205,7 +205,7 @@ describe('VoicesController', () => {
       );
 
       const [query] = voicesService.findAll.mock.calls.at(-1) ?? [];
-      // brandId and organizationId come from Clerk metadata, not query params
+      // brandId and organizationId come from legacy auth provider metadata, not query params
       expect(query.where.brandId).toBe(brandId);
       expect(query.where.organizationId).toBe(organizationId);
     });

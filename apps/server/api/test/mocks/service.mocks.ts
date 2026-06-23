@@ -1,7 +1,6 @@
 import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/file-queue/file-queue.service';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditTransactionsService } from '@credits/services/credit-transactions.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -98,10 +97,17 @@ export const mockResponse = () => {
 
 export const mockNext = vi.fn();
 
-export const mockClerkService = (): Partial<ClerkService> => ({
+type MockAuthMetadataService = {
+  getUser: ReturnType<typeof vi.fn>;
+  updateUser: ReturnType<typeof vi.fn>;
+  updateUserPrivateMetadata: ReturnType<typeof vi.fn>;
+  updateUserPublicMetadata: ReturnType<typeof vi.fn>;
+};
+
+export const mockAuthProviderService = (): MockAuthMetadataService => ({
   getUser: vi.fn().mockResolvedValue({
     emailAddresses: [{ emailAddress: 'test@example.com' }],
-    id: 'clerk-user-id',
+    id: 'authProvider-user-id',
     publicMetadata: {
       organization: 'org-id',
       user: 'user-id',

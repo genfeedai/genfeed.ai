@@ -21,7 +21,7 @@ vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
 }));
 
 const useAuthMock = vi.fn();
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => useAuthMock(),
 }));
 
@@ -33,14 +33,14 @@ vi.mock(
   }),
 );
 
-vi.mock('@genfeedai/helpers/auth/clerk.helper', () => ({
+vi.mock('@genfeedai/helpers/auth/auth.helper', () => ({
   getPlaywrightAuthState: () => null,
 }));
 
 describe('OnboardingGuard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_fake';
+    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test_fake';
     delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
     pathnameMock.mockReturnValue('/dashboard');
     useAuthMock.mockReturnValue({
@@ -50,7 +50,7 @@ describe('OnboardingGuard', () => {
   });
 
   afterEach(() => {
-    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
     delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
   });
 

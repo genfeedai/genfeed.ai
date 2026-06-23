@@ -38,7 +38,8 @@ class TestCurrentUserGuard implements CanActivate {
 
     request.user = {
       id:
-        getHeaderValue(request.headers['x-clerk-user-id']) ?? 'clerk_test_user',
+        getHeaderValue(request.headers['x-authProvider-user-id']) ??
+        'authProvider_test_user',
       publicMetadata: {
         organization:
           getHeaderValue(request.headers['x-organization-id']) ??
@@ -121,7 +122,7 @@ describe('Tasks E2E Tests', () => {
 
     testUser = createTestUser({
       _id: generateIdString(),
-      clerkId: 'clerk_task_test_user',
+      authProviderId: 'authProvider_task_test_user',
       email: 'tasks-test@example.com',
     });
 
@@ -182,7 +183,7 @@ describe('Tasks E2E Tests', () => {
     return request(app.getHttpServer())
       [method](url)
       .set('Authorization', 'Bearer mock-jwt-token')
-      .set('x-clerk-user-id', testUser.clerkId)
+      .set('x-authProvider-user-id', testUser.authProviderId)
       .set('x-user-id', testUser._id.toString())
       .set('x-organization-id', testOrganization._id.toString());
   }

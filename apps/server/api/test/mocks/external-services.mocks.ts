@@ -536,68 +536,6 @@ export const createMockS3Service = () => ({
 });
 
 // ============================================================================
-// Clerk Service Mocks (Authentication)
-// ============================================================================
-
-export const createMockClerkClient = () => ({
-  invitations: {
-    createInvitation: vi.fn().mockResolvedValue({
-      emailAddress: 'invite@example.com',
-      id: 'mock-invitation-id',
-    }),
-    revokeInvitation: vi.fn().mockResolvedValue({}),
-  },
-  sessions: {
-    getSessionList: vi.fn().mockResolvedValue({ data: [] }),
-    revokeSession: vi.fn().mockResolvedValue({}),
-  },
-  users: {
-    createUser: vi.fn().mockResolvedValue({ id: 'new-clerk-user-id' }),
-    deleteUser: vi.fn().mockResolvedValue({}),
-    getUser: vi.fn().mockResolvedValue({
-      emailAddresses: [{ emailAddress: 'test@example.com' }],
-      firstName: 'Test',
-      id: 'clerk-user-id',
-      lastName: 'User',
-      privateMetadata: {},
-      publicMetadata: {
-        email: 'test@example.com',
-        isOwner: true,
-        isSuperAdmin: false,
-        organization: 'test-id-' + Math.random().toString(36).slice(2, 9),
-        user: 'test-id-' + Math.random().toString(36).slice(2, 9),
-      },
-    }),
-    getUserList: vi.fn().mockResolvedValue({ data: [] }),
-    updateUser: vi.fn().mockResolvedValue({}),
-    updateUserMetadata: vi.fn().mockResolvedValue({}),
-  },
-});
-
-export const createMockClerkService = () => ({
-  createInvitation: vi.fn().mockResolvedValue({
-    emailAddress: 'invite@example.com',
-    id: 'mock-invitation-id',
-  }),
-  getUser: vi.fn().mockResolvedValue({
-    emailAddresses: [{ emailAddress: 'test@example.com' }],
-    firstName: 'Test',
-    id: 'clerk-user-id',
-    lastName: 'User',
-    publicMetadata: {
-      email: 'test@example.com',
-      isOwner: true,
-      organization: 'test-id-' + Math.random().toString(36).slice(2, 9),
-      user: 'test-id-' + Math.random().toString(36).slice(2, 9),
-    },
-  }),
-  getUserByEmail: vi.fn().mockResolvedValue(null),
-  updateUser: vi.fn().mockResolvedValue({}),
-  updateUserPrivateMetadata: vi.fn().mockResolvedValue({}),
-  updateUserPublicMetadata: vi.fn().mockResolvedValue({}),
-});
-
-// ============================================================================
 // Giphy Service Mocks
 // ============================================================================
 
@@ -796,7 +734,7 @@ export const createMockConfigService = (
       AWS_ACCESS_KEY_ID: 'test-aws-key',
       AWS_S3_BUCKET: 'test-bucket',
       AWS_SECRET_ACCESS_KEY: 'test-aws-secret',
-      CLERK_SECRET_KEY: 'test-clerk-secret',
+      BETTER_AUTH_SECRET: 'test-better-auth-secret',
       ELEVENLABS_API_KEY: 'test-elevenlabs-key',
       GENFEEDAI_APP_URL: 'https://test-app.genfeed.ai',
       GENFEEDAI_WEBHOOKS_URL: 'https://test-webhooks.genfeed.ai',
@@ -960,8 +898,6 @@ export const createMockEventEmitter = () => ({
 export const createAllExternalServiceMocks = () => ({
   apifyService: createMockApifyService(),
   cacheService: createMockCacheService(),
-  clerkClient: createMockClerkClient(),
-  clerkService: createMockClerkService(),
   configService: createMockConfigService(),
   creditTransactionsService: createMockCreditTransactionsService(),
   cryptoService: createMockCryptoService(),

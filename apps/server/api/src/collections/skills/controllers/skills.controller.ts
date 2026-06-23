@@ -7,7 +7,7 @@ import type {
 } from '@api/collections/skills/dto/skill.dto';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,

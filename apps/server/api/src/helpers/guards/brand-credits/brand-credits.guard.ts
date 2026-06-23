@@ -5,7 +5,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { ConfigService } from '@api/config/config.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ByokService } from '@api/services/byok/byok.service';
-import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   type CanActivate,
@@ -41,9 +41,9 @@ export class BrandCreditsGuard extends CreditsGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const user = (
-      request as unknown as { user: { publicMetadata: IClerkPublicMetadata } }
+      request as unknown as { user: { publicMetadata: IAuthPublicMetadata } }
     ).user;
-    const publicMetadata: IClerkPublicMetadata = user.publicMetadata;
+    const publicMetadata: IAuthPublicMetadata = user.publicMetadata;
 
     const settings = await this.organizationSettingsService.findOne({
       organization: publicMetadata.organization,

@@ -4,8 +4,8 @@ const authStateMock = vi.fn();
 const fetchMock = vi.fn();
 const originalFetch = globalThis.fetch;
 
-vi.mock('@clerk/nextjs/server', () => ({
-  clerkMiddleware: (
+vi.mock('@genfeedai/auth-client/server', () => ({
+  authMiddleware: (
     handler: (
       auth: () => Promise<unknown>,
       req: Record<string, unknown>,
@@ -31,8 +31,8 @@ vi.mock('@clerk/nextjs/server', () => ({
 describe('proxy', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY', 'pk_test');
-    vi.stubEnv('CLERK_SECRET_KEY', 'sk_test');
+    vi.stubEnv('NEXT_PUBLIC_BETTER_AUTH_ENABLED', 'pk_test');
+    vi.stubEnv('BETTER_AUTH_SECRET', 'sk_test');
     vi.stubEnv('NEXT_PUBLIC_API_ENDPOINT', 'http://localhost:3010/v1');
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', undefined);
     vi.resetModules();
@@ -573,13 +573,12 @@ describe('proxy', () => {
 
   it('redirects desktop shell bare settings to seeded workspace without a desktop token', async () => {
     const previousDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL;
-    const previousPublishableKey =
-      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-    const previousSecretKey = process.env.CLERK_SECRET_KEY;
+    const previousPublishableKey = process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+    const previousSecretKey = process.env.BETTER_AUTH_SECRET;
 
     try {
-      delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-      delete process.env.CLERK_SECRET_KEY;
+      delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+      delete process.env.BETTER_AUTH_SECRET;
       process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
 
       vi.resetModules();
@@ -607,15 +606,15 @@ describe('proxy', () => {
       }
 
       if (previousPublishableKey === undefined) {
-        delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+        delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
       } else {
-        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = previousPublishableKey;
+        process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = previousPublishableKey;
       }
 
       if (previousSecretKey === undefined) {
-        delete process.env.CLERK_SECRET_KEY;
+        delete process.env.BETTER_AUTH_SECRET;
       } else {
-        process.env.CLERK_SECRET_KEY = previousSecretKey;
+        process.env.BETTER_AUTH_SECRET = previousSecretKey;
       }
     }
   });
@@ -704,7 +703,7 @@ describe('proxy', () => {
     ).toBe(false);
   });
 
-  it('redirects signed-out protected routes to login instead of invoking Clerk dev handshake', async () => {
+  it('redirects signed-out protected routes to login instead of invoking legacy auth provider dev handshake', async () => {
     authStateMock.mockResolvedValue({
       getToken: vi.fn().mockResolvedValue(null),
       sessionId: null,
@@ -748,8 +747,8 @@ describe('proxy', () => {
   });
 
   it('canonicalizes bare protected routes in desktop shell mode when a desktop token is present', async () => {
-    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-    delete process.env.CLERK_SECRET_KEY;
+    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+    delete process.env.BETTER_AUTH_SECRET;
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
 
     vi.resetModules();
@@ -775,13 +774,13 @@ describe('proxy', () => {
     );
 
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test';
-    process.env.CLERK_SECRET_KEY = 'sk_test';
+    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test';
+    process.env.BETTER_AUTH_SECRET = 'sk_test';
   });
 
   it('redirects desktop shell root to login when the injected desktop token is stale', async () => {
-    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-    delete process.env.CLERK_SECRET_KEY;
+    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+    delete process.env.BETTER_AUTH_SECRET;
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
     fetchMock.mockImplementation(
       async () => new Response('error', { status: 500 }),
@@ -810,8 +809,8 @@ describe('proxy', () => {
     );
 
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test';
-    process.env.CLERK_SECRET_KEY = 'sk_test';
+    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test';
+    process.env.BETTER_AUTH_SECRET = 'sk_test';
   });
 
   it('skips API call when valid slug cookie is present', async () => {
@@ -911,8 +910,8 @@ describe('proxy', () => {
   });
 
   it('lets desktop shell login render when the injected desktop token is stale', async () => {
-    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-    delete process.env.CLERK_SECRET_KEY;
+    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+    delete process.env.BETTER_AUTH_SECRET;
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
     fetchMock.mockImplementation(
       async () => new Response('error', { status: 500 }),
@@ -938,7 +937,7 @@ describe('proxy', () => {
     expect(response.status).toBe(200);
 
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test';
-    process.env.CLERK_SECRET_KEY = 'sk_test';
+    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test';
+    process.env.BETTER_AUTH_SECRET = 'sk_test';
   });
 });

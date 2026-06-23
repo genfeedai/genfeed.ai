@@ -3,6 +3,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
@@ -12,7 +13,6 @@ import { SuggestTemplatesDto } from '@api/collections/templates/dto/suggest-temp
 import { UpdateTemplateDto } from '@api/collections/templates/dto/update-template.dto';
 import { UseTemplateDto } from '@api/collections/templates/dto/use-template.dto';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -90,7 +90,7 @@ describe('TemplatesController', () => {
       .useValue({ canActivate: () => true })
       .overrideGuard(CreditsGuard)
       .useValue({ canActivate: () => true })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })

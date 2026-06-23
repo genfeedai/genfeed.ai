@@ -35,7 +35,7 @@ export function createBetterAuthJwksVerifierOptions(
 
 /**
  * Verifies Better Auth-issued JWTs against the remote JWKS published by the jwt
- * plugin. First-party replacement for the Clerk `verifyToken` call the
+ * plugin. First-party replacement for the legacy auth provider `verifyToken` call the
  * websocket and terminal gateways used (epic #735, Phase 4 — D3).
  *
  * Construct one instance per JWKS URL: `jose`'s `createRemoteJWKSet` fetches and

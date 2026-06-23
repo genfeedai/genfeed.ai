@@ -7,7 +7,7 @@ import OrchestrationSkillsPage from './orchestration-skills-page';
 
 const pushMock = vi.fn();
 const getTokenMock = vi.fn();
-const resolveClerkTokenMock = vi.fn();
+const resolveAuthTokenMock = vi.fn();
 const listSkillsMock = vi.fn();
 const customizeSkillMock = vi.fn();
 const updateSkillMock = vi.fn();
@@ -31,7 +31,7 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: getTokenMock,
   }),
@@ -45,8 +45,8 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => brandContextMock,
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
-  resolveAuthToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
+vi.mock('@helpers/auth/auth.helper', () => ({
+  resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
 }));
 
 vi.mock('@services/content/skills.service', async () => {
@@ -69,8 +69,8 @@ vi.mock('@services/content/skills.service', async () => {
 describe('OrchestrationSkillsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getTokenMock.mockResolvedValue('clerk-token');
-    resolveClerkTokenMock.mockResolvedValue('api-token');
+    getTokenMock.mockResolvedValue('authProvider-token');
+    resolveAuthTokenMock.mockResolvedValue('api-token');
     listSkillsMock.mockResolvedValue([
       {
         channels: ['youtube', 'linkedin'],

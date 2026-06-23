@@ -92,7 +92,7 @@ describe('AuthService (MCP)', () => {
       });
     });
 
-    it('resolves identity for a Clerk JWT via the same whoami endpoint', async () => {
+    it('resolves identity for a Better Auth JWT via the same whoami endpoint', async () => {
       mockHttpService.get.mockReturnValue(
         whoamiResponse({
           isApiKey: false,

@@ -77,122 +77,43 @@ const MOCK_BRAND_SCRAPE_RESPONSE = {
 // Auth Setup for Onboarding User
 // ----------------------------------------------------------------------------
 
-async function setupClerkMocksForOnboarding(page: Page): Promise<void> {
+async function setupBetterAuthMocksForOnboarding(page: Page): Promise<void> {
   const mockUser = generateOnboardingMockUser();
   const mockOrg = generateMockOrganization({
     id: MOCK_SESSION.organizationId,
     name: 'Test Organization',
   });
 
-  await page.route('**/clerk.**/**', async (route) => {
-    const url = route.request().url();
-
-    if (url.includes('/v1/client')) {
-      await route.fulfill({
-        body: JSON.stringify({
-          response: {
-            session_id: MOCK_SESSION.sessionId,
-            sessions: [
-              {
-                abandon_at: new Date(
-                  Date.now() + 7 * 24 * 60 * 60 * 1000,
-                ).getTime(),
-                expire_at: new Date(Date.now() + 24 * 60 * 60 * 1000).getTime(),
-                id: MOCK_SESSION.sessionId,
-                last_active_at: Date.now(),
-                last_active_organization_id: mockOrg.id,
-                status: 'active',
-                user: {
-                  email_addresses: [
-                    {
-                      email_address: mockUser.email,
-                      id: 'mock-email-id',
-                      verification: { status: 'verified' },
-                    },
-                  ],
-                  first_name: mockUser.firstName,
-                  has_image: false,
-                  id: mockUser.id,
-                  image_url: mockUser.imageUrl,
-                  last_name: mockUser.lastName,
-                  primary_email_address_id: 'mock-email-id',
-                  public_metadata: {
-                    isOnboardingCompleted: false,
-                    role: 'member',
-                  },
-                },
-              },
-            ],
-            sign_in: null,
-            sign_up: null,
-          },
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (url.includes('/session')) {
-      await route.fulfill({
-        body: JSON.stringify({
-          expire_at: new Date(Date.now() + 24 * 60 * 60 * 1000).getTime(),
-          expireAt: MOCK_SESSION.expiresAt,
+  await page.route('**/v1/auth/session**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        session: {
+          activeOrganizationId: mockOrg.id,
+          expiresAt: MOCK_SESSION.expiresAt,
           id: MOCK_SESSION.sessionId,
-          last_active_at: Date.now(),
-          status: 'active',
           userId: mockUser.id,
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (url.includes('/user')) {
-      await route.fulfill({
-        body: JSON.stringify({
-          email_addresses: [
-            {
-              email_address: mockUser.email,
-              id: 'mock-email-id',
-              verification: { status: 'verified' },
-            },
-          ],
-          first_name: mockUser.firstName,
-          has_image: false,
+        },
+        user: {
+          email: mockUser.email,
           id: mockUser.id,
-          image_url: mockUser.imageUrl,
-          last_name: mockUser.lastName,
-          primary_email_address_id: 'mock-email-id',
-          public_metadata: {
+          image: mockUser.imageUrl,
+          name: [mockUser.firstName, mockUser.lastName]
+            .filter(Boolean)
+            .join(' '),
+          publicMetadata: {
             isOnboardingCompleted: false,
             role: 'member',
           },
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
+        },
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
 
-    if (url.includes('/organization')) {
-      await route.fulfill({
-        body: JSON.stringify({
-          has_image: true,
-          id: mockOrg.id,
-          image_url: mockOrg.imageUrl,
-          name: mockOrg.name,
-          slug: mockOrg.slug,
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
+  await page.route('**/v1/auth/token**', async (route) => {
     await route.fulfill({
-      body: JSON.stringify({ success: true }),
+      body: JSON.stringify({ token: `mock-jwt-${MOCK_SESSION.sessionId}` }),
       contentType: 'application/json',
       status: 200,
     });
@@ -391,7 +312,7 @@ async function setupAuthCookies(context: BrowserContext): Promise<void> {
     {
       domain: 'localhost',
       httpOnly: true,
-      name: '__clerk_db_jwt',
+      name: '__better_auth_db_jwt',
       path: '/',
       sameSite: 'Lax',
       secure: false,
@@ -400,7 +321,7 @@ async function setupAuthCookies(context: BrowserContext): Promise<void> {
   ]);
 }
 
-async function injectClerkAuthState(page: Page): Promise<void> {
+async function injectBetterAuthState(page: Page): Promise<void> {
   const mockUser = generateOnboardingMockUser();
 
   await page.addInitScript(
@@ -410,7 +331,7 @@ async function injectClerkAuthState(page: Page): Promise<void> {
     }) => {
       const { user: userData, session: sessionData } = authState;
 
-      (window as Record<string, unknown>).__clerk_client_state = {
+      (window as Record<string, unknown>).__better_auth_client_state = {
         session_id: sessionData.sessionId,
         sessions: [
           {
@@ -431,7 +352,7 @@ async function injectClerkAuthState(page: Page): Promise<void> {
         user_id: userData.id,
       };
 
-      Object.defineProperty(window, '__clerk_is_signed_in', {
+      Object.defineProperty(window, '__better_auth_is_signed_in', {
         configurable: true,
         value: true,
         writable: false,
@@ -444,15 +365,15 @@ async function injectClerkAuthState(page: Page): Promise<void> {
 async function setupAuthLocalStorage(page: Page): Promise<void> {
   await page.evaluate((sessionData) => {
     localStorage.setItem(
-      '__clerk_client_jwt',
+      '__better_auth_client_jwt',
       `mock-jwt-${sessionData.sessionId}`,
     );
     localStorage.setItem(
-      'clerk-db-jwt',
+      'better-auth-db-jwt',
       `mock-db-jwt-${sessionData.sessionId}`,
     );
     localStorage.setItem(
-      '__clerk_client',
+      '__better_auth_client',
       JSON.stringify({
         last_active_session_id: sessionData.sessionId,
         session_id: sessionData.sessionId,
@@ -479,11 +400,11 @@ export const test = base.extend<OnboardingFixtures>({
     // Set up authentication cookies
     await setupAuthCookies(context);
 
-    // Inject Clerk auth state BEFORE any page loads
-    await injectClerkAuthState(page);
+    // Inject Better Auth auth state BEFORE any page loads
+    await injectBetterAuthState(page);
 
-    // Set up Clerk mocks with isOnboardingCompleted: false
-    await setupClerkMocksForOnboarding(page);
+    // Set up Better Auth mocks with isOnboardingCompleted: false
+    await setupBetterAuthMocksForOnboarding(page);
 
     // Set up onboarding-specific API mocks FIRST (higher priority)
     await setupOnboardingApiMocks(page);

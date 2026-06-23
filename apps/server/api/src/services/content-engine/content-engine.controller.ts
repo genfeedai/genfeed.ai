@@ -6,7 +6,7 @@ import { GenerateContentPlanDto } from '@api/collections/content-plans/dto/gener
 import { UpdateContentPlanDto } from '@api/collections/content-plans/dto/update-content-plan.dto';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,

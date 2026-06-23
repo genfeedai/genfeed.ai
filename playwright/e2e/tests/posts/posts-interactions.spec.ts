@@ -8,7 +8,7 @@ import { tryClick } from '../../utils/route-assertions';
  * Exercises list status filters, search, view toggles, post detail,
  * calendar navigation, review queue, remix, newsletters, and analytics.
  *
- * All API + auth + Clerk traffic is mocked by the authenticatedPage fixture;
+ * All API + auth + Better Auth traffic is mocked by the authenticatedPage fixture;
  * the strict network guard fails on any real outbound request. Interactions
  * are best-effort (tryClick never throws, clicks are .catch-guarded) so the
  * specs raise code coverage without becoming brittle.

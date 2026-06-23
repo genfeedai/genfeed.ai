@@ -489,7 +489,7 @@ jobs:
         run: cd apps/server/api && bunx vitest run --config vitest.config.ts --shard=${{ matrix.shard }}/4
         env:
           NODE_ENV: test
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
 
   build:
     name: Build

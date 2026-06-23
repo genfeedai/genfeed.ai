@@ -153,7 +153,7 @@ describe('Module dependency graph', () => {
 
   it('leaf modules should not be wrapped in forwardRef by callers', () => {
     const LEAF_MODULES = [
-      'ClerkModule',
+      'AuthProviderModule',
       'CredentialsCoreModule',
       'MetadataModule',
       'OrganizationSettingsModule',

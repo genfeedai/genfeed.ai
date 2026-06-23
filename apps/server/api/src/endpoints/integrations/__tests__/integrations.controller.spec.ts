@@ -1,3 +1,4 @@
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationsIntegrationsController } from '@api/collections/organizations/controllers/organizations-integrations.controller';
 import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-integration.dto';
@@ -5,7 +6,6 @@ import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-int
 import { InternalIntegrationsController } from '@api/endpoints/integrations/integrations.controller';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import type { OrgIntegration } from '@genfeedai/prisma';
@@ -65,7 +65,7 @@ describe('OrganizationsIntegrationsController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

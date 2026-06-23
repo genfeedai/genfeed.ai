@@ -31,10 +31,10 @@ export GENFEEDAI_MICROSERVICES_WORKERS_URL=${GENFEEDAI_MICROSERVICES_WORKERS_URL
 export GENFEEDAI_APP_URL=${GENFEEDAI_APP_URL:-http://localhost:3000}
 export GENFEEDAI_PUBLIC_URL=${GENFEEDAI_PUBLIC_URL:-http://localhost:3000}
 
-# Optional: Enable HYBRID mode (local app + optional Clerk cloud connection)
-# Set these to allow users to sign in with Clerk and sync to cloud:
-#   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
-#   CLERK_SECRET_KEY=sk_live_...
+# Optional: Enable HYBRID mode (local app + optional Better Auth cloud connection)
+# Set these to allow users to sign in with Better Auth and sync to cloud:
+#   NEXT_PUBLIC_BETTER_AUTH_ENABLED=true
+#   BETTER_AUTH_SECRET=sk_live_...
 # When set, the app runs in HYBRID mode: works offline by default,
 # but users can click "Connect to Cloud" to sign in and sync workflows.
 # When unset, the app runs in LOCAL mode (fully offline, no account needed).

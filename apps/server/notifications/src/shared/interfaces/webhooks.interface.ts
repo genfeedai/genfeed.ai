@@ -5,7 +5,7 @@ export interface WebhookNotification {
     | 'kling'
     | 'leonardoai'
     | 'stripe'
-    | 'clerk'
+    | 'better_auth'
     | 'vercel';
   event: string;
   status?: 'received' | 'processing' | 'completed' | 'failed';

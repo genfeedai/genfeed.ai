@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 /**
  * Root entry — the released web app boots and routes a fresh visitor.
  *
- * In LOCAL mode the app has no Clerk, so proxy.ts redirects `/` straight to the
+ * In LOCAL mode the app has no Better Auth, so proxy.ts redirects `/` straight to the
  * seeded workspace (SEEDED_WORKSPACE_PATH = /default/default/workspace/overview)
  * rather than to /login. Landing there proves the Next.js server is up AND the
  * LOCAL-mode routing path is active.

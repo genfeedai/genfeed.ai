@@ -5,7 +5,7 @@ export class UserEntity extends BaseEntity implements User {
   declare readonly id: string;
   declare readonly mongoId: string | null;
   declare readonly isDefault: boolean;
-  declare readonly clerkId: string | null;
+  declare readonly authProviderId: string | null;
   declare readonly handle: string;
   declare readonly firstName: string | null;
   declare readonly lastName: string | null;

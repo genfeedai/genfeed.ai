@@ -14,7 +14,7 @@ const useAuthMock = vi.fn();
 const useBrandMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => useAuthMock(),
 }));
 
@@ -26,7 +26,7 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => useAuthedServiceMock,
 }));
 
-vi.mock('@genfeedai/helpers/auth/clerk.helper', () => ({
+vi.mock('@genfeedai/helpers/auth/auth.helper', () => ({
   getPlaywrightAuthState: vi.fn(() => null),
 }));
 
@@ -67,7 +67,7 @@ describe('AccessStateProvider', () => {
       isLoaded: true,
       isSignedIn: true,
       orgId: 'org_123',
-      userId: 'clerk_123',
+      userId: 'authProvider_123',
     });
     useBrandMock.mockReturnValue({
       brandId: 'brand_123',

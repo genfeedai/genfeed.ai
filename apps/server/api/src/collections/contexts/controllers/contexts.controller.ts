@@ -20,7 +20,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -193,7 +193,7 @@ export class ContextsController {
     @Body() dto: AutoCreateContextDto,
     @CurrentUser() user: User,
   ) {
-    // Pass the DB user ID (publicMetadata.user), not the Clerk user ID (user.id).
+    // Pass the DB user ID (publicMetadata.user), not the legacy auth provider user ID (user.id).
     const { organization, user: dbUserId } = getPublicMetadata(user);
     const data = await this.contextsService.autoCreateFromAccount(
       dto,

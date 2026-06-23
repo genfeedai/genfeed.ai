@@ -3,7 +3,7 @@ import { generatePWAMetadata } from '@ui/pwa/pwa.helper';
 import type { Metadata } from 'next';
 
 const DEFAULT_DNS_PREFETCH = [
-  'https://clerk.genfeed.ai',
+  'https://api.genfeed.ai',
   'https://www.googletagmanager.com',
 ];
 const DEFAULT_PRECONNECT = [

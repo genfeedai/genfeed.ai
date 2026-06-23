@@ -1,7 +1,7 @@
 /**
  * Self-Hosted Seed Module
  * Provides SelfHostedSeedService, which creates the default workspace on first boot
- * when running in self-hosted mode (no Clerk).
+ * when running in self-hosted mode (no legacy auth provider).
  */
 
 import { SelfHostedSeedService } from '@api/seeds/self-hosted-seed.service';

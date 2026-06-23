@@ -26,7 +26,7 @@ const mocks = vi.hoisted(() => ({
   useQuery: vi.fn(),
 }));
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     isSignedIn: true,
   }),

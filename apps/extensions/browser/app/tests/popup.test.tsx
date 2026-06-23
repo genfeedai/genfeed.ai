@@ -12,8 +12,7 @@ const { mockUseAuth, mockAuthService, mockGetJWTToken } = vi.hoisted(() => ({
   mockUseAuth: vi.fn(),
 }));
 
-vi.mock('@clerk/chrome-extension', () => ({
-  ClerkProvider: ({ children }: { children: React.ReactNode }) => children,
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
@@ -39,8 +38,6 @@ import IndexPopup from '../src/popup';
 describe('IndexPopup', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    process.env.PLASMO_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_mock';
 
     mockUseAuth.mockReturnValue({
       getToken: vi.fn(),
@@ -88,9 +85,9 @@ describe('IndexPopup', () => {
     });
   });
 
-  it('syncs token from Clerk when signed in and no local token', async () => {
+  it('syncs token from Better Auth when signed in and no local token', async () => {
     mockUseAuth.mockReturnValue({
-      getToken: vi.fn().mockResolvedValue('clerk-token'),
+      getToken: vi.fn().mockResolvedValue('better-auth-token'),
       isLoaded: true,
       isSignedIn: true,
       signOut: vi.fn(),
@@ -110,7 +107,7 @@ describe('IndexPopup', () => {
     const signOut = vi.fn();
 
     mockUseAuth.mockReturnValue({
-      getToken: vi.fn().mockResolvedValue('clerk-token'),
+      getToken: vi.fn().mockResolvedValue('better-auth-token'),
       isLoaded: true,
       isSignedIn: true,
       signOut,

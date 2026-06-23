@@ -27,7 +27,6 @@ import { IntegrationsService } from '@api/endpoints/integrations/integrations.se
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
@@ -35,8 +34,6 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 // External service mock imports
 import {
   createMockCacheService,
-  createMockClerkClient,
-  createMockClerkService,
   createMockConfigService,
   createMockCryptoService,
   createMockEventEmitter,
@@ -57,7 +54,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 /**
  * Mock Guard that always allows access (bypasses auth for E2E tests)
  */
-export class MockClerkGuard {
+export class MockBetterAuthGuard {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<{
       params?: Record<string, string | undefined>;
@@ -71,7 +68,7 @@ export class MockClerkGuard {
     }>();
     const organizationId = request.params?.['organizationId'];
     request.user = {
-      id: 'clerk_e2e_test_user',
+      id: 'authProvider_e2e_test_user',
       publicMetadata: {
         organization: organizationId,
         user: 'e2e-test-user',
@@ -107,14 +104,6 @@ export const EXTERNAL_SERVICE_MOCK_PROVIDERS = [
     useFactory: () => createMockCacheService(),
   },
   {
-    provide: 'ClerkClient',
-    useFactory: () => createMockClerkClient(),
-  },
-  {
-    provide: ClerkService,
-    useFactory: () => createMockClerkService(),
-  },
-  {
     provide: ReplicateService,
     useFactory: () => createMockReplicateService(),
   },
@@ -142,7 +131,7 @@ export const EXTERNAL_SERVICE_MOCK_PROVIDERS = [
 export const GUARD_OVERRIDE_PROVIDERS = [
   {
     provide: APP_GUARD,
-    useClass: MockClerkGuard,
+    useClass: MockBetterAuthGuard,
   },
 ];
 

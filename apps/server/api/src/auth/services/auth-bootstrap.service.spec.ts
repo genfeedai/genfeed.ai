@@ -67,7 +67,7 @@ vi.mock('@api/common/services/access-bootstrap-cache.service', () => ({
   AccessBootstrapCacheService: class AccessBootstrapCacheService {},
 }));
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getIsSuperAdmin: mockGetIsSuperAdmin,
   getPublicMetadata: mockGetPublicMetadata,
   getStripeSubscriptionStatus: mockGetStripeSubscriptionStatus,
@@ -197,7 +197,7 @@ describe('AuthBootstrapService', () => {
     const result = await service.getBootstrap({
       context: { organizationId: 'org_1', userId: 'user_1' },
       user: {
-        id: 'clerk_1',
+        id: 'authProvider_1',
         publicMetadata: { brand: 'brand_1' },
       },
     } as never);
@@ -239,7 +239,7 @@ describe('AuthBootstrapService', () => {
     const result = await service.getBootstrap({
       context: { organizationId: 'org_1', userId: 'user_1' },
       user: {
-        id: 'clerk_1',
+        id: 'authProvider_1',
         publicMetadata: { brand: 'brand_1' },
       },
     } as never);
@@ -319,7 +319,7 @@ describe('AuthBootstrapService', () => {
         userId,
       },
       user: {
-        id: 'clerk_2',
+        id: 'authProvider_2',
         publicMetadata: {
           brand: brandId,
           organization: organizationId,
@@ -420,7 +420,7 @@ describe('AuthBootstrapService', () => {
         userId,
       },
       user: {
-        id: 'clerk_plain',
+        id: 'authProvider_plain',
         publicMetadata: {
           brand: brandId,
           organization: organizationId,
@@ -459,7 +459,7 @@ describe('AuthBootstrapService', () => {
         userId,
       },
       user: {
-        id: 'clerk_3',
+        id: 'authProvider_3',
         publicMetadata: {
           organization: organizationId,
           user: userId,
@@ -499,7 +499,7 @@ describe('AuthBootstrapService', () => {
         userId,
       },
       user: {
-        id: 'clerk_4',
+        id: 'authProvider_4',
         publicMetadata: {
           brand: '',
           organization: organizationId,
@@ -563,7 +563,7 @@ describe('AuthBootstrapService', () => {
         userId,
       },
       user: {
-        id: 'clerk_4',
+        id: 'authProvider_4',
         publicMetadata: {
           brand: brandId,
           organization: organizationId,
@@ -656,7 +656,7 @@ describe('AuthBootstrapService', () => {
         userId,
       },
       user: {
-        id: 'clerk_4',
+        id: 'authProvider_4',
         publicMetadata: {
           brand: brandId,
           organization: organizationId,

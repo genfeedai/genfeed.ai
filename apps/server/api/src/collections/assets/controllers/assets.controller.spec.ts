@@ -1,9 +1,9 @@
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AssetsController } from '@api/collections/assets/controllers/assets.controller';
 import type { UpdateAssetDto } from '@api/collections/assets/dto/update-asset.dto';
 import type { Asset } from '@api/collections/assets/schemas/asset.schema';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -25,7 +25,7 @@ describe('AssetsController', () => {
     id: 'user_123',
     publicMetadata: {
       brand: mockBrandId.toString(),
-      clerkId: 'user_123',
+      authProviderId: 'user_123',
       organization: mockOrgId.toString(),
       user: mockUserId.toString(),
     },
@@ -81,7 +81,7 @@ describe('AssetsController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })

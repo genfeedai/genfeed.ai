@@ -5,7 +5,7 @@ import { WhatsappService } from '@api/services/integrations/whatsapp/services/wh
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
     organization: 'test-object-id',
     user: 'test-object-id',

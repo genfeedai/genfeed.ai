@@ -2,16 +2,16 @@
  * Reference Backfill: String refs -> Mongo ObjectId
  *
  * Enforces reference integrity across DBs by:
- * - replacing Clerk-style IDs (e.g. "user_...") in `user` / `userId`
+ * - replacing legacy auth-provider-style IDs (e.g. "user_...") in `user` / `userId`
  *   with `auth.users._id`
  * - converting stringified Mongo ObjectId hex values in selected ref fields
  *   back to BSON ObjectId values
  *
  * Usage:
- *   bun run scripts/migrations/user-ref-clerkid-to-objectid.ts                 # dry-run
- *   bun run scripts/migrations/user-ref-clerkid-to-objectid.ts --live          # write changes
- *   bun run scripts/migrations/user-ref-clerkid-to-objectid.ts --env=production
- *   bun run scripts/migrations/user-ref-clerkid-to-objectid.ts --env=production --live
+ *   bun run scripts/migrations/user-ref-auth-provider-id-to-objectid.ts                 # dry-run
+ *   bun run scripts/migrations/user-ref-auth-provider-id-to-objectid.ts --live          # write changes
+ *   bun run scripts/migrations/user-ref-auth-provider-id-to-objectid.ts --env=production
+ *   bun run scripts/migrations/user-ref-auth-provider-id-to-objectid.ts --env=production --live
  */
 
 import { resolve } from 'node:path';
@@ -25,7 +25,7 @@ import {
   type UpdateOneModel,
 } from 'mongodb';
 
-const logger = new Logger('UserRefClerkIdToObjectIdMigration');
+const logger = new Logger('UserRefAuthProviderIdToObjectIdMigration');
 
 const envArg = process.argv.find((a) => a.startsWith('--env='))?.split('=')[1];
 const envSuffix = envArg || 'local';
@@ -80,8 +80,12 @@ async function main() {
   await client.connect();
   logger.log('Connected to MongoDB');
 
-  const clerkToMongoMap = await buildClerkToMongoMap(client.db('auth'));
-  logger.log(`Loaded ${clerkToMongoMap.size} user mappings from auth.users`);
+  const authProviderToMongoMap = await buildAuthProviderToMongoMap(
+    client.db('auth'),
+  );
+  logger.log(
+    `Loaded ${authProviderToMongoMap.size} user mappings from auth.users`,
+  );
 
   const stats: MappingStats[] = [];
 
@@ -101,7 +105,7 @@ async function main() {
           dbName,
           collectionName,
           field,
-          clerkToMongoMap,
+          authProviderToMongoMap,
         );
         if (result.scanned > 0) {
           stats.push(result);
@@ -136,26 +140,28 @@ async function main() {
   logger.log('\nDone.');
 }
 
-async function buildClerkToMongoMap(db: Db): Promise<Map<string, ObjectId>> {
+async function buildAuthProviderToMongoMap(
+  db: Db,
+): Promise<Map<string, ObjectId>> {
   const users = db.collection('users');
   const cursor = users.find(
     {
       _id: { $type: 'objectId' },
-      clerkId: { $exists: true, $ne: null },
+      authProviderId: { $exists: true, $ne: null },
     },
     {
       projection: {
         _id: 1,
-        clerkId: 1,
+        authProviderId: 1,
       },
     },
   );
 
   const map = new Map<string, ObjectId>();
   for await (const row of cursor) {
-    const clerkId = row.clerkId;
-    if (typeof clerkId === 'string' && clerkId.length > 0) {
-      map.set(clerkId, row._id as ObjectId);
+    const authProviderId = row.authProviderId;
+    if (typeof authProviderId === 'string' && authProviderId.length > 0) {
+      map.set(authProviderId, row._id as ObjectId);
     }
   }
 
@@ -165,10 +171,10 @@ async function buildClerkToMongoMap(db: Db): Promise<Map<string, ObjectId>> {
 function resolveObjectIdValue(
   field: TargetField,
   rawValue: string,
-  clerkToMongoMap: Map<string, ObjectId>,
+  authProviderToMongoMap: Map<string, ObjectId>,
 ): ObjectId | null {
   if (field === 'user' || field === 'userId') {
-    const mongoUserId = clerkToMongoMap.get(rawValue);
+    const mongoUserId = authProviderToMongoMap.get(rawValue);
     if (mongoUserId) {
       return mongoUserId;
     }
@@ -186,7 +192,7 @@ async function processCollectionField(
   dbName: string,
   collectionName: string,
   field: TargetField,
-  clerkToMongoMap: Map<string, ObjectId>,
+  authProviderToMongoMap: Map<string, ObjectId>,
 ): Promise<MappingStats> {
   const docs = await collection
     .find(
@@ -225,7 +231,7 @@ async function processCollectionField(
     const resolvedObjectId = resolveObjectIdValue(
       field,
       rawValue,
-      clerkToMongoMap,
+      authProviderToMongoMap,
     );
     if (!resolvedObjectId) {
       unresolved += 1;

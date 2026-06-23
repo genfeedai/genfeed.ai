@@ -21,10 +21,9 @@ export interface StripeWebhookPayload extends WebhookPayload {
 }
 
 /**
- * Clerk webhook event payload
- * @see https://clerk.com/docs/integrations/webhooks
+ * Better Auth webhook event payload
  */
-export interface ClerkWebhookPayload extends WebhookPayload {
+export interface AuthWebhookPayload extends WebhookPayload {
   type: string;
   data: unknown;
   object: string;

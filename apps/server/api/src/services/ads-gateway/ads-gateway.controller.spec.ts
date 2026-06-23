@@ -1,7 +1,7 @@
 vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
   AutoSwagger: () => () => undefined,
 }));
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   extractRequestContext: vi.fn(() => ({
     organizationId: '507f1f77bcf86cd799439033',
     userId: '507f1f77bcf86cd799439044',
@@ -43,7 +43,7 @@ describe('AdsGatewayController', () => {
   };
 
   const mockUser = {
-    id: 'user_clerk_123',
+    id: 'user_authProvider_123',
     publicMetadata: {
       organization: '507f1f77bcf86cd799439033',
       user: '507f1f77bcf86cd799439044',

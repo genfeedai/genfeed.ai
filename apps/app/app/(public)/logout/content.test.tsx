@@ -5,8 +5,8 @@ import '@testing-library/jest-dom/vitest';
 
 const signOut = vi.fn();
 
-vi.mock('@clerk/nextjs', () => ({
-  useClerk: () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
+  useAuthClient: () => ({
     signOut,
   }),
 }));

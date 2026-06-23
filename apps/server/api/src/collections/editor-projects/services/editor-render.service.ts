@@ -72,7 +72,7 @@ export class EditorRenderService {
         });
 
       const jobResponse = await this.fileQueueService.processVideo({
-        clerkUserId: user.id,
+        authProviderUserId: user.id,
         ingredientId: ingredientData._id.toString(),
         organizationId: orgId,
         params: renderParams.jobParams,

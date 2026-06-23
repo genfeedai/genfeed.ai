@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 const userDropdownSpy = vi.fn();
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   UserButton: () => <div data-testid="topbar-user-button" />,
   useAuth: () => ({
     isSignedIn: true,

@@ -1,4 +1,4 @@
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { AgentWorkflowsController } from '@api/workflows/agent-workflows.controller';
 import { AgentWorkflowsService } from '@api/workflows/agent-workflows.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -31,7 +31,7 @@ describe('AgentWorkflowsController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

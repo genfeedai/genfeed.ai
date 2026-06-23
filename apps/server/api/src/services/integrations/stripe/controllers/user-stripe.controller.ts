@@ -95,9 +95,9 @@ export class UserStripeController {
         });
       }
 
-      // Find user by clerkId
+      // Find user by authProviderId
       const dbUser = await this.usersService.findOne({
-        clerkId: user.id,
+        authProviderId: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
@@ -180,9 +180,9 @@ export class UserStripeController {
     }
 
     try {
-      // Find user by clerkId
+      // Find user by authProviderId
       const dbUser = await this.usersService.findOne({
-        clerkId: user.id,
+        authProviderId: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
@@ -222,9 +222,9 @@ export class UserStripeController {
     this.loggerService.log(url);
 
     try {
-      // Find user by clerkId
+      // Find user by authProviderId
       const dbUser = await this.usersService.findOne({
-        clerkId: user.id,
+        authProviderId: user.id,
         isDeleted: false,
       });
       if (!dbUser) {

@@ -9,12 +9,12 @@ import SuccessContent from './success-content';
 const getTokenMock = vi.fn();
 const sessionTouchMock = vi.fn();
 const userReloadMock = vi.fn();
-const resolveClerkTokenMock = vi.fn();
+const resolveAuthTokenMock = vi.fn();
 const completeFunnelMock = vi.fn();
 const patchSettingsMock = vi.fn();
 const assignMock = vi.fn();
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: getTokenMock,
   }),
@@ -47,8 +47,8 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
   }),
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
-  resolveAuthToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
+vi.mock('@helpers/auth/auth.helper', () => ({
+  resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
 }));
 
 vi.mock('@hooks/ui/use-gsap-entrance', () => ({
@@ -105,13 +105,13 @@ describe('SuccessContent behavior', () => {
     getTokenMock.mockReset();
     sessionTouchMock.mockReset();
     userReloadMock.mockReset();
-    resolveClerkTokenMock.mockReset();
+    resolveAuthTokenMock.mockReset();
     completeFunnelMock.mockReset();
     patchSettingsMock.mockReset();
     assignMock.mockReset();
     localStorageMock.clear();
 
-    resolveClerkTokenMock.mockResolvedValue('api-token');
+    resolveAuthTokenMock.mockResolvedValue('api-token');
     completeFunnelMock.mockResolvedValue(undefined);
     sessionTouchMock.mockResolvedValue(undefined);
     userReloadMock.mockResolvedValue(undefined);

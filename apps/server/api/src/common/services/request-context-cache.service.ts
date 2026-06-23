@@ -20,29 +20,29 @@ export class RequestContextCacheService {
   ) {}
 
   /**
-   * Invalidate all cached contexts for a given Clerk user ID.
+   * Invalidate all cached contexts for a given legacy auth provider user ID.
    * Reads the set of cached keys, unlinks them, then removes the set.
    */
-  async invalidateForUser(clerkId: string): Promise<void> {
+  async invalidateForUser(authProviderId: string): Promise<void> {
     const publisher = this.redisService.getPublisher();
     if (!publisher) {
       return;
     }
 
     try {
-      const keysSetKey = buildRcKeysSetKey(clerkId);
+      const keysSetKey = buildRcKeysSetKey(authProviderId);
       const invalidatedCount = await invalidateRedisSnapshot(
         publisher,
         keysSetKey,
       );
 
       this.logger.debug(
-        `Invalidated ${invalidatedCount} context key(s) for user ${clerkId}`,
+        `Invalidated ${invalidatedCount} context key(s) for user ${authProviderId}`,
         this.context,
       );
     } catch (error: unknown) {
       this.logger.error(
-        `Failed to invalidate context for user ${clerkId}`,
+        `Failed to invalidate context for user ${authProviderId}`,
         error,
         this.context,
       );

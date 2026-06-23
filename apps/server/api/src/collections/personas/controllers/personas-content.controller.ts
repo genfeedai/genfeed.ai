@@ -3,7 +3,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';

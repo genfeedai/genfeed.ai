@@ -6,7 +6,7 @@
  * HEYGEN_KEY, NODE_EXTRA_CA_CERTS). Mirrors
  * external-voice-catalog.service.ts#syncFromProviders 1:1 so the data matches
  * what POST /voices/import would have written — but without needing a
- * super-admin Clerk token.
+ * super-admin legacy auth provider token.
  *
  * external_voices columns (from migration 20260614230201):
  *   id TEXT PK (no DB default → generated here), externalId, externalProvider

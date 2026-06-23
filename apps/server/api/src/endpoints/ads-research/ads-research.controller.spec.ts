@@ -4,7 +4,7 @@ import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.ser
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn().mockReturnValue({
     organization: '507f1f77bcf86cd799439012',
     user: '507f1f77bcf86cd799439011',

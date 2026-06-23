@@ -1,4 +1,4 @@
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
     organization: '507f1f77bcf86cd799439011',
     user: '507f1f77bcf86cd799439013',
@@ -71,13 +71,13 @@ describe('UserStripeController', () => {
   const mockUser = {
     emailAddresses: [{ emailAddress: 'user@test.com' }],
     firstName: 'John',
-    id: 'clerk_user_1',
+    id: 'authProvider_user_1',
     lastName: 'Doe',
   } as unknown as User;
 
   const mockDbUser = {
     _id: dbUserId,
-    clerkId: 'clerk_user_1',
+    authProviderId: 'authProvider_user_1',
     stripeCustomerId: 'cus_existing',
   };
 

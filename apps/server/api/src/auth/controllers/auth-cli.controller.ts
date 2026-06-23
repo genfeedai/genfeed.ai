@@ -6,7 +6,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import {
   getIsSuperAdmin,
   getPublicMetadata,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { ApiKeyCategory, ApiKeyScope } from '@genfeedai/enums';
 import { Controller, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';

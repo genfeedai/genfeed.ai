@@ -19,7 +19,7 @@ describe('TagsController', () => {
   const brandId = '507f191e810c19729de860ee'.toString();
 
   const mockUser = {
-    id: 'clerk_user_123',
+    id: 'authProvider_user_123',
     publicMetadata: { brand: brandId, organization: orgId, user: userId },
   } as never;
 

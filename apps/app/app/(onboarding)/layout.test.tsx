@@ -58,12 +58,12 @@ describe('app/(onboarding)/layout.tsx', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
   });
 
   afterEach(() => {
-    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
   });
 
@@ -76,8 +76,8 @@ describe('app/(onboarding)/layout.tsx', () => {
     expect(source).toContain('export ');
   });
 
-  it('wraps onboarding providers in the protected auth gate when Clerk is enabled', () => {
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_fake';
+  it('wraps onboarding providers in the protected auth gate when legacy auth provider is enabled', () => {
+    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test_fake';
 
     render(
       <OnboardingSetupLayout>
@@ -106,7 +106,7 @@ describe('app/(onboarding)/layout.tsx', () => {
   });
 
   it('bypasses the protected auth gate in desktop mode', () => {
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_fake';
+    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test_fake';
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
 
     render(

@@ -54,7 +54,7 @@ describe('RunsController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('should route Clerk-authenticated create requests through the unified run service', async () => {
+  it('should route legacy-auth-provider-authenticated create requests through the unified run service', async () => {
     const mockRun = { _id: 'run-1', traceId: 'trace-1' };
     mockRunsService.createRun.mockResolvedValue({
       reused: false,
@@ -80,7 +80,7 @@ describe('RunsController', () => {
     expect(mockRunsService.createRun).toHaveBeenCalledWith(
       '507f1f77bcf86cd799439012',
       '507f1f77bcf86cd799439011',
-      RunAuthType.CLERK,
+      RunAuthType.BETTER_AUTH,
       expect.objectContaining({
         actionType: RunActionType.GENERATE,
         correlationId: 'trace-from-header',
@@ -191,7 +191,7 @@ describe('RunsController', () => {
         expect(mockRunsService.createRun).toHaveBeenLastCalledWith(
           '507f1f77bcf86cd799439012',
           '507f1f77bcf86cd799439011',
-          RunAuthType.CLERK,
+          RunAuthType.BETTER_AUTH,
           expect.objectContaining({
             actionType,
             correlationId: `trace-${surface}-${actionType}`,

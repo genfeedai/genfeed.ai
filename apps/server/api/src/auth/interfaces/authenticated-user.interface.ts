@@ -28,10 +28,10 @@ export interface IAuthPublicMetadata {
   isSuperAdmin: boolean;
 
   /**
-   * Legacy Clerk identifiers retained only while D4 removes historical fields.
+   * Legacy auth provider identifiers retained only while D4 removes historical fields.
    */
-  clerkId?: string;
-  clerkOrganizationId?: string;
+  authProviderId?: string;
+  authProviderOrganizationId?: string;
 
   category?: string;
   isOnboardingCompleted?: boolean;

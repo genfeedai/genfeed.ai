@@ -5,7 +5,7 @@ import { getUserRoomName } from '@libs/websockets/room-name.util';
  */
 export interface PopulatedUserDoc {
   _id?: string;
-  clerkId?: string | null;
+  authProviderId?: string | null;
 }
 
 /**
@@ -14,9 +14,9 @@ export interface PopulatedUserDoc {
 export interface ExtractedUserIds {
   /** Database user ID as string */
   dbUserId?: string;
-  /** Clerk user ID */
-  clerkUserId?: string;
-  /** Preferred user ID (clerkUserId if available, else dbUserId) */
+  /** legacy auth provider user ID */
+  authProviderUserId?: string;
+  /** Preferred user ID (authProviderUserId if available, else dbUserId) */
   userId?: string;
   /** WebSocket room identifier */
   userRoom?: string;
@@ -24,14 +24,14 @@ export interface ExtractedUserIds {
 
 /**
  * Utility for extracting user IDs from populated or unpopulated user references.
- * Consolidates the repeated pattern of extracting dbUserId and clerkUserId
+ * Consolidates the repeated pattern of extracting dbUserId and authProviderUserId
  * from ingredient.user, asset.user, etc.
  */
 export class UserExtractionUtil {
   /**
    * Extract user IDs from a user reference field.
    * Handles multiple formats:
-   * - Populated user document with _id and clerkId
+   * - Populated user document with _id and authProviderId
    * - String user ID
    * - Types.ObjectId
    *
@@ -41,7 +41,7 @@ export class UserExtractionUtil {
   static extractUserIds(
     userField:
       | PopulatedUserDoc
-      | { _id?: string; clerkId?: string | null }
+      | { _id?: string; authProviderId?: string | null }
       | string
       | null
       | undefined,
@@ -51,7 +51,7 @@ export class UserExtractionUtil {
     }
 
     let dbUserId: string | undefined;
-    let clerkUserId: string | undefined;
+    let authProviderUserId: string | undefined;
 
     // Handle string user ID
     if (typeof userField === 'string') {
@@ -66,15 +66,17 @@ export class UserExtractionUtil {
         dbUserId = userDoc._id;
       }
 
-      // Extract clerkId
-      clerkUserId = userDoc.clerkId ?? undefined;
+      // Extract authProviderId
+      authProviderUserId = userDoc.authProviderId ?? undefined;
     }
 
-    const userId = clerkUserId || dbUserId;
-    const userRoom = clerkUserId ? getUserRoomName(clerkUserId) : undefined;
+    const userId = authProviderUserId || dbUserId;
+    const userRoom = authProviderUserId
+      ? getUserRoomName(authProviderUserId)
+      : undefined;
 
     return {
-      clerkUserId,
+      authProviderUserId,
       dbUserId,
       userId,
       userRoom,

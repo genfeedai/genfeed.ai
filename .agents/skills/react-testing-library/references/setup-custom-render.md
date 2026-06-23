@@ -16,9 +16,9 @@ Create a custom render function that includes common providers. Export it from a
 test('displays user', () => {
   render(
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
+      <AuthContextProvider>
         <UserProfile />
-      </AuthProvider>
+      </AuthContextProvider>
     </QueryClientProvider>
   )
 })
@@ -27,9 +27,9 @@ test('displays user', () => {
 test('shows settings', () => {
   render(
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
+      <AuthContextProvider>
         <Settings />
-      </AuthProvider>
+      </AuthContextProvider>
     </QueryClientProvider>
   )
 })
@@ -41,7 +41,7 @@ test('shows settings', () => {
 // test-utils.tsx
 import { render } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { AuthProvider } from './auth'
+import { AuthContextProvider } from './auth'
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -50,9 +50,9 @@ const createWrapper = () => {
 
   return ({ children }) => (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
+      <AuthContextProvider>
         {children}
-      </AuthProvider>
+      </AuthContextProvider>
     </QueryClientProvider>
   )
 }

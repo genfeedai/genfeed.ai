@@ -1,11 +1,11 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { StreaksService } from '@api/collections/streaks/services/streaks.service';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { StreaksController } from './streaks.controller';
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(),
 }));
 
@@ -70,7 +70,7 @@ describe('StreaksController', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('allows self-hosted request context to override mismatched Clerk org metadata', async () => {
+    it('allows self-hosted request context to override mismatched legacy auth provider org metadata', async () => {
       streaksService.getStreakSummary.mockResolvedValue({} as never);
       vi.mocked(getPublicMetadata).mockReturnValue({
         organization: 'different-org',

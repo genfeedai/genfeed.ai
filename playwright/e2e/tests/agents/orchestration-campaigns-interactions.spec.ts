@@ -10,7 +10,7 @@ import {
  * agent campaigns (list, create, detail) and outreach campaigns (list,
  * multi-step wizard, detail).
  *
- * All API + Clerk traffic is mocked by the auth fixture; unknown local API
+ * All API + Better Auth traffic is mocked by the auth fixture; unknown local API
  * routes auto-return empty collections, so list and detail pages render
  * without bespoke mocks. Form interactions are guarded with `.catch` and
  * `tryClick` so missing selectors never hard-fail the spec.

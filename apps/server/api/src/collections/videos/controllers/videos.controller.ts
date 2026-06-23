@@ -39,8 +39,8 @@ import {
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import {
   isImageToVideoRequest,
@@ -1239,7 +1239,7 @@ export class VideosController {
     if (createVideoDto.backgroundMusic) {
       const orchestrationContext = {
         brandId: brand._id.toString(),
-        clerkUserId: user.id,
+        authProviderUserId: user.id,
         organizationId: publicMetadata.organization,
         userId: publicMetadata.user,
       };

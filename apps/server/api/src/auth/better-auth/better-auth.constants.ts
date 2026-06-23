@@ -16,7 +16,7 @@ export const BETTER_AUTH_INSTANCE = Symbol('BETTER_AUTH_INSTANCE');
 
 /**
  * Emitted (awaited via `emitAsync`) from the `user.create.after` hook so a new
- * user is provisioned before the create completes. Replaces the Clerk
+ * user is provisioned before the create completes. Replaces the legacy auth provider
  * `user.created` webhook (epic #735, Phase 4).
  */
 export const BETTER_AUTH_USER_CREATED_EVENT = 'better-auth.user.created';

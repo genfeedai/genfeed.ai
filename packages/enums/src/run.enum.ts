@@ -42,7 +42,7 @@ export enum RunSurface {
 }
 
 export enum RunAuthType {
-  CLERK = 'clerk',
+  BETTER_AUTH = 'better_auth',
   API_KEY = 'api_key',
 }
 

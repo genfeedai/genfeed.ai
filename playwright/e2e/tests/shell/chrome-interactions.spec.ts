@@ -7,7 +7,7 @@ import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
  * user / account menu. These controls are mounted on every protected page,
  * so exercising them lifts coverage broadly.
  *
- * Auth + all API + Clerk (and threads / runs / agent-credits) are mocked by the
+ * Auth + all API + Better Auth (and threads / runs / agent-credits) are mocked by the
  * fixtures, so opening the agent panel is safe. The strict network guard fails
  * on real outbound calls. Interactions are best-effort: tryClick never throws
  * and direct interactions are .catch-guarded so the specs stay non-brittle.

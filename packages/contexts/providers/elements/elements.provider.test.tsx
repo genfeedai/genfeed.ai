@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const useAuthMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => useAuthMock(),
 }));
 
@@ -49,7 +49,7 @@ describe('ElementsProvider', () => {
       isSignedIn: true,
       orgId: 'org_123',
       sessionId: 'session_123',
-      userId: 'clerk_123',
+      userId: 'authProvider_123',
     });
 
     useAuthedServiceMock.mockImplementation(() =>

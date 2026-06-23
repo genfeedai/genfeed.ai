@@ -6,7 +6,7 @@ import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
 /**
  * E2E interaction coverage for ORGANIZATION + PERSONAL settings surfaces.
  *
- * Routes live under `/test-org/~/settings/...`. Auth, Clerk and the API
+ * Routes live under `/test-org/~/settings/...`. Auth, Better Auth and the API
  * (organizations / members / billing / credits / settings writes) are fully
  * mocked, so opening tabs, toggling options, opening create/invite modals and
  * saving forms are all safe and resolve as success. Interactions are

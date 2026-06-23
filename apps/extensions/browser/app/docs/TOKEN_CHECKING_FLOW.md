@@ -4,7 +4,7 @@
 
 ### ✅ **What PopupContent Does Right:**
 
-1. **Clerk Integration**: Uses `useAuth()` hook correctly
+1. **Better Auth Integration**: Uses `useAuth()` hook correctly
 2. **JWT Token Retrieval**: Gets token with `genfeed-jwt` template
 3. **Token Storage**: Stores token in `authService`
 4. **State Management**: Updates `currentPage` based on auth state
@@ -12,7 +12,7 @@
 ### ❌ **What Was Missing (Now Fixed):**
 
 1. **Token Validation**: Now checks if stored token is still valid
-2. **Fallback Logic**: Now tries cookies if Clerk fails
+2. **Fallback Logic**: Now tries cookies if Better Auth fails
 3. **Error Handling**: Now handles token retrieval errors gracefully
 4. **Comprehensive Logging**: Now logs every step for debugging
 
@@ -26,15 +26,15 @@ const authState = await authService.isAuthenticated();
 console.log('Genfeed Extension: Current auth state:', authState);
 ```
 
-### **Step 2: Clerk Integration**
+### **Step 2: Better Auth Integration**
 
 ```typescript
 if (isSignedIn) {
-  // Try to get fresh JWT token from Clerk
+  // Try to get fresh JWT token from Better Auth
   const token = await getJWTToken(getToken);
   if (token) {
     // Store and use the fresh token
-    await authService.setToken(token, 'clerk');
+    await authService.setToken(token, 'better_auth');
     setCurrentPage('tweets');
   }
 }
@@ -44,7 +44,7 @@ if (isSignedIn) {
 
 ```typescript
 else {
-  // If Clerk fails, try stored token or cookies
+  // If Better Auth fails, try stored token or cookies
   const fallbackToken = await authService.getToken();
   if (fallbackToken) {
     // Use existing token from storage/cookies
@@ -76,7 +76,7 @@ catch (error) {
 ### **1. Fresh JWT Token (Primary)**
 
 ```typescript
-// From Clerk with genfeed-jwt template
+// From Better Auth with genfeed-jwt template
 const token = await getJWTToken(getToken);
 ```
 
@@ -139,7 +139,7 @@ const cookieToken = await authService.getTokenFromCookies();
 
 - **Token Status**: Shows if token is available
 - **Token Preview**: First 20 characters
-- **Source Tracking**: Clerk vs cookie source
+- **Source Tracking**: Better Auth vs cookie source
 - **Real-time Updates**: Changes as auth state changes
 
 ## 🚨 **Critical Improvements Made**
@@ -147,7 +147,7 @@ const cookieToken = await authService.getTokenFromCookies();
 ### **1. Comprehensive Token Checking**
 
 - ✅ Checks stored token first
-- ✅ Tries fresh JWT token from Clerk
+- ✅ Tries fresh JWT token from Better Auth
 - ✅ Falls back to cookies if needed
 - ✅ Handles errors gracefully
 

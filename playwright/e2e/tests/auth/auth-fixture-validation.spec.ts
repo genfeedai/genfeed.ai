@@ -5,14 +5,14 @@ import { expect, test } from '../../fixtures/auth.fixture';
  * This test validates the mock setup without requiring the full app
  */
 test.describe('Auth Fixture Validation', () => {
-  test('should have Clerk API mocks set up for authenticated page', async ({
+  test('should have Better Auth API mocks set up for authenticated page', async ({
     authenticatedPage,
   }) => {
     // Check that cookies are set
     const cookies = await authenticatedPage.context().cookies();
     const sessionCookie = cookies.find((c) => c.name === '__session');
     const clientUatCookie = cookies.find((c) => c.name === '__client_uat');
-    const jwtCookie = cookies.find((c) => c.name === '__clerk_db_jwt');
+    const jwtCookie = cookies.find((c) => c.name === '__better_auth_db_jwt');
 
     expect(sessionCookie).toBeDefined();
     expect(clientUatCookie).toBeDefined();
@@ -25,15 +25,15 @@ test.describe('Auth Fixture Validation', () => {
     authenticatedPage,
   }) => {
     // Check localStorage
-    const clerkJwt = await authenticatedPage.evaluate(() =>
-      localStorage.getItem('__clerk_client_jwt'),
+    const betterAuthJwt = await authenticatedPage.evaluate(() =>
+      localStorage.getItem('__better_auth_client_jwt'),
     );
-    const clerkClient = await authenticatedPage.evaluate(() =>
-      localStorage.getItem('__clerk_client'),
+    const betterAuthClient = await authenticatedPage.evaluate(() =>
+      localStorage.getItem('__better_auth_client'),
     );
 
-    expect(clerkJwt).toBeTruthy();
-    expect(clerkClient).toBeTruthy();
+    expect(betterAuthJwt).toBeTruthy();
+    expect(betterAuthClient).toBeTruthy();
 
     console.log('✓ localStorage auth state is set');
   });
@@ -42,11 +42,14 @@ test.describe('Auth Fixture Validation', () => {
     authenticatedPage,
   }) => {
     const hasAuthState = await authenticatedPage.evaluate(() => {
-      return !!(window as any).__clerk_client_state;
+      return Boolean(
+        (window as Window & Record<string, unknown>).__better_auth_client_state,
+      );
     });
 
     const isSignedIn = await authenticatedPage.evaluate(() => {
-      return (window as any).__clerk_is_signed_in;
+      return (window as Window & Record<string, unknown>)
+        .__better_auth_is_signed_in;
     });
 
     expect(hasAuthState).toBe(true);

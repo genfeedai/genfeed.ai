@@ -38,7 +38,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS "desktop_auth_codes_codeHash_key" ON "desktop_
 CREATE INDEX IF NOT EXISTS "desktop_auth_codes_expiresAt_idx" ON "desktop_auth_codes"("expiresAt");
 CREATE INDEX IF NOT EXISTS "desktop_auth_codes_userId_organizationId_idx" ON "desktop_auth_codes"("userId", "organizationId");
 
--- Cloud-backed conversation sync uses the canonical Genfeed user id, not Clerk id.
+-- Cloud-backed conversation sync uses the canonical Genfeed user id, not legacy auth provider id.
 CREATE TABLE IF NOT EXISTS "desktop_threads" (
   "id" TEXT NOT NULL,
   "user_id" TEXT,
@@ -62,9 +62,9 @@ BEGIN
     SELECT 1
     FROM information_schema.columns
     WHERE table_name = 'desktop_threads'
-      AND column_name = 'clerkUserId'
+      AND column_name = 'authProviderUserId'
   ) THEN
-    ALTER TABLE "desktop_threads" ALTER COLUMN "clerkUserId" DROP NOT NULL;
+    ALTER TABLE "desktop_threads" ALTER COLUMN "authProviderUserId" DROP NOT NULL;
   END IF;
 END $$;
 

@@ -26,7 +26,7 @@ const mocks = vi.hoisted(() => ({
   unkeepOutput: vi.fn(),
 }));
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: mocks.getToken,
   }),
@@ -39,7 +39,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrandId: () => 'brand-1',
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
+vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: mocks.resolveAuthToken,
 }));
 

@@ -6,8 +6,6 @@
 import {
   createAllExternalServiceMocks,
   createMockCacheService,
-  createMockClerkClient,
-  createMockClerkService,
   createMockConfigService,
   createMockElevenLabsService,
   createMockHeyGenService,
@@ -196,34 +194,6 @@ describe('External Services Mocks', () => {
     });
   });
 
-  describe('Clerk Service Mocks', () => {
-    it('should create valid Clerk client mock', () => {
-      const mock = createMockClerkClient();
-
-      expect(mock).toHaveProperty('users');
-      expect(mock).toHaveProperty('invitations');
-      expect(mock).toHaveProperty('sessions');
-    });
-
-    it('should return user on getUser', async () => {
-      const mock = createMockClerkClient();
-      const user = await mock.users.getUser('user_id');
-
-      expect(user).toHaveProperty('id');
-      expect(user).toHaveProperty('emailAddresses');
-      expect(user).toHaveProperty('publicMetadata');
-    });
-
-    it('should create valid Clerk service mock', () => {
-      const mock = createMockClerkService();
-
-      expect(mock).toHaveProperty('getUser');
-      expect(mock).toHaveProperty('updateUser');
-      expect(mock).toHaveProperty('updateUserPublicMetadata');
-      expect(mock).toHaveProperty('createInvitation');
-    });
-  });
-
   describe('S3 Service Mock', () => {
     it('should create valid S3 service mock', () => {
       const mock = createMockS3Service();
@@ -350,7 +320,6 @@ describe('External Services Mocks', () => {
 
       expect(mocks).toHaveProperty('replicateService');
       expect(mocks).toHaveProperty('stripeService');
-      expect(mocks).toHaveProperty('clerkService');
       expect(mocks).toHaveProperty('youtubeService');
       expect(mocks).toHaveProperty('tiktokService');
       expect(mocks).toHaveProperty('cacheService');

@@ -1,6 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import * as clerkUtil from '@api/helpers/utils/clerk/clerk.util';
+import * as authProviderUtil from '@api/helpers/utils/auth/auth.util';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -11,7 +11,7 @@ import {
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getIsSuperAdmin: vi.fn(),
   getStripeSubscriptionStatus: vi.fn(),
   getSubscriptionTier: vi.fn(),
@@ -59,9 +59,9 @@ describe('SubscriptionGuard', () => {
 
     guard = module.get(SubscriptionGuard);
 
-    vi.mocked(clerkUtil.getIsSuperAdmin).mockReturnValue(false);
-    vi.mocked(clerkUtil.getStripeSubscriptionStatus).mockReturnValue('');
-    vi.mocked(clerkUtil.getSubscriptionTier).mockReturnValue('');
+    vi.mocked(authProviderUtil.getIsSuperAdmin).mockReturnValue(false);
+    vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue('');
+    vi.mocked(authProviderUtil.getSubscriptionTier).mockReturnValue('');
   });
 
   afterEach(() => {
@@ -91,7 +91,7 @@ describe('SubscriptionGuard', () => {
   });
 
   it('allows super admins regardless of subscription status', () => {
-    vi.mocked(clerkUtil.getIsSuperAdmin).mockReturnValue(true);
+    vi.mocked(authProviderUtil.getIsSuperAdmin).mockReturnValue(true);
     const ctx = buildContext(buildUser());
     expect(guard.canActivate(ctx)).toBe(true);
   });
@@ -102,7 +102,7 @@ describe('SubscriptionGuard', () => {
   });
 
   it('allows users with ACTIVE subscription', () => {
-    vi.mocked(clerkUtil.getStripeSubscriptionStatus).mockReturnValue(
+    vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue(
       SubscriptionStatus.ACTIVE,
     );
     const ctx = buildContext(buildUser());
@@ -110,7 +110,7 @@ describe('SubscriptionGuard', () => {
   });
 
   it('allows users with TRIALING subscription', () => {
-    vi.mocked(clerkUtil.getStripeSubscriptionStatus).mockReturnValue(
+    vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue(
       SubscriptionStatus.TRIALING,
     );
     const ctx = buildContext(buildUser());
@@ -118,10 +118,10 @@ describe('SubscriptionGuard', () => {
   });
 
   it('allows users with BYOK tier regardless of subscription status', () => {
-    vi.mocked(clerkUtil.getStripeSubscriptionStatus).mockReturnValue(
+    vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue(
       SubscriptionStatus.CANCELED,
     );
-    vi.mocked(clerkUtil.getSubscriptionTier).mockReturnValue(
+    vi.mocked(authProviderUtil.getSubscriptionTier).mockReturnValue(
       SubscriptionTier.BYOK,
     );
     const ctx = buildContext(buildUser());
@@ -129,7 +129,7 @@ describe('SubscriptionGuard', () => {
   });
 
   it('throws 403 when subscription is inactive', () => {
-    vi.mocked(clerkUtil.getStripeSubscriptionStatus).mockReturnValue(
+    vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue(
       SubscriptionStatus.CANCELED,
     );
     const ctx = buildContext(buildUser());
@@ -146,7 +146,7 @@ describe('SubscriptionGuard', () => {
   });
 
   it('throws 403 with PAST_DUE subscription', () => {
-    vi.mocked(clerkUtil.getStripeSubscriptionStatus).mockReturnValue(
+    vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue(
       SubscriptionStatus.PAST_DUE,
     );
     const ctx = buildContext(buildUser());
@@ -154,7 +154,9 @@ describe('SubscriptionGuard', () => {
   });
 
   it('logs warning before throwing 403', () => {
-    vi.mocked(clerkUtil.getStripeSubscriptionStatus).mockReturnValue('none');
+    vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue(
+      'none',
+    );
     const ctx = buildContext(buildUser());
     expect(() => guard.canActivate(ctx)).toThrow();
     expect(mockLogger.warn).toHaveBeenCalledWith(
@@ -164,8 +166,8 @@ describe('SubscriptionGuard', () => {
   });
 
   it('throws 403 when no subscription status set', () => {
-    vi.mocked(clerkUtil.getStripeSubscriptionStatus).mockReturnValue('');
-    vi.mocked(clerkUtil.getSubscriptionTier).mockReturnValue('');
+    vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue('');
+    vi.mocked(authProviderUtil.getSubscriptionTier).mockReturnValue('');
     const ctx = buildContext(buildUser());
     expect(() => guard.canActivate(ctx)).toThrow(
       new HttpException(expect.anything(), HttpStatus.FORBIDDEN),

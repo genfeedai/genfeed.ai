@@ -6,7 +6,7 @@ import { expect, test } from '../../fixtures/auth.fixture';
 import { DashboardPage } from '../../pages/dashboard.page';
 
 const AUTH_SKIP_MSG =
-  'Auth mocking did not prevent login redirect — fix Clerk auth mocking';
+  'Auth mocking did not prevent login redirect — fix Better Auth auth mocking';
 
 /**
  * E2E Tests for Dashboard Navigation
@@ -15,7 +15,7 @@ const AUTH_SKIP_MSG =
  * All API calls are mocked - no real backend requests occur.
  *
  * NOTE: Tests that require authenticated state will be skipped if the
- * Clerk auth mocking fails to prevent a redirect to /login. This is
+ * Better Auth auth mocking fails to prevent a redirect to /login. This is
  * intentional — we do NOT want false-green tests that pass regardless
  * of whether auth works.
  */

@@ -1,4 +1,4 @@
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -86,7 +86,7 @@ describe('VideosController', () => {
   const mockActivityId = '507f191e810c19729de860ee';
 
   const mockUser = {
-    id: 'clerk_user_123',
+    id: 'authProvider_user_123',
     publicMetadata: {
       brand: mockBrandId.toString(),
       organization: mockOrgId.toString(),
@@ -381,7 +381,7 @@ describe('VideosController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
@@ -1388,7 +1388,7 @@ beforeAll(async () => {
       },
     ],
   })
-    .overrideGuard(ClerkGuard)
+    .overrideGuard(BetterAuthGuard)
     .useValue({ canActivate: () => true })
     .overrideGuard(RolesGuard)
     .useValue({ canActivate: () => true })

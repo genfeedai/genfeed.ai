@@ -4,7 +4,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import type { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   IngredientCategory,
@@ -85,7 +85,7 @@ export class SharedService {
 
   /**
    * Save documents with explicit IDs (for internal/orchestration use)
-   * Use this when you don't have access to the Clerk User object
+   * Use this when you don't have access to the legacy auth provider User object
    */
   public async saveDocumentsInternal(body: {
     brand: string;

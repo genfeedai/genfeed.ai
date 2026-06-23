@@ -1,6 +1,6 @@
 import type { MemberRole } from '@genfeedai/enums';
 
-export interface IClerkPublicMetadata {
+export interface IAuthPublicMetadata {
   user: string;
   organization: string;
   brand: string;
@@ -19,12 +19,12 @@ export interface IClerkPublicMetadata {
   isSuperAdmin: boolean;
 
   /**
-   * Optional Clerk user identifier for websocket routing.
+   * Optional legacy auth provider user identifier for websocket routing.
    */
-  clerkId?: string;
+  authProviderId?: string;
 
-  /** Clerk native organization ID (org_xxx) for cross-reference with Clerk Organizations. */
-  clerkOrganizationId?: string;
+  /** legacy auth provider native organization ID (org_xxx) for cross-reference with legacy auth provider organizations. */
+  authProviderOrganizationId?: string;
 
   category?: string;
   isOnboardingCompleted?: boolean;

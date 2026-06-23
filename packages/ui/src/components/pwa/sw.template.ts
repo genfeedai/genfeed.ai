@@ -69,14 +69,14 @@ const genfeedCacheStrategies = [
   {
     handler: 'NetworkFirst',
     options: {
-      cacheName: 'clerk-cache',
+      cacheName: 'authProvider-cache',
       expiration: {
         maxAgeSeconds: 60 * 60,
         maxEntries: 20,
       },
       networkTimeoutSeconds: 5,
     },
-    urlPattern: /^https:\/\/.*\.clerk\.(com|dev)\/.*/i,
+    urlPattern: /^https:\/\/.*\.authProvider\.(com|dev)\/.*/i,
   },
 ];
 

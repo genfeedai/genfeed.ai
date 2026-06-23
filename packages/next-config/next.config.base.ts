@@ -66,7 +66,7 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
         { hostname: '*.genfeed.ai' },
         { hostname: '*.cloudfront.net' },
         { hostname: '*.amazonaws.com' },
-        { hostname: 'img.clerk.com' },
+        { hostname: 'img.authProvider.com' },
         { hostname: 'images.unsplash.com' },
         { hostname: 'picsum.photos' },
         { hostname: 'i.pravatar.cc' },

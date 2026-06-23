@@ -1,10 +1,11 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import process from 'node:process';
 
 const ROOT = join(process.cwd(), 'src');
 const ALLOWED_FILES = new Set<string>([
   'common/middleware/request-context.middleware.ts',
-  'helpers/utils/clerk/clerk.util.ts',
+  'helpers/utils/auth/auth.util.ts',
   'helpers/utils/collection-filter/collection-filter.util.ts',
 ]);
 

@@ -5,7 +5,7 @@ import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
  * E2E route-render coverage for the Admin Automation section.
  *
  * Uses the adminPage fixture (admin routes are not tenant-scoped). All API and
- * Clerk calls are mocked; unknown API routes auto-return empty collections so
+ * Better Auth calls are mocked; unknown API routes auto-return empty collections so
  * each page renders without bespoke mocks.
  */
 test.describe('Admin Automation', () => {

@@ -29,8 +29,8 @@ import {
 } from '@api/helpers/guards/models/models.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import {
   returnNotFound,
   serializeSingle,

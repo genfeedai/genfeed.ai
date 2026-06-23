@@ -5,13 +5,13 @@ import {
   BaseIntegrationController,
   type OAuthUrlResult,
 } from '@api/shared/controllers/base-integration/base-integration.controller';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn().mockReturnValue({
     organization: '507f1f77bcf86cd799439012',
     user: '507f1f77bcf86cd799439011',
@@ -49,7 +49,7 @@ class TestIntegrationController extends BaseIntegrationController {
 
   protected async generateOAuthUrl(
     _brandId: string,
-    _publicMetadata: IClerkPublicMetadata,
+    _publicMetadata: IAuthPublicMetadata,
   ): Promise<OAuthUrlResult> {
     return this.mockOAuthResult;
   }

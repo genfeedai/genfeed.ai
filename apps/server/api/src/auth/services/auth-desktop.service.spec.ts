@@ -9,7 +9,7 @@ const { mockGetIsSuperAdmin, mockGetPublicMetadata } = vi.hoisted(() => ({
   mockGetPublicMetadata: vi.fn(),
 }));
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getIsSuperAdmin: mockGetIsSuperAdmin,
   getPublicMetadata: mockGetPublicMetadata,
 }));

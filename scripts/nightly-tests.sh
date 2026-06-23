@@ -69,7 +69,7 @@ fi
 
 if should_run "api"; then
   run_suite "api-cron" bash -c "cd apps/server/workers && bun run test:cron"
-  run_suite "api-unit" bash -c "CLERK_SECRET_KEY=test-mock-clerk-key bun run test:cov --filter='@genfeedai/api'"
+  run_suite "api-unit" bash -c "BETTER_AUTH_SECRET=test-better-auth-secret bun run test:cov --filter='@genfeedai/api'"
 fi
 
 if should_run "web"; then

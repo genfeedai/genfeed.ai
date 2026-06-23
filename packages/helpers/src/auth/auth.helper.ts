@@ -6,7 +6,7 @@ type AuthUserLike = {
 
 type PlaywrightAuthWindow = Window &
   typeof globalThis & {
-    __clerk_client_state?: {
+    __better_auth_client_state?: {
       session_id?: string;
       sessions?: Array<{
         id?: string;
@@ -18,7 +18,7 @@ type PlaywrightAuthWindow = Window &
       }>;
       user_id?: string;
     };
-    __clerk_is_signed_in?: boolean;
+    __better_auth_is_signed_in?: boolean;
   };
 
 export interface PlaywrightAuthState {
@@ -34,7 +34,10 @@ export type AuthTokenGetter = (opts?: {
   template?: string;
 }) => Promise<string | null>;
 
-const PLAYWRIGHT_JWT_STORAGE_KEYS = ['__clerk_client_jwt', 'clerk-db-jwt'];
+const PLAYWRIGHT_JWT_STORAGE_KEYS = [
+  '__better_auth_client_jwt',
+  'better-auth-db-jwt',
+];
 
 export function getAuthPublicData(user: AuthUserLike): IAuthPublicData {
   return (user.publicMetadata || {}) as unknown as IAuthPublicData;
@@ -46,9 +49,9 @@ export function getPlaywrightAuthState(): PlaywrightAuthState | null {
   }
 
   const playwrightWindow = window as PlaywrightAuthWindow;
-  const authState = playwrightWindow.__clerk_client_state;
+  const authState = playwrightWindow.__better_auth_client_state;
 
-  if (!authState || playwrightWindow.__clerk_is_signed_in !== true) {
+  if (!authState || playwrightWindow.__better_auth_is_signed_in !== true) {
     return null;
   }
 

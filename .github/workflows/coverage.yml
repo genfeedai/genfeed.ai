@@ -205,7 +205,7 @@ jobs:
           flags: app
           fail_ci_if_error: false
 
-  # ── API — sharded 4-way; needs CLERK_SECRET_KEY env ──
+  # ── API — sharded 4-way; needs BETTER_AUTH_SECRET env ──
   coverage-api:
     name: Coverage — apps/server/api (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
@@ -230,7 +230,7 @@ jobs:
         run: cd apps/server/api && bunx vitest run --reporter=blob --coverage --shard=${{ matrix.shard }}/4
         env:
           NODE_ENV: test
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
 
       - name: Upload blob report artifact
         uses: actions/upload-artifact@v7
@@ -270,7 +270,7 @@ jobs:
         run: cd apps/server/api && bunx vitest --merge-reports .vitest-reports --coverage
         env:
           NODE_ENV: test
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v7
@@ -323,8 +323,8 @@ jobs:
         env:
           E2E_COVERAGE: "1"
           NEXT_PUBLIC_PLAYWRIGHT_TEST: "true"
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
           NEXT_PUBLIC_API_URL: http://localhost:3010
 
       - name: Run E2E coverage shard ${{ matrix.shard }}/4
@@ -336,8 +336,8 @@ jobs:
           CI: true
           APP_BASE_URL: http://localhost:3000
           E2E_COVERAGE_THRESHOLD: "0"
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
 
       - name: Upload coverage artifact (shard ${{ matrix.shard }})
         uses: actions/upload-artifact@v7

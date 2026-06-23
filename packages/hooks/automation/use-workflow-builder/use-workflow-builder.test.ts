@@ -31,7 +31,7 @@ function createNodeRegistryResponse() {
   };
 }
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: mockGetToken,
   }),

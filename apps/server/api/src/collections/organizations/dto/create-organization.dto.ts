@@ -16,10 +16,11 @@ export class CreateOrganizationDto {
   @IsString()
   @IsOptional()
   @ApiProperty({
-    description: 'Clerk organization ID used to synchronize organization state',
+    description:
+      'legacy auth provider organization ID used to synchronize organization state',
     required: false,
   })
-  readonly clerkOrganizationId?: string | null;
+  readonly authProviderOrganizationId?: string | null;
 
   @IsEntityId()
   @ApiProperty({

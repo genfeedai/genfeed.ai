@@ -28,7 +28,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -197,7 +197,7 @@ export class OrganizationsMembersController {
         // Switch the invited user's active org to the org they were just added
         // to, preserving the pre-Phase-C behavior now that routing is
         // DB-authoritative (epic #735 — User.lastUsedOrganizationId replaces the
-        // Clerk publicMetadata.organization write-back).
+        // legacy auth provider publicMetadata.organization write-back).
         await this.usersService.patch(String(existingUser._id), {
           lastUsedOrganizationId: organizationId,
         });

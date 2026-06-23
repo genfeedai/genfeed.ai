@@ -5,9 +5,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
 }));
 
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { AgentRunsController } from '@api/collections/agent-runs/controllers/agent-runs.controller';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -54,7 +54,7 @@ describe('AgentRunsController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

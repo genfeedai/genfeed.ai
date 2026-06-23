@@ -1,7 +1,6 @@
 minimumReleaseAge: 10080
 trustPolicy: no-downgrade
 onlyBuiltDependencies:
-  - '@clerk/shared'
   - '@parcel/watcher'
   - '@swc/core'
   - '@tailwindcss/oxide'

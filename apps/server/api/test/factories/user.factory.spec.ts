@@ -9,8 +9,8 @@ import {
 import {
   createMockObjectId,
   mockAsyncIterator,
+  mockAuthProviderService,
   mockCacheService,
-  mockClerkService,
   mockConfigService,
   mockCreditTransactionsService,
   mockFile,
@@ -97,11 +97,11 @@ describe('Service mocks', () => {
   });
 
   it('mocks external services', () => {
-    const clerk = mockClerkService();
+    const authProvider = mockAuthProviderService();
     const queue = mockFileQueueService();
     const credit = mockCreditTransactionsService();
 
-    expect(clerk.getUser).toBeDefined();
+    expect(authProvider.getUser).toBeDefined();
     expect(queue.processVideo).toBeDefined();
     expect(credit.createTransactionEntry).toBeDefined();
   });

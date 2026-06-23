@@ -1841,7 +1841,7 @@ export class AgentToolExecutorService {
 
       if (this.usersService) {
         const dbUser = await this.usersService.findOne({
-          clerkId: ctx.userId,
+          authProviderId: ctx.userId,
           isDeleted: false,
         });
 
@@ -1855,7 +1855,7 @@ export class AgentToolExecutorService {
       }
 
       // isOnboardingCompleted is persisted on the User row above (epic #735,
-      // Phase C — no Clerk publicMetadata write-back).
+      // Phase C — no legacy auth provider publicMetadata write-back).
     }
 
     return {
@@ -1881,7 +1881,7 @@ export class AgentToolExecutorService {
     let dbUserId: string | null = null;
     if (this.usersService) {
       const dbUser = await this.usersService.findOne({
-        clerkId: ctx.userId,
+        authProviderId: ctx.userId,
         isDeleted: false,
       });
 
@@ -1896,7 +1896,7 @@ export class AgentToolExecutorService {
     }
 
     // isOnboardingCompleted is persisted on the User row above (epic #735,
-    // Phase C — no Clerk publicMetadata write-back).
+    // Phase C — no legacy auth provider publicMetadata write-back).
 
     return {
       creditsUsed: 0,

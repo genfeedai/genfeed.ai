@@ -6,8 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 
-vi.mock('@clerk/chrome-extension', () => ({
-  ClerkProvider: ({ children }: { children: React.ReactNode }) => children,
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: vi.fn(),
     isLoaded: true,

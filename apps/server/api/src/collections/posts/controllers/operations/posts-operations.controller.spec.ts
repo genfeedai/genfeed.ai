@@ -62,7 +62,7 @@ describe('PostsOperationsController', () => {
   const ingredientId = '507f1f77bcf86cd799439017';
 
   const mockUser = {
-    id: 'user_clerk_123',
+    id: 'user_authProvider_123',
     publicMetadata: {
       brand: brandId,
       organization: organizationId,

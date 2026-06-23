@@ -53,11 +53,11 @@ Set `GENFEED_LICENSE_KEY` to enable:
 
 Self-hosted instances can run without a Genfeed Cloud account. Cloud login and local login are separate unless you implement an explicit handoff or API integration.
 
-Clerk keys configure authentication for this deployment:
+Better Auth keys configure authentication for this deployment:
 
 ```env
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
-CLERK_SECRET_KEY=sk_...
+NEXT_PUBLIC_BETTER_AUTH_ENABLED=true
+BETTER_AUTH_SECRET=replace_with_a_long_random_secret
 ```
 
 Managed Cloud execution requires an explicit Cloud API key on the backend. Do not expose this key to browser code.

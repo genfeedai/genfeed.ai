@@ -24,7 +24,7 @@ pnpm dev
 
 The extension now logs:
 
-- ✅ Clerk initialization status
+- ✅ Better Auth initialization status
 - ✅ Authentication state changes
 - ✅ Token retrieval and storage
 - ✅ Sign-in button clicks
@@ -36,9 +36,9 @@ The extension now logs:
 
 **Check these in order:**
 
-1. **Clerk Publishable Key**: Look for "Missing" in console logs
+1. **Better Auth Publishable Key**: Look for "Missing" in console logs
 2. **Extension URL**: Should be `chrome-extension://[id]/`
-3. **Clerk Configuration**: Check if `mode="modal"` is set
+3. **Better Auth Configuration**: Check if `mode="modal"` is set
 4. **Network Issues**: Check if genfeed.ai is accessible
 
 #### Debug Steps:
@@ -53,7 +53,7 @@ The extension now logs:
 Make sure your `.env` file contains:
 
 ```env
-PLASMO_PUBLIC_CLERK_PUBLISHABLE_KEY=your_key_here
+PLASMO_PUBLIC_API_ENDPOINT=your_key_here
 PLASMO_PUBLIC_ENV=development
 ```
 
@@ -68,7 +68,7 @@ PLASMO_PUBLIC_ENV=development
 
 #### If SignInButton doesn't respond:
 
-1. Check if Clerk is loaded (Debug Panel shows "Loaded: ✅")
+1. Check if Better Auth is loaded (Debug Panel shows "Loaded: ✅")
 2. Verify publishable key is present
 3. Check browser console for errors
 4. Ensure extension has proper permissions
@@ -76,8 +76,8 @@ PLASMO_PUBLIC_ENV=development
 #### If authentication fails:
 
 1. Check if genfeed.ai is accessible
-2. Verify Clerk configuration in dashboard
-3. Check if extension ID is whitelisted in Clerk
+2. Verify Better Auth configuration in dashboard
+3. Check if extension ID is whitelisted in Better Auth
 4. Look for network errors in DevTools
 
 ### 7. Development Tips
@@ -104,9 +104,9 @@ chrome.storage.sync.clear();
 3. Click "Details"
 4. Ensure all permissions are granted
 
-### Verify Clerk Setup:
+### Verify Better Auth Setup:
 
-1. Check Clerk Dashboard
+1. Check Better Auth dashboard
 2. Verify publishable key
 3. Check allowed origins include your extension ID
 4. Verify redirect URLs are configured

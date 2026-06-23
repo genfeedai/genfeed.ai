@@ -13,17 +13,17 @@ const {
   getUsersServiceMock,
   patchSettingsMock,
   pushMock,
-  resolveClerkTokenMock,
+  resolveAuthTokenMock,
 } = vi.hoisted(() => ({
   assignMock: vi.fn(),
   getInstallReadinessMock: vi.fn(),
   getUsersServiceMock: vi.fn(),
   patchSettingsMock: vi.fn(),
   pushMock: vi.fn(),
-  resolveClerkTokenMock: vi.fn(),
+  resolveAuthTokenMock: vi.fn(),
 }));
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: vi.fn(),
   }),
@@ -42,8 +42,8 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
   }),
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
-  resolveAuthToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
+vi.mock('@helpers/auth/auth.helper', () => ({
+  resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -145,10 +145,10 @@ describe('ProvidersContent behavior', () => {
     getUsersServiceMock.mockReset();
     patchSettingsMock.mockReset();
     pushMock.mockReset();
-    resolveClerkTokenMock.mockReset();
+    resolveAuthTokenMock.mockReset();
     localStorageMock.clear();
 
-    resolveClerkTokenMock.mockResolvedValue('api-token');
+    resolveAuthTokenMock.mockResolvedValue('api-token');
     getInstallReadinessMock.mockResolvedValue({
       access: {
         byokConfiguredProviders: [],

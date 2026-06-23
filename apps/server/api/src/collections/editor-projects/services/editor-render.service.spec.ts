@@ -58,7 +58,7 @@ describe('EditorRenderService', () => {
   const videoIngredientId = 'test-object-id';
 
   const mockUser = {
-    id: 'clerk-user-1',
+    id: 'authProvider-user-1',
     publicMetadata: { user: 'db-user-id-1' },
   } as unknown as User;
 

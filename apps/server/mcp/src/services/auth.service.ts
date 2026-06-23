@@ -35,10 +35,9 @@ export class AuthService {
       );
 
       // Single identity endpoint for BOTH token types: the API's global
-      // CombinedAuthGuard routes `gf_` keys → ApiKeyAuthGuard and Clerk JWTs →
-      // ClerkGuard, then `/auth/whoami` returns the resolved org/user/role for
-      // either. This replaces the old split paths (`/api-keys/validate` for
-      // keys + the non-existent `/accounts` route for sessions).
+      // CombinedAuthGuard routes `gf_` keys to ApiKeyAuthGuard and Better Auth
+      // session JWTs to BetterAuthGuard, then `/auth/whoami` returns the
+      // resolved org/user/role for either.
       const response = await firstValueFrom(
         this.httpService.get(`${baseUrl}/auth/whoami`, {
           headers: {

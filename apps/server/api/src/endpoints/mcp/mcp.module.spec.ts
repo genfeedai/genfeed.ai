@@ -1,7 +1,7 @@
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { MCPController } from '@api/endpoints/mcp/mcp.controller';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -29,7 +29,7 @@ describe('MCPModule', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(SubscriptionGuard)
       .useValue({ canActivate: () => true })

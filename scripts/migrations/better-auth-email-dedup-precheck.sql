@@ -33,7 +33,7 @@ ORDER BY n DESC;
 
 -- (c) LOCKOUT TRIAGE (not a blocker) — NULL-email rows cannot be magic-linked,
 --     so those users have no Better Auth sign-in path post-cutover (they keep
---     API keys). Triage / set an email before Clerk is removed.
+--     API keys). Triage / set an email before legacy auth provider is removed.
 SELECT count(*) AS null_email_users
 FROM users
 WHERE email IS NULL;

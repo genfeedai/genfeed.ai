@@ -7,7 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   extractRequestContext: vi.fn().mockReturnValue({
     organizationId: '507f1f77bcf86cd799439012',
     userId: '507f1f77bcf86cd799439011',

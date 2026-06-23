@@ -2,7 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, Injectable } from '@nestjs/common';
@@ -61,7 +61,7 @@ describe('BaseCRUDController', () => {
       brand: MOCK_BRAND_ID,
       organization: MOCK_ORG_ID,
       user: MOCK_USER_ID,
-    } as IClerkPublicMetadata,
+    } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockRequest = {

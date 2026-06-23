@@ -85,7 +85,7 @@ export class FilesController {
   async processVideo(@Body() body: unknown) {
     try {
       const jobData = {
-        clerkUserId: body.clerkUserId,
+        authProviderUserId: body.authProviderUserId,
         createdAt: new Date(),
         id: body.id || `video-${Date.now()}`,
         ingredientId: body.ingredientId,
@@ -178,7 +178,7 @@ export class FilesController {
   async processImage(@Body() body: unknown) {
     try {
       const jobData = {
-        clerkUserId: body.clerkUserId,
+        authProviderUserId: body.authProviderUserId,
         createdAt: new Date(),
         id: body.id || `image-${Date.now()}`,
         ingredientId: body.ingredientId,
@@ -238,7 +238,7 @@ export class FilesController {
   async processFile(@Body() body: unknown) {
     try {
       const jobData = {
-        clerkUserId: body.clerkUserId,
+        authProviderUserId: body.authProviderUserId,
         createdAt: new Date(),
         delay: body.delay,
         filePath: body.filePath,
@@ -309,7 +309,7 @@ export class FilesController {
       const status = body.status || 'unlisted'; // Default to unlisted if no status provided
       const jobData = {
         brandId: body.brandId,
-        clerkUserId: body.clerkUserId,
+        authProviderUserId: body.authProviderUserId,
         createdAt: new Date(),
         credential: body.credential,
         description: body.description,

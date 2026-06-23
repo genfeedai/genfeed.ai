@@ -43,7 +43,7 @@ export class OrganizationSettingsService extends BaseService<
   }
 
   /**
-   * Org-bootstrap chokepoint: all organization-creation paths (Clerk webhook,
+   * Org-bootstrap chokepoint: all organization-creation paths (legacy auth provider webhook,
    * OrganizationsController, UserSetupService) funnel through settings creation.
    * After creating settings we idempotently seed the predetermined Daily Trends
    * Digest workflow (OFF by default). Failures never block settings creation.

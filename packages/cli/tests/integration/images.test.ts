@@ -69,7 +69,7 @@ describe.skipIf(!hasCredentials)('integration/images', () => {
       // 401/403 is the known server-side auth bug — document it, don't fail
       const status = (error as { status?: number }).status;
       if (status === 401 || status === 403) {
-        // Expected: ClerkGuard blocks API keys on /images
+        // Expected: BetterAuthGuard blocks API keys on /images
         expect(status).toBeOneOf([401, 403]);
       } else {
         throw error;

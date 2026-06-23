@@ -1,6 +1,6 @@
 # Private subnets (2 AZ) for ECS instances + awsvpc task ENIs + ElastiCache.
 # awsvpc-on-EC2 task ENIs get no public IP, so they egress (ECR pull, ElevenLabs/
-# Clerk/Stripe/etc.) via a NAT gateway. ALB stays in the existing public subnets.
+# legacy auth provider/Stripe/etc.) via a NAT gateway. ALB stays in the existing public subnets.
 resource "aws_subnet" "private" {
   for_each          = var.private_subnet_cidrs
   vpc_id            = var.vpc_id

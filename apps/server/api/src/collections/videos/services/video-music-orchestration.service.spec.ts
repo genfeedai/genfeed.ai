@@ -27,7 +27,7 @@ import {
 
 const makeContext = (): OrchestrationContext => ({
   brandId: 'test-object-id',
-  clerkUserId: 'clerk_abc',
+  authProviderUserId: 'authProvider_abc',
   organizationId: 'test-object-id',
   userId: 'test-object-id',
 });

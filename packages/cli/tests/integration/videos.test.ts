@@ -61,7 +61,7 @@ describe.skipIf(!hasCredentials)('integration/videos', () => {
     } catch (error: unknown) {
       const status = (error as { status?: number }).status;
       if (status === 401 || status === 403) {
-        // Expected: ClerkGuard blocks API keys on /videos
+        // Expected: BetterAuthGuard blocks API keys on /videos
         expect(status).toBeOneOf([401, 403]);
       } else {
         throw error;

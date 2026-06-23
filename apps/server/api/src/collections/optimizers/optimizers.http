@@ -4,7 +4,7 @@
 
 ### Variables
 @baseUrl = http://localhost:3000
-@token = your_clerk_jwt_token_here
+@token = your_better_auth_jwt_token_here
 
 ### 1. Analyze content
 POST {{baseUrl}}/optimizers/analyze

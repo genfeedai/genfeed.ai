@@ -8,7 +8,7 @@ import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.serv
 import {
   getIsSuperAdmin,
   getPublicMetadata,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ApiKeyCategory, ApiKeyScope } from '@genfeedai/enums';
 import {

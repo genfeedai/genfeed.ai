@@ -123,7 +123,7 @@ describe('AutoMergeService', () => {
         category: IngredientCategory.VIDEO,
         groupId,
         isMergeEnabled: true,
-        user: { _id: 'test-object-id', clerkId: 'clerk_abc' },
+        user: { _id: 'test-object-id', authProviderId: 'authProvider_abc' },
       } as unknown as IngredientEntity;
 
       // Use private method access for testing
@@ -150,7 +150,7 @@ describe('AutoMergeService', () => {
         category: IngredientCategory.VIDEO,
         groupId,
         isMergeEnabled: true,
-        user: { _id: 'test-object-id', clerkId: 'clerk_abc' },
+        user: { _id: 'test-object-id', authProviderId: 'authProvider_abc' },
       } as unknown as IngredientEntity;
 
       await (service as any).triggerAutoMergeAsync(ingredient);

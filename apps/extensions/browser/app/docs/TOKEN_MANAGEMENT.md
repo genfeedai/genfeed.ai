@@ -27,7 +27,7 @@
 ### **1. Token Sources (Priority Order)**
 
 ```typescript
-1. Clerk JWT Token (Primary)     → getToken() from Clerk
+1. Better Auth JWT Token (Primary)     → getToken() from Better Auth
 2. Stored Token (Cache)          → chrome.storage.local
 3. Session Cookie (Fallback)     → genfeed.ai cookies
 ```
@@ -35,7 +35,7 @@
 ### **2. Token Flow**
 
 ```
-User Signs In → Clerk getToken() → AuthService.setToken() → Cached
+User Signs In → Better Auth getToken() → AuthService.setToken() → Cached
 API Request  → AuthService.getToken() → Automatic refresh if needed
 Logout       → AuthService.clearToken() → Cache cleared
 ```
@@ -55,8 +55,8 @@ Production:   genfeed.ai cookies
 // Get current token (with caching & refresh)
 await authService.getToken();
 
-// Set token from Clerk or cookies
-await authService.setToken(token, 'clerk');
+// Set token from Better Auth or cookies
+await authService.setToken(token, 'better_auth');
 
 // Clear token on logout
 await authService.clearToken();
@@ -142,7 +142,7 @@ pnpm dev:debug
 
 # Check console for:
 # - "Genfeed Extension: Token retrieved from storage"
-# - "Genfeed Extension: Token stored from clerk"
+# - "Genfeed Extension: Token stored from betterAuth"
 # - "Genfeed Extension: Token cleared"
 ```
 
@@ -150,7 +150,7 @@ pnpm dev:debug
 
 - Real-time authentication status
 - Token preview (first 20 chars)
-- Source tracking (clerk vs cookie)
+- Source tracking (betterAuth vs cookie)
 - Timestamp updates
 
 ## 🔧 **Configuration**
@@ -158,7 +158,7 @@ pnpm dev:debug
 ### **Environment Variables**
 
 ```env
-PLASMO_PUBLIC_CLERK_PUBLISHABLE_KEY=your_key_here
+PLASMO_PUBLIC_API_ENDPOINT=your_key_here
 PLASMO_PUBLIC_ENV=development
 ```
 

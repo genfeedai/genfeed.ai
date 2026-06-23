@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 'use client';
 
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { TasksService } from '@services/management/tasks.service';
@@ -29,7 +29,7 @@ const findIssueMock = vi.fn();
 const routerPushMock = vi.fn();
 const getClonedVoicesMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: getTokenMock,
   }),
@@ -53,7 +53,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrandId: () => 'brand-1',
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
+vi.mock('@helpers/auth/auth.helper', () => ({
   getPlaywrightAuthState: vi.fn(() => null),
   resolveAuthToken: vi.fn(),
 }));
@@ -213,7 +213,7 @@ describe('WorkspacePageContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.history.replaceState({}, '', '/workspace/overview');
-    getTokenMock.mockResolvedValue('clerk-token');
+    getTokenMock.mockResolvedValue('authProvider-token');
     vi.mocked(resolveAuthToken).mockResolvedValue('api-token');
     listMock.mockResolvedValue([]);
     createTaskMock.mockResolvedValue(buildTask());

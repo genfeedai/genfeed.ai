@@ -51,7 +51,9 @@ function validateEnvironment(): void {
   process.env.PLAYWRIGHT_TEST = 'true';
 
   // Log that test mode is active
-  console.log('✓ PLAYWRIGHT_TEST mode enabled - Clerk auth bypass active');
+  console.log(
+    '✓ PLAYWRIGHT_TEST mode enabled - Better Auth auth bypass active',
+  );
 }
 
 /**

@@ -1,9 +1,9 @@
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { EditorRenderService } from '@api/collections/editor-projects/services/editor-render.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ConfigService } from '@api/config/config.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
@@ -48,7 +48,7 @@ const makeRequest = (): Request => ({}) as Request;
 
 const makeUser = () =>
   ({
-    id: 'user_clerk_123',
+    id: 'user_authProvider_123',
     publicMetadata: {
       brand: '507f191e810c19729de860ee',
       organization: '507f191e810c19729de860ee',
@@ -120,7 +120,7 @@ describe('EditorProjectsController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })

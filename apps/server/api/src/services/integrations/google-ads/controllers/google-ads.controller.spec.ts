@@ -9,7 +9,7 @@ import { GoogleAdsService } from '../services/google-ads.service';
 import { GoogleAdsOAuthService } from '../services/google-ads-oauth.service';
 import { GoogleAdsController } from './google-ads.controller';
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
     organization: 'test-object-id',
     user: 'test-object-id',

@@ -15,7 +15,7 @@ describe('MarketplaceInstallController', () => {
     );
   });
 
-  it('installs the listing using the user/org from clerk public metadata', async () => {
+  it('installs the listing using the user/org from authProvider public metadata', async () => {
     const installResult = {
       resourceId: 'wf-1',
       resourceType: 'workflow',

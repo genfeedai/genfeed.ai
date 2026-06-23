@@ -1,12 +1,12 @@
 import { MemberRole } from '@genfeedai/enums';
-import type { IClerkPublicMetadata } from '@libs/interfaces/clerk.interface';
+import type { IAuthPublicMetadata } from '@libs/interfaces/auth-public-metadata.interface';
 
-describe('IClerkPublicMetadata', () => {
+describe('IAuthPublicMetadata', () => {
   it('should allow valid metadata structure', () => {
-    const metadata: IClerkPublicMetadata = {
+    const metadata: IAuthPublicMetadata = {
       balance: 100.5,
       brand: 'brand_789',
-      clerkId: 'user_clerk_123',
+      authProviderId: 'user_authProvider_123',
       isSuperAdmin: false,
       organization: 'org_456',
       role: MemberRole.OWNER,
@@ -26,7 +26,7 @@ describe('IClerkPublicMetadata', () => {
   });
 
   it('should allow optional fields to be undefined', () => {
-    const metadata: IClerkPublicMetadata = {
+    const metadata: IAuthPublicMetadata = {
       brand: 'brand_789',
       isSuperAdmin: false,
       organization: 'org_456',
@@ -36,11 +36,11 @@ describe('IClerkPublicMetadata', () => {
     expect(metadata.balance).toBeUndefined();
     expect(metadata.role).toBeUndefined();
     expect(metadata.stripeCustomerId).toBeUndefined();
-    expect(metadata.clerkId).toBeUndefined();
+    expect(metadata.authProviderId).toBeUndefined();
   });
 
   it('should require mandatory fields', () => {
-    const metadata: IClerkPublicMetadata = {
+    const metadata: IAuthPublicMetadata = {
       brand: 'brand_789',
       isSuperAdmin: true,
       organization: 'org_456',

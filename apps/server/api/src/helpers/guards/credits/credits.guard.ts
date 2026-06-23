@@ -21,7 +21,7 @@ import {
   modelKeyToByokProvider,
   modelProviderToByokProvider,
 } from '@api/services/byok/byok-provider-map.util';
-import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { type ByokProvider, PricingType } from '@genfeedai/enums';
 import { getDeserializer } from '@genfeedai/helpers';
 import type { CreditsConfig } from '@genfeedai/interfaces';
@@ -40,7 +40,7 @@ import type { Request } from 'express';
 interface AuthenticatedRequest extends Omit<Request, 'user'> {
   user?: {
     id?: string;
-    publicMetadata: IClerkPublicMetadata;
+    publicMetadata: IAuthPublicMetadata;
   };
   creditsConfig?: CreditsConfig & {
     amount: number;
@@ -101,7 +101,7 @@ export class CreditsGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const user = request.user;
-    const publicMetadata: IClerkPublicMetadata | undefined =
+    const publicMetadata: IAuthPublicMetadata | undefined =
       user?.publicMetadata;
 
     if (!user || !publicMetadata) {

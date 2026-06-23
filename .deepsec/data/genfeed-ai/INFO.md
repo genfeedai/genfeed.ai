@@ -6,7 +6,7 @@ Genfeed.ai is a self-hostable AI content creation OS. It is a Bun/Turborepo Type
 
 ## Auth shape
 
-- Clerk is the primary user auth provider, but MongoDB `users._id` is the canonical DB foreign key; `clerkId` must not be used as a DB foreign key.
+- legacy auth provider is the primary user auth provider, but MongoDB `users._id` is the canonical DB foreign key; `authProviderId` must not be used as a DB foreign key.
 - Nest controllers commonly use `@CurrentUser()`, `UseGuards(...)`, request-context middleware, and service-layer ownership checks.
 - Enterprise multi-tenancy lives under `ee/`; EE queries must include organization scope plus `isDeleted: false`.
 - API responses should flow through serializers in `packages/serializers`, not raw Mongoose documents or ad hoc controller shaping.

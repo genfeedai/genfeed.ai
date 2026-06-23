@@ -345,7 +345,7 @@ describe('AgentToolExecutorService', () => {
       findOne: vi.fn().mockResolvedValue({ _id: 'user-db-1' }),
       patch: vi.fn().mockResolvedValue({}),
     };
-    const clerkService = {
+    const authProviderService = {
       getUser: vi.fn().mockResolvedValue({
         publicMetadata: {
           brand: '67a1234567890123456789ab',
@@ -572,7 +572,7 @@ describe('AgentToolExecutorService', () => {
       organizationSettingsService as never,
       agentMemoryCaptureService as never,
       usersService as never,
-      clerkService as never,
+      authProviderService as never,
       streamPublisher as never,
       undefined as never, // agentSpawnService
       imagesService as never,
@@ -594,7 +594,7 @@ describe('AgentToolExecutorService', () => {
       botsLivestreamService,
       botsService,
       brandsService,
-      clerkService,
+      authProviderService,
       contentQualityScorerService,
       credentialsService,
       creditsUtilsService,
@@ -1477,7 +1477,7 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('should complete onboarding and sync claims', async () => {
-    const { clerkService, organizationsService, service, usersService } =
+    const { authProviderService, organizationsService, service, usersService } =
       createService();
 
     const result = await service.executeTool(
@@ -1485,7 +1485,7 @@ describe('AgentToolExecutorService', () => {
       {},
       {
         organizationId: '67a123456789012345678901',
-        userId: 'user_clerk_123',
+        userId: 'user_authProvider_123',
       },
     );
 
@@ -2348,10 +2348,10 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('should fall back to Clerk metadata brand when selected brand is missing', async () => {
+  it('should fall back to legacy auth provider metadata brand when selected brand is missing', async () => {
     const {
       brandsService,
-      clerkService,
+      authProviderService,
       recurringWorkflowId,
       service,
       usersService,
@@ -2364,7 +2364,7 @@ describe('AgentToolExecutorService', () => {
     });
     usersService.findOne.mockResolvedValue({
       _id: '67a123456789012345678902',
-      clerkId: 'clerk_abc123',
+      authProviderId: 'authProvider_abc123',
     });
 
     const result = await service.executeTool(
@@ -2381,7 +2381,9 @@ describe('AgentToolExecutorService', () => {
       },
     );
 
-    expect(clerkService.getUser).toHaveBeenCalledWith('clerk_abc123');
+    expect(authProviderService.getUser).toHaveBeenCalledWith(
+      'authProvider_abc123',
+    );
     expect(workflowsService.createWorkflow).toHaveBeenCalledWith(
       '67a123456789012345678902',
       '67a123456789012345678901',
@@ -2767,7 +2769,7 @@ describe('AgentToolExecutorService', () => {
     const {
       aiActionsService,
       brandsService,
-      clerkService,
+      authProviderService,
       credentialsService,
       imagesService,
       loggerService,
@@ -2803,7 +2805,7 @@ describe('AgentToolExecutorService', () => {
       { findOne: vi.fn().mockResolvedValue({}) } as never,
       { findOne: vi.fn().mockResolvedValue({}) } as never,
       usersService as never,
-      clerkService as never,
+      authProviderService as never,
       undefined as never,
       undefined as never,
       imagesService as never,

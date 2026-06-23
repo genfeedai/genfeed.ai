@@ -9,7 +9,7 @@ const postConnect = vi.fn(async () => ({
   url: 'https://oauth.example/connect',
 }));
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken,
   }),

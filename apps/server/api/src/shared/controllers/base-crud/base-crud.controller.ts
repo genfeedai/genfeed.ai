@@ -7,7 +7,7 @@ import { EntityDocument } from '@api/helpers/types/common/common.types';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';

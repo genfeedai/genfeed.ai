@@ -1,8 +1,8 @@
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { CronJobsController } from '@api/collections/cron-jobs/controllers/cron-jobs.controller';
 import type { CreateCronJobDto } from '@api/collections/cron-jobs/dto/create-cron-job.dto';
 import type { UpdateCronJobDto } from '@api/collections/cron-jobs/dto/update-cron-job.dto';
 import { CronJobsService } from '@api/collections/cron-jobs/services/cron-jobs.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -75,7 +75,7 @@ describe('CronJobsController', () => {
       controllers: [CronJobsController],
       providers: [{ provide: CronJobsService, useValue: mockServiceMethods }],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

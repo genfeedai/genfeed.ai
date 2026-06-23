@@ -18,7 +18,7 @@ import request from 'supertest';
  * Test user context for authenticated requests
  */
 export interface TestUserContext {
-  clerkUserId: string;
+  authProviderUserId: string;
   userId: string;
   organizationId: string;
   email: string;
@@ -32,7 +32,7 @@ export interface TestUserContext {
 export const createTestUserContext = (
   overrides: Partial<TestUserContext> = {},
 ): TestUserContext => ({
-  clerkUserId: `clerk_${generateIdString()}`,
+  authProviderUserId: `authProvider_${generateIdString()}`,
   email: 'test@example.com',
   isOwner: true,
   isSuperAdmin: false,
@@ -145,7 +145,7 @@ export class E2ETestApp {
   private withAuth(req: request.Test): request.Test {
     return req
       .set('Authorization', `Bearer mock-jwt-token`)
-      .set('x-clerk-user-id', this.userContext.clerkUserId)
+      .set('x-authProvider-user-id', this.userContext.authProviderUserId)
       .set('x-user-id', this.userContext.userId)
       .set('x-organization-id', this.userContext.organizationId);
   }
@@ -257,7 +257,7 @@ export const createTestBrand = (overrides: Record<string, unknown> = {}) => ({
  */
 export const createTestUser = (overrides: Record<string, unknown> = {}) => ({
   _id: generateIdString(),
-  clerkId: `clerk_${generateIdString()}`,
+  authProviderId: `authProvider_${generateIdString()}`,
   createdAt: new Date(),
   email: `test-${Date.now()}@example.com`,
   firstName: 'Test',

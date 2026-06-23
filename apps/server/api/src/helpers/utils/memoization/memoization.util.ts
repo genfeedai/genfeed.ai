@@ -2,7 +2,7 @@ import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { GlobalCaches } from '@api/helpers/utils/cache/cache.util';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 
 /**
  * Memoization utilities for expensive operations
@@ -56,14 +56,14 @@ export class MemoizationUtil {
    * Memoized user context enrichment
    */
   static enrichWithUserContext = GlobalCaches.getObjectIdCache().memoize(
-    (dto: unknown, publicMetadata: IClerkPublicMetadata) => {
+    (dto: unknown, publicMetadata: IAuthPublicMetadata) => {
       const dtoRecord =
         typeof dto === 'object' && dto !== null
           ? (dto as Record<string, unknown>)
           : {};
       return ObjectIdUtil.enrichWithUserContext(dtoRecord, publicMetadata);
     },
-    (dto: unknown, publicMetadata: IClerkPublicMetadata) =>
+    (dto: unknown, publicMetadata: IAuthPublicMetadata) =>
       `userContext:${JSON.stringify(publicMetadata)}:${JSON.stringify(dto)}`,
   );
 
@@ -71,13 +71,10 @@ export class MemoizationUtil {
    * Memoized secure query creation
    */
   static createSecureQuery = GlobalCaches.getObjectIdCache().memoize(
-    (
-      baseQuery: Record<string, unknown>,
-      userContext?: IClerkPublicMetadata,
-    ) => {
+    (baseQuery: Record<string, unknown>, userContext?: IAuthPublicMetadata) => {
       return ObjectIdUtil.createSecureQuery(baseQuery, userContext);
     },
-    (baseQuery: Record<string, unknown>, userContext?: IClerkPublicMetadata) =>
+    (baseQuery: Record<string, unknown>, userContext?: IAuthPublicMetadata) =>
       `secureQuery:${JSON.stringify(userContext)}:${JSON.stringify(baseQuery)}`,
   );
 

@@ -10,7 +10,7 @@ const useAuthMock = vi.fn();
 const useBrandMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => useAuthMock(),
 }));
 
@@ -37,7 +37,7 @@ describe('PromptBarProvider', () => {
       isLoaded: true,
       isSignedIn: true,
       orgId: 'org_123',
-      userId: 'clerk_123',
+      userId: 'authProvider_123',
     });
     useBrandMock.mockReturnValue({
       organizationId: 'org_123',

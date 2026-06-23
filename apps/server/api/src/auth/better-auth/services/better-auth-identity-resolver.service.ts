@@ -34,7 +34,7 @@ function getMemberOrganizationId(member: MemberDocument): string {
  *
  * The JWT `sub` is the genfeed `User.id` (Better Auth's user maps onto the
  * existing `User` table), so resolution reads the existing Organization/Member/
- * Brand tables — the same source the Clerk path uses — without any Clerk lookup,
+ * Brand tables — the same source the legacy auth provider path uses — without any legacy auth provider lookup,
  * reconciliation, or metadata write-back. Subscription tier/status are not
  * resolved here: `RequestContextMiddleware` derives those from the DB by
  * organization id.
@@ -120,7 +120,7 @@ export class BetterAuthIdentityResolverService {
   ): Promise<string | undefined> {
     // DB-authoritative active org (epic #735, Phase C): prefer the user's
     // `lastUsedOrganizationId` (validated against live membership/ownership) so
-    // multi-org switching is honoured without any Clerk publicMetadata.
+    // multi-org switching is honoured without any legacy auth provider publicMetadata.
     if (lastUsedOrganizationId) {
       const accessibleOrgId = await this.findAccessibleOrganizationId(
         lastUsedOrganizationId,

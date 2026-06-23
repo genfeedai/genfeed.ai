@@ -4,7 +4,7 @@ import { CronJobQueryDto } from '@api/collections/cron-jobs/dto/cron-job-query.d
 import { UpdateCronJobDto } from '@api/collections/cron-jobs/dto/update-cron-job.dto';
 import { CronJobsService } from '@api/collections/cron-jobs/services/cron-jobs.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeCollection,

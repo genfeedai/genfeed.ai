@@ -1,9 +1,9 @@
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { MCPController } from '@api/endpoints/mcp/mcp.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -43,7 +43,7 @@ describe('MCPController', () => {
     originalUrl: '/mcp/videos',
     url: '/mcp/videos',
     user: {
-      id: 'clerk_user_123',
+      id: 'authProvider_user_123',
       publicMetadata: {
         brand: '507f1f77bcf86cd799439010',
         organization: '507f1f77bcf86cd799439011',
@@ -70,7 +70,7 @@ describe('MCPController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })

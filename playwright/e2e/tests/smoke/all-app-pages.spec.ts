@@ -206,7 +206,7 @@ function bootstrapPayload() {
       },
     ],
     currentUser: {
-      clerkId: 'mock-user-id-e2e-test',
+      authProviderId: 'mock-user-id-e2e-test',
       email: 'test@genfeed.ai',
       firstName: 'Test',
       id: 'mock-user-id-e2e-test',
@@ -237,7 +237,7 @@ function installReadinessPayload() {
       selectedMode: 'server',
       serverDefaultsReady: true,
     },
-    authMode: 'clerk',
+    authMode: 'better_auth',
     billingMode: 'oss_local',
     localTools: {
       anyDetected: true,

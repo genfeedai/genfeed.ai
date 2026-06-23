@@ -18,7 +18,7 @@ import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
 /**
  * Deep interaction coverage for the Workflows list and builder/canvas.
  *
- * All API + Clerk traffic is mocked. The canvas is React Flow (@xyflow/react),
+ * All API + Better Auth traffic is mocked. The canvas is React Flow (@xyflow/react),
  * so selectors fall back to `.react-flow__*` and best-effort `tryClick`.
  * Interactions are guarded with `.catch(() => {})` so a missing affordance
  * never hard-fails — the goal is to exercise code paths for coverage.

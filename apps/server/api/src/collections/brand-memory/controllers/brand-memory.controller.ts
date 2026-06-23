@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { BrandMemorySerializer } from '@genfeedai/serializers';
 import { Controller, Get, Param, Post, Query, Req } from '@nestjs/common';

@@ -1,4 +1,4 @@
-import { ClerkProvider, useAuth } from '@clerk/chrome-extension';
+import { useAuth } from '@genfeedai/auth-client/react';
 import { type ReactElement, useEffect, useReducer } from 'react';
 
 import { ChatContainer } from '~components/chat/ChatContainer';
@@ -237,16 +237,5 @@ export default function SidePanel() {
     document.body.setAttribute('data-theme', 'dark');
   }, []);
 
-  const extensionUrl = chrome.runtime.getURL('.');
-
-  return (
-    <ClerkProvider
-      publishableKey={process.env.PLASMO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? ''}
-      afterSignOutUrl={`${extensionUrl}/sidepanel.html`}
-      signInFallbackRedirectUrl={`${extensionUrl}/sidepanel.html`}
-      signUpFallbackRedirectUrl={`${extensionUrl}/sidepanel.html`}
-    >
-      <SidePanelContent />
-    </ClerkProvider>
-  );
+  return <SidePanelContent />;
 }

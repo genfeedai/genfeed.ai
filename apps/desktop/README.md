@@ -60,8 +60,8 @@ Desktop also supports BYOK image asset generation for Replicate and fal.ai. The
 user supplies their own provider key, Electron main queues the job locally,
 downloads the returned image, writes it into the workspace asset directory, and
 registers it as a `local-generation` asset with `local-only` residency and
-`never` upload policy by default. Clerk and the Genfeed API are not required for
-this local/BYOK path; Clerk is only needed for explicit Genfeed Cloud sync.
+`never` upload policy by default. Better Auth and the Genfeed API are not required for
+this local/BYOK path; Better Auth is only needed for explicit Genfeed Cloud sync.
 Ollama and LM Studio remain text/workflow providers until a concrete local image
 runtime is wired separately.
 
