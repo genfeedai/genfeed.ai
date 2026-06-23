@@ -824,65 +824,10 @@ export class ClerkWebhookService {
       }
     }
 
-    // Prepare metadata update - only set isSuperAdmin: false for new users
-    const orgForMetadata = organizationId
-      ? await this.organizationsService.findOne({
-          _id: organizationId,
-        })
-      : null;
-
-    const metadataUpdate: Record<string, unknown> = {
-      brand: brandId,
-      category: orgForMetadata?.category || OrganizationCategory.BUSINESS,
-      isOnboardingCompleted: !isProactiveOnboarding,
-      organization: organizationId,
-      user: user._id,
-    };
-
-    if (isProactiveOnboarding && invitationMetadata?.leadId) {
-      metadataUpdate.proactiveLeadId = invitationMetadata.leadId;
-    }
-
-    // Only set isSuperAdmin to false if it's not already set (new users)
-    const currentMetadata = publicMetadata || {};
-    if (currentMetadata.isSuperAdmin === undefined) {
-      metadataUpdate.isSuperAdmin = false;
-    }
-
-    // For consumer users, add appSource to metadata
-    if (isConsumerSignup) {
-      metadataUpdate.appSource = AppSource.GETSHAREABLE;
-    }
-
-    // Update Clerk metadata with the user's organization
-    // For user.created events, the user might not be fully available in Clerk API yet
-    // So we handle this gracefully
-    try {
-      await this.clerkService.updateUserPublicMetadata(
-        clerkUserId,
-        metadataUpdate,
-      );
-      this.loggerService.log(
-        `Updated Clerk metadata for user ${clerkUserId}`,
-        metadataUpdate,
-      );
-    } catch (error: unknown) {
-      // For user.created events, this is expected - user might not be available yet
-      if (type === 'user.created') {
-        this.loggerService.warn(
-          `Failed to update Clerk metadata for newly created user ${clerkUserId} (user may not be fully available in Clerk API yet)`,
-          { error: (error as Error)?.message, metadataUpdate },
-        );
-        // Don't throw - this is not critical for user.created events
-      } else {
-        // For other events, log as error but don't fail the webhook
-        this.loggerService.error(
-          `Failed to update Clerk metadata for user ${clerkUserId}`,
-          error,
-          { metadataUpdate },
-        );
-      }
-    }
+    // Identity state (onboarding, org/brand routing, isSuperAdmin, appSource) is
+    // persisted to the DB by the provisioning logic above and resolved from the
+    // DB on each request (epic #735, Phase C — no Clerk publicMetadata
+    // write-back). This inbound Clerk webhook itself is removed in Phase H.
 
     // Send Discord notification for new user signups
     if (type === 'user.created') {

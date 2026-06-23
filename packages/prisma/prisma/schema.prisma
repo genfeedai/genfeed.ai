@@ -511,6 +511,13 @@ model User {
   onboardingStepsCompleted String[]        @default([])
   appSource                AppSource       @default(GENFEED)
   stripeCustomerId         String?
+  // Active-organization pointer (epic #735, Phase C). Replaces the Clerk
+  // `publicMetadata.organization` routing candidate so the user's current org
+  // survives the Clerk cutover and multi-org switching is DB-authoritative for
+  // both the Clerk and Better Auth identity resolvers. Plain id (validated
+  // against live membership at resolve time); no FK so leaving/deleting an org
+  // never blocks. Brand stays per-membership via `Member.lastUsedBrandId`.
+  lastUsedOrganizationId   String?
   createdAt                DateTime        @default(now())
   updatedAt                DateTime        @updatedAt
 

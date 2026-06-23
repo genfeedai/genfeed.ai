@@ -42,7 +42,6 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
@@ -102,7 +101,6 @@ export class OrganizationsController extends BaseCRUDController<
     private readonly usersService: UsersService,
     private readonly rolesService: RolesService,
     private readonly organizationSettingsService: OrganizationSettingsService,
-    private readonly clerkService: ClerkService,
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
   ) {
@@ -580,11 +578,19 @@ export class OrganizationsController extends BaseCRUDController<
       );
     }
 
-    // Update Clerk publicMetadata
-    await this.clerkService.updateUserPublicMetadata(user.id, {
-      brand: brand._id.toString(),
-      organization: orgId,
-    });
+    // Persist the active org + brand to the DB so both identity resolvers route
+    // to this org on the next request (epic #735, Phase C — no Clerk write-back).
+    await this.usersService.patch(userId, { lastUsedOrganizationId: orgId });
+    if (member) {
+      await this.membersService.setLastUsedBrand(
+        { isActive: true, isDeleted: false, organization: orgId, user: userId },
+        brand._id.toString(),
+      );
+    }
+    await Promise.all([
+      this.requestContextCacheService.invalidateForUser(userId),
+      this.accessBootstrapCacheService.invalidateForUser(userId),
+    ]);
 
     const org = await this.organizationsService.findOne({
       _id: orgId,
@@ -719,11 +725,21 @@ export class OrganizationsController extends BaseCRUDController<
       userId,
     } as unknown as Parameters<typeof this.membersService.create>[0]);
 
-    // Step 5: Update Clerk publicMetadata to switch to new org
-    await this.clerkService.updateUserPublicMetadata(user.id, {
-      brand: brand._id.toString(),
-      organization: org._id.toString(),
+    // Step 5: Switch the user to the new org via DB pointers (epic #735, Phase C
+    // — no Clerk write-back). Both identity resolvers pick up
+    // lastUsedOrganizationId + the member's lastUsedBrandId on the next request.
+    await this.usersService.patch(userId, {
+      lastUsedOrganizationId: org._id.toString(),
     });
+    await this.membersService.setLastUsedBrand(
+      {
+        isActive: true,
+        isDeleted: false,
+        organization: org._id.toString(),
+        user: userId,
+      },
+      brand._id.toString(),
+    );
 
     await Promise.all([
       this.requestContextCacheService.invalidateForUser(userId),

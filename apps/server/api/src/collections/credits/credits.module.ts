@@ -14,7 +14,6 @@ import { OssCreditsUtilsService } from '@api/common/credits/oss-credits-utils.se
 import { TransactionModule } from '@api/helpers/utils/transaction/transaction.module';
 import { CreditDeductionModule } from '@api/queues/credit-deduction/credit-deduction.module';
 import { ByokModule } from '@api/services/byok/byok.module';
-import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { isEEEnabled } from '@genfeedai/config';
 import { HttpModule } from '@nestjs/axios';
@@ -30,7 +29,6 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   imports: [
     forwardRef(() => ByokModule),
-    forwardRef(() => ClerkModule),
     forwardRef(() => CommonModule),
     forwardRef(() => CreditDeductionModule),
     forwardRef(() => NotificationsPublisherModule),

@@ -6,7 +6,6 @@ import type { OrganizationDocument } from '@api/collections/organizations/schema
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -62,7 +61,6 @@ export class AuthIdentityResolverService {
     private readonly organizationsService: OrganizationsService,
     private readonly brandsService: BrandsService,
     private readonly membersService: MembersService,
-    private readonly clerkService: ClerkService,
     private readonly loggerService: LoggerService,
     private readonly userSetupService: UserSetupService,
   ) {}
@@ -73,6 +71,7 @@ export class AuthIdentityResolverService {
   ): Promise<{
     resolvedBy: 'lookup' | 'metadata' | 'reconciled';
     userId: string;
+    user: Record<string, unknown> | null;
   }> {
     const clerkUserId = clerkUser.id;
     const metadataUserId =
@@ -89,6 +88,7 @@ export class AuthIdentityResolverService {
       if (currentUserId) {
         return {
           resolvedBy: 'metadata',
+          user: currentUser as Record<string, unknown> | null,
           userId: currentUserId,
         };
       }
@@ -101,6 +101,7 @@ export class AuthIdentityResolverService {
     if (currentUserId) {
       return {
         resolvedBy: 'lookup',
+        user: user as Record<string, unknown> | null,
         userId: currentUserId,
       };
     }
@@ -111,8 +112,13 @@ export class AuthIdentityResolverService {
     // not locked out by an identity drift they cannot see or fix themselves.
     const reconciledUserId = await this.reconcileByEmail(clerkUser);
     if (reconciledUserId) {
+      const reconciledUser = await this.usersService.findOne(
+        { _id: reconciledUserId },
+        [],
+      );
       return {
         resolvedBy: 'reconciled',
+        user: reconciledUser as Record<string, unknown> | null,
         userId: reconciledUserId,
       };
     }
@@ -233,6 +239,7 @@ export class AuthIdentityResolverService {
     userId: string,
     members: MemberDocument[],
     clerkOrgId?: string,
+    lastUsedOrganizationId?: string,
   ): Promise<OrganizationDocument | null> {
     if (clerkOrgId) {
       const orgFromClerk = await this.findAccessibleOrganization(
@@ -242,6 +249,22 @@ export class AuthIdentityResolverService {
       );
       if (orgFromClerk) {
         return orgFromClerk;
+      }
+    }
+
+    // DB-authoritative active org (epic #735, Phase C): `User.lastUsedOrganizationId`
+    // replaces the Clerk `publicMetadata.organization` routing candidate so the
+    // user's current org survives the Clerk cutover and multi-org switching works
+    // without writing back to Clerk. Validated against live membership; falls
+    // through when stale (org left/deleted) or unset (pre-cutover users).
+    if (lastUsedOrganizationId) {
+      const orgFromLastUsed = await this.findAccessibleOrganization(
+        lastUsedOrganizationId,
+        userId,
+        members,
+      );
+      if (orgFromLastUsed) {
+        return orgFromLastUsed;
       }
     }
 
@@ -299,31 +322,11 @@ export class AuthIdentityResolverService {
     organizationId: string,
     members: MemberDocument[],
   ): Promise<BrandDocument | null> {
-    const brandCandidate =
-      typeof publicMetadata.brand === 'string' ? publicMetadata.brand : '';
-
-    if (brandCandidate) {
-      const brandFromMetadata =
-        (await this.brandsService.findOne({
-          _id: brandCandidate,
-          isDeleted: false,
-          organization: organizationId,
-        })) ??
-        (await this.brandsService.findOne({
-          isDeleted: false,
-          mongoId: brandCandidate,
-          organization: organizationId,
-        }));
-
-      if (
-        getEntityId(
-          brandFromMetadata as Record<string, unknown> | null | undefined,
-        )
-      ) {
-        return brandFromMetadata;
-      }
-    }
-
+    // DB-authoritative active brand (epic #735, Phase C): `Member.lastUsedBrandId`
+    // is preferred over the Clerk `publicMetadata.brand` routing candidate so a
+    // brand switch (which persists `lastUsedBrandId`) takes effect without a
+    // Clerk write-back. The metadata candidate stays as a transition fallback for
+    // members whose `lastUsedBrandId` is not yet set.
     const memberForOrganization = members.find((member) => {
       const memberOrganizationId =
         getRecordId(asMemberRecord(member), 'organizationId') ||
@@ -353,6 +356,31 @@ export class AuthIdentityResolverService {
         getEntityId(lastUsedBrand as Record<string, unknown> | null | undefined)
       ) {
         return lastUsedBrand;
+      }
+    }
+
+    const brandCandidate =
+      typeof publicMetadata.brand === 'string' ? publicMetadata.brand : '';
+
+    if (brandCandidate) {
+      const brandFromMetadata =
+        (await this.brandsService.findOne({
+          _id: brandCandidate,
+          isDeleted: false,
+          organization: organizationId,
+        })) ??
+        (await this.brandsService.findOne({
+          isDeleted: false,
+          mongoId: brandCandidate,
+          organization: organizationId,
+        }));
+
+      if (
+        getEntityId(
+          brandFromMetadata as Record<string, unknown> | null | undefined,
+        )
+      ) {
+        return brandFromMetadata;
       }
     }
 
@@ -417,6 +445,10 @@ export class AuthIdentityResolverService {
     const publicMetadata =
       user.publicMetadata as unknown as IClerkPublicMetadata;
     const resolvedUser = await this.resolveUserId(user, publicMetadata);
+    const lastUsedOrganizationId = getRecordId(
+      resolvedUser.user,
+      'lastUsedOrganizationId',
+    );
     const members = await this.membersService.find({
       isActive: true,
       isDeleted: false,
@@ -427,6 +459,7 @@ export class AuthIdentityResolverService {
       resolvedUser.userId,
       members,
       options?.clerkOrgId,
+      lastUsedOrganizationId,
     );
     let organizationId =
       getEntityId(organization as Record<string, unknown> | null | undefined) ||
@@ -450,35 +483,9 @@ export class AuthIdentityResolverService {
       brandId = getEntityId(brand as Record<string, unknown>) || undefined;
     }
 
-    const metadataPatch: Partial<IClerkPublicMetadata> = {
-      brand: brandId,
-      organization: organizationId,
-      user: resolvedUser.userId,
-    };
-    const shouldRepairMetadata =
-      metadataPatch.user !== publicMetadata.user ||
-      metadataPatch.organization !== publicMetadata.organization ||
-      metadataPatch.brand !== publicMetadata.brand;
-
-    if (shouldRepairMetadata) {
-      this.clerkService
-        .updateUserPublicMetadata(clerkUserId, metadataPatch)
-        .catch((error: unknown) => {
-          const message =
-            error instanceof Error ? error.message : 'Unknown Clerk error';
-          this.loggerService.warn(
-            `Failed to repair Clerk publicMetadata for ${clerkUserId}: ${message}`,
-            {
-              brandId,
-              clerkUserId,
-              organizationId,
-              service: 'AuthIdentityResolverService',
-              userId: resolvedUser.userId,
-            },
-          );
-        });
-    }
-
+    // Identity is resolved DB-first (User.lastUsedOrganizationId +
+    // Member.lastUsedBrandId), so there is no Clerk publicMetadata write-back
+    // here (epic #735, Phase C — nothing writes identity state back to Clerk).
     return {
       brandId,
       clerkUserId,

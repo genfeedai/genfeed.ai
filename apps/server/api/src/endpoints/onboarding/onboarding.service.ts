@@ -8,6 +8,7 @@ import type {
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { LinksService } from '@api/collections/links/services/links.service';
+import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
@@ -25,7 +26,6 @@ import { ProactiveOnboardingService } from '@api/endpoints/onboarding/proactive-
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import type { User } from '@clerk/backend';
@@ -133,9 +133,9 @@ export class OnboardingService {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly filesClientService: FilesClientService,
     private readonly linksService: LinksService,
+    private readonly membersService: MembersService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly organizationsService: OrganizationsService,
-    private readonly clerkService: ClerkService,
     private readonly usersService: UsersService,
     private readonly proactiveOnboardingService: ProactiveOnboardingService,
     private readonly requestContextCacheService: RequestContextCacheService,
@@ -190,6 +190,28 @@ export class OnboardingService {
     let organizationId = publicMetadata.organization?.toString() ?? '';
     let brandId: string | null = publicMetadata.brand?.toString() ?? null;
 
+    // Resolve the active org DB-first before provisioning (epic #735, Phase C):
+    // post-Clerk, publicMetadata.organization is no longer written, so fall back
+    // to User.lastUsedOrganizationId and then the user's owned org. Without this,
+    // every onboarding step would re-run initializeUserResources for a user who
+    // already has a workspace.
+    if (!organizationId) {
+      const lastUsedOrganizationId =
+        (
+          dbUser as { lastUsedOrganizationId?: string | null } | null
+        )?.lastUsedOrganizationId?.toString() ?? '';
+
+      if (lastUsedOrganizationId) {
+        organizationId = lastUsedOrganizationId;
+      } else {
+        const ownedOrg = await this.organizationsService.findOne({
+          isDeleted: false,
+          user: userId,
+        });
+        organizationId = this.getEntityId(ownedOrg);
+      }
+    }
+
     if (!organizationId) {
       const setupResult = await this.userSetupService.initializeUserResources(
         userId,
@@ -201,17 +223,21 @@ export class OnboardingService {
     }
 
     try {
-      await this.clerkService.updateUserPublicMetadata(user.id, {
-        brand: brandId || undefined,
-        organization: organizationId,
-        user: userId,
+      // Persist the active org to the DB so both identity resolvers route to it
+      // (epic #735, Phase C — no Clerk write-back). Brand resolves from the
+      // member's lastUsedBrandId / org default.
+      await this.usersService.patch(userId, {
+        lastUsedOrganizationId: organizationId,
       });
     } catch (error: unknown) {
-      this.loggerService.warn('Failed to repair Clerk onboarding metadata', {
-        error: error instanceof Error ? error.message : error,
-        organizationId,
-        userId,
-      });
+      this.loggerService.warn(
+        'Failed to set active organization during onboarding',
+        {
+          error: error instanceof Error ? error.message : error,
+          organizationId,
+          userId,
+        },
+      );
     }
 
     return { brandId, organizationId, userId };
@@ -424,7 +450,6 @@ export class OnboardingService {
     brand: { _id: string; label?: string | null },
     organizationId: string,
     userId: string,
-    clerkUserId: string,
     label?: string,
   ) {
     const normalizedLabel = label?.trim();
@@ -451,9 +476,17 @@ export class OnboardingService {
       String(userId),
       String(organizationId),
     );
-    await this.clerkService.updateUserPublicMetadata(clerkUserId, {
-      brand: String(matchingBrand._id),
-    });
+    // Persist the selected brand on the member so the identity resolvers route
+    // to it (epic #735, Phase C — no Clerk write-back).
+    await this.membersService.setLastUsedBrand(
+      {
+        isActive: true,
+        isDeleted: false,
+        organization: String(organizationId),
+        user: String(userId),
+      },
+      String(matchingBrand._id),
+    );
 
     return matchingBrand;
   }
@@ -639,7 +672,6 @@ export class OnboardingService {
         existingBrand,
         organizationId,
         userId,
-        user.id,
         resolvedLabel,
       );
 
@@ -999,12 +1031,6 @@ export class OnboardingService {
         category,
       });
 
-      await this.clerkService.updateUserPublicMetadata(user.id, {
-        // @ts-expect-error accountType is valid
-        accountType: category,
-        category,
-      });
-
       this.loggerService.log(`${caller} completed`, { category });
 
       return {
@@ -1047,11 +1073,8 @@ export class OnboardingService {
         );
       }
 
-      await this.clerkService.updateUserPublicMetadata(user.id, {
-        isOnboardingCompleted: true,
-      });
-
-      // Also update MongoDB so OnboardingGuard is satisfied
+      // Update the DB so OnboardingGuard is satisfied (epic #735, Phase C —
+      // isOnboardingCompleted is read from the User row, not Clerk metadata).
       const dbUser = await this.usersService.findOne({ clerkId: user.id });
       if (dbUser && !dbUser.isOnboardingCompleted) {
         await this.usersService.patch(dbUser._id, {

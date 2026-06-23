@@ -5,7 +5,6 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { BusinessLogicException } from '@api/helpers/exceptions/business/business-logic.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { EventBusService } from '@api/shared/services/event-bus/event-bus.service';
@@ -37,7 +36,6 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     private readonly creditBalanceService: CreditBalanceService,
     private readonly creditTransactionsService: CreditTransactionsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
-    private readonly clerkService: ClerkService,
     private readonly websocketService: NotificationsPublisherService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     @Optional() private readonly transactionUtil?: TransactionUtil,
@@ -148,17 +146,8 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           )
         : await deductCore();
 
-      // Side effects outside transaction (idempotent, non-critical)
-      const dbUser = await this.prisma.user.findFirst({
-        select: { clerkId: true },
-        where: { id: userId, isDeleted: false },
-      });
-      if (dbUser?.clerkId) {
-        await this.clerkService.updateUserPublicMetadata(dbUser.clerkId, {
-          balance: newBalance,
-        });
-      }
-
+      // Balance is persisted to the credit-balance table above (epic #735,
+      // Phase C — no Clerk publicMetadata write-back).
       const defaultBrand = await this.prisma.brand.findFirst({
         select: { id: true },
         where: { isDeleted: false, organizationId },
@@ -287,23 +276,8 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         await this.markOrganizationAsHavingCredits(organizationId);
       }
 
-      // Side effects outside transaction (idempotent, non-critical)
-      const subscription = await this.prisma.subscription.findFirst({
-        select: { id: true, userId: true },
-        where: { isDeleted: false, organizationId },
-      });
-      if (subscription?.userId) {
-        const dbUser = await this.prisma.user.findFirst({
-          select: { clerkId: true },
-          where: { id: subscription.userId, isDeleted: false },
-        });
-        if (dbUser?.clerkId) {
-          await this.clerkService.updateUserPublicMetadata(dbUser.clerkId, {
-            balance: newBalance,
-          });
-        }
-      }
-
+      // Balance is persisted to the credit-balance table above (epic #735,
+      // Phase C — no Clerk publicMetadata write-back).
       const websocketUrl = `/credits/${organizationId}`;
       await this.websocketService.emit(websocketUrl, {
         balance: newBalance,
@@ -395,23 +369,8 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           )
         : await refundCore();
 
-      // Side effects outside transaction (idempotent, non-critical)
-      const subscription = await this.prisma.subscription.findFirst({
-        select: { id: true, userId: true },
-        where: { isDeleted: false, organizationId },
-      });
-      if (subscription?.userId) {
-        const dbUser = await this.prisma.user.findFirst({
-          select: { clerkId: true },
-          where: { id: subscription.userId, isDeleted: false },
-        });
-        if (dbUser?.clerkId) {
-          await this.clerkService.updateUserPublicMetadata(dbUser.clerkId, {
-            balance: newBalance,
-          });
-        }
-      }
-
+      // Balance is persisted to the credit-balance table above (epic #735,
+      // Phase C — no Clerk publicMetadata write-back).
       const websocketUrl = `/credits/${organizationId}`;
       await this.websocketService.emit(websocketUrl, {
         balance: newBalance,
@@ -604,23 +563,8 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         await this.markOrganizationAsHavingCredits(organizationId);
       }
 
-      // Side effects outside transaction (idempotent, non-critical)
-      const subscription = await this.prisma.subscription.findFirst({
-        select: { id: true, userId: true },
-        where: { isDeleted: false, organizationId },
-      });
-      if (subscription?.userId) {
-        const dbUser = await this.prisma.user.findFirst({
-          select: { clerkId: true },
-          where: { id: subscription.userId, isDeleted: false },
-        });
-        if (dbUser?.clerkId) {
-          await this.clerkService.updateUserPublicMetadata(dbUser.clerkId, {
-            balance: newCreditAmount,
-          });
-        }
-      }
-
+      // Balance is persisted to the credit-balance table above (epic #735,
+      // Phase C — no Clerk publicMetadata write-back).
       const websocketUrl = `/credits/${organizationId}`;
       await this.websocketService.emit(websocketUrl, {
         balance: newCreditAmount,
@@ -701,22 +645,13 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           )
         : await removeAllCore();
 
-      // Side effects outside transaction (idempotent, non-critical)
+      // Balance is persisted to the credit-balance table above (epic #735,
+      // Phase C — no Clerk publicMetadata write-back). The subscription lookup
+      // is retained for the activity event below.
       const subscription = await this.prisma.subscription.findFirst({
         select: { id: true, userId: true },
         where: { isDeleted: false, organizationId },
       });
-      if (subscription?.userId) {
-        const dbUser = await this.prisma.user.findFirst({
-          select: { clerkId: true },
-          where: { id: subscription.userId, isDeleted: false },
-        });
-        if (dbUser?.clerkId) {
-          await this.clerkService.updateUserPublicMetadata(dbUser.clerkId, {
-            balance: 0,
-          });
-        }
-      }
 
       if (subscription?.userId) {
         const defaultBrand = await this.prisma.brand.findFirst({

@@ -61,4 +61,13 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
     type: [String],
   })
   readonly onboardingStepsCompleted?: string[];
+
+  // The user's active organization id (DB-authoritative routing, epic #735
+  // Phase C). Deliberately UNDECORATED so the ValidationPipe's whitelist strips
+  // it from client `PATCH /me` input — it must not be settable from arbitrary
+  // user JSON (no membership check there). It is written only by the
+  // membership-validated org switch/select/create/onboarding endpoints via
+  // `usersService.patch`; the resolvers re-validate it against live membership.
+  // Kept on the DTO type so those internal calls remain type-safe.
+  readonly lastUsedOrganizationId?: string | null;
 }

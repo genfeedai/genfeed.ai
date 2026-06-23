@@ -31,7 +31,6 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import type { User } from '@clerk/backend';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import {
@@ -76,7 +75,6 @@ export class UsersController {
     private readonly subscriptionsService: ISubscriptionsService,
     private readonly organizationsService: OrganizationsService,
     private readonly settingsService: SettingsService,
-    private readonly clerkService: ClerkService,
     private readonly filesClientService: FilesClientService,
     private readonly loggerService: LoggerService,
     private readonly membersService: MembersService,
@@ -406,12 +404,12 @@ export class UsersController {
       isSelected: true,
     });
 
-    // Update Clerk public metadata to reflect the selected brand
-    await this.clerkService.updateUserPublicMetadata(user.id, {
-      organization: data._id,
-    });
-
+    // Persist the active org to the DB so both identity resolvers route to it on
+    // the next request (epic #735, Phase C — no Clerk write-back).
     if (publicMetadata.user) {
+      await this.usersService.patch(publicMetadata.user, {
+        lastUsedOrganizationId: String(data._id),
+      });
       await Promise.all([
         this.requestContextCacheService.invalidateForUser(publicMetadata.user),
         this.accessBootstrapCacheService.invalidateForUser(publicMetadata.user),
@@ -438,11 +436,8 @@ export class UsersController {
       publicMetadata.organization,
     );
 
-    // Update Clerk public metadata to reflect the selected brand
-    await this.clerkService.updateUserPublicMetadata(user.id, {
-      brand: data._id,
-    });
-
+    // Active brand is persisted to the member's lastUsedBrandId below, which the
+    // identity resolvers read (epic #735, Phase C — no Clerk write-back).
     if (publicMetadata.user) {
       await Promise.all([
         this.requestContextCacheService.invalidateForUser(publicMetadata.user),
@@ -475,9 +470,17 @@ export class UsersController {
       publicMetadata.organization,
     );
 
-    await this.clerkService.updateUserPublicMetadata(user.id, {
-      brand: undefined,
-    });
+    // Clear the member's lastUsedBrandId so the identity resolvers fall back to
+    // the org default instead of a stale brand (epic #735, Phase C — no Clerk).
+    await this.membersService.setLastUsedBrand(
+      {
+        isActive: true,
+        isDeleted: false,
+        organization: publicMetadata.organization,
+        user: publicMetadata.user,
+      },
+      null,
+    );
 
     await Promise.all([
       this.requestContextCacheService.invalidateForUser(user.id),
