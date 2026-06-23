@@ -1,4 +1,6 @@
+import { BETTER_AUTH_USER_CREATED_EVENT } from '@api/auth/better-auth/better-auth.constants';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
+import type { ManagedCheckoutResult } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import type Stripe from 'stripe';
 
 type InvoiceHandlerAccessor = {
@@ -9,7 +11,15 @@ type InvoiceHandlerAccessor = {
   ): Promise<void>;
 };
 
-describe('StripeWebhookService invoice handlers', () => {
+type ProvisionAccessor = {
+  provisionManagedCheckoutAccount(
+    session: unknown,
+    email: string,
+    url: string,
+  ): Promise<ManagedCheckoutResult>;
+};
+
+describe('StripeWebhookService', () => {
   const configService = { get: vi.fn().mockReturnValue(undefined) };
   const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const subscriptionsService = {
@@ -23,29 +33,41 @@ describe('StripeWebhookService invoice handlers', () => {
     resetOrganizationCredits: vi.fn(),
   };
   const activitiesService = { create: vi.fn() };
+  const apiKeysService = {
+    createWithKey: vi.fn(),
+    findOne: vi.fn(),
+    patch: vi.fn(),
+  };
+  const brandsService = { findOne: vi.fn() };
+  const usersService = { create: vi.fn(), findOne: vi.fn(), patch: vi.fn() };
+  const organizationsService = { findOne: vi.fn() };
+  const organizationSettingsService = { findOne: vi.fn(), patch: vi.fn() };
+  const accessBootstrapCacheService = { invalidateForUser: vi.fn() };
+  const userSetupService = { initializeUserResources: vi.fn() };
+  const eventEmitter = { emitAsync: vi.fn() };
 
-  function buildService(): InvoiceHandlerAccessor {
+  function buildService(): InvoiceHandlerAccessor & ProvisionAccessor {
     return new StripeWebhookService(
       configService as never,
       loggerService as never,
-      {} as never, // apiKeysService
-      {} as never, // brandsService
+      apiKeysService as never,
+      brandsService as never,
       subscriptionsService as never,
       creditsUtilsService as never,
       activitiesService as never,
-      {} as never, // usersService
-      {} as never, // clerkService
+      usersService as never,
       {} as never, // stripeService
       {} as never, // managedStripeCheckoutService
-      {} as never, // organizationsService
+      organizationsService as never,
       {} as never, // subscriptionAttributionsService
       {} as never, // userSubscriptionsService
-      {} as never, // organizationSettingsService
+      organizationSettingsService as never,
       {} as never, // prisma
       {} as never, // requestContextCacheService
-      {} as never, // accessBootstrapCacheService
-      {} as never, // userSetupService
-    ) as unknown as InvoiceHandlerAccessor;
+      accessBootstrapCacheService as never,
+      userSetupService as never,
+      eventEmitter as never,
+    ) as unknown as InvoiceHandlerAccessor & ProvisionAccessor;
   }
 
   function invoiceWith(overrides: Record<string, unknown>): Stripe.Invoice {
@@ -167,6 +189,137 @@ describe('StripeWebhookService invoice handlers', () => {
       await service.handleInvoicePaymentFailed(invoiceWith({}), 'test');
 
       expect(subscriptionsService.findOne).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('provisionManagedCheckoutAccount', () => {
+    const email = 'ada@example.com';
+    const session = {
+      customer: 'cus_123',
+      id: 'cs_test_1',
+      metadata: { credits: '100', firstName: 'Ada', lastName: 'Lovelace' },
+    };
+
+    beforeEach(() => {
+      organizationsService.findOne.mockResolvedValue({ _id: 'org_1' });
+      brandsService.findOne.mockResolvedValue({ _id: 'brand_1' });
+      organizationSettingsService.findOne.mockResolvedValue({ _id: 'os_1' });
+      organizationSettingsService.patch.mockResolvedValue({});
+      creditsUtilsService.addOrganizationCreditsWithExpiration.mockResolvedValue(
+        undefined,
+      );
+      apiKeysService.findOne.mockResolvedValue({ id: 'key_1', scopes: [] });
+      apiKeysService.patch.mockResolvedValue({});
+      usersService.patch.mockResolvedValue({});
+      activitiesService.create.mockResolvedValue({});
+      accessBootstrapCacheService.invalidateForUser.mockResolvedValue(
+        undefined,
+      );
+      eventEmitter.emitAsync.mockResolvedValue([]);
+    });
+
+    it('creates a clerkId-free user, mints a managed key, and emits better-auth.user.created for a net-new buyer', async () => {
+      usersService.findOne.mockResolvedValue(null);
+      usersService.create.mockResolvedValue({
+        _id: 'user_new_1',
+        isOnboardingCompleted: false,
+        onboardingStepsCompleted: [],
+      });
+      // A net-new buyer has no managed key yet → the createWithKey path runs.
+      apiKeysService.findOne.mockResolvedValue(null);
+      apiKeysService.createWithKey.mockResolvedValue({
+        plainKey: 'gf_managed',
+      });
+      const service = buildService();
+
+      await service.provisionManagedCheckoutAccount(
+        session as never,
+        email,
+        'test',
+      );
+
+      expect(usersService.findOne).toHaveBeenCalledWith({
+        email,
+        isDeleted: false,
+      });
+      expect(usersService.create).toHaveBeenCalledTimes(1);
+      const createArg = usersService.create.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(createArg.email).toBe(email);
+      expect(createArg.clerkId).toBeUndefined();
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
+        BETTER_AUTH_USER_CREATED_EVENT,
+        { email, userId: 'user_new_1' },
+      );
+      expect(apiKeysService.createWithKey).toHaveBeenCalledTimes(1);
+    });
+
+    it('reactivates a soft-deleted user when email creation hits a unique constraint race', async () => {
+      usersService.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
+        _id: 'user_deleted_1',
+        isDeleted: true,
+        isOnboardingCompleted: false,
+        onboardingStepsCompleted: [],
+      });
+      usersService.create.mockRejectedValueOnce({ code: 'P2002' });
+      usersService.patch
+        .mockResolvedValueOnce({
+          _id: 'user_deleted_1',
+          isDeleted: false,
+          isOnboardingCompleted: false,
+          onboardingStepsCompleted: [],
+        })
+        .mockResolvedValueOnce({});
+      const service = buildService();
+
+      await service.provisionManagedCheckoutAccount(
+        session as never,
+        email,
+        'test',
+      );
+
+      expect(usersService.findOne).toHaveBeenNthCalledWith(1, {
+        email,
+        isDeleted: false,
+      });
+      expect(usersService.findOne).toHaveBeenNthCalledWith(2, { email }, []);
+      expect(usersService.patch).toHaveBeenNthCalledWith(1, 'user_deleted_1', {
+        isDeleted: false,
+      });
+      expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.addOrganizationCreditsWithExpiration,
+      ).toHaveBeenCalled();
+    });
+
+    it('reuses an existing user by email, skips provisioning, but still tops up credits for a returning buyer', async () => {
+      usersService.findOne.mockResolvedValue({
+        _id: 'user_existing_1',
+        isOnboardingCompleted: true,
+        onboardingStepsCompleted: ['brand', 'plan'],
+      });
+      const service = buildService();
+
+      await service.provisionManagedCheckoutAccount(
+        session as never,
+        email,
+        'test',
+      );
+
+      expect(usersService.findOne).toHaveBeenCalledWith({
+        email,
+        isDeleted: false,
+      });
+      expect(usersService.create).not.toHaveBeenCalled();
+      expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+      // Resources already exist, so the defensive setup fallback never fires …
+      expect(userSetupService.initializeUserResources).not.toHaveBeenCalled();
+      // … but the purchased credits are still granted.
+      expect(
+        creditsUtilsService.addOrganizationCreditsWithExpiration,
+      ).toHaveBeenCalled();
     });
   });
 });
