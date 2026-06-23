@@ -36,10 +36,29 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     organizationId: 'org-1',
   }),
+  useBrandId: () => 'brand-1',
 }));
 
 vi.mock('@helpers/auth/clerk.helper', () => ({
   resolveClerkToken: mocks.resolveClerkToken,
+}));
+
+vi.mock('@hooks/data/trends/use-trends/use-trends', () => ({
+  useTrends: () => ({
+    error: null,
+    isLoading: false,
+    isRefreshing: false,
+    refresh: vi.fn(),
+    refreshTrends: vi.fn(),
+    selectedPlatform: 'all',
+    setSelectedPlatform: vi.fn(),
+    summary: {
+      connectedPlatforms: [],
+      lockedPlatforms: [],
+      totalTrends: 0,
+    },
+    trends: [],
+  }),
 }));
 
 vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
