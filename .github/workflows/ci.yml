@@ -555,6 +555,9 @@ jobs:
         with:
           bun-version: '1.3.14'
       - name: Build api (compiled bundle)
-        run: bunx turbo run build --filter=@genfeedai/api
+        # The api package emits to apps/server/dist, outside apps/server/api.
+        # Force a real build so a Turbo cache-hit replay cannot skip restoring
+        # the compiled bundle this boot check loads.
+        run: bunx turbo run build --filter=@genfeedai/api --force
       - name: Boot check — compiled graph must load
         run: BOOT_CHECK=1 timeout 120 node apps/server/dist/apps/api/main.js
