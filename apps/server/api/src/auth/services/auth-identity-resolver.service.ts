@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
@@ -7,7 +8,6 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
-import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 

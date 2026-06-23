@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
 import { UpdateClipResultDto } from '@api/collections/clip-results/dto/update-clip-result.dto';
@@ -11,7 +12,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,

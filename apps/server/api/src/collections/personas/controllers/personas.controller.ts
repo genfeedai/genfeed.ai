@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreatePersonaDto } from '@api/collections/personas/dto/create-persona.dto';
 import { PersonasQueryDto } from '@api/collections/personas/dto/personas-query.dto';
 import { UpdatePersonaDto } from '@api/collections/personas/dto/update-persona.dto';
@@ -11,7 +12,6 @@ import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { User } from '@clerk/backend';
 import { PersonaSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

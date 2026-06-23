@@ -16,12 +16,6 @@ EXPO_PUBLIC_API_URL=https://api.genfeed.ai
 ```
 The API base URL for backend requests.
 
-### Authentication (Clerk)
-```bash
-EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your-key-here
-```
-Clerk publishable key for authentication. Get from Clerk dashboard.
-
 ### Error Tracking (Sentry)
 ```bash
 EXPO_PUBLIC_SENTRY_DSN=https://your-dsn@sentry.io/project-id
@@ -77,4 +71,3 @@ For production builds, set environment variables in:
 - Never commit `.env` file to git
 - Use EAS Secrets for sensitive values
 - Use `EXPO_PUBLIC_` prefix only for non-sensitive values
-

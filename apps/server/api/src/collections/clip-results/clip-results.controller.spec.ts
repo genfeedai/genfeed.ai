@@ -1,7 +1,7 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ClipResultsController } from '@api/collections/clip-results/clip-results.controller';
 import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
-import type { User } from '@clerk/backend';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

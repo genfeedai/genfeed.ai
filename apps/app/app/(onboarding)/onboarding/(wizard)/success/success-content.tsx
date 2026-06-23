@@ -1,11 +1,12 @@
 'use client';
 
-import { useAuth, useSession, useUser } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
 import { OnboardingFunnelService } from '@services/onboarding/onboarding-funnel.service';
@@ -69,9 +70,8 @@ const TIMELINE_STEPS = [
 ];
 
 export default function SuccessContent() {
-  const { getToken } = useAuth();
-  const { session } = useSession();
-  const { user } = useUser();
+  const { getToken } = useAuthIdentity();
+  const { user } = useAuthUser();
   const { currentUser } = useCurrentUser();
   const { selectedBrand } = useBrand();
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
@@ -109,15 +109,14 @@ export default function SuccessContent() {
       }
     }
 
-    // Mark onboarding complete and refresh Clerk session token
+    // Mark onboarding complete and refresh the active auth/session cache.
     try {
       const token = await resolveAuthToken(getToken, { forceRefresh: true });
       if (token) {
         const funnelService = OnboardingFunnelService.getInstance(token);
         await funnelService.completeFunnel();
       }
-      // Force Clerk to fetch fresh claims and reload the user object before leaving onboarding.
-      await Promise.allSettled([session?.touch(), user?.reload()]);
+      await user?.reload();
     } catch (error) {
       logger.error('Failed to complete funnel', error);
     }

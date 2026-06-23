@@ -1,8 +1,6 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
-import type { UserResource } from '@clerk/types';
-import { getClerkPublicData } from '@genfeedai/helpers/auth/clerk.helper';
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { getPublisherPostsHref } from '@genfeedai/helpers/content/posts.helper';
 import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
 import type { AppLink } from '@genfeedai/interfaces/ui/navigation.interface';
@@ -30,20 +28,10 @@ export default function MenuAppSwitcher() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const logoUrl = useThemeLogo();
-  const { user, isLoaded } = useUser();
+  const { isLoading, isSuperAdmin } = useAccessState();
 
   // Derive loading state directly (no separate state needed)
-  const isLoading = !isLoaded;
-
-  // Get user permissions
-  const isRootAdmin = useMemo(() => {
-    if (!user) {
-      return false;
-    }
-
-    const publicData = getClerkPublicData(user as UserResource);
-    return publicData.isSuperAdmin === true;
-  }, [user]);
+  const isRootAdmin = isSuperAdmin;
 
   const allApps = useMemo<AppLink[]>(
     () => [

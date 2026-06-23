@@ -7,7 +7,7 @@ import type {
   AgentRunStats,
   AgentRunTimeRange,
 } from '@genfeedai/types';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';

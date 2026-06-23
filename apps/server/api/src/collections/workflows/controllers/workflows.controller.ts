@@ -1,4 +1,5 @@
 import process from 'node:process';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import {
   CreditEstimateQueryDto,
@@ -54,7 +55,6 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { User } from '@clerk/backend';
 import { ListingType, WorkflowTrigger } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,

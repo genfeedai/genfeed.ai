@@ -1,7 +1,7 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiresCloudAuth } from '@api/helpers/decorators/requires-cloud-auth.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import type { User } from '@clerk/backend';
 import { Controller, Get, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 

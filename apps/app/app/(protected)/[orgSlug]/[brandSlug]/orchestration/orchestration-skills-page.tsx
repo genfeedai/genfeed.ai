@@ -1,8 +1,8 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { type Skill, SkillsService } from '@services/content/skills.service';
@@ -136,7 +136,7 @@ function pageReducer(state: PageState, action: PageAction): PageState {
 export default function OrchestrationSkillsPage() {
   const { push } = useRouter();
   const { orgHref } = useOrgUrl();
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const { isReady, selectedBrand } = useBrand();
 
   const { enabledSlugs, toggleSkill } = useBrandEnabledSkills();

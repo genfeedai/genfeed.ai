@@ -1,8 +1,8 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { BatchContentService } from '@api/services/batch-content/batch-content.service';
 import { CreateBatchContentDto } from '@api/services/batch-content/dto/create-batch-content.dto';
-import type { User } from '@clerk/backend';
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 

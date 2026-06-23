@@ -14,7 +14,6 @@ import {
 } from '@config/schemas/ai.schema';
 import { awsOptionalSchema, awsSchema } from '@config/schemas/aws.schema';
 import { baseSchema } from '@config/schemas/base.schema';
-import { clerkMinimalSchema, clerkSchema } from '@config/schemas/clerk.schema';
 import { ffmpegSchema } from '@config/schemas/ffmpeg.schema';
 import {
   genfeedaiMinimalSchema,
@@ -64,7 +63,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(discordBotSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((discordBotSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((discordBotSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -84,7 +85,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(telegramBotSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((telegramBotSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((telegramBotSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -104,7 +107,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(resendSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((resendSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((resendSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -124,7 +129,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(twitchSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((twitchSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((twitchSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -144,7 +151,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(awsSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((awsSchema as any)[key])).toBe(true);
+        expect(Joi.isSchema((awsSchema as Record<string, unknown>)[key])).toBe(
+          true,
+        );
       }
     });
 
@@ -164,7 +173,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(awsOptionalSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((awsOptionalSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((awsOptionalSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -184,7 +195,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(generalAiSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((generalAiSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((generalAiSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -204,7 +217,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(replicateSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((replicateSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((replicateSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -224,7 +239,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(klingaiSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((klingaiSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((klingaiSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -244,7 +261,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(elevenlabsSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((elevenlabsSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((elevenlabsSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -264,7 +283,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(leonardoSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((leonardoSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((leonardoSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -284,7 +305,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(heygenSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((heygenSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((heygenSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -304,7 +327,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(hedraSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((hedraSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((hedraSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -324,7 +349,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(newsApiSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((newsApiSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((newsApiSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -344,7 +371,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(darkroomSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((darkroomSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((darkroomSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -364,7 +393,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(gpuFleetSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((gpuFleetSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((gpuFleetSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -384,7 +415,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(falSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((falSchema as any)[key])).toBe(true);
+        expect(Joi.isSchema((falSchema as Record<string, unknown>)[key])).toBe(
+          true,
+        );
       }
     });
 
@@ -404,7 +437,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(trainingPricingSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((trainingPricingSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((trainingPricingSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -424,7 +459,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(webhooksSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((webhooksSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((webhooksSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -444,7 +481,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(sentrySchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((sentrySchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((sentrySchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -464,7 +503,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(sentryOptionalSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((sentryOptionalSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((sentryOptionalSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -484,7 +525,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(genfeedaiUrlsSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((genfeedaiUrlsSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((genfeedaiUrlsSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -504,7 +547,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(microservicesSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((microservicesSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((microservicesSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -524,7 +569,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(internalAuthSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((internalAuthSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((internalAuthSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -544,52 +591,16 @@ describe('Config Schemas', () => {
       const keys = Object.keys(genfeedaiMinimalSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((genfeedaiMinimalSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema(
+            (genfeedaiMinimalSchema as Record<string, unknown>)[key],
+          ),
+        ).toBe(true);
       }
     });
 
     it('should validate with defaults when optional', () => {
       const schema = Joi.object(genfeedaiMinimalSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
-  });
-
-  describe('clerkSchema', () => {
-    it('should be a non-empty object of Joi schemas', () => {
-      expect(typeof clerkSchema).toBe('object');
-      const keys = Object.keys(clerkSchema);
-      expect(keys.length).toBeGreaterThan(0);
-      for (const key of keys) {
-        expect(Joi.isSchema((clerkSchema as any)[key])).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(clerkSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
-  });
-
-  describe('clerkMinimalSchema', () => {
-    it('should be a non-empty object of Joi schemas', () => {
-      expect(typeof clerkMinimalSchema).toBe('object');
-      const keys = Object.keys(clerkMinimalSchema);
-      expect(keys.length).toBeGreaterThan(0);
-      for (const key of keys) {
-        expect(Joi.isSchema((clerkMinimalSchema as any)[key])).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(clerkMinimalSchema);
       const { error } = schema.validate({}, { allowUnknown: true });
       // Some schemas have required fields, so error is acceptable
       if (error) {
@@ -604,7 +615,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(stripeSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((stripeSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((stripeSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -624,7 +637,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(redisSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((redisSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((redisSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -644,7 +659,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(baseSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((baseSchema as any)[key])).toBe(true);
+        expect(Joi.isSchema((baseSchema as Record<string, unknown>)[key])).toBe(
+          true,
+        );
       }
     });
 
@@ -664,7 +681,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(youtubeSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((youtubeSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((youtubeSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -684,7 +703,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(tiktokSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((tiktokSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((tiktokSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -704,7 +725,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(instagramSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((instagramSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((instagramSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -724,7 +747,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(facebookSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((facebookSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((facebookSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -744,7 +769,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(twitterSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((twitterSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((twitterSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -764,7 +791,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(pinterestSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((pinterestSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((pinterestSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -784,7 +813,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(redditSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((redditSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((redditSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -804,7 +835,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(linkedinSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((linkedinSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((linkedinSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -824,7 +857,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(mediumSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((mediumSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((mediumSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -844,7 +879,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(fanvueSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((fanvueSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((fanvueSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -864,7 +901,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(slackSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((slackSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((slackSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -884,7 +923,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(wordpressSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((wordpressSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((wordpressSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -904,7 +945,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(snapchatSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((snapchatSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((snapchatSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -924,7 +967,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(whatsappSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((whatsappSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((whatsappSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -944,7 +989,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(shopifySchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((shopifySchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((shopifySchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -964,7 +1011,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(beehiivSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((beehiivSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((beehiivSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -984,7 +1033,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(allSocialSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((allSocialSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((allSocialSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 
@@ -1014,7 +1065,9 @@ describe('Config Schemas', () => {
       const keys = Object.keys(ffmpegSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
-        expect(Joi.isSchema((ffmpegSchema as any)[key])).toBe(true);
+        expect(
+          Joi.isSchema((ffmpegSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
       }
     });
 

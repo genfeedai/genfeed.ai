@@ -1,10 +1,10 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { VideoProvenanceService } from '@api/collections/videos/services/video-provenance.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
-import type { User } from '@clerk/backend';
 import type { IMediaProvenancePackage } from '@genfeedai/interfaces';
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 

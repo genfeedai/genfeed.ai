@@ -1,12 +1,12 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import {
   ButtonSize,
   ButtonVariant,
   CredentialPlatform,
 } from '@genfeedai/enums';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import type { BrandDetailSocialMediaCardProps } from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -135,7 +135,7 @@ export default function BrandDetailSocialMediaCard({
   connections,
   connectedPlatformsCount,
 }: BrandDetailSocialMediaCardProps) {
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(
     null,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { TagCategory } from '@genfeedai/enums';
 import type { ITag } from '@genfeedai/interfaces';
@@ -15,7 +15,7 @@ export interface UseTagsOptions {
 
 export function useTags(options: UseTagsOptions = {}) {
   const { scope, autoLoad = true } = options;
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthIdentity();
   const { brandId } = useBrand();
 
   const getTagsService = useAuthedService((token: string) =>

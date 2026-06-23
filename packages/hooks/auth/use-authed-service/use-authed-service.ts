@@ -1,13 +1,13 @@
 'use client';
 
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useCallback, useEffect, useRef } from 'react';
 
 /**
  * Module-level token cache shared across all useAuthedService instances.
  * Deduplicates concurrent getToken() calls and reuses recent tokens (30s TTL).
- * Prevents Clerk rate-limiting when multiple providers fetch in parallel.
+ * Prevents auth-provider rate-limiting when multiple providers fetch in parallel.
  */
 const tokenCache = new Map<
   string,

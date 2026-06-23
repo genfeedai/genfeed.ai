@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   CreateWorkflowExecutionDto,
   WorkflowExecutionQueryDto,
@@ -14,7 +15,6 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
-import type { User } from '@clerk/backend';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import {
   Body,

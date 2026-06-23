@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   CreateDistributionDto,
   ScheduleDistributionDto,
@@ -13,7 +14,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { TelegramDistributionService } from '@api/services/distribution/telegram/telegram-distribution.service';
-import type { User } from '@clerk/backend';
 import { DistributionSerializer } from '@genfeedai/serializers';
 import {
   Body,

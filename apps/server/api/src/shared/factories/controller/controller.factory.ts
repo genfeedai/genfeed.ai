@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { createUserScopedService } from '@api/shared/factories/service/service.factory';
@@ -5,7 +6,6 @@ import {
   BaseService,
   type PrismaFindAllInput,
 } from '@api/shared/services/base/base.service';
-import type { User } from '@clerk/backend';
 import type { IJsonApiSerializer, PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Module, Type } from '@nestjs/common';

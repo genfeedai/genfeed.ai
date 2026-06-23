@@ -1,9 +1,9 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { extractRequestContext } from '@api/helpers/utils/clerk/clerk.util';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
-import type { User } from '@clerk/backend';
 import type {
   AdsAdapterContext,
   AdsPlatform,

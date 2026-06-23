@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { IMoodBoard, IMoodBoardLayoutItem } from '@genfeedai/interfaces';
 import { MoodBoardsService } from '@genfeedai/services/content/mood-boards.service';
@@ -9,7 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 export function useMoodBoard() {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthIdentity();
   const { brandId } = useBrand();
   const queryClient = useQueryClient();
 

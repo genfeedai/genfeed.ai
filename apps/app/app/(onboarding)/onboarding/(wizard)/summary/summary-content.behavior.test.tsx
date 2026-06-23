@@ -157,7 +157,7 @@ describe('SummaryContent behavior', () => {
         selectedMode: null,
         serverDefaultsReady: true,
       },
-      authMode: 'clerk',
+      authMode: 'better_auth',
       billingMode: 'oss_local',
       localTools: {
         anyDetected: true,

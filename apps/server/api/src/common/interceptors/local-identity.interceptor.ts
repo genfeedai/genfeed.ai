@@ -1,5 +1,5 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { User } from '@clerk/backend';
 import { IS_HYBRID_MODE, IS_LOCAL_MODE } from '@genfeedai/config';
 import type {
   Brand,
@@ -68,7 +68,7 @@ export class LocalIdentityInterceptor implements NestInterceptor {
           subscriptionTier: 'free',
           user: defaultUser.id,
         },
-      } as unknown as User;
+      } satisfies AuthenticatedUser;
     } catch (error: unknown) {
       this.logger.error('Local identity injection failed', error, this.context);
     }

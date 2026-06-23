@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import {
@@ -5,7 +6,6 @@ import {
   ContentOptimizationService,
 } from '@api/services/content-optimization/content-optimization.service';
 import { ContentOptimizationQueueService } from '@api/services/content-optimization/content-optimization-queue.service';
-import type { User } from '@clerk/backend';
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { IsString } from 'class-validator';
 

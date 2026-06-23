@@ -1,8 +1,8 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import type { ISetting } from '@genfeedai/interfaces';
+import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { User } from '@models/auth/user.model';
 import { logger } from '@services/core/logger.service';
@@ -20,7 +20,7 @@ const settingsToggleClassName =
   'border border-white/8 bg-[rgba(249,115,22,0.14)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] data-[state=checked]:border-[var(--accent-orange)] data-[state=checked]:bg-[var(--accent-orange)] data-[state=unchecked]:hover:bg-[rgba(249,115,22,0.2)]';
 
 export default function SettingsProfilePage() {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded } = useAuthUser();
   const { currentUser, mutateUser } = useCurrentUser();
 
   const getUsersService = useAuthedService((token: string) =>

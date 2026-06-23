@@ -1,4 +1,4 @@
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import {
   useConfirmModal,
   usePostModal,
@@ -42,7 +42,7 @@ export function useModalIngredient({
   openKey,
   onClose,
 }: IngredientOverlayProps) {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthIdentity();
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const { credentials } = useBrand();

@@ -1,12 +1,12 @@
-import { useAuth } from '@clerk/clerk-expo';
 import { Tabs, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Button, StyleSheet, Text, View } from 'react-native';
 import { colors } from '@/constants';
+import { useMobileAuth } from '@/contexts/auth-context';
 import { usePendingApprovalCount } from '@/hooks/use-approvals';
 
 function SignOutButton() {
-  const { signOut } = useAuth();
+  const { signOut } = useMobileAuth();
   return <Button title="Sign out" onPress={() => signOut()} />;
 }
 
@@ -45,7 +45,7 @@ const badgeStyles = StyleSheet.create({
 });
 
 export default function ProtectedLayout() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useMobileAuth();
   const router = useRouter();
 
   useEffect(() => {

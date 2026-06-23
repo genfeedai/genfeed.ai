@@ -1,13 +1,13 @@
-import { useUser } from '@clerk/nextjs';
 import type { MemberRole } from '@genfeedai/enums';
+import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import {
-  getClerkPublicData,
+  getAuthPublicData,
   getPlaywrightAuthState,
-} from '@helpers/auth/clerk.helper';
+} from '@helpers/auth/auth.helper';
 import { useMemo } from 'react';
 
 export function useUserRole(): MemberRole | undefined {
-  const { user } = useUser();
+  const { user } = useAuthUser();
   const playwrightAuth = getPlaywrightAuthState();
 
   return useMemo(() => {
@@ -15,7 +15,7 @@ export function useUserRole(): MemberRole | undefined {
       return (playwrightAuth?.publicMetadata as Record<string, unknown> | null)
         ?.role as MemberRole | undefined;
     }
-    const publicData = getClerkPublicData(user);
+    const publicData = getAuthPublicData(user);
     return (publicData as unknown as Record<string, unknown>).role as
       | MemberRole
       | undefined;

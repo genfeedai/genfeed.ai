@@ -1,9 +1,8 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
 import { soundElementSchema } from '@genfeedai/client/schemas';
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { ButtonVariant, ModalEnum, ModelCategory } from '@genfeedai/enums';
-import { getClerkPublicData } from '@genfeedai/helpers/auth/clerk.helper';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import type { ISound } from '@genfeedai/interfaces';
 import type { ModalSoundProps } from '@genfeedai/props/modals/modal.props';
@@ -19,8 +18,7 @@ import type { ChangeEvent } from 'react';
 import { HiTrash } from 'react-icons/hi2';
 
 export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
-  const { user } = useUser();
-  const isSuperAdmin = user ? getClerkPublicData(user).isSuperAdmin : false;
+  const { isSuperAdmin } = useAccessState();
 
   const {
     form,

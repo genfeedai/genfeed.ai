@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ContentSchedulesQueryDto } from '@api/collections/content-schedules/dto/content-schedules-query.dto';
 import { CreateContentScheduleDto } from '@api/collections/content-schedules/dto/create-content-schedule.dto';
 import { UpdateContentScheduleDto } from '@api/collections/content-schedules/dto/update-content-schedule.dto';
@@ -8,7 +9,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { ContentScheduleSerializer } from '@genfeedai/serializers';
 import {
   Body,

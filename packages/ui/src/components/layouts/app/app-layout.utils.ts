@@ -8,9 +8,7 @@ function getSidebarCollapsedStorageKey(): string {
     return `${SIDEBAR_COLLAPSED_STORAGE_PREFIX}:anon`;
   }
 
-  const clerk = window.Clerk as { user?: { id?: string } } | undefined;
-  const userId = clerk?.user?.id ?? 'anon';
-  return `${SIDEBAR_COLLAPSED_STORAGE_PREFIX}:${userId}`;
+  return `${SIDEBAR_COLLAPSED_STORAGE_PREFIX}:auth`;
 }
 
 export function readPersistedSidebarCollapsed(): boolean | null {

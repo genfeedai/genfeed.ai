@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { BotsService } from '@api/collections/bots/services/bots.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -44,7 +45,6 @@ import { InstagramService } from '@api/services/integrations/instagram/services/
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import type { User } from '@clerk/backend';
 import {
   CredentialPlatform,
   IngredientCategory,

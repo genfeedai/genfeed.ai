@@ -1,6 +1,5 @@
-import { useAuth } from '@clerk/nextjs';
 import type { IActivity } from '@genfeedai/interfaces';
-import { getPlaywrightAuthState } from '@helpers/auth/clerk.helper';
+import { getPlaywrightAuthState } from '@helpers/auth/auth.helper';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -14,11 +13,20 @@ const mockGetActivitiesService = vi.fn();
 const mockGetBrandsService = vi.fn();
 const mockGetOrganizationsService = vi.fn();
 const mockUseFilteredData = vi.fn();
+const mockUseAuthIdentity = vi.fn();
 
-vi.mock('@clerk/nextjs', () => ({
-  useAuth: vi.fn(() => ({ isLoaded: true, isSignedIn: true })),
-  useUser: vi.fn(() => ({ user: null })),
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => mockUseAuthIdentity(),
 }));
+
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({
+    useAccessState: vi.fn(() => ({
+      isSuperAdmin: false,
+    })),
+  }),
+);
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
@@ -27,8 +35,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   })),
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
-  getClerkPublicData: vi.fn(() => ({ isSuperAdmin: false })),
+vi.mock('@helpers/auth/auth.helper', () => ({
   getPlaywrightAuthState: vi.fn(() => null),
 }));
 
@@ -84,10 +91,10 @@ describe('useActivities', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useAuth).mockReturnValue({
+    mockUseAuthIdentity.mockReturnValue({
       isLoaded: true,
       isSignedIn: true,
-    } as ReturnType<typeof useAuth>);
+    });
     vi.mocked(getPlaywrightAuthState).mockReturnValue(null);
     mockBulkPatch.mockResolvedValue(undefined);
     mockPatch.mockResolvedValue(undefined);
@@ -202,10 +209,10 @@ describe('useActivities', () => {
   });
 
   it('does not fetch activities before auth is ready', () => {
-    vi.mocked(useAuth).mockReturnValue({
+    mockUseAuthIdentity.mockReturnValue({
       isLoaded: false,
       isSignedIn: false,
-    } as ReturnType<typeof useAuth>);
+    });
 
     const { result } = renderHook(() => useActivities(), {
       wrapper: createQueryWrapper(),

@@ -1,3 +1,7 @@
+import type {
+  AuthenticatedUser,
+  IAuthPublicMetadata,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import {
   buildRcKey,
@@ -7,9 +11,7 @@ import {
   RC_TTL,
 } from '@api/common/constants/request-context-cache.constants';
 import { IRequestContext } from '@api/common/interfaces/request-context.interface';
-import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { User } from '@clerk/backend';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
 import {
   type ISubscriptionsService,
@@ -21,7 +23,7 @@ import { Inject, Injectable, type NestMiddleware } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 
 export interface RequestWithContext extends Request {
-  user?: User;
+  user?: AuthenticatedUser;
   context?: IRequestContext;
 }
 
@@ -56,8 +58,7 @@ export class RequestContextMiddleware implements NestMiddleware {
       return next();
     }
 
-    const publicMetadata =
-      user.publicMetadata as unknown as IClerkPublicMetadata;
+    const publicMetadata = user.publicMetadata as Partial<IAuthPublicMetadata>;
     const userId = publicMetadata.user ?? '';
     const organizationId = publicMetadata.organization ?? '';
     const brandId = publicMetadata.brand ?? undefined;

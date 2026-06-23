@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "@clerk/backend": "3.4.14",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",

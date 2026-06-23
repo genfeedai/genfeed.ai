@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AddCreatorDto } from '@api/collections/content-intelligence/dto/add-creator.dto';
 import { ImportCreatorsDto } from '@api/collections/content-intelligence/dto/import-creators.dto';
 import { CreatorsQueryDto } from '@api/collections/content-intelligence/dto/patterns-query.dto';
@@ -16,7 +17,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,

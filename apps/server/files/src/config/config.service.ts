@@ -1,6 +1,5 @@
 import {
   awsOptionalSchema,
-  clerkMinimalSchema,
   createServiceConfig,
   ffmpegSchema,
   genfeedaiMinimalSchema,
@@ -20,7 +19,6 @@ export class ConfigService extends createServiceConfig<FilesEnvConfig>({
   schemas: [
     redisSchema,
     awsOptionalSchema,
-    clerkMinimalSchema,
     ffmpegSchema,
     genfeedaiMinimalSchema,
   ],

@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivitiesQueryDto } from '@api/collections/activities/dto/activities-query.dto';
 import { BulkUpdateActivitiesDto } from '@api/collections/activities/dto/bulk-update-activities.dto';
 import { UpdateActivityDto } from '@api/collections/activities/dto/update-activity.dto';
@@ -18,7 +19,6 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,

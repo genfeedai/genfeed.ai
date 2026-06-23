@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BulkApproveContentDraftsDto } from '@api/collections/content-drafts/dto/bulk-approve-content-drafts.dto';
 import { ContentDraftRejectDto } from '@api/collections/content-drafts/dto/content-draft-action.dto';
 import { ContentDraftsQueryDto } from '@api/collections/content-drafts/dto/content-drafts-query.dto';
@@ -9,7 +10,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { ContentDraftSerializer } from '@genfeedai/serializers';
 import {
   Body,

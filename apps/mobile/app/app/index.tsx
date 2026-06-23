@@ -1,8 +1,8 @@
-import { useAuth } from '@clerk/clerk-expo';
 import { Redirect } from 'expo-router';
+import { useMobileAuth } from '@/contexts/auth-context';
 
 export default function Index() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useMobileAuth();
   if (!isLoaded) {
     return null;
   }

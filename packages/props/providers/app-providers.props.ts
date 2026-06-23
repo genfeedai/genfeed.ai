@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react';
 
-export interface AppProvidersProps<ClerkProps = unknown> {
+export interface AppProvidersProps {
   children: ReactNode;
   initialTheme: string;
-  clerkProps?: ClerkProps;
   disableTransitionOnChange?: boolean;
   enableSystem?: boolean;
   googleAnalyticsId?: string;
@@ -12,15 +11,4 @@ export interface AppProvidersProps<ClerkProps = unknown> {
   includeToaster?: boolean;
   includeVercelAnalytics?: boolean;
   storageKey?: string;
-}
-
-export interface ClerkProviderWithThemeProps<ClerkProps = unknown> {
-  children: ReactNode;
-  clerkProps?: ClerkProps;
-  hasMissingPublishableKeyBypass?: boolean;
-}
-
-export interface MaybeClerkProviderProps<ClerkProps = unknown> {
-  children: ReactNode;
-  clerkProps?: ClerkProps;
 }

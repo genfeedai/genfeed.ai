@@ -1,6 +1,7 @@
 'use client';
 
-import { UserButton, useAuth, useUser } from '@clerk/nextjs';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 
 import UserDropdown from '@ui/menus/user-dropdown/UserDropdown';
 
@@ -9,17 +10,20 @@ export default function SidebarUserProfile({
 }: {
   isCollapsed?: boolean;
 }) {
-  const { isSignedIn } = useAuth();
-  const { user } = useUser();
+  const { isSignedIn } = useAuthIdentity();
+  const { user } = useAuthUser();
 
-  if (!user) {
+  if (!user || !isSignedIn) {
     return null;
   }
 
   if (isCollapsed) {
     return (
       <div className="border-t border-border p-3 flex justify-center">
-        {isSignedIn ? <UserButton /> : null}
+        <UserDropdown
+          userName={user.fullName ?? 'User'}
+          userEmail={user.primaryEmailAddress?.emailAddress ?? ''}
+        />
       </div>
     );
   }
@@ -27,7 +31,6 @@ export default function SidebarUserProfile({
   return (
     <div className="border-t border-border p-3">
       <div className="flex items-center gap-2.5">
-        {isSignedIn ? <UserButton /> : null}
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-foreground/88">
             {user.fullName ?? user.primaryEmailAddress?.emailAddress ?? 'User'}

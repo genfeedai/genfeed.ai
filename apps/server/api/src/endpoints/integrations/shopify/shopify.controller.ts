@@ -152,7 +152,7 @@ export class ShopifyController {
  */
 @AutoSwagger()
 @ApiTags('Integrations - Credits')
-@Public() // Bypass global ClerkGuard
+@Public() // Bypass global auth guard; this endpoint uses its own combined auth.
 @UseGuards(CombinedAuthGuard) // Use combined auth (JWT or API key)
 @Controller('integrations/credits')
 export class CreditProvisionController {

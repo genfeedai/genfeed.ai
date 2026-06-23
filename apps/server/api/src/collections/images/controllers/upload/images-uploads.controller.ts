@@ -7,6 +7,7 @@
  * - Confirm completed uploads
  */
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { UploadImageDto } from '@api/collections/images/dto/upload-image.dto';
 import { UploadNftDto } from '@api/collections/images/dto/upload-nft.dto';
 import { ValidationConfigService } from '@api/config/services/validation.config';
@@ -21,7 +22,6 @@ import { SolanaService } from '@api/services/integrations/solana/solana.service'
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import type { User } from '@clerk/backend';
 import {
   AssetScope,
   FileInputType,

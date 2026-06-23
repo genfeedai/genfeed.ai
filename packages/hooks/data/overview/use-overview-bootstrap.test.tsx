@@ -11,11 +11,11 @@ const getPlaywrightAuthStateMock = vi.fn();
 const mockGetOverviewBootstrap = vi.fn();
 const mockGetAuthService = vi.fn();
 
-vi.mock('@clerk/nextjs', () => ({
-  useAuth: () => useAuthMock(),
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => useAuthMock(),
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
+vi.mock('@helpers/auth/auth.helper', () => ({
   getPlaywrightAuthState: () => getPlaywrightAuthStateMock(),
 }));
 
@@ -30,6 +30,7 @@ describe('useOverviewBootstrap', () => {
     useAuthMock.mockReturnValue({
       isLoaded: true,
       isSignedIn: true,
+      orgId: 'org_123',
       userId: 'user_123',
     });
     getPlaywrightAuthStateMock.mockReturnValue(null);
@@ -53,10 +54,11 @@ describe('useOverviewBootstrap', () => {
     });
   });
 
-  it('does not fetch when Clerk auth is not yet loaded', () => {
+  it('does not fetch when auth is not yet loaded', () => {
     useAuthMock.mockReturnValue({
       isLoaded: false,
       isSignedIn: false,
+      orgId: null,
       userId: null,
     });
 
@@ -143,6 +145,7 @@ describe('useOverviewBootstrap', () => {
     useAuthMock.mockReturnValue({
       isLoaded: false,
       isSignedIn: false,
+      orgId: null,
       userId: null,
     });
 

@@ -7,6 +7,8 @@
  * - Voice to speech conversion
  * - Generate tweet replies
  */
+
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
@@ -41,7 +43,6 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import type { IPromptBrandContext } from '@api/shared/interfaces/prompt/prompt.interface';
-import type { User } from '@clerk/backend';
 import {
   ActivityKey,
   ActivitySource,

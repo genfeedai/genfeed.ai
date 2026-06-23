@@ -1,7 +1,7 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { NewslettersController } from '@api/collections/newsletters/controllers/newsletters.controller';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { User } from '@clerk/backend';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

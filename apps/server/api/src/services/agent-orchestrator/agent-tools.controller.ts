@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -9,7 +10,6 @@ import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { getToolByName } from '@genfeedai/tools';

@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
 import {
@@ -13,7 +14,6 @@ import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ByokBillingService } from '@api/services/byok-billing/byok-billing.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import type { User } from '@clerk/backend';
 import {
   ByokUsageSummarySerializer,
   CreditUsageSerializer,

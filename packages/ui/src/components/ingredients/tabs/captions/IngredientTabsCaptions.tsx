@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import {
   AlertCategory,
   ButtonSize,
@@ -44,7 +44,7 @@ export default function IngredientTabsCaptions({
   ingredient,
   // onReload,
 }: IngredientTabsCaptionsProps) {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthIdentity();
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const notificationsService = useMemo(

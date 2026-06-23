@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { FoldersController } from '@api/collections/folders/controllers/folders.controller';
 import { CreateFolderDto } from '@api/collections/folders/dto/create-folder.dto';
 import { UpdateFolderDto } from '@api/collections/folders/dto/update-folder.dto';
@@ -5,7 +6,6 @@ import { FoldersService } from '@api/collections/folders/services/folders.servic
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
-import type { User } from '@clerk/backend';
 import { FolderSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';

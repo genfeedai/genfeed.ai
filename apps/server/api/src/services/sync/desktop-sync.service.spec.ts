@@ -1,4 +1,4 @@
-import type { User } from '@clerk/backend';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockGetPublicMetadata } = vi.hoisted(() => ({

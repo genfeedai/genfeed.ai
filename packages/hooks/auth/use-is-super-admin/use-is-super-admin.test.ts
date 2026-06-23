@@ -2,16 +2,16 @@ import { useIsSuperAdmin } from '@hooks/auth/use-is-super-admin/use-is-super-adm
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockUseUser = vi.fn();
-const mockGetClerkPublicData = vi.fn();
+const mockUseAuthUser = vi.fn();
+const mockGetAuthPublicData = vi.fn();
 const mockGetPlaywrightAuthState = vi.fn();
 
-vi.mock('@clerk/nextjs', () => ({
-  useUser: () => mockUseUser(),
+vi.mock('@hooks/auth/use-auth-user/use-auth-user', () => ({
+  useAuthUser: () => mockUseAuthUser(),
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
-  getClerkPublicData: (user: unknown) => mockGetClerkPublicData(user),
+vi.mock('@helpers/auth/auth.helper', () => ({
+  getAuthPublicData: (user: unknown) => mockGetAuthPublicData(user),
   getPlaywrightAuthState: () => mockGetPlaywrightAuthState(),
 }));
 
@@ -22,29 +22,29 @@ describe('useIsSuperAdmin', () => {
   });
 
   it('returns false when no user', () => {
-    mockUseUser.mockReturnValue({ user: null });
+    mockUseAuthUser.mockReturnValue({ user: null });
 
     const { result } = renderHook(() => useIsSuperAdmin());
 
     expect(result.current).toBe(false);
-    expect(mockGetClerkPublicData).not.toHaveBeenCalled();
+    expect(mockGetAuthPublicData).not.toHaveBeenCalled();
   });
 
   it('returns true when user is super admin', () => {
     const mockUser = { id: 'user-1' };
-    mockUseUser.mockReturnValue({ user: mockUser });
-    mockGetClerkPublicData.mockReturnValue({ isSuperAdmin: true });
+    mockUseAuthUser.mockReturnValue({ user: mockUser });
+    mockGetAuthPublicData.mockReturnValue({ isSuperAdmin: true });
 
     const { result } = renderHook(() => useIsSuperAdmin());
 
     expect(result.current).toBe(true);
-    expect(mockGetClerkPublicData).toHaveBeenCalledWith(mockUser);
+    expect(mockGetAuthPublicData).toHaveBeenCalledWith(mockUser);
   });
 
   it('returns false when user is not super admin', () => {
     const mockUser = { id: 'user-2' };
-    mockUseUser.mockReturnValue({ user: mockUser });
-    mockGetClerkPublicData.mockReturnValue({ isSuperAdmin: false });
+    mockUseAuthUser.mockReturnValue({ user: mockUser });
+    mockGetAuthPublicData.mockReturnValue({ isSuperAdmin: false });
 
     const { result } = renderHook(() => useIsSuperAdmin());
 

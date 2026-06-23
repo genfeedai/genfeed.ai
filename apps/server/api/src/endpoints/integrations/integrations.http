@@ -1,5 +1,5 @@
 ### Genfeed API - Integration Endpoints
-### External API integration endpoints (supports both Clerk JWT and API keys)
+### External API integration endpoints (supports both Better Auth JWT and API keys)
 ### API keys must start with 'gf_' prefix
 
 @import ../../../../../../http/_environment.http
@@ -8,7 +8,7 @@
 # Authentication Options
 ########################################
 
-# Option 1: Use Clerk JWT (for logged-in users)
+# Option 1: Use Better Auth JWT (for logged-in users)
 # Authorization: Bearer {{bearerToken}}
 
 # Option 2: Use API Key (for external integrations)

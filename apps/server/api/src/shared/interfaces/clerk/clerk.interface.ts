@@ -1,1 +1,4 @@
-export type { IClerkPublicMetadata } from '@libs/interfaces/clerk.interface';
+export type {
+  IAuthPublicMetadata,
+  IAuthPublicMetadata as IClerkPublicMetadata,
+} from '@api/auth/interfaces/authenticated-user.interface';

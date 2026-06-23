@@ -1,5 +1,5 @@
-import { useAuth } from '@clerk/clerk-expo';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useMobileAuth } from '@/contexts/auth-context';
 import { useAsyncList } from '@/hooks/use-async-data';
 import {
   type AnalyticsOverview,
@@ -25,7 +25,7 @@ const INITIAL_DATA: AnalyticsData = {
 };
 
 export function useAnalytics(options?: AnalyticsQueryOptions) {
-  const { getToken } = useAuth();
+  const { getToken } = useMobileAuth();
   const [data, setData] = useState<AnalyticsData>(INITIAL_DATA);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);

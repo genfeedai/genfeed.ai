@@ -1,9 +1,8 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
 import { SETUP_CARD_STEPS } from '@genfeedai/constants';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
-import type { IClerkPublicData } from '@genfeedai/interfaces';
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useMemo } from 'react';
 
 export interface SetupCardStep {
@@ -23,13 +22,10 @@ export interface UseSetupCardReturn {
 
 export function useSetupCard(): UseSetupCardReturn {
   const { currentUser } = useCurrentUser();
-  const { user: clerkUser } = useUser();
+  const { hasPaygCredits } = useAccessState();
 
   return useMemo(() => {
     const completedSteps = currentUser?.onboardingStepsCompleted ?? [];
-    const publicData = (clerkUser?.publicMetadata ??
-      {}) as unknown as IClerkPublicData;
-    const hasEverHadCredits = publicData.hasEverHadCredits === true;
 
     const stepHrefs: Record<string, string> = {
       platforms: '/settings/api-keys',
@@ -48,7 +44,7 @@ export function useSetupCard(): UseSetupCardReturn {
     const totalCount = steps.length;
     const allCompleted = completedCount === totalCount;
 
-    const isVisible = !hasEverHadCredits && !allCompleted;
+    const isVisible = !hasPaygCredits && !allCompleted;
 
     return {
       completedCount,
@@ -56,5 +52,5 @@ export function useSetupCard(): UseSetupCardReturn {
       steps,
       totalCount,
     };
-  }, [currentUser, clerkUser]);
+  }, [currentUser, hasPaygCredits]);
 }

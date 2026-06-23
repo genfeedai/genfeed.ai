@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { AnalyticsMetric } from '@genfeedai/enums';
@@ -9,6 +8,7 @@ import {
   formatPercentageSimple,
 } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   AnalyticsService,
@@ -38,7 +38,7 @@ const MAX_BRANDS_ANALYTICS_LIMIT = 100;
 export default function AnalyticsBrandsList({
   basePath = '/analytics',
 }: AnalyticsBrandsListProps) {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthIdentity();
   const router = useRouter();
   const { dateRange, refreshTrigger } = useAnalyticsContext();
   const getAnalyticsService = useAuthedService((token: string) =>

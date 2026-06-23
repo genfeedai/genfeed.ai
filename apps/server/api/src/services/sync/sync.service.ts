@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import type {
   CloudWorkflowEdge,
@@ -7,7 +8,6 @@ import { WorkflowFormatConverterService } from '@api/collections/workflows/servi
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { ConfigService } from '@api/config/config.service';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
-import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import {

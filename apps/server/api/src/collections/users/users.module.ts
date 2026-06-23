@@ -1,6 +1,6 @@
 /**
  * Users Module
- * User brand management: user profiles, authentication integration (Clerk),
+ * User brand management: user profiles, authentication integration,
  * user preferences, and activity tracking.
  */
 import { BrandsModule } from '@api/collections/brands/brands.module';
@@ -12,7 +12,6 @@ import { UsersController } from '@api/collections/users/controllers/users.contro
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CommonModule } from '@api/common/common.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
-import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
@@ -20,7 +19,6 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [UsersService],
   imports: [
     forwardRef(() => BrandsModule),
-    forwardRef(() => ClerkModule),
     forwardRef(() => CommonModule),
     forwardRef(() => FilesClientModule),
     forwardRef(() => MembersModule),

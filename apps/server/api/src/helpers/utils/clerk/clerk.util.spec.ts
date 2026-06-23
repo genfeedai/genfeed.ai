@@ -1,5 +1,5 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
-import type { User } from '@clerk/backend';
 
 describe('getPublicMetadata', () => {
   it('returns typed public metadata', () => {

@@ -10,9 +10,6 @@
     "experiments": {
       "typedRoutes": true
     },
-    "extra": {
-      "clerkPublishableKey": "${EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY}"
-    },
     "icon": "./assets/images/icon.png",
     "ios": {
       "supportsTablet": true

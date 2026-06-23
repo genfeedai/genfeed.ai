@@ -1,8 +1,8 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { AgentFullPage } from '@genfeedai/agent';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { TasksService } from '@services/management/tasks.service';
 import { useRouter } from 'next/navigation';
@@ -19,7 +19,7 @@ export function ChatWorkspacePageShell({
 }: ChatWorkspacePageShellProps) {
   const { push } = useRouter();
   const { orgHref } = useOrgUrl();
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const {
     agentApiService,
     isLoaded,

@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BulkApproveContentDraftsDto } from '@api/collections/content-drafts/dto/bulk-approve-content-drafts.dto';
 import { ContentDraftRejectDto } from '@api/collections/content-drafts/dto/content-draft-action.dto';
 import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
@@ -13,7 +14,6 @@ import {
 import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
 import { ContentReviewService } from '@api/services/content-engine/content-review.service';
-import type { User } from '@clerk/backend';
 import {
   ContentDraftSerializer,
   ContentPlanItemSerializer,

@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { ConfigService } from '@api/config/config.service';
@@ -10,12 +11,8 @@ import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { SubscriptionPlan } from '@genfeedai/enums';
-import type {
-  IChangePriceBodyParams,
-  JsonApiCollectionResponse,
-} from '@genfeedai/interfaces';
+import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { SubscriptionSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

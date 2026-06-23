@@ -1,7 +1,7 @@
 ### Genfeed API - API Keys Management
 ### Endpoints for creating and managing API keys for external integrations
 ### API keys start with 'gf_' prefix and enable external apps to access Genfeed API
-### Requires Clerk JWT authentication
+### Requires Better Auth JWT authentication
 
 @import ../../../../../../../http/_environment.http
 

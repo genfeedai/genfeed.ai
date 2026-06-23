@@ -1,8 +1,8 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BatchContentController } from '@api/services/batch-content/batch-content.controller';
 import type { BatchContentService } from '@api/services/batch-content/batch-content.service';
 import type { CreateBatchContentDto } from '@api/services/batch-content/dto/create-batch-content.dto';
 import type { BatchStatus } from '@api/services/batch-content/interfaces/batch-content.interfaces';
-import type { User } from '@clerk/backend';
 
 function createMockUser(
   organization: string,

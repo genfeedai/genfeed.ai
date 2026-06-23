@@ -272,7 +272,7 @@ export interface BrandSummary {
  * Cloud API service for visual workflow editor operations.
  *
  * Extends HTTPBaseService which provides:
- * - Automatic Bearer token injection via Clerk
+ * - Automatic Bearer token injection via the active auth provider
  * - Request/response interceptors (timeout, error handling, auth)
  * - Singleton instance management per token
  *

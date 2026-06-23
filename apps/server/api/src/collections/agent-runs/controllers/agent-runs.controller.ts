@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   AgentRunStatsQueryDto,
   AgentRunsQueryDto,
@@ -21,7 +22,6 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { User } from '@clerk/backend';
 import { AgentExecutionStatus } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { AgentRunSerializer } from '@genfeedai/serializers';

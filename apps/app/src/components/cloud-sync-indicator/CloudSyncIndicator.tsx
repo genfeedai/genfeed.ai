@@ -1,6 +1,5 @@
 'use client';
 
-import { SignIn } from '@clerk/nextjs';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
@@ -9,7 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import { Cloud, CloudOff, X } from 'lucide-react';
+import { Cloud, CloudOff } from 'lucide-react';
 import { useState } from 'react';
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
 import { useCloudSession } from '@/hooks/useCloudSession';
@@ -19,7 +18,6 @@ import { getDesktopBridge, isDesktopShell } from '@/lib/desktop/runtime';
 export default function CloudSyncIndicator() {
   const { isConnected } = useCloudSession();
   const [isLaunching, setIsLaunching] = useState(false);
-  const [showSignIn, setShowSignIn] = useState(false);
   const hybrid = isHybridMode();
   const local = isLocalOnly();
   const desktop = isDesktopShell();
@@ -30,7 +28,7 @@ export default function CloudSyncIndicator() {
 
   const handleConnect = async () => {
     if (!desktop) {
-      setShowSignIn(true);
+      window.location.assign('/login?callbackUrl=/');
       return;
     }
 
@@ -113,31 +111,6 @@ export default function CloudSyncIndicator() {
         )}
         {desktop && <DesktopLocalProviderSettings />}
       </PopoverContent>
-      {!desktop && showSignIn && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="relative">
-            <Button
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => setShowSignIn(false)}
-              className="absolute -right-2 -top-2 z-10 flex size-8 items-center justify-center rounded-full bg-background text-muted-foreground shadow-lg hover:text-foreground cursor-pointer"
-              ariaLabel="Close sign in"
-            >
-              <X className="size-4" />
-            </Button>
-            <SignIn
-              routing="hash"
-              fallbackRedirectUrl="/"
-              appearance={{
-                elements: {
-                  card: 'shadow-2xl',
-                  rootBox: 'mx-auto',
-                },
-              }}
-            />
-          </div>
-        </div>
-      )}
     </Popover>
   );
 }

@@ -45,9 +45,9 @@ export const SELF_HOSTED_REQUIRED: Joi.StringSchema = IS_SELF_HOSTED_FLAG
 export const IS_SELF_HOSTED: boolean = IS_SELF_HOSTED_FLAG;
 
 /**
- * Better Auth dual-run switch (epic #735). When true, the first-party Better
- * Auth handler/strategy/guard are active beside Clerk; when false (default)
- * they are inert and every request flows through Clerk unchanged.
+ * Better Auth runtime switch (epic #735). Enabled by default; set
+ * `BETTER_AUTH_ENABLED=false` only for explicit offline/local runs that should
+ * not mount the auth handler.
  *
  * Sourced from the environment here (mirroring IS_SELF_HOSTED) so guards and the
  * bootstrap can branch on it without a ConfigService injection. The matching
@@ -55,4 +55,4 @@ export const IS_SELF_HOSTED: boolean = IS_SELF_HOSTED_FLAG;
  * `BetterAuthModule` fail-fast validates the dependent secrets when it is on.
  */
 export const IS_BETTER_AUTH_ENABLED: boolean =
-  process.env.BETTER_AUTH_ENABLED === 'true';
+  process.env.BETTER_AUTH_ENABLED !== 'false';

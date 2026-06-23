@@ -1,6 +1,6 @@
 ### Genfeed API - Workflow Executions Endpoints
 ### Track and manage workflow execution runs
-### Protected by ClerkGuard
+### Protected by CombinedAuthGuard
 
 ########################################
 # List Executions

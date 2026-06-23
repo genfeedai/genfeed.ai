@@ -15,37 +15,29 @@ function _isCoreMode(): boolean {
   return !isEEEnabled();
 }
 
-/** True when running the local app shell, with or without optional Clerk */
+/** True when running the local app shell. */
 export function isSelfHosted(): boolean {
   return !process.env.NEXT_PUBLIC_GENFEED_CLOUD;
 }
 
-/** True when the local app has connected to Genfeed Cloud via Clerk */
+/** True when the frontend targets Genfeed Cloud services. */
 export function isCloudConnected(): boolean {
-  return !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
+  return process.env.NEXT_PUBLIC_GENFEED_CLOUD === 'true';
 }
 
 /**
- * True when Better Auth is the active frontend session provider (dual-run flag,
- * epic #735). Off by default — Clerk stays the default until cutover. Mirrors
- * the backend `BETTER_AUTH_ENABLED` flag.
+ * True when Better Auth is the active frontend session provider.
  */
 export function isBetterAuthEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED === 'true';
+  return process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED !== 'false';
 }
 
-/** True when local app with optional Clerk cloud connection configured */
+/** True when local app with optional cloud connection configured. */
 export function isHybridMode(): boolean {
-  return (
-    !process.env.NEXT_PUBLIC_GENFEED_CLOUD &&
-    !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim()
-  );
+  return !process.env.NEXT_PUBLIC_GENFEED_CLOUD && isBetterAuthEnabled();
 }
 
-/** True when fully offline — no cloud, no Clerk */
+/** True when fully offline. */
 export function isLocalOnly(): boolean {
-  return (
-    !process.env.NEXT_PUBLIC_GENFEED_CLOUD &&
-    !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim()
-  );
+  return !process.env.NEXT_PUBLIC_GENFEED_CLOUD && !isBetterAuthEnabled();
 }

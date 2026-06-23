@@ -1,10 +1,10 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
 import { useBrandOverlay } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { BrandSwitcherProps } from '@genfeedai/props/social/brand-switcher.props';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -27,7 +27,7 @@ export default function MenuBrandSwitcher({
     UsersService.getInstance(token),
   );
 
-  const { user } = useUser();
+  const { user } = useAuthUser();
   const { openBrandOverlay } = useBrandOverlay();
   const { push } = useRouter();
   const [isUpdatingBrand, setIsUpdatingBrand] = useState(false);

@@ -1,13 +1,13 @@
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import {
   CreateDesktopAuthCodeDto,
   ExchangeDesktopAuthCodeDto,
 } from '@api/auth/dto/desktop-auth.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AuthDesktopService } from '@api/auth/services/auth-desktop.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import type { User } from '@clerk/backend';
 import {
   Body,
   Controller,
@@ -31,7 +31,7 @@ export class AuthDesktopController {
 
   @Post('authorize')
   @ApiBearerAuth()
-  @UseGuards(ClerkGuard)
+  @UseGuards(BetterAuthGuard)
   @RateLimit({ limit: 8, scope: 'ip', windowMs: 60000 })
   @ApiOperation({
     summary: 'Create a one-time desktop authorization code',

@@ -1,8 +1,8 @@
 /**
  * Better Auth client configuration — epic #735, Phase 2 (#737).
  *
- * Resolves the auth server base URL and the dual-run feature flag from
- * `NEXT_PUBLIC_*` env vars (inlined at build time in Next.js bundles). Kept
+ * Resolves the auth server base URL from `NEXT_PUBLIC_*` env vars (inlined at
+ * build time in Next.js bundles). Kept
  * dependency-free so both the browser client and the server token helper can
  * import it without pulling React.
  */
@@ -55,11 +55,10 @@ export function getApiOrigin(): string {
 }
 
 /**
- * Dual-run switch. When `true`, Better Auth becomes the active session source on
- * the frontend; when `false` (default) every auth path flows through Clerk
- * exactly as before. `NEXT_PUBLIC_` so it is inlined into client + middleware
- * bundles. Mirrors the backend `BETTER_AUTH_ENABLED` flag (Phase 1).
+ * Better Auth is the active frontend session source. The env escape hatch is
+ * intentionally negative so existing deployments stay on the self-hostable auth
+ * path when the variable is absent.
  */
 export function isBetterAuthEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED === 'true';
+  return process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED !== 'false';
 }

@@ -9,7 +9,7 @@ import {
   getPlaywrightAuthState,
   hasPlaywrightJwtToken,
   resolveAuthToken,
-} from '@genfeedai/helpers/auth/clerk.helper';
+} from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { clearTokenCache } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
@@ -182,13 +182,9 @@ export default function ProtectedProviders({
     content = <ApiStatusProvider>{content}</ApiStatusProvider>;
   }
 
-  // LOCAL mode: bypass the auth gate only when NEITHER Clerk nor Better Auth is
-  // active — backend handles identity via LocalIdentityInterceptor. With Better
-  // Auth enabled (Community), the gate still applies and reads the BA session.
-  if (
-    !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
-    !isBetterAuthEnabled()
-  ) {
+  // LOCAL mode: bypass the auth gate only when Better Auth is explicitly
+  // disabled; backend identity then comes from LocalIdentityInterceptor.
+  if (!isBetterAuthEnabled()) {
     return content;
   }
 

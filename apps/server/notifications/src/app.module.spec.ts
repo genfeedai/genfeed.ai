@@ -1,10 +1,5 @@
 import process from 'node:process';
 
-vi.mock('@clerk/backend', () => ({
-  createClerkClient: vi.fn(),
-  verifyToken: vi.fn(),
-}));
-
 vi.mock('@notifications/services/terminal/terminal.module', () => ({
   TerminalModule: class TerminalModule {},
 }));
@@ -15,7 +10,6 @@ describe('AppModule (Notifications)', () => {
   beforeEach(() => {
     process.env = {
       ...originalEnv,
-      CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || 'sk_test_clerk_secret',
       DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN || 'discord-token',
       DISCORD_CHANNEL_ID_POSTS:
         process.env.DISCORD_CHANNEL_ID_POSTS || 'discord-posts',

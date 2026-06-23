@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateContentPerformanceDto } from '@api/collections/content-performance/dto/create-content-performance.dto';
 import { ImportCsvDto } from '@api/collections/content-performance/dto/import-csv.dto';
 import { ImportManualDto } from '@api/collections/content-performance/dto/import-manual.dto';
@@ -15,7 +16,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { ContentPerformanceSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

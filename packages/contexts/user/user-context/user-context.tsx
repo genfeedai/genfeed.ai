@@ -1,13 +1,14 @@
 'use client';
 
-import { useAuth, useUser } from '@clerk/nextjs';
 import type { IUser } from '@genfeedai/interfaces';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 import { User } from '@genfeedai/models/auth/user.model';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { AuthService } from '@genfeedai/services/auth/auth.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
-import { getPlaywrightAuthState } from '@helpers/auth/clerk.helper';
+import { getPlaywrightAuthState } from '@helpers/auth/auth.helper';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, use, useCallback, useMemo } from 'react';
 import { loadClientProtectedBootstrap } from '../../providers/protected-bootstrap/client-protected-bootstrap';
@@ -35,14 +36,14 @@ export function UserProvider({
   hasInitialBootstrap = false,
   initialCurrentUser = null,
 }: UserProviderProps) {
-  const { isLoaded: isAuthLoaded, isSignedIn, orgId } = useAuth();
-  const { user } = useUser();
+  const { isLoaded: isAuthLoaded, isSignedIn, orgId, userId } = useAuthIdentity();
+  const { user } = useAuthUser();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =
     isAuthLoaded || playwrightAuth?.isLoaded === true;
   const effectiveIsSignedIn = isSignedIn || playwrightAuth?.isSignedIn === true;
-  const clerkUserId = user?.id ?? playwrightAuth?.userId ?? null;
-  const clerkUserUpdatedAt = user?.updatedAt?.getTime() ?? null;
+  const authUserId = userId ?? user?.id ?? playwrightAuth?.userId ?? null;
+  const authUserUpdatedAt = user?.updatedAt?.getTime() ?? null;
 
   const getUsersService = useContextAuthedService((token: string) =>
     UsersService.getInstance(token),
@@ -53,10 +54,10 @@ export function UserProvider({
 
   const queryClient = useQueryClient();
   const shouldFetch =
-    effectiveIsAuthLoaded && effectiveIsSignedIn && !!clerkUserId;
+    effectiveIsAuthLoaded && effectiveIsSignedIn && !!authUserId;
   const effectiveOrgId = orgId ?? playwrightAuth?.orgId ?? null;
   const clientBootstrapCacheKey = shouldFetch
-    ? `protected-bootstrap:${clerkUserId}:${effectiveOrgId ?? 'no-org'}`
+    ? `protected-bootstrap:${authUserId}:${effectiveOrgId ?? 'no-org'}`
     : undefined;
 
   const initialUser = useMemo(
@@ -66,8 +67,8 @@ export function UserProvider({
   const initialDataUpdatedAt = useMemo(() => Date.now(), []);
 
   const queryKey = useMemo(
-    () => ['user-context', clerkUserId, clerkUserUpdatedAt, effectiveOrgId],
-    [clerkUserId, clerkUserUpdatedAt, effectiveOrgId],
+    () => ['user-context', authUserId, authUserUpdatedAt, effectiveOrgId],
+    [authUserId, authUserUpdatedAt, effectiveOrgId],
   );
 
   const {
@@ -81,7 +82,7 @@ export function UserProvider({
       ? initialDataUpdatedAt
       : undefined,
     queryFn: async () => {
-      if (!effectiveIsSignedIn || !clerkUserId) {
+      if (!effectiveIsSignedIn || !authUserId) {
         return null;
       }
 

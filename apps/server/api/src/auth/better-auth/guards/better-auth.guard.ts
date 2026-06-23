@@ -9,9 +9,8 @@ import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 
 /**
- * Guard wrapping the Better Auth Passport strategy (epic #735, #736). Mirrors
- * ClerkGuard so CombinedAuthGuard can delegate to it symmetrically. Public
- * routes bypass; otherwise the bearer JWT is validated by the strategy.
+ * Guard wrapping the Better Auth Passport strategy (epic #735). Public routes
+ * bypass; otherwise the bearer JWT is validated by the strategy.
  */
 @Injectable()
 export class BetterAuthGuard extends AuthGuard(BETTER_AUTH_STRATEGY_NAME) {

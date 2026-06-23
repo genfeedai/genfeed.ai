@@ -2,7 +2,7 @@
 
 ## Guard Hierarchy
 
-All endpoints are protected by `CombinedAuthGuard`, registered as the global `APP_GUARD` in `app.module.ts`. Controllers do NOT need to add `ClerkGuard` or `ClerkAuthGuard` manually.
+All endpoints are protected by `CombinedAuthGuard`, registered as the global `APP_GUARD` in `app.module.ts`. Controllers do NOT add auth guards manually.
 
 ```
 Request
@@ -10,17 +10,20 @@ Request
   v
 CombinedAuthGuard (global APP_GUARD)
   |-- @Public() route? --> allow immediately
+  |-- local mode?      --> inject local identity
   |-- Bearer gf_*?    --> ApiKeyAuthGuard (API key auth)
-  |-- otherwise        --> ClerkGuard (Clerk JWT auth)
+  |-- otherwise        --> BetterAuthGuard (Better Auth JWT/session auth)
 ```
 
 ## Authentication Flow
 
 1. **Public routes**: `CombinedAuthGuard` checks for `IS_PUBLIC_KEY` metadata via `Reflector`. If `@Public()` is present on the handler or class, the request passes with no auth.
 
-2. **API key (`gf_` prefix)**: Token extracted from `Authorization: Bearer gf_...` header. `ApiKeyAuthGuard` validates the key against the database, checks IP restrictions, rate limits, and required scopes (via `@ApiKeyScopes()` decorator). Attaches synthetic `request.user` with org/scopes context.
+2. **Local mode**: Self-hosted/local deployments can skip cloud auth and receive the default local org/user/brand identity. Routes annotated with `@RequiresCloudAuth()` still require a valid cloud token.
 
-3. **Clerk JWT (default)**: `ClerkGuard` extends Passport's `AuthGuard('clerk')` and delegates to `ClerkStrategy`, which calls `verifyToken()` from `@clerk/backend`, derives the request principal from verified session claims on the hot path, and only falls back to `clerkClient.users.getUser()` when required claims are missing. The resulting user-like object is attached to `request.user`.
+3. **API key (`gf_` prefix)**: Token extracted from `Authorization: Bearer gf_...` header. `ApiKeyAuthGuard` validates the key against the database, checks IP restrictions, rate limits, and required scopes (via `@ApiKeyScopes()` decorator). Attaches synthetic `request.user` with org/scopes context.
+
+4. **Better Auth (default)**: Non-API-key bearer tokens are validated by `BetterAuthGuard`, which verifies Better Auth JWT/session state and attaches the authenticated Genfeed user context to `request.user`.
 
 ## @Public() Decorator
 
@@ -37,8 +40,8 @@ Apply `@Public()` to a controller class or individual handler to bypass all auth
 
 | Guard | Directory | Purpose |
 |-------|-----------|---------|
-| `CombinedAuthGuard` | `combined-auth/` | Global APP_GUARD; routes to Clerk or API key auth |
-| `ClerkGuard` | `clerk/` | Clerk JWT validation via Passport strategy |
+| `CombinedAuthGuard` | `combined-auth/` | Global APP_GUARD; routes to Better Auth, local identity, or API key auth |
+| `BetterAuthGuard` | `auth/better-auth/guards/` | Better Auth JWT/session validation |
 | `ApiKeyAuthGuard` | `api-key/` | API key (`gf_*`) validation with IP/rate-limit/scope checks |
 | `AdminApiKeyGuard` | `admin-api-key/` | Server-to-server auth via `GENFEEDAI_API_KEY` env var |
 | `RolesGuard` | `roles/` | Organization membership and role-based access (uses `@Roles()`) |
@@ -68,8 +71,8 @@ export class PublicPostsController { ... }
 @Controller('settings')
 export class SettingsController { ... }
 
-// WRONG: do not add ClerkGuard manually, it's redundant
-@UseGuards(ClerkGuard) // <-- unnecessary
+// WRONG: do not add BetterAuthGuard manually, it's redundant
+@UseGuards(BetterAuthGuard) // <-- unnecessary
 @Controller('posts')
 export class PostsController { ... }
 ```

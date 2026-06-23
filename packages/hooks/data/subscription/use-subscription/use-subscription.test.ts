@@ -1,19 +1,15 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock Clerk
-vi.mock('@clerk/nextjs', () => ({
-  useUser: vi.fn(() => ({
-    user: {
-      id: 'user-123',
-      publicMetadata: { organization: 'org-123' },
-    },
-  })),
+const mockUseAuthIdentity = vi.fn();
+const mockUseBrand = vi.fn();
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => mockUseAuthIdentity(),
 }));
 
-// Mock helpers
-vi.mock('@helpers/auth/clerk.helper', () => ({
-  getClerkPublicData: vi.fn(() => ({ organization: 'org-123' })),
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => mockUseBrand(),
 }));
 
 // Mock useAuthedService
@@ -85,14 +81,14 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
   },
 }));
 
-import { useUser } from '@clerk/nextjs';
-
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
 import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 
 describe('useSubscription', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseAuthIdentity.mockReturnValue({ userId: 'user-123' });
+    mockUseBrand.mockReturnValue({ organizationId: 'org-123' });
     mockOrganizationsService.findOrganizationSubscription.mockResolvedValue({
       status: 'active',
     });
@@ -180,9 +176,8 @@ describe('useSubscription', () => {
     });
 
     it('should set isSubscriptionActive to false when no user', async () => {
-      vi.mocked(useUser).mockReturnValueOnce({ user: null } as ReturnType<
-        typeof useUser
-      >);
+      mockUseAuthIdentity.mockReturnValueOnce({ userId: null });
+      mockUseBrand.mockReturnValueOnce({ organizationId: null });
 
       const { result } = renderHook(() => useSubscription(), {
         wrapper: createQueryWrapper(),

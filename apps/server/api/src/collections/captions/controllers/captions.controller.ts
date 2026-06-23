@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CaptionsQueryDto } from '@api/collections/captions/dto/captions-query.dto';
 import { CreateCaptionDto } from '@api/collections/captions/dto/create-caption.dto';
 import { UpdateCaptionDto } from '@api/collections/captions/dto/update-caption.dto';
@@ -20,7 +21,6 @@ import {
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { User } from '@clerk/backend';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,

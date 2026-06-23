@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { formatDate } from '@genfeedai/helpers/formatting/date/date.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { IPostAnalyticsSummary } from '@genfeedai/interfaces';
@@ -19,7 +19,7 @@ export default function PostAnalyticsDashboard({
   publicationId,
   className = '',
 }: PostAnalyticsDashboardProps) {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthIdentity();
   const getPostAnalyticsService = useAuthedService(
     useCallback((token: string) => PostAnalyticsService.getInstance(token), []),
   );

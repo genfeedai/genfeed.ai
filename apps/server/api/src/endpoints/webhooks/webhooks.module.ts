@@ -24,8 +24,6 @@ import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
 import { ChromaticWebhookController } from '@api/endpoints/webhooks/chromatic/webhooks.chromatic.controller';
 import { ChromaticWebhookService } from '@api/endpoints/webhooks/chromatic/webhooks.chromatic.service';
-import { ClerkWebhookController } from '@api/endpoints/webhooks/clerk/webhooks.clerk.controller';
-import { ClerkWebhookService } from '@api/endpoints/webhooks/clerk/webhooks.clerk.service';
 import { GitHubWebhookController } from '@api/endpoints/webhooks/github/webhooks.github.controller';
 import { GitHubWebhookService } from '@api/endpoints/webhooks/github/webhooks.github.service';
 import { HeygenWebhookController } from '@api/endpoints/webhooks/heygen/webhooks.heygen.controller';
@@ -52,7 +50,6 @@ import { TransactionModule } from '@api/helpers/utils/transaction/transaction.mo
 import { BotGatewayModule } from '@api/services/bot-gateway/bot-gateway.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
-import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
 import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
 import { MicroservicesModule } from '@api/services/microservices/microservices.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
@@ -62,7 +59,6 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   controllers: [
     ChromaticWebhookController,
-    ClerkWebhookController,
     GitHubWebhookController,
     HeygenWebhookController,
     KlingWebhookController,
@@ -79,7 +75,6 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => AssetsModule),
     forwardRef(() => BotGatewayModule),
     forwardRef(() => BrandsModule),
-    forwardRef(() => ClerkModule),
     forwardRef(() => ClipProjectsModule),
     forwardRef(() => ClipResultsModule),
     forwardRef(() => CommonModule),
@@ -112,7 +107,6 @@ import { forwardRef, Module } from '@nestjs/common';
     AutoMergeService,
     ChromaticWebhookService,
     ModelRegistrationService,
-    ClerkWebhookService,
     GitHubWebhookService,
     HeygenWebhookService,
     KlingWebhookService,

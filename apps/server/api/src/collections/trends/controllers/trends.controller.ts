@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
@@ -32,7 +33,6 @@ import {
   GetTrendingSoundsDto,
   GetViralVideosDto,
 } from '@api/services/integrations/apify/dto/apify-trend.dto';
-import type { User } from '@clerk/backend';
 import { ActivitySource, Timeframe } from '@genfeedai/enums';
 import { TrendSerializer } from '@genfeedai/serializers';
 import {

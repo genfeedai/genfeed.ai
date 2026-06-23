@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
@@ -5,7 +6,6 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import type { User } from '@clerk/backend';
 import {
   IngredientCategory,
   IngredientExtension,

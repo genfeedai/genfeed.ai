@@ -9,6 +9,8 @@
  * - Get organization posts
  * - Get organization activities
  */
+
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { type ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
@@ -54,7 +56,6 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,

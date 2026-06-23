@@ -91,7 +91,7 @@ describe('LinkedInController', () => {
 
       const result = await controller.connect(
         mockRequest,
-        mockUser as unknown as import('@clerk/backend').User,
+        mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
         { brand: brandId },
       );
 
@@ -105,7 +105,7 @@ describe('LinkedInController', () => {
 
       const result = await controller.connect(
         mockRequest,
-        mockUser as unknown as import('@clerk/backend').User,
+        mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
         { brand: brandId },
       );
 
@@ -123,7 +123,7 @@ describe('LinkedInController', () => {
 
       const result = await controller.connect(
         mockRequest,
-        mockUser as unknown as import('@clerk/backend').User,
+        mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
         { brand: brandId },
       );
 

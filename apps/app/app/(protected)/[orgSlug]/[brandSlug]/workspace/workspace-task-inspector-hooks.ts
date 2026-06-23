@@ -1,5 +1,5 @@
-import { useAuth } from '@clerk/nextjs';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import type { Ingredient } from '@models/content/ingredient.model';
 import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -21,7 +21,7 @@ import {
 export function useWorkspaceTaskLinkedRunSummary(
   task: Task | null,
 ): WorkspaceTaskLinkedRunSummary & { isLoading: boolean } {
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const [summary, setSummary] = useState<WorkspaceTaskLinkedRunSummary>(() =>
     getEmptyLinkedRunSummary(),
   );
@@ -115,7 +115,7 @@ export function useWorkspaceTaskLinkedRunSummary(
 export function useWorkspaceTaskLinkedOutputs(
   task: Task | null,
 ): WorkspaceTaskLinkedOutputSummary {
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const [summary, setSummary] = useState<WorkspaceTaskLinkedOutputSummary>(() =>
     getEmptyLinkedOutputSummary(),
   );
@@ -197,7 +197,7 @@ export function useWorkspaceTaskLinkedOutputs(
 export function useWorkspaceTaskLinkedIssue(
   task: Task | null,
 ): WorkspaceTaskLinkedIssueSummary {
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const [summary, setSummary] = useState<WorkspaceTaskLinkedIssueSummary>(() =>
     getEmptyLinkedIssueSummary(),
   );

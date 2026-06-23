@@ -1,7 +1,7 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiresCloudAuth } from '@api/helpers/decorators/requires-cloud-auth.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import type { User } from '@clerk/backend';
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { DesktopSyncService } from './desktop-sync.service';
 import { DesktopBrandManifestQueryDto } from './dto/desktop-brand-manifest-query.dto';

@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { EvaluateContentDto } from '@api/collections/evaluations/dto/evaluate-content.dto';
 import { EvaluateExternalDto } from '@api/collections/evaluations/dto/evaluate-external.dto';
 import { EvaluationFiltersDto } from '@api/collections/evaluations/dto/evaluation-filters.dto';
@@ -15,7 +16,6 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { User } from '@clerk/backend';
 import { EvaluationType, IngredientCategory } from '@genfeedai/enums';
 import { EvaluationSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

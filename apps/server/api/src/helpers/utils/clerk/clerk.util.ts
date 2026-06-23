@@ -1,9 +1,23 @@
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
-import type { User } from '@clerk/backend';
+import type {
+  AuthenticatedUser,
+  IAuthPublicMetadata,
+} from '@api/auth/interfaces/authenticated-user.interface';
 import type { Request } from 'express';
 
-export function getPublicMetadata(user: User): IClerkPublicMetadata {
-  return user.publicMetadata as unknown as IClerkPublicMetadata;
+const EMPTY_PUBLIC_METADATA: IAuthPublicMetadata = {
+  brand: '',
+  isSuperAdmin: false,
+  organization: '',
+  user: '',
+};
+
+export function getPublicMetadata(
+  user: AuthenticatedUser | null | undefined,
+): IAuthPublicMetadata {
+  return {
+    ...EMPTY_PUBLIC_METADATA,
+    ...(user?.publicMetadata ?? {}),
+  };
 }
 
 type ContextCarrier = Request & {
@@ -14,7 +28,10 @@ type ContextCarrier = Request & {
   };
 };
 
-export function getIsSuperAdmin(user: User, request?: ContextCarrier): boolean {
+export function getIsSuperAdmin(
+  user: AuthenticatedUser | null | undefined,
+  request?: ContextCarrier,
+): boolean {
   if (request?.context?.isSuperAdmin !== undefined) {
     return request.context.isSuperAdmin === true;
   }
@@ -24,7 +41,7 @@ export function getIsSuperAdmin(user: User, request?: ContextCarrier): boolean {
 }
 
 export function getStripeSubscriptionStatus(
-  user: User,
+  user: AuthenticatedUser | null | undefined,
   request?: ContextCarrier,
 ): string {
   if (request?.context?.stripeSubscriptionStatus !== undefined) {
@@ -36,7 +53,7 @@ export function getStripeSubscriptionStatus(
 }
 
 export function getSubscriptionTier(
-  user: User,
+  user: AuthenticatedUser | null | undefined,
   request?: ContextCarrier,
 ): string {
   if (request?.context?.subscriptionTier !== undefined) {
@@ -73,7 +90,7 @@ export interface ContextQueryDto {
  * Extract request context (organizationId, brandId, userId) from user metadata and query params.
  * Query params take precedence over user metadata, allowing for admin override scenarios.
  *
- * @param user - Clerk user object
+ * @param user - authenticated user object
  * @param query - Optional query DTO with organization, brand, user overrides
  * @returns RequestContext with string IDs and ObjectId conversions
  *
@@ -85,7 +102,7 @@ export interface ContextQueryDto {
  * });
  */
 export function extractRequestContext(
-  user: User,
+  user: AuthenticatedUser,
   query?: ContextQueryDto,
 ): RequestContext {
   const publicMetadata = getPublicMetadata(user);

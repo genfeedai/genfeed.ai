@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { MusicQueryDto } from '@api/collections/musics/dto/music-query.dto';
 import { UpdateMusicDto } from '@api/collections/musics/dto/update-music.dto';
@@ -19,7 +20,6 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { User } from '@clerk/backend';
 import { IngredientCategory } from '@genfeedai/enums';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { MusicSerializer } from '@genfeedai/serializers';

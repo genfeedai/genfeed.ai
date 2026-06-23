@@ -70,8 +70,16 @@ describe('clerk.helper', () => {
       delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
     });
 
-    it('delegates to the Clerk getToken callback when Better Auth is off', async () => {
-      delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+    it('uses Better Auth by default and ignores the legacy getToken callback', async () => {
+      authClientMocks.getBetterAuthToken.mockResolvedValue('ba-jwt');
+      const getToken = vi.fn(async () => 'clerk-token');
+
+      await expect(resolveAuthToken(getToken)).resolves.toBe('ba-jwt');
+      expect(getToken).not.toHaveBeenCalled();
+    });
+
+    it('delegates to the legacy getToken callback when Better Auth is explicitly off', async () => {
+      process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'false';
       const getToken = vi.fn(async () => 'clerk-token');
 
       await expect(resolveAuthToken(getToken)).resolves.toBe('clerk-token');

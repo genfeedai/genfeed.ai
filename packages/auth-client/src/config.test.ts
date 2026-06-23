@@ -57,18 +57,23 @@ describe('auth-client config', () => {
   });
 
   describe('isBetterAuthEnabled', () => {
-    it('is false by default (dual-run off — Clerk stays default)', () => {
-      expect(isBetterAuthEnabled()).toBe(false);
+    it('is true by default (Better Auth is the active session source)', () => {
+      expect(isBetterAuthEnabled()).toBe(true);
     });
 
-    it('is true only for the exact string "true"', () => {
+    it('is true for the exact string "true"', () => {
       process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'true';
       expect(isBetterAuthEnabled()).toBe(true);
     });
 
-    it('is false for any non-"true" value', () => {
-      process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = '1';
+    it('is false only for the exact string "false"', () => {
+      process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'false';
       expect(isBetterAuthEnabled()).toBe(false);
+    });
+
+    it('is true for non-"false" values', () => {
+      process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = '1';
+      expect(isBetterAuthEnabled()).toBe(true);
     });
   });
 

@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateWatchlistDto } from '@api/collections/watchlists/dto/create-watchlist.dto';
 import { QuickAddWatchlistsDto } from '@api/collections/watchlists/dto/quick-add-watchlist.dto';
 import { UpdateWatchlistDto } from '@api/collections/watchlists/dto/update-watchlist.dto';
@@ -10,7 +11,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { WatchlistPlatform } from '@genfeedai/enums';
 import { WatchlistSerializer } from '@genfeedai/serializers';
 import {

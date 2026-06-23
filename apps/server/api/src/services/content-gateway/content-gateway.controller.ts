@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
@@ -5,7 +6,6 @@ import {
   ExecuteSkillDto,
   RouteSignalDto,
 } from '@api/services/content-gateway/dto/content-gateway.dto';
-import type { User } from '@clerk/backend';
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 

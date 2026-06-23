@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import process from 'node:process';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import type {
   BrandAgentConfig,
@@ -28,7 +29,6 @@ import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.s
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
-import type { User } from '@clerk/backend';
 import { isEEEnabled } from '@genfeedai/config';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
@@ -73,7 +73,7 @@ export interface InstallReadinessResponse {
     selectedMode: OnboardingAccessMode | null;
     serverDefaultsReady: boolean;
   };
-  authMode: 'clerk' | 'none';
+  authMode: 'better_auth' | 'none';
   billingMode: 'cloud_billing' | 'oss_local';
   localTools: {
     anyDetected: boolean;
@@ -992,7 +992,7 @@ export class OnboardingService {
         selectedMode,
         serverDefaultsReady: providers.anyConfigured,
       },
-      authMode: user.id ? 'clerk' : 'none',
+      authMode: user.id ? 'better_auth' : 'none',
       billingMode: showBillingUi ? 'cloud_billing' : 'oss_local',
       localTools: this.getLocalToolReadiness(),
       providers,
@@ -1012,7 +1012,7 @@ export class OnboardingService {
   }
 
   /**
-   * Set the organization's account type and update Clerk metadata
+   * Set the organization's account type.
    */
   async setAccountType(
     user: User,
@@ -1052,7 +1052,7 @@ export class OnboardingService {
   }
 
   /**
-   * Mark the onboarding funnel as completed in Clerk metadata
+   * Mark the onboarding funnel as completed.
    */
   async completeFunnel(
     user: User,
@@ -1073,8 +1073,8 @@ export class OnboardingService {
         );
       }
 
-      // Update the DB so OnboardingGuard is satisfied (epic #735, Phase C —
-      // isOnboardingCompleted is read from the User row, not Clerk metadata).
+      // Update the DB so OnboardingGuard is satisfied; onboarding completion is
+      // read from the User row, not provider metadata.
       const dbUser = await this.usersService.findOne({ clerkId: user.id });
       if (dbUser && !dbUser.isOnboardingCompleted) {
         await this.usersService.patch(dbUser._id, {

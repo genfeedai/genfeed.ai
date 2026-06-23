@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { DarkroomService } from '@api/endpoints/admin/darkroom/darkroom.service';
 import {
   BulkEc2ActionDto,
@@ -24,7 +25,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
-import type { User } from '@clerk/backend';
 import {
   DarkroomCloudFrontInvalidationSerializer,
   DarkroomEc2ActionResultSerializer,

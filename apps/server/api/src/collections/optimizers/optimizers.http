@@ -1,6 +1,6 @@
 ### Optimizers API Test Suite
 ### Base URL: http://localhost:3000/optimizers
-### Auth: Bearer token required (Clerk JWT)
+### Auth: Bearer token required (Better Auth JWT)
 
 ### Variables
 @baseUrl = http://localhost:3000
@@ -100,4 +100,3 @@ Content-Type: application/json
   "targetMedia": "image",
   "count": 3
 }
-

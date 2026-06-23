@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -9,7 +10,6 @@ import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { PersonaContentService } from '@api/services/persona-content/persona-content.service';
 import { PersonaContentPlanService } from '@api/services/persona-content/persona-content-plan.service';
 import { PersonaPublisherService } from '@api/services/persona-content/persona-publisher.service';
-import type { User } from '@clerk/backend';
 import { PostCategory } from '@genfeedai/enums';
 import { PostSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

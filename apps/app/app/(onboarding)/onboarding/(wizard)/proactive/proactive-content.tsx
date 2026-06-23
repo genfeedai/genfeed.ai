@@ -1,7 +1,7 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import {
   OnboardingService,
   type ProactiveWorkspaceResponse,
@@ -73,7 +73,7 @@ function workspaceReducer(
 
 export default function ProactiveContent() {
   const { push } = useRouter();
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const [{ workspace, isLoading, isRefreshing, error }, dispatch] = useReducer(
     workspaceReducer,
     initialState,

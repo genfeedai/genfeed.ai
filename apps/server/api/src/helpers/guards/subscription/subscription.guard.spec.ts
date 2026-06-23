@@ -1,6 +1,6 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import * as clerkUtil from '@api/helpers/utils/clerk/clerk.util';
-import type { User } from '@clerk/backend';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

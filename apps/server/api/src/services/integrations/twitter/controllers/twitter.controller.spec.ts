@@ -114,7 +114,7 @@ describe('TwitterController', () => {
 
       const result = await controller.connect(
         mockRequest,
-        mockUser as unknown as import('@clerk/backend').User,
+        mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
         { brand: brandId },
       );
 
@@ -136,7 +136,7 @@ describe('TwitterController', () => {
       await expect(
         controller.connect(
           mockRequest,
-          mockUser as unknown as import('@clerk/backend').User,
+          mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
           { brand: brandId },
         ),
       ).rejects.toThrow(HttpException);
@@ -154,7 +154,7 @@ describe('TwitterController', () => {
       await expect(
         controller.connect(
           mockRequest,
-          mockUser as unknown as import('@clerk/backend').User,
+          mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
           { brand: brandId },
         ),
       ).rejects.toThrow(HttpException);

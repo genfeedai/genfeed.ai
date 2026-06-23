@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
@@ -19,7 +20,6 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
-import type { User } from '@clerk/backend';
 import { ActivitySource } from '@genfeedai/enums';
 import { ScheduleSerializer } from '@genfeedai/serializers';
 import {

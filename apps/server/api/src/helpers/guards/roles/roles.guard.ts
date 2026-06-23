@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RoleEntity } from '@api/collections/roles/entities/role.entity';
 import {
@@ -7,7 +8,6 @@ import {
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
-import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';
 import {
   CanActivate,

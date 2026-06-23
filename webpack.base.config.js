@@ -61,6 +61,7 @@ module.exports = function createWebpackConfig({
   const isProduction = process.env.NODE_ENV === 'production';
   const tsConfigPath = path.resolve(appDir, 'tsconfig.app.json');
   const workspaceRoot = path.resolve(nodeModulesDir, '..');
+  const bunNodeModulesDir = path.resolve(nodeModulesDir, '.bun/node_modules');
   const cloudPackagesRoot = path.resolve(workspaceRoot, 'packages');
   const enterprisePackagesRoot = path.resolve(workspaceRoot, 'ee/packages');
   const serverAppsRoot = path.resolve(workspaceRoot, 'apps/server');
@@ -334,7 +335,7 @@ module.exports = function createWebpackConfig({
         '.jsx': ['.tsx', '.jsx'],
       },
       extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.d.ts'],
-      modules: [nodeModulesDir, 'node_modules'],
+      modules: [nodeModulesDir, bunNodeModulesDir, 'node_modules'],
       plugins: [
         new TsconfigPathsPlugin({
           configFile: tsConfigPath,
@@ -346,7 +347,7 @@ module.exports = function createWebpackConfig({
     },
 
     resolveLoader: {
-      modules: [nodeModulesDir, 'node_modules'],
+      modules: [nodeModulesDir, bunNodeModulesDir, 'node_modules'],
       symlinks: true,
     },
 

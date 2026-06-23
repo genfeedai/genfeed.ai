@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PatternsQueryDto } from '@api/collections/content-intelligence/dto/patterns-query.dto';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -11,7 +12,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import type { User } from '@clerk/backend';
 import { ContentPatternType } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,

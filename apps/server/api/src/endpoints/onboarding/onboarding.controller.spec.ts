@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { SetAccountTypeDto } from '@api/endpoints/onboarding/dto/account-type.dto';
 import {
   BrandSetupDto,
@@ -10,7 +11,6 @@ import { AddReferenceImagesDto } from '@api/endpoints/onboarding/dto/reference-i
 import { OnboardingController } from '@api/endpoints/onboarding/onboarding.controller';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { User } from '@clerk/backend';
 import { OrganizationCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

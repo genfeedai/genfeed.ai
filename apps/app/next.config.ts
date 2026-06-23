@@ -14,13 +14,6 @@ const appDir = path.dirname(fileURLToPath(import.meta.url));
 const workflowUiRoot = path.resolve(appDir, '../../packages/workflow-ui');
 const helpersRoot = path.resolve(appDir, '../../packages/helpers');
 const serializersRoot = path.resolve(appDir, '../../packages/serializers');
-const desktopAuthRoot = path.resolve(appDir, './src/lib/desktop-auth');
-const isDesktopShellBuild = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
-const clerkPublishableKey =
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
-const clerkSecretKey = process.env.CLERK_SECRET_KEY?.trim();
-const hasClerkKeys = Boolean(clerkPublishableKey) && Boolean(clerkSecretKey);
-const useClerkAuthShim = isDesktopShellBuild || !hasClerkKeys;
 
 const workflowUiAliases = {
   '@genfeedai/helpers': path.join(helpersRoot, 'src/index.ts'),
@@ -188,12 +181,6 @@ config.turbopack = {
   ...(config.turbopack ?? {}),
   resolveAlias: {
     ...(config.turbopack?.resolveAlias ?? {}),
-    ...(useClerkAuthShim
-      ? {
-          '@clerk/nextjs': './src/lib/desktop-auth/clerk-shim.tsx',
-          '@clerk/nextjs/server': './src/lib/desktop-auth/clerk-server-shim.ts',
-        }
-      : {}),
     '@components/buttons/refresh/button-refresh/ButtonRefresh':
       '../../packages/ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx',
     '@components/cards/KpiCard':
@@ -292,15 +279,6 @@ config.webpack = ((webpackConfig, options) => {
 
   nextConfig.resolve.alias = {
     ...nextConfig.resolve.alias,
-    ...(useClerkAuthShim
-      ? {
-          '@clerk/nextjs': path.join(desktopAuthRoot, 'clerk-shim.tsx'),
-          '@clerk/nextjs/server': path.join(
-            desktopAuthRoot,
-            'clerk-server-shim.ts',
-          ),
-        }
-      : {}),
     '@genfeedai/serializers': path.join(serializersRoot, 'src/index.ts'),
     ...workflowUiAliases,
     // Tsconfig path aliases → webpack aliases

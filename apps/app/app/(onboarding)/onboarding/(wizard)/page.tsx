@@ -1,8 +1,8 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
+import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -11,15 +11,15 @@ import { useEffect } from 'react';
  */
 export default function OnboardingRootPage() {
   const { currentUser, isLoading } = useCurrentUser();
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { user: authUser, isLoaded: isAuthLoaded } = useAuthUser();
   const { replace } = useRouter();
 
   useEffect(() => {
-    if (isLoading || !currentUser || !isClerkLoaded) {
+    if (isLoading || !currentUser || !isAuthLoaded) {
       return;
     }
 
-    if (clerkUser?.publicMetadata?.proactiveLeadId) {
+    if (authUser?.publicMetadata?.proactiveLeadId) {
       replace('/onboarding/proactive');
       return;
     }
@@ -35,7 +35,7 @@ export default function OnboardingRootPage() {
     }
 
     replace(`/onboarding/${getResumeStep(completedSteps)}`);
-  }, [clerkUser, currentUser, isClerkLoaded, isLoading, replace]);
+  }, [authUser, currentUser, isAuthLoaded, isLoading, replace]);
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">

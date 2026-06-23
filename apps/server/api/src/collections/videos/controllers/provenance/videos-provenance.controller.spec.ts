@@ -1,7 +1,7 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { VideosProvenanceController } from '@api/collections/videos/controllers/provenance/videos-provenance.controller';
 import { VideoProvenanceService } from '@api/collections/videos/services/video-provenance.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { User } from '@clerk/backend';
 import type { IMediaProvenancePackage } from '@genfeedai/interfaces';
 import { Test, type TestingModule } from '@nestjs/testing';
 

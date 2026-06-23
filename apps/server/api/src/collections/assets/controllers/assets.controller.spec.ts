@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AssetsController } from '@api/collections/assets/controllers/assets.controller';
 import type { UpdateAssetDto } from '@api/collections/assets/dto/update-asset.dto';
 import type { Asset } from '@api/collections/assets/schemas/asset.schema';
@@ -6,7 +7,6 @@ import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import type { User } from '@clerk/backend';
 import { AssetCategory, AssetParent } from '@genfeedai/enums';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

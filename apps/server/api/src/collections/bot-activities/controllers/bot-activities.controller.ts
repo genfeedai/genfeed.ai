@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BotActivitiesQueryDto } from '@api/collections/bot-activities/dto/bot-activities-query.dto';
 import {
   BotActivitiesService,
@@ -11,7 +12,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { BotActivitySerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';

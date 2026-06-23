@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateRoleDto } from '@api/collections/roles/dto/create-role.dto';
 import { UpdateRoleDto } from '@api/collections/roles/dto/update-role.dto';
 import { RoleEntity } from '@api/collections/roles/entities/role.entity';
@@ -11,7 +12,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { RoleSerializer } from '@genfeedai/serializers';
 import {
   Body,

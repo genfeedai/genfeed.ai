@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   AppendRunEventDto,
   CreateRunDto,
@@ -15,7 +16,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { ApiKeyScope, RunAuthType } from '@genfeedai/enums';
 import { RunSerializer } from '@genfeedai/serializers';
 import {

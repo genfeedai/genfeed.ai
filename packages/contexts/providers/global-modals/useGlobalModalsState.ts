@@ -1,6 +1,5 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   type IngredientCategory,
@@ -26,13 +25,14 @@ import type {
 } from '@genfeedai/props/modals/modal.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
+import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import type { GallerySelectItem } from './global-modals.provider';
 
 export function useGlobalModalsState() {
   const { credentials, refreshBrands, settings } = useBrand();
-  const { user } = useUser();
+  const { user } = useAuthUser();
   const router = useRouter();
   const { href } = useOrgUrl();
 

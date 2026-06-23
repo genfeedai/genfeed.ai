@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ModalEnum, PageScope } from '@genfeedai/enums';
 import type { IElementLighting, IQueryParams } from '@genfeedai/interfaces';
@@ -36,7 +36,7 @@ function LightingsListContent({
   onRefreshingChange,
   onRefresh,
 }: IElementContentProps): ReactNode {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthIdentity();
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
   const { replace } = useRouter();

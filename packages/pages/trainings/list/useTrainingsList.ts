@@ -1,9 +1,9 @@
-import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ModalEnum, PageScope, TrainingStatus } from '@genfeedai/enums';
 import type { ITraining } from '@genfeedai/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { Training } from '@models/ai/training.model';
 import type { ContentProps } from '@props/layout/content.props';
@@ -31,7 +31,7 @@ export function useTrainingsList({
   scope = PageScope.ORGANIZATION,
   onRefreshRegister,
 }: UseTrainingsListParams) {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthIdentity();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

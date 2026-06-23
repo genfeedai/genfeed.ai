@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
 import { EmailDigestService } from '@api/collections/content-performance/services/email-digest.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -6,7 +7,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { QueueService } from '@api/queues/core/queue.service';
-import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { IsDateString, IsEmail, IsOptional, IsString } from 'class-validator';

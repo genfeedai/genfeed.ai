@@ -1,7 +1,7 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
-import type { User } from '@clerk/backend';
 import { BrandSerializer } from '@genfeedai/serializers';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';

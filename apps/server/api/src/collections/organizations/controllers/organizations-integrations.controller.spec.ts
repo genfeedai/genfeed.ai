@@ -9,12 +9,12 @@ vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
   })),
 }));
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationsIntegrationsController } from '@api/collections/organizations/controllers/organizations-integrations.controller';
 import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-integration.dto';
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
-import type { User } from '@clerk/backend';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';

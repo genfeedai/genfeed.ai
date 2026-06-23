@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AvatarsService } from '@api/collections/avatars/services/avatars.service';
 import { CreateAvatarDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
@@ -20,7 +21,6 @@ import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenl
 import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { User } from '@clerk/backend';
 import { ActivitySource } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,

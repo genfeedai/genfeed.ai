@@ -1,25 +1,23 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
-import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/clerk.helper';
+import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import type { OnboardingGuardProps } from '@genfeedai/props/guards/onboarding-guard.props';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
 
 /**
- * Clerk-dependent guard logic. Only rendered when Clerk keys are present.
- *
  * - If onboarding not completed → redirect to first incomplete step
  * - If onboarding completed but billing is required in EE mode and the org
  *   still lacks subscription state → redirect to the final onboarding step
  * - Otherwise → pass through
  */
 function OnboardingGuardInner({ children }: OnboardingGuardProps) {
-  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =
     isAuthLoaded || playwrightAuth?.isLoaded === true;
@@ -145,18 +143,10 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
 /**
  * OnboardingGuard
  *
- * In LOCAL mode (no Clerk keys), SelfHostedSeedService sets isOnboardingCompleted=true on boot,
- * so the guard is skipped entirely. Without this bypass, effectiveIsSignedIn=false in LOCAL mode
- * causes an infinite redirect loop: /login → workspace → /login.
- *
- * In Clerk mode, delegates to OnboardingGuardInner which runs the full redirect logic.
+ * Desktop offline mode bypasses the cloud onboarding gate; web routes use the
+ * DB-backed access state loaded by protected providers.
  */
 export default function OnboardingGuard({ children }: OnboardingGuardProps) {
-  // No Clerk keys → self-hosted mode, seed service handles onboarding state.
-  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-    return <>{children}</>;
-  }
-
   // Desktop shell without a cloud session → offline mode, skip onboarding gate.
   if (process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1') {
     return <>{children}</>;

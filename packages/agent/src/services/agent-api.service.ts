@@ -36,7 +36,7 @@ export interface CredentialMentionItem {
 }
 
 export interface AgentInstallReadiness {
-  authMode: 'clerk' | 'none';
+  authMode: 'better_auth' | 'none';
   billingMode: 'cloud_billing' | 'oss_local';
   localTools: {
     anyDetected: boolean;

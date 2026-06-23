@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { PlatformTimeSeriesDataPoint } from '@genfeedai/props/analytics/charts.props';
 import {
@@ -8,7 +8,7 @@ import {
   type OverviewBootstrapPayload,
 } from '@genfeedai/services/auth/auth.service';
 import type { AgentRunStats as CloudAgentRunStats } from '@genfeedai/types';
-import { getPlaywrightAuthState } from '@helpers/auth/clerk.helper';
+import { getPlaywrightAuthState } from '@helpers/auth/auth.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
@@ -37,7 +37,7 @@ export interface UseOverviewBootstrapReturn {
 export function useOverviewBootstrap(
   options: UseOverviewBootstrapOptions = {},
 ): UseOverviewBootstrapReturn {
-  const { isLoaded: isAuthLoaded, isSignedIn, orgId, userId } = useAuth();
+  const { isLoaded: isAuthLoaded, isSignedIn, orgId, userId } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =
     isAuthLoaded || playwrightAuth?.isLoaded === true;

@@ -2,10 +2,8 @@ import { AuthBootstrapController } from '@api/auth/controllers/auth-bootstrap.co
 import { AuthCliController } from '@api/auth/controllers/auth-cli.controller';
 import { AuthDesktopController } from '@api/auth/controllers/auth-desktop.controller';
 import { AuthWhoamiController } from '@api/auth/controllers/auth-whoami.controller';
-import { ClerkStrategy } from '@api/auth/passport/clerk.strategy';
 import { AuthBootstrapService } from '@api/auth/services/auth-bootstrap.service';
 import { AuthDesktopService } from '@api/auth/services/auth-desktop.service';
-import { AuthIdentityResolverService } from '@api/auth/services/auth-identity-resolver.service';
 import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
@@ -21,9 +19,7 @@ import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
 import { ConfigModule } from '@api/config/config.module';
-import { ClerkClientProvider } from '@api/providers/clerk.provider';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { forwardRef, Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 
@@ -54,13 +50,6 @@ import { PassportModule } from '@nestjs/passport';
     forwardRef(() => UserSetupModule),
     forwardRef(() => UsersModule),
   ],
-  providers: [
-    AuthBootstrapService,
-    AuthDesktopService,
-    ClerkStrategy,
-    ClerkClientProvider,
-    ClerkService,
-    AuthIdentityResolverService,
-  ],
+  providers: [AuthBootstrapService, AuthDesktopService],
 })
 export class AuthModule {}

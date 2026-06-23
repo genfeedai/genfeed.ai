@@ -1,10 +1,10 @@
 ### Schedules API Test Suite
 ### Base URL: http://localhost:3000/schedules
-### Auth: Bearer token required (Clerk JWT)
+### Auth: Bearer token required (Better Auth JWT)
 
 ### Variables
 @baseUrl = http://localhost:3000
-@token = your_clerk_jwt_token_here
+@token = your_better_auth_jwt_token_here
 @repurposingJobId = replace_with_actual_job_id
 
 ### 1. Get optimal posting time (AI-powered)
@@ -231,5 +231,4 @@ Content-Type: application/json
 ### Step 4: Check calendar
 GET {{baseUrl}}/schedules/calendar?start=2025-10-08T00:00:00Z&end=2025-10-15T23:59:59Z
 Authorization: Bearer {{token}}
-
 

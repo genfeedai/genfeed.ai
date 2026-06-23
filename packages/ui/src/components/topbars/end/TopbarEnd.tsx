@@ -1,11 +1,12 @@
 'use client';
 
-import { UserButton, useAuth, useUser } from '@clerk/nextjs';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 import UserDropdown from '@ui/menus/user-dropdown/UserDropdown';
 
 export default function TopbarEnd() {
-  const { isSignedIn } = useAuth();
-  const { user } = useUser();
+  const { isSignedIn } = useAuthIdentity();
+  const { user } = useAuthUser();
 
   if (!user || !isSignedIn) {
     return null;
@@ -19,9 +20,6 @@ export default function TopbarEnd() {
         userName={user.fullName ?? 'User'}
         userEmail={user.primaryEmailAddress?.emailAddress ?? ''}
       />
-      <div className="flex size-8 items-center justify-center">
-        <UserButton />
-      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   type ChangeEvent,
   type FormEvent,
@@ -19,6 +20,7 @@ const getSnapshot = () => true;
 const getServerSnapshot = () => false;
 
 export default function LoginBetterAuth() {
+  const searchParams = useSearchParams();
   const isMounted = useSyncExternalStore(
     subscribe,
     getSnapshot,
@@ -29,6 +31,11 @@ export default function LoginBetterAuth() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const callbackURL =
+    searchParams.get('callbackUrl') ||
+    searchParams.get('return_to') ||
+    searchParams.get('redirect_url') ||
+    '/';
 
   async function handleMagicLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,7 +43,7 @@ export default function LoginBetterAuth() {
     setIsSubmitting(true);
 
     try {
-      const result = await signIn.magicLink({ email, callbackURL: '/' });
+      const result = await signIn.magicLink({ email, callbackURL });
       if (result?.error) {
         setErrorMessage(
           result.error.message ??
@@ -54,7 +61,7 @@ export default function LoginBetterAuth() {
 
   async function handleGoogleSignIn() {
     setErrorMessage(null);
-    await signIn.social({ provider: 'google', callbackURL: '/' });
+    await signIn.social({ provider: 'google', callbackURL });
   }
 
   if (!isMounted) {
@@ -130,7 +137,7 @@ export default function LoginBetterAuth() {
         <p className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{' '}
           <Link
-            href="/sign-up"
+            href={`/sign-up?callbackUrl=${encodeURIComponent(callbackURL)}`}
             className="text-foreground underline underline-offset-4"
           >
             Sign up

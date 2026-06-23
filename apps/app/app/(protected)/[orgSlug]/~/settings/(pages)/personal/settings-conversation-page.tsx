@@ -1,9 +1,9 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { AgentReplyStyle } from '@genfeedai/enums';
 import type { ISetting } from '@genfeedai/interfaces';
+import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { User } from '@models/auth/user.model';
@@ -61,7 +61,7 @@ interface SettingsConversationPageProps {
 export default function SettingsConversationPage({
   showReplyStyle = true,
 }: SettingsConversationPageProps) {
-  const { isLoaded } = useUser();
+  const { isLoaded } = useAuthUser();
   const { currentUser, mutateUser } = useCurrentUser();
   const { refresh, settings, updateSettings } = useOrganization();
   const [generationPriority, setGenerationPriority] =

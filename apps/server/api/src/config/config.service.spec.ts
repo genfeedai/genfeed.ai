@@ -21,8 +21,6 @@ describe('ConfigService', () => {
     env.AWS_SECRET_ACCESS_KEY = 'test-secret';
     delete env.DB_MODE;
     env.PORT = '3010';
-    env.CLERK_SECRET_KEY = 'sk_test_test';
-    env.CLERK_WEBHOOK_SIGNING_SECRET = 'test-secret';
     env.YOUTUBE_CLIENT_ID = 'test-client-id';
     env.YOUTUBE_CLIENT_SECRET = 'test-client-secret';
     env.YOUTUBE_REDIRECT_URI = 'http://localhost:3010/auth/youtube/callback';

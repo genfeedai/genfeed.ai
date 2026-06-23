@@ -1,15 +1,4 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import {
-  type NextFetchEvent,
-  type NextRequest,
-  NextResponse,
-} from 'next/server';
-
-type ClerkSessionState = {
-  getToken?: () => Promise<string | null>;
-  sessionId?: string | null;
-  userId?: string | null;
-};
+import { type NextRequest, NextResponse } from 'next/server';
 
 type BootstrapBrandSummary = {
   _id?: string;
@@ -33,25 +22,11 @@ type OrganizationMineResponseItem = {
   slug?: string;
 };
 
-const hasClerkKeys =
-  Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim()) &&
-  Boolean(process.env.CLERK_SECRET_KEY?.trim());
 const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
-// Better Auth dual-run flag (#735). NEXT_PUBLIC_ so it is inlined into the
-// middleware bundle — a plain server env is unreadable in edge middleware.
-// Precedence: the BA guard below only fires when !isCloudConnected (no Clerk
-// keys). If both Clerk keys AND this flag are set (a misconfiguration), Clerk
-// wins and the BA guard is skipped — keep BA and Clerk keys mutually exclusive.
 const isBetterAuthEnabled =
-  process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED === 'true';
+  process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED !== 'false';
 const ONBOARDING_PATH = '/onboarding';
 const SEEDED_WORKSPACE_PATH = '/default/default/workspace/overview';
-
-/**
- * In self-hosted core mode Clerk keys are absent.
- * Eagerly check so we never instantiate Clerk middleware.
- */
-const isCloudConnected = hasClerkKeys;
 
 const BRAND_SCOPED_PREFIXES = [
   'analytics',
@@ -554,168 +529,6 @@ async function resolveCanonicalProtectedPath(
   };
 }
 
-const isPublicRoute = isCloudConnected
-  ? createRouteMatcher([
-      '/',
-      '/playwright-ready',
-      '/login(.*)',
-      '/sign-in(.*)',
-      '/sign-up(.*)',
-      '/request-access(.*)',
-      '/logout(.*)',
-      '/oauth/(.*)',
-      '/onboarding',
-      '/onboarding/(.*)',
-    ])
-  : null;
-
-const clerkProxy = isCloudConnected
-  ? clerkMiddleware(
-      async (auth, req) => {
-        const session = (await auth()) as ClerkSessionState;
-        const { userId, sessionId } = session || {};
-
-        // Public routes: redirect authenticated users to the workspace home
-        // (except routes that must remain accessible while signed in)
-        const pathname = req.nextUrl.pathname;
-        if (pathname === '/') {
-          if (!userId || !sessionId) {
-            if (isDesktopShell) {
-              return NextResponse.redirect(
-                new URL(SEEDED_WORKSPACE_PATH, req.url),
-              );
-            }
-            return NextResponse.redirect(new URL('/login', req.url));
-          }
-
-          const token = await session.getToken?.();
-          if (token) {
-            const resolution = await resolveActiveWorkspaceSlugs(
-              token,
-              sessionId,
-              req,
-            );
-            if (resolution) {
-              const destination = resolution.slugs.brandSlug
-                ? `/${resolution.slugs.orgSlug}/${resolution.slugs.brandSlug}/workspace/overview`
-                : `/${resolution.slugs.orgSlug}/~/overview`;
-              const response = redirectPreservingSearch(req, destination);
-              if (resolution.cookieValue) {
-                setSlugCookie(response, resolution.cookieValue);
-              }
-              return response;
-            }
-
-            if (
-              token &&
-              (await shouldRedirectSignedInUserToOnboarding(token))
-            ) {
-              return redirectPreservingSearch(req, ONBOARDING_PATH);
-            }
-          }
-          return NextResponse.next();
-        }
-
-        const skipRedirectPrefixes = ['/oauth/', '/onboarding', '/logout'];
-        if (isPublicRoute?.(req)) {
-          const shouldSkipRedirect = skipRedirectPrefixes.some((p) =>
-            pathname.startsWith(p),
-          );
-          if (shouldSkipRedirect) {
-            if (pathname.startsWith('/logout')) {
-              const response = NextResponse.next();
-              deleteSlugCookie(response);
-              return response;
-            }
-            return NextResponse.next();
-          }
-
-          if (userId && sessionId) {
-            const token = await session.getToken?.();
-            const resolved = token
-              ? await resolveCanonicalProtectedPath(
-                  '/workspace/overview',
-                  token,
-                  sessionId,
-                  req,
-                )
-              : null;
-
-            if (resolved) {
-              const response = redirectPreservingSearch(req, resolved.path);
-              if (resolved.cookieValue) {
-                setSlugCookie(response, resolved.cookieValue);
-              }
-              return response;
-            }
-
-            if (
-              token &&
-              (await shouldRedirectSignedInUserToOnboarding(token))
-            ) {
-              return redirectPreservingSearch(req, ONBOARDING_PATH);
-            }
-
-            return NextResponse.next();
-          }
-          return NextResponse.next();
-        }
-
-        if (!userId || !sessionId) {
-          if (isDesktopShell) {
-            return NextResponse.next();
-          }
-          return redirectPreservingSearch(req, '/login');
-        }
-
-        if (pathname.startsWith('/logout')) {
-          const response = NextResponse.next();
-          deleteSlugCookie(response);
-          return response;
-        }
-
-        if (isBareProtectedPath(pathname)) {
-          const token = await session.getToken?.();
-          const resolved = token
-            ? await resolveCanonicalProtectedPath(
-                pathname,
-                token,
-                sessionId,
-                req,
-              )
-            : null;
-
-          if (!resolved) {
-            if (
-              token &&
-              (await shouldRedirectSignedInUserToOnboarding(token))
-            ) {
-              return redirectPreservingSearch(req, ONBOARDING_PATH);
-            }
-
-            return NextResponse.next();
-          }
-
-          const response = redirectPreservingSearch(req, resolved.path);
-          if (resolved.cookieValue) {
-            setSlugCookie(response, resolved.cookieValue);
-          }
-          return response;
-        }
-
-        if (isScopedWorkspacePath(pathname)) {
-          const token = await session.getToken?.();
-
-          if (token && (await shouldRedirectSignedInUserToOnboarding(token))) {
-            return redirectPreservingSearch(req, ONBOARDING_PATH);
-          }
-        }
-
-        return NextResponse.next();
-      },
-      { debug: false },
-    )
-  : null;
 
 /**
  * Public (no-session) routes under the Better Auth guard. Unlike the keyless
@@ -734,12 +547,59 @@ function isBetterAuthPublicRoute(pathname: string): boolean {
   );
 }
 
-export default async function proxy(req: NextRequest, event: NextFetchEvent) {
+function getBetterAuthSessionCookie(req: NextRequest): string | null {
+  return (
+    req.cookies.get('better-auth.session_token')?.value ||
+    req.cookies.get('__Secure-better-auth.session_token')?.value ||
+    null
+  );
+}
+
+async function getBetterAuthBearerToken(
+  req: NextRequest,
+): Promise<string | null> {
+  const cookieHeader = req.headers.get('cookie');
+  if (!cookieHeader) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/auth/token`, {
+      cache: 'no-store',
+      headers: { cookie: cookieHeader },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = (await response.json()) as { token?: string };
+    return data.token ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function isPlaywrightBypassRequest(req: NextRequest): boolean {
+  const isPlaywrightTestBuild =
+    process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true' ||
+    process.env.PLAYWRIGHT_TEST === 'true';
+  const hasPlaywrightBypassCookie =
+    req.cookies.get('__playwright_test')?.value === 'true';
+
+  return isPlaywrightTestBuild && hasPlaywrightBypassCookie;
+}
+
+export default async function proxy(req: NextRequest) {
   if (req.nextUrl.pathname === '/playwright-ready') {
     return NextResponse.next();
   }
 
-  if (isDesktopShell && !isCloudConnected) {
+  if (isPlaywrightBypassRequest(req)) {
+    return NextResponse.next();
+  }
+
+  if (isDesktopShell) {
     const { pathname } = req.nextUrl;
     const desktopToken = req.headers.get('x-genfeed-desktop-token')?.trim();
     const hasDesktopToken = Boolean(desktopToken);
@@ -828,89 +688,104 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
     return NextResponse.next();
   }
 
-  // Better Auth dual run (#735): self-hosted / Community with first-party auth.
-  // Unlike the keyless branch below, /login, /sign-up and /logout are REAL auth
-  // pages, so they stay public; every other route requires a BA session cookie
-  // (the API still validates the JWT — this is a cheap presence gate).
-  if (isBetterAuthEnabled && !isCloudConnected) {
+  if (isBetterAuthEnabled) {
     const { pathname } = req.nextUrl;
+    const sessionCookie = getBetterAuthSessionCookie(req);
+    const hasSession = Boolean(sessionCookie);
+
+    if (pathname.startsWith('/logout')) {
+      const response = NextResponse.next();
+      deleteSlugCookie(response);
+      return response;
+    }
 
     if (isBetterAuthPublicRoute(pathname)) {
+      if (hasSession && pathname === '/') {
+        const token = await getBetterAuthBearerToken(req);
+        const resolved = token
+          ? await resolveCanonicalProtectedPath(
+              '/workspace/overview',
+              token,
+              sessionCookie,
+              req,
+            )
+          : null;
+
+        if (resolved) {
+          const response = redirectPreservingSearch(req, resolved.path);
+          if (resolved.cookieValue) {
+            setSlugCookie(response, resolved.cookieValue);
+          }
+          return response;
+        }
+      }
       return NextResponse.next();
     }
 
-    const hasBetterAuthSession = Boolean(
-      req.cookies.get('better-auth.session_token')?.value ||
-        req.cookies.get('__Secure-better-auth.session_token')?.value,
-    );
-
-    if (!hasBetterAuthSession) {
+    if (!hasSession) {
       return redirectPreservingSearch(req, '/login');
     }
 
-    return NextResponse.next();
-  }
-
-  // Self-hosted core mode — no Clerk.
-  // Redirect root + all Clerk-dependent routes to the seeded default workspace.
-  // SelfHostedSeedService always seeds org slug="default" and brand slug="default"
-  // (apps/server/api/src/seeds/self-hosted-seed.service.ts:87,103).
-  // /login, /sign-up, /logout render Clerk components — redirect them.
-  // /oauth (bare) redirects, but /oauth/[platform] and /oauth/cli are integration
-  // callback pages that must NOT be redirected.
-  if (!isCloudConnected) {
-    const { pathname } = req.nextUrl;
-    const redirectToWorkspace =
-      pathname === '/' ||
-      pathname.startsWith('/onboarding') ||
-      pathname.startsWith('/login') ||
-      pathname.startsWith('/sign-in') ||
-      pathname.startsWith('/sign-up') ||
-      pathname.startsWith('/logout') ||
-      pathname === '/oauth' ||
-      pathname === '/oauth/';
-    if (redirectToWorkspace) {
-      return NextResponse.redirect(new URL(SEEDED_WORKSPACE_PATH, req.url));
+    const token = await getBetterAuthBearerToken(req);
+    if (!token) {
+      return redirectPreservingSearch(req, '/login');
     }
+
+    if (pathname === '/') {
+      const resolved = await resolveCanonicalProtectedPath(
+        '/workspace/overview',
+        token,
+        sessionCookie,
+        req,
+      );
+
+      if (resolved) {
+        const response = redirectPreservingSearch(req, resolved.path);
+        if (resolved.cookieValue) {
+          setSlugCookie(response, resolved.cookieValue);
+        }
+        return response;
+      }
+
+      if (await shouldRedirectSignedInUserToOnboarding(token)) {
+        return redirectPreservingSearch(req, ONBOARDING_PATH);
+      }
+      return NextResponse.next();
+    }
+
+    if (isBareProtectedPath(pathname)) {
+      const resolved = await resolveCanonicalProtectedPath(
+        pathname,
+        token,
+        sessionCookie,
+        req,
+      );
+
+      if (resolved) {
+        const response = redirectPreservingSearch(req, resolved.path);
+        if (resolved.cookieValue) {
+          setSlugCookie(response, resolved.cookieValue);
+        }
+        return response;
+      }
+
+      if (await shouldRedirectSignedInUserToOnboarding(token)) {
+        return redirectPreservingSearch(req, ONBOARDING_PATH);
+      }
+      return NextResponse.next();
+    }
+
+    if (
+      isScopedWorkspacePath(pathname) &&
+      (await shouldRedirectSignedInUserToOnboarding(token))
+    ) {
+      return redirectPreservingSearch(req, ONBOARDING_PATH);
+    }
+
     return NextResponse.next();
   }
 
-  // E2E auth bypass.
-  //
-  // Master switch: the Playwright harness builds + serves the app with
-  // NEXT_PUBLIC_PLAYWRIGHT_TEST=true (playwright.config webServer.env, plus the
-  // CI build step). Because it is a NEXT_PUBLIC_* flag it is inlined into the
-  // middleware bundle at build time, so it is readable here regardless of the
-  // middleware runtime (edge or node) — unlike a plain server env, which an edge
-  // middleware cannot read at request time. A real production build never sets
-  // it, so this branch is dead code in production. `PLAYWRIGHT_TEST` is also
-  // honored for the `next dev` path, where runtime env is available.
-  //
-  // Per-request opt-in: the __playwright_test cookie. It is only trusted while
-  // the master switch is on, so a forged cookie can never bypass auth in a real
-  // deployment. Requiring the cookie (rather than bypassing every request on the
-  // test server) also keeps the real-Clerk `app-authed` project meaningful — it
-  // sends no cookie, so it still exercises the genuine clerkMiddleware path.
-  //
-  // This replaces the previous `NODE_ENV !== 'production'` guard, which silently
-  // disabled the bypass under `next start` (NODE_ENV=production) in CI and made
-  // every protected route redirect to /login, timing out the suite.
-  const isPlaywrightTestBuild =
-    process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true' ||
-    process.env.PLAYWRIGHT_TEST === 'true';
-  const hasPlaywrightBypassCookie =
-    req.cookies.get('__playwright_test')?.value === 'true';
-  const isE2ETest = isPlaywrightTestBuild && hasPlaywrightBypassCookie;
-
-  if (isE2ETest) {
-    return NextResponse.next();
-  }
-
-  if (process.env.NODE_ENV !== 'production' && !hasClerkKeys) {
-    return NextResponse.next();
-  }
-
-  return clerkProxy?.(req, event);
+  return NextResponse.next();
 }
 
 export const config = {

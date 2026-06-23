@@ -1,15 +1,15 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import type { OnboardingStepKey } from '@genfeedai/constants';
 import { ONBOARDING_STEP_LABELS, ONBOARDING_STEPS } from '@genfeedai/constants';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { IOnboardingContextValue } from '@genfeedai/interfaces';
 import type { OnboardingProviderProps } from '@genfeedai/props/onboarding/onboarding-provider.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { UpdateUserOnboardingPayload } from '@genfeedai/services/onboarding/user-onboarding.service';
 import { UserOnboardingService } from '@genfeedai/services/onboarding/user-onboarding.service';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   createContext,
@@ -35,7 +35,7 @@ export default function OnboardingProvider({
 }: OnboardingProviderProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const { currentUser, isLoading, refetchUser } = useCurrentUser();
   const [saving, setSaving] = useState(false);
   const [initialized, setInitialized] = useState(false);

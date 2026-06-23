@@ -5,6 +5,8 @@
  * All other operations (generate, batch, thread, reply, enhance)
  * are in PostsOperationsController
  */
+
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -40,7 +42,6 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import type { User } from '@clerk/backend';
 import {
   ActivityEntityModel,
   ActivityKey,
