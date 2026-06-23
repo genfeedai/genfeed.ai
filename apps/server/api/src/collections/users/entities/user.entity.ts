@@ -20,6 +20,8 @@ export class UserEntity extends BaseEntity implements User {
 
   declare readonly appSource: User['appSource'];
   declare readonly stripeCustomerId: string | null;
+  // Active-organization pointer (epic #735, Phase C) — DB-authoritative routing.
+  declare readonly lastUsedOrganizationId: string | null;
   declare readonly isOnboardingCompleted: boolean;
   declare readonly onboardingStartedAt: Date | null;
   declare readonly onboardingCompletedAt: Date | null;
