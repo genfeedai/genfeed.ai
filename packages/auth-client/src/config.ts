@@ -1,0 +1,65 @@
+/**
+ * Better Auth client configuration — epic #735, Phase 2 (#737).
+ *
+ * Resolves the auth server base URL and the dual-run feature flag from
+ * `NEXT_PUBLIC_*` env vars (inlined at build time in Next.js bundles). Kept
+ * dependency-free so both the browser client and the server token helper can
+ * import it without pulling React.
+ */
+
+const DEFAULT_API_ENDPOINT = 'https://api.genfeed.ai/v1';
+
+/**
+ * Better Auth is mounted by the API at `${origin}/v1/auth/*` (Phase 1).
+ *
+ * IMPORTANT: this is the FULL path, not just `/auth`. Better Auth's `withPath()`
+ * returns the base URL unchanged whenever it already carries a non-root path, so
+ * passing `baseURL=${origin}/v1` + `basePath=/auth` silently drops `/auth` and
+ * every request 404s. We therefore pass the bare origin as `baseURL` (see
+ * {@link getApiOrigin}) and carry the whole prefix here.
+ */
+export const BETTER_AUTH_BASE_PATH = '/v1/auth';
+
+/**
+ * Canonical API endpoint incl. the `/v1` prefix. Mirrors
+ * `EnvironmentService.apiEndpoint` (kept dep-free here to avoid pulling
+ * `@genfeedai/services` into the auth foundation) including the desktop runtime
+ * override.
+ */
+export function getApiEndpoint(): string {
+  const desktopOverride = (
+    globalThis as typeof globalThis & {
+      __GENFEED_DESKTOP_ENV__?: { apiEndpoint?: string };
+    }
+  ).__GENFEED_DESKTOP_ENV__?.apiEndpoint;
+
+  return (
+    desktopOverride ||
+    process.env.NEXT_PUBLIC_API_ENDPOINT ||
+    DEFAULT_API_ENDPOINT
+  );
+}
+
+/**
+ * Bare API origin (scheme + host + port, no path) — the value Better Auth needs
+ * as `baseURL` so it appends {@link BETTER_AUTH_BASE_PATH} instead of discarding
+ * it. Falls back to the raw endpoint if it is somehow not a valid absolute URL.
+ */
+export function getApiOrigin(): string {
+  const endpoint = getApiEndpoint();
+  try {
+    return new URL(endpoint).origin;
+  } catch {
+    return endpoint;
+  }
+}
+
+/**
+ * Dual-run switch. When `true`, Better Auth becomes the active session source on
+ * the frontend; when `false` (default) every auth path flows through Clerk
+ * exactly as before. `NEXT_PUBLIC_` so it is inlined into client + middleware
+ * bundles. Mirrors the backend `BETTER_AUTH_ENABLED` flag (Phase 1).
+ */
+export function isBetterAuthEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED === 'true';
+}

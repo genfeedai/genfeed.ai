@@ -45,6 +45,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../utils'),
       },
       {
+        find: '@genfeedai/auth-client',
+        replacement: path.resolve(__dirname, '../auth-client/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/auth-client\/(.*)$/,
+        replacement: path.resolve(__dirname, '../auth-client/src/$1'),
+      },
+      {
         find: '@genfeedai/helpers',
         replacement: path.resolve(__dirname, '../helpers/src'),
       },

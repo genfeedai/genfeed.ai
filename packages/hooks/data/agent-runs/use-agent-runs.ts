@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import type { IAgentRun } from '@genfeedai/interfaces';
 import { AgentRunsService } from '@genfeedai/services/ai/agent-runs.service';
 import type {
@@ -8,7 +7,8 @@ import type {
   AgentRunStats,
   AgentRunTimeRange,
 } from '@genfeedai/types';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 
@@ -30,7 +30,7 @@ export interface UseAgentRunsReturn {
 export function useAgentRuns(
   options: UseAgentRunsOptions = {},
 ): UseAgentRunsReturn {
-  const { getToken, orgId, userId } = useAuth();
+  const { getToken, orgId, userId } = useAuthIdentity();
   const [stats, setStats] = useState<AgentRunStats | null>(
     options.initialStats ?? null,
   );
@@ -60,7 +60,7 @@ export function useAgentRuns(
       options.webSearchEnabled,
     ],
     queryFn: async () => {
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       if (!token) return [];
 
       const service = AgentRunsService.getInstance(token);
@@ -90,7 +90,7 @@ export function useAgentRuns(
 
   const cancelRun = useCallback(
     async (id: string) => {
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       if (!token) return;
 
       const service = AgentRunsService.getInstance(token);

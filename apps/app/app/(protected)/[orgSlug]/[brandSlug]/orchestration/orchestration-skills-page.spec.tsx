@@ -46,7 +46,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@helpers/auth/clerk.helper', () => ({
-  resolveClerkToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
+  resolveAuthToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
 }));
 
 vi.mock('@services/content/skills.service', async () => {

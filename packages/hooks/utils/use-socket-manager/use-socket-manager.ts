@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import type {
   ISocketEventHandler,
   ISocketManagerConfig,
@@ -10,8 +9,9 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { SocketManager } from '@genfeedai/services/core/socket-manager.service';
 import {
   getPlaywrightAuthState,
-  resolveClerkToken,
+  resolveAuthToken,
 } from '@helpers/auth/clerk.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export interface SocketSubscription<T = unknown> {
@@ -23,7 +23,7 @@ export interface SocketSubscription<T = unknown> {
  * React hook for managing socket connections with automatic cleanup
  */
 export function useSocketManager(options: ISocketManagerConfig = {}) {
-  const { getToken, isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const { getToken, isLoaded: isAuthLoaded, isSignedIn } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =
     isAuthLoaded || playwrightAuth?.isLoaded === true;
@@ -65,7 +65,7 @@ export function useSocketManager(options: ISocketManagerConfig = {}) {
 
     const initializeSocket = async () => {
       try {
-        const token = await resolveClerkToken(getToken);
+        const token = await resolveAuthToken(getToken);
 
         if (!token) {
           if (isMounted) {

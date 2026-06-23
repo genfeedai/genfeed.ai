@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@genfeedai/auth-client": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/contexts": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",

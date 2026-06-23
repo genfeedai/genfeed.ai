@@ -1,0 +1,44 @@
+'use client';
+
+import { jwtClient, magicLinkClient } from 'better-auth/client/plugins';
+import { createAuthClient } from 'better-auth/react';
+
+import { BETTER_AUTH_BASE_PATH, getApiOrigin } from './config';
+
+/**
+ * Singleton Better Auth browser client (epic #735). Mounted against the Phase 1
+ * handler at `${origin}/v1/auth/*`.
+ *
+ * - `baseURL` is the bare origin and `basePath` carries the full `/v1/auth`
+ *   prefix — see {@link BETTER_AUTH_BASE_PATH} for why the prefix cannot live in
+ *   `baseURL`.
+ * - `magicLinkClient` powers passwordless `signIn.magicLink()` — it routes via
+ *   the dynamic client proxy, so it requires the server `magicLink` plugin
+ *   (Phase 1) to be enabled or the call 404s with no compile-time error.
+ * - `jwtClient` adds the `jwks` action; the Bearer JWT itself is read from the
+ *   server's `GET /token` endpoint (see {@link getBetterAuthToken}).
+ *
+ * Better Auth's React client is provider-less (nanostores-backed), so no
+ * `<Provider>` is required for `useSession()` to work anywhere in the tree.
+ */
+export const authClient = createAuthClient({
+  basePath: BETTER_AUTH_BASE_PATH,
+  baseURL: getApiOrigin(),
+  plugins: [magicLinkClient(), jwtClient()],
+});
+
+export const { getSession, signIn, signOut, signUp, useSession } = authClient;
+
+/**
+ * Retrieves a Bearer JWT minted by the Better Auth `jwt` plugin via its server
+ * `GET /token` endpoint (the jwt *client* plugin only exposes `jwks`, not a
+ * `token()` action in 1.6.x — so we call `$fetch` directly). Non-hook, so it is
+ * safe to call from the token choke point in `@genfeedai/helpers` and other
+ * non-React contexts. Returns `null` when there is no active session.
+ */
+export async function getBetterAuthToken(): Promise<string | null> {
+  const { data } = await authClient.$fetch<{ token: string }>('/token', {
+    method: 'GET',
+  });
+  return data?.token ?? null;
+}

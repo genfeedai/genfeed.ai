@@ -1,0 +1,51 @@
+{
+  "dependencies": {
+    "better-auth": "^1.6.20",
+    "zod": "4.4.3"
+  },
+  "description": "Genfeed.ai first-party auth client (Better Auth) — Clerk replacement, epic #735",
+  "devDependencies": {
+    "@types/node": "25.9.1",
+    "@types/react": "19.2.16",
+    "react": "19.2.7",
+    "typescript": "6.0.2"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "default": "./dist/server.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "name": "@genfeedai/auth-client",
+  "peerDependencies": {
+    "react": ">=19"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "directory": "auth-client",
+    "type": "git",
+    "url": "git+https://github.com/genfeedai/packages.git"
+  },
+  "scripts": {
+    "build": "tsc --build && test -f dist/index.js",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "deps:update": "bunx npm-check-updates -u && bun install",
+    "test": "vitest run --config vitest.config.ts",
+    "test:cov": "vitest run --config vitest.config.ts --coverage"
+  },
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "version": "0.1.0"
+}

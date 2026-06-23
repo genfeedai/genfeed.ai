@@ -10,7 +10,7 @@ import type {
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import type {
   Connection,
   Edge,
@@ -150,7 +150,7 @@ export function useWorkflowBuilder({
         setIsLoading(true);
         setError(null);
 
-        const token = await resolveClerkToken(getToken);
+        const token = await resolveAuthToken(getToken);
         // Fetch node registry from API
         const response = await fetch(`${apiBaseUrl}/workflows/nodes/registry`, {
           headers: {
@@ -310,7 +310,7 @@ export function useWorkflowBuilder({
         targetHandle: edge.targetHandle || undefined,
       }));
 
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       const response = await fetch(`${apiBaseUrl}/workflows/${workflowId}`, {
         body: JSON.stringify({
           edges: workflowEdges,
@@ -341,7 +341,7 @@ export function useWorkflowBuilder({
   // Validate workflow
   const validateWorkflow = useCallback(async (): Promise<boolean> => {
     try {
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       const response = await fetch(
         `${apiBaseUrl}/workflows/${workflowId}/validate`,
         {
@@ -384,7 +384,7 @@ export function useWorkflowBuilder({
         await saveWorkflow();
       }
 
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       const response = await fetch(`${apiBaseUrl}/workflow-executions`, {
         body: JSON.stringify({
           workflow: workflowId,

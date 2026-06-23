@@ -5,7 +5,7 @@ import type {
   IAgentRunContent,
   IAgentRunContentItem,
 } from '@genfeedai/interfaces';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import type { AgentRunContentGridProps } from '@props/automation/agent-strategy.props';
 import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { logger } from '@services/core/logger.service';
@@ -40,7 +40,7 @@ export default function AgentRunContentGrid({
     async (signal: AbortSignal) => {
       try {
         setIsLoading(true);
-        const token = await resolveClerkToken(getToken);
+        const token = await resolveAuthToken(getToken);
         if (!token) return;
 
         const service = AgentRunsService.getInstance(token);

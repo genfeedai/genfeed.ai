@@ -1,5 +1,5 @@
 import { useAuth } from '@clerk/nextjs';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { useDocumentVisibility } from '@hooks/ui/use-document-visibility/use-document-visibility';
 import type {
   AvatarProvider,
@@ -17,7 +17,7 @@ export function useStudioClipsPage() {
   const { getToken } = useAuth();
 
   const resolveToken = useCallback(async (): Promise<string> => {
-    return (await resolveClerkToken(getToken)) ?? '';
+    return (await resolveAuthToken(getToken)) ?? '';
   }, [getToken]);
 
   const clipsService = useMemo(

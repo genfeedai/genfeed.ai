@@ -8,6 +8,8 @@
       "@genfeedai-types/*": ["../types/src/*"],
       "@genfeedai/agent": ["../agent/src/index.ts"],
       "@genfeedai/agent/*": ["../agent/src/*"],
+      "@genfeedai/auth-client": ["../auth-client/src/index.ts"],
+      "@genfeedai/auth-client/*": ["../auth-client/src/*"],
       "@genfeedai/client": ["../client/src/index.ts"],
       "@genfeedai/client/*": ["../client/src/*"],
       "@genfeedai/constants": ["../constants/src/index.ts"],

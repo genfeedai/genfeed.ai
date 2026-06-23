@@ -16,7 +16,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import dynamic from 'next/dynamic';
 import { ThemeProvider, useTheme } from 'next-themes';
-import { type ComponentProps, useState } from 'react';
+import { type ComponentProps, type ReactNode, useState } from 'react';
 import { Toaster } from 'sonner';
 
 type ClerkProviderProps = Omit<
@@ -90,6 +90,17 @@ function ClerkProviderWithTheme({
   );
 }
 
+/**
+ * Dual-run cutover seam for Better Auth (epic #735). Better Auth's React client
+ * is provider-less (nanostores-backed), so no runtime provider is required for
+ * `useSession()` — this sibling to `MaybeClerkProvider` passes children through
+ * unchanged and exists so the eventual Clerk removal (Phase 4) has one obvious
+ * place to mount any Better-Auth-only context.
+ */
+function MaybeBetterAuthProvider({ children }: { children: ReactNode }) {
+  return <>{children}</>;
+}
+
 function MaybeClerkProvider({
   children,
   clerkProps,
@@ -132,19 +143,21 @@ export default function AppProviders({
         storageKey={storageKey}
         disableTransitionOnChange={disableTransitionOnChange}
       >
-        <MaybeClerkProvider clerkProps={clerkProps}>
-          <ThemeCookieSync />
-          {children}
-          {includeToaster ? (
-            <Toaster richColors closeButton position="top-right" />
-          ) : null}
-          {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
-          {googleAnalyticsId ? (
-            <GoogleAnalytics gaId={googleAnalyticsId} />
-          ) : null}
-          {includeVercelAnalytics ? <Analytics /> : null}
-          {includeSpeedInsights ? <SpeedInsights /> : null}
-        </MaybeClerkProvider>
+        <MaybeBetterAuthProvider>
+          <MaybeClerkProvider clerkProps={clerkProps}>
+            <ThemeCookieSync />
+            {children}
+            {includeToaster ? (
+              <Toaster richColors closeButton position="top-right" />
+            ) : null}
+            {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
+            {googleAnalyticsId ? (
+              <GoogleAnalytics gaId={googleAnalyticsId} />
+            ) : null}
+            {includeVercelAnalytics ? <Analytics /> : null}
+            {includeSpeedInsights ? <SpeedInsights /> : null}
+          </MaybeClerkProvider>
+        </MaybeBetterAuthProvider>
       </ThemeProvider>
       <LazyReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>

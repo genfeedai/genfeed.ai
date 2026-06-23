@@ -5,7 +5,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
 import { OnboardingFunnelService } from '@services/onboarding/onboarding-funnel.service';
@@ -97,7 +97,7 @@ export default function SuccessContent() {
     // Save content preferences if any selected
     if (selected.size > 0 && currentUser) {
       try {
-        const token = await resolveClerkToken(getToken);
+        const token = await resolveAuthToken(getToken);
         if (token) {
           const service = UsersService.getInstance(token);
           await service.patchSettings(currentUser.id, {
@@ -111,7 +111,7 @@ export default function SuccessContent() {
 
     // Mark onboarding complete and refresh Clerk session token
     try {
-      const token = await resolveClerkToken(getToken, { forceRefresh: true });
+      const token = await resolveAuthToken(getToken, { forceRefresh: true });
       if (token) {
         const funnelService = OnboardingFunnelService.getInstance(token);
         await funnelService.completeFunnel();

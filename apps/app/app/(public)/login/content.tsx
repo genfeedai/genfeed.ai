@@ -4,12 +4,14 @@ import { SignIn, useAuth } from '@clerk/nextjs';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { useRouter } from 'next/navigation';
 import { useEffect, useSyncExternalStore } from 'react';
+import { isBetterAuthEnabled } from '@/lib/config/edition';
+import LoginBetterAuth from './login-better-auth';
 
 const subscribe = () => () => {};
 const getSnapshot = () => true;
 const getServerSnapshot = () => false;
 
-export default function LoginPage() {
+function ClerkLoginPage() {
   const isMounted = useSyncExternalStore(
     subscribe,
     getSnapshot,
@@ -41,4 +43,12 @@ export default function LoginPage() {
       )}
     </AuthFormLayout>
   );
+}
+
+export default function LoginPage() {
+  if (isBetterAuthEnabled()) {
+    return <LoginBetterAuth />;
+  }
+
+  return <ClerkLoginPage />;
 }

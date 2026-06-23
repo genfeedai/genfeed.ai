@@ -25,6 +25,15 @@ export function isCloudConnected(): boolean {
   return !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
 }
 
+/**
+ * True when Better Auth is the active frontend session provider (dual-run flag,
+ * epic #735). Off by default — Clerk stays the default until cutover. Mirrors
+ * the backend `BETTER_AUTH_ENABLED` flag.
+ */
+export function isBetterAuthEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED === 'true';
+}
+
 /** True when local app with optional Clerk cloud connection configured */
 export function isHybridMode(): boolean {
   return (

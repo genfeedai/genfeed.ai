@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 'use client';
 
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { TasksService } from '@services/management/tasks.service';
@@ -54,7 +54,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@helpers/auth/clerk.helper', () => ({
   getPlaywrightAuthState: vi.fn(() => null),
-  resolveClerkToken: vi.fn(),
+  resolveAuthToken: vi.fn(),
 }));
 
 vi.mock('@hooks/utils/use-websocket-prompt/use-websocket-prompt', () => ({
@@ -195,7 +195,7 @@ describe('WorkspacePageContent', () => {
     vi.clearAllMocks();
     window.history.replaceState({}, '', '/workspace/overview');
     getTokenMock.mockResolvedValue('clerk-token');
-    vi.mocked(resolveClerkToken).mockResolvedValue('api-token');
+    vi.mocked(resolveAuthToken).mockResolvedValue('api-token');
     listMock.mockResolvedValue([]);
     createTaskMock.mockResolvedValue(buildTask());
     ensurePlanningThreadMock.mockResolvedValue({

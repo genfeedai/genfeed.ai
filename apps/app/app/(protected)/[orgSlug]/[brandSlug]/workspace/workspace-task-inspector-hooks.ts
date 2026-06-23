@@ -1,5 +1,5 @@
 import { useAuth } from '@clerk/nextjs';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import type { Ingredient } from '@models/content/ingredient.model';
 import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -46,7 +46,7 @@ export function useWorkspaceTaskLinkedRunSummary(
     async function loadLinkedRunSummary() {
       try {
         setIsLoading(true);
-        const token = await resolveClerkToken(getToken);
+        const token = await resolveAuthToken(getToken);
         if (isCancelled) {
           return;
         }
@@ -141,7 +141,7 @@ export function useWorkspaceTaskLinkedOutputs(
           isLoading: true,
         }));
 
-        const token = await resolveClerkToken(getToken);
+        const token = await resolveAuthToken(getToken);
         if (isCancelled) {
           return;
         }
@@ -225,7 +225,7 @@ export function useWorkspaceTaskLinkedIssue(
           return;
         }
 
-        const token = await resolveClerkToken(getToken);
+        const token = await resolveAuthToken(getToken);
         if (!token || isCancelled) {
           setSummary(getEmptyLinkedIssueSummary());
           return;

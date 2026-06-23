@@ -6,7 +6,7 @@ import {
   ButtonVariant,
   CredentialPlatform,
 } from '@genfeedai/enums';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import type { BrandDetailSocialMediaCardProps } from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -164,7 +164,7 @@ export default function BrandDetailSocialMediaCard({
   const handleConnectPlatform = async (platform: string) => {
     try {
       setConnectingPlatform(platform);
-      const token = (await resolveClerkToken(getToken)) ?? '';
+      const token = (await resolveAuthToken(getToken)) ?? '';
       const service = new ServicesService(platform, token);
       const credentialOAuth = await service.postConnect({ brand: brandId });
       window.open(credentialOAuth.url, '_self');

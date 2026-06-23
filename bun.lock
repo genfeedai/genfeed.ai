@@ -195,6 +195,7 @@
         "@fullcalendar/react": "6.1.20",
         "@fullcalendar/timegrid": "6.1.20",
         "@genfeedai/agent": "*",
+        "@genfeedai/auth-client": "*",
         "@genfeedai/client": "*",
         "@genfeedai/config": "*",
         "@genfeedai/constants": "*",
@@ -721,6 +722,23 @@
         "typescript": "6.0.2",
       },
     },
+    "packages/auth-client": {
+      "name": "@genfeedai/auth-client",
+      "version": "0.1.0",
+      "dependencies": {
+        "better-auth": "^1.6.20",
+        "zod": "4.4.3",
+      },
+      "devDependencies": {
+        "@types/node": "25.9.1",
+        "@types/react": "19.2.16",
+        "react": "19.2.7",
+        "typescript": "6.0.2",
+      },
+      "peerDependencies": {
+        "react": ">=19",
+      },
+    },
     "packages/cli": {
       "name": "@genfeedai/cli",
       "version": "0.4.0",
@@ -790,6 +808,7 @@
       "name": "@genfeedai/contexts",
       "version": "0.1.0",
       "dependencies": {
+        "@genfeedai/auth-client": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
@@ -903,6 +922,7 @@
       "name": "@genfeedai/helpers",
       "version": "2.2.12",
       "dependencies": {
+        "@genfeedai/auth-client": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
@@ -1986,6 +2006,8 @@
     "@genfeedai/api-types": ["@genfeedai/api-types@workspace:packages/api-types"],
 
     "@genfeedai/app": ["@genfeedai/app@workspace:apps/app"],
+
+    "@genfeedai/auth-client": ["@genfeedai/auth-client@workspace:packages/auth-client"],
 
     "@genfeedai/cli": ["@genfeedai/cli@workspace:packages/cli"],
 

@@ -1,7 +1,7 @@
 import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { PromptCategory, SystemPromptKey } from '@genfeedai/enums';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { useWebsocketPrompt } from '@hooks/utils/use-websocket-prompt/use-websocket-prompt';
 import { Prompt } from '@models/content/prompt.model';
 import { PromptsService } from '@services/content/prompts.service';
@@ -104,7 +104,7 @@ export function useWorkspaceTaskComposer({
 
     const run = async () => {
       try {
-        const token = await resolveClerkToken(getToken);
+        const token = await resolveAuthToken(getToken);
         if (!token) {
           setFacecamError('Authentication token unavailable.');
           return;
@@ -373,7 +373,7 @@ export function useWorkspaceTaskComposer({
     setTaskError(null);
 
     try {
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       if (!token) {
         setTaskError('Authentication token unavailable.');
         setTaskEnhancementBusy(false);
@@ -488,7 +488,7 @@ export function useWorkspaceTaskComposer({
     setTaskError(null);
 
     try {
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       if (!token) {
         setTaskError('Authentication token unavailable.');
         return;

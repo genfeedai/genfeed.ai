@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { isBetterAuthEnabled } from '@genfeedai/auth-client';
 import { AssetSelectionProvider } from '@genfeedai/contexts/ui/asset-selection-context';
 import { BackgroundTaskProvider } from '@genfeedai/contexts/ui/background-task-context';
 import { BrandProvider } from '@genfeedai/contexts/user/brand-context/brand-context';
@@ -8,8 +8,9 @@ import { UserProvider } from '@genfeedai/contexts/user/user-context/user-context
 import {
   getPlaywrightAuthState,
   hasPlaywrightJwtToken,
-  resolveClerkToken,
+  resolveAuthToken,
 } from '@genfeedai/helpers/auth/clerk.helper';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { clearTokenCache } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import type { ProtectedBootstrapData } from '@genfeedai/props/layout/protected-bootstrap.props';
@@ -32,7 +33,12 @@ export interface ProtectedProvidersProps extends LayoutProps {
 }
 
 export function ProtectedAuthGate({ children }: LayoutProps): ReactNode {
-  const { getToken, isLoaded: isAuthLoaded, isSignedIn, userId } = useAuth();
+  const {
+    getToken,
+    isLoaded: isAuthLoaded,
+    isSignedIn,
+    userId,
+  } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =
     isAuthLoaded || playwrightAuth?.isLoaded === true;
@@ -64,7 +70,7 @@ export function ProtectedAuthGate({ children }: LayoutProps): ReactNode {
 
     const ensureToken = async (): Promise<void> => {
       try {
-        const token = await resolveClerkToken(getToken);
+        const token = await resolveAuthToken(getToken);
 
         if (isCancelled) {
           return;
@@ -176,8 +182,13 @@ export default function ProtectedProviders({
     content = <ApiStatusProvider>{content}</ApiStatusProvider>;
   }
 
-  // LOCAL mode: bypass Clerk auth gate — backend handles identity via LocalIdentityInterceptor.
-  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+  // LOCAL mode: bypass the auth gate only when NEITHER Clerk nor Better Auth is
+  // active — backend handles identity via LocalIdentityInterceptor. With Better
+  // Auth enabled (Community), the gate still applies and reads the BA session.
+  if (
+    !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
+    !isBetterAuthEnabled()
+  ) {
     return content;
   }
 

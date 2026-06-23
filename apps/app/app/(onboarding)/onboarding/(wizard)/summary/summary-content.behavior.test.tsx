@@ -43,7 +43,7 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
 }));
 
 vi.mock('@helpers/auth/clerk.helper', () => ({
-  resolveClerkToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
+  resolveAuthToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({

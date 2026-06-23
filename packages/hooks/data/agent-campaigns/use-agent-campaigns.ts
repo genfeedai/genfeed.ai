@@ -6,7 +6,7 @@ import {
   type AgentCampaign,
   AgentCampaignsService,
 } from '@genfeedai/services/automation/agent-campaigns.service';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { useQuery } from '@tanstack/react-query';
 
 export interface UseAgentCampaignsOptions {
@@ -32,7 +32,7 @@ export function useAgentCampaigns(
   } = useQuery({
     queryKey: ['agent-campaigns', brandId, options.status],
     queryFn: async () => {
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       if (!token) return [];
 
       const service = AgentCampaignsService.getInstance(token);

@@ -3,7 +3,7 @@
 import { SignIn, useAuth, useUser } from '@clerk/nextjs';
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { Code } from '@genfeedai/ui';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
@@ -216,7 +216,7 @@ function CliAuthPageContent() {
       try {
         // Use standard session JWT (not custom template) — the API's ClerkStrategy
         // calls verifyToken() which requires standard Clerk session claims (sub, iss, etc.)
-        const token = await resolveClerkToken(getToken);
+        const token = await resolveAuthToken(getToken);
 
         if (signal.aborted) {
           return;

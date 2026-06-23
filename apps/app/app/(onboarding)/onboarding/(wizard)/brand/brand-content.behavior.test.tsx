@@ -34,7 +34,7 @@ vi.mock('@clerk/nextjs', () => ({
 }));
 
 vi.mock('@helpers/auth/clerk.helper', () => ({
-  resolveClerkToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
+  resolveAuthToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
 }));
 
 vi.mock('@hooks/ui/use-gsap-entrance', () => ({

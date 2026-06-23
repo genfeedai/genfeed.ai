@@ -5,7 +5,7 @@ import {
   AgentStrategiesService,
   type AgentStrategy,
 } from '@genfeedai/services/automation/agent-strategies.service';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { useQuery } from '@tanstack/react-query';
 
 export interface UseAgentStrategyReturn {
@@ -25,7 +25,7 @@ export function useAgentStrategy(id: string): UseAgentStrategyReturn {
     queryKey: ['agent-strategy', id],
     queryFn: async () => {
       if (!id) return null;
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       if (!token) return null;
 
       const service = AgentStrategiesService.getInstance(token);

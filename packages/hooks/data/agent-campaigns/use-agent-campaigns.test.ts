@@ -21,7 +21,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@helpers/auth/clerk.helper', () => ({
-  resolveClerkToken: vi.fn().mockResolvedValue('test-token'),
+  resolveAuthToken: vi.fn().mockResolvedValue('test-token'),
 }));
 
 vi.mock('@genfeedai/services/automation/agent-campaigns.service', () => ({
@@ -96,8 +96,8 @@ describe('useAgentCampaigns', () => {
   });
 
   it('returns empty array when token is unavailable', async () => {
-    const { resolveClerkToken } = await import('@helpers/auth/clerk.helper');
-    vi.mocked(resolveClerkToken).mockResolvedValueOnce(null);
+    const { resolveAuthToken } = await import('@helpers/auth/clerk.helper');
+    vi.mocked(resolveAuthToken).mockResolvedValueOnce(null);
 
     const { useAgentCampaigns } = await import('./use-agent-campaigns');
     const { createQueryWrapper } = await import('@hooks/tests/query-wrapper');

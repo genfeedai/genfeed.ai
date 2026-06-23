@@ -1,4 +1,4 @@
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { TasksService } from '@services/management/tasks.service';
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -36,7 +36,7 @@ vi.mock('@clerk/nextjs', () => ({
 }));
 
 vi.mock('@helpers/auth/clerk.helper', () => ({
-  resolveClerkToken: vi.fn(),
+  resolveAuthToken: vi.fn(),
 }));
 
 vi.mock('@/lib/config/edition', () => ({
@@ -74,7 +74,7 @@ describe('ChatWorkspacePageShell', () => {
     agentFullPageSpy.mockClear();
     pushMock.mockClear();
     getTokenMock.mockResolvedValue('clerk-token');
-    vi.mocked(resolveClerkToken).mockResolvedValue('api-token');
+    vi.mocked(resolveAuthToken).mockResolvedValue('api-token');
     createFollowUpTasksMock.mockResolvedValue([
       { id: 'task-1' },
       { id: 'task-2' },

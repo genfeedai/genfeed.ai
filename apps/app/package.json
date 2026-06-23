@@ -5,6 +5,7 @@
     "@fullcalendar/react": "6.1.20",
     "@fullcalendar/timegrid": "6.1.20",
     "@genfeedai/agent": "*",
+    "@genfeedai/auth-client": "*",
     "@genfeedai/client": "*",
     "@genfeedai/config": "*",
     "@genfeedai/constants": "*",

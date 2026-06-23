@@ -1,7 +1,7 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useCallback, useEffect, useRef } from 'react';
 
 /**
@@ -47,7 +47,7 @@ function getCachedToken(
     return cached.promise;
   }
 
-  const promise = resolveClerkToken(getTokenFn, tokenOptions).then((token) => {
+  const promise = resolveAuthToken(getTokenFn, tokenOptions).then((token) => {
     if (!token) {
       tokenCache.delete(cacheKey);
       throw new AuthenticationTokenUnavailableError();
@@ -112,7 +112,7 @@ export function useAuthedService<T>(
   factory: (token: string) => T,
   template?: string,
 ) {
-  const { getToken, orgId, userId } = useAuth();
+  const { getToken, orgId, userId } = useAuthIdentity();
 
   // Store factory in ref to avoid callback recreation
   const factoryRef = useRef(factory);

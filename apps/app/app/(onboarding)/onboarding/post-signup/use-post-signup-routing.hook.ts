@@ -7,7 +7,7 @@ import {
 import { useAuth, useUser } from '@clerk/nextjs';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { ManagedCreditsService } from '@services/billing/managed-credits.service';
 import { StripeService } from '@services/billing/stripe.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -67,7 +67,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       return onboardingHref;
     }
 
-    const token = await resolveClerkToken(getToken);
+    const token = await resolveAuthToken(getToken);
     if (!token) {
       return onboardingHref;
     }
@@ -139,7 +139,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
 
         try {
           const onboardingHref = await resolveOnboardingHref();
-          const token = await resolveClerkToken(getToken);
+          const token = await resolveAuthToken(getToken);
           if (!token) {
             redirectTo('/onboarding/providers');
             return;
@@ -234,7 +234,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
 
         try {
           const onboardingHref = await resolveOnboardingHref();
-          const token = await resolveClerkToken(getToken);
+          const token = await resolveAuthToken(getToken);
           if (!token) {
             redirectTo('/onboarding/providers');
             return;

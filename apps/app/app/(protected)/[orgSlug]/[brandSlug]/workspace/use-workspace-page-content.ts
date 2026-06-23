@@ -4,7 +4,7 @@ import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { AgentRunStats } from '@genfeedai/types';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/clerk.helper';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import { AgentRunsService } from '@services/ai/agent-runs.service';
@@ -239,7 +239,7 @@ export function useWorkspacePageContent({
     const controller = new AbortController();
 
     const loadWorkspaceTasks = async () => {
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       if (!token || controller.signal.aborted) {
         return;
       }
@@ -266,7 +266,7 @@ export function useWorkspacePageContent({
     let isMounted = true;
 
     const loadWorkspaceRuns = async () => {
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       if (!token || !isMounted) {
         return;
       }
@@ -347,7 +347,7 @@ export function useWorkspacePageContent({
     setWorkspaceRefreshing(true);
 
     try {
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       if (!token) {
         return;
       }
@@ -370,7 +370,7 @@ export function useWorkspacePageContent({
     setWorkspaceActionError(null);
 
     try {
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       if (!token) {
         return;
       }
@@ -400,7 +400,7 @@ export function useWorkspacePageContent({
     setWorkspaceActionError(null);
 
     try {
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveAuthToken(getToken);
       if (!token) {
         setWorkspaceActionError('Authentication token unavailable.');
         return;
