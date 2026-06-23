@@ -36,8 +36,15 @@ function generateHandle(input: {
  * a JWKS at `${baseURL}${BETTER_AUTH_BASE_PATH}/jwks`.
  */
 export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
-  const { prisma, secret, baseURL, trustedOrigins, google, sendMagicLink } =
-    options;
+  const {
+    prisma,
+    secret,
+    baseURL,
+    trustedOrigins,
+    google,
+    sendMagicLink,
+    onUserCreated,
+  } = options;
 
   return betterAuth({
     appName: 'Genfeed.ai',
@@ -86,6 +93,17 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
                 }),
               },
             };
+          },
+          // Provision org/settings/brand/member/credits for the new user. Awaited
+          // so a brand-new user is fully set up before their first request, and
+          // (idempotently) a no-op for returning preserved users. Replaces the
+          // Clerk `user.created` webhook (epic #735, Phase 4).
+          after: async (user) => {
+            const typed = user as { id: string; email?: string | null };
+            await onUserCreated?.({
+              email: typed.email ?? null,
+              userId: typed.id,
+            });
           },
         },
       },
