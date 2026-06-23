@@ -1,5 +1,7 @@
-import { verifyToken } from '@clerk/backend';
-import { resolveClerkSessionClaims } from '@helpers/auth/clerk-session-claims.helper';
+import {
+  BetterAuthJwksVerifier,
+  createBetterAuthJwksVerifierOptions,
+} from '@libs/auth/better-auth-jwks.verifier';
 import type {
   AssetStatusData,
   BackgroundTaskUpdateData,
@@ -50,6 +52,8 @@ export class WebSocketGateway
   private clients: Map<string, ClientInfo> = new Map();
   private userToSocket: Map<string, Set<string>> = new Map();
   private isServerReady = false;
+  /** Lazily built once; `jose` caches the remote JWKS internally. */
+  private betterAuthVerifier?: BetterAuthJwksVerifier;
 
   constructor(
     @Inject('ConfigService')
@@ -201,46 +205,44 @@ export class WebSocketGateway
     userId?: string;
     organizationId?: string;
   }> {
-    const queryUserId = client.handshake.query.userId as string | undefined;
-    const queryOrgId = client.handshake.query.organizationId as
-      | string
-      | undefined;
-
     const token = this.extractToken(client);
     if (!token) {
-      return { organizationId: queryOrgId, userId: queryUserId };
+      return {};
     }
 
     try {
-      const clerkSecret = this.configService.get('CLERK_SECRET_KEY');
-      if (!clerkSecret) {
-        this.logger.warn(
-          'Missing CLERK_SECRET_KEY configuration; falling back to query parameters',
-          this.context,
-        );
-        return { organizationId: queryOrgId, userId: queryUserId };
-      }
-
-      const tokenPayload = await verifyToken(token, {
-        secretKey: clerkSecret,
-      });
-
-      const sessionClaims = resolveClerkSessionClaims(tokenPayload);
-      const userIdFromToken = sessionClaims.clerkUserId;
-      const organizationIdFromToken = sessionClaims.organizationId;
+      const { organizationId, sub } =
+        await this.getBetterAuthVerifier().verify(token);
 
       return {
-        organizationId: organizationIdFromToken || queryOrgId,
-        userId: userIdFromToken || queryUserId,
+        organizationId,
+        userId: sub,
       };
     } catch (error: unknown) {
       const errorMessage = (error as Error)?.message ?? String(error);
       this.logger.warn(
-        `Failed to verify Clerk token for client ${client.id}: ${errorMessage}`,
+        `Failed to verify Better Auth token for client ${client.id}: ${errorMessage}`,
         { ...this.context, error },
       );
-      return { organizationId: queryOrgId, userId: queryUserId };
+      return {};
     }
+  }
+
+  private getBetterAuthVerifier(): BetterAuthJwksVerifier {
+    if (!this.betterAuthVerifier) {
+      const configuredUrl = this.configService.get('BETTER_AUTH_URL');
+      if (!configuredUrl) {
+        this.logger.warn(
+          'BETTER_AUTH_URL is not configured; falling back to http://localhost:3010 for JWKS — set this in production or socket auth will fail',
+          this.context,
+        );
+      }
+      const betterAuthBaseUrl = configuredUrl || 'http://localhost:3010';
+      this.betterAuthVerifier = new BetterAuthJwksVerifier(
+        createBetterAuthJwksVerifierOptions(betterAuthBaseUrl),
+      );
+    }
+    return this.betterAuthVerifier;
   }
 
   private extractToken(client: Socket): string | undefined {

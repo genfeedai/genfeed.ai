@@ -1,10 +1,15 @@
 import { randomUUID } from 'node:crypto';
+import type { IBetterAuthJwtUserPayloadSource } from '@genfeedai/interfaces';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { jwt, magicLink } from 'better-auth/plugins';
 
 import { BETTER_AUTH_BASE_PATH } from './better-auth.constants';
 import type { ICreateBetterAuthOptions } from './better-auth.types';
+
+function getString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
 
 /**
  * Derive a unique, URL-safe `User.handle` for first-party sign-ups. The existing
@@ -23,6 +28,73 @@ function generateHandle(input: {
       .replace(/^-+|-+$/g, '')
       .slice(0, 24) || 'user';
   return `${base}-${randomUUID().slice(0, 8)}`;
+}
+
+/**
+ * Resolve the active organization embedded in BA JWTs for DB-less consumers
+ * such as the notifications websocket process. Mirrors
+ * BetterAuthIdentityResolverService's org precedence without importing Nest
+ * services into the auth factory.
+ */
+export async function resolveBetterAuthJwtOrganizationId(
+  prisma: ICreateBetterAuthOptions['prisma'],
+  userId: string,
+): Promise<string | undefined> {
+  const user = await prisma.user.findUnique({
+    select: { lastUsedOrganizationId: true },
+    where: { id: userId },
+  });
+
+  const lastUsedOrganizationId = getString(user?.lastUsedOrganizationId);
+  if (lastUsedOrganizationId) {
+    const activeOrganization = await prisma.organization.findFirst({
+      select: { id: true },
+      where: {
+        id: lastUsedOrganizationId,
+        isDeleted: false,
+        OR: [
+          { userId },
+          {
+            members: {
+              some: {
+                isActive: true,
+                isDeleted: false,
+                userId,
+              },
+            },
+          },
+        ],
+      },
+    });
+    if (activeOrganization) {
+      return activeOrganization.id;
+    }
+  }
+
+  const ownerOrganization = await prisma.organization.findFirst({
+    orderBy: { createdAt: 'asc' },
+    select: { id: true },
+    where: {
+      isDeleted: false,
+      userId,
+    },
+  });
+  if (ownerOrganization) {
+    return ownerOrganization.id;
+  }
+
+  const membership = await prisma.member.findFirst({
+    orderBy: { createdAt: 'asc' },
+    select: { organizationId: true },
+    where: {
+      isActive: true,
+      isDeleted: false,
+      organization: { isDeleted: false },
+      userId,
+    },
+  });
+
+  return getString(membership?.organizationId);
 }
 
 /**
@@ -118,17 +190,19 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
         jwt: {
           issuer: baseURL,
           audience: baseURL,
-          // sub defaults to user.id (= genfeed User.id). Embed the cheap,
-          // stable claims; org/brand are resolved per-request in the strategy.
-          definePayload: ({ user }) => {
-            const typed = user as unknown as {
-              email?: string | null;
-              name?: string | null;
-              isSuperAdmin?: boolean;
-            };
+          // sub defaults to user.id (= genfeed User.id). Embed the active org
+          // because DB-less websocket consumers cannot verify membership at
+          // connection time.
+          definePayload: async ({ user }) => {
+            const typed = user as unknown as IBetterAuthJwtUserPayloadSource;
+            const userId = getString(typed.id);
+            const organizationId = userId
+              ? await resolveBetterAuthJwtOrganizationId(prisma, userId)
+              : undefined;
             return {
               email: typed.email ?? undefined,
               name: typed.name ?? undefined,
+              organizationId,
               isSuperAdmin: typed.isSuperAdmin === true,
             };
           },
