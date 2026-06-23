@@ -19,6 +19,7 @@ export interface IBetterAuthJwtClaims {
   sub: string;
   email?: string;
   name?: string;
+  organizationId?: string;
   isSuperAdmin?: boolean;
   iss?: string;
   aud?: string | string[];

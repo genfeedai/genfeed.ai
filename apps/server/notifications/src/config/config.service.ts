@@ -33,6 +33,10 @@ export class ConfigService extends createServiceConfig<IEnvConfig>({
   extend: {
     API_BASE_URL: Joi.string().uri().default('http://localhost:3010'),
     API_SECRET_KEY: Joi.string().optional().allow(''),
+    // The terminal gateway verifies socket JWTs against the API's JWKS at
+    // `${BETTER_AUTH_URL}/v1/auth/jwks` (epic #735, Phase 4 — D3). Only this BA
+    // key is consumed here; the secret/origins/google keys stay in the API.
+    BETTER_AUTH_URL: Joi.string().uri().optional().allow(''),
     GENFEED_LOCAL_TERMINAL: Joi.string()
       .valid('true', 'false')
       .optional()

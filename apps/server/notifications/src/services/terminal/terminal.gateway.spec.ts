@@ -2,10 +2,15 @@ import type { Socket } from 'socket.io';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TerminalGateway } from './terminal.gateway';
 
-const verifyTokenMock = vi.hoisted(() => vi.fn());
+const verifyMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@clerk/backend', () => ({
-  verifyToken: verifyTokenMock,
+/** A Better Auth `sub` is the genfeed User.id (a UUID), not a Clerk user id. */
+const TEST_USER_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
+
+vi.mock('@libs/auth/better-auth-jwks.verifier', () => ({
+  BetterAuthJwksVerifier: class {
+    verify = verifyMock;
+  },
 }));
 
 vi.mock('./terminal.service', () => ({
@@ -29,7 +34,12 @@ function createTerminalService(isAvailable = true) {
   return {
     attach: vi.fn(),
     createSession: vi.fn(),
-    getClerkSecretKey: vi.fn(() => 'test-clerk-secret'),
+    getBetterAuthJwksUrl: vi.fn(() => 'http://localhost:3010/v1/auth/jwks'),
+    getBetterAuthJwksVerifierOptions: vi.fn(() => ({
+      audience: 'http://localhost:3010',
+      issuer: 'http://localhost:3010',
+      jwksUrl: 'http://localhost:3010/v1/auth/jwks',
+    })),
     isAvailable: vi.fn(() => isAvailable),
     killAllForSocket: vi.fn(),
     killSession: vi.fn(),
@@ -42,7 +52,7 @@ function createTerminalService(isAvailable = true) {
 describe('TerminalGateway', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    verifyTokenMock.mockResolvedValue({ sub: 'user_123' });
+    verifyMock.mockResolvedValue({ sub: TEST_USER_ID });
   });
 
   it('rejects originless terminal socket connections', async () => {
@@ -80,13 +90,29 @@ describe('TerminalGateway', () => {
 
     await gateway.handleConnection(socket);
 
-    expect(verifyTokenMock).toHaveBeenCalledWith('session-token', {
-      secretKey: 'test-clerk-secret',
-    });
+    expect(verifyMock).toHaveBeenCalledWith('session-token');
     expect(socket.emit).toHaveBeenCalledWith('terminal:ready', {
       socketId: 'socket-1',
     });
     expect(socket.disconnect).not.toHaveBeenCalled();
+  });
+
+  it('rejects the connection when Better Auth verification throws', async () => {
+    verifyMock.mockRejectedValue(new Error('invalid signature'));
+    const terminalService = createTerminalService();
+    const gateway = new TerminalGateway(terminalService as never);
+    const socket = createSocket('http://localhost:3000', 'bad-token');
+
+    await gateway.handleConnection(socket);
+
+    expect(verifyMock).toHaveBeenCalledWith('bad-token');
+    expect(socket.emit).toHaveBeenCalledWith('terminal:error', {
+      message: 'Local terminal requires an authenticated session.',
+    });
+    expect(socket.disconnect).toHaveBeenCalledWith(true);
+    expect(socket.emit).not.toHaveBeenCalledWith('terminal:ready', {
+      socketId: 'socket-1',
+    });
   });
 
   it('rejects terminal events from sockets that have not completed authentication', () => {
@@ -127,7 +153,7 @@ describe('TerminalGateway', () => {
     await gateway.handleConnection(socket);
     gateway.handleList(socket);
 
-    expect(terminalService.listForOwner).toHaveBeenCalledWith('user_123');
+    expect(terminalService.listForOwner).toHaveBeenCalledWith(TEST_USER_ID);
     expect(socket.emit).toHaveBeenCalledWith('terminal:sessions', []);
   });
 
@@ -164,7 +190,7 @@ describe('TerminalGateway', () => {
 
     expect(terminalService.attach).toHaveBeenCalledWith(
       'socket-1',
-      'user_123',
+      TEST_USER_ID,
       'session-abc',
       expect.objectContaining({
         onData: expect.any(Function),

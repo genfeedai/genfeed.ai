@@ -3,6 +3,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
+import type { IBetterAuthJwksVerifierOptions } from '@genfeedai/interfaces';
+import {
+  createBetterAuthJwksVerifierOptions,
+  resolveBetterAuthJwksUrl,
+} from '@libs/auth/better-auth-jwks.verifier';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@notifications/config/config.service';
 import type {
@@ -64,7 +69,7 @@ interface TerminalProcess {
   kind: TerminalSessionKind;
   /** Socket currently receiving live pty output. */
   ownerSocketId: string;
-  /** Clerk user id (sub) that owns this session. */
+  /** genfeed User.id (Better Auth `sub`) that owns this session. */
   ownerUserId: string;
   pty: IPtyHandle;
   /** Ring buffer holding last MAX_BUFFER_BYTES of output. */
@@ -183,12 +188,30 @@ export class TerminalService {
     return !isCloud && (isDevelopment || explicitlyEnabled === 'true');
   }
 
-  getClerkSecretKey(): string | undefined {
-    return this.configService.get('CLERK_SECRET_KEY') || undefined;
+  /**
+   * Better Auth JWKS endpoint the terminal gateway verifies socket JWTs against.
+   * The jwt plugin (in the API process) publishes JWKS at
+   * `${BETTER_AUTH_URL}/v1/auth/jwks`; falls back to `API_BASE_URL` then
+   * localhost so a default local boot works (epic #735, Phase 4 — D3).
+   */
+  getBetterAuthJwksUrl(): string {
+    return resolveBetterAuthJwksUrl(this.getBetterAuthBaseUrl());
+  }
+
+  getBetterAuthJwksVerifierOptions(): IBetterAuthJwksVerifierOptions {
+    return createBetterAuthJwksVerifierOptions(this.getBetterAuthBaseUrl());
+  }
+
+  private getBetterAuthBaseUrl(): string {
+    const baseUrl =
+      this.configService.get('BETTER_AUTH_URL') ||
+      this.configService.get('API_BASE_URL') ||
+      'http://localhost:3010';
+    return baseUrl;
   }
 
   /**
-   * Returns all sessions owned by the given Clerk user id.
+   * Returns all sessions owned by the given user id.
    */
   listForOwner(ownerUserId: string): TerminalSessionDto[] {
     const result: TerminalSessionDto[] = [];

@@ -1,8 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('@clerk/backend', () => ({
-  verifyToken: vi.fn(),
-}));
+import { describe, expect, it } from 'vitest';
 
 describe('WebSocketModule', () => {
   it('should be importable', async () => {
