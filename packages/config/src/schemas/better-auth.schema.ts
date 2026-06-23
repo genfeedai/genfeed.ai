@@ -18,6 +18,12 @@ export const betterAuthSchema = {
     .default('true'),
 
   /**
+   * Optional Better Auth Infrastructure dashboard key. When present, the API
+   * enables the dash plugin so dash.better-auth.com can verify ownership.
+   */
+  BETTER_AUTH_API_KEY: Joi.string().optional().allow(''),
+
+  /**
    * Signing secret for Better Auth sessions + JWTs. Required when enabled
    * (enforced in BetterAuthModule). Never falls back to a hardcoded value.
    */

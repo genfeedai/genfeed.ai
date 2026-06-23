@@ -85,6 +85,7 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
         }
 
         return createBetterAuthInstance({
+          apiKey: config.get('BETTER_AUTH_API_KEY'),
           baseURL: resolveBetterAuthBaseUrl(
             config.get('BETTER_AUTH_URL'),
             config.get('PORT'),

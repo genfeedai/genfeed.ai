@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { dash } from '@better-auth/infra';
 import type { IBetterAuthJwtUserPayloadSource } from '@genfeedai/interfaces';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
@@ -110,6 +111,7 @@ export async function resolveBetterAuthJwtOrganizationId(
 export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
   const {
     prisma,
+    apiKey,
     secret,
     baseURL,
     trustedOrigins,
@@ -181,6 +183,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
       },
     },
     plugins: [
+      ...(apiKey ? [dash({ apiKey })] : []),
       magicLink({
         sendMagicLink: async ({ email, url, token }) => {
           await sendMagicLink({ email, url, token });
