@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginPage from './content';
+import LoginBetterAuth from './login-better-auth';
 
 const authClientMocks = vi.hoisted(() => ({
   email: vi.fn(),
@@ -22,8 +23,16 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
-  default: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="auth-form-layout">{children}</div>
+  default: ({
+    children,
+    logoSize,
+  }: {
+    children: React.ReactNode;
+    logoSize?: string;
+  }) => (
+    <div data-logo-size={logoSize} data-testid="auth-form-layout">
+      {children}
+    </div>
   ),
 }));
 
@@ -36,27 +45,106 @@ describe('LoginPage', () => {
     authClientMocks.magicLink.mockReset();
     authClientMocks.magicLink.mockResolvedValue({});
     authClientMocks.social.mockReset();
+    authClientMocks.social.mockResolvedValue({});
     window.history.replaceState({}, '', '/login');
   });
 
-  it('renders the Better Auth magic-link form', () => {
+  it('renders the Better Auth sign-in chooser', () => {
     render(<LoginPage />);
 
     expect(screen.getByTestId('auth-form-layout')).toBeInTheDocument();
+    expect(screen.getByTestId('auth-form-layout')).toHaveAttribute(
+      'data-logo-size',
+      'compact',
+    );
+    expect(
+      screen.getByRole('heading', { name: 'Welcome Back' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /^Email/ })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Sign in with Google' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Sign in with a magic link' }),
+    ).toHaveAttribute('href', '/login/magic-link');
+    expect(
+      screen.getByRole('link', {
+        name: 'Sign in with email and password',
+      }),
+    ).toHaveAttribute('href', '/login/password');
+  });
+
+  it('preserves callbackUrl across chooser links', () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/login?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+    );
+
+    render(<LoginPage />);
+
+    expect(
+      screen.getByRole('link', { name: 'Sign in with a magic link' }),
+    ).toHaveAttribute(
+      'href',
+      '/login/magic-link?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+    );
+    expect(
+      screen.getByRole('link', {
+        name: 'Sign in with email and password',
+      }),
+    ).toHaveAttribute(
+      'href',
+      '/login/password?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+    );
+  });
+
+  it('starts Google sign-in with the default callback URL', async () => {
+    render(<LoginPage />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in with Google' }),
+    );
+
+    await waitFor(() => {
+      expect(authClientMocks.social).toHaveBeenCalledWith({
+        callbackURL: '/',
+        provider: 'google',
+      });
+    });
+  });
+
+  it('preserves callbackUrl when starting Google sign-in', async () => {
+    window.history.replaceState({}, '', '/login?return_to=%2Fonboarding');
+
+    render(<LoginPage />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in with Google' }),
+    );
+
+    await waitFor(() => {
+      expect(authClientMocks.social).toHaveBeenCalledWith({
+        callbackURL: '/onboarding',
+        provider: 'google',
+      });
+    });
+  });
+
+  it('renders the magic-link page form', () => {
+    render(<LoginBetterAuth mode="magic-link" />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Sign in with a magic link' }),
+    ).toBeInTheDocument();
     expect(getEmailInput()).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Email me a sign-in link' }),
     ).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: 'Continue with Google' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Use email and password' }),
-    ).toBeInTheDocument();
   });
 
   it('sends a magic-link sign-in with the default callback URL', async () => {
-    render(<LoginPage />);
+    render(<LoginBetterAuth mode="magic-link" />);
 
     fireEvent.change(getEmailInput(), {
       target: { value: 'user@example.com' },
@@ -78,10 +166,10 @@ describe('LoginPage', () => {
     window.history.replaceState(
       {},
       '',
-      '/login?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+      '/login/magic-link?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
     );
 
-    render(<LoginPage />);
+    render(<LoginBetterAuth mode="magic-link" />);
 
     fireEvent.change(getEmailInput(), {
       target: { value: 'cli@example.com' },
@@ -98,23 +186,16 @@ describe('LoginPage', () => {
     });
   });
 
-  it('shows and submits the email password fallback', async () => {
-    render(<LoginPage />);
+  it('submits the email password page form', async () => {
+    render(<LoginBetterAuth mode="password" />);
 
     fireEvent.change(getEmailInput(), {
       target: { value: 'saved@example.com' },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Use email and password' }),
-    );
     fireEvent.change(screen.getByLabelText(/^Password/), {
       target: { value: 'correct horse battery staple' },
     });
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Sign in with email and password',
-      }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
     await waitFor(() => {
       expect(authClientMocks.email).toHaveBeenCalledWith({
