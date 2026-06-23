@@ -1,8 +1,8 @@
 'use client';
 
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ModalEnum, PageScope } from '@genfeedai/enums';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { IElementLens, IQueryParams } from '@genfeedai/interfaces';
 import type { IElementContentProps } from '@genfeedai/interfaces/ui/elements-content.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';

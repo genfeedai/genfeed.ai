@@ -1,8 +1,8 @@
 'use client';
 
-import type { IUser } from '@genfeedai/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
+import type { IUser } from '@genfeedai/interfaces';
 import { User } from '@genfeedai/models/auth/user.model';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { AuthService } from '@genfeedai/services/auth/auth.service';
@@ -36,7 +36,12 @@ export function UserProvider({
   hasInitialBootstrap = false,
   initialCurrentUser = null,
 }: UserProviderProps) {
-  const { isLoaded: isAuthLoaded, isSignedIn, orgId, userId } = useAuthIdentity();
+  const {
+    isLoaded: isAuthLoaded,
+    isSignedIn,
+    orgId,
+    userId,
+  } = useAuthIdentity();
   const { user } = useAuthUser();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =

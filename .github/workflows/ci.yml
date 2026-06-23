@@ -161,15 +161,25 @@ jobs:
             BASE="HEAD~1"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "scope=full" >> "$GITHUB_OUTPUT"
             echo "No parent commit available; running React Doctor"
             exit 0
           fi
 
-          if git diff --name-only --diff-filter=ACMR "$BASE" HEAD | grep -E '^(apps/(app|website|docs|desktop|mobile|extensions)|packages/(ui|hooks|contexts|providers|pages|workflow-ui|agent))/' >/dev/null; then
+          CHANGED_FILES="$(git diff --name-only --diff-filter=ACMR "$BASE" HEAD)"
+
+          if printf '%s\n' "$CHANGED_FILES" | grep -E '^(package\.json$|(apps/(app|website|docs|desktop|mobile|extensions)|packages/(ui|hooks|contexts|providers|pages|workflow-ui|agent))/)' >/dev/null; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No React surface changes detected"
+          fi
+
+          if printf '%s\n' "$CHANGED_FILES" | grep -qx 'package.json'; then
+            echo "scope=full" >> "$GITHUB_OUTPUT"
+            echo "Root package metadata changed; using full React Doctor scan"
+          else
+            echo "scope=changed" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run React Doctor
@@ -177,7 +187,7 @@ jobs:
         uses: millionco/react-doctor@v2.1.0
         with:
           directory: '.'
-          scope: 'changed'
+          scope: ${{ steps.react_changes.outputs.scope || 'changed' }}
           blocking: 'error'
           version: '0.4.2'
 

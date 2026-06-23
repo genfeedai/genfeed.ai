@@ -1,7 +1,7 @@
 'use client';
 
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';

@@ -36,8 +36,12 @@ function PromptBarProviderContent({
   children,
   enabled,
 }: LayoutProps & { enabled: boolean }): ReactNode {
-  const { isLoaded: isAuthLoaded, isSignedIn, userId, orgId } =
-    useAuthIdentity();
+  const {
+    isLoaded: isAuthLoaded,
+    isSignedIn,
+    userId,
+    orgId,
+  } = useAuthIdentity();
   const { organizationId, settings: orgSettings } = useBrand();
 
   const getFontFamiliesService = useAuthedService(

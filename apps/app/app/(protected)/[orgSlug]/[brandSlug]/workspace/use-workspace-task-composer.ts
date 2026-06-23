@@ -1,6 +1,6 @@
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { PromptCategory, SystemPromptKey } from '@genfeedai/enums';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useWebsocketPrompt } from '@hooks/utils/use-websocket-prompt/use-websocket-prompt';
 import { Prompt } from '@models/content/prompt.model';

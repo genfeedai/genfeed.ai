@@ -123,7 +123,9 @@ async function authFetch<T>(
   const data = await parseResponse<T>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, `Auth request failed: ${response.status}`));
+    throw new Error(
+      getErrorMessage(data, `Auth request failed: ${response.status}`),
+    );
   }
 
   return {

@@ -6,9 +6,9 @@ import {
 } from '@app/(onboarding)/onboarding/post-signup/post-signup-routing.util';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
-import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { ManagedCreditsService } from '@services/billing/managed-credits.service';
 import { StripeService } from '@services/billing/stripe.service';
 import { EnvironmentService } from '@services/core/environment.service';

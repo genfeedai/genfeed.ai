@@ -28,7 +28,7 @@ const LazyReactQueryDevtools =
           })),
         { ssr: false },
       )
-  : () => null;
+    : () => null;
 
 export default function AppProviders({
   children,
@@ -59,7 +59,9 @@ export default function AppProviders({
           <Toaster richColors closeButton position="top-right" />
         ) : null}
         {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
-        {googleAnalyticsId ? <GoogleAnalytics gaId={googleAnalyticsId} /> : null}
+        {googleAnalyticsId ? (
+          <GoogleAnalytics gaId={googleAnalyticsId} />
+        ) : null}
         {includeVercelAnalytics ? <Analytics /> : null}
         {includeSpeedInsights ? <SpeedInsights /> : null}
       </ThemeProvider>

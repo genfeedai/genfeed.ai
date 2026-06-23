@@ -1,7 +1,7 @@
 'use client';
 
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { AgentRunStats } from '@genfeedai/types';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';

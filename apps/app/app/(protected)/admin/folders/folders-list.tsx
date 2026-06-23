@@ -1,8 +1,8 @@
 'use client';
 
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/enums';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { IFolder, IQueryParams } from '@genfeedai/interfaces';
 import type {
   IFilters,

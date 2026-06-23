@@ -1,7 +1,7 @@
 'use client';
 
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { OnboardingAccessMode } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

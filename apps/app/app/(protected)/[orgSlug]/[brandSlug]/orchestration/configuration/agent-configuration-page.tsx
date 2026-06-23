@@ -1,8 +1,8 @@
 'use client';
 
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { type AgentApiConfig, AgentSettings } from '@genfeedai/agent';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import Container from '@ui/layout/container/Container';
 import { useMemo } from 'react';

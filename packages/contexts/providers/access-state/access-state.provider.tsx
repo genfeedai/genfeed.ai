@@ -42,7 +42,12 @@ export function AccessStateProvider({
   hasInitialBootstrap = false,
   initialAccessState = null,
 }: AccessStateProviderProps) {
-  const { isLoaded: isAuthLoaded, isSignedIn, orgId, userId } = useAuthIdentity();
+  const {
+    isLoaded: isAuthLoaded,
+    isSignedIn,
+    orgId,
+    userId,
+  } = useAuthIdentity();
   const { brandId, organizationId } = useBrand();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =

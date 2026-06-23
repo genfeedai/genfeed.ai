@@ -8,7 +8,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import dynamic from 'next/dynamic';
 import { ThemeProvider, useTheme } from 'next-themes';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { Toaster } from 'sonner';
 import type { MarketingTrackingConfig } from '../../marketing/browser';
@@ -19,10 +19,13 @@ const LazyModalErrorDebug = dynamic(
   { ssr: false },
 );
 
-type BetterAuthProviderProps = Omit<
-  ComponentProps<typeof BetterAuthProvider>,
-  'children'
->;
+interface BetterAuthProviderProps {
+  appearance?: {
+    theme?: unknown;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
 
 export interface AppProvidersProps {
   children: ReactNode;
@@ -55,6 +58,7 @@ function ThemedBetterAuthProvider({
 }) {
   const { resolvedTheme } = useTheme();
   const isPlaywrightTest = process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true';
+  const appearance = authProps?.appearance;
 
   return (
     <BetterAuthProvider
@@ -66,8 +70,8 @@ function ThemedBetterAuthProvider({
           }
         : {})}
       appearance={{
-        ...authProps?.appearance,
-        theme: resolvedTheme === 'dark' ? dark : authProps?.appearance?.theme,
+        ...(appearance ?? {}),
+        theme: resolvedTheme === 'dark' ? dark : appearance?.theme,
       }}
     >
       {children}

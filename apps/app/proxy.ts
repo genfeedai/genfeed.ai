@@ -529,7 +529,6 @@ async function resolveCanonicalProtectedPath(
   };
 }
 
-
 /**
  * Public (no-session) routes under the Better Auth guard. Unlike the keyless
  * self-hosted branch, /login, /sign-up and /logout are real auth pages here.

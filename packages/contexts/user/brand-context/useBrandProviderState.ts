@@ -1,6 +1,6 @@
-import type { IBrand, ICredential } from '@genfeedai/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
+import type { IBrand, ICredential } from '@genfeedai/interfaces';
 import { Brand } from '@genfeedai/models/organization/brand.model';
 import { OrganizationSetting } from '@genfeedai/models/organization/organization-setting.model';
 import type { ProtectedBootstrapData } from '@genfeedai/props/layout/protected-bootstrap.props';
@@ -42,7 +42,12 @@ export function useBrandProviderState({
   initialBootstrap = null,
 }: UseBrandProviderStateParams) {
   const params = useParams<{ brandSlug?: string; orgSlug?: string }>();
-  const { isLoaded: isAuthLoaded, isSignedIn, userId, orgId } = useAuthIdentity();
+  const {
+    isLoaded: isAuthLoaded,
+    isSignedIn,
+    userId,
+    orgId,
+  } = useAuthIdentity();
   const { user } = useAuthUser();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =

@@ -1,7 +1,7 @@
 'use client';
 
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { LinkCategory, type OrganizationCategory } from '@genfeedai/enums';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
