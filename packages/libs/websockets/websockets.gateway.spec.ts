@@ -1,4 +1,3 @@
-import { verifyToken } from '@clerk/backend';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { RedisService } from '@libs/redis/redis.service';
 import { WebSocketGateway } from '@libs/websockets/websockets.gateway';
@@ -13,11 +12,14 @@ import {
   vi,
 } from 'vitest';
 
-vi.mock('@clerk/backend', () => ({
-  verifyToken: vi.fn(),
-}));
+const verifyMock = vi.hoisted(() => vi.fn());
 
-const verifyTokenMock = vi.mocked(verifyToken);
+vi.mock('@libs/auth/better-auth-jwks.verifier', () => ({
+  BetterAuthJwksVerifier: class {
+    verify = verifyMock;
+  },
+  resolveBetterAuthJwksUrl: (baseUrl: string) => `${baseUrl}/v1/auth/jwks`,
+}));
 
 describe('WebSocketGateway', () => {
   let gateway: WebSocketGateway;
@@ -111,7 +113,7 @@ describe('WebSocketGateway', () => {
 
     await gateway.handleConnection(socket as Socket);
 
-    expect(socket.join).toHaveBeenCalledWith('user-user-123');
+    expect(socket.join).toHaveBeenCalledWith('user:user-123');
     expect(socket.join).toHaveBeenCalledWith('org-org-123');
     expect(socket.emit).toHaveBeenCalledWith(
       'connected',
@@ -137,17 +139,11 @@ describe('WebSocketGateway', () => {
     expect(socket.disconnect).toHaveBeenCalledOnce();
   });
 
-  it('resolves websocket identity from verified session claims', async () => {
-    mockConfigService.get.mockReturnValue('test-secret-key');
-    verifyTokenMock.mockResolvedValue({
-      metadata: {
-        publicMetadata: {
-          organization: 'org_999',
-          user: '507f1f77bcf86cd799439011',
-        },
-      },
-      sub: 'user_clerk_999',
-    } as never);
+  it('resolves websocket identity from a verified Better Auth token', async () => {
+    mockConfigService.get.mockReturnValue('http://localhost:3010');
+    verifyMock.mockResolvedValue({
+      sub: 'aaaaaaaa-0000-0000-0000-000000000001',
+    });
     const socket = createMockSocket({
       handshake: {
         auth: { token: 'header.payload.signature' },
@@ -161,17 +157,46 @@ describe('WebSocketGateway', () => {
 
     await gateway.handleConnection(socket as Socket);
 
-    expect(verifyTokenMock).toHaveBeenCalledWith('header.payload.signature', {
-      secretKey: 'test-secret-key',
-    });
-    expect(socket.join).toHaveBeenCalledWith('user-user_clerk_999');
-    expect(socket.join).toHaveBeenCalledWith('org-org_999');
+    expect(verifyMock).toHaveBeenCalledWith('header.payload.signature');
+    // `sub` (User.id) wins over the query userId.
+    expect(socket.join).toHaveBeenCalledWith(
+      'user:aaaaaaaa-0000-0000-0000-000000000001',
+    );
+    // Org is not embedded in the BA JWT, so it falls back to the query param.
+    expect(socket.join).toHaveBeenCalledWith('org-org-query');
     expect(socket.emit).toHaveBeenCalledWith(
       'connected',
       expect.objectContaining({
-        organizationId: 'org_999',
-        userId: 'user_clerk_999',
+        organizationId: 'org-query',
+        userId: 'aaaaaaaa-0000-0000-0000-000000000001',
       }),
+    );
+  });
+
+  it('falls back to query identity when Better Auth verification throws', async () => {
+    mockConfigService.get.mockReturnValue('http://localhost:3010');
+    verifyMock.mockRejectedValue(new Error('invalid signature'));
+    const socket = createMockSocket({
+      handshake: {
+        auth: { token: 'bad.token.here' },
+        headers: {},
+        query: {
+          organizationId: 'org-query',
+          userId: 'user-query',
+        },
+      } as Socket['handshake'],
+    });
+
+    await gateway.handleConnection(socket as Socket);
+
+    // A failed verify must not connect with a forged subject — it degrades to
+    // the query identity (the unauthenticated fallback), never the bad token.
+    expect(verifyMock).toHaveBeenCalledWith('bad.token.here');
+    expect(socket.disconnect).not.toHaveBeenCalled();
+    expect(socket.join).toHaveBeenCalledWith('user:user-query');
+    expect(mockLoggerService.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to verify Better Auth token'),
+      expect.any(Object),
     );
   });
 

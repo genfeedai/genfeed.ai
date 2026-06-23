@@ -1,4 +1,4 @@
-import { verifyToken } from '@clerk/backend';
+import { BetterAuthJwksVerifier } from '@libs/auth/better-auth-jwks.verifier';
 import { Logger } from '@nestjs/common';
 import {
   ConnectedSocket,
@@ -40,6 +40,8 @@ export class TerminalGateway
   private readonly logger = new Logger(TerminalGateway.name);
   /** Maps socketId → auth record for all authenticated connections. */
   private readonly authenticatedSockets = new Map<string, SocketAuthRecord>();
+  /** Lazily built once; `jose` caches the remote JWKS internally. */
+  private betterAuthVerifier?: BetterAuthJwksVerifier;
 
   constructor(private readonly terminalService: TerminalService) {}
 
@@ -235,8 +237,8 @@ export class TerminalGateway
   }
 
   /**
-   * Verifies the socket's Clerk token and returns the Clerk user id (`sub`).
-   * Returns null when verification fails.
+   * Verifies the socket's Better Auth JWT and returns the genfeed `User.id`
+   * (`sub`). Returns null when verification fails.
    */
   private async resolveAuthenticatedUserId(
     client: Socket,
@@ -246,19 +248,9 @@ export class TerminalGateway
       return null;
     }
 
-    const clerkSecret = this.terminalService.getClerkSecretKey();
-    if (!clerkSecret) {
-      this.logger.warn(
-        'CLERK_SECRET_KEY is required before local terminal sockets can authenticate.',
-      );
-      return null;
-    }
-
     try {
-      const payload = await verifyToken(token, { secretKey: clerkSecret });
-      return typeof payload.sub === 'string' && payload.sub.length > 0
-        ? payload.sub
-        : null;
+      const { sub } = await this.getBetterAuthVerifier().verify(token);
+      return sub;
     } catch (error: unknown) {
       this.logger.warn('Failed to verify local terminal socket token', {
         error: error instanceof Error ? error.message : String(error),
@@ -266,6 +258,15 @@ export class TerminalGateway
       });
       return null;
     }
+  }
+
+  private getBetterAuthVerifier(): BetterAuthJwksVerifier {
+    if (!this.betterAuthVerifier) {
+      this.betterAuthVerifier = new BetterAuthJwksVerifier(
+        this.terminalService.getBetterAuthJwksUrl(),
+      );
+    }
+    return this.betterAuthVerifier;
   }
 
   private extractToken(client: Socket): string | undefined {

@@ -537,6 +537,7 @@
         "@genfeedai/config": "workspace:*",
         "@genfeedai/enums": "workspace:*",
         "@slack/web-api": "7.16.0",
+        "jose": "^6.2.3",
         "node-pty": "1.1.0",
       },
     },
@@ -949,6 +950,7 @@
       "name": "@genfeedai/hooks",
       "version": "1.0.0",
       "dependencies": {
+        "@genfeedai/auth-client": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/contexts": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
@@ -1002,6 +1004,9 @@
     "packages/libs": {
       "name": "@genfeedai/libs",
       "version": "0.1.0",
+      "dependencies": {
+        "jose": "^6.2.3",
+      },
     },
     "packages/models": {
       "name": "@genfeedai/models",

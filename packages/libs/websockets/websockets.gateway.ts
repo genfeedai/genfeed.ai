@@ -1,5 +1,7 @@
-import { verifyToken } from '@clerk/backend';
-import { resolveClerkSessionClaims } from '@helpers/auth/clerk-session-claims.helper';
+import {
+  BetterAuthJwksVerifier,
+  resolveBetterAuthJwksUrl,
+} from '@libs/auth/better-auth-jwks.verifier';
 import type {
   AssetStatusData,
   BackgroundTaskUpdateData,
@@ -50,6 +52,8 @@ export class WebSocketGateway
   private clients: Map<string, ClientInfo> = new Map();
   private userToSocket: Map<string, Set<string>> = new Map();
   private isServerReady = false;
+  /** Lazily built once; `jose` caches the remote JWKS internally. */
+  private betterAuthVerifier?: BetterAuthJwksVerifier;
 
   constructor(
     @Inject('ConfigService')
@@ -212,35 +216,46 @@ export class WebSocketGateway
     }
 
     try {
-      const clerkSecret = this.configService.get('CLERK_SECRET_KEY');
-      if (!clerkSecret) {
-        this.logger.warn(
-          'Missing CLERK_SECRET_KEY configuration; falling back to query parameters',
-          this.context,
-        );
-        return { organizationId: queryOrgId, userId: queryUserId };
-      }
+      const { sub } = await this.getBetterAuthVerifier().verify(token);
 
-      const tokenPayload = await verifyToken(token, {
-        secretKey: clerkSecret,
-      });
-
-      const sessionClaims = resolveClerkSessionClaims(tokenPayload);
-      const userIdFromToken = sessionClaims.clerkUserId;
-      const organizationIdFromToken = sessionClaims.organizationId;
-
+      // Better Auth JWTs carry only identity (`sub` = User.id), not organization
+      // (that is resolved DB-side at bootstrap). The org room therefore falls
+      // back to the client-supplied query param.
+      //
+      // SECURITY (epic #735, Phase 4 — follow-up): the Clerk token previously
+      // embedded the user's org, so this trusts an unverified query value where
+      // it used to trust a signed claim — a token-authenticated client could
+      // join another org's broadcast room. The user room (keyed on the verified
+      // `sub`) is unaffected. Harden by verifying membership of the resolved
+      // userId in the claimed org before joining `org-<id>`.
       return {
-        organizationId: organizationIdFromToken || queryOrgId,
-        userId: userIdFromToken || queryUserId,
+        organizationId: queryOrgId,
+        userId: sub,
       };
     } catch (error: unknown) {
       const errorMessage = (error as Error)?.message ?? String(error);
       this.logger.warn(
-        `Failed to verify Clerk token for client ${client.id}: ${errorMessage}`,
+        `Failed to verify Better Auth token for client ${client.id}: ${errorMessage}`,
         { ...this.context, error },
       );
       return { organizationId: queryOrgId, userId: queryUserId };
     }
+  }
+
+  private getBetterAuthVerifier(): BetterAuthJwksVerifier {
+    if (!this.betterAuthVerifier) {
+      const configuredUrl = this.configService.get('BETTER_AUTH_URL');
+      if (!configuredUrl) {
+        this.logger.warn(
+          'BETTER_AUTH_URL is not configured; falling back to http://localhost:3010 for JWKS — set this in production or socket auth will fail',
+          this.context,
+        );
+      }
+      this.betterAuthVerifier = new BetterAuthJwksVerifier(
+        resolveBetterAuthJwksUrl(configuredUrl || 'http://localhost:3010'),
+      );
+    }
+    return this.betterAuthVerifier;
   }
 
   private extractToken(client: Socket): string | undefined {
