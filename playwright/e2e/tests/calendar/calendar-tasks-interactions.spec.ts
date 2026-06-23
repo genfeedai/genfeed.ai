@@ -17,7 +17,7 @@ import {
  *
  * Drives month/period navigation, view toggles, posts/articles tab switching,
  * day/event opening, plus task status filtering and overlay/detail navigation.
- * Mocks Clerk + API responses; interactions fall back to best-effort
+ * Mocks Better Auth + API responses; interactions fall back to best-effort
  * `tryClick` so coverage paths remain non-brittle under selector drift.
  *
  * @module calendar-tasks-interactions.spec

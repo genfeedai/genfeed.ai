@@ -1,23 +1,34 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 import SignUpForm from './sign-up-form';
 
-const signUpSpy = vi.fn();
+const authClientMocks = vi.hoisted(() => ({
+  magicLink: vi.fn(),
+  social: vi.fn(),
+}));
 
-vi.mock('@clerk/nextjs', () => ({
-  SignUp: (props: object) => {
-    signUpSpy(props);
-    return <div>Sign Up Component</div>;
+vi.mock('@genfeedai/auth-client', () => ({
+  signIn: {
+    magicLink: authClientMocks.magicLink,
+    social: authClientMocks.social,
   },
 }));
 
-vi.mock('@hooks/ui/use-theme-logo/use-theme-logo', () => ({
-  useThemeLogo: () => '/mock-logo.png',
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
+
+vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="auth-form-layout">{children}</div>
+  ),
+}));
+
+const getEmailInput = () => screen.getByRole('textbox', { name: /^Email/ });
 
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
@@ -38,7 +49,9 @@ const localStorageMock = (() => {
 
 describe('SignUpForm', () => {
   beforeEach(() => {
-    signUpSpy.mockClear();
+    authClientMocks.magicLink.mockReset();
+    authClientMocks.magicLink.mockResolvedValue({});
+    authClientMocks.social.mockReset();
     localStorageMock.clear();
 
     Object.defineProperty(globalThis, 'localStorage', {
@@ -53,21 +66,35 @@ describe('SignUpForm', () => {
     window.history.replaceState({}, '', '/sign-up');
   });
 
-  it('renders the SignUp component after mount with the expected Clerk props', async () => {
-    const { container } = render(<SignUpForm />);
+  it('renders the Better Auth sign-up magic-link form', () => {
+    render(<SignUpForm />);
 
-    expect(container.firstChild).toBeInTheDocument();
+    expect(screen.getByTestId('auth-form-layout')).toBeInTheDocument();
+    expect(getEmailInput()).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Continue with email' }),
+    ).toBeDisabled();
+  });
+
+  it('sends a sign-up magic link with the callback URL', async () => {
+    window.history.replaceState({}, '', '/sign-up?callbackUrl=%2Fonboarding');
+
+    render(<SignUpForm />);
+
+    fireEvent.change(getEmailInput(), {
+      target: { value: 'new@example.com' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Continue with email' }),
+    );
 
     await waitFor(() => {
-      expect(screen.getByText('Sign Up Component')).toBeInTheDocument();
+      expect(authClientMocks.magicLink).toHaveBeenCalledWith({
+        callbackURL: '/onboarding',
+        email: 'new@example.com',
+      });
     });
-
-    expect(signUpSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        routing: 'hash',
-        signInUrl: '/login',
-      }),
-    );
+    expect(screen.getByText('Check your email')).toBeInTheDocument();
   });
 
   it('persists cloud handoff query params into onboarding localStorage keys', async () => {
@@ -112,7 +139,7 @@ describe('SignUpForm', () => {
     render(<SignUpForm />);
 
     await waitFor(() => {
-      expect(screen.getByText('Sign Up Component')).toBeInTheDocument();
+      expect(getEmailInput()).toBeInTheDocument();
     });
 
     expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.selectedCredits)).toBe(

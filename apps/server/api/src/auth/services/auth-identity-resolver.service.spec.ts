@@ -42,7 +42,7 @@ describe('AuthIdentityResolverService', () => {
     vi.clearAllMocks();
   });
 
-  it('uses current metadata ids without repairing Clerk metadata', async () => {
+  it('uses current metadata ids without repairing legacy auth provider metadata', async () => {
     usersService.findOne.mockResolvedValueOnce({
       _id: 'user_current',
     });
@@ -61,7 +61,7 @@ describe('AuthIdentityResolverService', () => {
     });
 
     const result = await service.resolve({
-      id: 'user_clerk_1',
+      id: 'user_authProvider_1',
       publicMetadata: {
         brand: 'brand_current',
         organization: 'org_current',
@@ -71,7 +71,7 @@ describe('AuthIdentityResolverService', () => {
 
     expect(result).toEqual({
       brandId: 'brand_current',
-      clerkUserId: 'user_clerk_1',
+      authProviderUserId: 'user_authProvider_1',
       organizationId: 'org_current',
       resolvedBy: 'metadata',
       userId: 'user_current',
@@ -103,7 +103,7 @@ describe('AuthIdentityResolverService', () => {
     });
 
     const result = await service.resolve({
-      id: 'user_clerk_2',
+      id: 'user_authProvider_2',
       publicMetadata: {
         brand: '507f1f77bcf86cd799439013',
         organization: '507f1f77bcf86cd799439012',
@@ -113,14 +113,14 @@ describe('AuthIdentityResolverService', () => {
 
     expect(result).toEqual({
       brandId: 'brand_current',
-      clerkUserId: 'user_clerk_2',
+      authProviderUserId: 'user_authProvider_2',
       organizationId: 'org_current',
       resolvedBy: 'metadata',
       userId: 'user_current',
     });
   });
 
-  it('resolves active Clerk organization metadata via clerkOrganizationId', async () => {
+  it('resolves active legacy auth provider organization metadata via authProviderOrganizationId', async () => {
     usersService.findOne.mockResolvedValueOnce({
       _id: 'user_current',
     });
@@ -134,7 +134,7 @@ describe('AuthIdentityResolverService', () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         _id: 'org_current',
-        clerkOrganizationId: 'org_clerk_current',
+        authProviderOrganizationId: 'org_authProvider_current',
         userId: 'user_current',
       });
     brandsService.findOne.mockResolvedValueOnce({
@@ -142,17 +142,17 @@ describe('AuthIdentityResolverService', () => {
     });
 
     const result = await service.resolve({
-      id: 'user_clerk_4',
+      id: 'user_authProvider_4',
       publicMetadata: {
         brand: 'brand_current',
-        organization: 'org_clerk_current',
+        organization: 'org_authProvider_current',
         user: 'user_current',
       },
     } as never);
 
     expect(result).toEqual({
       brandId: 'brand_current',
-      clerkUserId: 'user_clerk_4',
+      authProviderUserId: 'user_authProvider_4',
       organizationId: 'org_current',
       resolvedBy: 'metadata',
       userId: 'user_current',
@@ -185,7 +185,7 @@ describe('AuthIdentityResolverService', () => {
     });
 
     const result = await service.resolve({
-      id: 'user_clerk_3',
+      id: 'user_authProvider_3',
       publicMetadata: {
         brand: 'brand_stale',
         organization: 'org_stale',
@@ -195,7 +195,7 @@ describe('AuthIdentityResolverService', () => {
 
     expect(result).toEqual({
       brandId: 'brand_owner',
-      clerkUserId: 'user_clerk_3',
+      authProviderUserId: 'user_authProvider_3',
       organizationId: 'org_owner',
       resolvedBy: 'metadata',
       userId: 'user_current',
@@ -205,7 +205,7 @@ describe('AuthIdentityResolverService', () => {
     );
   });
 
-  it('resolves fully stale metadata user by current Clerk id and repairs workspace', async () => {
+  it('resolves fully stale metadata user by current legacy auth provider id and repairs workspace', async () => {
     usersService.findOne
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
@@ -228,7 +228,7 @@ describe('AuthIdentityResolverService', () => {
     });
 
     const result = await service.resolve({
-      id: 'user_clerk_current',
+      id: 'user_authProvider_current',
       publicMetadata: {
         brand: 'brand_stale',
         organization: 'org_stale',
@@ -238,7 +238,7 @@ describe('AuthIdentityResolverService', () => {
 
     expect(usersService.findOne).toHaveBeenNthCalledWith(
       3,
-      { clerkId: 'user_clerk_current' },
+      { authProviderId: 'user_authProvider_current' },
       [],
     );
     expect(userSetupService.initializeUserResources).toHaveBeenCalledWith(
@@ -246,7 +246,7 @@ describe('AuthIdentityResolverService', () => {
     );
     expect(result).toEqual({
       brandId: 'brand_repaired',
-      clerkUserId: 'user_clerk_current',
+      authProviderUserId: 'user_authProvider_current',
       organizationId: 'org_repaired',
       resolvedBy: 'lookup',
       userId: 'user_current',
@@ -258,18 +258,21 @@ describe('AuthIdentityResolverService', () => {
 
     await expect(
       service.resolve({
-        id: 'user_clerk_missing',
+        id: 'user_authProvider_missing',
         publicMetadata: {},
       } as never),
     ).rejects.toThrow(UnauthorizedException);
   });
 
-  it('self-heals a stale clerkId by reconciling on verified primary email', async () => {
+  it('self-heals a stale authProviderId by reconciling on verified primary email', async () => {
     usersService.findOne
-      // clerkId lookup misses (rotated/recreated Clerk identity)
+      // authProviderId lookup misses (rotated/recreated legacy auth provider identity)
       .mockResolvedValueOnce(null)
-      // email lookup matches the existing row carrying the stale clerkId
-      .mockResolvedValueOnce({ _id: 'user_existing', clerkId: 'clerk_old' });
+      // email lookup matches the existing row carrying the stale authProviderId
+      .mockResolvedValueOnce({
+        _id: 'user_existing',
+        authProviderId: 'authProvider_old',
+      });
     usersService.patch.mockResolvedValue({ _id: 'user_existing' });
     membersService.find.mockResolvedValue([]);
     organizationsService.findOne.mockResolvedValue(null);
@@ -289,7 +292,7 @@ describe('AuthIdentityResolverService', () => {
           verification: { status: 'verified' },
         },
       ],
-      id: 'clerk_new',
+      id: 'authProvider_new',
       primaryEmailAddressId: 'idem_1',
       publicMetadata: {},
     } as never);
@@ -300,11 +303,11 @@ describe('AuthIdentityResolverService', () => {
       [],
     );
     expect(usersService.patch).toHaveBeenCalledWith('user_existing', {
-      clerkId: 'clerk_new',
+      authProviderId: 'authProvider_new',
     });
     expect(result).toEqual({
       brandId: 'brand_repaired',
-      clerkUserId: 'clerk_new',
+      authProviderUserId: 'authProvider_new',
       organizationId: 'org_repaired',
       resolvedBy: 'reconciled',
       userId: 'user_existing',
@@ -323,20 +326,20 @@ describe('AuthIdentityResolverService', () => {
             verification: { status: 'unverified' },
           },
         ],
-        id: 'clerk_attacker',
+        id: 'authProvider_attacker',
         primaryEmailAddressId: 'idem_1',
         publicMetadata: {},
       } as never),
     ).rejects.toThrow(UnauthorizedException);
 
-    // Only the clerkId lookup runs; no email lookup, no write.
+    // Only the authProviderId lookup runs; no email lookup, no write.
     expect(usersService.findOne).toHaveBeenCalledTimes(1);
     expect(usersService.patch).not.toHaveBeenCalled();
   });
 
   // epic #735, Phase C — DB-authoritative active org/brand. These lock in that
-  // the DB markers win over the (frozen, post-cutover) Clerk publicMetadata
-  // candidates, so switching keeps working without any Clerk write-back.
+  // the DB markers win over the (frozen, post-cutover) legacy auth provider publicMetadata
+  // candidates, so switching keeps working without any legacy auth provider write-back.
   it('prefers User.lastUsedOrganizationId over the stale publicMetadata organization', async () => {
     usersService.findOne.mockResolvedValueOnce({
       _id: 'user_current',
@@ -353,7 +356,7 @@ describe('AuthIdentityResolverService', () => {
     brandsService.findOne.mockResolvedValueOnce({ _id: 'brand_active' });
 
     const result = await service.resolve({
-      id: 'user_clerk_active',
+      id: 'user_authProvider_active',
       publicMetadata: {
         brand: 'brand_stale',
         organization: 'org_stale',
@@ -378,7 +381,7 @@ describe('AuthIdentityResolverService', () => {
     brandsService.findOne.mockResolvedValueOnce({ _id: 'brand_last_used' });
 
     const result = await service.resolve({
-      id: 'user_clerk_brand',
+      id: 'user_authProvider_brand',
       publicMetadata: {
         brand: 'brand_stale_candidate',
         organization: 'org_current',

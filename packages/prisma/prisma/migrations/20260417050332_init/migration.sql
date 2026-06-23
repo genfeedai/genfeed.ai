@@ -179,7 +179,7 @@ CREATE TYPE "BatchStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
     "mongoId" TEXT,
-    "clerkId" TEXT,
+    "authProviderId" TEXT,
     "handle" TEXT NOT NULL,
     "firstName" TEXT,
     "lastName" TEXT,
@@ -2893,7 +2893,7 @@ CREATE TABLE "_remix_lineage_source_refs" (
 CREATE UNIQUE INDEX "users_mongoId_key" ON "users"("mongoId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "users_clerkId_key" ON "users"("clerkId");
+CREATE UNIQUE INDEX "users_authProviderId_key" ON "users"("authProviderId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "users_handle_key" ON "users"("handle");

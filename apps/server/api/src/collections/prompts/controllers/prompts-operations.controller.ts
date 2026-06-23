@@ -7,6 +7,8 @@
  * - Voice to speech conversion
  * - Generate tweet replies
  */
+
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
@@ -28,7 +30,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
 import {
   returnNotFound,
@@ -41,7 +43,6 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import type { IPromptBrandContext } from '@api/shared/interfaces/prompt/prompt.interface';
-import type { User } from '@clerk/backend';
 import {
   ActivityKey,
   ActivitySource,

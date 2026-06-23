@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentCampaignsQueryDto } from '@api/collections/agent-campaigns/dto/agent-campaigns-query.dto';
 import { CreateAgentCampaignDto } from '@api/collections/agent-campaigns/dto/create-agent-campaign.dto';
 import { UpdateAgentCampaignDto } from '@api/collections/agent-campaigns/dto/update-agent-campaign.dto';
@@ -7,11 +8,10 @@ import { AgentCampaignsService } from '@api/collections/agent-campaigns/services
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { User } from '@clerk/backend';
 import type { IAgentCampaignStatusResponse } from '@genfeedai/interfaces';
 import { AgentCampaignSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -148,8 +148,8 @@ export class AgentCampaignsController extends BaseCRUDController<
   }
 
   private async resolveMongoUserId(user: User): Promise<string> {
-    const clerkId = user.id;
-    if (!clerkId) {
+    const authProviderId = user.id;
+    if (!authProviderId) {
       throw new UnauthorizedException(
         'Missing user identity. Please sign in again.',
       );
@@ -158,7 +158,7 @@ export class AgentCampaignsController extends BaseCRUDController<
     const { user: metadataUserId } = getPublicMetadata(user);
     if (ObjectIdUtil.isValid(metadataUserId)) {
       const metadataUserDoc = await this.usersService.findOne(
-        { _id: metadataUserId, clerkId },
+        { _id: metadataUserId, authProviderId },
         [],
       );
       if (metadataUserDoc?._id) {
@@ -166,7 +166,7 @@ export class AgentCampaignsController extends BaseCRUDController<
       }
     }
 
-    const dbUser = await this.usersService.findOne({ clerkId }, []);
+    const dbUser = await this.usersService.findOne({ authProviderId }, []);
     if (!dbUser?._id) {
       throw new UnauthorizedException('User account not found');
     }

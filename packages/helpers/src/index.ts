@@ -1,6 +1,6 @@
 export * from './aspect-ratio.helper';
 export * from './async/sleep.helper';
-export * from './auth/clerk.helper';
+export * from './auth/auth.helper';
 export * from './brand-completeness.helper';
 export * from './business/pricing/pricing.helper';
 export * from './business/tier-models/tier-models.helper';

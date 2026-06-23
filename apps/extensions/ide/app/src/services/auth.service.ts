@@ -129,7 +129,7 @@ export class AuthService {
         `${flow.verificationUri}?user_code=${encodeURIComponent(flow.userCode)}`;
 
       const authPrompt = await vscode.window.showInformationMessage(
-        `Use code ${flow.userCode} to sign in with Clerk device flow.`,
+        `Use code ${flow.userCode} to sign in with Better Auth device flow.`,
         'Open Verification',
         'Copy Code',
         'Cancel',

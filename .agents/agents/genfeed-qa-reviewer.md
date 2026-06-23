@@ -115,7 +115,7 @@ All endpoints are protected by global `CombinedAuthGuard` (APP_GUARD). Use `@Pub
 ```typescript
 // ✅ Protected by default — no explicit guard needed
 @Get()
-async findAll(@CurrentUser() user: ClerkUser) {}
+async findAll(@CurrentUser() user: AuthProviderUser) {}
 
 // ✅ Public endpoint — opt out
 @Public()

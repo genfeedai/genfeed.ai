@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CloneVoiceDto } from '@api/collections/voices/dto/clone-voice.dto';
@@ -18,7 +19,7 @@ import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -37,7 +38,6 @@ import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorato
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { User } from '@clerk/backend';
 import {
   ActivitySource,
   ByokProvider,

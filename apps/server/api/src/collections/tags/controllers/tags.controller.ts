@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { TagsQueryDto } from '@api/collections/tags/dto/tags-query.dto';
 import { UpdateTagDto } from '@api/collections/tags/dto/update-tag.dto';
@@ -7,10 +8,9 @@ import {
 } from '@api/collections/tags/schemas/tag.schema';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { User } from '@clerk/backend';
 import { TagSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller } from '@nestjs/common';

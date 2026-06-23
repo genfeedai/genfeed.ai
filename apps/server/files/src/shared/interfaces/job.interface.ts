@@ -6,9 +6,9 @@ export interface BaseJobData {
   type: JobType;
   ingredientId: string;
   userId: string; // Mongo user ID for database writes
-  clerkUserId?: string; // Clerk user ID for socket routing
+  authProviderUserId?: string; // legacy auth provider user ID for socket routing
   organizationId: string;
-  room?: string; // WebSocket room (e.g., 'user-<clerkUserId>')
+  room?: string; // WebSocket room (e.g., 'user-<authProviderUserId>')
   priority?: JobPriority;
   metadata: {
     websocketUrl: string;

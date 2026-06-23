@@ -1,5 +1,3 @@
-import type { User } from '@clerk/backend';
-
 /**
  * Generic HTTP server instance
  * Represents Express or similar HTTP server
@@ -33,7 +31,10 @@ export interface RequestWithBody {
   params?: Record<string, unknown>;
   query: Record<string, unknown>;
   route?: { path?: string };
-  user?: User;
+  user?: {
+    id: string;
+    publicMetadata?: Record<string, unknown>;
+  };
 }
 
 /**

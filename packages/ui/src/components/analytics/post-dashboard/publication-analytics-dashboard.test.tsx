@@ -4,7 +4,7 @@ import PublicationAnalyticsDashboard from '@ui/analytics/post-dashboard/publicat
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({ isSignedIn: true }),
 }));
 

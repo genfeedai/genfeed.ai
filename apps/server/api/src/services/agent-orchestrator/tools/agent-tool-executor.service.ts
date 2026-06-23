@@ -48,7 +48,6 @@ import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/ag
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { isEEEnabled } from '@genfeedai/config';
 import {
   AgentType,
@@ -380,8 +379,6 @@ export class AgentToolExecutorService {
     private readonly agentMemoryCaptureService: AgentMemoryCaptureService,
     @Optional()
     private readonly usersService: UsersService,
-    @Optional()
-    private readonly clerkService: ClerkService,
     @Optional()
     private readonly streamPublisher: AgentStreamPublisherService,
     @Optional()
@@ -1844,7 +1841,7 @@ export class AgentToolExecutorService {
 
       if (this.usersService) {
         const dbUser = await this.usersService.findOne({
-          clerkId: ctx.userId,
+          authProviderId: ctx.userId,
           isDeleted: false,
         });
 
@@ -1858,7 +1855,7 @@ export class AgentToolExecutorService {
       }
 
       // isOnboardingCompleted is persisted on the User row above (epic #735,
-      // Phase C — no Clerk publicMetadata write-back).
+      // Phase C — no legacy auth provider publicMetadata write-back).
     }
 
     return {
@@ -1884,7 +1881,7 @@ export class AgentToolExecutorService {
     let dbUserId: string | null = null;
     if (this.usersService) {
       const dbUser = await this.usersService.findOne({
-        clerkId: ctx.userId,
+        authProviderId: ctx.userId,
         isDeleted: false,
       });
 
@@ -1899,7 +1896,7 @@ export class AgentToolExecutorService {
     }
 
     // isOnboardingCompleted is persisted on the User row above (epic #735,
-    // Phase C — no Clerk publicMetadata write-back).
+    // Phase C — no legacy auth provider publicMetadata write-back).
 
     return {
       creditsUsed: 0,
@@ -2506,33 +2503,24 @@ export class AgentToolExecutorService {
       return currentBrand as unknown as Record<string, unknown>;
     }
 
-    if (!this.usersService || !this.clerkService) {
-      return null;
+    if (ctx.brandId) {
+      const contextBrand = await this.brandsService.findOne({
+        _id: ctx.brandId,
+        isDeleted: false,
+        organization: ctx.organizationId,
+      });
+
+      if (contextBrand) {
+        return contextBrand as unknown as Record<string, unknown>;
+      }
     }
 
-    const user = await this.usersService.findOne({
-      _id: ctx.userId,
-      isDeleted: false,
-    });
-
-    if (!user?.clerkId) {
-      return null;
-    }
-
-    const clerkUser = await this.clerkService.getUser(user.clerkId);
-    const fallbackBrandId = clerkUser.publicMetadata?.brand;
-
-    if (typeof fallbackBrandId !== 'string' || !fallbackBrandId) {
-      return null;
-    }
-
-    const fallbackBrand = await this.brandsService.findOne({
-      _id: fallbackBrandId,
+    const firstOrgBrand = await this.brandsService.findOne({
       isDeleted: false,
       organization: ctx.organizationId,
     });
 
-    return fallbackBrand as unknown as Record<string, unknown> | null;
+    return firstOrgBrand as unknown as Record<string, unknown> | null;
   }
 
   private buildWorkflowCreatedResult(params: {

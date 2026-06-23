@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
   CreateCredentialDto,
@@ -7,7 +8,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { ConfigService } from '@api/config/config.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   returnInternalServerError,
@@ -15,7 +16,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
-import type { User } from '@clerk/backend';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import {
   CredentialOAuthSerializer,

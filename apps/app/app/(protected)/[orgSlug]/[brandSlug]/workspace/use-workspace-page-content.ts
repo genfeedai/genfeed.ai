@@ -1,10 +1,10 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { AgentRunStats } from '@genfeedai/types';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import { AgentRunsService } from '@services/ai/agent-runs.service';
@@ -57,7 +57,7 @@ export function useWorkspacePageContent({
   void initialAnalytics;
   void initialTimeSeriesData;
 
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const { subscribe } = useSocketManager();
   const { organizationId } = useBrand();
   const pathname = usePathname();

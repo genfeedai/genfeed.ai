@@ -4,14 +4,14 @@ import { getUserRoomName } from '@libs/websockets/room-name.util';
 
 /**
  * Calculates the WebSocket user room identifier.
- * Falls back to dbUserId-based room if clerkUserId is not available.
+ * Falls back to dbUserId-based room if authProviderUserId is not available.
  */
 export function getUserRoom(
-  clerkUserId?: string,
+  authProviderUserId?: string,
   dbUserId?: string,
 ): string | undefined {
-  if (clerkUserId) {
-    return getUserRoomName(clerkUserId);
+  if (authProviderUserId) {
+    return getUserRoomName(authProviderUserId);
   }
   if (dbUserId) {
     return getUserRoomName(dbUserId);
@@ -42,10 +42,10 @@ export function getCacheTag(category: IngredientCategory | string): string {
  * Validates that a room can be determined and warns about potential mismatches.
  */
 export function validateRoomMatch(
-  clerkUserId?: string,
+  authProviderUserId?: string,
   dbUserId?: string,
 ): { isValid: boolean; warning?: string } {
-  if (clerkUserId) {
+  if (authProviderUserId) {
     return { isValid: true };
   }
 
@@ -53,7 +53,7 @@ export function validateRoomMatch(
     return {
       isValid: false,
       warning:
-        'Client joins room using Clerk ID from JWT, but backend has no clerkId in DB',
+        'Client joins room using legacy auth provider ID from JWT, but backend has no authProviderId in DB',
     };
   }
 

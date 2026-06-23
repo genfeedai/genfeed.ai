@@ -14,7 +14,7 @@ const useAuthMock = vi.fn();
 const useUserMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => useAuthMock(),
   useUser: () => useUserMock(),
 }));
@@ -23,7 +23,7 @@ vi.mock('../internal/context-authed-service', () => ({
   useContextAuthedService: () => useAuthedServiceMock,
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
+vi.mock('@helpers/auth/auth.helper', () => ({
   getPlaywrightAuthState: vi.fn(() => null),
 }));
 
@@ -73,7 +73,7 @@ describe('UserProvider', () => {
     });
     useUserMock.mockReturnValue({
       user: {
-        id: 'clerk_123',
+        id: 'authProvider_123',
         updatedAt: new Date('2026-03-17T10:00:00.000Z'),
       },
     });

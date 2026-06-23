@@ -2,10 +2,15 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Ingredient } from '@/services/api/ingredients.service';
 
-// Mock Clerk
-vi.mock('@clerk/clerk-expo', () => ({
-  useAuth: vi.fn(() => ({
+vi.mock('@/contexts/auth-context', () => ({
+  useMobileAuth: vi.fn(() => ({
     getToken: vi.fn().mockResolvedValue('test-token'),
+    isLoaded: true,
+    isSignedIn: true,
+    refreshSession: vi.fn(),
+    signInWithEmail: vi.fn(),
+    signOut: vi.fn(),
+    user: null,
   })),
 }));
 
@@ -17,16 +22,22 @@ vi.mock('@/services/api/ingredients.service', () => ({
   },
 }));
 
-import { useAuth } from '@clerk/clerk-expo';
+import { useMobileAuth } from '@/contexts/auth-context';
 import { useIngredient, useIngredients } from '@/hooks/use-ingredients';
 import { ingredientsService } from '@/services/api/ingredients.service';
 
 describe('useIngredients', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useAuth).mockReturnValue({
+    vi.mocked(useMobileAuth).mockReturnValue({
       getToken: vi.fn().mockResolvedValue('test-token'),
-    } as unknown as ReturnType<typeof useAuth>);
+      isLoaded: true,
+      isSignedIn: true,
+      refreshSession: vi.fn(),
+      signInWithEmail: vi.fn(),
+      signOut: vi.fn(),
+      user: null,
+    } as unknown as ReturnType<typeof useMobileAuth>);
   });
 
   it('should return initial loading state', () => {
@@ -81,9 +92,15 @@ describe('useIngredients', () => {
   });
 
   it('should handle error when token is not available', async () => {
-    vi.mocked(useAuth).mockReturnValue({
+    vi.mocked(useMobileAuth).mockReturnValue({
       getToken: vi.fn().mockResolvedValue(null),
-    } as unknown as ReturnType<typeof useAuth>);
+      isLoaded: true,
+      isSignedIn: false,
+      refreshSession: vi.fn(),
+      signInWithEmail: vi.fn(),
+      signOut: vi.fn(),
+      user: null,
+    } as unknown as ReturnType<typeof useMobileAuth>);
 
     const { result } = renderHook(() => useIngredients());
 
@@ -136,9 +153,15 @@ describe('useIngredients', () => {
 describe('useIngredient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useAuth).mockReturnValue({
+    vi.mocked(useMobileAuth).mockReturnValue({
       getToken: vi.fn().mockResolvedValue('test-token'),
-    } as unknown as ReturnType<typeof useAuth>);
+      isLoaded: true,
+      isSignedIn: true,
+      refreshSession: vi.fn(),
+      signInWithEmail: vi.fn(),
+      signOut: vi.fn(),
+      user: null,
+    } as unknown as ReturnType<typeof useMobileAuth>);
   });
 
   it('should return null when id is null', async () => {
@@ -181,9 +204,15 @@ describe('useIngredient', () => {
   });
 
   it('should handle error when token is not available', async () => {
-    vi.mocked(useAuth).mockReturnValue({
+    vi.mocked(useMobileAuth).mockReturnValue({
       getToken: vi.fn().mockResolvedValue(null),
-    } as unknown as ReturnType<typeof useAuth>);
+      isLoaded: true,
+      isSignedIn: false,
+      refreshSession: vi.fn(),
+      signInWithEmail: vi.fn(),
+      signOut: vi.fn(),
+      user: null,
+    } as unknown as ReturnType<typeof useMobileAuth>);
 
     const { result } = renderHook(() => useIngredient('123'));
 

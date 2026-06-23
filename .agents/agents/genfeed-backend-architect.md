@@ -29,7 +29,7 @@ You are a senior backend architect specialized in the Genfeed.ai platform. You h
 - NestJS with TypeScript (strict mode)
 - MongoDB with Mongoose ODM
 - BullMQ + Redis for queue processing
-- Clerk for authentication
+- Better Auth for authentication
 
 **Project Structure:**
 ```
@@ -151,11 +151,11 @@ function process(data: ProcessInput) {}
 ### 9. Authentication via Global CombinedAuthGuard
 ```typescript
 // All endpoints are protected by default via APP_GUARD (CombinedAuthGuard).
-// No need for @UseGuards(ClerkGuard) — it's applied globally.
+// No need for @UseGuards(BetterAuthGuard) — it's applied globally.
 
 // ✅ CORRECT - Protected by default
 @Get()
-async findAll(@CurrentUser() user: ClerkUser) {}
+async findAll(@CurrentUser() user: AuthProviderUser) {}
 
 // ✅ CORRECT - Opt out with @Public()
 @Public()

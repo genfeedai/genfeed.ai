@@ -1,5 +1,5 @@
-import { useAuth } from '@clerk/nextjs';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useDocumentVisibility } from '@hooks/ui/use-document-visibility/use-document-visibility';
 import type {
   AvatarProvider,
@@ -14,7 +14,7 @@ import { ClipsApiService } from './services/clips-api.service';
 const TERMINAL_PROJECT_STATUSES = new Set(['completed', 'failed']);
 
 export function useStudioClipsPage() {
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
 
   const resolveToken = useCallback(async (): Promise<string> => {
     return (await resolveAuthToken(getToken)) ?? '';

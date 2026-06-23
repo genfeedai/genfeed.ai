@@ -3,6 +3,7 @@
     "@genfeedai/constants": "*",
     "@genfeedai/enums": "*",
     "@genfeedai/helpers": "*",
+    "@genfeedai/auth-client": "*",
     "@genfeedai/interfaces": "*",
     "@genfeedai/next-config": "*",
     "@genfeedai/types": "*",

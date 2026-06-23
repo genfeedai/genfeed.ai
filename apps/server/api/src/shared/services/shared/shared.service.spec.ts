@@ -1,10 +1,10 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import type { User } from '@clerk/backend';
 import {
   IngredientCategory,
   IngredientExtension,

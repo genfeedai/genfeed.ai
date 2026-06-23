@@ -5,6 +5,8 @@
  * - Get video posts (published instances)
  * - Merge multiple videos into one
  */
+
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CaptionEntity } from '@api/collections/captions/entities/caption.entity';
@@ -23,7 +25,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -38,7 +40,6 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { User } from '@clerk/backend';
 import { JOB_TYPES } from '@files/queues/queue.constants';
 import {
   ActivityEntityModel,
@@ -243,7 +244,7 @@ export class VideosRelationshipsController {
     // Queue merge videos operation
     this.fileQueueService
       .processVideo({
-        clerkUserId: user.id,
+        authProviderUserId: user.id,
         ingredientId,
         organizationId: publicMetadata.organization,
         params: {
@@ -278,7 +279,7 @@ export class VideosRelationshipsController {
         if (isResizeEnabled) {
           // Queue portrait conversion in files.genfeed service
           const portraitJob = await this.fileQueueService.processVideo({
-            clerkUserId: user.id,
+            authProviderUserId: user.id,
             ingredientId,
             organizationId: publicMetadata.organization,
             params: {
@@ -325,7 +326,7 @@ export class VideosRelationshipsController {
 
             // Queue captions addition in files.genfeed service
             const captionsJob = await this.fileQueueService.processVideo({
-              clerkUserId: user.id,
+              authProviderUserId: user.id,
               ingredientId,
               organizationId: publicMetadata.organization,
               params: {

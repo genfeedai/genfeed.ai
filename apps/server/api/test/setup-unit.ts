@@ -174,7 +174,7 @@ process.env.DATABASE_URL = 'test-mock-database-url';
 // Mock all external service keys to prevent accidental real calls
 process.env.REPLICATE_API_TOKEN = 'test-mock-replicate-key';
 process.env.STRIPE_SECRET_KEY = 'test-mock-stripe-key';
-process.env.CLERK_SECRET_KEY = 'test-mock-clerk-key';
+process.env.BETTER_AUTH_SECRET = 'test-better-auth-secret';
 process.env.ELEVENLABS_API_KEY = 'test-mock-elevenlabs-key';
 process.env.HEYGEN_API_KEY = 'test-mock-heygen-key';
 process.env.KLINGAI_ACCESS_KEY = 'test-mock-klingai-key';

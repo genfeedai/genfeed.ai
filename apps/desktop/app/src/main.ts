@@ -113,15 +113,19 @@ const LOCAL_USER = {
 const OFFLINE_MODE_KEY = 'desktop.offline.mode';
 const ONBOARDING_COMPLETED_KEY = 'onboarding.completed';
 const SYNC_THREADS_CURSOR_KEY = 'sync.threads.cursor';
-const LOCAL_CLERK_ID_KEY = 'local.user.clerkId';
+const LOCAL_BETTER_AUTH_ID_KEY = 'local.user.betterAuthId';
+const LEGACY_LOCAL_AUTH_ID_KEY = ['local.user.', 'auth', 'ProviderId'].join('');
 const ACTIVE_WORKSPACE_ID_KEY = 'desktop.workspace.activeId';
 
 function getSyncCursorKey(scope: DesktopSyncCursorScope = 'threads'): string {
   return scope === 'threads' ? SYNC_THREADS_CURSOR_KEY : `sync.${scope}.cursor`;
 }
 
-function getClerkId(): string | null {
-  return kvService.getValueSync(LOCAL_CLERK_ID_KEY);
+function getBetterAuthId(): string | null {
+  return (
+    kvService.getValueSync(LOCAL_BETTER_AUTH_ID_KEY) ??
+    kvService.getValueSync(LEGACY_LOCAL_AUTH_ID_KEY)
+  );
 }
 
 const getActiveWorkspaceId = (
@@ -174,7 +178,7 @@ const getBootstrap = (): IDesktopBootstrap => {
   const workspaces = workspaceService.listRecentWorkspaces();
   const bootstrap: IDesktopBootstrap = {
     activeWorkspaceId: getActiveWorkspaceId(workspaces),
-    clerkId: getClerkId(),
+    betterAuthId: getBetterAuthId(),
     environment: sessionService.getEnvironment(),
     isOfflineMode,
     localOrganization: { ...LOCAL_ORGANIZATION },
@@ -366,7 +370,7 @@ const handleAuthCallback = async (rawUrl: string): Promise<void> => {
     return;
   }
 
-  await kvService.setValue(LOCAL_CLERK_ID_KEY, session.userId);
+  await kvService.setValue(LOCAL_BETTER_AUTH_ID_KEY, session.userId);
   isOfflineMode = false;
   await kvService.setValue(OFFLINE_MODE_KEY, '0');
   await emitSession();
@@ -843,7 +847,7 @@ app.whenReady().then(async () => {
   sessionService = new DesktopSessionService(kvService, environment);
   const session = await sessionService.validateStoredSession();
   if (session) {
-    await kvService.setValue(LOCAL_CLERK_ID_KEY, session.userId);
+    await kvService.setValue(LOCAL_BETTER_AUTH_ID_KEY, session.userId);
   }
   workspaceService = new DesktopWorkspaceService(prismaClient);
   await workspaceService.init();

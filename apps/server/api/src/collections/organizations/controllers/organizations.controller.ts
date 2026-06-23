@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { type ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
@@ -31,7 +32,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
@@ -45,7 +46,6 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,
   SortObject,
@@ -519,7 +519,7 @@ export class OrganizationsController extends BaseCRUDController<
   /**
    * POST /organizations/switch/:id
    * Switch the active organization for the current user.
-   * Updates Clerk publicMetadata with the new organization + brand.
+   * Updates legacy auth provider publicMetadata with the new organization + brand.
    */
   @Post('switch/:id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -579,7 +579,7 @@ export class OrganizationsController extends BaseCRUDController<
     }
 
     // Persist the active org + brand to the DB so both identity resolvers route
-    // to this org on the next request (epic #735, Phase C — no Clerk write-back).
+    // to this org on the next request (epic #735, Phase C — no legacy auth provider write-back).
     await this.usersService.patch(userId, { lastUsedOrganizationId: orgId });
     if (member) {
       await this.membersService.setLastUsedBrand(
@@ -726,7 +726,7 @@ export class OrganizationsController extends BaseCRUDController<
     } as unknown as Parameters<typeof this.membersService.create>[0]);
 
     // Step 5: Switch the user to the new org via DB pointers (epic #735, Phase C
-    // — no Clerk write-back). Both identity resolvers pick up
+    // — no legacy auth provider write-back). Both identity resolvers pick up
     // lastUsedOrganizationId + the member's lastUsedBrandId on the next request.
     await this.usersService.patch(userId, {
       lastUsedOrganizationId: org._id.toString(),

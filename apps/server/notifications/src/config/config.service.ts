@@ -1,5 +1,4 @@
 import {
-  clerkMinimalSchema,
   createServiceConfig,
   discordBotSchema,
   genfeedaiMinimalSchema,
@@ -19,7 +18,6 @@ export class ConfigService extends createServiceConfig<IEnvConfig>({
   appName: 'notifications',
   schemas: [
     redisSchema,
-    clerkMinimalSchema,
     sentryOptionalSchema,
     genfeedaiMinimalSchema,
     discordBotSchema,

@@ -2,6 +2,7 @@ vi.mock('node:fs', () => ({
   default: { unlinkSync: vi.fn() },
 }));
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { EditorRenderService } from '@api/collections/editor-projects/services/editor-render.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -11,7 +12,6 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import type { User } from '@clerk/backend';
 import { EditorTrackType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -58,7 +58,7 @@ describe('EditorRenderService', () => {
   const videoIngredientId = 'test-object-id';
 
   const mockUser = {
-    id: 'clerk-user-1',
+    id: 'authProvider-user-1',
     publicMetadata: { user: 'db-user-id-1' },
   } as unknown as User;
 

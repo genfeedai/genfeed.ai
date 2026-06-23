@@ -1,8 +1,8 @@
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { AgentCampaignsController } from '@api/collections/agent-campaigns/controllers/agent-campaigns.controller';
 import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/services/agent-campaign-execution.service';
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -63,7 +63,7 @@ describe('AgentCampaignsController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .compile();
 
@@ -97,13 +97,13 @@ describe('AgentCampaignsController', () => {
       expect(mockUsersService.findOne).toHaveBeenCalledWith(
         {
           _id: '507f1f77bcf86cd799439014',
-          clerkId: 'user_123',
+          authProviderId: 'user_123',
         },
         [],
       );
     });
 
-    it('falls back to lookup by clerk id when metadata user id is unavailable', async () => {
+    it('falls back to lookup by authProvider id when metadata user id is unavailable', async () => {
       const userWithoutMongoMetadata = {
         ...mockUser,
         publicMetadata: {
@@ -130,7 +130,7 @@ describe('AgentCampaignsController', () => {
         '507f1f77bcf86cd799439099',
       );
       expect(mockUsersService.findOne).toHaveBeenCalledWith(
-        { clerkId: 'user_123' },
+        { authProviderId: 'user_123' },
         [],
       );
     });

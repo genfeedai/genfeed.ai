@@ -1,13 +1,13 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ContentSchedulesController } from '@api/collections/content-schedules/controllers/content-schedules.controller';
 import { ContentSchedulesService } from '@api/collections/content-schedules/services/content-schedules.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { User } from '@clerk/backend';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn().mockReturnValue({
     organization: '507f1f77bcf86cd799439012',
     user: '507f1f77bcf86cd799439011',

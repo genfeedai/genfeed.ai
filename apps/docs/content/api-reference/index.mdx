@@ -10,16 +10,16 @@ genfeed.ai is a B2B AI content creation and distribution platform. The API provi
 
 **OpenAPI Spec:** https://api.genfeed.ai/v1/openapi.json
 
-**Authentication:** Clerk JWT tokens
+**Authentication:** Better Auth bearer JWTs
 
 ## Quick Start
 
 ### 1. Get Authentication Token
 
-Authenticate with Clerk and get JWT token:
+Authenticate with Better Auth and get a JWT token:
 
 ```typescript
-import { useAuth } from '@clerk/nextjs';
+import { useAuth } from '@genfeedai/auth-client/react';
 
 const { getToken } = useAuth();
 const token = await getToken();

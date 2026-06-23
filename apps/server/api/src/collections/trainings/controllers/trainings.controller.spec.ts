@@ -1,3 +1,5 @@
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { TrainingsController } from '@api/collections/trainings/controllers/trainings.controller';
@@ -6,16 +8,14 @@ import type { TrainingsQueryDto } from '@api/collections/trainings/dto/trainings
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { ConfigService } from '@api/config/config.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { User } from '@clerk/backend';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -59,7 +59,7 @@ describe('TrainingsController', () => {
       brand: '507f191e810c19729de860ee'.toString(),
       organization: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
-    } as IClerkPublicMetadata,
+    } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockRequest = {
@@ -123,7 +123,7 @@ describe('TrainingsController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })

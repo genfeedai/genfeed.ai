@@ -1,5 +1,4 @@
-import { useAuth, useUser } from '@clerk/nextjs';
-import type { UserResource } from '@clerk/types';
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { PageScope } from '@genfeedai/enums';
 import type { IActivity } from '@genfeedai/interfaces';
@@ -10,10 +9,8 @@ import type {
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { ActivitiesService } from '@genfeedai/services/social/activities.service';
 import { BrandsService } from '@genfeedai/services/social/brands.service';
-import {
-  getClerkPublicData,
-  getPlaywrightAuthState,
-} from '@helpers/auth/clerk.helper';
+import { getPlaywrightAuthState } from '@helpers/auth/auth.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { withSilentOperation } from '@hooks/utils/service-operation/service-operation.util';
 import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-data';
@@ -27,8 +24,8 @@ export function useActivities({
   page = 1,
   limit = 20,
 }: ActivitiesOptions = {}): ActivitiesReturn {
-  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
-  const { user } = useUser();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuthIdentity();
+  const { isSuperAdmin } = useAccessState();
   const { brandId, organizationId } = useBrand();
   const playwrightAuth = getPlaywrightAuthState();
   const isAuthReady = isAuthLoaded || playwrightAuth?.isLoaded === true;
@@ -36,14 +33,6 @@ export function useActivities({
     isSignedIn || playwrightAuth?.isSignedIn === true;
 
   const [filter, setFilter] = useState(initialFilter);
-
-  const isSuperAdmin = useMemo(() => {
-    if (!user) {
-      return false;
-    }
-    const data = getClerkPublicData(user as unknown as UserResource);
-    return data.isSuperAdmin === true;
-  }, [user]);
 
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),

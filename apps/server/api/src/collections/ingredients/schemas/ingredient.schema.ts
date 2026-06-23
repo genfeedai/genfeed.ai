@@ -5,7 +5,7 @@ export type { Ingredient } from '@genfeedai/prisma';
 
 export interface IngredientRefDocument {
   _id?: string;
-  clerkId?: string | null;
+  authProviderId?: string | null;
   id?: string;
   [key: string]: unknown;
 }

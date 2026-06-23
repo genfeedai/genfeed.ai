@@ -1,10 +1,9 @@
-import { useUser } from '@clerk/nextjs';
 import {
   type ElementSimpleSchema,
   elementSimpleSchema,
 } from '@genfeedai/client/schemas';
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
-import { getClerkPublicData } from '@genfeedai/helpers/auth/clerk.helper';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import type { IElementMood } from '@genfeedai/interfaces';
 import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
@@ -21,8 +20,7 @@ export default function ModalMood({
   onConfirm,
   onClose,
 }: ModalCrudProps<IElementMood>) {
-  const { user } = useUser();
-  const isSuperAdmin = user ? getClerkPublicData(user).isSuperAdmin : false;
+  const { isSuperAdmin } = useAccessState();
 
   const { form, formRef, isSubmitting, onSubmit, closeModal } = useCrudModal<
     IElementMood,

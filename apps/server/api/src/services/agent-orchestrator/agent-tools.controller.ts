@@ -1,15 +1,15 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { getToolByName } from '@genfeedai/tools';
@@ -124,8 +124,8 @@ export class AgentToolsController {
   }
 
   private async resolveMongoUserId(user: User): Promise<string> {
-    const clerkId = user.id;
-    if (!clerkId) {
+    const authProviderId = user.id;
+    if (!authProviderId) {
       throw new UnauthorizedException(
         'Missing user identity. Please sign in again.',
       );
@@ -134,7 +134,7 @@ export class AgentToolsController {
     const { user: metadataUserId } = getPublicMetadata(user);
     if (metadataUserId) {
       const metadataUserDoc = await this.usersService.findOne(
-        { _id: metadataUserId, clerkId },
+        { _id: metadataUserId, authProviderId },
         [],
       );
       if (metadataUserDoc?._id) {
@@ -142,7 +142,7 @@ export class AgentToolsController {
       }
     }
 
-    const dbUser = await this.usersService.findOne({ clerkId }, []);
+    const dbUser = await this.usersService.findOne({ authProviderId }, []);
     if (!dbUser?._id) {
       throw new UnauthorizedException('User account not found');
     }

@@ -4,7 +4,7 @@
  * All external services are mocked to prevent real API calls
  */
 
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import {
   createTestIntegration,
   createTestOrganization,
@@ -13,7 +13,7 @@ import {
 import {
   createTestDatabaseHelper,
   E2ETestModule,
-  MockClerkGuard,
+  MockBetterAuthGuard,
   TestDatabaseHelper,
 } from '@api-test/e2e-test.module';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
@@ -31,8 +31,8 @@ describe('Integrations E2E Tests', () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [dynamicModule],
     })
-      .overrideGuard(ClerkGuard)
-      .useClass(MockClerkGuard)
+      .overrideGuard(BetterAuthGuard)
+      .useClass(MockBetterAuthGuard)
       .compile();
 
     app = moduleRef.createNestApplication();

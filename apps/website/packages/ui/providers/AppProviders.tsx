@@ -1,14 +1,14 @@
 'use client';
 
-import { ClerkProvider } from '@clerk/nextjs';
-import { dark } from '@clerk/themes';
+import { BetterAuthProvider } from '@genfeedai/auth-client/react';
+import { dark } from '@genfeedai/auth-client/themes';
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
 import ThemeCookieSync from '@ui/providers/ThemeCookieSync';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import dynamic from 'next/dynamic';
 import { ThemeProvider, useTheme } from 'next-themes';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { Toaster } from 'sonner';
 import type { MarketingTrackingConfig } from '../../marketing/browser';
@@ -19,15 +19,18 @@ const LazyModalErrorDebug = dynamic(
   { ssr: false },
 );
 
-type ClerkProviderProps = Omit<
-  ComponentProps<typeof ClerkProvider>,
-  'children'
->;
+interface BetterAuthProviderProps {
+  appearance?: {
+    theme?: unknown;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
 
 export interface AppProvidersProps {
   children: ReactNode;
   initialTheme: string;
-  clerkProps?: ClerkProviderProps;
+  authProps?: BetterAuthProviderProps;
   disableTransitionOnChange?: boolean;
   enableSystem?: boolean;
   googleAnalyticsId?: string;
@@ -46,19 +49,20 @@ export interface AppProvidersProps {
   storageKey?: string;
 }
 
-function ThemedClerkProvider({
+function ThemedBetterAuthProvider({
   children,
-  clerkProps,
+  authProps,
 }: {
   children: ReactNode;
-  clerkProps?: ClerkProviderProps;
+  authProps?: BetterAuthProviderProps;
 }) {
   const { resolvedTheme } = useTheme();
   const isPlaywrightTest = process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true';
+  const appearance = authProps?.appearance;
 
   return (
-    <ClerkProvider
-      {...clerkProps}
+    <BetterAuthProvider
+      {...authProps}
       {...(isPlaywrightTest
         ? {
             __internal_bypassMissingPublishableKey: true,
@@ -66,19 +70,19 @@ function ThemedClerkProvider({
           }
         : {})}
       appearance={{
-        ...clerkProps?.appearance,
-        theme: resolvedTheme === 'dark' ? dark : clerkProps?.appearance?.theme,
+        ...(appearance ?? {}),
+        theme: resolvedTheme === 'dark' ? dark : appearance?.theme,
       }}
     >
       {children}
-    </ClerkProvider>
+    </BetterAuthProvider>
   );
 }
 
 export default function AppProviders({
   children,
   initialTheme,
-  clerkProps,
+  authProps,
   disableTransitionOnChange = true,
   enableSystem = false,
   googleAnalyticsId,
@@ -137,7 +141,7 @@ export default function AppProviders({
       storageKey={storageKey}
       disableTransitionOnChange={disableTransitionOnChange}
     >
-      <ThemedClerkProvider clerkProps={clerkProps}>
+      <ThemedBetterAuthProvider authProps={authProps}>
         {includeMarketingTracking ? (
           <MarketingTrackingProvider
             config={marketingConfig}
@@ -148,7 +152,7 @@ export default function AppProviders({
         ) : (
           content
         )}
-      </ThemedClerkProvider>
+      </ThemedBetterAuthProvider>
     </ThemeProvider>
   );
 }

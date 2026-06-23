@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BulkApproveContentDraftsDto } from '@api/collections/content-drafts/dto/bulk-approve-content-drafts.dto';
 import { ContentDraftRejectDto } from '@api/collections/content-drafts/dto/content-draft-action.dto';
 import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
@@ -5,7 +6,7 @@ import { GenerateContentPlanDto } from '@api/collections/content-plans/dto/gener
 import { UpdateContentPlanDto } from '@api/collections/content-plans/dto/update-content-plan.dto';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -13,7 +14,6 @@ import {
 import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
 import { ContentReviewService } from '@api/services/content-engine/content-review.service';
-import type { User } from '@clerk/backend';
 import {
   ContentDraftSerializer,
   ContentPlanItemSerializer,

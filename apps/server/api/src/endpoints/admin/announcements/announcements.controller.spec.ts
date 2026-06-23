@@ -17,7 +17,7 @@ vi.mock('@api/helpers/decorators/user/current-user.decorator', () => ({
       descriptor,
 }));
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn().mockReturnValue({
     organization: 'org_test123',
   }),
@@ -47,7 +47,7 @@ const makeRequest = () => ({
 });
 
 const makeUser = (orgId = 'org_test123') => ({
-  id: 'user_clerk_abc',
+  id: 'user_authProvider_abc',
   publicMetadata: { organization: orgId },
 });
 
@@ -112,7 +112,7 @@ describe('AnnouncementsController', () => {
       await controller.broadcast(dto, user as never, req as never);
 
       expect(mockAdminAnnouncementsService.broadcast).toHaveBeenCalledWith(
-        'user_clerk_abc',
+        'user_authProvider_abc',
         'org_test123',
         dto,
       );

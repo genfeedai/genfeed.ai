@@ -1,8 +1,8 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import { resolveAuthToken } from '@genfeedai/helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@genfeedai/helpers/auth/auth.helper';
 import { formatRecurringSchedule } from '@genfeedai/helpers/formatting/recurring-schedule/recurring-schedule.helper';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
@@ -66,7 +66,7 @@ export default function SchedulePanel({
   isCollapsed = false,
   onToggleCollapse,
 }: SchedulePanelProps) {
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const enableScheduleId = useId();
   const cronExpressionId = useId();
   const timezoneId = useId();

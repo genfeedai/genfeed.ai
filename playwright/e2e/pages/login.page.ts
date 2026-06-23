@@ -5,7 +5,7 @@ import { expect } from '@playwright/test';
  * Page Object Model for the Login Page
  *
  * Provides an abstraction layer for interacting with the login page during E2E tests.
- * Handles both the Clerk SignIn component and custom login flows.
+ * Handles the local Better Auth login flow.
  *
  * @module login.page
  */
@@ -13,8 +13,8 @@ export class LoginPage {
   readonly page: Page;
   readonly url = '/login';
 
-  // Clerk SignIn component selectors
-  readonly clerkContainer: Locator;
+  // Better Auth login form selectors
+  readonly betterAuthContainer: Locator;
   readonly emailInput: Locator;
   readonly passwordInput: Locator;
   readonly continueButton: Locator;
@@ -38,16 +38,14 @@ export class LoginPage {
     this.page = page;
 
     // Main container
-    this.clerkContainer = page.locator(
-      '[data-clerk-component]:visible, .cl-rootBox:visible',
+    this.betterAuthContainer = page.locator(
+      'form:has(input[type="email"]):visible',
     );
 
-    // Form inputs - Clerk uses specific data attributes
-    this.emailInput = page.locator(
-      'input[name="identifier"]:visible, input[type="email"]:visible, [data-localization-key="formFieldInput__emailAddress"]:visible',
-    );
+    // Form inputs
+    this.emailInput = page.locator('input[type="email"]:visible');
     this.passwordInput = page.locator(
-      'input[name="password"]:visible, input[type="password"]:visible, [data-localization-key="formFieldInput__password"]:visible',
+      'input[name="password"]:visible, input[type="password"]:visible',
     );
 
     // Buttons
@@ -70,9 +68,7 @@ export class LoginPage {
     );
 
     // Error messages
-    this.errorMessage = page.locator(
-      '.cl-formFieldError, [data-localization-key*="error"], [role="alert"]',
-    );
+    this.errorMessage = page.locator('[role="alert"], .text-destructive');
 
     // Links
     this.signUpLink = page.locator(
@@ -97,9 +93,9 @@ export class LoginPage {
   async waitForPageLoad(): Promise<void> {
     await this.page.waitForLoadState('domcontentloaded');
 
-    // Wait for either Clerk component or custom login form
+    // Wait for either Better Auth component or custom login form
     await Promise.race([
-      this.clerkContainer.waitFor({ state: 'visible', timeout: 10000 }),
+      this.betterAuthContainer.waitFor({ state: 'visible', timeout: 10000 }),
       this.emailInput.waitFor({ state: 'visible', timeout: 10000 }),
     ]).catch(() => {
       // Page might redirect if already authenticated
@@ -113,11 +109,11 @@ export class LoginPage {
     const url = this.page.url();
     const hasLoginPath = url.includes('/login');
     const hasEmailInput = await this.emailInput.isVisible().catch(() => false);
-    const hasClerkComponent = await this.clerkContainer
+    const hasBetterAuthComponent = await this.betterAuthContainer
       .isVisible()
       .catch(() => false);
 
-    return hasLoginPath && (hasEmailInput || hasClerkComponent);
+    return hasLoginPath && (hasEmailInput || hasBetterAuthComponent);
   }
 
   /**
@@ -158,7 +154,7 @@ export class LoginPage {
     await this.fillEmail(email);
     await this.clickContinue();
 
-    // Wait for password field to appear (Clerk uses multi-step flow)
+    // Wait for password field to appear (Better Auth uses multi-step flow)
     await this.passwordInput
       .waitFor({ state: 'visible', timeout: 5000 })
       .catch(() => {
@@ -260,7 +256,7 @@ export class LoginPage {
    */
   async getValidationErrors(): Promise<string[]> {
     const errors = await this.page
-      .locator('.cl-formFieldError, [role="alert"]')
+      .locator('[role="alert"], .text-destructive')
       .all();
     const errorTexts: string[] = [];
 
@@ -275,10 +271,10 @@ export class LoginPage {
   }
 
   /**
-   * Wait for and handle Clerk loading states
+   * Wait for and handle Better Auth loading states
    */
-  async waitForClerkReady(): Promise<void> {
-    // Wait for Clerk loading states to complete
+  async waitForBetterAuthReady(): Promise<void> {
+    // Wait for Better Auth loading states to complete
     const loadingSelectors = [
       '.cl-loading',
       '[data-loading="true"]',

@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AssetQueryDto } from '@api/collections/assets/dto/assets-query.dto';
 import { UpdateAssetDto } from '@api/collections/assets/dto/update-asset.dto';
 import { type AssetDocument } from '@api/collections/assets/schemas/asset.schema';
@@ -6,7 +7,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
@@ -21,7 +22,6 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { User } from '@clerk/backend';
 import { AssetCategory, AssetParent } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,

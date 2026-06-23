@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateContentPerformanceDto } from '@api/collections/content-performance/dto/create-content-performance.dto';
 import { ImportCsvDto } from '@api/collections/content-performance/dto/import-csv.dto';
 import { ImportManualDto } from '@api/collections/content-performance/dto/import-manual.dto';
@@ -9,13 +10,12 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { ContentPerformanceSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

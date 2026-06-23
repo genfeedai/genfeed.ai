@@ -21,8 +21,8 @@ vi.mock('@/services/sentry.service', () => ({
   sentryService: sentryServiceMock,
 }));
 
-import { useAuth, useUser } from '@clerk/clerk-expo';
 import RootLayout from '@/app/_layout';
+import { useMobileAuth } from '@/contexts/auth-context';
 
 describe('RootLayout', () => {
   beforeEach(() => {
@@ -33,13 +33,15 @@ describe('RootLayout', () => {
   });
 
   it('clears Sentry user state for signed-out sessions', async () => {
-    vi.mocked(useAuth).mockReturnValue({
+    vi.mocked(useMobileAuth).mockReturnValue({
       getToken: vi.fn(),
+      isLoaded: true,
       isSignedIn: false,
-    } as unknown as ReturnType<typeof useAuth>);
-    vi.mocked(useUser).mockReturnValue({
+      refreshSession: vi.fn(),
+      signInWithEmail: vi.fn(),
+      signOut: vi.fn(),
       user: null,
-    } as unknown as ReturnType<typeof useUser>);
+    } as unknown as ReturnType<typeof useMobileAuth>);
 
     render(<RootLayout />);
 
@@ -57,25 +59,21 @@ describe('RootLayout', () => {
     notificationsServiceMock.registerForPushNotifications.mockResolvedValue(
       'expo-token',
     );
-    vi.mocked(useAuth).mockReturnValue({
+    vi.mocked(useMobileAuth).mockReturnValue({
       getToken,
+      isLoaded: true,
       isSignedIn: true,
-    } as unknown as ReturnType<typeof useAuth>);
-    vi.mocked(useUser).mockReturnValue({
+      refreshSession: vi.fn(),
+      signInWithEmail: vi.fn(),
+      signOut: vi.fn(),
       user: {
-        id: 'clerk-user-id',
-        organizationMemberships: [
-          {
-            organization: {
-              id: 'org_123',
-            },
-          },
-        ],
-        primaryEmailAddress: {
-          emailAddress: 'qa@genfeed.ai',
-        },
+        email: 'qa@genfeed.ai',
+        id: 'user_123',
+        image: null,
+        name: null,
+        organizationId: 'org_123',
       },
-    } as unknown as ReturnType<typeof useUser>);
+    } as unknown as ReturnType<typeof useMobileAuth>);
 
     render(<RootLayout />);
 
@@ -91,7 +89,7 @@ describe('RootLayout', () => {
     });
     expect(sentryServiceMock.setUser).toHaveBeenCalledWith({
       email: 'qa@genfeed.ai',
-      id: 'clerk-user-id',
+      id: 'user_123',
       organizationId: 'org_123',
     });
   });

@@ -184,7 +184,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     );
     if (defaultOrganizationId && defaultUserId) {
       this.defaultAuthContext = {
-        authType: RunAuthType.CLERK,
+        authType: RunAuthType.BETTER_AUTH,
         organizationId: String(defaultOrganizationId),
         userId: String(defaultUserId),
       };
@@ -757,7 +757,10 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     authContext: ChatAuthContext,
     scopes: ApiKeyScope[],
   ): boolean {
-    if (scopes.length === 0 || authContext.authType === RunAuthType.CLERK) {
+    if (
+      scopes.length === 0 ||
+      authContext.authType === RunAuthType.BETTER_AUTH
+    ) {
       return true;
     }
 

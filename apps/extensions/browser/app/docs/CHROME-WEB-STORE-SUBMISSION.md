@@ -65,7 +65,7 @@ Use [`../PERMISSIONS.md`](../PERMISSIONS.md) as the reviewer-facing justificatio
 
 These steps were not completed in this QA pass because they require a live signed-in browser session and/or production telemetry access:
 
-1. Load `build/chrome-mv3-prod` in Chrome and complete Clerk sign-in against production.
+1. Load `build/chrome-mv3-prod` in Chrome and complete Better Auth sign-in against production.
 2. Verify the popup and sidepanel stay authenticated after token sync.
 3. Trigger a controlled runtime failure and confirm it appears in the extension Sentry project.
 4. Capture Chrome Web Store screenshots from the authenticated popup and sidepanel states.

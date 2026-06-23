@@ -101,12 +101,9 @@ class AuthService {
     return new Promise((resolve) => {
       const domain = EnvironmentService.websiteDomain;
       const cookieNames = [
-        '__session',
-        '__clerk_session',
-        'clerk-session',
+        'better-auth.session_token',
+        '__Secure-better-auth.session_token',
         'session',
-        '__clerk_db_jwt',
-        'clerk-db-jwt',
         'jwt',
         'token',
       ];

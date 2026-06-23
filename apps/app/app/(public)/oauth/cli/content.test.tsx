@@ -15,18 +15,19 @@ import CliAuthPage from './page';
 const useAuthMock = vi.fn();
 const useUserMock = vi.fn();
 const useSearchParamsMock = vi.fn();
-const resolveClerkTokenMock = vi.fn();
+const resolveAuthTokenMock = vi.fn();
 const redirectToCallbackMock = vi.fn();
-const signInMock = vi.fn(() => <div data-testid="clerk-signin">Sign In</div>);
 
-vi.mock('@clerk/nextjs', () => ({
-  SignIn: (props: object) => signInMock(props),
-  useAuth: () => useAuthMock(),
-  useUser: () => useUserMock(),
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => useAuthMock(),
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
-  resolveAuthToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
+vi.mock('@hooks/auth/use-auth-user/use-auth-user', () => ({
+  useAuthUser: () => useUserMock(),
+}));
+
+vi.mock('@helpers/auth/auth.helper', () => ({
+  resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
 }));
 
 vi.mock('@services/core/environment.service', () => ({
@@ -95,8 +96,7 @@ describe('CliAuthPage', () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     redirectToCallbackMock.mockReset();
-    resolveClerkTokenMock.mockReset();
-    signInMock.mockClear();
+    resolveAuthTokenMock.mockReset();
     useSearchParamsMock.mockReset();
     useAuthMock.mockReset();
     useUserMock.mockReset();
@@ -122,7 +122,7 @@ describe('CliAuthPage', () => {
         },
       },
     });
-    resolveClerkTokenMock.mockResolvedValue('clerk-session-token');
+    resolveAuthTokenMock.mockResolvedValue('better-auth-session-token');
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: {
@@ -141,7 +141,7 @@ describe('CliAuthPage', () => {
     });
   });
 
-  it('renders the Clerk sign-in flow with a port-preserving redirect', async () => {
+  it('renders a Better Auth sign-in handoff with a port-preserving redirect', async () => {
     useSearchParamsMock.mockReturnValue(new URLSearchParams('port=4321'));
     useAuthMock.mockReturnValue({
       getToken: vi.fn(),
@@ -151,12 +151,12 @@ describe('CliAuthPage', () => {
 
     render(<CliAuthPage />);
 
-    expect(await screen.findByTestId('clerk-signin')).toBeInTheDocument();
-    expect(signInMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        forceRedirectUrl: '/oauth/cli?port=4321',
-        routing: 'hash',
-      }),
+    const signInLink = await screen.findByRole('link', {
+      name: 'Sign in to continue',
+    });
+    expect(signInLink).toHaveAttribute(
+      'href',
+      '/login?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
     );
   });
 
@@ -200,7 +200,7 @@ describe('CliAuthPage', () => {
         'https://api.genfeed.ai/v1/auth/cli/token',
         expect.objectContaining({
           headers: expect.objectContaining({
-            Authorization: 'Bearer clerk-session-token',
+            Authorization: 'Bearer better-auth-session-token',
           }),
           method: 'POST',
         }),
@@ -263,7 +263,7 @@ describe('CliAuthPage', () => {
 
   it('shows formatted server and token errors', async () => {
     useSearchParamsMock.mockReturnValue(new URLSearchParams('port=4321'));
-    resolveClerkTokenMock.mockResolvedValueOnce(null);
+    resolveAuthTokenMock.mockResolvedValueOnce(null);
 
     render(<CliAuthPage />);
 
@@ -273,7 +273,7 @@ describe('CliAuthPage', () => {
       ),
     ).toBeInTheDocument();
 
-    resolveClerkTokenMock.mockResolvedValue('clerk-session-token');
+    resolveAuthTokenMock.mockResolvedValue('better-auth-session-token');
     globalThis.fetch = vi.fn(async () => {
       return new Response(
         JSON.stringify({ errors: [{ message: 'Rate limit' }] }),

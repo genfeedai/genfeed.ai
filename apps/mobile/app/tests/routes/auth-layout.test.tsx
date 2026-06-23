@@ -9,10 +9,10 @@ vi.mock('@/hooks/use-approvals', () => ({
   usePendingApprovalCount: mockUsePendingApprovalCount,
 }));
 
-import { useAuth } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import ProtectedLayout from '@/app/(protected)/_layout';
 import Index from '@/app/index';
+import { useMobileAuth } from '@/contexts/auth-context';
 
 describe('Auth route behavior', () => {
   beforeEach(() => {
@@ -23,10 +23,15 @@ describe('Auth route behavior', () => {
   });
 
   it('redirects signed-out users from the index route to login', () => {
-    vi.mocked(useAuth).mockReturnValue({
+    vi.mocked(useMobileAuth).mockReturnValue({
+      getToken: vi.fn(),
       isLoaded: true,
       isSignedIn: false,
-    } as unknown as ReturnType<typeof useAuth>);
+      refreshSession: vi.fn(),
+      signInWithEmail: vi.fn(),
+      signOut: vi.fn(),
+      user: null,
+    } as unknown as ReturnType<typeof useMobileAuth>);
 
     render(<Index />);
 
@@ -36,10 +41,21 @@ describe('Auth route behavior', () => {
   });
 
   it('redirects signed-in users from the index route to content', () => {
-    vi.mocked(useAuth).mockReturnValue({
+    vi.mocked(useMobileAuth).mockReturnValue({
+      getToken: vi.fn(),
       isLoaded: true,
       isSignedIn: true,
-    } as unknown as ReturnType<typeof useAuth>);
+      refreshSession: vi.fn(),
+      signInWithEmail: vi.fn(),
+      signOut: vi.fn(),
+      user: {
+        email: 'qa@genfeed.ai',
+        id: 'user_123',
+        image: null,
+        name: null,
+        organizationId: null,
+      },
+    } as unknown as ReturnType<typeof useMobileAuth>);
 
     render(<Index />);
 
@@ -55,11 +71,15 @@ describe('Auth route behavior', () => {
       replace: vi.fn(),
     };
 
-    vi.mocked(useAuth).mockReturnValue({
+    vi.mocked(useMobileAuth).mockReturnValue({
+      getToken: vi.fn(),
       isLoaded: true,
       isSignedIn: false,
+      refreshSession: vi.fn(),
+      signInWithEmail: vi.fn(),
       signOut: vi.fn(),
-    } as unknown as ReturnType<typeof useAuth>);
+      user: null,
+    } as unknown as ReturnType<typeof useMobileAuth>);
     vi.mocked(useRouter).mockReturnValue(
       router as unknown as ReturnType<typeof useRouter>,
     );
@@ -76,11 +96,21 @@ describe('Auth route behavior', () => {
   it('renders the protected tabs and sign-out action for signed-in users', () => {
     const signOut = vi.fn();
 
-    vi.mocked(useAuth).mockReturnValue({
+    vi.mocked(useMobileAuth).mockReturnValue({
+      getToken: vi.fn(),
       isLoaded: true,
       isSignedIn: true,
+      refreshSession: vi.fn(),
+      signInWithEmail: vi.fn(),
       signOut,
-    } as unknown as ReturnType<typeof useAuth>);
+      user: {
+        email: 'qa@genfeed.ai',
+        id: 'user_123',
+        image: null,
+        name: null,
+        organizationId: null,
+      },
+    } as unknown as ReturnType<typeof useMobileAuth>);
     vi.mocked(useRouter).mockReturnValue({
       back: vi.fn(),
       push: vi.fn(),

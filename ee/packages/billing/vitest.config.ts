@@ -186,7 +186,7 @@ export default defineConfig({
     passWithNoTests: true,
     // Reuse the api unit-test setup: it mocks @genfeedai/prisma + the pg adapter,
     // blocks real HTTP, and stubs the external service env vars the EE billing
-    // service tree touches at import time (Stripe/Clerk SDKs, etc.).
+    // service tree touches at import time (Stripe/legacy auth provider SDKs, etc.).
     setupFiles: [path.resolve(apiSrc, '../test/setup-unit.ts')],
     testTimeout: 30000,
   },

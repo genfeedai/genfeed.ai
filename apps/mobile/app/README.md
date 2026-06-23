@@ -30,12 +30,12 @@ bun run build       # expo export (if configured)
 - Uses Expo Router (file-based navigation under `app/`).
 - Service layer will mirror frontend packages; keep API calls centralised.
 - Socket.io integration planned for live updates from `notifications.genfeed.ai`.
-- Authentication will use Clerk tokens, stored securely via Expo Secure Store.
+- Authentication uses Better Auth sessions stored securely via Expo Secure Store.
 - Design tokens should align with the frontend/mobile shared system.
 
 ## Current Focus (September 2025)
 
-- Wire Clerk authentication + token refresh.
+- Wire native Better Auth social sign-in and magic-link callbacks.
 - Implement approvals queue with optimistic actions.
 - Integrate Socket.io notifications + Expo push notifications.
 - Add offline caching for queued actions and media previews.

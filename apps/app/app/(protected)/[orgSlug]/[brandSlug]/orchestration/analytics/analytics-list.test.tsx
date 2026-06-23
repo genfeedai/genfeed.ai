@@ -3,7 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsList from './analytics-list';
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: vi.fn(() => ({
     isSignedIn: true,
   })),

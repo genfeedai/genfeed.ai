@@ -6,7 +6,7 @@ import OfflineShell from './OfflineShell';
 const bootstrap: IDesktopBootstrap = {
   activeWorkspaceId: 'workspace-1',
   brands: [],
-  clerkId: null,
+  betterAuthId: null,
   environment: {
     apiEndpoint: '',
     appEndpoint: '',

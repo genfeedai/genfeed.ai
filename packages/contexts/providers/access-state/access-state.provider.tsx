@@ -1,9 +1,9 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
-import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/clerk.helper';
+import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import {
@@ -42,7 +42,12 @@ export function AccessStateProvider({
   hasInitialBootstrap = false,
   initialAccessState = null,
 }: AccessStateProviderProps) {
-  const { isLoaded: isAuthLoaded, isSignedIn, orgId, userId } = useAuth();
+  const {
+    isLoaded: isAuthLoaded,
+    isSignedIn,
+    orgId,
+    userId,
+  } = useAuthIdentity();
   const { brandId, organizationId } = useBrand();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =

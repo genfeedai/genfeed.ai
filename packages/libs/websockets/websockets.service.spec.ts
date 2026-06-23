@@ -39,15 +39,12 @@ describe('WebSocketService', () => {
 
       await service.publishVideoProgress(path, progress, userId);
 
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'video-progress',
-        JSON.stringify({
-          path,
-          progress,
-          room: getUserRoomName(userId),
-          userId,
-        }),
-      );
+      expect(redisService.publish).toHaveBeenCalledWith('video-progress', {
+        path,
+        progress,
+        room: getUserRoomName(userId),
+        userId,
+      });
     });
 
     it('should publish video progress with custom room', async () => {
@@ -58,15 +55,12 @@ describe('WebSocketService', () => {
 
       await service.publishVideoProgress(path, progress, userId, room);
 
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'video-progress',
-        JSON.stringify({
-          path,
-          progress,
-          room,
-          userId,
-        }),
-      );
+      expect(redisService.publish).toHaveBeenCalledWith('video-progress', {
+        path,
+        progress,
+        room,
+        userId,
+      });
     });
   });
 
@@ -78,15 +72,12 @@ describe('WebSocketService', () => {
 
       await service.publishVideoComplete(path, result, userId);
 
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'video-complete',
-        JSON.stringify({
-          path,
-          result,
-          room: getUserRoomName(userId),
-          userId,
-        }),
-      );
+      expect(redisService.publish).toHaveBeenCalledWith('video-complete', {
+        path,
+        result,
+        room: getUserRoomName(userId),
+        userId,
+      });
     });
 
     it('should publish video completion with custom room', async () => {
@@ -97,15 +88,12 @@ describe('WebSocketService', () => {
 
       await service.publishVideoComplete(path, result, userId, room);
 
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'video-complete',
-        JSON.stringify({
-          path,
-          result,
-          room,
-          userId,
-        }),
-      );
+      expect(redisService.publish).toHaveBeenCalledWith('video-complete', {
+        path,
+        result,
+        room,
+        userId,
+      });
     });
   });
 
@@ -117,15 +105,12 @@ describe('WebSocketService', () => {
 
       await service.publishMediaFailed(path, error, userId);
 
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'media-failed',
-        JSON.stringify({
-          error,
-          path,
-          room: getUserRoomName(userId),
-          userId,
-        }),
-      );
+      expect(redisService.publish).toHaveBeenCalledWith('media-failed', {
+        error,
+        path,
+        room: getUserRoomName(userId),
+        userId,
+      });
     });
 
     it('should publish media failure with custom room', async () => {
@@ -136,15 +121,12 @@ describe('WebSocketService', () => {
 
       await service.publishMediaFailed(path, error, userId, room);
 
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'media-failed',
-        JSON.stringify({
-          error,
-          path,
-          room,
-          userId,
-        }),
-      );
+      expect(redisService.publish).toHaveBeenCalledWith('media-failed', {
+        error,
+        path,
+        room,
+        userId,
+      });
     });
   });
 
@@ -156,14 +138,11 @@ describe('WebSocketService', () => {
 
       await service.publishNotification(notification, userId, organizationId);
 
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'notifications',
-        JSON.stringify({
-          notification,
-          organizationId,
-          userId,
-        }),
-      );
+      expect(redisService.publish).toHaveBeenCalledWith('notifications', {
+        notification,
+        organizationId,
+        userId,
+      });
     });
 
     it('should publish notification without userId and organizationId', async () => {
@@ -171,14 +150,11 @@ describe('WebSocketService', () => {
 
       await service.publishNotification(notification);
 
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'notifications',
-        JSON.stringify({
-          notification,
-          organizationId: undefined,
-          userId: undefined,
-        }),
-      );
+      expect(redisService.publish).toHaveBeenCalledWith('notifications', {
+        notification,
+        organizationId: undefined,
+        userId: undefined,
+      });
     });
   });
 
@@ -196,15 +172,12 @@ describe('WebSocketService', () => {
         metadata,
       );
 
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'ingredient-status',
-        JSON.stringify({
-          ingredientId,
-          metadata,
-          status,
-          userId,
-        }),
-      );
+      expect(redisService.publish).toHaveBeenCalledWith('ingredient-status', {
+        ingredientId,
+        metadata,
+        status,
+        userId,
+      });
     });
 
     it('should publish ingredient status without metadata', async () => {
@@ -214,15 +187,12 @@ describe('WebSocketService', () => {
 
       await service.publishIngredientStatus(ingredientId, status, userId);
 
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'ingredient-status',
-        JSON.stringify({
-          ingredientId,
-          metadata: undefined,
-          status,
-          userId,
-        }),
-      );
+      expect(redisService.publish).toHaveBeenCalledWith('ingredient-status', {
+        ingredientId,
+        metadata: undefined,
+        status,
+        userId,
+      });
     });
   });
 
@@ -235,15 +205,12 @@ describe('WebSocketService', () => {
 
       await service.publishPostStatus(postId, status, userId, metadata);
 
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'post-status',
-        JSON.stringify({
-          metadata,
-          postId,
-          status,
-          userId,
-        }),
-      );
+      expect(redisService.publish).toHaveBeenCalledWith('post-status', {
+        metadata,
+        postId,
+        status,
+        userId,
+      });
     });
 
     it('should publish post status without metadata', async () => {
@@ -253,15 +220,12 @@ describe('WebSocketService', () => {
 
       await service.publishPostStatus(postId, status, userId);
 
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'post-status',
-        JSON.stringify({
-          metadata: undefined,
-          postId,
-          status,
-          userId,
-        }),
-      );
+      expect(redisService.publish).toHaveBeenCalledWith('post-status', {
+        metadata: undefined,
+        postId,
+        status,
+        userId,
+      });
     });
   });
 
@@ -274,15 +238,12 @@ describe('WebSocketService', () => {
 
       await service.publishTrainingStatus(trainingId, status, userId, progress);
 
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'training-status',
-        JSON.stringify({
-          progress,
-          status,
-          trainingId,
-          userId,
-        }),
-      );
+      expect(redisService.publish).toHaveBeenCalledWith('training-status', {
+        progress,
+        status,
+        trainingId,
+        userId,
+      });
     });
 
     it('should publish training status without progress', async () => {
@@ -292,15 +253,12 @@ describe('WebSocketService', () => {
 
       await service.publishTrainingStatus(trainingId, status, userId);
 
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'training-status',
-        JSON.stringify({
-          progress: undefined,
-          status,
-          trainingId,
-          userId,
-        }),
-      );
+      expect(redisService.publish).toHaveBeenCalledWith('training-status', {
+        progress: undefined,
+        status,
+        trainingId,
+        userId,
+      });
     });
   });
 
@@ -322,17 +280,14 @@ describe('WebSocketService', () => {
         progress,
       );
 
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'file-processing',
-        JSON.stringify({
-          ingredientId,
-          jobId,
-          progress,
-          status,
-          type,
-          userId,
-        }),
-      );
+      expect(redisService.publish).toHaveBeenCalledWith('file-processing', {
+        ingredientId,
+        jobId,
+        progress,
+        status,
+        type,
+        userId,
+      });
     });
 
     it('should publish file processing without progress', async () => {
@@ -350,17 +305,14 @@ describe('WebSocketService', () => {
         ingredientId,
       );
 
-      expect(redisService.publish).toHaveBeenCalledWith(
-        'file-processing',
-        JSON.stringify({
-          ingredientId,
-          jobId,
-          progress: undefined,
-          status,
-          type,
-          userId,
-        }),
-      );
+      expect(redisService.publish).toHaveBeenCalledWith('file-processing', {
+        ingredientId,
+        jobId,
+        progress: undefined,
+        status,
+        type,
+        userId,
+      });
     });
   });
 });

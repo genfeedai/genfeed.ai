@@ -1,7 +1,7 @@
 
 
-# clerk configuration (can include secrets)
-/.clerk/
+# Better Auth configuration (can include secrets)
+/.better-auth/
 
 # Generated at build time
 public/llms.txt

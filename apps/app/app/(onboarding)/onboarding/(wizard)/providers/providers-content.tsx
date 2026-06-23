@@ -1,9 +1,9 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { OnboardingAccessMode } from '@genfeedai/interfaces';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
@@ -57,7 +57,7 @@ const EMPTY_READINESS: InstallReadinessResponse = {
     selectedMode: null,
     serverDefaultsReady: false,
   },
-  authMode: 'clerk',
+  authMode: 'better_auth',
   billingMode: 'oss_local',
   localTools: {
     anyDetected: false,
@@ -119,7 +119,7 @@ function formatAccessStatus(readiness: InstallReadinessResponse): string {
 
 export default function ProvidersContent() {
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const { currentUser } = useCurrentUser();
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),

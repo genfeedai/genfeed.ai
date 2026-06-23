@@ -14,7 +14,9 @@ import {
 export class CreateCustomerInstanceDto {
   @IsString()
   @IsNotEmpty()
-  @ApiProperty({ description: 'Clerk organization ID of the owning customer' })
+  @ApiProperty({
+    description: 'legacy auth provider organization ID of the owning customer',
+  })
   readonly organizationId!: string;
 
   @IsString()

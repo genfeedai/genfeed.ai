@@ -93,16 +93,16 @@ export class MetadataLookupService {
         return;
       }
 
-      const { dbUserId, clerkUserId, userId, userRoom } =
+      const { dbUserId, authProviderUserId, userId, userRoom } =
         UserExtractionUtil.extractUserIds(ingredient.user);
 
-      if (!clerkUserId && dbUserId) {
+      if (!authProviderUserId && dbUserId) {
         this.loggerService.warn(
-          `${this.logContext} user missing clerkId - WebSocket room may not match client room`,
+          `${this.logContext} user missing authProviderId - WebSocket room may not match client room`,
           {
             dbUserId,
             ingredientId: ingredient._id,
-            note: 'Client joins room using Clerk ID from JWT, but backend has no clerkId in DB',
+            note: 'Client joins room using legacy auth provider ID from JWT, but backend has no authProviderId in DB',
           },
         );
       }

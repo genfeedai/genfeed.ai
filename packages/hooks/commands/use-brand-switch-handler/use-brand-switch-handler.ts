@@ -1,8 +1,8 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
+import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCallback } from 'react';
 
@@ -10,7 +10,7 @@ export function useBrandSwitchHandler(
   brandId: string,
   onBrandChange?: (brandId: string) => void,
 ): (newBrandId: string) => Promise<void> {
-  const { user } = useUser();
+  const { user } = useAuthUser();
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );

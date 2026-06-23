@@ -503,8 +503,8 @@ export interface IDesktopPreferences {
 
 export interface IDesktopBootstrap {
   activeWorkspaceId: string | null;
-  /** Clerk user ID persisted locally after first cloud sign-in; null if never signed in */
-  clerkId: string | null;
+  /** Better Auth user ID persisted locally after first cloud sign-in; null if never signed in */
+  betterAuthId: string | null;
   environment: IDesktopEnvironment;
   isOfflineMode: boolean;
   localOrganization: IDesktopLocalOrganization;

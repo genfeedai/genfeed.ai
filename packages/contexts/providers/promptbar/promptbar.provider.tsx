@@ -1,9 +1,9 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { IngredientCategory } from '@genfeedai/enums';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type {
   IFontFamily,
@@ -36,7 +36,12 @@ function PromptBarProviderContent({
   children,
   enabled,
 }: LayoutProps & { enabled: boolean }): ReactNode {
-  const { isLoaded: isAuthLoaded, isSignedIn, userId, orgId } = useAuth();
+  const {
+    isLoaded: isAuthLoaded,
+    isSignedIn,
+    userId,
+    orgId,
+  } = useAuthIdentity();
   const { organizationId, settings: orgSettings } = useBrand();
 
   const getFontFamiliesService = useAuthedService(

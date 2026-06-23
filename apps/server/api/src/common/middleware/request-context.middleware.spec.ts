@@ -36,7 +36,7 @@ function buildUser(
   }> = {},
 ) {
   return {
-    id: overrides.id ?? 'clerk_abc123',
+    id: overrides.id ?? 'authProvider_abc123',
     publicMetadata: overrides.publicMetadata ?? {
       brand: 'brand_1',
       isSuperAdmin: false,
@@ -148,7 +148,7 @@ describe('RequestContextMiddleware', () => {
           brand: 'brand_1',
           isSuperAdmin: false,
           organization: 'org_1',
-          // Stale Clerk metadata — should be overridden by DB
+          // Stale legacy auth provider metadata — should be overridden by DB
           stripeSubscriptionStatus: 'canceled',
           subscriptionTier: 'free',
           user: 'user_1',
@@ -166,14 +166,14 @@ describe('RequestContextMiddleware', () => {
     expect(ctx.userId).toBe('user_1');
     expect(ctx.organizationId).toBe('org_1');
     expect(ctx.isSuperAdmin).toBe(false);
-    // DB values win over stale Clerk metadata
+    // DB values win over stale legacy auth provider metadata
     expect(ctx.subscriptionTier).toBe('pro');
     expect(ctx.stripeSubscriptionStatus).toBe('active');
     expect(publisher.setEx).toHaveBeenCalledOnce();
     expect(next).toHaveBeenCalledOnce();
   });
 
-  it('DB returns null → falls back to Clerk publicMetadata', async () => {
+  it('DB returns null → falls back to legacy auth provider publicMetadata', async () => {
     const publisher = buildPublisher();
     redisService.getPublisher.mockReturnValue(publisher);
 
@@ -205,7 +205,7 @@ describe('RequestContextMiddleware', () => {
       string,
       unknown
     >;
-    // Falls back to Clerk publicMetadata when DB returns null
+    // Falls back to legacy auth provider publicMetadata when DB returns null
     expect(ctx.subscriptionTier).toBe('starter');
     expect(ctx.stripeSubscriptionStatus).toBe('active');
     expect(next).toHaveBeenCalledOnce();

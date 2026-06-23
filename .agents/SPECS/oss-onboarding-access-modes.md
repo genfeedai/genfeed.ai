@@ -56,7 +56,7 @@ Public signup and post-signup onboarding should preserve enough data so the clou
 
 ## Edge Cases and Failure Modes
 
-- No DB user found from Clerk metadata: selected mode falls back to `null`
+- No DB user found from legacy auth provider metadata: selected mode falls back to `null`
 - No org settings found: runtime mode falls back to `server`
 - No server keys configured: `serverDefaultsReady` is `false`, but the user can still choose BYOK or cloud
 - No brand/domain info available during cloud handoff: signup still works without prefill

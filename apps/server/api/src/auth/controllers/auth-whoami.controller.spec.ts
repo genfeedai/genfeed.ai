@@ -54,7 +54,7 @@ describe('AuthWhoamiController', () => {
       const req = buildReq({
         emailAddresses: [{ emailAddress: 'john@example.com' }],
         firstName: 'John',
-        id: 'clerk_user_123',
+        id: 'auth_user_123',
         lastName: 'Doe',
         publicMetadata: {
           isApiKey: false,
@@ -77,7 +77,7 @@ describe('AuthWhoamiController', () => {
           role: 'admin',
           scopes: ['read', 'write'],
           user: {
-            clerkId: 'clerk_user_123',
+            authUserId: 'auth_user_123',
             email: 'john@example.com',
             id: mongoUserId,
             name: 'John Doe',
@@ -91,7 +91,7 @@ describe('AuthWhoamiController', () => {
 
       const result = await controller.whoami(
         buildReq({
-          id: 'clerk_user_123',
+          id: 'auth_user_123',
           publicMetadata: { organization: 'org_abc', user: 'user_1' },
         }),
       );
@@ -269,14 +269,14 @@ describe('AuthWhoamiController', () => {
 
     it('should keep mongo user id empty when publicMetadata.user is missing', async () => {
       const req = buildReq({
-        id: 'clerk_user_id',
+        id: 'auth_user_id',
         publicMetadata: {},
       });
 
       const result = await controller.whoami(req);
 
       expect(result.data.user.id).toBe('');
-      expect(result.data.user.clerkId).toBe('clerk_user_id');
+      expect(result.data.user.authUserId).toBe('auth_user_id');
     });
 
     it('should handle completely empty user object', async () => {
@@ -290,7 +290,7 @@ describe('AuthWhoamiController', () => {
       expect(result.data.scopes).toEqual(['*']);
       expect(result.data.user.email).toBe('');
       expect(result.data.user.id).toBe('');
-      expect(result.data.user.clerkId).toBe('');
+      expect(result.data.user.authUserId).toBe('');
       expect(result.data.user.name).toBe('');
     });
 
@@ -305,7 +305,7 @@ describe('AuthWhoamiController', () => {
 
     it('should return empty mongo user id when metadata user id is not a valid ObjectId', async () => {
       const req = buildReq({
-        id: 'clerk_user_id',
+        id: 'auth_user_id',
         publicMetadata: {
           user: 'user_123',
         },
@@ -314,7 +314,7 @@ describe('AuthWhoamiController', () => {
       const result = await controller.whoami(req);
 
       expect(result.data.user.id).toBe('');
-      expect(result.data.user.clerkId).toBe('clerk_user_id');
+      expect(result.data.user.authUserId).toBe('auth_user_id');
     });
 
     it('should trim name when lastName has trailing spaces', async () => {

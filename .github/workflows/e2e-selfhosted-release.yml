@@ -2,7 +2,7 @@ name: Self-Hosted Release E2E
 
 # Tests the RELEASED self-hosted image — the exact artifact users `docker run`,
 # produced by "Docker Publish (Self-Hosted)" on release (ghcr :latest). Boots it
-# against a throwaway Postgres in LOCAL mode (no Clerk, no secrets), then drives
+# against a throwaway Postgres in LOCAL mode (no Better Auth, no secrets), then drives
 # Playwright critical-path specs through the live API + frontend + DB stack.
 #
 # This is the only suite that proves real API ↔ frontend ↔ Postgres integration.

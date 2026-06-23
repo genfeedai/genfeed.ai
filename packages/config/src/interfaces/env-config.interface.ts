@@ -47,9 +47,11 @@ export interface IEnvConfig {
   AWS_S3_BUCKET?: string;
   AWS_IMAGE_COMPRESSION?: number;
 
-  // === Clerk ===
-  CLERK_SECRET_KEY?: string;
-  CLERK_WEBHOOK_SIGNING_SECRET?: string;
+  // === Better Auth ===
+  BETTER_AUTH_ENABLED?: 'true' | 'false';
+  BETTER_AUTH_SECRET?: string;
+  BETTER_AUTH_TRUSTED_ORIGINS?: string;
+  BETTER_AUTH_URL?: string;
 
   // === Sentry ===
   SENTRY_DSN?: string;

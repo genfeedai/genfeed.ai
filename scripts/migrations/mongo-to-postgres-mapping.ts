@@ -385,7 +385,7 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
       const mongoId = (doc._id as { toString(): string }).toString();
       return {
         mongoId,
-        clerkId: doc.clerkId ?? null,
+        authProviderId: doc.authProviderId ?? null,
         handle: doc.handle,
         firstName: doc.firstName ?? null,
         lastName: doc.lastName ?? null,

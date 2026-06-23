@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateElementSoundDto } from '@api/collections/elements/sounds/dto/create-sound.dto';
 import { UpdateElementSoundDto } from '@api/collections/elements/sounds/dto/update-sound.dto';
 import { ElementsSoundsService } from '@api/collections/elements/sounds/services/sounds.service';
@@ -9,11 +10,10 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { type ElementSound } from '@genfeedai/prisma';

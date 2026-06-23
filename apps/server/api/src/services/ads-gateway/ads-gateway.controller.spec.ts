@@ -1,7 +1,7 @@
 vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
   AutoSwagger: () => () => undefined,
 }));
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   extractRequestContext: vi.fn(() => ({
     organizationId: '507f1f77bcf86cd799439033',
     userId: '507f1f77bcf86cd799439044',
@@ -11,10 +11,10 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: { getCallerName: vi.fn(() => 'testMethod') },
 }));
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
-import type { User } from '@clerk/backend';
 import type { AdsAdapterContext } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
@@ -43,7 +43,7 @@ describe('AdsGatewayController', () => {
   };
 
   const mockUser = {
-    id: 'user_clerk_123',
+    id: 'user_authProvider_123',
     publicMetadata: {
       organization: '507f1f77bcf86cd799439033',
       user: '507f1f77bcf86cd799439044',

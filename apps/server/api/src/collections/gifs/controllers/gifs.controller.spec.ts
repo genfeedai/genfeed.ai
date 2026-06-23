@@ -38,13 +38,13 @@ vi.mock('@api/helpers/utils/collection-filter/collection-filter.util', () => ({
   },
 }));
 
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { GifsController } from '@api/collections/gifs/controllers/gifs.controller';
 import { GifsService } from '@api/collections/gifs/services/gifs.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -61,7 +61,7 @@ describe('GifsController', () => {
 
   const mockRequest = {} as unknown as Request;
   const mockUser = {
-    id: 'clerk_user_1',
+    id: 'authProvider_user_1',
     publicMetadata: {
       brand: '507f1f77bcf86cd799439012',
       organization: '507f1f77bcf86cd799439011',
@@ -108,7 +108,7 @@ describe('GifsController', () => {
         { provide: VotesService, useValue: votesService },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })

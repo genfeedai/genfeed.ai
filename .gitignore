@@ -53,9 +53,9 @@ apps/desktop/app/release/
 .clawpatch/
 .genfeed/
 
-# Playwright generated artifacts: reports, traces, videos, screenshots, and Clerk storageState
+# Playwright generated artifacts: reports, traces, videos, screenshots, and legacy auth provider storageState
 playwright/artifacts/
-playwright/.clerk/
+playwright/.authProvider/
 playwright-report/
 playwright-results/
 test-results/

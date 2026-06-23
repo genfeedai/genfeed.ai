@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-templates.constant';
@@ -31,17 +32,16 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { BrandCreditsGuard } from '@api/helpers/guards/brand-credits/brand-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { BrandFilterUtil } from '@api/helpers/utils/brand-filter/brand-filter.util';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
+import { BrandFilterUtil } from '@api/helpers/utils/brand-filter/brand-filter.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,

@@ -128,7 +128,7 @@ export function generateMockApiUser(
 ): Record<string, unknown> {
   return {
     avatar: 'https://cdn.genfeed.ai/avatars/default.png',
-    clerkId: 'mock-user-id-e2e-test',
+    authProviderId: 'mock-user-id-e2e-test',
     createdAt: new Date().toISOString(),
     email: 'test@genfeed.ai',
     firstName: 'Test',
@@ -310,7 +310,7 @@ function buildInstallReadinessPayload() {
       selectedMode: 'server',
       serverDefaultsReady: true,
     },
-    authMode: 'clerk',
+    authMode: 'better_auth',
     billingMode: 'oss_local',
     localTools: {
       anyDetected: true,
@@ -1410,9 +1410,9 @@ export async function setupApiMocks(
   page: Page,
   customMocks?: Record<string, (route: Route) => Promise<void>>,
 ): Promise<void> {
-  // NOTE: Clerk endpoint mocking is handled in auth.fixture.ts setupClerkMocks()
+  // NOTE: Better Auth endpoint mocking is handled in auth.fixture.ts setupBetterAuthMocks()
   // which is registered AFTER this function so its handlers take priority.
-  // Do NOT add Clerk routes here or they will override the fixture's detailed mocks.
+  // Do NOT add Better Auth routes here or they will override the fixture's detailed mocks.
 
   // The local dev API runs at http://local.genfeed.ai:3010/v1
   // Playwright globs don't handle ports well, so we use regex for the catch-all

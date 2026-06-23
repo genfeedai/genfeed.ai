@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -8,7 +9,6 @@ import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import type { User } from '@clerk/backend';
 import {
   AssetScope,
   FileInputType,

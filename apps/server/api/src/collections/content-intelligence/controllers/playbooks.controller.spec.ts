@@ -5,9 +5,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
 }));
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PlaybooksController } from '@api/collections/content-intelligence/controllers/playbooks.controller';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
-import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

@@ -1,10 +1,10 @@
 ### Insights API Test Suite
 ### Base URL: http://localhost:3000/insights
-### Auth: Bearer token required (Clerk JWT)
+### Auth: Bearer token required (Better Auth JWT)
 
 ### Variables
 @baseUrl = http://localhost:3000
-@token = your_clerk_jwt_token_here
+@token = your_better_auth_jwt_token_here
 
 ### 1. Get trend forecasts (30/60/90 days)
 POST {{baseUrl}}/insights/forecast
@@ -190,5 +190,4 @@ Content-Type: application/json
 ### Step 3: Get best posting time
 GET {{baseUrl}}/insights/times?platform=tiktok&timezone=UTC
 Authorization: Bearer {{token}}
-
 

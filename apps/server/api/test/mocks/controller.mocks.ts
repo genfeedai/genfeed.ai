@@ -65,7 +65,7 @@ export const mockAuthRequest = (overrides: MockRequestOverrides = {}) => ({
   auth: {
     orgId: 'org-id',
     sessionId: 'session-id',
-    userId: 'clerk-user-id',
+    userId: 'authProvider-user-id',
   },
   body: {},
   headers: {

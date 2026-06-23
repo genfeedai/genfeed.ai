@@ -1,14 +1,14 @@
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
     organization: '507f1f77bcf86cd799439011',
     user: '507f1f77bcf86cd799439013',
   })),
 }));
 
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { OpusProController } from '@api/services/integrations/opuspro/controllers/opuspro.controller';
 import { OpusProService } from '@api/services/integrations/opuspro/services/opuspro.service';
-import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -82,7 +82,7 @@ describe('OpusProController', () => {
 
     it('should throw HttpException on unexpected outer error', async () => {
       vi.mocked(getPublicMetadata).mockImplementationOnce(() => {
-        throw new Error('clerk failure');
+        throw new Error('authProvider failure');
       });
 
       await expect(controller.getStatus(mockUser)).rejects.toThrow(
@@ -119,7 +119,7 @@ describe('OpusProController', () => {
       });
     });
 
-    it('should pass organizationId from clerk metadata to service', async () => {
+    it('should pass organizationId from authProvider metadata to service', async () => {
       opusProService.getTemplates.mockResolvedValue([]);
 
       await controller.getTemplates(mockUser);

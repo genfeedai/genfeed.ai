@@ -1,8 +1,8 @@
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { AiActionsController } from '@api/endpoints/ai-actions/ai-actions.controller';
 import type { AiActionResult } from '@api/endpoints/ai-actions/ai-actions.service';
 import { AiActionsService } from '@api/endpoints/ai-actions/ai-actions.service';
 import { ExecuteAiActionDto } from '@api/endpoints/ai-actions/dto/ai-action.dto';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -22,7 +22,7 @@ describe('AiActionsController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })

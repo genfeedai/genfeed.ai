@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -6,7 +7,7 @@ import { EntityDocument } from '@api/helpers/types/common/common.types';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
@@ -25,7 +26,6 @@ import {
   PopulateBuilder,
   PopulatePatterns,
 } from '@api/shared/utils/populate/populate.util';
-import type { User } from '@clerk/backend';
 import type {
   IJsonApiSerializer,
   JsonApiCollectionResponse,

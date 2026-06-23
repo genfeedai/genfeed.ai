@@ -1,11 +1,11 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateVoteDto } from '@api/collections/votes/dto/create-vote.dto';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { VoteSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

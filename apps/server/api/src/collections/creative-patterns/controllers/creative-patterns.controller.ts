@@ -1,9 +1,9 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
-import type { User } from '@clerk/backend';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import type { PatternType } from '@genfeedai/interfaces';
 import { Controller, Get, Param, Query } from '@nestjs/common';
 

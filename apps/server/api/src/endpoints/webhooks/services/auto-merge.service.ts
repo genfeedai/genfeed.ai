@@ -91,7 +91,7 @@ export class AutoMergeService {
 
   private toUserReference(
     ref: string | IngredientRefDocument | null | undefined,
-  ): string | { _id?: string; clerkId?: string } | undefined {
+  ): string | { _id?: string; authProviderId?: string } | undefined {
     if (typeof ref === 'string') {
       return ref;
     }
@@ -101,15 +101,16 @@ export class AutoMergeService {
     }
 
     const userId = this.getRefId(ref);
-    const clerkId = typeof ref.clerkId === 'string' ? ref.clerkId : undefined;
+    const authProviderId =
+      typeof ref.authProviderId === 'string' ? ref.authProviderId : undefined;
 
-    if (!userId && !clerkId) {
+    if (!userId && !authProviderId) {
       return undefined;
     }
 
     return {
       ...(userId ? { _id: userId } : {}),
-      ...(clerkId ? { clerkId } : {}),
+      ...(authProviderId ? { authProviderId } : {}),
     };
   }
 
@@ -257,29 +258,29 @@ export class AutoMergeService {
 
   private async resolveUserInfo(ingredient: IngredientDocument): Promise<{
     dbUserId?: string;
-    clerkUserId?: string;
+    authProviderUserId?: string;
     userId?: string;
     userRoom?: string;
   }> {
-    let { dbUserId, clerkUserId, userId, userRoom } =
+    let { dbUserId, authProviderUserId, userId, userRoom } =
       UserExtractionUtil.extractUserIds(this.toUserReference(ingredient.user));
 
-    if (!clerkUserId && dbUserId) {
+    if (!authProviderUserId && dbUserId) {
       try {
         const fullUser = await this.usersService.findOne({
           _id: dbUserId,
         });
-        if (fullUser?.clerkId) {
-          clerkUserId = fullUser.clerkId;
-          userId = clerkUserId;
-          userRoom = getUserRoomName(clerkUserId);
+        if (fullUser?.authProviderId) {
+          authProviderUserId = fullUser.authProviderId;
+          userId = authProviderUserId;
+          userRoom = getUserRoomName(authProviderUserId);
         }
       } catch {
-        // Continue without clerkId
+        // Continue without authProviderId
       }
     }
 
-    return { clerkUserId, dbUserId, userId, userRoom };
+    return { authProviderUserId, dbUserId, userId, userRoom };
   }
 
   private async createAndQueueMerge(
@@ -288,12 +289,12 @@ export class AutoMergeService {
     videoIds: string[],
     userInfo: {
       dbUserId?: string;
-      clerkUserId?: string;
+      authProviderUserId?: string;
       userId?: string;
       userRoom?: string;
     },
   ): Promise<void> {
-    const { dbUserId, clerkUserId, userId, userRoom } = userInfo;
+    const { dbUserId, authProviderUserId, userId, userRoom } = userInfo;
     const resolvedUserId = userId ?? dbUserId;
     if (!resolvedUserId) {
       throw new Error('No userId available for auto-merge');
@@ -372,7 +373,7 @@ export class AutoMergeService {
 
     this.fileQueueService
       .processVideo({
-        clerkUserId: clerkUserId || '',
+        authProviderUserId: authProviderUserId || '',
         ingredientId: mergedIngredientId,
         organizationId,
         params: {

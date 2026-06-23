@@ -15,7 +15,7 @@ import {
   getPublicMetadata,
   getStripeSubscriptionStatus,
   getSubscriptionTier,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
 import {
   BatchGenerationService,
   ReviewInboxSummary,

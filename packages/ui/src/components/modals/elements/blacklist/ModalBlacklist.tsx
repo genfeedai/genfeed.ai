@@ -1,15 +1,14 @@
-import { useUser } from '@clerk/nextjs';
 import {
   type ElementBlacklistSchema,
   elementBlacklistSchema,
 } from '@genfeedai/client/schemas';
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import {
   AlertCategory,
   ButtonVariant,
   ModalEnum,
   ModelCategory,
 } from '@genfeedai/enums';
-import { getClerkPublicData } from '@genfeedai/helpers/auth/clerk.helper';
 import {
   hasFormErrors,
   parseFormErrors,
@@ -33,8 +32,7 @@ export default function ModalBlacklist({
   onConfirm,
   onClose,
 }: ModalBlacklistProps) {
-  const { user } = useUser();
-  const isSuperAdmin = user ? getClerkPublicData(user).isSuperAdmin : false;
+  const { isSuperAdmin } = useAccessState();
 
   const { form, formRef, isSubmitting, onSubmit, closeModal } = useCrudModal<
     ElementBlacklist,

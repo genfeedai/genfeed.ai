@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { DarkroomService } from '@api/endpoints/admin/darkroom/darkroom.service';
 import {
   BulkEc2ActionDto,
@@ -16,7 +17,7 @@ import {
 } from '@api/endpoints/admin/darkroom/dto';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import {
@@ -24,7 +25,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
-import type { User } from '@clerk/backend';
 import {
   DarkroomCloudFrontInvalidationSerializer,
   DarkroomEc2ActionResultSerializer,

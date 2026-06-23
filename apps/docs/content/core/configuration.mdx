@@ -41,8 +41,10 @@ bun run env:sync local
 | Variable                | Required   | Default | Description                                                  |
 | ----------------------- | ---------- | ------- | ------------------------------------------------------------ |
 | `JWT_SECRET`            | Yes        | --      | Secret key for signing JWT tokens. Use a long random string. |
-| `CLERK_SECRET_KEY`      | Auth       | --      | Clerk backend secret key for deployments using Clerk auth     |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Auth | --   | Clerk publishable key exposed to the Next.js frontend        |
+| `BETTER_AUTH_SECRET`      | Auth       | --      | Better Auth signing secret for sessions and JWTs     |
+| `BETTER_AUTH_URL`      | Auth       | API URL      | Public origin where the API serves Better Auth routes     |
+| `BETTER_AUTH_TRUSTED_ORIGINS`      | Auth       | --      | Comma-separated frontend origins allowed to initiate Better Auth flows     |
+| `NEXT_PUBLIC_BETTER_AUTH_ENABLED` | Auth | `true`   | Frontend runtime switch for Better Auth UI and route behavior        |
 
 ---
 

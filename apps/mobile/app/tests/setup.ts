@@ -146,9 +146,6 @@ const MockStack = Object.assign(createPrimitive('div'), {
   },
 });
 
-// Mock process.env
-process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_mock';
-
 // Mock Expo modules
 vi.mock('expo-router', () => ({
   Link: createPrimitive('a'),
@@ -189,7 +186,7 @@ vi.mock('expo-constants', () => ({
   default: {
     expoConfig: {
       extra: {
-        clerkPublishableKey: 'pk_test_mock_key',
+        apiUrl: 'https://api.test.com',
       },
     },
   },
@@ -233,24 +230,15 @@ vi.mock('react-native-reanimated', () => ({
   withTiming: (value: unknown) => value,
 }));
 
-// Mock Clerk
-vi.mock('@clerk/clerk-expo', () => ({
-  ClerkProvider: vi.fn(({ children }) => children),
-  useAuth: vi.fn(() => ({
+vi.mock('@/contexts/auth-context', () => ({
+  MobileAuthProvider: vi.fn(({ children }) => children),
+  useMobileAuth: vi.fn(() => ({
+    getToken: vi.fn().mockResolvedValue(null),
     isLoaded: true,
     isSignedIn: false,
+    refreshSession: vi.fn(),
+    signInWithEmail: vi.fn(),
     signOut: vi.fn(),
-  })),
-  useSignIn: vi.fn(() => ({
-    isLoaded: true,
-    setActive: vi.fn(),
-    signIn: { create: vi.fn() },
-  })),
-  useSSO: vi.fn(() => ({
-    startSSOFlow: vi.fn(),
-  })),
-  useUser: vi.fn(() => ({
-    isLoaded: true,
     user: null,
   })),
 }));

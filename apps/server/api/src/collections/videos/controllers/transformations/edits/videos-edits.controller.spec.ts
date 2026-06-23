@@ -1,5 +1,5 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { User } from '@clerk/backend';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { Request } from 'express';
 

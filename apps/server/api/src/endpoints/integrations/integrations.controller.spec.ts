@@ -1,8 +1,8 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationsIntegrationsController } from '@api/collections/organizations/controllers/organizations-integrations.controller';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import type { User } from '@clerk/backend';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('OrganizationsIntegrationsController', () => {

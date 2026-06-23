@@ -1,15 +1,15 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { ContentEngineController } from '@api/services/content-engine/content-engine.controller';
 import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
 import { ContentReviewService } from '@api/services/content-engine/content-review.service';
-import type { User } from '@clerk/backend';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn().mockReturnValue({
     organization: '507f1f77bcf86cd799439012',
     user: '507f1f77bcf86cd799439011',

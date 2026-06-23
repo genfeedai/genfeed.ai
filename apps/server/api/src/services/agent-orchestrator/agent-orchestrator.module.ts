@@ -39,7 +39,6 @@ import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
 import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ContentQualityModule } from '@api/services/content-quality/content-quality.module';
-import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -74,7 +73,6 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => CreditsModule),
     forwardRef(() => HttpModule),
     forwardRef(() => ImagesModule),
-    forwardRef(() => ClerkModule),
     forwardRef(() => LoggerModule),
     forwardRef(() => LlmDispatcherModule),
     forwardRef(() => MarketplaceIntegrationModule),

@@ -19,6 +19,7 @@ vi.mock('@api/collections/templates/services/templates.service', () => ({
   TemplatesService: class {},
 }));
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -38,7 +39,6 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { QuotaService } from '@api/services/quota/quota.service';
-import type { User } from '@clerk/backend';
 import {
   CredentialPlatform,
   IngredientCategory,
@@ -62,7 +62,7 @@ describe('PostsOperationsController', () => {
   const ingredientId = '507f1f77bcf86cd799439017';
 
   const mockUser = {
-    id: 'user_clerk_123',
+    id: 'user_authProvider_123',
     publicMetadata: {
       brand: brandId,
       organization: organizationId,

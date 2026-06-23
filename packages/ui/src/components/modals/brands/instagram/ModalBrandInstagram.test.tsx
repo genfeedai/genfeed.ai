@@ -1,4 +1,4 @@
-import { useAuth } from '@clerk/nextjs';
+import { useAuth } from '@genfeedai/auth-client/react';
 import type { ICredential, IUser } from '@genfeedai/interfaces';
 import { Brand } from '@genfeedai/models/organization/brand.model';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
@@ -20,7 +20,7 @@ interface MockServicesService {
 }
 
 // Mock dependencies
-vi.mock('@clerk/nextjs');
+vi.mock('@genfeedai/auth-client/react');
 vi.mock('@genfeedai/services/external/services.service');
 vi.mock('@genfeedai/services/core/notifications.service');
 vi.mock('@genfeedai/services/organization/credentials.service');

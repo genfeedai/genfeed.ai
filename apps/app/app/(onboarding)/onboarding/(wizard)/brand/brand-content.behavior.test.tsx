@@ -11,7 +11,7 @@ const {
   findMeBrandsMock,
   findMeOrganizationsMock,
   pushMock,
-  resolveClerkTokenMock,
+  resolveAuthTokenMock,
   searchParamsMock,
   setAccountTypeMock,
   setupBrandMock,
@@ -20,21 +20,21 @@ const {
   findMeBrandsMock: vi.fn(),
   findMeOrganizationsMock: vi.fn(),
   pushMock: vi.fn(),
-  resolveClerkTokenMock: vi.fn(),
+  resolveAuthTokenMock: vi.fn(),
   searchParamsMock: new URLSearchParams(),
   setAccountTypeMock: vi.fn(),
   setupBrandMock: vi.fn(),
   updateBrandNameMock: vi.fn(),
 }));
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: vi.fn(),
   }),
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
-  resolveAuthToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
+vi.mock('@helpers/auth/auth.helper', () => ({
+  resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
 }));
 
 vi.mock('@hooks/ui/use-gsap-entrance', () => ({
@@ -141,14 +141,14 @@ describe('BrandContent behavior', () => {
     findMeBrandsMock.mockReset();
     findMeOrganizationsMock.mockReset();
     pushMock.mockReset();
-    resolveClerkTokenMock.mockReset();
+    resolveAuthTokenMock.mockReset();
     setAccountTypeMock.mockReset();
     setupBrandMock.mockReset();
     updateBrandNameMock.mockReset();
     searchParamsMock.delete('auto');
     localStorageMock.clear();
 
-    resolveClerkTokenMock.mockResolvedValue('api-token');
+    resolveAuthTokenMock.mockResolvedValue('api-token');
     findMeBrandsMock.mockResolvedValue([]);
     findMeOrganizationsMock.mockResolvedValue([]);
     setupBrandMock.mockResolvedValue({});

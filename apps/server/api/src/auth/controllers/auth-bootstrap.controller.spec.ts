@@ -81,7 +81,7 @@ describe('AuthBootstrapController', () => {
   it('forwards the shell bootstrap request to the service', async () => {
     const req = {
       context: { brandId: 'brand_1', organizationId: 'org_abc', userId: 'u1' },
-      user: { id: 'clerk_user_1' },
+      user: { id: 'authProvider_user_1' },
     } as Parameters<AuthBootstrapController['bootstrap']>[0];
     mockAuthBootstrapService.getBootstrap.mockResolvedValue(
       mockShellBootstrapPayload,
@@ -94,7 +94,7 @@ describe('AuthBootstrapController', () => {
   });
 
   it('forwards the overview bootstrap request to the service', async () => {
-    const req = { user: { id: 'clerk_user_2' } } as Parameters<
+    const req = { user: { id: 'authProvider_user_2' } } as Parameters<
       AuthBootstrapController['overviewBootstrap']
     >[0];
     mockAuthBootstrapService.getOverviewBootstrap.mockResolvedValue(

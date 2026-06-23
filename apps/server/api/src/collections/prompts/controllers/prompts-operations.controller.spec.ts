@@ -15,6 +15,8 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
 }));
 
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -22,7 +24,6 @@ import { PromptsOperationsController } from '@api/collections/prompts/controller
 import { ParsePromptDto } from '@api/collections/prompts/dto/parse-prompt.dto';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { ConfigService } from '@api/config/config.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -31,7 +32,6 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
-import type { User } from '@clerk/backend';
 import { PromptCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -122,7 +122,7 @@ describe('PromptsOperationsController', () => {
         { provide: WhisperService, useValue: mockServices.whisperService },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })

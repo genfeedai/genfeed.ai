@@ -105,7 +105,7 @@ Reference these guidelines when:
 
 - `adv-formprovider-memo` - Wrap FormProvider children with React.memo
 - `adv-devtools-performance` - Disable DevTools in production and during performance testing
-- `adv-testing-wrapper` - Create test wrapper with QueryClient and AuthProvider
+- `adv-testing-wrapper` - Create test wrapper with QueryClient and auth context
 
 ## How to Use
 

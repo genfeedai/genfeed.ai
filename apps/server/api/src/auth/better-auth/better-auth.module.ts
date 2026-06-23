@@ -31,13 +31,12 @@ import { BetterAuthIdentityResolverService } from './services/better-auth-identi
 import { BetterAuthMailerService } from './services/better-auth-mailer.service';
 
 /**
- * Better Auth dual-run module (epic #735, Phase 1 — #736).
+ * Better Auth module (epic #735).
  *
  * Constructs the in-process Better Auth instance (flag-gated; `null` when off),
- * the JWT/JWKS Passport strategy that validates beside ClerkStrategy, the
- * identity resolver, and the magic-link mailer. The {@link BetterAuthGuard} that
- * wraps the strategy is provided in AppModule alongside ClerkGuard so
- * CombinedAuthGuard can delegate to it.
+ * the JWT/JWKS Passport strategy, the identity resolver, and the magic-link
+ * mailer. The {@link BetterAuthGuard} that wraps the strategy is provided in
+ * AppModule so CombinedAuthGuard can delegate to it.
  */
 @Module({
   exports: [BetterAuthService, BetterAuthStrategy, PassportModule],
@@ -70,8 +69,8 @@ import { BetterAuthMailerService } from './services/better-auth-mailer.service';
         mailer: BetterAuthMailerService,
         eventEmitter: EventEmitter2,
       ): BetterAuthInstance | null => {
-        // Off by default — the instance stays null and the Clerk path is the
-        // only one wired. Flip BETTER_AUTH_ENABLED per-environment to light up.
+        // Enabled by default; explicit offline/local runs can set
+        // BETTER_AUTH_ENABLED=false to skip the auth handler.
         if (!IS_BETTER_AUTH_ENABLED) {
           return null;
         }

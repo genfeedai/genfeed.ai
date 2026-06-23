@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateWatchlistDto } from '@api/collections/watchlists/dto/create-watchlist.dto';
 import { QuickAddWatchlistsDto } from '@api/collections/watchlists/dto/quick-add-watchlist.dto';
 import { UpdateWatchlistDto } from '@api/collections/watchlists/dto/update-watchlist.dto';
@@ -5,12 +6,11 @@ import { WatchlistsService } from '@api/collections/watchlists/services/watchlis
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { WatchlistPlatform } from '@genfeedai/enums';
 import { WatchlistSerializer } from '@genfeedai/serializers';
 import {

@@ -1,4 +1,4 @@
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
     brand: '507f1f77bcf86cd799439015',
     organization: '507f1f77bcf86cd799439011',

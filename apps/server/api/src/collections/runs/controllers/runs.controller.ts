@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   AppendRunEventDto,
   CreateRunDto,
@@ -10,12 +11,11 @@ import { RunEntity } from '@api/collections/runs/entities/run.entity';
 import { RunsService } from '@api/collections/runs/services/runs.service';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { ApiKeyScope, RunAuthType } from '@genfeedai/enums';
 import { RunSerializer } from '@genfeedai/serializers';
 import {
@@ -90,7 +90,7 @@ export class RunsController {
     );
 
     return {
-      authType: isApiKey ? RunAuthType.API_KEY : RunAuthType.CLERK,
+      authType: isApiKey ? RunAuthType.API_KEY : RunAuthType.BETTER_AUTH,
       organizationId: String(publicMetadata.organization),
       userId: String(publicMetadata.user),
     };

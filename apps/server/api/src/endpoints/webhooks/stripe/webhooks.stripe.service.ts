@@ -550,7 +550,7 @@ export class StripeWebhookService {
         });
 
         // Balance (credit-balance table) and isOnboardingCompleted (User row)
-        // are persisted to the DB below (epic #735, Phase C — no Clerk
+        // are persisted to the DB below (epic #735, Phase C — no legacy auth provider
         // publicMetadata write-back).
         if (dbUser?._id) {
           await this.accessBootstrapCacheService.invalidateForUser(
@@ -683,8 +683,8 @@ export class StripeWebhookService {
     const lastName = session.metadata?.lastName?.trim() || undefined;
 
     // Find or create the DB user by email. Better Auth keys identity off the
-    // email, so there is no Clerk round-trip and managed-checkout users carry no
-    // clerkId (epic #735, Phase 4 — D2).
+    // email, so there is no legacy auth provider round-trip and managed-checkout users carry no
+    // authProviderId (epic #735, Phase 4 — D2).
     let dbUser = await this.usersService.findOne({
       email,
       isDeleted: false,
@@ -880,7 +880,7 @@ export class StripeWebhookService {
 
     // User row (onboarding + stripeCustomerId), org settings (hasEverHadCredits),
     // and credit balance are all persisted to the DB above; both identity
-    // resolvers route from the DB (epic #735, Phase C — no Clerk write-back).
+    // resolvers route from the DB (epic #735, Phase C — no legacy auth provider write-back).
     await this.accessBootstrapCacheService.invalidateForUser(
       String(dbUser._id),
     );
@@ -997,7 +997,7 @@ export class StripeWebhookService {
 
   private async addCreditsToOrgFromUserCheckout(
     organizationId: string,
-    dbUser: { _id: string; clerkId?: string | null },
+    dbUser: { _id: string; authProviderId?: string | null },
     session: StripeCheckoutSession,
     url: string,
   ) {
@@ -1031,7 +1031,7 @@ export class StripeWebhookService {
     );
 
     // Balance is persisted to the credit-balance table above (epic #735,
-    // Phase C — no Clerk publicMetadata write-back).
+    // Phase C — no legacy auth provider publicMetadata write-back).
     await this.activitiesService.create({
       brand: organizationId,
       key: ActivityKey.CREDITS_ADD,
@@ -1303,7 +1303,7 @@ export class StripeWebhookService {
     }
 
     // Persist the subscription tier to the org settings (epic #735, Phase C —
-    // OrganizationSetting.subscriptionTier replaces the Clerk metadata write;
+    // OrganizationSetting.subscriptionTier replaces the legacy auth provider metadata write;
     // updateOrganizationTierAndModels is the canonical tier writer).
     if (subscriptionTier) {
       const organizationId = subscription?.organization
@@ -1323,7 +1323,7 @@ export class StripeWebhookService {
           url,
         );
       } else {
-        // The tier is now DB-canonical (no Clerk fallback), so surface a failure
+        // The tier is now DB-canonical (no legacy auth provider fallback), so surface a failure
         // to resolve the org rather than silently dropping the tier write.
         this.loggerService.warn(
           `${url} could not resolve organization to persist subscription tier`,
@@ -1650,7 +1650,7 @@ export class StripeWebhookService {
           }
 
           // hasEverHadCredits is persisted to OrganizationSetting above and read
-          // from the DB on bootstrap (epic #735, Phase C — no Clerk write-back).
+          // from the DB on bootstrap (epic #735, Phase C — no legacy auth provider write-back).
         }
 
         // Mark onboarding as completed server-side on first subscription payment
@@ -1668,7 +1668,7 @@ export class StripeWebhookService {
               });
 
               // isOnboardingCompleted is persisted on the User row above (epic
-              // #735, Phase C — no Clerk publicMetadata write-back).
+              // #735, Phase C — no legacy auth provider publicMetadata write-back).
               await this.accessBootstrapCacheService.invalidateForUser(
                 String(dbUser._id),
               );

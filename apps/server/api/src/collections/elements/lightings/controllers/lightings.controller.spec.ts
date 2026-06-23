@@ -1,12 +1,12 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsLightingsController } from '@api/collections/elements/lightings/controllers/lightings.controller';
 import { CreateElementLightingDto } from '@api/collections/elements/lightings/dto/create-lighting.dto';
 import { UpdateElementLightingDto } from '@api/collections/elements/lightings/dto/update-lighting.dto';
 import { ElementsLightingsService } from '@api/collections/elements/lightings/services/lightings.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
-import type { User } from '@clerk/backend';
 import { LightingSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -56,7 +56,7 @@ describe('ElementsLightingsController', () => {
       isSuperAdmin: true,
       organization: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
-    } as IClerkPublicMetadata,
+    } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockRegularUser = {
@@ -66,7 +66,7 @@ describe('ElementsLightingsController', () => {
       isSuperAdmin: false,
       organization: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
-    } as IClerkPublicMetadata,
+    } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockRequest = {

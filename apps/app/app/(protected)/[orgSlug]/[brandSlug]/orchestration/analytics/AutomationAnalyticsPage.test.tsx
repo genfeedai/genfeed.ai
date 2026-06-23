@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AutomationAnalyticsPage from './AutomationAnalyticsPage';
 import '@testing-library/jest-dom/vitest';
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: vi.fn(() => ({
     isSignedIn: true,
   })),

@@ -1,13 +1,15 @@
 'use client';
 
-import { SignIn, useAuth, useUser } from '@clerk/nextjs';
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { Code } from '@genfeedai/ui';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { EnvironmentService } from '@services/core/environment.service';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -185,8 +187,8 @@ function generateStateToken(): string {
 
 function CliAuthPageContent() {
   const searchParams = useSearchParams();
-  const { isSignedIn, isLoaded, getToken } = useAuth();
-  const { user } = useUser();
+  const { isSignedIn, isLoaded, getToken } = useAuthIdentity();
+  const { user } = useAuthUser();
   const [flowState, setFlowState] = useState<FlowState>({
     error: null,
     step: 'validating',
@@ -208,14 +210,15 @@ function CliAuthPageContent() {
   const hasValidDesktopReturnTarget =
     isDesktopCallbackTargetValid(desktopReturnTo);
   const port = validatePort(portParam);
+  const callbackPath = `/oauth/cli${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+  const loginHref = `/login?callbackUrl=${encodeURIComponent(callbackPath)}`;
 
   const requestTokenAndRedirect = useCallback(
     async (signal: AbortSignal) => {
       setFlowState({ error: null, step: 'requesting-token' });
 
       try {
-        // Use standard session JWT (not custom template) — the API's ClerkStrategy
-        // calls verifyToken() which requires standard Clerk session claims (sub, iss, etc.)
+        // Use the standard session JWT accepted by the API auth strategy.
         const token = await resolveAuthToken(getToken);
 
         if (signal.aborted) {
@@ -605,26 +608,15 @@ function CliAuthPageContent() {
             )}
 
             {isLoaded && flowState.step === 'signing-in' && (
-              <div className="flex justify-center">
-                <SignIn
-                  routing="hash"
-                  forceRedirectUrl={
-                    isDesktopMode
-                      ? `/oauth/cli?desktop=1${desktopReturnTo ? `&return_to=${encodeURIComponent(desktopReturnTo)}` : ''}${desktopState ? `&state=${encodeURIComponent(desktopState)}` : ''}${codeChallenge ? `&code_challenge=${encodeURIComponent(codeChallenge)}` : ''}${codeChallengeMethod ? `&code_challenge_method=${encodeURIComponent(codeChallengeMethod)}` : ''}`
-                      : hasPkce &&
-                          codeChallenge &&
-                          codeChallengeMethod &&
-                          desktopState
-                        ? `/oauth/cli?port=${port}&code_challenge=${encodeURIComponent(codeChallenge)}&code_challenge_method=${encodeURIComponent(codeChallengeMethod)}&state=${encodeURIComponent(desktopState)}`
-                        : `/oauth/cli?port=${port}`
-                  }
-                  appearance={{
-                    elements: {
-                      card: 'shadow-none',
-                      rootBox: 'w-full',
-                    },
-                  }}
+              <div className="space-y-4">
+                <StepDisplay
+                  icon={<HiCommandLine className="size-8 text-blue-400" />}
+                  title="Sign in required"
+                  description="Sign in to authorize this device."
                 />
+                <Button asChild className="w-full" withWrapper={false}>
+                  <Link href={loginHref}>Sign in to continue</Link>
+                </Button>
               </div>
             )}
 

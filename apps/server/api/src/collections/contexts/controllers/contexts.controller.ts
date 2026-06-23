@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AddEntryDto } from '@api/collections/contexts/dto/add-entry.dto';
 import { AutoCreateContextDto } from '@api/collections/contexts/dto/autocreate.dto';
 import { CreateContextDto } from '@api/collections/contexts/dto/create-context.dto';
@@ -19,13 +20,12 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
-import type { User } from '@clerk/backend';
 import { ActivitySource } from '@genfeedai/enums';
 import {
   ContextBaseSerializer,
@@ -193,7 +193,7 @@ export class ContextsController {
     @Body() dto: AutoCreateContextDto,
     @CurrentUser() user: User,
   ) {
-    // Pass the DB user ID (publicMetadata.user), not the Clerk user ID (user.id).
+    // Pass the DB user ID (publicMetadata.user), not the legacy auth provider user ID (user.id).
     const { organization, user: dbUserId } = getPublicMetadata(user);
     const data = await this.contextsService.autoCreateFromAccount(
       dto,

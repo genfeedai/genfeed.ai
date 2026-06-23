@@ -13,7 +13,7 @@ export interface IBetterAuthGoogleConfig {
  * Custom claims embedded in the Better Auth JWT by the jwt plugin's
  * `definePayload`. `sub` (set by `getSubject`, default `user.id`) is the genfeed
  * `User.id` directly — Better Auth's `user` model maps onto the existing `User`
- * table, so there is no Clerk-style id indirection.
+ * table, so there is no legacy auth-provider-style id indirection.
  */
 export interface IBetterAuthJwtClaims {
   sub: string;
@@ -29,7 +29,7 @@ export interface IBetterAuthJwtClaims {
 
 /**
  * Genfeed identity resolved from a verified Better Auth JWT. Mirrors the subset
- * of `IClerkPublicMetadata` that `RequestContextMiddleware` reads; subscription
+ * of `IAuthPublicMetadata` that `RequestContextMiddleware` reads; subscription
  * tier / status are filled by the middleware from the DB, so they are not
  * resolved here.
  */
@@ -64,7 +64,7 @@ export interface ICreateBetterAuthOptions {
   /**
    * Invoked (and awaited) from the `user.create.after` hook so a newly created
    * user is provisioned — org / settings / brand / member / credits — before the
-   * create completes. Replaces the Clerk `user.created` webhook (epic #735,
+   * create completes. Replaces the legacy auth provider `user.created` webhook (epic #735,
    * Phase 4).
    */
   onUserCreated?: (event: IBetterAuthUserCreatedEvent) => Promise<void>;

@@ -1,8 +1,8 @@
-import { useUser } from '@clerk/nextjs';
+import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import {
-  getClerkPublicData,
+  getAuthPublicData,
   getPlaywrightAuthState,
-} from '@helpers/auth/clerk.helper';
+} from '@helpers/auth/auth.helper';
 import { useMemo } from 'react';
 
 /**
@@ -21,14 +21,14 @@ import { useMemo } from 'react';
  * ```
  */
 export function useIsSuperAdmin(): boolean {
-  const { user } = useUser();
+  const { user } = useAuthUser();
   const playwrightAuth = getPlaywrightAuthState();
 
   return useMemo(() => {
     if (!user) {
       return playwrightAuth?.publicMetadata?.isSuperAdmin === true;
     }
-    const publicData = getClerkPublicData(user);
+    const publicData = getAuthPublicData(user);
     return publicData.isSuperAdmin === true;
   }, [playwrightAuth?.publicMetadata, user]);
 }

@@ -1,6 +1,6 @@
 ### Genfeed API - Evaluations Endpoints
 ### AI-powered content evaluation for posts, articles, images, videos
-### Protected by ClerkGuard + RolesGuard
+### Protected by CombinedAuthGuard + RolesGuard
 
 ########################################
 # Evaluate Content (POST)

@@ -113,17 +113,12 @@ async function main() {
       express.raw({ limit: '10mb', type: 'application/json' }),
     );
     app.use(
-      '/v1/webhooks/clerk',
-      express.raw({ limit: '10mb', type: 'application/json' }),
-    );
-    app.use(
       '/v1/webhooks/vercel',
       express.raw({ limit: '10mb', type: 'application/json' }),
     );
 
-    // Better Auth (epic #735, dual-run) parses its own request bodies, so its
-    // handler must be mounted BEFORE express.json(). No-op while the flag is off
-    // — the Clerk path is entirely unaffected.
+    // Better Auth parses its own request bodies, so its handler must be mounted
+    // BEFORE express.json().
     const betterAuthService = app.get(BetterAuthService, { strict: false });
     if (betterAuthService?.isEnabled) {
       app.use(betterAuthService.basePath, betterAuthService.nodeHandler);

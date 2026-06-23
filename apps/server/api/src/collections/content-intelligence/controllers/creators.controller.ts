@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AddCreatorDto } from '@api/collections/content-intelligence/dto/add-creator.dto';
 import { ImportCreatorsDto } from '@api/collections/content-intelligence/dto/import-creators.dto';
 import { CreatorsQueryDto } from '@api/collections/content-intelligence/dto/patterns-query.dto';
@@ -7,7 +8,7 @@ import { PatternAnalyzerService } from '@api/collections/content-intelligence/se
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -16,7 +17,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,

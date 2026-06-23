@@ -1,7 +1,7 @@
 /**
- * Public metadata from Clerk user
+ * Public metadata from legacy auth provider user
  */
-export interface ClerkPublicMetadata {
+export interface AuthProviderPublicMetadata {
   user?: string;
   organization?: string;
   brand?: string;
@@ -20,7 +20,7 @@ export interface EnrichedMetadata {
 /**
  * MetadataEnrichmentUtil - Utility for enriching entities with user metadata
  *
- * Consolidates common patterns for converting Clerk public metadata strings
+ * Consolidates common patterns for converting legacy auth provider public metadata strings
  * to IDs and enriching DTOs/entities.
  *
  * @example
@@ -37,7 +37,7 @@ export class MetadataEnrichmentUtil {
   /**
    * Convert public metadata strings to ID strings
    *
-   * @param publicMetadata - Clerk public metadata with string IDs
+   * @param publicMetadata - legacy auth provider public metadata with string IDs
    * @returns Object with string ID versions
    *
    * @example
@@ -47,7 +47,9 @@ export class MetadataEnrichmentUtil {
    *   brand: '507f1f77bcf86cd799439013'
    * });
    */
-  static enrichIds(publicMetadata: ClerkPublicMetadata): EnrichedMetadata {
+  static enrichIds(
+    publicMetadata: AuthProviderPublicMetadata,
+  ): EnrichedMetadata {
     if (!publicMetadata.user || !publicMetadata.organization) {
       throw new Error('User and organization are required in public metadata');
     }
@@ -100,7 +102,7 @@ export class MetadataEnrichmentUtil {
    * Adds user, organization, and optionally brand from public metadata.
    *
    * @param dto - Original DTO/entity
-   * @param publicMetadata - Clerk public metadata
+   * @param publicMetadata - legacy auth provider public metadata
    * @param options - Enrichment options
    * @returns Enriched DTO with string IDs
    *
@@ -114,7 +116,7 @@ export class MetadataEnrichmentUtil {
    */
   static enrichDto<T extends Record<string, unknown>>(
     dto: T,
-    publicMetadata: ClerkPublicMetadata,
+    publicMetadata: AuthProviderPublicMetadata,
     options: { includeBrand?: boolean; includeUser?: boolean } = {},
   ): T & Partial<EnrichedMetadata> {
     const { includeBrand = true, includeUser = true } = options;
@@ -141,7 +143,7 @@ export class MetadataEnrichmentUtil {
    *
    * Creates standard query for documents owned by user/organization.
    *
-   * @param publicMetadata - Clerk public metadata
+   * @param publicMetadata - legacy auth provider public metadata
    * @param options - Query options
    * @returns Query object with ownership conditions
    *
@@ -152,7 +154,7 @@ export class MetadataEnrichmentUtil {
    * // Returns: { organization: '...', isDeleted: false }
    */
   static buildOwnershipQuery(
-    publicMetadata: ClerkPublicMetadata,
+    publicMetadata: AuthProviderPublicMetadata,
     options: {
       includeIsDeleted?: boolean;
       includeBrand?: boolean;

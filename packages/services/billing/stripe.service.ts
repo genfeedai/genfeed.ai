@@ -1,9 +1,9 @@
 import { SubscriptionStatus } from '@genfeedai/enums';
 import type {
   CreateCheckoutSessionDto,
+  IAuthPublicData,
   IBillingPortalResponse,
   ICheckoutSessionResponse,
-  IClerkPublicData,
 } from '@genfeedai/interfaces';
 import { StripeCheckoutSerializer } from '@genfeedai/serializers';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -58,13 +58,11 @@ export class StripeService extends HTTPBaseService {
   }
 
   /**
-   * Check if organization has active subscription from Clerk data
+   * Check if organization has an active subscription from auth metadata.
    */
-  public static isSubscriptionActive(
-    clerkPublicData: IClerkPublicData,
-  ): boolean {
+  public static isSubscriptionActive(authPublicData: IAuthPublicData): boolean {
     return (
-      clerkPublicData?.stripeSubscriptionStatus === SubscriptionStatus.ACTIVE
+      authPublicData?.stripeSubscriptionStatus === SubscriptionStatus.ACTIVE
     );
   }
 }

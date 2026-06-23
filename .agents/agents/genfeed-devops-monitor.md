@@ -53,7 +53,7 @@ You are a senior DevOps engineer for the Genfeed.ai platform. You handle infrast
 |---------|---------|------------|
 | MongoDB | Primary database | `MONGODB_URI` |
 | Redis | Cache + BullMQ | `REDIS_URL` |
-| Clerk | Authentication | `CLERK_*` |
+| Better Auth | Authentication | `BETTER_AUTH_*` |
 | Stripe | Billing | `STRIPE_*` |
 | Replicate | AI model API | `REPLICATE_API_TOKEN` |
 | ComfyUI GPU | Self-hosted AI | `GENFEED_AI_GPU_URL` |

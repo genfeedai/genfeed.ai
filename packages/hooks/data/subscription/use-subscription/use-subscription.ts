@@ -1,6 +1,5 @@
-import { useUser } from '@clerk/nextjs';
-import type { UserResource } from '@clerk/types';
 import { SubscriptionStatus } from '@genfeedai/enums';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type {
   IBillingPortalResponse,
   ICreditsBreakdown,
@@ -11,16 +10,16 @@ import { SubscriptionsService } from '@genfeedai/services/billing/subscriptions.
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
-import { getClerkPublicData } from '@helpers/auth/clerk.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo } from 'react';
 
 const SUBSCRIPTION_CACHE_TTL_MS = 60_000;
 const CREDITS_CACHE_TTL_MS = 30_000;
 
 export function useSubscription(): UseSubscriptionReturn {
-  const { user } = useUser();
+  const { userId } = useAuthIdentity();
+  const { organizationId } = useBrand();
   const queryClient = useQueryClient();
 
   const notificationsService = NotificationsService.getInstance();
@@ -37,19 +36,11 @@ export function useSubscription(): UseSubscriptionReturn {
     OrganizationsService.getInstance(token),
   );
 
-  const organizationId = useMemo(() => {
-    if (!user) {
-      return undefined;
-    }
-    const publicData = getClerkPublicData(user as unknown as UserResource);
-    return publicData.organization;
-  }, [user]);
-
   const subscriptionQueryKey = ['subscription', organizationId];
   const creditsQueryKey = [
     'credits-breakdown',
     organizationId ?? 'no-org',
-    user?.id,
+    userId,
   ];
 
   const {
@@ -80,7 +71,7 @@ export function useSubscription(): UseSubscriptionReturn {
   } = useQuery({
     queryKey: creditsQueryKey,
     queryFn: async () => {
-      if (!user) {
+      if (!userId) {
         return null;
       }
 
@@ -90,7 +81,7 @@ export function useSubscription(): UseSubscriptionReturn {
       return data as ICreditsBreakdown;
     },
     staleTime: CREDITS_CACHE_TTL_MS,
-    enabled: !!user,
+    enabled: !!userId,
   });
 
   const isLoading = isLoadingSubscription || isLoadingCredits;

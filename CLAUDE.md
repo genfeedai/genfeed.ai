@@ -129,7 +129,7 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 - **Self-hosted**: Docker deployment (see `docs/self-hosting.md`)
 - **Database**: PostgreSQL (via Prisma ORM — `packages/prisma/`)
 - **Cache/Queue**: Redis + BullMQ
-- **Auth**: Clerk
+- **Auth**: Better Auth
 - **Monitoring**: Sentry
 - **CI/CD**: GitHub Actions
 

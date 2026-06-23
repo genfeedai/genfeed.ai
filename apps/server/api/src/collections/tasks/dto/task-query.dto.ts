@@ -29,7 +29,7 @@ export class TaskQueryDto extends BaseQueryDto {
   @IsOptional()
   @IsString()
   @ApiProperty({
-    description: 'Filter by assignee Clerk user ID',
+    description: 'Filter by assignee legacy auth provider user ID',
     required: false,
     type: String,
   })

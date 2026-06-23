@@ -16,7 +16,7 @@ import {
  *
  * Exercises inbox view switching, task inspector quick actions, snapshot
  * panels and the overview/activities runs surface. All tests rely on mocked
- * Clerk + API responses (strict network guard fails on real outbound calls)
+ * Better Auth + API responses (strict network guard fails on real outbound calls)
  * and fall back to best-effort `tryClick` so coverage paths stay non-brittle.
  *
  * @module workspace-interactions.spec

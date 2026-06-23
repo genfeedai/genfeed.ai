@@ -1,16 +1,16 @@
 'use client';
 
-import { useAuth, useSession } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AgentApiService,
   useAgentChatStore,
   useAgentChatStream,
 } from '@genfeedai/agent';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import {
   getPlaywrightAuthState,
   resolveAuthToken,
-} from '@helpers/auth/clerk.helper';
+} from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
@@ -44,8 +44,7 @@ function ChatWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
   const { replace } = useRouter();
   const { orgHref } = useOrgUrl();
   const searchParams = useSearchParams();
-  const { getToken, isLoaded } = useAuth();
-  const { session } = useSession();
+  const { getToken, isLoaded } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
   const { selectedBrand } = useBrand();
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
@@ -90,8 +89,8 @@ function ChatWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
       const funnelService = OnboardingFunnelService.getInstance(effectiveToken);
       await funnelService.completeFunnel();
     }
-    await session?.touch().catch(() => undefined);
-  }, [getToken, session]);
+    await getToken({ forceRefresh: true }).catch(() => null);
+  }, [getToken]);
 
   const { sendMessage } = useAgentChatStream({
     apiService: agentApiService,

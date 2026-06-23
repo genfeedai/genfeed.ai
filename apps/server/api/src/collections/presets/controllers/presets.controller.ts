@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreatePresetDto } from '@api/collections/presets/dto/create-preset.dto';
 import { PresetsQueryDto } from '@api/collections/presets/dto/presets-query.dto';
 import { UpdatePresetDto } from '@api/collections/presets/dto/update-preset.dto';
@@ -10,14 +11,13 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { PresetFilterUtil } from '@api/helpers/utils/preset-filter/preset-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { User } from '@clerk/backend';
 import type { SortObject } from '@genfeedai/interfaces';
 import { PresetSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

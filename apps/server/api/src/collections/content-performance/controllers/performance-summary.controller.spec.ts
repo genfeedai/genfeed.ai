@@ -1,6 +1,6 @@
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { PerformanceSummaryController } from '@api/collections/content-performance/controllers/performance-summary.controller';
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -54,7 +54,7 @@ describe('PerformanceSummaryController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })

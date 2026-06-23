@@ -1,11 +1,18 @@
-import { SignInButton } from '@clerk/chrome-extension';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { useThemeLogo } from '~hooks/ui/use-theme-logo/use-theme-logo';
+import { EnvironmentService } from '~services/environment.service';
 
 export default function LoginPage() {
   const logoUrl = useThemeLogo();
+  const signInUrl = `${EnvironmentService.websiteDomain}/login`;
+
+  const handleSignIn = () => {
+    chrome.tabs
+      .create({ url: signInUrl })
+      .catch(() => window.open(signInUrl, '_blank', 'noopener,noreferrer'));
+  };
 
   return (
     <div className="flex flex-col items-center justify-center py-8">
@@ -21,15 +28,14 @@ export default function LoginPage() {
       </p>
 
       <div className="w-full max-w-xs space-y-4">
-        <SignInButton mode="modal">
-          <Button
-            type="button"
-            variant={ButtonVariant.DEFAULT}
-            className="w-full shadow"
-          >
-            Sign in with Genfeed
-          </Button>
-        </SignInButton>
+        <Button
+          type="button"
+          variant={ButtonVariant.DEFAULT}
+          className="w-full shadow"
+          onClick={handleSignIn}
+        >
+          Sign in with Genfeed
+        </Button>
 
         <p className="text-xs text-muted-foreground text-center">
           You'll be redirected to genfeed.ai to sign in securely

@@ -2,7 +2,7 @@ import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-se
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: vi.fn(() => ({ getToken: vi.fn() })),
 }));
 

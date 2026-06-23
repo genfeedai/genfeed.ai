@@ -1,14 +1,14 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ContentSchedulesQueryDto } from '@api/collections/content-schedules/dto/content-schedules-query.dto';
 import { CreateContentScheduleDto } from '@api/collections/content-schedules/dto/create-content-schedule.dto';
 import { UpdateContentScheduleDto } from '@api/collections/content-schedules/dto/update-content-schedule.dto';
 import { ContentSchedulesService } from '@api/collections/content-schedules/services/content-schedules.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { ContentScheduleSerializer } from '@genfeedai/serializers';
 import {
   Body,

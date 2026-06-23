@@ -1,8 +1,8 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import { AgentApiService, AgentFullPage } from '@genfeedai/agent';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useUserRole } from '@hooks/auth/use-user-role';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCallback, useMemo } from 'react';
@@ -23,7 +23,7 @@ export default function AgentPageContent({
   onOAuthConnect,
   threadId,
 }: AgentPageContentProps) {
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const userRole = useUserRole();
   const { orgHref } = useOrgUrl();
   const agentApiService = useMemo(

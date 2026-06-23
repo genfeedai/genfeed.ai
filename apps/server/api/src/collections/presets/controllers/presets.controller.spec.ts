@@ -1,9 +1,9 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PresetsController } from '@api/collections/presets/controllers/presets.controller';
 import { CreatePresetDto } from '@api/collections/presets/dto/create-preset.dto';
 import { UpdatePresetDto } from '@api/collections/presets/dto/update-preset.dto';
 import { PresetsService } from '@api/collections/presets/services/presets.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';

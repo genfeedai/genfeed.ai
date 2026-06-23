@@ -1,8 +1,8 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
@@ -31,7 +31,7 @@ describe('AgentThreadsController', () => {
   };
 
   const mockUser = {
-    id: 'clerk_123',
+    id: 'authProvider_123',
     publicMetadata: {
       organization: 'org_current',
       user: 'user_current',
@@ -104,7 +104,7 @@ describe('AgentThreadsController', () => {
       expect(usersService.findOne).toHaveBeenCalledWith(
         {
           _id: expect.any(String),
-          clerkId: 'clerk_123',
+          authProviderId: 'authProvider_123',
         },
         [],
       );
@@ -122,7 +122,7 @@ describe('AgentThreadsController', () => {
       expect(usersService.findOne).toHaveBeenCalledWith(
         {
           _id: expect.any(String),
-          clerkId: 'clerk_123',
+          authProviderId: 'authProvider_123',
         },
         [],
       );
@@ -146,7 +146,7 @@ describe('AgentThreadsController', () => {
 
       expect(usersService.findOne).toHaveBeenCalledTimes(1);
       expect(usersService.findOne).toHaveBeenCalledWith(
-        { clerkId: 'clerk_123' },
+        { authProviderId: 'authProvider_123' },
         [],
       );
       expect(service.getUserThreads).toHaveBeenCalledWith(

@@ -325,4 +325,4 @@ export default async function Dashboard() {
 
 - `tailwind-validator` - Validate Tailwind v4 config
 - `biome-validator` - Validate Biome 2.3+ config
-- `clerk-validator` - Validate Clerk auth setup
+- `authProvider-validator` - Validate legacy auth provider auth setup

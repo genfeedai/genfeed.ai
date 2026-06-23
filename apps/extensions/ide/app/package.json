@@ -171,7 +171,7 @@
         },
         "genfeed.authEndpoint": {
           "default": "https://accounts.genfeed.ai",
-          "description": "Authentication endpoint used for Clerk device flow",
+          "description": "Authentication endpoint used for the Better Auth device flow",
           "type": "string"
         },
         "genfeed.defaultFormat": {
@@ -300,7 +300,6 @@
     }
   },
   "dependencies": {
-    "@clerk/clerk-js": "6.13.0",
     "@genfeedai/ui": "workspace:*",
     "@sentry/node": "10.56.0"
   },

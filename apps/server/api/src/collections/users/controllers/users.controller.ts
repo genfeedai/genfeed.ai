@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -21,7 +22,7 @@ import {
   getPublicMetadata,
   getStripeSubscriptionStatus,
   getSubscriptionTier,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -31,7 +32,6 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import type { User } from '@clerk/backend';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import {
   type ISubscriptionsService,
@@ -405,7 +405,7 @@ export class UsersController {
     });
 
     // Persist the active org to the DB so both identity resolvers route to it on
-    // the next request (epic #735, Phase C — no Clerk write-back).
+    // the next request (epic #735, Phase C — no legacy auth provider write-back).
     if (publicMetadata.user) {
       await this.usersService.patch(publicMetadata.user, {
         lastUsedOrganizationId: String(data._id),
@@ -437,7 +437,7 @@ export class UsersController {
     );
 
     // Active brand is persisted to the member's lastUsedBrandId below, which the
-    // identity resolvers read (epic #735, Phase C — no Clerk write-back).
+    // identity resolvers read (epic #735, Phase C — no legacy auth provider write-back).
     if (publicMetadata.user) {
       await Promise.all([
         this.requestContextCacheService.invalidateForUser(publicMetadata.user),
@@ -471,7 +471,7 @@ export class UsersController {
     );
 
     // Clear the member's lastUsedBrandId so the identity resolvers fall back to
-    // the org default instead of a stale brand (epic #735, Phase C — no Clerk).
+    // the org default instead of a stale brand (epic #735, Phase C — no legacy auth provider).
     await this.membersService.setLastUsedBrand(
       {
         isActive: true,

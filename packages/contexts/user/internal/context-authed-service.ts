@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useCallback, useEffect, useRef } from 'react';
 
 const tokenCache = new Map<

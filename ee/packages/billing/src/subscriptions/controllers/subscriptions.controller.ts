@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { ConfigService } from '@api/config/config.service';
@@ -6,16 +7,12 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { SubscriptionPlan } from '@genfeedai/enums';
-import type {
-  IChangePriceBodyParams,
-  JsonApiCollectionResponse,
-} from '@genfeedai/interfaces';
+import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { SubscriptionSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -114,7 +111,7 @@ export class SubscriptionsController {
     @CurrentUser() user: User,
     @Body() changeData: ChangePlanDto,
   ): Promise<SubscriptionMutationResponse> {
-    // request.context tracks the ACTIVE organization; Clerk publicMetadata
+    // request.context tracks the ACTIVE organization; legacy auth provider publicMetadata
     // can lag behind an org switch and bill the wrong org.
     const organizationId =
       request.context?.organizationId ?? getPublicMetadata(user).organization;

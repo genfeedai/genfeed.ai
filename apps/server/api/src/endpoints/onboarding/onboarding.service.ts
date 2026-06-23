@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import process from 'node:process';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import type {
   BrandAgentConfig,
@@ -23,12 +24,11 @@ import type {
 import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
 import { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
 import { ProactiveOnboardingService } from '@api/endpoints/onboarding/proactive-onboarding.service';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
-import type { User } from '@clerk/backend';
 import { isEEEnabled } from '@genfeedai/config';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
@@ -73,7 +73,7 @@ export interface InstallReadinessResponse {
     selectedMode: OnboardingAccessMode | null;
     serverDefaultsReady: boolean;
   };
-  authMode: 'clerk' | 'none';
+  authMode: 'better_auth' | 'none';
   billingMode: 'cloud_billing' | 'oss_local';
   localTools: {
     anyDetected: boolean;
@@ -171,7 +171,7 @@ export class OnboardingService {
 
     if (!dbUser && user.id) {
       dbUser = await this.usersService.findOne(
-        { clerkId: user.id, isDeleted: false },
+        { authProviderId: user.id, isDeleted: false },
         [],
       );
     }
@@ -180,7 +180,8 @@ export class OnboardingService {
     if (!userId) {
       throw new HttpException(
         {
-          detail: 'Missing local user account for Clerk authorization',
+          detail:
+            'Missing local user account for legacy auth provider authorization',
           title: 'Bad Request',
         },
         HttpStatus.BAD_REQUEST,
@@ -191,7 +192,7 @@ export class OnboardingService {
     let brandId: string | null = publicMetadata.brand?.toString() ?? null;
 
     // Resolve the active org DB-first before provisioning (epic #735, Phase C):
-    // post-Clerk, publicMetadata.organization is no longer written, so fall back
+    // post-legacy auth provider, publicMetadata.organization is no longer written, so fall back
     // to User.lastUsedOrganizationId and then the user's owned org. Without this,
     // every onboarding step would re-run initializeUserResources for a user who
     // already has a workspace.
@@ -224,7 +225,7 @@ export class OnboardingService {
 
     try {
       // Persist the active org to the DB so both identity resolvers route to it
-      // (epic #735, Phase C — no Clerk write-back). Brand resolves from the
+      // (epic #735, Phase C — no legacy auth provider write-back). Brand resolves from the
       // member's lastUsedBrandId / org default.
       await this.usersService.patch(userId, {
         lastUsedOrganizationId: organizationId,
@@ -477,7 +478,7 @@ export class OnboardingService {
       String(organizationId),
     );
     // Persist the selected brand on the member so the identity resolvers route
-    // to it (epic #735, Phase C — no Clerk write-back).
+    // to it (epic #735, Phase C — no legacy auth provider write-back).
     await this.membersService.setLastUsedBrand(
       {
         isActive: true,
@@ -992,7 +993,7 @@ export class OnboardingService {
         selectedMode,
         serverDefaultsReady: providers.anyConfigured,
       },
-      authMode: user.id ? 'clerk' : 'none',
+      authMode: user.id ? 'better_auth' : 'none',
       billingMode: showBillingUi ? 'cloud_billing' : 'oss_local',
       localTools: this.getLocalToolReadiness(),
       providers,
@@ -1012,7 +1013,7 @@ export class OnboardingService {
   }
 
   /**
-   * Set the organization's account type and update Clerk metadata
+   * Set the organization's account type.
    */
   async setAccountType(
     user: User,
@@ -1052,7 +1053,7 @@ export class OnboardingService {
   }
 
   /**
-   * Mark the onboarding funnel as completed in Clerk metadata
+   * Mark the onboarding funnel as completed.
    */
   async completeFunnel(
     user: User,
@@ -1073,9 +1074,11 @@ export class OnboardingService {
         );
       }
 
-      // Update the DB so OnboardingGuard is satisfied (epic #735, Phase C —
-      // isOnboardingCompleted is read from the User row, not Clerk metadata).
-      const dbUser = await this.usersService.findOne({ clerkId: user.id });
+      // Update the DB so OnboardingGuard is satisfied; onboarding completion is
+      // read from the User row, not provider metadata.
+      const dbUser = await this.usersService.findOne({
+        authProviderId: user.id,
+      });
       if (dbUser && !dbUser.isOnboardingCompleted) {
         await this.usersService.patch(dbUser._id, {
           isOnboardingCompleted: true,

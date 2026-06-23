@@ -17,12 +17,12 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
 import { InstagramController } from '@api/services/integrations/instagram/controllers/instagram.controller';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
-import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import type { Request } from 'express';

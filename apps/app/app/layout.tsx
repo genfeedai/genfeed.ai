@@ -43,12 +43,6 @@ export default async function RootLayout({ children }: LayoutProps) {
       <AppProviders
         initialTheme={initialTheme}
         storageKey={THEME_STORAGE_KEY}
-        clerkProps={{
-          signInFallbackRedirectUrl: '/',
-          signInForceRedirectUrl: '/',
-          signInUrl: '/login',
-          signUpUrl: '/sign-up',
-        }}
         googleAnalyticsId={googleAnalyticsId}
         includeSpeedInsights={!isDesktopShell}
         includeVercelAnalytics={!isDesktopShell}

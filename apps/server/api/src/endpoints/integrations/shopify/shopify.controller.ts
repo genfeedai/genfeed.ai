@@ -9,7 +9,7 @@ import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.d
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { CombinedAuthGuard } from '@api/helpers/guards/combined-auth/combined-auth.guard';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ApiKeyScope } from '@genfeedai/enums';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -58,7 +58,7 @@ export class ShopifyController {
       'Creates a new organization, user, brand, and API key for a Shopify shop on first install',
     summary: 'Provision Genfeed account for Shopify shop',
   })
-  @Public() // Bypass Clerk guard
+  @Public() // Bypass legacy auth provider guard
   @UseGuards(AdminApiKeyGuard)
   @HttpCode(HttpStatus.CREATED)
   async provisionShopifyAccount(@Body() dto: ShopifyInstallDto): Promise<{
@@ -152,7 +152,7 @@ export class ShopifyController {
  */
 @AutoSwagger()
 @ApiTags('Integrations - Credits')
-@Public() // Bypass global ClerkGuard
+@Public() // Bypass global auth guard; this endpoint uses its own combined auth.
 @UseGuards(CombinedAuthGuard) // Use combined auth (JWT or API key)
 @Controller('integrations/credits')
 export class CreditProvisionController {

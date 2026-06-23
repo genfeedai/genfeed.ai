@@ -1,13 +1,13 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateTaskCommentDto } from '@api/collections/task-comments/dto/create-task-comment.dto';
 import { TaskCommentsService } from '@api/collections/task-comments/services/task-comments.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { TaskCommentSerializer } from '@genfeedai/serializers';
 import {
   Body,

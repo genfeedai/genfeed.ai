@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type {
   IElementBlacklist,
@@ -37,7 +37,7 @@ function ElementsProviderContent({
     userId,
     orgId,
     sessionId,
-  } = useAuth();
+  } = useAuthIdentity();
 
   const [moods, setMoods] = useState<IElementMood[]>([]);
   const [styles, setStyles] = useState<IElementStyle[]>([]);

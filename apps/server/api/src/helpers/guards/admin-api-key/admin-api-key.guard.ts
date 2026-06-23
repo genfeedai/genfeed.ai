@@ -11,7 +11,7 @@ import type { Request } from 'express';
 
 /**
  * Guard that validates requests using the admin API key
- * Used for server-to-server communication where Clerk auth is not available
+ * Used for server-to-server communication where legacy auth provider auth is not available
  */
 @Injectable()
 export class AdminApiKeyGuard implements CanActivate {

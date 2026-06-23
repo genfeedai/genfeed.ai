@@ -10,18 +10,18 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
     organization: '507f191e810c19729de860eb',
     user: '507f191e810c19729de860ec',
   })),
 }));
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { BeehiivController } from '@api/services/integrations/beehiiv/controllers/beehiiv.controller';
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
-import type { User } from '@clerk/backend';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

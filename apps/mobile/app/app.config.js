@@ -30,7 +30,6 @@ export default {
     extra: {
       // Public environment variables (accessible in app)
       apiUrl: process.env.EXPO_PUBLIC_API_URL || 'https://api.genfeed.ai',
-      clerkPublishableKey: process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY || '',
       debug: process.env.EXPO_PUBLIC_DEBUG === 'true',
       eas: {
         projectId: process.env.EXPO_PROJECT_ID || '',

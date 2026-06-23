@@ -5,10 +5,10 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   @ApiProperty({
-    description: 'The Clerk authentication ID for the user',
+    description: 'The legacy auth provider authentication ID for the user',
     required: false,
   })
-  readonly clerkId?: string;
+  readonly authProviderId?: string;
 
   @IsString()
   @ApiProperty({

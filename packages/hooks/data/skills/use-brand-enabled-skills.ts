@@ -1,8 +1,8 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useCallback, useEffect, useState } from 'react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
@@ -21,7 +21,7 @@ function areStringArraysEqual(left: string[], right: string[]): boolean {
 }
 
 export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const { isReady, selectedBrand } = useBrand();
   const [enabledSlugs, setEnabledSlugs] = useState<string[]>([]);
   const [isLoading, _setIsLoading] = useState(false);

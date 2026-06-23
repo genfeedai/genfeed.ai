@@ -1,3 +1,5 @@
+import { BetterAuthModule } from '@api/auth/better-auth/better-auth.module';
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
@@ -10,13 +12,13 @@ import {
 } from '@api/endpoints/integrations/shopify/shopify.controller';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { CombinedAuthGuard } from '@api/helpers/guards/combined-auth/combined-auth.guard';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [ShopifyController, CreditProvisionController],
   imports: [
+    forwardRef(() => BetterAuthModule),
     forwardRef(() => ApiKeysModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => ConfigModule),
@@ -24,6 +26,11 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => OrganizationsModule),
     forwardRef(() => UsersModule),
   ],
-  providers: [AdminApiKeyGuard, ApiKeyAuthGuard, ClerkGuard, CombinedAuthGuard],
+  providers: [
+    AdminApiKeyGuard,
+    ApiKeyAuthGuard,
+    BetterAuthGuard,
+    CombinedAuthGuard,
+  ],
 })
 export class ShopifyModule {}

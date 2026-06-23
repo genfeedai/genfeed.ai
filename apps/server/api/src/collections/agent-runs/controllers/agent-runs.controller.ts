@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   AgentRunStatsQueryDto,
   AgentRunsQueryDto,
@@ -11,7 +12,7 @@ import {
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -21,7 +22,6 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { User } from '@clerk/backend';
 import { AgentExecutionStatus } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { AgentRunSerializer } from '@genfeedai/serializers';

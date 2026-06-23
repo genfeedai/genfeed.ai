@@ -1,4 +1,5 @@
 import process from 'node:process';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import {
   CreditEstimateQueryDto,
@@ -43,7 +44,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -54,7 +55,6 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { User } from '@clerk/backend';
 import { ListingType, WorkflowTrigger } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,

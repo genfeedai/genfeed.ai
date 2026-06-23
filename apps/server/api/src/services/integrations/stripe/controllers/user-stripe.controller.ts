@@ -3,6 +3,8 @@
  * Handles user-level Stripe payments for consumer apps (getshareable.app).
  * Users have their own Stripe customer IDs separate from organization billing.
  */
+
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -15,7 +17,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
-import type { User } from '@clerk/backend';
 import { OrganizationCategory } from '@genfeedai/enums';
 import {
   type IUserSubscriptionsService,
@@ -94,9 +95,9 @@ export class UserStripeController {
         });
       }
 
-      // Find user by clerkId
+      // Find user by authProviderId
       const dbUser = await this.usersService.findOne({
-        clerkId: user.id,
+        authProviderId: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
@@ -179,9 +180,9 @@ export class UserStripeController {
     }
 
     try {
-      // Find user by clerkId
+      // Find user by authProviderId
       const dbUser = await this.usersService.findOne({
-        clerkId: user.id,
+        authProviderId: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
@@ -221,9 +222,9 @@ export class UserStripeController {
     this.loggerService.log(url);
 
     try {
-      // Find user by clerkId
+      // Find user by authProviderId
       const dbUser = await this.usersService.findOne({
-        clerkId: user.id,
+        authProviderId: user.id,
         isDeleted: false,
       });
       if (!dbUser) {

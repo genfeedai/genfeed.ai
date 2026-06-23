@@ -40,3 +40,27 @@ export async function getBetterAuthServerToken(
     return null;
   }
 }
+
+export function createRouteMatcher(patterns: string[]) {
+  return (req: { nextUrl: { pathname: string } }) => {
+    const pathname = req.nextUrl.pathname;
+    return patterns.some((pattern) => {
+      const normalized = pattern.replace('(.*)', '');
+      if (normalized === '/') {
+        return pathname === '/';
+      }
+      return pathname === normalized || pathname.startsWith(normalized);
+    });
+  };
+}
+
+export function authMiddleware(
+  handler: (
+    auth: () => Promise<unknown>,
+    req: Record<string, unknown>,
+    event: unknown,
+  ) => Promise<Response>,
+) {
+  return (req: Record<string, unknown>, event: unknown) =>
+    handler(async () => ({}), req, event);
+}

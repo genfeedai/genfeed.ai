@@ -14,7 +14,7 @@ author: Claude Code PM System
 - **Backend**: NestJS 11 with Prisma ORM (PostgreSQL)
 - **Frontend**: Next.js 16 with Turbopack
 - **Queue**: BullMQ + Redis
-- **Auth**: Clerk
+- **Auth**: Better Auth
 - **Monorepo**: Turborepo with Bun workspaces
 
 ## Build & Quality Tools

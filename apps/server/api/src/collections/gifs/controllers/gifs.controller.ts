@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { GifsQueryDto } from '@api/collections/gifs/dto/gifs-query.dto';
 import { GifsService } from '@api/collections/gifs/services/gifs.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
@@ -7,7 +8,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
@@ -20,7 +21,6 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import type { User } from '@clerk/backend';
 import { ActivityEntityModel, IngredientCategory } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,

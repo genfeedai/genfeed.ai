@@ -165,9 +165,9 @@ vi.mock('next/image', () => ({
     React.createElement('img', { alt, src, ...props }),
 }));
 
-// Mock @clerk/nextjs — nearly all components use useAuth/useUser/useOrganization
-vi.mock('@clerk/nextjs', () => ({
-  ClerkProvider: ({ children }: { children: React.ReactNode }) =>
+// Mock @genfeedai/auth-client/react — nearly all components use useAuth/useUser/useOrganization
+vi.mock('@genfeedai/auth-client/react', () => ({
+  BetterAuthProvider: ({ children }: { children: React.ReactNode }) =>
     React.createElement(React.Fragment, null, children),
   SignedIn: ({ children }: { children: React.ReactNode }) =>
     React.createElement(React.Fragment, null, children),

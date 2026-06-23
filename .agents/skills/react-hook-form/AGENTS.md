@@ -65,7 +65,7 @@ Comprehensive performance optimization guide for React Hook Form applications, d
    - 7.3 [Verify shadcn Form Component Import Source](references/integ-shadcn-form-import.md) — MEDIUM (prevents silent component mismatch bugs)
    - 7.4 [Wire shadcn Select with onValueChange Instead of Spread](references/integ-shadcn-select-wiring.md) — MEDIUM (prevents 100% of silent select binding failures with Radix-based components)
 8. [Advanced Patterns](references/_sections.md#8-advanced-patterns) — **LOW**
-   - 8.1 [Create Test Wrapper with QueryClient and AuthProvider](references/adv-testing-wrapper.md) — LOW (enables proper hook testing with required context providers)
+   - 8.1 [Create Test Wrapper with QueryClient and Auth Context](references/adv-testing-wrapper.md) — LOW (enables proper hook testing with required context providers)
    - 8.2 [Disable DevTools in Production and During Performance Testing](references/adv-devtools-performance.md) — LOW (eliminates DevTools overhead during profiling)
    - 8.3 [Wrap FormProvider Children with React.memo](references/adv-formprovider-memo.md) — LOW (prevents cascade re-renders from FormProvider state updates)
 

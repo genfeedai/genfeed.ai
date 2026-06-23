@@ -1,4 +1,4 @@
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
     organization: '507f1f77bcf86cd799439011',
     user: '507f1f77bcf86cd799439013',
@@ -30,12 +30,12 @@ vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
   };
 });
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { StripeController } from '@api/services/integrations/stripe/controllers/stripe.controller';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
-import type { User } from '@clerk/backend';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -64,7 +64,7 @@ describe('StripeController', () => {
   const userId = 'test-object-id';
   const mockUser = {
     emailAddresses: [{ emailAddress: 'test@example.com' }],
-    id: 'clerk_user_123',
+    id: 'authProvider_user_123',
     publicMetadata: { organization: orgId, user: userId.toString() },
   } as unknown as User;
 
@@ -92,9 +92,10 @@ describe('StripeController', () => {
     };
 
     usersService = {
-      findOne: vi
-        .fn()
-        .mockResolvedValue({ _id: userId, clerkId: 'clerk_user_123' }),
+      findOne: vi.fn().mockResolvedValue({
+        _id: userId,
+        authProviderId: 'authProvider_user_123',
+      }),
     };
 
     organizationsService = {

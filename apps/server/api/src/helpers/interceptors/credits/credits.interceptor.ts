@@ -1,5 +1,5 @@
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
-import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { ActivitySource } from '@genfeedai/enums';
 import type { CreditsConfig } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -38,7 +38,7 @@ export class CreditsInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    const publicMetadata: IClerkPublicMetadata = user.publicMetadata;
+    const publicMetadata: IAuthPublicMetadata = user.publicMetadata;
 
     return next.handle().pipe(
       tap({

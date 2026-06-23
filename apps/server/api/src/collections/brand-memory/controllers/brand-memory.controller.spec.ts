@@ -1,11 +1,11 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandMemoryController } from '@api/collections/brand-memory/controllers/brand-memory.controller';
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { User } from '@clerk/backend';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn().mockReturnValue({
     organization: '507f1f77bcf86cd799439012',
     user: '507f1f77bcf86cd799439011',

@@ -1,5 +1,5 @@
-import { useUser } from '@clerk/nextjs';
-import { getClerkPublicData } from '@genfeedai/helpers/auth/clerk.helper';
+import { useUser } from '@genfeedai/auth-client/react';
+import { getAuthPublicData } from '@genfeedai/helpers/auth/auth.helper';
 import { useAdminCommandRegistration } from '@genfeedai/hooks/commands/use-admin-command-registration/use-admin-command-registration';
 import { useDefaultCommandsRegistration } from '@genfeedai/hooks/commands/use-default-commands-registration/use-default-commands-registration';
 import { useCommandPalette } from '@genfeedai/hooks/ui/use-command-palette/use-command-palette';
@@ -7,12 +7,12 @@ import { render } from '@testing-library/react';
 import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-initializer/CommandPaletteInitializer';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useUser: vi.fn(),
 }));
 
-vi.mock('@genfeedai/helpers/auth/clerk.helper', () => ({
-  getClerkPublicData: vi.fn(),
+vi.mock('@genfeedai/helpers/auth/auth.helper', () => ({
+  getAuthPublicData: vi.fn(),
 }));
 
 vi.mock('@genfeedai/hooks/ui/use-command-palette/use-command-palette', () => ({
@@ -34,7 +34,7 @@ vi.mock(
 );
 
 const useUserMock = vi.mocked(useUser);
-const getClerkPublicDataMock = vi.mocked(getClerkPublicData);
+const getAuthPublicDataMock = vi.mocked(getAuthPublicData);
 const useCommandPaletteMock = vi.mocked(useCommandPalette);
 const useDefaultCommandsRegistrationMock = vi.mocked(
   useDefaultCommandsRegistration,
@@ -44,7 +44,7 @@ const useAdminCommandRegistrationMock = vi.mocked(useAdminCommandRegistration);
 describe('CommandPaletteInitializer', () => {
   beforeEach(() => {
     useUserMock.mockReturnValue({ isLoaded: true, user: { id: 'user' } });
-    getClerkPublicDataMock.mockReturnValue({ isSuperAdmin: true });
+    getAuthPublicDataMock.mockReturnValue({ isSuperAdmin: true });
     useCommandPaletteMock.mockReturnValue({
       registerCommand: vi.fn(),
       unregisterCommand: vi.fn(),
@@ -64,7 +64,7 @@ describe('CommandPaletteInitializer', () => {
   });
 
   it('handles non super admin users', () => {
-    getClerkPublicDataMock.mockReturnValue({ isSuperAdmin: false });
+    getAuthPublicDataMock.mockReturnValue({ isSuperAdmin: false });
     render(<CommandPaletteInitializer />);
 
     expect(useAdminCommandRegistrationMock).toHaveBeenCalledWith(

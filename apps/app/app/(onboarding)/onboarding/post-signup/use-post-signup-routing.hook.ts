@@ -4,10 +4,11 @@ import {
   buildOnboardingResumeHref,
   parseSelectedCredits,
 } from '@app/(onboarding)/onboarding/post-signup/post-signup-routing.util';
-import { useAuth, useUser } from '@clerk/nextjs';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { ManagedCreditsService } from '@services/billing/managed-credits.service';
 import { StripeService } from '@services/billing/stripe.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -25,8 +26,8 @@ export type PostSignupRoutingState = {
 };
 
 export function usePostSignupRouting(): PostSignupRoutingState {
-  const { getToken } = useAuth();
-  const { user: clerkUser } = useUser();
+  const { getToken } = useAuthIdentity();
+  const { user: authUser } = useAuthUser();
   const { currentUser, isLoading } = useCurrentUser();
   const searchParams = useSearchParams();
   const requestedCreditsParam = searchParams.get('credits');
@@ -35,10 +36,10 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const [statusMessage, setStatusMessage] = useState(
     'Setting up your workspace...',
   );
-  const hasClerkUser = Boolean(clerkUser);
-  const clerkPrimaryEmail = clerkUser?.primaryEmailAddress?.emailAddress ?? '';
-  const proactiveLeadId = clerkUser?.publicMetadata?.proactiveLeadId;
-  const checkoutEmail = currentUser?.email || clerkPrimaryEmail || '';
+  const hasAuthUser = Boolean(authUser);
+  const authPrimaryEmail = authUser?.primaryEmailAddress?.emailAddress ?? '';
+  const proactiveLeadId = authUser?.publicMetadata?.proactiveLeadId;
+  const checkoutEmail = currentUser?.email || authPrimaryEmail || '';
 
   const resolveOnboardingHref = useCallback(async (): Promise<string> => {
     if (proactiveLeadId) {
@@ -86,7 +87,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   }, [currentUser, getToken, proactiveLeadId]);
 
   useEffect(() => {
-    if (isLoading || !currentUser || !hasClerkUser || calledRef.current) {
+    if (isLoading || !currentUser || !hasAuthUser || calledRef.current) {
       return;
     }
 
@@ -296,7 +297,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     checkoutEmail,
     currentUser,
     getToken,
-    hasClerkUser,
+    hasAuthUser,
     isLoading,
     requestedCreditsParam,
     resolveOnboardingHref,

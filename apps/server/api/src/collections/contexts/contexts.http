@@ -1,10 +1,10 @@
 ### Contexts API Test Suite (RAG System)
 ### Base URL: http://localhost:3000/contexts
-### Auth: Bearer token required (Clerk JWT)
+### Auth: Bearer token required (Better Auth JWT)
 
 ### Variables
 @baseUrl = http://localhost:3000
-@token = your_clerk_jwt_token_here
+@token = your_better_auth_jwt_token_here
 @contextId = replace_with_actual_context_id
 @entryId = replace_with_actual_entry_id
 
@@ -161,5 +161,4 @@ Content-Type: application/json
 ###   ],
 ###   "estimatedQualityBoost": 46
 ### }
-
 

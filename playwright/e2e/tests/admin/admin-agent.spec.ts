@@ -5,7 +5,7 @@ import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
  * E2E route + interaction coverage for the Admin Agent section.
  *
  * Uses the adminPage fixture (admin role). The `/admin/agent/agent-1` path
- * exercises the `[threadId]` dynamic route. Auth, Clerk, and all API calls are
+ * exercises the `[threadId]` dynamic route. Auth, Better Auth, and all API calls are
  * mocked; unknown local API routes auto-return empty collections so pages
  * render without per-route mocks. Interactions are best-effort via tryClick.
  */

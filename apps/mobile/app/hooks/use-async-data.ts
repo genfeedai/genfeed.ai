@@ -1,5 +1,5 @@
-import { useAuth } from '@clerk/clerk-expo';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useMobileAuth } from '@/contexts/auth-context';
 import type { PaginationMeta } from '@/services/api/base-http.service';
 
 export interface UseAsyncDataOptions<TOptions> {
@@ -64,7 +64,7 @@ export function useAsyncList<TData, TOptions = Record<string, unknown>>(
   config: UseAsyncDataOptions<TOptions> = {},
 ): UseAsyncDataReturn<TData[]> {
   const { options, enabled = true } = config;
-  const { getToken } = useAuth();
+  const { getToken } = useMobileAuth();
 
   const [data, setData] = useState<TData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -144,7 +144,7 @@ export function useAsyncItem<TData>(
   id: string | null,
   resourceName: string,
 ): UseAsyncItemReturn<TData> {
-  const { getToken } = useAuth();
+  const { getToken } = useMobileAuth();
   const [data, setData] = useState<TData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -200,7 +200,7 @@ export function useAsyncItem<TData>(
 }
 
 export function useAsyncAction<TResult = void>() {
-  const { getToken } = useAuth();
+  const { getToken } = useMobileAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 

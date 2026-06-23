@@ -19,7 +19,7 @@ import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
  * Deep interaction coverage for the workflow Templates gallery and the
  * Executions history list + execution detail surfaces.
  *
- * All API + Clerk traffic is mocked. Interactions are best-effort and guarded
+ * All API + Better Auth traffic is mocked. Interactions are best-effort and guarded
  * with `.catch(() => {})` so a missing affordance never hard-fails the spec —
  * the goal is to exercise rendering and handler code paths for coverage.
  *

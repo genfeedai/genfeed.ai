@@ -1,4 +1,4 @@
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
     brand: '507f1f77bcf86cd799439014',
     organization: '507f1f77bcf86cd799439013',
@@ -23,6 +23,8 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -30,7 +32,6 @@ import { VideosLipSyncController } from '@api/collections/videos/controllers/tra
 import { CreateLipSyncDto } from '@api/collections/videos/dto/create-lip-sync.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { ConfigService } from '@api/config/config.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -39,7 +40,6 @@ import { HeyGenService } from '@api/services/integrations/heygen/services/heygen
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import type { User } from '@clerk/backend';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -52,7 +52,7 @@ describe('VideosLipSyncController', () => {
   const mockReq = {} as Request;
 
   const mockUser = {
-    id: 'user_clerk_123',
+    id: 'user_authProvider_123',
     publicMetadata: {
       brand: '507f1f77bcf86cd799439014',
       organization: '507f1f77bcf86cd799439013',
@@ -170,7 +170,7 @@ describe('VideosLipSyncController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })

@@ -3,9 +3,8 @@
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 
 /**
- * Returns auth helpers from the active provider — Clerk by default, Better Auth
- * when the dual-run flag is on (epic #735). The shared dispatcher narrows both
- * to a single `AuthIdentity` shape so callers stay provider-agnostic.
+ * Returns provider-neutral auth helpers. Better Auth is the runtime provider;
+ * the shared dispatcher keeps callers narrowed to a single `AuthIdentity` shape.
  */
 export function useOptionalAuth() {
   return useAuthIdentity();

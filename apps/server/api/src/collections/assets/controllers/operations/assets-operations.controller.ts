@@ -6,6 +6,7 @@
  * - Create assets from ingredients
  */
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
 import { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
 import { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto';
@@ -27,7 +28,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import {
@@ -40,7 +41,6 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import type { User } from '@clerk/backend';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,

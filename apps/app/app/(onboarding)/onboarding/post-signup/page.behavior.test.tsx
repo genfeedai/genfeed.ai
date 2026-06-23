@@ -15,7 +15,7 @@ const {
   isEEEnabledMock,
   isSelfHostedMock,
   managedCreateCheckoutSessionMock,
-  resolveClerkTokenMock,
+  resolveAuthTokenMock,
   searchParamsState,
 } = vi.hoisted(() => ({
   createCheckoutSessionMock: vi.fn(),
@@ -34,13 +34,13 @@ const {
   isEEEnabledMock: vi.fn(),
   isSelfHostedMock: vi.fn(),
   managedCreateCheckoutSessionMock: vi.fn(),
-  resolveClerkTokenMock: vi.fn(),
+  resolveAuthTokenMock: vi.fn(),
   searchParamsState: {
     value: new URLSearchParams(),
   },
 }));
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: getTokenMock,
   }),
@@ -55,8 +55,8 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => currentUserState,
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
-  resolveAuthToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
+vi.mock('@helpers/auth/auth.helper', () => ({
+  resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -154,7 +154,7 @@ describe('PostSignupPage behavior', () => {
     getMyOrganizationsMock.mockReset();
     isEEEnabledMock.mockReset();
     isSelfHostedMock.mockReset();
-    resolveClerkTokenMock.mockReset();
+    resolveAuthTokenMock.mockReset();
     localStorageMock.clear();
 
     currentUserState.currentUser = {
@@ -167,7 +167,7 @@ describe('PostSignupPage behavior', () => {
     currentUserState.isLoading = false;
     isEEEnabledMock.mockReturnValue(false);
     isSelfHostedMock.mockReturnValue(true);
-    resolveClerkTokenMock.mockResolvedValue('api-token');
+    resolveAuthTokenMock.mockResolvedValue('api-token');
     getMyOrganizationsMock.mockResolvedValue([]);
     createCheckoutSessionMock.mockResolvedValue({
       url: 'https://checkout.stripe.test/session',

@@ -62,7 +62,7 @@ describe('WebhooksService', () => {
   const mockBrandId = '507f191e810c19729de860ee';
   const mockMetadataId = '507f191e810c19729de860ee';
   const mockIngredientId = '507f191e810c19729de860ee';
-  const mockClerkId = 'clerk_user_123';
+  const mockAuthProviderId = 'authProvider_user_123';
 
   const mockMetadata = {
     _id: mockMetadataId,
@@ -87,7 +87,7 @@ describe('WebhooksService', () => {
 
   const mockUser = {
     _id: mockUserId,
-    clerkId: mockClerkId,
+    authProviderId: mockAuthProviderId,
     email: 'test@example.com',
     firstName: 'Test',
     lastName: 'User',
@@ -323,7 +323,7 @@ describe('WebhooksService', () => {
         ingredient: mockIngredientDoc,
         metadata: mockMetadataDoc,
       });
-      // After patch, findOne returns populated ingredient with clerkId
+      // After patch, findOne returns populated ingredient with authProviderId
       ingredientsService.patch.mockResolvedValue(mockIngredientDoc);
       ingredientsService.findOne.mockResolvedValue(mockIngredientDoc);
       websocketService.publishVideoComplete.mockResolvedValue(undefined);
@@ -533,20 +533,21 @@ describe('WebhooksService', () => {
       );
     });
 
-    it('should fetch full user document if clerkId missing from populated user', async () => {
-      const ingredientWithoutClerkId = {
+    it('should fetch full user document if authProviderId missing from populated user', async () => {
+      const ingredientWithoutAuthProviderId = {
         ...mockIngredient,
         user: { _id: mockUserId },
       };
       metadataLookupService.lookupMetadataAndIngredient.mockResolvedValue({
-        ingredient: ingredientWithoutClerkId as unknown as IngredientDocument,
+        ingredient:
+          ingredientWithoutAuthProviderId as unknown as IngredientDocument,
         metadata: mockMetadataDoc,
       });
       ingredientsService.patch.mockResolvedValue(
-        ingredientWithoutClerkId as unknown as IngredientEntity,
+        ingredientWithoutAuthProviderId as unknown as IngredientEntity,
       );
       ingredientsService.findOne.mockResolvedValue(
-        ingredientWithoutClerkId as unknown as IngredientEntity,
+        ingredientWithoutAuthProviderId as unknown as IngredientEntity,
       );
       usersService.findOne.mockResolvedValue(mockUserDoc);
 
@@ -562,20 +563,21 @@ describe('WebhooksService', () => {
       });
     });
 
-    it('should warn when user has no clerkId for websocket', async () => {
-      const ingredientWithoutClerkId = {
+    it('should warn when user has no authProviderId for websocket', async () => {
+      const ingredientWithoutAuthProviderId = {
         ...mockIngredient,
         user: { _id: mockUserId },
       };
       metadataLookupService.lookupMetadataAndIngredient.mockResolvedValue({
-        ingredient: ingredientWithoutClerkId as unknown as IngredientDocument,
+        ingredient:
+          ingredientWithoutAuthProviderId as unknown as IngredientDocument,
         metadata: mockMetadataDoc,
       });
       ingredientsService.patch.mockResolvedValue(
-        ingredientWithoutClerkId as unknown as IngredientEntity,
+        ingredientWithoutAuthProviderId as unknown as IngredientEntity,
       );
       ingredientsService.findOne.mockResolvedValue(
-        ingredientWithoutClerkId as unknown as IngredientEntity,
+        ingredientWithoutAuthProviderId as unknown as IngredientEntity,
       );
       usersService.findOne.mockResolvedValue({
         _id: mockUserId,
@@ -589,7 +591,9 @@ describe('WebhooksService', () => {
       );
 
       expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Client joins room using Clerk ID from JWT'),
+        expect.stringContaining(
+          'Client joins room using legacy auth provider ID from JWT',
+        ),
         expect.any(Object),
       );
     });

@@ -1,9 +1,9 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsStylesController } from '@api/collections/elements/styles/controllers/styles.controller';
 import { CreateElementStyleDto } from '@api/collections/elements/styles/dto/create-style.dto';
 import { UpdateElementStyleDto } from '@api/collections/elements/styles/dto/update-style.dto';
 import { ElementsStylesService } from '@api/collections/elements/styles/services/styles.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';

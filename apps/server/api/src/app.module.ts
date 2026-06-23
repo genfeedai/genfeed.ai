@@ -127,11 +127,9 @@ import { ManagedInferenceModule } from '@api/endpoints/v1/managed-inference/mana
 import { WebhooksModule } from '@api/endpoints/webhooks/webhooks.module';
 import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { CombinedAuthGuard } from '@api/helpers/guards/combined-auth/combined-auth.guard';
 import { MemoryModule } from '@api/helpers/memory/memory.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
-import { ClerkClientProvider } from '@api/providers/clerk.provider';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { SelfHostedSeedModule } from '@api/seeds/self-hosted-seed.module';
 import { AdsGatewayModule } from '@api/services/ads-gateway/ads-gateway.module';
@@ -456,11 +454,9 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ...(isEEEnabled() ? [BusinessAnalyticsModule] : []),
   ],
   providers: [
-    ClerkClientProvider,
     OrgPrefixMiddleware,
     RequestContextMiddleware,
     RequestContextCacheService,
-    ClerkGuard,
     ApiKeyAuthGuard,
     BetterAuthGuard,
     {

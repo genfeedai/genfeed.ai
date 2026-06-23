@@ -21,7 +21,7 @@ const token = await getJWTToken(getToken);
 ### **1. Token Sources (Priority Order)**
 
 ```
-1. Clerk JWT Token (Primary)     → getToken({ template: 'genfeed-jwt' })
+1. Better Auth JWT Token (Primary)     → getToken({ template: 'genfeed-jwt' })
 2. Stored Token (Cache)          → chrome.storage.local
 3. Session Cookie (Fallback)     → local.genfeed.ai cookies (dev) / genfeed.ai (prod)
 ```
@@ -50,13 +50,13 @@ export async function getJWTToken(getToken: Function): Promise<string | null> {
 
 ```env
 # .env file
-PLASMO_PUBLIC_CLERK_PUBLISHABLE_KEY=your_key_here
+PLASMO_PUBLIC_API_ENDPOINT=your_key_here
 PLASMO_PUBLIC_ENV=development  # This triggers local.genfeed.ai
 ```
 
-### **Clerk Dashboard Setup**
+### **Better Auth dashboard Setup**
 
-1. **JWT Template**: Ensure `genfeed-jwt` template exists in Clerk
+1. **JWT Template**: Ensure `genfeed-jwt` template exists in Better Auth
 2. **Allowed Origins**: Add your extension ID to allowed origins
 3. **Redirect URLs**: Configure for both dev and prod domains
 
@@ -79,7 +79,7 @@ PLASMO_PUBLIC_ENV=development  # This triggers local.genfeed.ai
 ```
 1. User signs in on local.genfeed.ai
 2. Extension detects local.genfeed.ai cookies
-3. Clerk getToken({ template: 'genfeed-jwt' }) gets JWT
+3. Better Auth getToken({ template: 'genfeed-jwt' }) gets JWT
 4. JWT stored in chrome.storage.local
 5. API calls use JWT token
 ```
@@ -89,7 +89,7 @@ PLASMO_PUBLIC_ENV=development  # This triggers local.genfeed.ai
 ```
 1. User signs in on genfeed.ai
 2. Extension detects genfeed.ai cookies
-3. Clerk getToken({ template: 'genfeed-jwt' }) gets JWT
+3. Better Auth getToken({ template: 'genfeed-jwt' }) gets JWT
 4. JWT stored in chrome.storage.local
 5. API calls use JWT token
 ```
@@ -109,14 +109,14 @@ PLASMO_PUBLIC_ENV=development  # This triggers local.genfeed.ai
 
 # Environment Detection
 "Genfeed Extension: Extension URL: chrome-extension://..."
-"Genfeed Extension: Clerk Publishable Key: Present"
+"Genfeed Extension: Better Auth Publishable Key: Present"
 ```
 
 ### **Debug Panel Features**
 
 - ✅ **JWT Token Status**: Shows if JWT token is available
 - ✅ **Token Preview**: First 20 characters of JWT
-- ✅ **Source Tracking**: Clerk vs cookie source
+- ✅ **Source Tracking**: Better Auth vs cookie source
 - ✅ **Environment Info**: Dev vs prod detection
 
 ## 🔍 **Troubleshooting**
@@ -127,7 +127,7 @@ PLASMO_PUBLIC_ENV=development  # This triggers local.genfeed.ai
 
 ```bash
 # Error: Template 'genfeed-jwt' not found
-# Solution: Create template in Clerk Dashboard
+# Solution: Create template in Better Auth dashboard
 ```
 
 #### **2. No Token from local.genfeed.ai**
@@ -142,15 +142,15 @@ PLASMO_PUBLIC_ENV=development  # This triggers local.genfeed.ai
 
 ```bash
 # Check: host_permissions in manifest
-# Check: Extension ID in Clerk allowed origins
-# Check: Cookie names match (__session, __clerk_session, etc.)
+# Check: Extension ID in Better Auth trusted origins
+# Check: Cookie names match (better-auth.session_token, __Secure-better-auth.session_token, etc.)
 ```
 
 ### **Debug Steps**
 
 1. **Check Console**: Look for JWT token logs
 2. **Check Debug Panel**: Real-time token status
-3. **Check Clerk Dashboard**: JWT template exists
+3. **Check Better Auth dashboard**: JWT template exists
 4. **Check Cookies**: DevTools → Application → Cookies
 5. **Check Storage**: DevTools → Application → Local Storage
 
@@ -188,7 +188,7 @@ PLASMO_PUBLIC_ENV=development  # This triggers local.genfeed.ai
 
 ### **✅ Robust Fallback**
 
-- JWT token from Clerk (primary)
+- JWT token from Better Auth (primary)
 - Session cookies as fallback
 - Multiple cookie name attempts
 
@@ -202,7 +202,7 @@ PLASMO_PUBLIC_ENV=development  # This triggers local.genfeed.ai
 
 ### **JWT Template Requirements**
 
-- Must exist in Clerk Dashboard
+- Must exist in Better Auth dashboard
 - Must be configured for your application
 - Must have correct claims and expiration
 

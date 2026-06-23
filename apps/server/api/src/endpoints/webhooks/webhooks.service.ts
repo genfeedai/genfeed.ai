@@ -101,7 +101,7 @@ export class WebhooksService {
 
   private toUserReference(
     ref: string | IngredientRefDocument | null | undefined,
-  ): string | { _id?: string; clerkId?: string } | undefined {
+  ): string | { _id?: string; authProviderId?: string } | undefined {
     if (typeof ref === 'string') {
       return ref;
     }
@@ -111,15 +111,16 @@ export class WebhooksService {
     }
 
     const userId = this.getRefId(ref);
-    const clerkId = typeof ref.clerkId === 'string' ? ref.clerkId : undefined;
+    const authProviderId =
+      typeof ref.authProviderId === 'string' ? ref.authProviderId : undefined;
 
-    if (!userId && !clerkId) {
+    if (!userId && !authProviderId) {
       return undefined;
     }
 
     return {
       ...(userId ? { _id: userId } : {}),
-      ...(clerkId ? { clerkId } : {}),
+      ...(authProviderId ? { authProviderId } : {}),
     };
   }
 
@@ -233,7 +234,7 @@ export class WebhooksService {
       input.externalId,
     );
 
-    // Re-populate user after patch to ensure we have clerkId
+    // Re-populate user after patch to ensure we have authProviderId
     const ingredient = await this.ingredientsService.findOne(
       { _id: input.ingredientId },
       [PopulatePatterns.userMinimal],
@@ -275,27 +276,27 @@ export class WebhooksService {
       ingredient as IngredientDocument,
     );
 
-    // 5. Resolve user IDs (with clerkId fallback)
-    let { dbUserId, clerkUserId, userId, userRoom } =
+    // 5. Resolve user IDs (with authProviderId fallback)
+    let { dbUserId, authProviderUserId, userId, userRoom } =
       UserExtractionUtil.extractUserIds(this.toUserReference(ingredient.user));
 
-    if (!clerkUserId && dbUserId) {
+    if (!authProviderUserId && dbUserId) {
       try {
         const fullUser = await this.usersService.findOne({
           _id: dbUserId,
         });
-        if (fullUser?.clerkId) {
-          clerkUserId = fullUser.clerkId;
-          userId = clerkUserId;
-          userRoom = getUserRoomName(clerkUserId);
+        if (fullUser?.authProviderId) {
+          authProviderUserId = fullUser.authProviderId;
+          userId = authProviderUserId;
+          userRoom = getUserRoomName(authProviderUserId);
           this.loggerService.debug(
-            `${logContext} found clerkId by fetching full user document`,
-            { clerkUserId, dbUserId },
+            `${logContext} found authProviderId by fetching full user document`,
+            { authProviderUserId, dbUserId },
           );
         }
       } catch (error: unknown) {
         this.loggerService.warn(
-          `${logContext} failed to fetch full user for clerkId lookup`,
+          `${logContext} failed to fetch full user for authProviderId lookup`,
           { dbUserId, error: getErrorMessage(error) },
         );
       }
@@ -319,7 +320,7 @@ export class WebhooksService {
     // 7. WebSocket publish
     const ingredientId = ingredient._id.toString();
     const websocketUrl = `/${categoryToPlural(input.categoryValue)}/${ingredientId}`;
-    const roomValidation = validateRoomMatch(clerkUserId, dbUserId);
+    const roomValidation = validateRoomMatch(authProviderUserId, dbUserId);
 
     if (!roomValidation.isValid && dbUserId) {
       this.loggerService.warn(`${logContext} ${roomValidation.warning}`, {
@@ -330,7 +331,7 @@ export class WebhooksService {
 
     if (userId) {
       this.loggerService.log(`${logContext} publishing WebSocket event`, {
-        clerkUserId,
+        authProviderUserId,
         dbUserId,
         ingredientId,
         userId,
@@ -620,7 +621,7 @@ export class WebhooksService {
 
     try {
       const asset = await this.assetsService.findOne({ _id: assetId }, [
-        { path: 'user', select: '_id clerkId' },
+        { path: 'user', select: '_id authProviderId' },
       ]);
 
       if (!asset) {

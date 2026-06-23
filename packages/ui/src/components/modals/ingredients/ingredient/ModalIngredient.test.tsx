@@ -20,7 +20,7 @@ vi.mock('@ui/ingredients/detail-video/IngredientDetailVideo', () => ({
   default: () => <div data-testid="ingredient-detail-video" />,
 }));
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({ getToken: vi.fn(), isSignedIn: true }),
 }));
 

@@ -5,9 +5,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
 }));
 
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { ThreadRunsController } from '@api/collections/agent-runs/controllers/thread-runs.controller';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -41,7 +41,7 @@ describe('ThreadRunsController', () => {
       controllers: [ThreadRunsController],
       providers: [{ provide: AgentRunsService, useValue: agentRunsService }],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

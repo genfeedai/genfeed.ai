@@ -6,7 +6,7 @@ import { LoginPage } from '../../pages/login.page';
  * E2E Tests for Login Flow
  *
  * These tests verify the login page functionality with mocked authentication.
- * All Clerk API calls are intercepted to prevent real authentication.
+ * All Better Auth API calls are intercepted to prevent real authentication.
  *
  * CRITICAL: No real authentication occurs - all responses are mocked.
  */
@@ -23,15 +23,15 @@ test.describe('Login Page', () => {
       await loginPage.assertLogoVisible();
     });
 
-    test('should display Clerk sign-in component', async ({
+    test('should display Better Auth sign-in component', async ({
       unauthenticatedPage,
     }) => {
       const loginPage = new LoginPage(unauthenticatedPage);
 
       await loginPage.goto();
-      await loginPage.waitForClerkReady();
+      await loginPage.waitForBetterAuthReady();
 
-      const hasClerkComponent = await loginPage.clerkContainer
+      const hasBetterAuthComponent = await loginPage.betterAuthContainer
         .isVisible()
         .catch(() => false);
       const hasEmailInput = await loginPage.emailInput
@@ -39,7 +39,7 @@ test.describe('Login Page', () => {
         .catch(() => false);
       const hasLogo = await loginPage.logo.isVisible().catch(() => false);
 
-      expect(hasClerkComponent || hasEmailInput || hasLogo).toBe(true);
+      expect(hasBetterAuthComponent || hasEmailInput || hasLogo).toBe(true);
     });
 
     test('should have proper page title', async ({ unauthenticatedPage }) => {
@@ -56,15 +56,15 @@ test.describe('Login Page', () => {
       const loginPage = new LoginPage(unauthenticatedPage);
 
       await loginPage.goto();
-      await loginPage.waitForClerkReady();
+      await loginPage.waitForBetterAuthReady();
 
       const emailVisible = await loginPage.emailInput
         .isVisible()
         .catch(() => false);
 
-      // If Clerk loaded, email input should be visible
+      // If Better Auth loaded, email input should be visible
       if (!emailVisible) {
-        // Clerk might still be loading — wait and retry
+        // Better Auth might still be loading — wait and retry
         await unauthenticatedPage.waitForTimeout(2000);
         const retryVisible = await loginPage.emailInput
           .isVisible()
@@ -79,7 +79,7 @@ test.describe('Login Page', () => {
       const loginPage = new LoginPage(unauthenticatedPage);
 
       await loginPage.goto();
-      await loginPage.waitForClerkReady();
+      await loginPage.waitForBetterAuthReady();
 
       const continueButton = loginPage.continueButton;
       const isEnabled = await continueButton.isEnabled().catch(() => false);
@@ -96,14 +96,14 @@ test.describe('Login Page', () => {
       const loginPage = new LoginPage(unauthenticatedPage);
 
       await loginPage.goto();
-      await loginPage.waitForClerkReady();
+      await loginPage.waitForBetterAuthReady();
 
       const canFillEmail = await loginPage.emailInput
         .isVisible()
         .catch(() => false);
       test.skip(
         !canFillEmail,
-        'Email input not visible — Clerk may not have loaded',
+        'Email input not visible — Better Auth may not have loaded',
       );
 
       await loginPage.fillEmail(formData.login.invalidEmail);
@@ -138,7 +138,7 @@ test.describe('Login Page', () => {
       const loginPage = new LoginPage(unauthenticatedPage);
 
       await loginPage.goto();
-      await loginPage.waitForClerkReady();
+      await loginPage.waitForBetterAuthReady();
 
       const hasGoogleButton = await loginPage.googleButton
         .isVisible()
@@ -150,7 +150,7 @@ test.describe('Login Page', () => {
       if (!hasGoogleButton && !hasGithubButton) {
         test.skip(
           true,
-          'Social login is not enabled in the current Clerk configuration',
+          'Social login is not enabled in the current Better Auth configuration',
         );
       }
 
@@ -165,7 +165,7 @@ test.describe('Login Page', () => {
       const loginPage = new LoginPage(unauthenticatedPage);
 
       await loginPage.goto();
-      await loginPage.waitForClerkReady();
+      await loginPage.waitForBetterAuthReady();
 
       const hasSignUpLink = await loginPage.signUpLink
         .isVisible()
@@ -181,7 +181,7 @@ test.describe('Login Page', () => {
       const loginPage = new LoginPage(unauthenticatedPage);
 
       await loginPage.goto();
-      await loginPage.waitForClerkReady();
+      await loginPage.waitForBetterAuthReady();
 
       const hasForgotLink = await loginPage.forgotPasswordLink
         .isVisible()
@@ -190,7 +190,7 @@ test.describe('Login Page', () => {
       if (!hasForgotLink) {
         test.skip(
           true,
-          'Forgot-password is not enabled in the current Clerk configuration',
+          'Forgot-password is not enabled in the current Better Auth configuration',
         );
       }
 
@@ -202,7 +202,7 @@ test.describe('Login Page', () => {
     test('should handle network errors gracefully', async ({ page }) => {
       const loginPage = new LoginPage(page);
 
-      await page.route('**/clerk.**/**', async (route) => {
+      await page.route('**/v1/auth/**', async (route) => {
         await route.abort('failed');
       });
 
@@ -215,7 +215,7 @@ test.describe('Login Page', () => {
     }) => {
       const loginPage = new LoginPage(unauthenticatedPage);
 
-      await unauthenticatedPage.route('**/clerk.**/**', async (route) => {
+      await unauthenticatedPage.route('**/v1/auth/**', async (route) => {
         const url = route.request().url();
 
         if (url.includes('/sign_in')) {
@@ -248,13 +248,13 @@ test.describe('Login Page', () => {
       const loginPage = new LoginPage(unauthenticatedPage);
 
       await loginPage.goto();
-      await loginPage.waitForClerkReady();
+      await loginPage.waitForBetterAuthReady();
 
       const emailInput = loginPage.emailInput;
       const isVisible = await emailInput.isVisible().catch(() => false);
       test.skip(
         !isVisible,
-        'Email input not visible — Clerk may not have loaded',
+        'Email input not visible — Better Auth may not have loaded',
       );
 
       const ariaLabel = await emailInput.getAttribute('aria-label');
@@ -268,7 +268,7 @@ test.describe('Login Page', () => {
       const loginPage = new LoginPage(unauthenticatedPage);
 
       await loginPage.goto();
-      await loginPage.waitForClerkReady();
+      await loginPage.waitForBetterAuthReady();
 
       await unauthenticatedPage.keyboard.press('Tab');
 
@@ -287,7 +287,7 @@ test.describe('Login Page', () => {
       await unauthenticatedPage.setViewportSize({ height: 667, width: 375 });
 
       await loginPage.goto();
-      await loginPage.waitForClerkReady();
+      await loginPage.waitForBetterAuthReady();
 
       await loginPage.assertLogoVisible();
       await expect(unauthenticatedPage).toHaveURL(/login/);
@@ -301,7 +301,7 @@ test.describe('Login Page', () => {
       await unauthenticatedPage.setViewportSize({ height: 1024, width: 768 });
 
       await loginPage.goto();
-      await loginPage.waitForClerkReady();
+      await loginPage.waitForBetterAuthReady();
 
       await loginPage.assertLogoVisible();
       await expect(unauthenticatedPage).toHaveURL(/login/);

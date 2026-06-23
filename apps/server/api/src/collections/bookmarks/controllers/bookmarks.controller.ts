@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BookmarksQueryDto } from '@api/collections/bookmarks/dto/bookmarks-query.dto';
 import { CreateBookmarkDto } from '@api/collections/bookmarks/dto/create-bookmark.dto';
 import { UpdateBookmarkDto } from '@api/collections/bookmarks/dto/update-bookmark.dto';
@@ -6,7 +7,7 @@ import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -16,7 +17,6 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,

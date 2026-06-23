@@ -10,7 +10,7 @@ datasource db {
 model User {
   id             String         @id
   organizationId String         @map("organization_id")
-  clerkId        String?        @unique @map("clerk_id")
+  authProviderId        String?        @unique @map("authProvider_id")
   email          String?
   name           String
   createdAt      String         @map("created_at")

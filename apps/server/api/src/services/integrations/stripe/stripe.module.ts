@@ -4,7 +4,6 @@ import { OrganizationsModule } from '@api/collections/organizations/organization
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
 import { UserSubscriptionsModule } from '@api/collections/user-subscriptions/user-subscriptions.module';
 import { UsersModule } from '@api/collections/users/users.module';
-import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
 import { ManagedStripeController } from '@api/services/integrations/stripe/controllers/managed-stripe.controller';
 import { StripeController } from '@api/services/integrations/stripe/controllers/stripe.controller';
 import { UserStripeController } from '@api/services/integrations/stripe/controllers/user-stripe.controller';
@@ -15,7 +14,6 @@ import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(StripeService, {
   additionalImports: [
-    forwardRef(() => ClerkModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => MembersModule),
     forwardRef(() => OrganizationsModule),

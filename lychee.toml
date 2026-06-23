@@ -21,10 +21,10 @@ cache = true
 max_cache_age = "1d"
 
 # External links legitimately redirect (http→https, trailing-slash); allow a few
-# hops, and treat bot-blocking / rate-limit codes as success so the gate stays
-# non-flaky on third-party hosts.
+# hops, and treat bot-blocking / rate-limit / transient gateway codes as success
+# so the gate stays non-flaky on third-party hosts.
 max_redirects = 5
-accept = ["200", "206", "429"]
+accept = ["200", "206", "429", "502"]
 
 # Don't descend into dependencies or build output.
 exclude_path = ["node_modules", ".next", "dist", "build", ".turbo"]

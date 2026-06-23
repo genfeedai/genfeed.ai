@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { ITag } from '@genfeedai/interfaces';
@@ -23,7 +23,7 @@ export default function IngredientTabsTags({
   ingredient,
   onTagsUpdate,
 }: ExtendedIngredientTabsTagsProps) {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthIdentity();
   const [tags, setTags] = useState<ITag[]>(ingredient.tags || []);
   const [isUpdating, setIsUpdating] = useState(false);
   const [newTagName, setNewTagName] = useState('');

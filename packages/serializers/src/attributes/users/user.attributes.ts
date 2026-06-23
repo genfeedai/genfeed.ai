@@ -1,7 +1,7 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const userAttributes = createEntityAttributes([
-  'clerkId',
+  'authProviderId',
   'settings',
   'handle',
   'firstName',

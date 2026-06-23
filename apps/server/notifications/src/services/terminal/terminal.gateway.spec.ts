@@ -4,7 +4,7 @@ import { TerminalGateway } from './terminal.gateway';
 
 const verifyMock = vi.hoisted(() => vi.fn());
 
-/** A Better Auth `sub` is the genfeed User.id (a UUID), not a Clerk user id. */
+/** A Better Auth `sub` is the genfeed User.id (a UUID), not a legacy auth provider user id. */
 const TEST_USER_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
 
 vi.mock('@libs/auth/better-auth-jwks.verifier', () => ({

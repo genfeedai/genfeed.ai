@@ -59,7 +59,7 @@ services/router/
 
 Selects the optimal model based on prompt analysis.
 
-**Authentication:** Required (Clerk JWT)
+**Authentication:** Required (Better Auth JWT)
 
 **Request Body:**
 ```typescript

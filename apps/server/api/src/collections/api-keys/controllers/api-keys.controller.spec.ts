@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ApiKeysController } from '@api/collections/api-keys/controllers/api-keys.controller';
 import type { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-key.dto';
 import type { UpdateApiKeyDto } from '@api/collections/api-keys/dto/update-api-key.dto';
@@ -5,7 +6,6 @@ import { type ApiKey } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { User } from '@clerk/backend';
 import { ApiKeyCategory } from '@genfeedai/enums';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

@@ -1,10 +1,6 @@
 import 'server-only';
 
-import { auth } from '@clerk/nextjs/server';
-import {
-  getBetterAuthServerToken,
-  isBetterAuthEnabled,
-} from '@genfeedai/auth-client/server';
+import { getBetterAuthServerToken } from '@genfeedai/auth-client/server';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
 import { AuthService } from '@services/auth/auth.service';
 import { logger } from '@services/core/logger.service';
@@ -21,68 +17,20 @@ const isServerBootstrapBypassed = cache(async (): Promise<boolean> => {
 });
 
 export const getServerAuthToken = cache(async (): Promise<string> => {
-  const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
-  const hasClerkKeys =
-    Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
-    Boolean(process.env.CLERK_SECRET_KEY);
-
   if (await isServerBootstrapBypassed()) {
     return '';
   }
 
-  // Better Auth dual run (#735): when enabled, the server-side bearer JWT is
-  // minted by forwarding the BA session cookies to the jwt plugin's /token
-  // endpoint. Takes precedence over Clerk so flipping the flag swaps RSC auth.
-  if (isBetterAuthEnabled()) {
-    try {
-      const cookieStore = await cookies();
-      const cookieHeader = cookieStore
-        .getAll()
-        .map((cookie) => `${cookie.name}=${cookie.value}`)
-        .join('; ');
-
-      return (await getBetterAuthServerToken(cookieHeader)) ?? '';
-    } catch (error) {
-      logger.warn('Better Auth token unavailable during protected bootstrap', {
-        error,
-        reportToSentry: false,
-      });
-      return '';
-    }
-  }
-
-  if (isDesktopShell) {
-    try {
-      const { getToken, sessionId, userId } = await auth();
-
-      if (!userId || !sessionId) {
-        return '';
-      }
-
-      return (await getToken()) ?? '';
-    } catch (error) {
-      logger.warn('Desktop auth unavailable during protected bootstrap', {
-        error,
-        reportToSentry: false,
-      });
-      return '';
-    }
-  }
-
-  if (process.env.NODE_ENV !== 'production' && !hasClerkKeys) {
-    return '';
-  }
-
   try {
-    const { getToken, sessionId, userId } = await auth();
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore
+      .getAll()
+      .map((cookie) => `${cookie.name}=${cookie.value}`)
+      .join('; ');
 
-    if (!userId || !sessionId) {
-      return '';
-    }
-
-    return (await getToken()) ?? '';
+    return (await getBetterAuthServerToken(cookieHeader)) ?? '';
   } catch (error) {
-    logger.warn('Server auth unavailable during protected bootstrap', {
+    logger.warn('Better Auth token unavailable during protected bootstrap', {
       error,
       reportToSentry: false,
     });
@@ -91,12 +39,9 @@ export const getServerAuthToken = cache(async (): Promise<string> => {
 });
 
 export function hasUsableServerAuthToken(token: string): boolean {
-  const hasClerkKeys =
-    Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
-    Boolean(process.env.CLERK_SECRET_KEY);
   const isSelfHostedApp = !process.env.NEXT_PUBLIC_GENFEED_CLOUD;
 
-  return Boolean(token) || isSelfHostedApp || !hasClerkKeys;
+  return Boolean(token) || isSelfHostedApp;
 }
 
 export function shouldSkipCloudBootstrap(token: string): boolean {

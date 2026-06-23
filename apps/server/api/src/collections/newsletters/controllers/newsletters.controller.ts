@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateNewsletterDto } from '@api/collections/newsletters/dto/create-newsletter.dto';
 import { GenerateNewsletterDraftDto } from '@api/collections/newsletters/dto/generate-newsletter-draft.dto';
 import { GenerateNewsletterTopicsDto } from '@api/collections/newsletters/dto/generate-newsletter-topics.dto';
@@ -7,12 +8,11 @@ import { NewslettersService } from '@api/collections/newsletters/services/newsle
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { extractRequestContext } from '@api/helpers/utils/clerk/clerk.util';
+import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { NewsletterSerializer } from '@genfeedai/serializers';
 import {
   Body,

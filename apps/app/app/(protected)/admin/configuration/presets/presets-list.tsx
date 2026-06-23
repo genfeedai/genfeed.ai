@@ -1,8 +1,8 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/enums';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { IElementContentProps } from '@genfeedai/interfaces/ui/elements-content.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -37,7 +37,7 @@ function PresetsListContent({
   onLoadingChange,
   onRefreshingChange,
 }: IElementContentProps) {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthIdentity();
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
 

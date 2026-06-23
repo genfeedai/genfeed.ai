@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
 import { ModelRegistryReviewDto } from '@api/collections/models/dto/model-registry-review.dto';
 import { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
@@ -9,7 +10,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getIsSuperAdmin } from '@api/helpers/utils/clerk/clerk.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
@@ -20,7 +21,6 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,

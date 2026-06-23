@@ -100,7 +100,7 @@ describe('MetadataLookupService', () => {
       const mockMetadata = { _id: 'meta-1' };
       const mockIngredient = {
         _id: 'ing-1',
-        user: { _id: 'user-1', clerkId: 'clerk-1' },
+        user: { _id: 'user-1', authProviderId: 'authProvider-1' },
       };
 
       metadataService.findOne.mockResolvedValue(mockMetadata);

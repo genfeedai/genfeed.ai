@@ -89,7 +89,7 @@ describe('run.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(RunAuthType.CLERK).toBe('clerk');
+      expect(RunAuthType.BETTER_AUTH).toBe('better_auth');
       expect(RunAuthType.API_KEY).toBe('api_key');
     });
   });

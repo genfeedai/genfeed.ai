@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -6,7 +7,7 @@ import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeSingle,
@@ -16,7 +17,6 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import type { User } from '@clerk/backend';
 import {
   AssetScope,
   FileInputType,
@@ -96,7 +96,7 @@ export class VideosResizeController {
 
     this.fileQueueService
       .processVideo({
-        clerkUserId: user.id,
+        authProviderUserId: user.id,
         ingredientId: ingredientData._id.toString(),
         organizationId: publicMetadata.organization,
         params: {
@@ -171,7 +171,7 @@ export class VideosResizeController {
 
     this.fileQueueService
       .processVideo({
-        clerkUserId: user.id,
+        authProviderUserId: user.id,
         ingredientId: ingredientData._id.toString(),
         organizationId: publicMetadata.organization,
         params: {

@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
@@ -38,8 +39,8 @@ import {
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import {
   isImageToVideoRequest,
@@ -69,7 +70,6 @@ import { FailedGenerationService } from '@api/shared/services/failed-generation/
 import { PollingService } from '@api/shared/services/polling/polling.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import type { User } from '@clerk/backend';
 import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
@@ -1239,7 +1239,7 @@ export class VideosController {
     if (createVideoDto.backgroundMusic) {
       const orchestrationContext = {
         brandId: brand._id.toString(),
-        clerkUserId: user.id,
+        authProviderUserId: user.id,
         organizationId: publicMetadata.organization,
         userId: publicMetadata.user,
       };

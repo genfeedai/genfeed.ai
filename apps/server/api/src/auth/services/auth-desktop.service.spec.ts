@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { User } from '@clerk/backend';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockGetIsSuperAdmin, mockGetPublicMetadata } = vi.hoisted(() => ({
@@ -9,7 +9,7 @@ const { mockGetIsSuperAdmin, mockGetPublicMetadata } = vi.hoisted(() => ({
   mockGetPublicMetadata: vi.fn(),
 }));
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getIsSuperAdmin: mockGetIsSuperAdmin,
   getPublicMetadata: mockGetPublicMetadata,
 }));

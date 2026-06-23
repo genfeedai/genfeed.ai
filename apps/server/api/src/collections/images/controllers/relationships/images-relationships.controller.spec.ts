@@ -1,6 +1,6 @@
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { ImagesRelationshipsController } from '@api/collections/images/controllers/relationships/images-relationships.controller';
 import { ImagesService } from '@api/collections/images/services/images.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -42,7 +42,7 @@ describe('ImagesRelationshipsController', () => {
         { provide: LoggerService, useValue: mockServices.loggerService },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })

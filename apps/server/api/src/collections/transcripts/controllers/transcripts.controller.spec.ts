@@ -3,14 +3,14 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { TranscriptsController } from '@api/collections/transcripts/controllers/transcripts.controller';
 import { CreateTranscriptDto } from '@api/collections/transcripts/dto/create-transcript.dto';
 import type { TranscriptEntity } from '@api/collections/transcripts/entities/transcript.entity';
 import { TranscriptsService } from '@api/collections/transcripts/services/transcripts.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { User } from '@clerk/backend';
 import { TranscriptStatus } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -27,7 +27,7 @@ describe('TranscriptsController', () => {
       isSuperAdmin: false,
       organization: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
-    } as IClerkPublicMetadata,
+    } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockUserWithoutOrg = {
@@ -36,7 +36,7 @@ describe('TranscriptsController', () => {
       brand: '507f191e810c19729de860ee'.toString(),
       isSuperAdmin: false,
       user: '507f191e810c19729de860ee'.toString(),
-    } as IClerkPublicMetadata,
+    } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockReq = {} as Request;

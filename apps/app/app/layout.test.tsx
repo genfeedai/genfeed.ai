@@ -34,7 +34,7 @@ vi.mock('@ui/providers/AppProviders', () => ({
     ...props
   }: {
     children: ReactNode;
-    clerkProps?: Record<string, unknown>;
+    authProps?: Record<string, unknown>;
     googleAnalyticsId?: string;
     initialTheme: string;
   }) => {
@@ -71,7 +71,7 @@ describe('app root layout', () => {
     expect(appProvidersSpy).toHaveBeenCalledTimes(1);
     expect(appProvidersSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        clerkProps: {
+        authProps: {
           signInFallbackRedirectUrl: '/',
           signInForceRedirectUrl: '/',
           signInUrl: '/login',

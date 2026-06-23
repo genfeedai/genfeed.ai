@@ -1,25 +1,21 @@
 import Joi from 'joi';
 
 /**
- * Better Auth — first-party, self-hostable auth (Clerk replacement, epic #735).
+ * Better Auth — first-party, self-hostable auth (legacy auth provider replacement, epic #735).
  *
- * Phase 1 runs Better Auth **dual-run beside Clerk**, gated by
- * `BETTER_AUTH_ENABLED`. All keys are optional at the schema level so the API
- * boots cleanly while the flag is off; `BetterAuthModule` validates that the
- * required values are present when the flag is on (fail-fast at init, never at
- * request time). This keeps the env-coverage gate (#484/#731) green without
- * forcing every deployment to provision Better Auth before cutover.
+ * Better Auth is the first-party runtime auth provider. The secret remains
+ * optional at the schema level so local/offline services can boot without auth;
+ * `BetterAuthModule` validates required values when the runtime is enabled.
  */
 export const betterAuthSchema = {
   /**
-   * Master dual-run switch. When `false` (default) the Better Auth handler,
-   * strategy and guard are inert and every request flows through Clerk exactly
-   * as before. Flip to `true` per-environment to light up first-party auth.
+   * Runtime switch. Enabled by default; set `false` only for explicit offline
+   * local mode.
    */
   BETTER_AUTH_ENABLED: Joi.string()
     .valid('true', 'false')
     .optional()
-    .default('false'),
+    .default('true'),
 
   /**
    * Signing secret for Better Auth sessions + JWTs. Required when enabled

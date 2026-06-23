@@ -3,13 +3,13 @@ import type {
   CreateDesktopAuthCodeDto,
   ExchangeDesktopAuthCodeDto,
 } from '@api/auth/dto/desktop-auth.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { User } from '@clerk/backend';
 import { ApiKeyCategory, ApiKeyScope } from '@genfeedai/enums';
 import {
   BadRequestException,

@@ -1,15 +1,15 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { type AgentApiConfig, AgentSettings } from '@genfeedai/agent';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import Container from '@ui/layout/container/Container';
 import { useMemo } from 'react';
 import { HiOutlineCog6Tooth } from 'react-icons/hi2';
 
 export default function AgentConfigurationPage() {
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const { brandId } = useBrand();
 
   const apiConfig = useMemo<AgentApiConfig>(

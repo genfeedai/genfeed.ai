@@ -1,14 +1,14 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ByokService } from '@api/services/byok/byok.service';
 import { OpenAiOAuthController } from '@api/services/integrations/openai-llm/controllers/openai-oauth.controller';
 import { OpenAiOAuthService } from '@api/services/integrations/openai-llm/services/openai-oauth.service';
-import type { User } from '@clerk/backend';
 import { ByokProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn().mockReturnValue({
     organization: '507f1f77bcf86cd799439012',
     user: '507f1f77bcf86cd799439011',

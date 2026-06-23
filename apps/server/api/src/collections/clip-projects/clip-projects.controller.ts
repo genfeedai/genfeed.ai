@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { AnalyzeYoutubeDto } from '@api/collections/clip-projects/dto/analyze-youtube.dto';
 import { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
@@ -18,7 +19,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -30,7 +31,6 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,

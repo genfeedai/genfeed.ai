@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { AnalyticsMetric, PageScope } from '@genfeedai/enums';
@@ -9,6 +8,7 @@ import {
   formatPercentageSimple,
 } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAnalytics } from '@hooks/data/analytics/use-analytics/use-analytics';
 import type {
@@ -63,7 +63,7 @@ export interface AnalyticsOrganizationOverviewProps {
 export default function AnalyticsOrganizationOverview({
   basePath = '/analytics',
 }: AnalyticsOrganizationOverviewProps) {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthIdentity();
   const router = useRouter();
   const { dateRange, brandId } = useAnalyticsContext();
   const { startDate, endDate } = getDateRangeWithDefaults(

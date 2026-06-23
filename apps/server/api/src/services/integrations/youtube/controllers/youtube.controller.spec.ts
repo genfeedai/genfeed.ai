@@ -1,4 +1,4 @@
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
     brand: '507f1f77bcf86cd799439012',
     organization: '507f1f77bcf86cd799439011',
@@ -48,7 +48,7 @@ describe('YoutubeController', () => {
   };
 
   const mockRequest = {} as unknown as Request;
-  const mockUser = { id: 'clerk_user_1' } as never;
+  const mockUser = { id: 'authProvider_user_1' } as never;
   const brandId = 'test-object-id';
   const orgId = '507f1f77bcf86cd799439011';
   const credentialId = 'test-object-id';

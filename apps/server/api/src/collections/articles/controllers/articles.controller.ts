@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
@@ -36,7 +37,7 @@ import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-fil
 import {
   getIsSuperAdmin,
   getPublicMetadata,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import {
@@ -48,7 +49,6 @@ import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pric
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { RouterService } from '@api/services/router/router.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { User } from '@clerk/backend';
 import {
   ActivityEntityModel,
   ActivityKey,

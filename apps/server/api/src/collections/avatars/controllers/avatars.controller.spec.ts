@@ -1,9 +1,9 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AvatarsController } from '@api/collections/avatars/controllers/avatars.controller';
 import type { AvatarsService } from '@api/collections/avatars/services/avatars.service';
 import type { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import type { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import type { User } from '@clerk/backend';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 const userId = '507f191e810c19729de860ee'.toString();
@@ -12,7 +12,7 @@ const brandId = '507f191e810c19729de860ee'.toString();
 
 const makeUser = (overrides: Record<string, unknown> = {}): User =>
   ({
-    id: 'clerk-user-1',
+    id: 'authProvider-user-1',
     publicMetadata: {
       brand: brandId,
       isSuperAdmin: false,

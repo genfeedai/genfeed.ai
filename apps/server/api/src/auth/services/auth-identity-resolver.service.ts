@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
@@ -6,8 +7,7 @@ import type { OrganizationDocument } from '@api/collections/organizations/schema
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
-import type { User } from '@clerk/backend';
+import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 
@@ -30,9 +30,9 @@ function asMemberRecord(member: MemberDocument): Record<string, unknown> {
 }
 
 /**
- * Extract the primary, verified email from a Clerk user. Returns '' when there
+ * Extract the primary, verified email from a legacy auth provider user. Returns '' when there
  * is no verified primary email. Matching on a *verified* address is what makes
- * email-based reconciliation safe: Clerk enforces email uniqueness per instance
+ * email-based reconciliation safe: legacy auth provider enforces email uniqueness per instance
  * and only the rightful owner can verify an address, so a verified email is a
  * trustworthy join key back to an existing local user row.
  */
@@ -66,14 +66,14 @@ export class AuthIdentityResolverService {
   ) {}
 
   private async resolveUserId(
-    clerkUser: User,
-    publicMetadata: Partial<IClerkPublicMetadata>,
+    authProviderUser: User,
+    publicMetadata: Partial<IAuthPublicMetadata>,
   ): Promise<{
     resolvedBy: 'lookup' | 'metadata' | 'reconciled';
     userId: string;
     user: Record<string, unknown> | null;
   }> {
-    const clerkUserId = clerkUser.id;
+    const authProviderUserId = authProviderUser.id;
     const metadataUserId =
       typeof publicMetadata.user === 'string' ? publicMetadata.user : '';
 
@@ -94,7 +94,10 @@ export class AuthIdentityResolverService {
       }
     }
 
-    const user = await this.usersService.findOne({ clerkId: clerkUserId }, []);
+    const user = await this.usersService.findOne(
+      { authProviderId: authProviderUserId },
+      [],
+    );
     const currentUserId = getEntityId(
       user as Record<string, unknown> | null | undefined,
     );
@@ -106,11 +109,11 @@ export class AuthIdentityResolverService {
       };
     }
 
-    // Self-heal: the clerkId on file no longer matches (rotated key, recreated
-    // Clerk account, or a stale projection). Fall back to the verified primary
-    // email and re-attach the live clerkId to the existing row so the user is
+    // Self-heal: the authProviderId on file no longer matches (rotated key, recreated
+    // legacy auth provider account, or a stale projection). Fall back to the verified primary
+    // email and re-attach the live authProviderId to the existing row so the user is
     // not locked out by an identity drift they cannot see or fix themselves.
-    const reconciledUserId = await this.reconcileByEmail(clerkUser);
+    const reconciledUserId = await this.reconcileByEmail(authProviderUser);
     if (reconciledUserId) {
       const reconciledUser = await this.usersService.findOne(
         { _id: reconciledUserId },
@@ -127,12 +130,12 @@ export class AuthIdentityResolverService {
   }
 
   /**
-   * Attach the current clerkId to an existing local user matched by verified
+   * Attach the current authProviderId to an existing local user matched by verified
    * primary email. Returns the local user id on success, '' when no safe match
    * exists. Only verified primary emails are trusted (see getPrimaryVerifiedEmail).
    */
-  private async reconcileByEmail(clerkUser: User): Promise<string> {
-    const email = getPrimaryVerifiedEmail(clerkUser);
+  private async reconcileByEmail(authProviderUser: User): Promise<string> {
+    const email = getPrimaryVerifiedEmail(authProviderUser);
     if (!email) {
       return '';
     }
@@ -148,25 +151,25 @@ export class AuthIdentityResolverService {
       return '';
     }
 
-    const previousClerkId = getRecordId(
+    const previousAuthProviderId = getRecordId(
       existing as Record<string, unknown> | null | undefined,
-      'clerkId',
+      'authProviderId',
     );
-    if (previousClerkId === clerkUser.id) {
-      // Row already points at this clerkId (e.g. email lookup raced the clerkId
+    if (previousAuthProviderId === authProviderUser.id) {
+      // Row already points at this authProviderId (e.g. email lookup raced the authProviderId
       // lookup); nothing to repair, just adopt it.
       return existingUserId;
     }
 
     try {
       await this.usersService.patch(existingUserId, {
-        clerkId: clerkUser.id,
+        authProviderId: authProviderUser.id,
       });
       this.loggerService.warn(
-        `Reconciled local user ${existingUserId} to Clerk id ${clerkUser.id} by verified email`,
+        `Reconciled local user ${existingUserId} to legacy auth provider id ${authProviderUser.id} by verified email`,
         {
-          clerkUserId: clerkUser.id,
-          previousClerkId: previousClerkId || 'none',
+          authProviderUserId: authProviderUser.id,
+          previousAuthProviderId: previousAuthProviderId || 'none',
           service: 'AuthIdentityResolverService',
           userId: existingUserId,
         },
@@ -175,9 +178,9 @@ export class AuthIdentityResolverService {
       const message =
         error instanceof Error ? error.message : 'Unknown reconcile error';
       this.loggerService.error(
-        `Failed to reconcile local user ${existingUserId} to Clerk id ${clerkUser.id}: ${message}`,
+        `Failed to reconcile local user ${existingUserId} to legacy auth provider id ${authProviderUser.id}: ${message}`,
         {
-          clerkUserId: clerkUser.id,
+          authProviderUserId: authProviderUser.id,
           service: 'AuthIdentityResolverService',
           userId: existingUserId,
         },
@@ -203,7 +206,7 @@ export class AuthIdentityResolverService {
         isDeleted: false,
       })) ??
       (await this.organizationsService.findOne({
-        clerkOrganizationId: organizationCandidate,
+        authProviderOrganizationId: organizationCandidate,
         isDeleted: false,
       })) ??
       (await this.organizationsService.findOne({
@@ -235,27 +238,27 @@ export class AuthIdentityResolverService {
   }
 
   private async resolveOrganization(
-    publicMetadata: Partial<IClerkPublicMetadata>,
+    publicMetadata: Partial<IAuthPublicMetadata>,
     userId: string,
     members: MemberDocument[],
-    clerkOrgId?: string,
+    authProviderOrgId?: string,
     lastUsedOrganizationId?: string,
   ): Promise<OrganizationDocument | null> {
-    if (clerkOrgId) {
-      const orgFromClerk = await this.findAccessibleOrganization(
-        clerkOrgId,
+    if (authProviderOrgId) {
+      const orgFromAuthProvider = await this.findAccessibleOrganization(
+        authProviderOrgId,
         userId,
         members,
       );
-      if (orgFromClerk) {
-        return orgFromClerk;
+      if (orgFromAuthProvider) {
+        return orgFromAuthProvider;
       }
     }
 
     // DB-authoritative active org (epic #735, Phase C): `User.lastUsedOrganizationId`
-    // replaces the Clerk `publicMetadata.organization` routing candidate so the
-    // user's current org survives the Clerk cutover and multi-org switching works
-    // without writing back to Clerk. Validated against live membership; falls
+    // replaces the legacy auth provider `publicMetadata.organization` routing candidate so the
+    // user's current org survives the legacy auth provider cutover and multi-org switching works
+    // without writing back to legacy auth provider. Validated against live membership; falls
     // through when stale (org left/deleted) or unset (pre-cutover users).
     if (lastUsedOrganizationId) {
       const orgFromLastUsed = await this.findAccessibleOrganization(
@@ -318,14 +321,14 @@ export class AuthIdentityResolverService {
   }
 
   private async resolveBrand(
-    publicMetadata: Partial<IClerkPublicMetadata>,
+    publicMetadata: Partial<IAuthPublicMetadata>,
     organizationId: string,
     members: MemberDocument[],
   ): Promise<BrandDocument | null> {
     // DB-authoritative active brand (epic #735, Phase C): `Member.lastUsedBrandId`
-    // is preferred over the Clerk `publicMetadata.brand` routing candidate so a
+    // is preferred over the legacy auth provider `publicMetadata.brand` routing candidate so a
     // brand switch (which persists `lastUsedBrandId`) takes effect without a
-    // Clerk write-back. The metadata candidate stays as a transition fallback for
+    // legacy auth provider write-back. The metadata candidate stays as a transition fallback for
     // members whose `lastUsedBrandId` is not yet set.
     const memberForOrganization = members.find((member) => {
       const memberOrganizationId =
@@ -429,21 +432,21 @@ export class AuthIdentityResolverService {
 
   async resolve(
     user: User,
-    options?: { clerkOrgId?: string },
+    options?: { authProviderOrgId?: string },
   ): Promise<{
     brandId?: string;
-    clerkUserId: string;
+    authProviderUserId: string;
     organizationId?: string;
     resolvedBy: 'lookup' | 'metadata' | 'reconciled';
     userId: string;
   }> {
-    const clerkUserId = user.id;
-    if (!clerkUserId) {
+    const authProviderUserId = user.id;
+    if (!authProviderUserId) {
       throw new UnauthorizedException('Missing user identity');
     }
 
     const publicMetadata =
-      user.publicMetadata as unknown as IClerkPublicMetadata;
+      user.publicMetadata as unknown as IAuthPublicMetadata;
     const resolvedUser = await this.resolveUserId(user, publicMetadata);
     const lastUsedOrganizationId = getRecordId(
       resolvedUser.user,
@@ -458,7 +461,7 @@ export class AuthIdentityResolverService {
       publicMetadata,
       resolvedUser.userId,
       members,
-      options?.clerkOrgId,
+      options?.authProviderOrgId,
       lastUsedOrganizationId,
     );
     let organizationId =
@@ -484,11 +487,11 @@ export class AuthIdentityResolverService {
     }
 
     // Identity is resolved DB-first (User.lastUsedOrganizationId +
-    // Member.lastUsedBrandId), so there is no Clerk publicMetadata write-back
-    // here (epic #735, Phase C — nothing writes identity state back to Clerk).
+    // Member.lastUsedBrandId), so there is no legacy auth provider publicMetadata write-back
+    // here (epic #735, Phase C — nothing writes identity state back to legacy auth provider).
     return {
       brandId,
-      clerkUserId,
+      authProviderUserId,
       organizationId,
       resolvedBy: resolvedUser.resolvedBy,
       userId: resolvedUser.userId,

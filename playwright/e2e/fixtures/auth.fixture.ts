@@ -22,20 +22,20 @@ import { test as base } from './coverage.fixture';
  * HOW AUTHENTICATION BYPASS WORKS
  * ─────────────────────────────────────────────────────────────────────────────
  * 1. Server-side  — proxy.ts detects `__playwright_test` cookie and skips all
- *    Clerk middleware, preventing redirect to /login for protected routes.
+ *    Better Auth middleware, preventing redirect to /login for protected routes.
  *
- * 2. Client-side  — We mock Clerk's Frontend API (clerk.accounts.dev) so that
- *    ClerkProvider's SDK receives a fabricated active session.  With
- *    `isSuperAdmin: true` in publicMetadata the OnboardingGuard will pass
- *    through without checking subscription / onboarding completion.
+ * 2. Client-side  — We inject a fabricated Better Auth state into the page so
+ *    the app-level auth helpers see an active session. With `isSuperAdmin: true`
+ *    in publicMetadata the OnboardingGuard passes without checking subscription
+ *    / onboarding completion.
  *
  * 3. Backend API  — setupApiMocks intercepts all API calls to both the prod
  *    host (api.genfeed.ai) and the local dev host (local.genfeed.ai:3010).
  *
  * Route ordering note: Playwright checks routes in REVERSE registration order
- * (last-registered = highest priority). setupClerkMocks() must therefore be
- * called AFTER setupApiMocks() so its more-specific Clerk patterns take
- * precedence over the generic catch-all in setupApiMocks.
+ * (last-registered = highest priority). setupBetterAuthMocks() must therefore be
+ * called AFTER setupApiMocks() so its more-specific local `/v1/auth/*` patterns
+ * take precedence over the generic catch-all in setupApiMocks.
  *
  * @module auth.fixture
  */
@@ -90,9 +90,9 @@ const AUTOMATION_AUTH_BOOTSTRAP_PATH = '/workflows';
 
 /**
  * Set cookies that signal the E2E bypass to both middleware and tests.
- * __playwright_test  → detected by proxy.ts to skip Clerk middleware
+ * __playwright_test  → detected by proxy.ts to skip Better Auth middleware
  * __session          → identifies the mock session (admin vs user)
- * __client_uat       → Clerk client update timestamp
+ * __client_uat       → Better Auth client update timestamp
  */
 async function setupAuthCookies(
   context: BrowserContext,
@@ -132,7 +132,7 @@ async function setupAuthCookies(
       {
         domain,
         httpOnly: true,
-        name: '__clerk_db_jwt',
+        name: '__better_auth_db_jwt',
         path: '/',
         sameSite: 'Lax' as const,
         secure: false,
@@ -142,7 +142,7 @@ async function setupAuthCookies(
   );
 }
 
-async function injectClerkAuthState(
+async function injectBetterAuthState(
   page: Page,
   mockUser: ReturnType<typeof generateMockUser>,
   publicMetadata: Record<string, unknown>,
@@ -164,7 +164,7 @@ async function injectClerkAuthState(
         user,
       } = authState;
 
-      const clerkState = {
+      const betterAuthState = {
         session_id: sessionData.sessionId,
         sessions: [
           {
@@ -194,22 +194,26 @@ async function injectClerkAuthState(
         user_id: user.id,
       };
 
-      (window as Record<string, unknown>).__clerk_client_state = clerkState;
-      Object.defineProperty(window, '__clerk_is_signed_in', {
+      (window as Record<string, unknown>).__better_auth_client_state =
+        betterAuthState;
+      Object.defineProperty(window, '__better_auth_is_signed_in', {
         configurable: true,
         value: true,
         writable: false,
       });
 
       localStorage.setItem(
-        '__clerk_client_jwt',
+        '__better_auth_client_jwt',
         `mock-jwt-${sessionData.sessionId}`,
       );
       localStorage.setItem(
-        'clerk-db-jwt',
+        'better-auth-db-jwt',
         `mock-db-jwt-${sessionData.sessionId}`,
       );
-      localStorage.setItem('__clerk_client', JSON.stringify(clerkState));
+      localStorage.setItem(
+        '__better_auth_client',
+        JSON.stringify(betterAuthState),
+      );
     },
     {
       authState: {
@@ -222,7 +226,7 @@ async function injectClerkAuthState(
 }
 
 /**
- * Intercept Clerk's Frontend API calls and return a fabricated active session.
+ * Intercept Better Auth's Frontend API calls and return a fabricated active session.
  *
  * MUST be called AFTER setupApiMocks() so these more-specific patterns
  * take priority (Playwright checks routes in reverse registration order).
@@ -230,7 +234,7 @@ async function injectClerkAuthState(
  * publicMetadata includes isSuperAdmin: true so that OnboardingGuard's
  * hasEntitlement check passes without requiring a real Stripe subscription.
  */
-async function setupClerkMocks(
+async function setupBetterAuthMocks(
   page: Page,
   options: MockUserOptions = {},
   session = MOCK_SESSION,
@@ -255,342 +259,51 @@ async function setupClerkMocks(
     role: options.role ?? 'member',
   };
 
-  await injectClerkAuthState(page, mockUser, publicMetadata, session);
+  await injectBetterAuthState(page, mockUser, publicMetadata, session);
 
-  const clerkUserPayload = {
-    email_addresses: [
-      {
-        email_address: mockUser.email,
-        id: 'mock-email-id',
-        verification: { status: 'verified', strategy: 'email_code' },
-      },
-    ],
-    first_name: mockUser.firstName,
-    has_image: true,
-    id: mockUser.id,
-    image_url: mockUser.imageUrl,
-    last_name: mockUser.lastName,
-    organization_memberships: [
-      {
-        created_at: Date.now() - 86400000,
-        id: 'mock-membership-id',
-        organization: {
-          created_at: Date.now() - 86400000,
-          id: mockOrg.id,
-          image_url: mockOrg.imageUrl,
-          logo_url: null,
-          name: mockOrg.name,
-          slug: mockOrg.slug,
-        },
-        permissions: [],
-        role: options.role === 'admin' ? 'org:admin' : 'org:member',
-        updated_at: Date.now(),
-      },
-    ],
-    primary_email_address_id: 'mock-email-id',
-    public_metadata: publicMetadata,
-    publicMetadata,
-    username: null,
-  };
-
-  const clerkSessionPayload = {
-    abandon_at: Date.now() + 7 * 24 * 60 * 60 * 1000,
-    expire_at: Date.now() + 24 * 60 * 60 * 1000,
-    id: session.sessionId,
-    last_active_at: Date.now(),
-    last_active_organization_id: mockOrg.id,
-    status: 'active',
-    user: clerkUserPayload,
-  };
-
-  const isClerkRequest = (url: string): boolean =>
-    url.includes('clerk') || /\/clerk_[^/]+\//.test(url);
-
-  // /v1/client — primary endpoint Clerk SDK calls on init to discover sessions
-  await page.route('**/v1/client**', async (route) => {
-    if (!isClerkRequest(route.request().url())) {
-      await route.continue();
-      return;
-    }
-    await route.fulfill({
-      body: JSON.stringify({
-        response: {
-          id: 'mock-client-id',
-          last_active_session_id: session.sessionId,
-          session_id: session.sessionId,
-          sessions: [clerkSessionPayload],
-          sign_in: null,
-          sign_up: null,
-        },
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
-
-  await page.route('**/v1/dev_browser**', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        id: 'mock-dev-browser-id',
-        object: 'dev_browser',
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
-
-  // /v1/client/sessions/:id/tokens — returns a JWT for active session
-  await page.route('**/v1/client/sessions/*/tokens**', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        jwt: `eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjk5OTk5OTk5OTksImlhdCI6MTcwMDAwMDAwMCwiaXNzIjoiaHR0cHM6Ly9lbmdhZ2VkLXBhbnRoZXItNzEuY2xlcmsuYWNjb3VudHMuZGV2Iiwic2lkIjoiJHtzZXNzaW9uLnNlc3Npb25JZH0iLCJzdWIiOiIke21vY2tVc2VyLmlkfSJ9.mock_signature`,
-        object: 'token',
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
-
-  await page.route('**/*.clerk.accounts.dev/v1/sessions/*', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        expire_at: Date.now() + 24 * 60 * 60 * 1000,
-        expireAt: session.expiresAt,
-        id: session.sessionId,
-        last_active_at: Date.now(),
-        status: 'active',
-        userId: mockUser.id,
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
-  await page.route('**/clerk.genfeed.ai/v1/sessions/*', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        expire_at: Date.now() + 24 * 60 * 60 * 1000,
-        expireAt: session.expiresAt,
-        id: session.sessionId,
-        last_active_at: Date.now(),
-        status: 'active',
-        userId: mockUser.id,
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
-
-  await page.route('**/*.clerk.accounts.dev/v1/users/*', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify(clerkUserPayload),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
-  await page.route('**/clerk.genfeed.ai/v1/users/*', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify(clerkUserPayload),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
-
-  await page.route(
-    '**/*.clerk.accounts.dev/v1/organizations/*',
-    async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({
-          has_image: true,
-          id: mockOrg.id,
-          image_url: mockOrg.imageUrl,
-          logo_url: null,
-          name: mockOrg.name,
-          slug: mockOrg.slug,
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
+  const sessionPayload = {
+    session: {
+      activeOrganizationId: mockOrg.id,
+      expiresAt: session.expiresAt,
+      id: session.sessionId,
+      userId: mockUser.id,
     },
-  );
-  await page.route('**/clerk.genfeed.ai/v1/organizations/*', async (route) => {
+    user: {
+      email: mockUser.email,
+      id: mockUser.id,
+      image: mockUser.imageUrl,
+      name: [mockUser.firstName, mockUser.lastName].filter(Boolean).join(' '),
+      publicMetadata,
+    },
+  };
+
+  await page.route('**/v1/auth/session**', async (route) => {
     await route.fulfill({
-      body: JSON.stringify({
-        has_image: true,
-        id: mockOrg.id,
-        image_url: mockOrg.imageUrl,
-        logo_url: null,
-        name: mockOrg.name,
-        slug: mockOrg.slug,
-      }),
+      body: JSON.stringify(sessionPayload),
       contentType: 'application/json',
       status: 200,
     });
   });
 
-  // /v1/environment — clerk environment/config
-  await page.route('**/v1/environment**', async (route) => {
-    if (!isClerkRequest(route.request().url())) {
-      await route.continue();
-      return;
-    }
+  await page.route('**/v1/auth/token**', async (route) => {
     await route.fulfill({
-      body: JSON.stringify({
-        auth_config: {
-          allowed_origins: [],
-          cookieless_dev: false,
-          single_session_mode: false,
-          url_based_session_syncing: false,
-        },
-        display_config: {
-          branded: false,
-          captcha_public_key: null,
-          captcha_widget_type: null,
-          favicon_image_url: null,
-          home_url: 'http://localhost:3000',
-          logo_image_url: null,
-          preferred_sign_in_strategy: 'password',
-          sign_in_url: '/login',
-          sign_up_url: '/sign-up',
-          support_email: null,
-        },
-        user_settings: {
-          attributes: {},
-          password_settings: {},
-          social: {},
-        },
-      }),
+      body: JSON.stringify({ token: `mock-jwt-${session.sessionId}` }),
       contentType: 'application/json',
       status: 200,
     });
   });
 
-  // Fallback for any other Clerk API calls. Limit to /v1 so Clerk JS assets
-  // can load normally instead of being replaced with JSON.
-  await page.route('**/*.clerk.accounts.dev/v1/**', async (route) => {
+  await page.route('**/v1/auth/jwks**', async (route) => {
     await route.fulfill({
-      body: JSON.stringify({ object: 'null', response: null }),
+      body: JSON.stringify({ keys: [] }),
       contentType: 'application/json',
       status: 200,
     });
   });
 
-  await page.route('**/clerk.genfeed.ai/v1/**', async (route) => {
+  await page.route('**/v1/auth/**', async (route) => {
     await route.fulfill({
-      body: JSON.stringify({ object: 'null', response: null }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
-
-  await page.route('**/clerk_*/**', async (route) => {
-    const url = route.request().url();
-
-    if (url.includes('/v1/client')) {
-      await route.fulfill({
-        body: JSON.stringify({
-          response: {
-            id: 'mock-client-id',
-            last_active_session_id: session.sessionId,
-            session_id: session.sessionId,
-            sessions: [clerkSessionPayload],
-            sign_in: null,
-            sign_up: null,
-          },
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (url.includes('/v1/environment')) {
-      await route.fulfill({
-        body: JSON.stringify({
-          auth_config: {
-            allowed_origins: [],
-            cookieless_dev: false,
-            single_session_mode: false,
-            url_based_session_syncing: false,
-          },
-          display_config: {
-            branded: false,
-            captcha_public_key: null,
-            captcha_widget_type: null,
-            favicon_image_url: null,
-            home_url: 'http://localhost:3000',
-            logo_image_url: null,
-            preferred_sign_in_strategy: 'password',
-            sign_in_url: '/login',
-            sign_up_url: '/sign-up',
-            support_email: null,
-          },
-          user_settings: {
-            attributes: {},
-            password_settings: {},
-            social: {},
-          },
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (url.includes('/v1/client/sessions/') && url.includes('/tokens')) {
-      await route.fulfill({
-        body: JSON.stringify({
-          jwt: `eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjk5OTk5OTk5OTksImlhdCI6MTcwMDAwMDAwMCwiaXNzIjoiaHR0cHM6Ly9lbmdhZ2VkLXBhbnRoZXItNzEuY2xlcmsuYWNjb3VudHMuZGV2Iiwic2lkIjoiJHtzZXNzaW9uLnNlc3Npb25JZH0iLCJzdWIiOiIke21vY2tVc2VyLmlkfSJ9.mock_signature`,
-          object: 'token',
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (url.includes('/v1/sessions/')) {
-      await route.fulfill({
-        body: JSON.stringify({
-          expire_at: Date.now() + 24 * 60 * 60 * 1000,
-          expireAt: session.expiresAt,
-          id: session.sessionId,
-          last_active_at: Date.now(),
-          status: 'active',
-          userId: mockUser.id,
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (url.includes('/v1/users/')) {
-      await route.fulfill({
-        body: JSON.stringify(clerkUserPayload),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (url.includes('/v1/organizations/')) {
-      await route.fulfill({
-        body: JSON.stringify({
-          has_image: true,
-          id: mockOrg.id,
-          image_url: mockOrg.imageUrl,
-          logo_url: null,
-          name: mockOrg.name,
-          slug: mockOrg.slug,
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    await route.fulfill({
-      body: JSON.stringify({ object: 'null', response: null }),
+      body: JSON.stringify({ data: null }),
       contentType: 'application/json',
       status: 200,
     });
@@ -634,9 +347,9 @@ export const test = base.extend<AuthFixtures>({
     };
 
     await setupAuthCookies(context, MOCK_ADMIN_SESSION);
-    // API mocks first (lower priority), then Clerk mocks (higher priority)
+    // API mocks first (lower priority), then Better Auth mocks (higher priority)
     await setupApiMocks(page);
-    await setupClerkMocks(page, adminOptions, MOCK_ADMIN_SESSION);
+    await setupBetterAuthMocks(page, adminOptions, MOCK_ADMIN_SESSION);
     await navigateAfterAuth(page, ADMIN_AUTH_BOOTSTRAP_PATH);
 
     await runFixture(page);
@@ -652,9 +365,9 @@ export const test = base.extend<AuthFixtures>({
     const networkGuard = await setupStrictNetworkGuard(page);
 
     await setupAuthCookies(context);
-    // API mocks first (lower priority), then Clerk mocks (higher priority)
+    // API mocks first (lower priority), then Better Auth mocks (higher priority)
     await setupApiMocks(page);
-    await setupClerkMocks(page, {}, MOCK_SESSION);
+    await setupBetterAuthMocks(page, {}, MOCK_SESSION);
     await navigateAfterAuth(page, APP_AUTH_BOOTSTRAP_PATH);
 
     await runFixture(page);
@@ -666,7 +379,7 @@ export const test = base.extend<AuthFixtures>({
 
     await setupAuthCookies(context);
     await setupApiMocks(page);
-    await setupClerkMocks(page, {}, MOCK_SESSION);
+    await setupBetterAuthMocks(page, {}, MOCK_SESSION);
     await mockWorkflowCrud(page, []);
     await mockWorkflowExecutions(page, []);
     await mockWorkflowTemplates(page, []);
@@ -680,22 +393,10 @@ export const test = base.extend<AuthFixtures>({
     const networkGuard = await setupStrictNetworkGuard(page);
     await setupApiMocks(page);
 
-    // Return unauthenticated state from Clerk
-    await page.route('**/v1/client**', async (route) => {
-      if (!route.request().url().includes('clerk')) {
-        await route.continue();
-        return;
-      }
+    // Return unauthenticated state from Better Auth
+    await page.route('**/v1/auth/session**', async (route) => {
       await route.fulfill({
-        body: JSON.stringify({
-          response: {
-            id: 'mock-client-id',
-            last_active_session_id: null,
-            sessions: [],
-            sign_in: null,
-            sign_up: null,
-          },
-        }),
+        body: JSON.stringify({ session: null, user: null }),
         contentType: 'application/json',
         status: 200,
       });
@@ -726,7 +427,7 @@ export async function createAuthenticatedPage(
 
   await setupAuthCookies(context, session);
   await setupApiMocks(page);
-  await setupClerkMocks(page, options, session);
+  await setupBetterAuthMocks(page, options, session);
   await navigateAfterAuth(page, bootstrapPath);
 
   return page;
@@ -745,21 +446,9 @@ export async function simulateLogout(page: Page): Promise<void> {
 }
 
 export async function simulateSessionExpiry(page: Page): Promise<void> {
-  await page.route('**/v1/client**', async (route) => {
-    if (!route.request().url().includes('clerk')) {
-      await route.continue();
-      return;
-    }
+  await page.route('**/v1/auth/session**', async (route) => {
     await route.fulfill({
-      body: JSON.stringify({
-        response: {
-          id: 'mock-client-id',
-          last_active_session_id: null,
-          sessions: [],
-          sign_in: null,
-          sign_up: null,
-        },
-      }),
+      body: JSON.stringify({ session: null, user: null }),
       contentType: 'application/json',
       status: 200,
     });

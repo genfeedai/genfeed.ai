@@ -1,12 +1,12 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useBrandId } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   type AgentCampaign,
   AgentCampaignsService,
 } from '@genfeedai/services/automation/agent-campaigns.service';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useQuery } from '@tanstack/react-query';
 
 export interface UseAgentCampaignsOptions {
@@ -22,7 +22,7 @@ export interface UseAgentCampaignsReturn {
 export function useAgentCampaigns(
   options: UseAgentCampaignsOptions = {},
 ): UseAgentCampaignsReturn {
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const brandId = useBrandId();
 
   const {

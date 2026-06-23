@@ -1,12 +1,12 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { NewslettersController } from '@api/collections/newsletters/controllers/newsletters.controller';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { User } from '@clerk/backend';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   extractRequestContext: vi.fn().mockReturnValue({
     organizationId: '507f1f77bcf86cd799439012',
     userId: '507f1f77bcf86cd799439011',

@@ -11,9 +11,9 @@ export function isEEEnabled(): boolean {
 /**
  * Cloud bridge detection.
  *
- * Returns true when the local app has an active Clerk session
+ * Returns true when the local app has an active Better Auth session
  * connected to Genfeed Cloud (hybrid local + cloud mode).
  */
 export function isCloudConnected(): boolean {
-  return !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  return process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED !== 'false';
 }

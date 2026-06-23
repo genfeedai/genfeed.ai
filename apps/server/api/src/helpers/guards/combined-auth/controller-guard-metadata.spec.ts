@@ -1,5 +1,5 @@
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { AvatarVideoController } from '@api/collections/videos/controllers/avatar-video.controller';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { RouterController } from '@api/services/router/router.controller';
@@ -14,14 +14,14 @@ describe('controller auth guard metadata', () => {
   it('keeps bare controllers on the global CombinedAuthGuard path only', () => {
     const guards = getControllerGuards(RouterController);
 
-    expect(guards).not.toContain(ClerkGuard);
+    expect(guards).not.toContain(BetterAuthGuard);
     expect(guards).toEqual([]);
   });
 
-  it('keeps business authorization guards without re-adding ClerkGuard', () => {
+  it('keeps business authorization guards without re-adding BetterAuthGuard', () => {
     const guards = getControllerGuards(AvatarVideoController);
 
-    expect(guards).not.toContain(ClerkGuard);
+    expect(guards).not.toContain(BetterAuthGuard);
     expect(guards).toEqual([SubscriptionGuard, CreditsGuard]);
   });
 });

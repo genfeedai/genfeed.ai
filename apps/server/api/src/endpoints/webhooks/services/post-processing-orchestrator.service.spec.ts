@@ -73,7 +73,7 @@ describe('PostProcessingOrchestratorService', () => {
         _id: 'test-object-id',
         category: IngredientCategory.IMAGE,
         organization: 'test-object-id',
-        user: { _id: 'test-object-id', clerkId: 'clerk_1' },
+        user: { _id: 'test-object-id', authProviderId: 'authProvider_1' },
       } as unknown as IngredientEntity;
 
       expect(() =>
@@ -88,7 +88,7 @@ describe('PostProcessingOrchestratorService', () => {
         _id: 'test-object-id',
         category: IngredientCategory.IMAGE,
         organization: 'test-object-id',
-        user: { _id: 'test-object-id', clerkId: 'clerk_1' },
+        user: { _id: 'test-object-id', authProviderId: 'authProvider_1' },
       } as unknown as IngredientEntity;
 
       expect(() =>

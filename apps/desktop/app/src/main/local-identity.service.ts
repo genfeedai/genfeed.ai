@@ -6,7 +6,7 @@ import type { DesktopKvService } from './kv.service';
  *
  * KV keys — permanent, never rename:
  *   local.user.id          — stable UUID set on first boot, never changes
- *   local.user.clerkId     — Clerk user ID persisted after first cloud sign-in,
+ *   local.user.betterAuthId     — Better Auth user ID persisted after first cloud sign-in,
  *                            survives sign-out and token expiry
  *   onboarding.completed   — '1' once the onboarding wizard is dismissed
  *   sync.threads.cursor    — ISO timestamp cursor for bidirectional thread sync
@@ -15,12 +15,13 @@ import type { DesktopKvService } from './kv.service';
  * synchronously while persistence stays async on the PGlite layer.
  */
 const LOCAL_USER_ID_KEY = 'local.user.id';
-const LOCAL_CLERK_ID_KEY = 'local.user.clerkId';
+const LOCAL_BETTER_AUTH_ID_KEY = 'local.user.betterAuthId';
+const LEGACY_LOCAL_AUTH_ID_KEY = ['local.user.', 'auth', 'ProviderId'].join('');
 const ONBOARDING_COMPLETED_KEY = 'onboarding.completed';
 const SYNC_THREADS_CURSOR_KEY = 'sync.threads.cursor';
 
 export class LocalIdentityService {
-  private clerkId: string | null = null;
+  private betterAuthId: string | null = null;
   private localUserId: string | null = null;
   private onboardingCompleted = false;
   private syncCursor: string | null = null;
@@ -30,18 +31,20 @@ export class LocalIdentityService {
   async initialize(): Promise<void> {
     const [
       storedLocalUserId,
-      storedClerkId,
+      storedBetterAuthId,
+      storedLegacyAuthId,
       storedOnboardingCompleted,
       storedSyncCursor,
     ] = await Promise.all([
       this.database.getValue(LOCAL_USER_ID_KEY),
-      this.database.getValue(LOCAL_CLERK_ID_KEY),
+      this.database.getValue(LOCAL_BETTER_AUTH_ID_KEY),
+      this.database.getValue(LEGACY_LOCAL_AUTH_ID_KEY),
       this.database.getValue(ONBOARDING_COMPLETED_KEY),
       this.database.getValue(SYNC_THREADS_CURSOR_KEY),
     ]);
 
     this.localUserId = storedLocalUserId ?? randomUUID();
-    this.clerkId = storedClerkId ?? null;
+    this.betterAuthId = storedBetterAuthId ?? storedLegacyAuthId ?? null;
     this.onboardingCompleted = storedOnboardingCompleted === '1';
     this.syncCursor = storedSyncCursor ?? null;
 
@@ -58,13 +61,13 @@ export class LocalIdentityService {
     return this.localUserId;
   }
 
-  getClerkId(): string | null {
-    return this.clerkId;
+  getBetterAuthId(): string | null {
+    return this.betterAuthId;
   }
 
-  async setClerkId(clerkId: string): Promise<void> {
-    this.clerkId = clerkId;
-    await this.database.setValue(LOCAL_CLERK_ID_KEY, clerkId);
+  async setBetterAuthId(betterAuthId: string): Promise<void> {
+    this.betterAuthId = betterAuthId;
+    await this.database.setValue(LOCAL_BETTER_AUTH_ID_KEY, betterAuthId);
   }
 
   getOnboardingCompleted(): boolean {

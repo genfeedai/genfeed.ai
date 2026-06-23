@@ -1,6 +1,6 @@
 /**
  * Authentication E2E Tests
- * Tests authentication flows with Clerk mocked
+ * Tests authentication data setup and request metadata flows.
  */
 
 import { MembersService } from '@api/collections/members/services/members.service';
@@ -20,10 +20,6 @@ import {
   E2ETestModule,
   TestDatabaseHelper,
 } from '@api-test/e2e-test.module';
-import {
-  createMockClerkClient,
-  createMockClerkService,
-} from '@api-test/mocks/external-services.mocks';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -72,7 +68,7 @@ describe('Authentication E2E Tests', () => {
     // Create test user
     testUser = createTestUser({
       _id: generateIdString(),
-      clerkId: 'clerk_test_user_123',
+      authProviderId: 'authProvider_test_user_123',
       email: 'auth-test@example.com',
     });
 
@@ -102,110 +98,6 @@ describe('Authentication E2E Tests', () => {
     ]);
   });
 
-  describe('Clerk Service Mocking', () => {
-    it('should mock Clerk getUser correctly', async () => {
-      const mockClerkService = createMockClerkService();
-
-      const user = await mockClerkService.getUser('clerk_test_user_123');
-
-      expect(user).toBeDefined();
-      expect(user.id).toBe('clerk-user-id');
-      expect(user.emailAddresses).toHaveLength(1);
-      expect(user.publicMetadata).toHaveProperty('organization');
-      expect(user.publicMetadata).toHaveProperty('user');
-    });
-
-    it('should mock Clerk getUserByEmail correctly', async () => {
-      const mockClerkService = createMockClerkService();
-
-      const user = await mockClerkService.getUserByEmail('test@example.com');
-
-      // Default mock returns null for getUserByEmail
-      expect(user).toBeNull();
-    });
-
-    it('should mock Clerk updateUserPublicMetadata correctly', async () => {
-      const mockClerkService = createMockClerkService();
-
-      const result = await mockClerkService.updateUserPublicMetadata(
-        'clerk_user_id',
-        {
-          organization: generateIdString(),
-          user: generateIdString(),
-        },
-      );
-
-      expect(result).toBeDefined();
-      expect(mockClerkService.updateUserPublicMetadata).toHaveBeenCalled();
-    });
-
-    it('should mock Clerk createInvitation correctly', async () => {
-      const mockClerkService = createMockClerkService();
-
-      const invitation =
-        await mockClerkService.createInvitation('invite@example.com');
-
-      expect(invitation).toBeDefined();
-      expect(invitation.id).toBe('mock-invitation-id');
-      expect(invitation.emailAddress).toBe('invite@example.com');
-    });
-  });
-
-  describe('Clerk Client Mocking', () => {
-    it('should mock ClerkClient users.getUser correctly', async () => {
-      const mockClerkClient = createMockClerkClient();
-
-      const user = await mockClerkClient.users.getUser('clerk_test_user_123');
-
-      expect(user).toBeDefined();
-      expect(user.id).toBe('clerk-user-id');
-      expect(user.firstName).toBe('Test');
-      expect(user.lastName).toBe('User');
-    });
-
-    it('should mock ClerkClient users.getUserList correctly', async () => {
-      const mockClerkClient = createMockClerkClient();
-
-      const result = await mockClerkClient.users.getUserList({
-        emailAddress: ['test@example.com'],
-      });
-
-      expect(result).toBeDefined();
-      expect(result.data).toEqual([]);
-    });
-
-    it('should mock ClerkClient users.updateUserMetadata correctly', async () => {
-      const mockClerkClient = createMockClerkClient();
-
-      const result = await mockClerkClient.users.updateUserMetadata(
-        'clerk_user_id',
-        {
-          publicMetadata: { organization: 'org_123' },
-        },
-      );
-
-      expect(result).toBeDefined();
-      expect(mockClerkClient.users.updateUserMetadata).toHaveBeenCalledWith(
-        'clerk_user_id',
-        {
-          publicMetadata: { organization: 'org_123' },
-        },
-      );
-    });
-
-    it('should mock ClerkClient invitations.createInvitation correctly', async () => {
-      const mockClerkClient = createMockClerkClient();
-
-      const invitation = await mockClerkClient.invitations.createInvitation({
-        emailAddress: 'new-invite@example.com',
-        publicMetadata: { role: 'member' },
-      });
-
-      expect(invitation).toBeDefined();
-      expect(invitation.id).toBe('mock-invitation-id');
-    });
-  });
-
   describe('User Verification Flow', () => {
     it('should verify user exists in database', async () => {
       const count = await dbHelper.getDocumentCount('users');
@@ -230,7 +122,7 @@ describe('Authentication E2E Tests', () => {
 
   describe('Authentication Token Validation', () => {
     it('should mock valid JWT token parsing', () => {
-      // The E2E test module uses MockClerkGuard which always returns true
+      // The E2E test module uses MockBetterAuthGuard which always returns true
       // This test verifies the mock is working correctly
       const mockJwtPayload = {
         email: testUser.email,
@@ -239,10 +131,10 @@ describe('Authentication E2E Tests', () => {
           organization: testOrganization._id.toString(),
           user: testUser._id.toString(),
         },
-        sub: testUser.clerkId,
+        sub: testUser.authProviderId,
       };
 
-      expect(mockJwtPayload.sub).toBe('clerk_test_user_123');
+      expect(mockJwtPayload.sub).toBe('authProvider_test_user_123');
       expect(mockJwtPayload.publicMetadata.isOwner).toBe(true);
     });
 
@@ -290,7 +182,7 @@ describe('Authentication E2E Tests', () => {
     it('should verify user can be member of different organizations with different roles', async () => {
       const anotherUser = createTestUser({
         _id: generateIdString(),
-        clerkId: 'clerk_another_user',
+        authProviderId: 'authProvider_another_user',
         email: 'another@example.com',
       });
 
@@ -308,54 +200,16 @@ describe('Authentication E2E Tests', () => {
     });
   });
 
-  describe('Session Management Mocking', () => {
-    it('should mock session list retrieval', async () => {
-      const mockClerkClient = createMockClerkClient();
-
-      const sessions = await mockClerkClient.sessions.getSessionList({});
-
-      expect(sessions).toBeDefined();
-      expect(sessions.data).toEqual([]);
-    });
-
-    it('should mock session revocation', async () => {
-      const mockClerkClient = createMockClerkClient();
-
-      const result =
-        await mockClerkClient.sessions.revokeSession('session_123');
-
-      expect(result).toBeDefined();
-      expect(mockClerkClient.sessions.revokeSession).toHaveBeenCalledWith(
-        'session_123',
-      );
-    });
-  });
-
   describe('Error Scenarios', () => {
     it('should handle non-existent user gracefully', async () => {
-      const mockClerkService = createMockClerkService();
+      const usersService = moduleRef.get(UsersService);
 
-      // Configure mock to return null for specific call
-      mockClerkService.getUserByEmail = vi.fn().mockResolvedValue(null);
-
-      const user = await mockClerkService.getUserByEmail(
-        'nonexistent@example.com',
+      const user = await usersService.findOne(
+        { email: 'nonexistent@example.com' },
+        [],
       );
 
       expect(user).toBeNull();
-    });
-
-    it('should handle Clerk API errors gracefully', async () => {
-      const mockClerkService = createMockClerkService();
-
-      // Configure mock to throw an error
-      mockClerkService.getUser = vi
-        .fn()
-        .mockRejectedValue(new Error('Clerk API error'));
-
-      await expect(mockClerkService.getUser('invalid_id')).rejects.toThrow(
-        'Clerk API error',
-      );
     });
   });
 });

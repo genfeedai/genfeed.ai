@@ -1,8 +1,8 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
-import type { User } from '@clerk/backend';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import type {
   AdsChannel,
   AdsResearchMetric,

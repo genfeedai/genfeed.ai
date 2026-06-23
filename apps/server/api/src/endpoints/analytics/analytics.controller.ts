@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { BotsService } from '@api/collections/bots/services/bots.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -32,11 +33,11 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
-} from '@api/helpers/utils/clerk/clerk.util';
+} from '@api/helpers/utils/auth/auth.util';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -44,7 +45,6 @@ import { InstagramService } from '@api/services/integrations/instagram/services/
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import type { User } from '@clerk/backend';
 import {
   CredentialPlatform,
   IngredientCategory,

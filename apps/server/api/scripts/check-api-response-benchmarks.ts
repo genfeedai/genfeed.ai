@@ -22,7 +22,6 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import {
   createTestBrand,
@@ -38,7 +37,6 @@ import {
   E2ETestModule,
   TestDatabaseHelper,
 } from '@api-test/e2e-test.module';
-import type { User } from '@clerk/backend';
 import {
   INestApplication,
   type NestMiddleware,
@@ -79,9 +77,14 @@ type ApiBenchmarkCliOptions = {
 type ApiBenchmarkHeaders = {
   Authorization: string;
   'x-brand-id': string;
-  'x-clerk-user-id': string;
+  'x-authProvider-user-id': string;
   'x-organization-id': string;
   'x-user-id': string;
+};
+
+type ApiBenchmarkUser = {
+  id: string;
+  publicMetadata?: Record<string, unknown>;
 };
 
 type ApiBenchmarkHarness = {
@@ -153,7 +156,7 @@ type ApiBenchmarkRunResult = {
 
 type ApiBenchmarkSeedState = {
   brandId: string;
-  clerkUserId: string;
+  authProviderUserId: string;
   organizationId: string;
   userId: string;
 };
@@ -450,10 +453,6 @@ async function createBenchmarkHarness(): Promise<ApiBenchmarkHarness> {
         useValue: {},
       },
       {
-        provide: ClerkService,
-        useValue: {},
-      },
-      {
         provide: RequestContextCacheService,
         useValue: {},
       },
@@ -503,7 +502,7 @@ async function createBenchmarkHarness(): Promise<ApiBenchmarkHarness> {
     headers: {
       Authorization: 'Bearer benchmark-token',
       'x-brand-id': seedState.brandId,
-      'x-clerk-user-id': seedState.clerkUserId,
+      'x-authProvider-user-id': seedState.authProviderUserId,
       'x-organization-id': seedState.organizationId,
       'x-user-id': seedState.userId,
     },
@@ -514,15 +513,16 @@ async function createBenchmarkHarness(): Promise<ApiBenchmarkHarness> {
 
 function createBenchmarkAuthMiddleware(): NestMiddleware['use'] {
   return (req, _res, next) => {
-    const clerkUserId =
-      readHeaderValue(req.headers['x-clerk-user-id']) ?? 'clerk-benchmark-user';
+    const authProviderUserId =
+      readHeaderValue(req.headers['x-authProvider-user-id']) ??
+      'authProvider-benchmark-user';
     const organizationId =
       readHeaderValue(req.headers['x-organization-id']) ?? '';
     const userId = readHeaderValue(req.headers['x-user-id']) ?? '';
     const brandId = readHeaderValue(req.headers['x-brand-id']) ?? '';
 
     const currentUser = {
-      id: clerkUserId,
+      id: authProviderUserId,
       publicMetadata: {
         brand: brandId,
         email: 'benchmark@example.com',
@@ -531,9 +531,9 @@ function createBenchmarkAuthMiddleware(): NestMiddleware['use'] {
         organization: organizationId,
         user: userId,
       },
-    } as User;
+    } as ApiBenchmarkUser;
 
-    (req as typeof req & { user?: User }).user = currentUser;
+    (req as typeof req & { user?: ApiBenchmarkUser }).user = currentUser;
     next();
   };
 }
@@ -545,7 +545,7 @@ async function seedBenchmarkData(
 
   const user = createTestUser({
     _id: randomUUID(SEED_USER_ID),
-    clerkId: 'clerk_api_benchmark_user',
+    authProviderId: 'authProvider_api_benchmark_user',
     email: 'api-benchmark@example.com',
   });
   const role = {
@@ -647,7 +647,7 @@ async function seedBenchmarkData(
 
   return {
     brandId: String(brands[0]?._id ?? ''),
-    clerkUserId: user.clerkId,
+    authProviderUserId: user.authProviderId,
     organizationId: String(organization._id),
     userId: String(user._id),
   };

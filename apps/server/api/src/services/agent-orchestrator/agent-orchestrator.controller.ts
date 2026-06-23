@@ -1,17 +1,17 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateAgentGoalDto } from '@api/collections/agent-goals/dto/create-agent-goal.dto';
 import { UpdateAgentGoalDto } from '@api/collections/agent-goals/dto/update-agent-goal.dto';
 import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   AgentOrchestratorService,
   type AgentPageContext,
 } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AGENT_MODEL_TURN_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
-import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -211,8 +211,8 @@ export class AgentOrchestratorController {
   }
 
   private async resolveMongoUserId(user: User): Promise<string> {
-    const clerkId = user.id;
-    if (!clerkId) {
+    const authProviderId = user.id;
+    if (!authProviderId) {
       throw new UnauthorizedException(
         'Missing user identity. Please sign in again.',
       );
@@ -221,7 +221,7 @@ export class AgentOrchestratorController {
     const { user: metadataUserId } = getPublicMetadata(user);
     if (metadataUserId) {
       const metadataUserDoc = await this.usersService.findOne(
-        { _id: metadataUserId, clerkId },
+        { _id: metadataUserId, authProviderId },
         [],
       );
       if (metadataUserDoc?._id) {
@@ -229,7 +229,7 @@ export class AgentOrchestratorController {
       }
     }
 
-    const dbUser = await this.usersService.findOne({ clerkId }, []);
+    const dbUser = await this.usersService.findOne({ authProviderId }, []);
     if (!dbUser?._id) {
       throw new UnauthorizedException('User account not found');
     }

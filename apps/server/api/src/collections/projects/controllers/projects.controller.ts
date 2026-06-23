@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateProjectDto } from '@api/collections/projects/dto/create-project.dto';
 import { ProjectQueryDto } from '@api/collections/projects/dto/project-query.dto';
 import { UpdateProjectDto } from '@api/collections/projects/dto/update-project.dto';
@@ -8,11 +9,10 @@ import {
 import { ProjectsService } from '@api/collections/projects/services/projects.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { User } from '@clerk/backend';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { ProjectSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

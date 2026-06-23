@@ -38,13 +38,9 @@ const DEFAULT_ALLOWED_HOSTS = [
   'cdn.genfeed.ai',
   'fonts.googleapis.com',
   'fonts.gstatic.com',
-  'img.clerk.com',
-  'images.clerk.dev',
 ];
 
 const DEFAULT_ALLOWED_HOST_SUFFIXES = [
-  '.clerk.accounts.dev',
-  '.clerk.com',
   '.google-analytics.com',
   '.googletagmanager.com',
 ];

@@ -40,9 +40,8 @@ export default defineConfig({
   // CI retries (2) would triple a failing test's wall-clock and push the shard
   // past its timeout. A genuine failure should fail fast and visibly here.
   retries: 0,
-  // Coverage runs the mocked app-core suite only — never clerk-setup (real
-  // Clerk) or app-authed (depends on clerk-setup). Inheriting them would make
-  // assertRealClerkEnv() throw when CLERK_SECRET_KEY is the CI mock placeholder,
+  // Coverage runs the mocked app-core suite only, never the opt-in authenticated
+  // Better Auth project. Inheriting it would require an E2E session token,
   // silently failing two projects on every coverage run.
   projects: baseConfig.projects?.filter(
     (project) => project.name === 'app-core',

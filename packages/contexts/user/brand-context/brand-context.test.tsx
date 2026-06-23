@@ -16,7 +16,7 @@ const useParamsMock = vi.fn();
 const useUserMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => useAuthMock(),
   useUser: () => useUserMock(),
 }));
@@ -30,8 +30,8 @@ vi.mock('../internal/context-authed-service', () => ({
   useContextAuthedService: () => useAuthedServiceMock,
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
-  getClerkPublicData: vi.fn((user: { publicMetadata?: unknown }) => {
+vi.mock('@helpers/auth/auth.helper', () => ({
+  getAuthPublicData: vi.fn((user: { publicMetadata?: unknown }) => {
     const meta = (user?.publicMetadata ?? {}) as Record<string, string>;
     return { brand: meta.brand ?? '', organization: meta.organization ?? '' };
   }),
@@ -135,7 +135,7 @@ describe('BrandProvider', () => {
       isLoaded: true,
       isSignedIn: true,
       orgId: 'org_123',
-      userId: 'clerk_123',
+      userId: 'authProvider_123',
     });
     useUserMock.mockReturnValue({
       user: {

@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 /**
  * Core integration proof — the spec that actually justifies this whole suite.
  *
- * Hits the LIVE released container's API in LOCAL mode (no Clerk, no secrets).
+ * Hits the LIVE released container's API in LOCAL mode (no Better Auth, no secrets).
  * A single `GET /v1/auth/bootstrap` exercises the entire boot chain:
  *   CombinedAuthGuard injects local-admin (combined-auth.guard.ts) →
  *   Prisma reads the rows SelfHostedSeedService wrote on boot

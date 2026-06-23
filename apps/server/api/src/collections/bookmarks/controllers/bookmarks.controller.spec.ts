@@ -1,10 +1,10 @@
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BookmarksController } from '@api/collections/bookmarks/controllers/bookmarks.controller';
 import { BookmarksQueryDto } from '@api/collections/bookmarks/dto/bookmarks-query.dto';
 import { CreateBookmarkDto } from '@api/collections/bookmarks/dto/create-bookmark.dto';
 import { UpdateBookmarkDto } from '@api/collections/bookmarks/dto/update-bookmark.dto';
 import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
-import type { User } from '@clerk/backend';
 import { BookmarkCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -77,7 +77,7 @@ describe('BookmarksController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

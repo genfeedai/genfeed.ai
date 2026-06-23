@@ -9,18 +9,18 @@ const useAuthMock = vi.fn();
 const getPlaywrightAuthStateMock = vi.fn();
 const hasPlaywrightJwtTokenMock = vi.fn();
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => useAuthMock(),
   useUser: () => ({ user: null }),
 }));
 
-vi.mock('@genfeedai/helpers/auth/clerk.helper', () => ({
+vi.mock('@genfeedai/helpers/auth/auth.helper', () => ({
   getPlaywrightAuthState: () => getPlaywrightAuthStateMock(),
   hasPlaywrightJwtToken: () => hasPlaywrightJwtTokenMock(),
   resolveAuthToken: (getToken: () => Promise<string | null>) => getToken(),
 }));
 
-// Better Auth off (default): the shared identity dispatcher resolves to Clerk.
+// Better Auth off (default): the shared identity dispatcher resolves to legacy auth provider.
 vi.mock('@genfeedai/auth-client', () => ({
   isBetterAuthEnabled: () => false,
   useBetterAuthIdentity: vi.fn(),
@@ -79,9 +79,9 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
 describe('ProtectedProviders', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Set a fake Clerk key so the LOCAL mode early-return in ProtectedAuthGate is not triggered,
+    // Set a fake legacy auth provider key so the LOCAL mode early-return in ProtectedAuthGate is not triggered,
     // ensuring the gate logic under test remains reachable.
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_fake';
+    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test_fake';
     getPlaywrightAuthStateMock.mockReturnValue(null);
     hasPlaywrightJwtTokenMock.mockReturnValue(false);
     useAuthMock.mockReturnValue({
@@ -95,7 +95,7 @@ describe('ProtectedProviders', () => {
   });
 
   afterEach(() => {
-    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
   });
 
   it('renders children through the provider stack', async () => {

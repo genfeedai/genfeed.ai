@@ -1,12 +1,12 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsLensesController } from '@api/collections/elements/lenses/controllers/lenses.controller';
 import { CreateElementLensDto } from '@api/collections/elements/lenses/dto/create-lens.dto';
 import { UpdateElementLensDto } from '@api/collections/elements/lenses/dto/update-lens.dto';
 import { ElementsLensesService } from '@api/collections/elements/lenses/services/lenses.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
-import type { User } from '@clerk/backend';
 import { LensSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -56,7 +56,7 @@ describe('ElementsLensesController', () => {
       isSuperAdmin: true,
       organization: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
-    } as IClerkPublicMetadata,
+    } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockRegularUser = {
@@ -66,7 +66,7 @@ describe('ElementsLensesController', () => {
       isSuperAdmin: false,
       organization: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
-    } as IClerkPublicMetadata,
+    } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockRequest = {

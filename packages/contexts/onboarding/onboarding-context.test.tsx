@@ -11,7 +11,7 @@ const refetchUserMock = vi.fn();
 const getInstanceMock = vi.fn();
 const updateOnboardingMock = vi.fn();
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: getTokenMock,
   }),

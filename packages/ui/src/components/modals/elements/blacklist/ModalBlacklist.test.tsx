@@ -29,7 +29,7 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
     }),
 }));
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useUser: () => ({
     user: {
       publicMetadata: {},

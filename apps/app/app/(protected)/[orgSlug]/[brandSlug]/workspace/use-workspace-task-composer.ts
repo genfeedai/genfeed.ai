@@ -1,7 +1,7 @@
-import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { PromptCategory, SystemPromptKey } from '@genfeedai/enums';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useWebsocketPrompt } from '@hooks/utils/use-websocket-prompt/use-websocket-prompt';
 import { Prompt } from '@models/content/prompt.model';
 import { PromptsService } from '@services/content/prompts.service';
@@ -47,7 +47,7 @@ export function useWorkspaceTaskComposer({
   onOpenChange,
   onTaskCreated,
 }: UseWorkspaceTaskComposerParams) {
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const { brandId, brands, organizationId, selectedBrand } = useBrand();
   const [taskRequest, setTaskRequest] = useState('');
   const [taskOutputType, setTaskOutputType] =

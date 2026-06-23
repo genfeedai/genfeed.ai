@@ -27,7 +27,7 @@ describe('UsersController', () => {
   const settingsId = '507f191e810c19729de860ee'.toString();
 
   const mockUser = {
-    id: 'clerk_user_123',
+    id: 'authProvider_user_123',
     publicMetadata: { organization: orgId, user: userId },
   } as never;
 
@@ -419,11 +419,11 @@ describe('UsersController', () => {
         null,
       );
       expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
-        'clerk_user_123',
+        'authProvider_user_123',
       );
       expect(
         accessBootstrapCacheService.invalidateForUser,
-      ).toHaveBeenCalledWith('clerk_user_123');
+      ).toHaveBeenCalledWith('authProvider_user_123');
     });
   });
 

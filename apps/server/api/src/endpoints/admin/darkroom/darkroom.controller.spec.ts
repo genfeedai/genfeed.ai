@@ -20,6 +20,7 @@ vi.mock('@api/helpers/utils/objectid/objectid.util', () => ({
   },
 }));
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { DarkroomController } from '@api/endpoints/admin/darkroom/darkroom.controller';
 import { DarkroomService } from '@api/endpoints/admin/darkroom/darkroom.service';
 import {
@@ -35,7 +36,6 @@ import {
   UpdateCharacterDto,
 } from '@api/endpoints/admin/darkroom/dto';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
-import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import type { Request } from 'express';

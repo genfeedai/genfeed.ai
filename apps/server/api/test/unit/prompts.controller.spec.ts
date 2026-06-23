@@ -4,7 +4,7 @@ vi.mock('@helpers/utils/deserializer/deserializer.util', () => ({
   getDeserializer: vi.fn((value) => Promise.resolve(value)),
 }));
 
-vi.mock('@helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@helpers/utils/authProvider/authProvider.util', () => ({
   getPublicMetadata: vi.fn().mockReturnValue({
     organization: '507f1f77bcf86cd799439011',
     user: '507f1f77bcf86cd799439012',

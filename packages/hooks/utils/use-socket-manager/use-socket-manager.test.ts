@@ -3,8 +3,8 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getTokenMock = vi.fn().mockResolvedValue('mock-token');
-const resolveClerkTokenMock = vi.fn().mockResolvedValue('mock-token');
-const useAuthMock = vi.fn();
+const resolveAuthTokenMock = vi.fn().mockResolvedValue('mock-token');
+const useAuthIdentityMock = vi.fn();
 const socketManagerGetInstanceMock = vi.fn(() => ({
   cleanup: vi.fn(),
   connect: vi.fn(),
@@ -20,13 +20,13 @@ const socketManagerGetInstanceMock = vi.fn(() => ({
   unsubscribe: vi.fn(),
 }));
 
-vi.mock('@clerk/nextjs', () => ({
-  useAuth: () => useAuthMock(),
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => useAuthIdentityMock(),
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
+vi.mock('@helpers/auth/auth.helper', () => ({
   getPlaywrightAuthState: vi.fn(() => null),
-  resolveAuthToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
+  resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
 }));
 
 vi.mock('@genfeedai/services/core/socket-manager.service', () => ({
@@ -45,8 +45,8 @@ describe('useSocketManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getTokenMock.mockResolvedValue('mock-token');
-    resolveClerkTokenMock.mockResolvedValue('mock-token');
-    useAuthMock.mockReturnValue({
+    resolveAuthTokenMock.mockResolvedValue('mock-token');
+    useAuthIdentityMock.mockReturnValue({
       getToken: getTokenMock,
       isLoaded: true,
       isSignedIn: true,
@@ -78,7 +78,7 @@ describe('useSocketManager', () => {
     renderHook(() => useSocketManager());
 
     await waitFor(() => {
-      expect(resolveClerkTokenMock).toHaveBeenCalledWith(getTokenMock);
+      expect(resolveAuthTokenMock).toHaveBeenCalledWith(getTokenMock);
     });
 
     expect(socketManagerGetInstanceMock).toHaveBeenCalledWith(
@@ -89,7 +89,7 @@ describe('useSocketManager', () => {
   });
 
   it('stays offline until auth is loaded and signed in', async () => {
-    useAuthMock.mockReturnValue({
+    useAuthIdentityMock.mockReturnValue({
       getToken: getTokenMock,
       isLoaded: false,
       isSignedIn: false,
@@ -102,12 +102,12 @@ describe('useSocketManager', () => {
     });
 
     expect(result.current.isReady).toBe(false);
-    expect(resolveClerkTokenMock).not.toHaveBeenCalled();
+    expect(resolveAuthTokenMock).not.toHaveBeenCalled();
     expect(socketManagerGetInstanceMock).not.toHaveBeenCalled();
   });
 
   it('does not connect when token resolution returns null', async () => {
-    resolveClerkTokenMock.mockResolvedValue(null);
+    resolveAuthTokenMock.mockResolvedValue(null);
 
     const { result } = renderHook(() => useSocketManager());
 

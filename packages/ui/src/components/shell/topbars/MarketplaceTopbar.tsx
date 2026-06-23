@@ -1,7 +1,7 @@
 'use client';
 
-import { UserButton, useAuth } from '@clerk/nextjs';
 import { ButtonSize } from '@genfeedai/enums';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import TopbarPublic from '@ui/topbars/public/TopbarPublic';
@@ -17,7 +17,7 @@ const NAV_LINKS = [
 ];
 
 export default function MarketplaceTopbar() {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthIdentity();
 
   return (
     <TopbarPublic
@@ -51,7 +51,6 @@ export default function MarketplaceTopbar() {
               >
                 App
               </a>
-              <UserButton />
             </>
           )}
         </div>

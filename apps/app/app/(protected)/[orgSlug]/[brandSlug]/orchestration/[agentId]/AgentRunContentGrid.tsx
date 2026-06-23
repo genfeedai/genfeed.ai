@@ -1,11 +1,11 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type {
   IAgentRunContent,
   IAgentRunContentItem,
 } from '@genfeedai/interfaces';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import type { AgentRunContentGridProps } from '@props/automation/agent-strategy.props';
 import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { logger } from '@services/core/logger.service';
@@ -32,7 +32,7 @@ const STATUS_VARIANTS: Record<
 export default function AgentRunContentGrid({
   runId,
 }: AgentRunContentGridProps) {
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const [content, setContent] = useState<IAgentRunContent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 

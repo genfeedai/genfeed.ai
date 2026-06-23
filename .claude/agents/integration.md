@@ -205,7 +205,7 @@ Both from `@genfeedai/serializers`.
 - Always use `CredentialPlatform` enum — never raw strings
 - Register platform in `platform.enum.ts` first
 - Use `HttpService` (NestJS Axios) in services, not raw `fetch`
-- Use `getPublicMetadata(user)` from `@api/helpers/utils/clerk/clerk.util`
+- Use `getPublicMetadata(user)` from `@api/helpers/utils/auth/auth.util`
 - Return serialized responses — never raw credential objects
 - Use `returnBadRequest`/`returnNotFound` helpers for errors in new integrations
 

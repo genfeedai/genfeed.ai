@@ -1362,7 +1362,7 @@ export class WorkflowEngineAdapterService {
 
         const ingredientId = ingredientData._id.toString();
         const job = await fileQueueService.processVideo({
-          clerkUserId: context.userId,
+          authProviderUserId: context.userId,
           ingredientId,
           organizationId: context.organizationId,
           params: {
@@ -1498,7 +1498,7 @@ export class WorkflowEngineAdapterService {
             false,
             {
               brandId,
-              clerkUserId: context.userId,
+              authProviderUserId: context.userId,
               organizationId: context.organizationId,
               userId: context.userId,
             },

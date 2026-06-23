@@ -1,15 +1,15 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BulkApproveContentDraftsDto } from '@api/collections/content-drafts/dto/bulk-approve-content-drafts.dto';
 import { ContentDraftRejectDto } from '@api/collections/content-drafts/dto/content-draft-action.dto';
 import { ContentDraftsQueryDto } from '@api/collections/content-drafts/dto/content-drafts-query.dto';
 import { EditContentDraftDto } from '@api/collections/content-drafts/dto/edit-content-draft.dto';
 import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { ContentDraftSerializer } from '@genfeedai/serializers';
 import {
   Body,

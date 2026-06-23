@@ -1,9 +1,9 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   getIsSuperAdmin,
   getStripeSubscriptionStatus,
   getSubscriptionTier,
-} from '@api/helpers/utils/clerk/clerk.util';
-import type { User } from '@clerk/backend';
+} from '@api/helpers/utils/auth/auth.util';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

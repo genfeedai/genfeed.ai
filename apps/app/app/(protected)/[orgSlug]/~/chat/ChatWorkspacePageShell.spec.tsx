@@ -1,4 +1,4 @@
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { TasksService } from '@services/management/tasks.service';
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -29,13 +29,13 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: getTokenMock,
   }),
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
+vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: vi.fn(),
 }));
 
@@ -73,7 +73,7 @@ describe('ChatWorkspacePageShell', () => {
   beforeEach(() => {
     agentFullPageSpy.mockClear();
     pushMock.mockClear();
-    getTokenMock.mockResolvedValue('clerk-token');
+    getTokenMock.mockResolvedValue('authProvider-token');
     vi.mocked(resolveAuthToken).mockResolvedValue('api-token');
     createFollowUpTasksMock.mockResolvedValue([
       { id: 'task-1' },

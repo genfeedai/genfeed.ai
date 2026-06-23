@@ -1,7 +1,7 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { GenerateController } from '@api/collections/content-intelligence/controllers/generate.controller';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 import type { Request } from 'express';

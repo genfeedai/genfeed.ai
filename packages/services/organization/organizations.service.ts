@@ -363,8 +363,8 @@ export class OrganizationsService extends BaseService<Organization> {
   }
 
   /**
-   * Switch the active organization. Updates Clerk publicMetadata server-side.
-   * Call window.location.reload() after this to re-sync session.
+   * Switch the active organization. Call window.location.reload() after this to
+   * re-sync session-scoped workspace data.
    */
   public async switchOrganization(orgId: string): Promise<{
     organization: { id: string; label: string };

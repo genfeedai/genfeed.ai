@@ -261,7 +261,8 @@ async function recreateUsers(
             {
               id: newId,
               mongoId: hex,
-              clerkId: (doc.clerkId as string | undefined) ?? null,
+              authProviderId:
+                (doc.authProviderId as string | undefined) ?? null,
               handle: (doc.handle as string) ?? `user_${hex.slice(-8)}`,
               firstName: (doc.firstName as string | undefined) ?? null,
               lastName: (doc.lastName as string | undefined) ?? null,

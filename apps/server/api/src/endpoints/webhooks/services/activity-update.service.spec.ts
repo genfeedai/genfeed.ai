@@ -51,8 +51,8 @@ describe('ActivityUpdateService', () => {
       dbUserId: 'test-object-id',
       ingredientId: 'test-object-id',
       organizationId: 'test-object-id',
-      userId: 'clerk_abc',
-      userRoom: 'user-clerk_abc',
+      userId: 'authProvider_abc',
+      userRoom: 'user-authProvider_abc',
     };
 
     it('should update existing processing activity', async () => {
@@ -89,7 +89,7 @@ describe('ActivityUpdateService', () => {
         expect.objectContaining({
           progress: 100,
           status: 'completed',
-          userId: 'clerk_abc',
+          userId: 'authProvider_abc',
         }),
       );
     });
@@ -186,8 +186,8 @@ describe('ActivityUpdateService', () => {
       errorMessage: 'GPU timeout',
       ingredientId: 'test-object-id',
       organizationId: 'test-object-id',
-      userId: 'clerk_abc',
-      userRoom: 'user-clerk_abc',
+      userId: 'authProvider_abc',
+      userRoom: 'user-authProvider_abc',
     };
 
     it('should update existing processing activity with failure', async () => {

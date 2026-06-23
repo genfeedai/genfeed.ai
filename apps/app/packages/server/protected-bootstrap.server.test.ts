@@ -9,7 +9,7 @@ const cookiesMock = vi.fn(async () => ({
   get: vi.fn(() => undefined),
 }));
 
-vi.mock('@clerk/nextjs/server', () => ({
+vi.mock('@genfeedai/auth-client/server', () => ({
   auth: () => ({
     getToken: getTokenMock,
     sessionId: 'session_123',
@@ -47,8 +47,8 @@ describe('loadProtectedBootstrap', () => {
     delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
-    process.env.CLERK_SECRET_KEY = 'sk_test';
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test';
+    process.env.BETTER_AUTH_SECRET = 'sk_test';
+    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test';
     delete process.env.PLAYWRIGHT_TEST;
     cookiesMock.mockResolvedValue({
       get: vi.fn(() => undefined),
@@ -144,7 +144,7 @@ describe('loadProtectedBootstrap', () => {
   });
 
   it('falls back to self-hosted bootstrap when server auth throws in hybrid mode', async () => {
-    vi.doMock('@clerk/nextjs/server', () => ({
+    vi.doMock('@genfeedai/auth-client/server', () => ({
       auth: vi.fn(async () => {
         throw new Error('auth middleware missing');
       }),
@@ -166,7 +166,7 @@ describe('loadProtectedBootstrap', () => {
 
   it('returns null when server auth throws in cloud mode', async () => {
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
-    vi.doMock('@clerk/nextjs/server', () => ({
+    vi.doMock('@genfeedai/auth-client/server', () => ({
       auth: vi.fn(async () => {
         throw new Error('auth middleware missing');
       }),
@@ -194,9 +194,9 @@ describe('loadProtectedBootstrap', () => {
     expect(getInstanceMock).not.toHaveBeenCalled();
   });
 
-  it('still loads bootstrap without Clerk keys in self-hosted mode', async () => {
-    delete process.env.CLERK_SECRET_KEY;
-    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  it('still loads bootstrap without legacy auth provider keys in self-hosted mode', async () => {
+    delete process.env.BETTER_AUTH_SECRET;
+    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
 
     const { getServerAuthToken, loadProtectedBootstrap } = await import(
       '@app-server/protected-bootstrap.server'

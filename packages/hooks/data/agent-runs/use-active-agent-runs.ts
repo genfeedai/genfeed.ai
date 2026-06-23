@@ -2,7 +2,7 @@
 
 import type { IAgentRun } from '@genfeedai/interfaces';
 import { AgentRunsService } from '@genfeedai/services/ai/agent-runs.service';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';

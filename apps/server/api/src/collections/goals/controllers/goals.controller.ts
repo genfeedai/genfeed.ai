@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateGoalDto } from '@api/collections/goals/dto/create-goal.dto';
 import { GoalQueryDto } from '@api/collections/goals/dto/goal-query.dto';
 import { UpdateGoalDto } from '@api/collections/goals/dto/update-goal.dto';
@@ -8,11 +9,10 @@ import {
 import { GoalsService } from '@api/collections/goals/services/goals.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { User } from '@clerk/backend';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { GoalSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

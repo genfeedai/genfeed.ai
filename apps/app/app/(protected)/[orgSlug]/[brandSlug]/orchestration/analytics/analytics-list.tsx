@@ -1,8 +1,8 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant, IngredientCategory, Status } from '@genfeedai/enums';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { IAnalytics, ITimeSeriesDataPoint } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Video } from '@models/ingredients/video.model';
@@ -97,7 +97,7 @@ function analyticsReducer(
 }
 
 export default function AnalyticsList(_props: ContentProps) {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthIdentity();
   const { brandId, organizationId } = useBrand();
   const { openExport } = useExportModal();
 

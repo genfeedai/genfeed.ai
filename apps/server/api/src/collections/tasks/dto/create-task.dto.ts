@@ -103,7 +103,7 @@ export class CreateTaskDto {
   @IsOptional()
   @IsString()
   @ApiProperty({
-    description: 'Clerk user ID of the assignee',
+    description: 'legacy auth provider user ID of the assignee',
     required: false,
     type: String,
   })

@@ -34,8 +34,10 @@ export class UsersService extends BaseService<
     return await super.patch(id, updateUserDto, [{ path: 'settings' }]);
   }
 
-  async findMongoIdByClerkId(clerkId: string): Promise<string | null> {
-    const user = await this.findOne({ clerkId }, []);
+  async findMongoIdByAuthProviderId(
+    authProviderId: string,
+  ): Promise<string | null> {
+    const user = await this.findOne({ authProviderId }, []);
     if (!user?._id) {
       return null;
     }

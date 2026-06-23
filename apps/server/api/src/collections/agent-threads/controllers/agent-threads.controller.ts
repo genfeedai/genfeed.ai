@@ -1,14 +1,14 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { AgentMessageRole, AgentThreadStatus } from '@genfeedai/enums';
 import {
   AgentThreadSerializer,
@@ -237,8 +237,8 @@ export class AgentThreadsController {
   }
 
   private async resolveMongoUserId(user: User): Promise<string> {
-    const clerkId = user.id;
-    if (!clerkId) {
+    const authProviderId = user.id;
+    if (!authProviderId) {
       throw new UnauthorizedException(
         'Missing user identity. Please sign in again.',
       );
@@ -247,7 +247,7 @@ export class AgentThreadsController {
     const { user: metadataUserId } = getPublicMetadata(user);
     if (metadataUserId) {
       const metadataUserDoc = await this.usersService.findOne(
-        { _id: metadataUserId, clerkId },
+        { _id: metadataUserId, authProviderId },
         [],
       );
       if (metadataUserDoc?._id) {
@@ -255,7 +255,7 @@ export class AgentThreadsController {
       }
     }
 
-    const dbUser = await this.usersService.findOne({ clerkId }, []);
+    const dbUser = await this.usersService.findOne({ authProviderId }, []);
     if (!dbUser?._id) {
       throw new UnauthorizedException('User account not found');
     }

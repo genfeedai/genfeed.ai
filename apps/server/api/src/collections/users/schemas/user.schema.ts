@@ -4,7 +4,7 @@ export type { User } from '@genfeedai/prisma';
 
 export interface UserDocument extends User {
   _id: string;
-  clerkId: User['clerkId'];
+  authProviderId: User['authProviderId'];
   organization?: string | null;
   [key: string]: unknown;
 }

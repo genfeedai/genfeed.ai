@@ -1,7 +1,7 @@
 {
   "author": "vincent@genfeed.ai",
   "dependencies": {
-    "@clerk/chrome-extension": "3.1.31",
+    "@genfeedai/auth-client": "workspace:*",
     "@genfeedai/client": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",

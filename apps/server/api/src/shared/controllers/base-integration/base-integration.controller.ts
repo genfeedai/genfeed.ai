@@ -1,9 +1,9 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreateCredentialDto } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
-import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
-import type { User } from '@clerk/backend';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -59,7 +59,7 @@ export interface OAuthVerifyResult {
  *     super(brandsService, credentialsService, loggerService, YoutubeController.name);
  *   }
  *
- *   protected async generateOAuthUrl(brandId: string, publicMetadata: IClerkPublicMetadata): Promise<OAuthUrlResult> {
+ *   protected async generateOAuthUrl(brandId: string, publicMetadata: IAuthPublicMetadata): Promise<OAuthUrlResult> {
  *     const authUrl = this.youtubeService.generateAuthUrl({ ... });
  *     return { url: authUrl };
  *   }
@@ -105,7 +105,7 @@ export abstract class BaseIntegrationController {
    */
   protected abstract generateOAuthUrl(
     brandId: string,
-    publicMetadata: IClerkPublicMetadata,
+    publicMetadata: IAuthPublicMetadata,
   ): Promise<OAuthUrlResult>;
 
   /**
@@ -175,7 +175,7 @@ export abstract class BaseIntegrationController {
   /**
    * Handle the connect flow with standard validation and error handling
    *
-   * @param user - Clerk user object
+   * @param user - legacy auth provider user object
    * @param createCredentialDto - DTO with brand ID
    * @returns OAuth URL result
    */

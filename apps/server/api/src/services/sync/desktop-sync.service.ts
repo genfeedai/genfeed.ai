@@ -1,8 +1,8 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { User } from '@clerk/backend';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/enums';
 import { AssetCategory, AssetParent } from '@genfeedai/prisma';

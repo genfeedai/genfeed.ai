@@ -4,23 +4,22 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetToken = vi.fn().mockResolvedValue('test-token');
+const mockUseAuthIdentity = vi.fn();
 const mockUseBrandId = vi.fn(() => 'brand-1');
 const mockList = vi.fn();
 const mockAgentCampaignsServiceInstance = {
   list: mockList,
 };
 
-vi.mock('@clerk/nextjs', () => ({
-  useAuth: () => ({
-    getToken: mockGetToken,
-  }),
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => mockUseAuthIdentity(),
 }));
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrandId: () => mockUseBrandId(),
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
+vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: vi.fn().mockResolvedValue('test-token'),
 }));
 
@@ -35,6 +34,7 @@ describe('useAgentCampaigns', () => {
     vi.clearAllMocks();
     mockList.mockResolvedValue([]);
     mockGetToken.mockResolvedValue('test-token');
+    mockUseAuthIdentity.mockReturnValue({ getToken: mockGetToken });
   });
 
   it('keys campaign queries by the selected brand and calls service', async () => {
@@ -96,7 +96,7 @@ describe('useAgentCampaigns', () => {
   });
 
   it('returns empty array when token is unavailable', async () => {
-    const { resolveAuthToken } = await import('@helpers/auth/clerk.helper');
+    const { resolveAuthToken } = await import('@helpers/auth/auth.helper');
     vi.mocked(resolveAuthToken).mockResolvedValueOnce(null);
 
     const { useAgentCampaigns } = await import('./use-agent-campaigns');

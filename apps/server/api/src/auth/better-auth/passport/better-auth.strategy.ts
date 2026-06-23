@@ -1,19 +1,18 @@
 import { BETTER_AUTH_STRATEGY_NAME } from '@api/auth/better-auth/better-auth.constants';
 import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
 import { BetterAuthIdentityResolverService } from '@api/auth/better-auth/services/better-auth-identity-resolver.service';
-import type { User } from '@clerk/backend';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import type { Request } from 'express';
 import { Strategy } from 'passport-custom';
 
 /**
- * Passport strategy validating first-party Better Auth JWTs beside ClerkStrategy
- * (epic #735, Phase 1 — #736).
+ * Passport strategy validating first-party Better Auth JWTs (epic #735).
  *
  * Verifies the bearer JWT (in-process; the API is the issuer + JWKS publisher),
  * then resolves the genfeed identity from the existing tables and shapes the
- * result as the same Clerk `User` object the rest of the app expects, so
+ * result as the same request user object the rest of the app expects, so
  * `RequestContextMiddleware` and downstream guards consume it unchanged.
  */
 @Injectable()
@@ -28,7 +27,7 @@ export class BetterAuthStrategy extends PassportStrategy(
     super();
   }
 
-  async validate(req: Request): Promise<User | null> {
+  async validate(req: Request): Promise<AuthenticatedUser | null> {
     if (!this.betterAuthService.isEnabled) {
       return null;
     }
@@ -54,6 +53,6 @@ export class BetterAuthStrategy extends PassportStrategy(
         organization: identity.organizationId,
         user: identity.userId,
       },
-    } as unknown as User;
+    };
   }
 }

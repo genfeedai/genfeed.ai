@@ -10,7 +10,7 @@ import { SocketManager } from '@genfeedai/services/core/socket-manager.service';
 import {
   getPlaywrightAuthState,
   resolveAuthToken,
-} from '@helpers/auth/clerk.helper';
+} from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 

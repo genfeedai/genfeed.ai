@@ -7,7 +7,7 @@ import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
  * The sidebar (MenuShared), workspace switcher, app switcher and breadcrumbs are
  * rendered on every protected page, so exercising them lifts coverage broadly.
  *
- * Auth + all API + Clerk are mocked by the fixtures; the strict network guard
+ * Auth + all API + Better Auth are mocked by the fixtures; the strict network guard
  * fails on real outbound calls. Interactions are best-effort: tryClick never
  * throws and direct clicks are .catch-guarded so the specs stay non-brittle.
  */

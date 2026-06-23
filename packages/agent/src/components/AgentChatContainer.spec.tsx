@@ -21,13 +21,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => null,
 }));
 
-vi.mock('@clerk/nextjs', () => ({
-  useAuth: () => ({
-    getToken: vi.fn(),
-  }),
-}));
-
-vi.mock('@clerk/react', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: vi.fn(),
   }),

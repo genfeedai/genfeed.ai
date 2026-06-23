@@ -4,6 +4,7 @@
  * Deducts 1 credit per transcription from organization
  */
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { TranscribeAudioDto } from '@api/collections/speech/dto/transcribe-audio.dto';
 import { TranscribeUrlDto } from '@api/collections/speech/dto/transcribe-url.dto';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
@@ -14,10 +15,9 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import type { User } from '@clerk/backend';
 import { FileInputType } from '@genfeedai/enums';
 import { SpeechTranscriptionSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

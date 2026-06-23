@@ -4,7 +4,7 @@
  * Populates the `external_voices` table from the live provider catalogs
  * (ElevenLabs + HeyGen) — the exact same work `POST /voices/import` performs
  * via ExternalVoiceCatalogService.syncFromProviders(). The HTTP endpoint is
- * super-admin (Clerk) gated and cannot be driven non-interactively, so this
+ * super-admin (legacy auth provider) gated and cannot be driven non-interactively, so this
  * standalone script mirrors the upsert logic 1:1 and runs against prod RDS the
  * same way the other migration scripts do (dotenv-loaded .env.<env>, secrets
  * never printed).

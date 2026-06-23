@@ -1,4 +1,5 @@
-import { useAuth, useUser } from '@clerk/nextjs';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 import type { IBrand, ICredential } from '@genfeedai/interfaces';
 import { Brand } from '@genfeedai/models/organization/brand.model';
 import { OrganizationSetting } from '@genfeedai/models/organization/organization-setting.model';
@@ -9,9 +10,9 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
 import {
-  getClerkPublicData,
+  getAuthPublicData,
   getPlaywrightAuthState,
-} from '@helpers/auth/clerk.helper';
+} from '@helpers/auth/auth.helper';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import {
@@ -41,8 +42,13 @@ export function useBrandProviderState({
   initialBootstrap = null,
 }: UseBrandProviderStateParams) {
   const params = useParams<{ brandSlug?: string; orgSlug?: string }>();
-  const { isLoaded: isAuthLoaded, isSignedIn, userId, orgId } = useAuth();
-  const { user } = useUser();
+  const {
+    isLoaded: isAuthLoaded,
+    isSignedIn,
+    userId,
+    orgId,
+  } = useAuthIdentity();
+  const { user } = useAuthUser();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =
     isAuthLoaded || playwrightAuth?.isLoaded === true;
@@ -63,9 +69,9 @@ export function useBrandProviderState({
 
   const sessionKey = `${effectiveUserId ?? 'none'}:${effectiveOrgId ?? 'none'}`;
 
-  const clerkData = useMemo(() => {
+  const authData = useMemo(() => {
     if (user) {
-      return getClerkPublicData(user);
+      return getAuthPublicData(user);
     }
 
     return playwrightAuth?.publicMetadata ?? { brand: '', organization: '' };
@@ -90,12 +96,12 @@ export function useBrandProviderState({
   const initialDataUpdatedAt = useMemo(() => Date.now(), []);
 
   const [brandId, setBrandId] = useState(
-    hasInitialBootstrap ? initialBrandId : initialBrandId || clerkData.brand,
+    hasInitialBootstrap ? initialBrandId : initialBrandId || authData.brand,
   );
   const [organizationId, setOrganizationId] = useState(
     hasInitialBootstrap
       ? initialOrganizationId
-      : initialOrganizationId || clerkData.organization || effectiveOrgId || '',
+      : initialOrganizationId || authData.organization || effectiveOrgId || '',
   );
   const isBrandsFetchEnabled = effectiveIsAuthLoaded && effectiveIsSignedIn;
   const clientBootstrapCacheKey = isBrandsFetchEnabled
@@ -105,10 +111,10 @@ export function useBrandProviderState({
   useEffect(() => {
     const resolvedOrganizationId = hasInitialBootstrap
       ? initialOrganizationId
-      : initialOrganizationId || clerkData.organization || effectiveOrgId || '';
+      : initialOrganizationId || authData.organization || effectiveOrgId || '';
     const resolvedBrandId = hasInitialBootstrap
       ? initialBrandId
-      : initialBrandId || clerkData.brand;
+      : initialBrandId || authData.brand;
 
     startTransition(() => {
       setOrganizationId((previousOrganizationId: string) =>
@@ -128,8 +134,8 @@ export function useBrandProviderState({
   }, [
     initialOrganizationId,
     initialBrandId,
-    clerkData.organization,
-    clerkData.brand,
+    authData.organization,
+    authData.brand,
     effectiveOrgId,
     hasInitialBootstrap,
   ]);

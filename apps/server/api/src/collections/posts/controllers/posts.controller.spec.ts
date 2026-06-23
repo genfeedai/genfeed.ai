@@ -1,5 +1,5 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
-import type { User } from '@clerk/backend';
 import type { PostsQueryDto } from '../dto/posts-query.dto';
 
 const makeUser = (overrides: Partial<User['publicMetadata']> = {}): User =>

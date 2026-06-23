@@ -1,8 +1,8 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import { LinkCategory, type OrganizationCategory } from '@genfeedai/enums';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
 import { OnboardingService } from '@services/onboarding/onboarding.service';
@@ -62,7 +62,7 @@ function normalizeWebsiteUrl(url: string): string | null {
 
 function BrandContentContent() {
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const { push } = useRouter();
   const searchParams = useSearchParams();
   const isAutoRequested = searchParams.get('auto') === 'true';

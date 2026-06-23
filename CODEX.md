@@ -33,7 +33,7 @@ Codex-specific fast reference. See `AGENTS.md` for full project context.
 - Keep serializers in `packages/serializers`; do not inline response shaping in controllers/services.
 - Preserve strict TypeScript quality (no `any` shortcuts for new code).
 - Use path aliases, not deep relative imports.
-- Treat MongoDB `users._id` as canonical user reference; do not use Clerk `user.id` as DB foreign key.
+- Treat MongoDB `users._id` as canonical user reference; do not use legacy auth provider `user.id` as DB foreign key.
 - Enterprise code (`ee/`): enforce multi-tenancy query guards.
 - Self-hosted (non-`ee/`): organization filter is optional for single-tenant deployments.
 - Soft deletes: `isDeleted: boolean` (NOT `deletedAt`).

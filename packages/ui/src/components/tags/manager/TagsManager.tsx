@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { ButtonSize, ButtonVariant, TagCategory } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { ITag } from '@genfeedai/interfaces';
@@ -23,7 +23,7 @@ export default function TagsManager({
   onTagsChange,
   isReadOnly = false,
 }: TagsManagerComponentProps) {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthIdentity();
 
   const getIngredientsService = useAuthedService((token: string) =>
     IngredientsService.getInstance(token),

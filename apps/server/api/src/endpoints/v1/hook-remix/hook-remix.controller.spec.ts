@@ -1,10 +1,10 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   CreateBatchHookRemixDto,
   CreateHookRemixDto,
 } from '@api/endpoints/v1/hook-remix/dto/create-hook-remix.dto';
 import { HookRemixController } from '@api/endpoints/v1/hook-remix/hook-remix.controller';
 import { HookRemixService } from '@api/endpoints/v1/hook-remix/hook-remix.service';
-import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -20,7 +20,7 @@ vi.mock('@api/helpers/decorators/user/current-user.decorator', () => ({
       descriptor,
 }));
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn().mockReturnValue({
     organization: '507f1f77bcf86cd799439011',
     user: '507f1f77bcf86cd799439012',
@@ -44,7 +44,7 @@ describe('HookRemixController', () => {
   };
 
   const mockUser = {
-    id: 'clerk_user_1',
+    id: 'authProvider_user_1',
     publicMetadata: { organization: orgId, user: userId },
   } as unknown as User;
 
@@ -57,7 +57,7 @@ describe('HookRemixController', () => {
     logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
     const { getPublicMetadata } = await import(
-      '@api/helpers/utils/clerk/clerk.util'
+      '@api/helpers/utils/auth/auth.util'
     );
     (getPublicMetadata as ReturnType<typeof vi.fn>).mockReturnValue({
       organization: orgId,
@@ -124,10 +124,10 @@ describe('HookRemixController', () => {
       expect(logger.error).toHaveBeenCalled();
     });
 
-    it('should extract org and user from Clerk public metadata', async () => {
+    it('should extract org and user from legacy auth provider public metadata', async () => {
       hookRemixService.createHookRemix.mockResolvedValue({ jobId: 'j1' });
       const { getPublicMetadata } = await import(
-        '@api/helpers/utils/clerk/clerk.util'
+        '@api/helpers/utils/auth/auth.util'
       );
 
       await controller.createHookRemix(dto, mockUser);

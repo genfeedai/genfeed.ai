@@ -75,7 +75,7 @@ export interface InstallReadinessResponse {
     selectedMode: OnboardingAccessMode | null;
     serverDefaultsReady: boolean;
   };
-  authMode: 'clerk' | 'none';
+  authMode: 'better_auth' | 'none';
   billingMode: 'cloud_billing' | 'oss_local';
   localTools: {
     anyDetected: boolean;

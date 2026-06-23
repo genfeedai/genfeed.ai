@@ -7,7 +7,7 @@ import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: vi.fn(() => ({ isSignedIn: true })),
 }));
 

@@ -71,7 +71,7 @@ describe('Runs Surface Parity Contract', () => {
         expect(runsService.createRun).toHaveBeenLastCalledWith(
           '507f1f77bcf86cd799439012',
           '507f1f77bcf86cd799439011',
-          RunAuthType.CLERK,
+          RunAuthType.BETTER_AUTH,
           expect.objectContaining({
             actionType: action,
             correlationId: traceId,

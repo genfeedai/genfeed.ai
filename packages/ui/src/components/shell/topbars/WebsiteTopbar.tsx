@@ -1,7 +1,7 @@
 'use client';
 
-import { UserButton, useAuth } from '@clerk/nextjs';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import TopbarPublic from '@ui/topbars/public/TopbarPublic';
@@ -79,7 +79,7 @@ const USE_CASES_LINKS = [
 const NAV_LINKS = [{ href: '/pricing', label: 'Pricing' }];
 
 export default function WebsiteTopbar() {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthIdentity();
   const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=hosted`;
 
   return (
@@ -131,7 +131,6 @@ export default function WebsiteTopbar() {
               >
                 App
               </a>
-              <UserButton />
             </>
           )}
         </div>

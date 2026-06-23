@@ -1,4 +1,4 @@
-import { useAuth } from '@clerk/nextjs';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import type {
   NodeDefinition,
   NodesByCategory,
@@ -10,7 +10,7 @@ import type {
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import type {
   Connection,
   Edge,
@@ -114,7 +114,7 @@ export function useWorkflowBuilder({
   initialEdges = EMPTY_INITIAL_EDGES,
   initialVariables = EMPTY_INITIAL_VARIABLES,
 }: UseWorkflowBuilderOptions): UseWorkflowBuilderReturn {
-  const { getToken } = useAuth();
+  const { getToken } = useAuthIdentity();
   const apiBaseUrl = EnvironmentService.apiEndpoint;
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

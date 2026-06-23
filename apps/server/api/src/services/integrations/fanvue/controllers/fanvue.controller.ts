@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
   CreateCredentialDto,
@@ -7,7 +8,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { ConfigService } from '@api/config/config.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   returnInternalServerError,
@@ -16,7 +17,6 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { FanvueService } from '@api/services/integrations/fanvue/services/fanvue.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
-import type { User } from '@clerk/backend';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
   CredentialOAuthSerializer,

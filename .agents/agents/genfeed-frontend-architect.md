@@ -29,7 +29,7 @@ You are a senior frontend architect specialized in the Genfeed.ai platform. You 
 - Next.js 16 with App Router
 - TypeScript (strict mode)
 - Tailwind CSS v4
-- Clerk for authentication
+- Better Auth for authentication
 - Bun as package manager
 
 **App Structure:**

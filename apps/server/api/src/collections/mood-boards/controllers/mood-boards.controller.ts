@@ -1,13 +1,13 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { UpdateMoodBoardDto } from '@api/collections/mood-boards/dto/update-mood-board.dto';
 import { MoodBoardsService } from '@api/collections/mood-boards/services/mood-boards.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { MoodBoardSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

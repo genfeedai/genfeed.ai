@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
 import { UpdateClipResultDto } from '@api/collections/clip-results/dto/update-clip-result.dto';
@@ -5,13 +6,12 @@ import { type ClipResultDocument } from '@api/collections/clip-results/schemas/c
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,

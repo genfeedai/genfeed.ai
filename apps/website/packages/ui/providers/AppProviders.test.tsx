@@ -5,11 +5,13 @@ import AppProviders from './AppProviders';
 
 const marketingProviderSpy = vi.fn();
 
-vi.mock('@clerk/nextjs', () => ({
-  ClerkProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+vi.mock('@genfeedai/auth-client/react', () => ({
+  BetterAuthProvider: ({ children }: { children: ReactNode }) => (
+    <>{children}</>
+  ),
 }));
 
-vi.mock('@clerk/themes', () => ({
+vi.mock('@genfeedai/auth-client/themes', () => ({
   dark: {},
 }));
 

@@ -3,18 +3,18 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
     organization: '507f1f77bcf86cd799439012',
   })),
 }));
 
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationsIntegrationsController } from '@api/collections/organizations/controllers/organizations-integrations.controller';
 import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-integration.dto';
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
-import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
-import type { User } from '@clerk/backend';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -26,7 +26,7 @@ describe('OrganizationsIntegrationsController', () => {
 
   const organizationId = '507f1f77bcf86cd799439012';
   const integrationId = '507f1f77bcf86cd799439011';
-  const mockUser = { id: 'user_clerk_123' } as unknown as User;
+  const mockUser = { id: 'user_authProvider_123' } as unknown as User;
 
   const mockIntegration = {
     _id: integrationId,
@@ -60,7 +60,7 @@ describe('OrganizationsIntegrationsController', () => {
         },
       ],
     })
-      .overrideGuard(ClerkGuard)
+      .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

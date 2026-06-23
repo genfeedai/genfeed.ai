@@ -1,4 +1,5 @@
 import { MembersService } from '@api/collections/members/services/members.service';
+import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -16,12 +17,13 @@ type AuthWhoamiUser = {
 };
 
 type AuthWhoamiRequest = {
+  context?: IRequestContext;
   user?: AuthWhoamiUser;
 };
 
 /**
  * Auth controller for identity introspection.
- * Works with both Clerk JWT and API key authentication.
+ * Works with both Better Auth JWT and API key authentication.
  *
  * GET /auth/whoami — returns the authenticated user/org context.
  */
@@ -36,12 +38,18 @@ export class AuthWhoamiController {
   async whoami(@Req() req: AuthWhoamiRequest) {
     const user = req.user;
     const meta = user?.publicMetadata || {};
-    const mongoUserId = ObjectIdUtil.isValid(meta.user)
-      ? String(meta.user)
+    const context = req.context;
+    const contextUserId = context?.userId ?? meta.user;
+    const contextOrganizationId = context?.organizationId ?? meta.organization;
+    const mongoUserId = ObjectIdUtil.isValid(contextUserId)
+      ? String(contextUserId)
       : '';
-    const clerkUserId = user?.id || '';
+    const authUserId = user?.id || '';
 
-    const role = await this.resolveOrganizationRole(meta);
+    const role = await this.resolveOrganizationRole({
+      organization: contextOrganizationId,
+      user: contextUserId,
+    });
 
     return {
       data: {
@@ -53,7 +61,7 @@ export class AuthWhoamiController {
         role,
         scopes: meta.scopes || ['*'],
         user: {
-          clerkId: clerkUserId,
+          authUserId,
           email: user?.emailAddresses?.[0]?.emailAddress || user?.email || '',
           id: mongoUserId,
           name: user?.firstName

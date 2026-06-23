@@ -17,7 +17,7 @@ Use when changing backend data access in `apps/server/*`.
 
 - Apply soft-delete guard consistently (`isDeleted: false`) where required by existing patterns.
 - Never allow cross-tenant reads/writes in enterprise (`ee/`) code paths.
-- Keep `users._id` as canonical DB user reference; do not use Clerk `user.id` as foreign key.
+- Keep `users._id` as canonical DB user reference; do not use legacy auth provider `user.id` as foreign key.
 - Enterprise code (`ee/`): every tenant-scoped MongoDB query must include organization guard.
 - Self-hosted (non-`ee/`): organization guard is optional for single-tenant deployments.
 

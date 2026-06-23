@@ -1,8 +1,9 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import type {
   CreateAdParams,
   CreateAdSetParams,
@@ -13,7 +14,6 @@ import type {
 } from '@api/services/integrations/meta-ads/interfaces/meta-ads.interface';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
-import type { User } from '@clerk/backend';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

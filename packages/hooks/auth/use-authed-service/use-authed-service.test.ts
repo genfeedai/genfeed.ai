@@ -1,5 +1,4 @@
-import { useAuth } from '@clerk/nextjs';
-import { resolveAuthToken } from '@helpers/auth/clerk.helper';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import {
   clearTokenCache,
   useAuthedService,
@@ -7,18 +6,13 @@ import {
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@clerk/nextjs', () => ({
-  useAuth: vi.fn(() => ({ getToken: vi.fn() })),
+const mockUseAuthIdentity = vi.fn();
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => mockUseAuthIdentity(),
 }));
 
-// Better Auth off (default): the module-selected identity hook resolves to the
-// Clerk path, and the token choke point delegates to the Clerk getToken.
-vi.mock('@genfeedai/auth-client', () => ({
-  isBetterAuthEnabled: () => false,
-  useBetterAuthIdentity: vi.fn(),
-}));
-
-vi.mock('@helpers/auth/clerk.helper', () => ({
+vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: vi.fn(),
 }));
 
@@ -27,7 +21,6 @@ describe('useAuthedService', () => {
   const mockResolveAuthToken = resolveAuthToken as unknown as ReturnType<
     typeof vi.fn
   >;
-  const mockUseAuth = useAuth as unknown as ReturnType<typeof vi.fn>;
   let orgIdMock: string | null = 'org-123';
   let userIdMock: string | null = 'user-123';
 
@@ -49,11 +42,11 @@ describe('useAuthedService', () => {
     mockResolveAuthToken.mockImplementation(async (getToken, opts) =>
       getToken(opts),
     );
-    mockUseAuth.mockReturnValue({
+    mockUseAuthIdentity.mockReturnValue({
       getToken: getTokenMock,
       orgId: orgIdMock,
       userId: userIdMock,
-    } as ReturnType<typeof useAuth>);
+    });
   });
 
   it('returns service instance with auth token', () => {
@@ -62,7 +55,7 @@ describe('useAuthedService', () => {
     expect(result.current).toBeDefined();
   });
 
-  it('uses the standard Clerk session token when no template is provided', async () => {
+  it('uses the standard session token when no template is provided', async () => {
     const mockService = vi.fn();
     getTokenMock.mockResolvedValue('jwt-token');
 
@@ -74,7 +67,7 @@ describe('useAuthedService', () => {
     expect(mockService).toHaveBeenCalledWith('jwt-token');
   });
 
-  it('uses an explicit Clerk token template when provided', async () => {
+  it('uses an explicit token template when provided', async () => {
     const mockService = vi.fn();
     getTokenMock.mockResolvedValue('template-token');
 
@@ -104,7 +97,7 @@ describe('useAuthedService', () => {
     expect(mockService).toHaveBeenNthCalledWith(1, 'jwt-token');
   });
 
-  it('falls back to the playwright jwt token when Clerk returns null', async () => {
+  it('falls back to the playwright jwt token when the session token is null', async () => {
     const mockService = vi.fn();
     mockResolveAuthToken.mockResolvedValue('playwright-jwt');
 
@@ -167,11 +160,11 @@ describe('useAuthedService', () => {
     await result.current();
 
     userIdMock = 'user-456';
-    mockUseAuth.mockReturnValue({
+    mockUseAuthIdentity.mockReturnValue({
       getToken: getTokenMock,
       orgId: orgIdMock,
       userId: userIdMock,
-    } as ReturnType<typeof useAuth>);
+    });
 
     rerender();
     await result.current();

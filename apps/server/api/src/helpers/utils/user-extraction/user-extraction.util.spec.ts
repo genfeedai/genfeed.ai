@@ -12,7 +12,7 @@ describe('UserExtractionUtil', () => {
       const id = '507f191e810c19729de860ee';
       const result = UserExtractionUtil.extractUserIds(id);
       expect(result.dbUserId).toBe(id);
-      expect(result.clerkUserId).toBeUndefined();
+      expect(result.authProviderUserId).toBeUndefined();
       expect(result.userId).toBe(id);
     });
 
@@ -23,36 +23,36 @@ describe('UserExtractionUtil', () => {
       expect(result.userId).toBe(oid);
     });
 
-    it('extracts _id and clerkId from a populated user document', () => {
+    it('extracts _id and authProviderId from a populated user document', () => {
       const oid = '507f191e810c19729de860ee';
-      const userDoc = { _id: oid, clerkId: 'clerk_abc123' };
+      const userDoc = { _id: oid, authProviderId: 'authProvider_abc123' };
       const result = UserExtractionUtil.extractUserIds(userDoc);
       expect(result.dbUserId).toBe(oid);
-      expect(result.clerkUserId).toBe('clerk_abc123');
-      expect(result.userId).toBe('clerk_abc123');
-      expect(result.userRoom).toBe('user:clerk_abc123');
+      expect(result.authProviderUserId).toBe('authProvider_abc123');
+      expect(result.userId).toBe('authProvider_abc123');
+      expect(result.userRoom).toBe('user:authProvider_abc123');
     });
 
     it('extracts string _id from a populated user document', () => {
       const strId = '507f191e810c19729de860ee';
-      const userDoc = { _id: strId, clerkId: 'clerk_xyz' };
+      const userDoc = { _id: strId, authProviderId: 'authProvider_xyz' };
       const result = UserExtractionUtil.extractUserIds(userDoc);
       expect(result.dbUserId).toBe(strId);
-      expect(result.clerkUserId).toBe('clerk_xyz');
+      expect(result.authProviderUserId).toBe('authProvider_xyz');
     });
 
-    it('sets userRoom only when clerkUserId is present', () => {
+    it('sets userRoom only when authProviderUserId is present', () => {
       const oid = '507f191e810c19729de860ee';
-      const userDoc = { _id: oid, clerkId: undefined };
+      const userDoc = { _id: oid, authProviderId: undefined };
       const result = UserExtractionUtil.extractUserIds(userDoc);
       expect(result.userRoom).toBeUndefined();
     });
 
-    it('prefers clerkUserId as userId over dbUserId', () => {
+    it('prefers authProviderUserId as userId over dbUserId', () => {
       const oid = '507f191e810c19729de860ee';
-      const userDoc = { _id: oid, clerkId: 'clerk_preferred' };
+      const userDoc = { _id: oid, authProviderId: 'authProvider_preferred' };
       const result = UserExtractionUtil.extractUserIds(userDoc);
-      expect(result.userId).toBe('clerk_preferred');
+      expect(result.userId).toBe('authProvider_preferred');
     });
   });
 

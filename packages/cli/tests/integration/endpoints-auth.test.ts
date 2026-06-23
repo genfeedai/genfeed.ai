@@ -2,9 +2,9 @@
  * Endpoint auth audit.
  *
  * Documents which endpoints accept gf_* API key auth vs which reject with
- * 401/403 due to the server-side ClerkGuard bug.
+ * 401/403 due to the server-side BetterAuthGuard bug.
  *
- * Server-side fix needed: Remove redundant @UseGuards(ClerkGuard, RolesGuard)
+ * Server-side fix needed: Remove redundant @UseGuards(BetterAuthGuard, RolesGuard)
  * from controller classes already protected by global CombinedAuthGuard.
  * Affected: images, videos, workflows, images-operations, images-relationships
  */
@@ -54,22 +54,22 @@ describe.skipIf(!hasCredentials)('integration/endpoints-auth', () => {
   }, 15_000);
 
   // Document the server-side auth bug — these should return 'ok' after the
-  // cloud-repo fix removes redundant @UseGuards(ClerkGuard, RolesGuard)
+  // cloud-repo fix removes redundant @UseGuards(BetterAuthGuard, RolesGuard)
 
-  it('GET /images is blocked by ClerkGuard (known bug)', async () => {
+  it('GET /images is blocked by BetterAuthGuard (known bug)', async () => {
     const { result, status } = await checkEndpoint(client, '/images?limit=1');
     // Currently blocked — flip to 'ok' once server is fixed
     expect(result).toBe('blocked');
     expect(status).toBeOneOf([401, 403]);
   }, 15_000);
 
-  it('GET /videos is blocked by ClerkGuard (known bug)', async () => {
+  it('GET /videos is blocked by BetterAuthGuard (known bug)', async () => {
     const { result, status } = await checkEndpoint(client, '/videos?limit=1');
     expect(result).toBe('blocked');
     expect(status).toBeOneOf([401, 403]);
   }, 15_000);
 
-  it('GET /workflows is blocked by ClerkGuard (known bug)', async () => {
+  it('GET /workflows is blocked by BetterAuthGuard (known bug)', async () => {
     const { result, status } = await checkEndpoint(client, '/workflows');
     expect(result).toBe('blocked');
     expect(status).toBeOneOf([401, 403]);

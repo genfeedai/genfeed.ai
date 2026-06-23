@@ -11,12 +11,11 @@ import type { BetterAuthInstance } from './better-auth.factory';
 import type { IBetterAuthJwtClaims } from './better-auth.types';
 
 /**
- * Thin wrapper around the constructed Better Auth instance (epic #735, #736).
+ * Thin wrapper around the constructed Better Auth instance (epic #735).
  *
  * Owns the node handler (mounted in `main.ts`) and in-process JWT verification
- * used by the Passport strategy. When the dual-run flag is off the injected
- * instance is `null`, every accessor degrades safely, and the Clerk path is
- * entirely unaffected.
+ * used by the Passport strategy. When the flag is off the injected instance is
+ * `null` and every accessor degrades safely.
  */
 @Injectable()
 export class BetterAuthService {

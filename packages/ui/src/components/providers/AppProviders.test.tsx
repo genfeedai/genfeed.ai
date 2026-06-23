@@ -1,56 +1,29 @@
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-const clerkProviderSpy = vi.fn();
-
-vi.mock('@clerk/nextjs', () => ({
-  ClerkProvider: ({
-    children,
-    ...props
-  }: {
-    children: ReactNode;
-    appearance?: Record<string, unknown>;
-    signInUrl?: string;
-  }) => {
-    clerkProviderSpy(props);
-    return <>{children}</>;
-  },
-}));
+import { describe, expect, it, vi } from 'vitest';
+import AppProviders from './AppProviders';
 
 vi.mock('@ui/providers/ThemeCookieSync', () => ({
   default: () => null,
 }));
 
+vi.mock('@vercel/analytics/react', () => ({
+  Analytics: () => null,
+}));
+
+vi.mock('@vercel/speed-insights/next', () => ({
+  SpeedInsights: () => null,
+}));
+
 vi.mock('next-themes', () => ({
   ThemeProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
-  useTheme: () => ({
-    resolvedTheme: 'dark',
-  }),
 }));
 
 describe('AppProviders', () => {
-  let AppProviders: typeof import('@ui/providers/AppProviders').default;
-
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    vi.resetModules();
-    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'false';
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_fake';
-    const module = await import('@ui/providers/AppProviders');
-    AppProviders = module.default;
-  });
-
-  afterEach(() => {
-    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
-    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  });
-
-  it('renders one ClerkProvider with theme-aware appearance at the app root', () => {
+  it('renders children through the shared provider stack', () => {
     render(
       <AppProviders
         initialTheme="dark"
-        clerkProps={{ signInUrl: '/login' }}
         includeLazyModalErrorDebug={false}
         includeSpeedInsights={false}
         includeToaster={false}
@@ -61,73 +34,22 @@ describe('AppProviders', () => {
     );
 
     expect(screen.getByText('Child content')).toBeInTheDocument();
-    expect(clerkProviderSpy).toHaveBeenCalledTimes(1);
-    expect(clerkProviderSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        appearance: expect.objectContaining({
-          theme: expect.any(Object),
-        }),
-        publishableKey: 'pk_test_fake',
-        signInUrl: '/login',
-      }),
-    );
   });
 
-  it('trims accidental whitespace from the Clerk publishable key', async () => {
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_fake\n';
-    vi.resetModules();
-
-    const module = await import('@ui/providers/AppProviders');
-    const WhitespaceAppProviders = module.default;
-
+  it('passes the configured theme through without requiring auth config', () => {
     render(
-      <WhitespaceAppProviders
-        initialTheme="dark"
-        clerkProps={{ signInUrl: '/login' }}
+      <AppProviders
+        initialTheme="light"
+        enableSystem
         includeLazyModalErrorDebug={false}
         includeSpeedInsights={false}
         includeToaster={false}
         includeVercelAnalytics={false}
       >
-        <div>Whitespace Clerk key</div>
-      </WhitespaceAppProviders>,
+        <div>Light child</div>
+      </AppProviders>,
     );
 
-    expect(screen.getByText('Whitespace Clerk key')).toBeInTheDocument();
-    expect(clerkProviderSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        publishableKey: 'pk_test_fake',
-      }),
-    );
-  });
-
-  it('mounts ClerkProvider with a local bypass when Clerk is not configured', async () => {
-    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'false';
-    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-    vi.resetModules();
-
-    const module = await import('@ui/providers/AppProviders');
-    const NoClerkAppProviders = module.default;
-
-    render(
-      <NoClerkAppProviders
-        initialTheme="dark"
-        clerkProps={{ signInUrl: '/login' }}
-        includeLazyModalErrorDebug={false}
-        includeSpeedInsights={false}
-        includeToaster={false}
-        includeVercelAnalytics={false}
-      >
-        <div>No Clerk content</div>
-      </NoClerkAppProviders>,
-    );
-
-    expect(screen.getByText('No Clerk content')).toBeInTheDocument();
-    expect(clerkProviderSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        __internal_bypassMissingPublishableKey: true,
-        publishableKey: '',
-      }),
-    );
+    expect(screen.getByText('Light child')).toBeInTheDocument();
   });
 });

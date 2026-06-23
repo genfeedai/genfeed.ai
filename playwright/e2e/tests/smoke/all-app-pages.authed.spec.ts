@@ -2,12 +2,12 @@ import { createServer, type Server, type ServerResponse } from 'node:http';
 import { expect, type Page, type Response, test } from '@playwright/test';
 
 /**
- * Real-Clerk authenticated route smoke.
+ * Real-Better Auth authenticated route smoke.
  *
- * Unlike all-app-pages.spec.ts (fully-mocked auth via fake cookies + Clerk FAPI
- * mock + the __playwright_test bypass), this spec runs under a REAL Clerk
+ * Unlike all-app-pages.spec.ts (fully-mocked auth via fake cookies + Better Auth FAPI
+ * mock + the __playwright_test bypass), this spec runs under a REAL Better Auth
  * session supplied by the `app-authed` project's storageState (written by
- * playwright/e2e/clerk.setup.ts). It exercises the genuine proxy.ts / clerkMiddleware path,
+ * playwright/e2e/auth.setup.ts). It exercises the genuine proxy.ts / authMiddleware path,
  * while backend DATA is still served by a local mock API on :3010.
  *
  * The mock API binds dual-stack (::) so the app's SSR fetch to `localhost:3010`
@@ -52,7 +52,7 @@ function bootstrapPayload() {
       },
     ],
     currentUser: {
-      clerkId: 'mock-user-id-e2e-test',
+      authProviderId: 'mock-user-id-e2e-test',
       email: 'test@genfeed.ai',
       firstName: 'Test',
       id: 'mock-user-id-e2e-test',
@@ -80,7 +80,7 @@ function installReadinessPayload() {
       selectedMode: 'server',
       serverDefaultsReady: true,
     },
-    authMode: 'clerk',
+    authMode: 'better_auth',
     billingMode: 'oss_local',
     localTools: {
       anyDetected: true,
@@ -195,7 +195,7 @@ const PROTECTED_ROUTES = [
   '/test-org/brand-1/workspace',
 ];
 
-test.describe('Authenticated route smoke (real Clerk session)', () => {
+test.describe('Authenticated route smoke (real Better Auth session)', () => {
   test.setTimeout(600_000);
 
   let mockApiServer: Server | null = null;

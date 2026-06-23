@@ -1,6 +1,6 @@
-import { useAuth } from '@clerk/clerk-expo';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
+import { useMobileAuth } from '@/contexts/auth-context';
 import {
   type ConnectionState,
   type WebSocketMessage,
@@ -24,7 +24,7 @@ interface UseWebSocketReturn {
 }
 
 export function useWebSocket(): UseWebSocketReturn {
-  const { getToken, isSignedIn } = useAuth();
+  const { getToken, isSignedIn } = useMobileAuth();
   const [connectionState, setConnectionState] = useState<ConnectionState>(() =>
     websocketService.getConnectionState(),
   );

@@ -1,5 +1,5 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { User } from '@clerk/backend';
 import { HttpException } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -154,7 +154,7 @@ describe('VideosEffectsController', () => {
     );
     expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
       expect.objectContaining({
-        clerkUserId: 'user_123',
+        authProviderUserId: 'user_123',
         room: 'user:user_123',
         userId: '507f1f77bcf86cd799439012',
       }),

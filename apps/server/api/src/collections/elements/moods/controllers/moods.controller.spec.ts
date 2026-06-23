@@ -1,12 +1,12 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsMoodsController } from '@api/collections/elements/moods/controllers/moods.controller';
 import { CreateElementMoodDto } from '@api/collections/elements/moods/dto/create-mood.dto';
 import { UpdateElementMoodDto } from '@api/collections/elements/moods/dto/update-mood.dto';
 import { ElementsMoodsService } from '@api/collections/elements/moods/services/moods.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
-import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -53,7 +53,7 @@ describe('ElementsMoodsController', () => {
       brand: '507f191e810c19729de860ee'.toString(),
       organization: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
-    } as IClerkPublicMetadata,
+    } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockUserWithoutOrg = {
@@ -61,7 +61,7 @@ describe('ElementsMoodsController', () => {
     publicMetadata: {
       brand: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
-    } as IClerkPublicMetadata,
+    } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockRequest = {

@@ -13,10 +13,10 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
 }));
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { TrendsController } from '@api/collections/trends/controllers/trends.controller';
 import { GenerateTrendIdeasDto } from '@api/collections/trends/dto/trend-ideas.dto';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
-import type { User } from '@clerk/backend';
 import type { Request } from 'express';
 
 describe('TrendsController', () => {

@@ -58,14 +58,14 @@ This document explains why the Genfeed Chrome Extension requests each permission
 
 **Why Required:**
 
-- Clerk (our authentication provider) uses cookies for OAuth authentication
+- Better Auth (our authentication provider) uses cookies for OAuth authentication
 - API session management requires cookie-based authentication
 - This enables secure login without storing passwords
 
 **Data Accessed:**
 
 - Authentication cookies from api.genfeed.ai
-- OAuth session cookies from Clerk
+- OAuth session cookies from Better Auth
 
 **Privacy Impact:** Low - Cookies are only used for authentication with Genfeed services. We do not access cookies from other websites.
 

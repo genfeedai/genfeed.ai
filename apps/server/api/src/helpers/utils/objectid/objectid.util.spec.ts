@@ -1,7 +1,7 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
-import type { IClerkPublicMetadata } from '@libs/interfaces/clerk.interface';
+import type { IAuthPublicMetadata } from '@libs/interfaces/auth-public-metadata.interface';
 
 // Mock cache decorator
 vi.mock('@helpers/utils/cache/cache.util', () => ({
@@ -243,7 +243,7 @@ describe('ObjectIdUtil', () => {
 
       const result = ObjectIdUtil.enrichWithUserContext(
         dto,
-        publicMetadata as IClerkPublicMetadata,
+        publicMetadata as IAuthPublicMetadata,
       );
 
       expect(result.name).toBe('Test');
@@ -259,7 +259,7 @@ describe('ObjectIdUtil', () => {
 
       const result = ObjectIdUtil.enrichWithUserContext(
         dto,
-        publicMetadata as IClerkPublicMetadata,
+        publicMetadata as IAuthPublicMetadata,
       );
 
       expect(result.user).toEqual(expect.any(String));
@@ -268,7 +268,7 @@ describe('ObjectIdUtil', () => {
 
     it('should throw error for missing user context', () => {
       const dto = { name: 'Test' };
-      const publicMetadata = {} as IClerkPublicMetadata;
+      const publicMetadata = {} as IAuthPublicMetadata;
 
       expect(() =>
         ObjectIdUtil.enrichWithUserContext(dto, publicMetadata),
@@ -410,7 +410,7 @@ describe('ObjectIdUtil', () => {
 
       const result = await ObjectIdUtil.createSecureQuery(
         baseQuery,
-        userContext as IClerkPublicMetadata,
+        userContext as IAuthPublicMetadata,
       );
 
       expect(result.name).toBe('Test');

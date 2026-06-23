@@ -6,7 +6,6 @@ import {
   // Base
   baseSchema,
   betterAuthSchema,
-  clerkSchema,
   conditionalRequired,
   darkroomSchema,
   elevenlabsSchema,
@@ -115,7 +114,6 @@ const apiSchema = Joi.object({
   ...postgresSchema,
   ...redisSchema,
   ...awsSchema,
-  ...clerkSchema,
   ...betterAuthSchema,
   ...sentrySchema,
   ...stripeSchema,

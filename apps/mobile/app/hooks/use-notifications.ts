@@ -1,7 +1,7 @@
-import { useAuth } from '@clerk/clerk-expo';
 import type * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useMobileAuth } from '@/contexts/auth-context';
 import { notificationsService } from '@/services/notifications.service';
 
 interface NotificationData {
@@ -34,7 +34,7 @@ function getNotificationRoute(data: NotificationData): NotificationRoute {
 }
 
 export function useNotifications() {
-  const { getToken, isSignedIn } = useAuth();
+  const { getToken, isSignedIn } = useMobileAuth();
   const router = useRouter();
 
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);

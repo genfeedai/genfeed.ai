@@ -1,15 +1,15 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateTranscriptDto } from '@api/collections/transcripts/dto/create-transcript.dto';
 import { UpdateTranscriptDto } from '@api/collections/transcripts/dto/update-transcript.dto';
 import { TranscriptsService } from '@api/collections/transcripts/services/transcripts.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { User } from '@clerk/backend';
 import { TranscriptSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,

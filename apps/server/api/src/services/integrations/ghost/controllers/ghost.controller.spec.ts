@@ -1,13 +1,13 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   returnInternalServerError,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
-import type { User } from '@clerk/backend';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -15,7 +15,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { GhostController } from './ghost.controller';
 
-vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
+vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(),
 }));
 

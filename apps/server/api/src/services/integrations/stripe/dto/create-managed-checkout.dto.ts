@@ -11,7 +11,7 @@ export class CreateManagedCheckoutDto {
   @IsOptional()
   @IsString()
   @ApiProperty({
-    description: 'Optional first name for Clerk user creation',
+    description: 'Optional first name for legacy auth provider user creation',
     required: false,
   })
   readonly firstName?: string;
@@ -19,7 +19,7 @@ export class CreateManagedCheckoutDto {
   @IsOptional()
   @IsString()
   @ApiProperty({
-    description: 'Optional last name for Clerk user creation',
+    description: 'Optional last name for legacy auth provider user creation',
     required: false,
   })
   readonly lastName?: string;

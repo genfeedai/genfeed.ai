@@ -23,10 +23,6 @@ export default function OnboardingSetupLayout({ children }: LayoutProps) {
     </ApiStatusProvider>
   );
 
-  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-    return content;
-  }
-
   if (process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1') {
     return content;
   }

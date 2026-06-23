@@ -413,7 +413,7 @@ import { <EntityName>Service } from '@genfeedai/services/<domain>/<plural-kebab>
 import type { I<EntityName> } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth } from '@genfeedai/auth-client/react';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 
 export interface Use<EntityName>Options {

@@ -59,7 +59,7 @@ const mocks = vi.hoisted(() => ({
   websocketPrompt: vi.fn(),
 }));
 
-vi.mock('@clerk/nextjs', () => ({
+vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: mocks.getToken,
   }),
@@ -69,7 +69,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => mocks.brandContext,
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
+vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: mocks.resolveAuthToken,
 }));
 
@@ -345,7 +345,7 @@ describe('WorkspaceTaskComposer', () => {
     };
     mocks.editorOptions = undefined;
     mocks.websocketOptions = undefined;
-    mocks.getToken.mockResolvedValue('clerk-token');
+    mocks.getToken.mockResolvedValue('authProvider-token');
     mocks.resolveAuthToken.mockResolvedValue('api-token');
     mocks.createTask.mockResolvedValue({
       id: 'task-1',

@@ -3,7 +3,7 @@
     "better-auth": "^1.6.20",
     "zod": "4.4.3"
   },
-  "description": "Genfeed.ai first-party auth client (Better Auth) — Clerk replacement, epic #735",
+  "description": "Genfeed.ai first-party Better Auth client, epic #735",
   "devDependencies": {
     "@types/node": "25.9.1",
     "@types/react": "19.2.16",
@@ -15,9 +15,17 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "default": "./dist/react.js"
+    },
     "./server": {
       "types": "./dist/server.d.ts",
       "default": "./dist/server.js"
+    },
+    "./themes": {
+      "types": "./dist/themes.d.ts",
+      "default": "./dist/themes.js"
     }
   },
   "files": [

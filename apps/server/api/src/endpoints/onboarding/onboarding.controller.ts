@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { SetAccountTypeDto } from '@api/endpoints/onboarding/dto/account-type.dto';
 import {
   BrandSetupDto,
@@ -12,7 +13,6 @@ import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service'
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -258,8 +258,7 @@ export class OnboardingController {
   @Post('account-type')
   @HttpCode(200)
   @ApiOperation({
-    description:
-      'Sets the organization category and updates Clerk metadata during the onboarding funnel.',
+    description: 'Sets the organization category during the onboarding funnel.',
     summary: 'Set account type',
   })
   @ApiResponse({
@@ -284,7 +283,7 @@ export class OnboardingController {
   @HttpCode(200)
   @ApiOperation({
     description:
-      'Marks the onboarding funnel as completed in Clerk metadata. Called after successful Stripe payment.',
+      'Marks the onboarding funnel as completed. Called after successful Stripe payment.',
     summary: 'Complete onboarding funnel',
   })
   @ApiResponse({
