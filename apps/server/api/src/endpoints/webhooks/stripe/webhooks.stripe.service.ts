@@ -711,9 +711,14 @@ export class StripeWebhookService {
         if ((error as { code?: string })?.code !== 'P2002') {
           throw error;
         }
-        dbUser = await this.usersService.findOne({ email, isDeleted: false });
+        dbUser = await this.usersService.findOne({ email }, []);
         if (!dbUser) {
           throw error;
+        }
+        if (dbUser.isDeleted === true) {
+          dbUser = await this.usersService.patch(String(dbUser._id), {
+            isDeleted: false,
+          });
         }
       }
     }

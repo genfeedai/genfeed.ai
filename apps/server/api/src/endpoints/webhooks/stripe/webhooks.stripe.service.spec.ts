@@ -256,6 +256,44 @@ describe('StripeWebhookService', () => {
       expect(apiKeysService.createWithKey).toHaveBeenCalledTimes(1);
     });
 
+    it('reactivates a soft-deleted user when email creation hits a unique constraint race', async () => {
+      usersService.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
+        _id: 'user_deleted_1',
+        isDeleted: true,
+        isOnboardingCompleted: false,
+        onboardingStepsCompleted: [],
+      });
+      usersService.create.mockRejectedValueOnce({ code: 'P2002' });
+      usersService.patch
+        .mockResolvedValueOnce({
+          _id: 'user_deleted_1',
+          isDeleted: false,
+          isOnboardingCompleted: false,
+          onboardingStepsCompleted: [],
+        })
+        .mockResolvedValueOnce({});
+      const service = buildService();
+
+      await service.provisionManagedCheckoutAccount(
+        session as never,
+        email,
+        'test',
+      );
+
+      expect(usersService.findOne).toHaveBeenNthCalledWith(1, {
+        email,
+        isDeleted: false,
+      });
+      expect(usersService.findOne).toHaveBeenNthCalledWith(2, { email }, []);
+      expect(usersService.patch).toHaveBeenNthCalledWith(1, 'user_deleted_1', {
+        isDeleted: false,
+      });
+      expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.addOrganizationCreditsWithExpiration,
+      ).toHaveBeenCalled();
+    });
+
     it('reuses an existing user by email, skips provisioning, but still tops up credits for a returning buyer', async () => {
       usersService.findOne.mockResolvedValue({
         _id: 'user_existing_1',
