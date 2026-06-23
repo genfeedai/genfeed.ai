@@ -3,6 +3,7 @@
     "@anthropic-ai/sdk": "0.100.1",
     "@aws-sdk/client-cloudfront": "3.1059.0",
     "@aws-sdk/client-ec2": "3.1059.0",
+    "@better-auth/infra": "0.3.2",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",

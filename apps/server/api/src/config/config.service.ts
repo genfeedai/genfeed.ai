@@ -37,6 +37,7 @@ import Joi from 'joi';
 
 interface ApiEnvConfig extends IEnvConfig {
   BETTER_AUTH_ENABLED?: 'true' | 'false';
+  BETTER_AUTH_API_KEY?: string;
   BETTER_AUTH_SECRET?: string;
   BETTER_AUTH_URL?: string;
   BETTER_AUTH_TRUSTED_ORIGINS?: string;

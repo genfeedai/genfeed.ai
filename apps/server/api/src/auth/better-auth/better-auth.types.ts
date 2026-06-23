@@ -56,6 +56,7 @@ export interface IBetterAuthUserCreatedEvent {
 /** Options for {@link createBetterAuthInstance}. */
 export interface ICreateBetterAuthOptions {
   prisma: PrismaClient;
+  apiKey?: string;
   secret: string;
   baseURL: string;
   trustedOrigins: string[];
