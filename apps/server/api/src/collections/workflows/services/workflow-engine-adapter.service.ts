@@ -23,6 +23,7 @@ import type {
   WorkflowStep,
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { AdAutomationWorkflowService } from '@api/collections/workflows/services/ad-automation-workflow.service';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
 import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -255,6 +256,8 @@ export class WorkflowEngineAdapterService {
     @Optional() private readonly cacheService?: CacheService,
     @Optional() private readonly prismaService?: PrismaService,
     @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
+    @Optional()
+    private readonly adAutomationWorkflowService?: AdAutomationWorkflowService,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -280,6 +283,7 @@ export class WorkflowEngineAdapterService {
     this.registerBrandAssetExecutor();
     this.registerBrandContextExecutor();
     this.registerAnalyticsFeedbackExecutor();
+    this.registerAdAutomationExecutors();
     this.registerTrendTriggerExecutor();
     this.registerTrendDigestExecutor();
     this.registerSendEmailExecutor();
@@ -609,6 +613,52 @@ export class WorkflowEngineAdapterService {
       executor.nodeType,
       this.wrapEngineExecutor(executor),
     );
+  }
+
+  private registerAdAutomationExecutors(): void {
+    this.engine.registerExecutor('adOptimization', (_node, _inputs, context) =>
+      this.adAutomationWorkflowService
+        ? this.adAutomationWorkflowService.runAdOptimization(
+            context.organizationId,
+          )
+        : this.adAutomationUnavailable('adOptimization', context),
+    );
+
+    this.engine.registerExecutor('adSyncGoogle', (_node, _inputs, context) =>
+      this.adAutomationWorkflowService
+        ? this.adAutomationWorkflowService.runGoogleAdSync(
+            context.organizationId,
+          )
+        : this.adAutomationUnavailable('adSyncGoogle', context),
+    );
+
+    this.engine.registerExecutor('adSyncMeta', (_node, _inputs, context) =>
+      this.adAutomationWorkflowService
+        ? this.adAutomationWorkflowService.runMetaAdSync(context.organizationId)
+        : this.adAutomationUnavailable('adSyncMeta', context),
+    );
+
+    this.engine.registerExecutor('adSyncTikTok', (_node, _inputs, context) =>
+      this.adAutomationWorkflowService
+        ? this.adAutomationWorkflowService.runTikTokAdSync(
+            context.organizationId,
+          )
+        : this.adAutomationUnavailable('adSyncTikTok', context),
+    );
+  }
+
+  private adAutomationUnavailable(
+    action: string,
+    context: ExecutionContext,
+  ): Record<string, unknown> {
+    return {
+      action,
+      enqueued: 0,
+      organizationId: context.organizationId,
+      reason: 'ad_automation_service_unavailable',
+      skipped: 0,
+      status: 'skipped',
+    };
   }
 
   private registerTrendTriggerExecutor(): void {

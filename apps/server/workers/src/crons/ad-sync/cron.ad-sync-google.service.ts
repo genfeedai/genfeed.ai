@@ -3,7 +3,6 @@ import type { GoogleAdSyncJobData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class CronAdSyncGoogleService {
@@ -15,7 +14,6 @@ export class CronAdSyncGoogleService {
     private readonly queueService: QueueService,
   ) {}
 
-  @Cron('30 3 * * *') // 3:30 AM daily
   async syncGoogleAds(): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);

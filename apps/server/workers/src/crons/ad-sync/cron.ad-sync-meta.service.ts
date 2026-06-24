@@ -9,7 +9,6 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class CronAdSyncMetaService {
@@ -25,7 +24,6 @@ export class CronAdSyncMetaService {
     private readonly queueService: QueueService,
   ) {}
 
-  @Cron('0 3 * * *') // 3 AM daily
   async syncMetaAds(): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);

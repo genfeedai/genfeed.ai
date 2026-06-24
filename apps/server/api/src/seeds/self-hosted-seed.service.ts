@@ -10,6 +10,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 @Injectable()
 export class SelfHostedSeedService implements OnApplicationBootstrap {
@@ -18,6 +19,7 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -82,9 +84,40 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
       },
     });
 
+    await this.provisionDefaultWorkflows(user.id, org.id);
+
     this.logger.log(
       `Self-hosted workspace seeded (org=${org.id}, user=${user.id})`,
       this.context,
     );
+  }
+
+  private async provisionDefaultWorkflows(
+    userId: string,
+    organizationId: string,
+  ): Promise<void> {
+    try {
+      const { WorkflowsService } = await import(
+        '@api/collections/workflows/services/workflows.service'
+      );
+      const workflowsService = this.moduleRef.get(WorkflowsService, {
+        strict: false,
+      });
+
+      await workflowsService.ensureDailyTrendsDigestWorkflow(
+        userId,
+        organizationId,
+      );
+      await workflowsService.ensureAdAutomationWorkflows(
+        userId,
+        organizationId,
+      );
+    } catch (error) {
+      this.logger.error(
+        'Failed to provision default self-hosted workflows',
+        error,
+        this.context,
+      );
+    }
   }
 }

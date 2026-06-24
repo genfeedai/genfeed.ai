@@ -6,7 +6,6 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class CronAdOptimizationService {
@@ -23,7 +22,6 @@ export class CronAdOptimizationService {
     private readonly optimizationConfigService: AdOptimizationConfigsService,
   ) {}
 
-  @Cron('0 4 * * *') // 4 AM daily
   async runOptimization(): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
