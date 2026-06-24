@@ -25,6 +25,7 @@ import type {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { AdAutomationWorkflowService } from '@api/collections/workflows/services/ad-automation-workflow.service';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
+import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows/services/campaign-orchestration-workflow.service';
 import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -261,6 +262,8 @@ export class WorkflowEngineAdapterService {
     private readonly adAutomationWorkflowService?: AdAutomationWorkflowService,
     @Optional()
     private readonly campaignOrchestrationWorkflowService?: CampaignOrchestrationWorkflowService,
+    @Optional()
+    private readonly agentAutopilotWorkflowService?: AgentAutopilotWorkflowService,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -288,6 +291,7 @@ export class WorkflowEngineAdapterService {
     this.registerAnalyticsFeedbackExecutor();
     this.registerAdAutomationExecutors();
     this.registerCampaignOrchestrationExecutors();
+    this.registerAgentAutopilotExecutors();
     this.registerTrendTriggerExecutor();
     this.registerTrendDigestExecutor();
     this.registerSendEmailExecutor();
@@ -702,6 +706,43 @@ export class WorkflowEngineAdapterService {
       enqueued: 0,
       organizationId: context.organizationId,
       reason: 'campaign_orchestration_service_unavailable',
+      skipped: 0,
+      status: 'skipped',
+    };
+  }
+
+  private registerAgentAutopilotExecutors(): void {
+    this.engine.registerExecutor(
+      'proactiveAgentStrategies',
+      (_node, _inputs, context) =>
+        this.agentAutopilotWorkflowService
+          ? this.agentAutopilotWorkflowService.runProactiveStrategies(
+              context.organizationId,
+            )
+          : this.agentAutopilotUnavailable('proactiveAgentStrategies', context),
+    );
+
+    this.engine.registerExecutor(
+      'aiInfluencerDailyPosts',
+      (_node, _inputs, context) =>
+        this.agentAutopilotWorkflowService
+          ? this.agentAutopilotWorkflowService.runAiInfluencerDailyPosts(
+              context.organizationId,
+            )
+          : this.agentAutopilotUnavailable('aiInfluencerDailyPosts', context),
+    );
+  }
+
+  private agentAutopilotUnavailable(
+    action: string,
+    context: ExecutionContext,
+  ): Record<string, unknown> {
+    return {
+      action,
+      enqueued: 0,
+      generated: 0,
+      organizationId: context.organizationId,
+      reason: 'agent_autopilot_service_unavailable',
       skipped: 0,
       status: 'skipped',
     };

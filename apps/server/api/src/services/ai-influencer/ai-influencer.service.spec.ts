@@ -791,6 +791,29 @@ describe('AiInfluencerService', () => {
       expect(loggerService.warn).toHaveBeenCalled();
     });
 
+    it('should scope scheduled posts to an organization when provided', async () => {
+      personasService.findAll.mockResolvedValue({
+        docs: [],
+        limit: 100,
+        page: 1,
+        totalDocs: 0,
+      });
+
+      await service.scheduleDailyPosts({ organizationId: 'org-1' });
+
+      expect(personasService.findAll).toHaveBeenCalledWith(
+        {
+          where: {
+            isAutopilotEnabled: true,
+            isDarkroomCharacter: true,
+            isDeleted: false,
+            organizationId: 'org-1',
+          },
+        },
+        { limit: 100, page: 1 },
+      );
+    });
+
     it('should continue with other personas when one fails', async () => {
       const persona1 = createMockPersona({ slug: 'persona-fail' });
       const persona2 = createMockPersona({
