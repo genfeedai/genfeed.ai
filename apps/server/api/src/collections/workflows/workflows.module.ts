@@ -9,6 +9,7 @@ import { AgentGoalsModule } from '@api/collections/agent-goals/agent-goals.modul
 import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
+import { ContentSchedulesModule } from '@api/collections/content-schedules/content-schedules.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
@@ -35,6 +36,7 @@ import {
   BatchWorkflowQueueService,
 } from '@api/collections/workflows/services/batch-workflow-queue.service';
 import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows/services/campaign-orchestration-workflow.service';
+import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import {
   WORKFLOW_EXECUTION_QUEUE,
@@ -49,6 +51,9 @@ import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marke
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentCampaignOrchestratorModule } from '@api/services/agent-campaign/agent-campaign-orchestrator.module';
 import { AiInfluencerModule } from '@api/services/ai-influencer/ai-influencer.module';
+import { ContentEngineModule } from '@api/services/content-engine/content-engine.module';
+import { ContentGatewayModule } from '@api/services/content-gateway/content-gateway.module';
+import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { GoogleAdsModule } from '@api/services/integrations/google-ads/google-ads.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
@@ -81,6 +86,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentAutopilotWorkflowService,
     AnalyticsSyncWorkflowService,
     CampaignOrchestrationWorkflowService,
+    ContentProductionWorkflowService,
   ],
   imports: [
     forwardRef(() => AdOptimizationConfigsModule),
@@ -91,6 +97,10 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => AiInfluencerModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => CaptionsModule),
+    forwardRef(() => ContentEngineModule),
+    forwardRef(() => ContentGatewayModule),
+    forwardRef(() => ContentOrchestrationModule),
+    forwardRef(() => ContentSchedulesModule),
     forwardRef(() => CredentialsCoreModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => ElevenLabsModule),
@@ -149,6 +159,7 @@ import { forwardRef, Module } from '@nestjs/common';
     BatchWorkflowQueueService,
     BatchWorkflowService,
     CampaignOrchestrationWorkflowService,
+    ContentProductionWorkflowService,
     WorkflowEngineAdapterService,
     WorkflowExecutorService,
     WorkflowExecutionQueueService,

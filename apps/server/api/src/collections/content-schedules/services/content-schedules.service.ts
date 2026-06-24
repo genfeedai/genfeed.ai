@@ -6,7 +6,8 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { CronJob } from 'cron';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class ContentSchedulesService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {
     super(prisma, 'contentSchedule', logger);
   }
@@ -31,7 +33,7 @@ export class ContentSchedulesService extends BaseService<
     const now = new Date();
     const timezone = dto.timezone ?? 'UTC';
 
-    return this.delegate.create({
+    const created = (await this.delegate.create({
       data: {
         brandId,
         cronExpression: dto.cronExpression,
@@ -44,7 +46,11 @@ export class ContentSchedulesService extends BaseService<
         skillSlugs: dto.skillSlugs ?? [],
         timezone,
       } as Record<string, unknown>,
-    }) as Promise<ContentScheduleDocument>;
+    })) as ContentScheduleDocument;
+
+    await this.syncWorkflowForSchedule(organizationId, created.id);
+
+    return created;
   }
 
   listByBrand(
@@ -87,11 +93,15 @@ export class ContentSchedulesService extends BaseService<
     scheduleId: string,
     dto: UpdateContentScheduleDto,
   ): Promise<ContentScheduleDocument> {
-    await this.getById(organizationId, brandId, scheduleId);
+    const existingSchedule = await this.getById(
+      organizationId,
+      brandId,
+      scheduleId,
+    );
 
     const updatePayload: Record<string, unknown> = { ...dto };
     const expression = dto.cronExpression;
-    const timezone = dto.timezone ?? 'UTC';
+    const timezone = dto.timezone ?? existingSchedule.timezone ?? 'UTC';
 
     if (expression) {
       updatePayload.nextRunAt = this.calculateNextRunAt(
@@ -109,10 +119,14 @@ export class ContentSchedulesService extends BaseService<
       throw new NotFoundException('ContentSchedule', scheduleId);
     }
 
-    return this.delegate.update({
+    const updatedSchedule = (await this.delegate.update({
       where: { id: scheduleId },
       data: updatePayload,
-    }) as Promise<ContentScheduleDocument>;
+    })) as ContentScheduleDocument;
+
+    await this.syncWorkflowForSchedule(organizationId, updatedSchedule.id);
+
+    return updatedSchedule;
   }
 
   async removeForBrand(
@@ -128,10 +142,14 @@ export class ContentSchedulesService extends BaseService<
       throw new NotFoundException('ContentSchedule', scheduleId);
     }
 
-    return this.delegate.update({
+    const removed = (await this.delegate.update({
       where: { id: scheduleId },
       data: { isDeleted: true },
-    }) as Promise<ContentScheduleDocument>;
+    })) as ContentScheduleDocument;
+
+    await this.disableWorkflowForSchedule(organizationId, removed.id);
+
+    return removed;
   }
 
   getActiveSchedules(
@@ -183,5 +201,80 @@ export class ContentSchedulesService extends BaseService<
     }
 
     return next.toJSDate();
+  }
+
+  private async syncWorkflowForSchedule(
+    organizationId: string,
+    scheduleId: string,
+  ): Promise<void> {
+    const workflowsService = await this.getWorkflowsService();
+    if (!workflowsService) {
+      return;
+    }
+
+    const userId = await this.getOrganizationOwnerUserId(organizationId);
+    if (!userId) {
+      this.logger.warn('Skipping content schedule workflow sync - no owner', {
+        organizationId,
+        scheduleId,
+      });
+      return;
+    }
+
+    await workflowsService.ensureContentScheduleWorkflow(
+      userId,
+      organizationId,
+      scheduleId,
+    );
+  }
+
+  private async disableWorkflowForSchedule(
+    organizationId: string,
+    scheduleId: string,
+  ): Promise<void> {
+    const workflowsService = await this.getWorkflowsService();
+    if (!workflowsService) {
+      return;
+    }
+
+    await workflowsService.disableContentScheduleWorkflow(
+      organizationId,
+      scheduleId,
+    );
+  }
+
+  private async getOrganizationOwnerUserId(
+    organizationId: string,
+  ): Promise<string | undefined> {
+    const organization = await this.prisma.organization.findFirst({
+      select: { userId: true },
+      where: { id: organizationId, isDeleted: false },
+    });
+
+    return organization?.userId ?? undefined;
+  }
+
+  private async getWorkflowsService(): Promise<
+    | {
+        disableContentScheduleWorkflow: (
+          organizationId: string,
+          contentScheduleId: string,
+        ) => Promise<void>;
+        ensureContentScheduleWorkflow: (
+          userId: string,
+          organizationId: string,
+          contentScheduleId: string,
+        ) => Promise<void>;
+      }
+    | undefined
+  > {
+    if (!this.moduleRef) {
+      return undefined;
+    }
+
+    const { WorkflowsService } = await import(
+      '../../workflows/services/workflows.service'
+    );
+    return this.moduleRef.get(WorkflowsService, { strict: false });
   }
 }

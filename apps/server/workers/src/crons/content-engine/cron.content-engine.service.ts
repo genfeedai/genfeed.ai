@@ -5,7 +5,6 @@ import { ContentPlannerService } from '@api/services/content-engine/content-plan
 import { ContentReviewService } from '@api/services/content-engine/content-review.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 const MAX_BRANDS_PER_CYCLE = 10;
 
@@ -28,7 +27,6 @@ export class CronContentEngineService {
    * Finds brands with active content strategy and auto-publish enabled,
    * generates plans if needed, and executes pending items.
    */
-  @Cron(CronExpression.EVERY_30_MINUTES)
   async processContentEngine(): Promise<void> {
     const acquired = await this.cacheService.acquireLock(
       CronContentEngineService.LOCK_KEY,

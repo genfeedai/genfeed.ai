@@ -28,6 +28,7 @@ import { SocialAdapterFactory } from '@api/collections/workflows/services/adapte
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows/services/campaign-orchestration-workflow.service';
+import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
 import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -267,6 +268,8 @@ export class WorkflowEngineAdapterService {
     private readonly agentAutopilotWorkflowService?: AgentAutopilotWorkflowService,
     @Optional()
     private readonly analyticsSyncWorkflowService?: AnalyticsSyncWorkflowService,
+    @Optional()
+    private readonly contentProductionWorkflowService?: ContentProductionWorkflowService,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -296,6 +299,7 @@ export class WorkflowEngineAdapterService {
     this.registerCampaignOrchestrationExecutors();
     this.registerAgentAutopilotExecutors();
     this.registerAnalyticsSyncExecutors();
+    this.registerContentProductionExecutors();
     this.registerTrendTriggerExecutor();
     this.registerTrendDigestExecutor();
     this.registerSendEmailExecutor();
@@ -826,6 +830,80 @@ export class WorkflowEngineAdapterService {
       queueName: '',
       reason: 'analytics_sync_service_unavailable',
       skipped: 0,
+      status: 'skipped',
+    };
+  }
+
+  private registerContentProductionExecutors(): void {
+    this.engine.registerExecutor(
+      'contentEngineProduction',
+      (_node, _inputs, context) =>
+        this.contentProductionWorkflowService
+          ? this.contentProductionWorkflowService.runContentEngineProduction(
+              context.organizationId,
+            )
+          : this.contentProductionUnavailable(
+              'contentEngineProduction',
+              context,
+            ),
+    );
+
+    this.engine.registerExecutor(
+      'contentPipelineAutopilot',
+      (_node, _inputs, context) =>
+        this.contentProductionWorkflowService
+          ? this.contentProductionWorkflowService.runContentPipelineAutopilot(
+              context.organizationId,
+            )
+          : this.contentProductionUnavailable(
+              'contentPipelineAutopilot',
+              context,
+            ),
+    );
+
+    this.engine.registerExecutor(
+      'contentScheduleRun',
+      (node, _inputs, context) => {
+        if (!this.contentProductionWorkflowService) {
+          return this.contentProductionUnavailable(
+            'contentScheduleRun',
+            context,
+          );
+        }
+
+        const contentScheduleId = this.readConfigString(
+          node.config,
+          'contentScheduleId',
+        );
+        if (!contentScheduleId) {
+          return this.contentProductionUnavailable(
+            'contentScheduleRun',
+            context,
+            'content_schedule_id_missing',
+          );
+        }
+
+        return this.contentProductionWorkflowService.runContentSchedule(
+          context.organizationId,
+          contentScheduleId,
+          context.workflowId,
+        );
+      },
+    );
+  }
+
+  private async contentProductionUnavailable(
+    action: string,
+    context: ExecutionContext,
+    reason = 'content_production_service_unavailable',
+  ): Promise<Record<string, unknown>> {
+    return {
+      action,
+      failed: 0,
+      organizationId: context.organizationId,
+      processed: 0,
+      reason,
+      skipped: 1,
       status: 'skipped',
     };
   }
