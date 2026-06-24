@@ -3,7 +3,6 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 const LOCK_KEY = 'cron:content-schedules';
 const LOCK_TTL_SECONDS = 55;
@@ -30,7 +29,6 @@ export class CronContentSchedulesService {
     private readonly logger: LoggerService,
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
   async processContentSchedules(): Promise<void> {
     const lockAcquired = await this.cacheService.acquireLock(
       LOCK_KEY,

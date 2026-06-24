@@ -20,6 +20,10 @@ import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/tem
 import { AGENT_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/agent-autopilot-workflows.template';
 import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
 import { CAMPAIGN_ORCHESTRATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/campaign-orchestration-workflows.template';
+import {
+  CONTENT_PRODUCTION_WORKFLOW_TEMPLATES,
+  CONTENT_SCHEDULE_WORKFLOW_TEMPLATE_ID,
+} from '@api/collections/workflows/templates/content-production-workflows.template';
 import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
@@ -580,6 +584,270 @@ export class WorkflowsService extends BaseService<
         throw error;
       }
     }
+  }
+
+  /**
+   * Idempotently seeds the default-on content production workflow set for an
+   * organization. Existing content schedules are mirrored into workflow rows
+   * with their own cron expression/timezone and enabled state.
+   */
+  async ensureContentProductionWorkflows(
+    userId: string,
+    organizationId: string,
+  ): Promise<void> {
+    for (const template of CONTENT_PRODUCTION_WORKFLOW_TEMPLATES) {
+      const where = {
+        isDeleted: false,
+        metadata: {
+          equals: template.id,
+          path: ['sourceTemplateId'],
+        },
+        organizationId,
+      };
+
+      const preCheck = await this.prisma.workflow.findFirst({
+        select: { id: true },
+        where,
+      });
+
+      if (preCheck) {
+        continue;
+      }
+
+      try {
+        await this.prisma.$transaction(
+          async (tx) => {
+            const existing = await tx.workflow.findFirst({
+              select: { id: true },
+              where,
+            });
+
+            if (existing) {
+              return;
+            }
+
+            await tx.workflow.create({
+              data: {
+                description: template.description,
+                edges: (template.edges ?? []) as never,
+                executionCount: 0,
+                inputVariables: (template.inputVariables ?? []) as never,
+                isDeleted: false,
+                isScheduleEnabled: true,
+                label: template.name,
+                metadata: {
+                  sourceIssue: 786,
+                  sourceTemplateId: template.id,
+                  sourceType: 'seeded-template',
+                },
+                nodes: (template.nodes ?? []) as never,
+                organizationId,
+                progress: 0,
+                schedule: template.schedule,
+                status: WorkflowStatus.ACTIVE,
+                steps: template.steps as never,
+                timezone: 'UTC',
+                userId,
+              },
+            });
+          },
+          { isolationLevel: 'Serializable' },
+        );
+      } catch (error) {
+        const errorCode = (error as { code?: string }).code;
+        if (errorCode === 'P2034') {
+          this.logger?.debug(
+            'ensureContentProductionWorkflows: serialization conflict - workflow already seeded by concurrent request',
+            { organizationId, templateId: template.id },
+          );
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    const schedules = await this.prisma.contentSchedule.findMany({
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+      where: { isDeleted: false, organizationId },
+    });
+
+    for (const schedule of schedules) {
+      await this.ensureContentScheduleWorkflow(
+        userId,
+        organizationId,
+        schedule.id,
+      );
+    }
+  }
+
+  async ensureContentScheduleWorkflow(
+    userId: string,
+    organizationId: string,
+    contentScheduleId: string,
+  ): Promise<void> {
+    const schedule = await this.prisma.contentSchedule.findFirst({
+      select: {
+        brandId: true,
+        cronExpression: true,
+        id: true,
+        isEnabled: true,
+        name: true,
+        timezone: true,
+      },
+      where: {
+        id: contentScheduleId,
+        isDeleted: false,
+        organizationId,
+      },
+    });
+
+    if (!schedule) {
+      await this.disableContentScheduleWorkflow(
+        organizationId,
+        contentScheduleId,
+      );
+      return;
+    }
+
+    const where = {
+      isDeleted: false,
+      metadata: {
+        equals: contentScheduleId,
+        path: ['contentScheduleId'],
+      },
+      organizationId,
+    };
+
+    const existing = await this.prisma.workflow.findFirst({
+      select: { id: true },
+      where,
+    });
+    const data = this.buildContentScheduleWorkflowData(schedule);
+
+    if (existing) {
+      await this.prisma.workflow.update({
+        data,
+        where: { id: existing.id },
+      });
+      return;
+    }
+
+    try {
+      await this.prisma.$transaction(
+        async (tx) => {
+          const concurrent = await tx.workflow.findFirst({
+            select: { id: true },
+            where,
+          });
+
+          if (concurrent) {
+            await tx.workflow.update({
+              data,
+              where: { id: concurrent.id },
+            });
+            return;
+          }
+
+          await tx.workflow.create({
+            data: {
+              ...data,
+              executionCount: 0,
+              inputVariables: [] as never,
+              isDeleted: false,
+              organizationId,
+              progress: 0,
+              steps: [] as never,
+              userId,
+            },
+          });
+        },
+        { isolationLevel: 'Serializable' },
+      );
+    } catch (error) {
+      const errorCode = (error as { code?: string }).code;
+      if (errorCode === 'P2034') {
+        this.logger?.debug(
+          'ensureContentScheduleWorkflow: serialization conflict - workflow already synced by concurrent request',
+          { contentScheduleId, organizationId },
+        );
+        return;
+      }
+      throw error;
+    }
+  }
+
+  async disableContentScheduleWorkflow(
+    organizationId: string,
+    contentScheduleId: string,
+  ): Promise<void> {
+    await this.prisma.workflow.updateMany({
+      data: {
+        isDeleted: true,
+        isScheduleEnabled: false,
+        status: WorkflowStatus.ARCHIVED,
+      },
+      where: {
+        isDeleted: false,
+        metadata: {
+          equals: contentScheduleId,
+          path: ['contentScheduleId'],
+        },
+        organizationId,
+      },
+    });
+  }
+
+  private buildContentScheduleWorkflowData(schedule: {
+    brandId: string | null;
+    cronExpression: string | null;
+    id: string;
+    isEnabled: boolean;
+    name: string | null;
+    timezone: string | null;
+  }): Record<string, unknown> {
+    return {
+      description: `Workflow-backed content schedule ${schedule.id}`,
+      edges: [] as never,
+      isScheduleEnabled: schedule.isEnabled === true,
+      label: `Content Schedule: ${schedule.name || schedule.id}`,
+      metadata: {
+        brandId: schedule.brandId,
+        contentScheduleId: schedule.id,
+        sourceIssue: 786,
+        sourceTemplateId: CONTENT_SCHEDULE_WORKFLOW_TEMPLATE_ID,
+        sourceType: 'content-schedule',
+      },
+      nodes: this.buildContentScheduleNodes(schedule) as never,
+      schedule: schedule.cronExpression ?? '* * * * *',
+      status: WorkflowStatus.ACTIVE,
+      timezone: schedule.timezone ?? 'UTC',
+    };
+  }
+
+  private buildContentScheduleNodes(schedule: {
+    brandId: string | null;
+    id: string;
+  }): WorkflowVisualNode[] {
+    const config: Record<string, unknown> = {
+      contentScheduleId: schedule.id,
+    };
+
+    if (schedule.brandId) {
+      config.brandId = schedule.brandId;
+    }
+
+    return [
+      {
+        data: {
+          config,
+          label: 'Run Content Schedule',
+        },
+        id: 'contentScheduleRun',
+        position: { x: 0, y: 120 },
+        type: 'contentScheduleRun',
+      },
+    ];
   }
 
   async executeWorkflow(workflowId: string): Promise<void> {

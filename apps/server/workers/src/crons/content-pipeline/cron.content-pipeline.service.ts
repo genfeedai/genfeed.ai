@@ -13,7 +13,6 @@ import {
 import type { Credential, Persona } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 const MAX_PERSONAS_PER_CYCLE = 20;
 
@@ -48,7 +47,6 @@ export class CronContentPipelineService {
     private readonly logger: LoggerService,
   ) {}
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
   async processAutopilotPersonas(): Promise<void> {
     const acquired = await this.cacheService.acquireLock(
       CronContentPipelineService.LOCK_KEY,

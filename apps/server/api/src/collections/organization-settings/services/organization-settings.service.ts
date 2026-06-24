@@ -120,6 +120,10 @@ export class OrganizationSettingsService extends BaseService<
         organization.userId,
         organizationId,
       );
+      await workflowsService.ensureContentProductionWorkflows(
+        organization.userId,
+        organizationId,
+      );
     } catch (error) {
       // Swallowed so a non-critical provisioning step never fails org creation,
       // but reported to Sentry as well as the log: otherwise new-org workflow
