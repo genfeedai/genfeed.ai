@@ -5,6 +5,8 @@ dependency management, and workflow execution tracking.
  */
 import { AdOptimizationConfigsModule } from '@api/collections/ad-optimization-configs/ad-optimization-configs.module';
 import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
+import { AgentGoalsModule } from '@api/collections/agent-goals/agent-goals.module';
+import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
@@ -13,6 +15,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
+import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
@@ -24,6 +27,7 @@ import { AdAutomationWorkflowService } from '@api/collections/workflows/services
 import { InstagramSocialAdapter } from '@api/collections/workflows/services/adapters/instagram-social.adapter';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
 import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
+import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import { BatchWorkflowService } from '@api/collections/workflows/services/batch-workflow.service';
 import {
   BATCH_WORKFLOW_QUEUE,
@@ -43,6 +47,7 @@ import { WorkflowsService } from '@api/collections/workflows/services/workflows.
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentCampaignOrchestratorModule } from '@api/services/agent-campaign/agent-campaign-orchestrator.module';
+import { AiInfluencerModule } from '@api/services/ai-influencer/ai-influencer.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { GoogleAdsModule } from '@api/services/integrations/google-ads/google-ads.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
@@ -72,12 +77,16 @@ import { forwardRef, Module } from '@nestjs/common';
     WorkflowFormatConverterService,
     WorkflowGenerationService,
     AdAutomationWorkflowService,
+    AgentAutopilotWorkflowService,
     CampaignOrchestrationWorkflowService,
   ],
   imports: [
     forwardRef(() => AdOptimizationConfigsModule),
     forwardRef(() => AdPerformanceModule),
     forwardRef(() => AgentCampaignOrchestratorModule),
+    forwardRef(() => AgentGoalsModule),
+    forwardRef(() => AgentRunsModule),
+    forwardRef(() => AiInfluencerModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => CaptionsModule),
     forwardRef(() => CredentialsCoreModule),
@@ -94,6 +103,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => NewslettersModule),
     forwardRef(() => NotificationsModule),
     forwardRef(() => NotificationsPublisherModule),
+    forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => OpenRouterModule),
     forwardRef(() => PostsModule),
     forwardRef(() => QueuesModule),
@@ -132,6 +142,7 @@ import { forwardRef, Module } from '@nestjs/common';
     InstagramSocialAdapter,
     SocialAdapterFactory,
     AdAutomationWorkflowService,
+    AgentAutopilotWorkflowService,
     BatchWorkflowQueueService,
     BatchWorkflowService,
     CampaignOrchestrationWorkflowService,

@@ -235,10 +235,13 @@ export class AiInfluencerService {
   /**
    * Find all personas with autopilot enabled and generate daily posts for each.
    */
-  async scheduleDailyPosts(): Promise<GeneratePostResult[]> {
+  async scheduleDailyPosts(options?: {
+    organizationId?: string;
+  }): Promise<GeneratePostResult[]> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(caller, {
       message: 'Starting scheduled daily posts',
+      organizationId: options?.organizationId,
     });
 
     const personas = await this.personasService.findAll(
@@ -247,6 +250,9 @@ export class AiInfluencerService {
           isAutopilotEnabled: true,
           isDarkroomCharacter: true,
           isDeleted: false,
+          ...(options?.organizationId
+            ? { organizationId: options.organizationId }
+            : {}),
         },
       },
       { limit: 100, page: 1 },

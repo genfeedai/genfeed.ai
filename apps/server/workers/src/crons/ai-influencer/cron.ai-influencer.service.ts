@@ -2,7 +2,6 @@ import { AiInfluencerService } from '@api/services/ai-influencer/ai-influencer.s
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class CronAiInfluencerService {
@@ -19,7 +18,6 @@ export class CronAiInfluencerService {
    * Run daily autopilot posts for all AI influencer personas.
    * Runs every 6 hours in production (disabled in development).
    */
-  @Cron(CronExpression.EVERY_6_HOURS)
   async runDailyInfluencerPosts(): Promise<void> {
     const acquired = await this.cacheService.acquireLock(
       CronAiInfluencerService.LOCK_KEY,

@@ -13,7 +13,6 @@ import {
 import type { AgentStrategy } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 const MAX_CONSECUTIVE_FAILURES = 5;
 const MAX_STRATEGIES_PER_CYCLE = 20;
@@ -76,7 +75,6 @@ export class CronProactiveAgentService {
    * Main cron entry point — runs every minute
    * Finds due strategies and executes proactive agent runs
    */
-  @Cron(CronExpression.EVERY_MINUTE)
   async processProactiveStrategies(): Promise<void> {
     const acquired = await this.cacheService.acquireLock(
       CronProactiveAgentService.LOCK_KEY,
