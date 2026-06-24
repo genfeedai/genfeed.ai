@@ -8,7 +8,6 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { HiOutlineClock } from 'react-icons/hi2';
-import CronJobForm from './CronJobForm';
 import CronJobRunHistory from './CronJobRunHistory';
 import type { CronJob } from './cron-jobs-list.types';
 import { statusColorMap } from './cron-jobs-list.types';
@@ -16,35 +15,23 @@ import { useCronJobsList } from './useCronJobsList';
 
 export default function CronJobsList() {
   const {
-    deleteFormJob,
-    deleteJob,
-    form,
     handleRefresh,
-    handleRunNow,
-    handleTogglePause,
     href,
-    isFormOpen,
     isLoading,
     isRefreshing,
     isRunsLoading,
     jobs,
     loadRuns,
-    openCreateForm,
-    openEditForm,
     runStatusFilter,
     runTriggerFilter,
     runs,
-    saveForm,
     selectedJob,
     selectedRun,
-    setForm,
-    setIsFormOpen,
     setRunStatusFilter,
     setRunTriggerFilter,
     setRuns,
     setSelectedJob,
     setSelectedRun,
-    testWebhook,
   } = useCronJobsList();
 
   const filteredRuns = useMemo(() => {
@@ -132,32 +119,6 @@ export default function CronJobsList() {
         render: (job: CronJob) => (
           <div className="flex items-center gap-2">
             <Button
-              label="Run Now"
-              className="h-7 px-2 text-xs font-medium"
-              onClick={async () => {
-                await handleRunNow(job);
-              }}
-            />
-            <Button
-              label="Edit"
-              className="h-7 px-2 text-xs font-medium"
-              onClick={() => openEditForm(job)}
-            />
-            <Button
-              label="Delete"
-              className="h-7 px-2 text-xs font-medium"
-              onClick={async () => {
-                await deleteJob(job);
-              }}
-            />
-            <Button
-              label={job.paused ? 'Resume' : 'Pause'}
-              className="h-7 px-2 text-xs font-medium"
-              onClick={async () => {
-                await handleTogglePause(job);
-              }}
-            />
-            <Button
               label="Runs"
               className="h-7 px-2 text-xs font-medium"
               onClick={async () => {
@@ -168,7 +129,7 @@ export default function CronJobsList() {
         ),
       },
     ],
-    [deleteJob, handleRunNow, handleTogglePause, loadRuns, openEditForm],
+    [loadRuns],
   );
 
   return (
@@ -184,31 +145,14 @@ export default function CronJobsList() {
           >
             Open Workflows
           </Link>
-          <Button
-            label="New Cron Job"
-            className="h-8 px-3 text-xs font-semibold"
-            onClick={openCreateForm}
-          />
           <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
         </div>
       }
     >
       <div className="mb-4 rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-muted-foreground">
-        Create and edit recurring automations in Workflows, then use this page
-        to schedule, run, and monitor the underlying cron jobs.
+        Legacy cron jobs are read-only. Create and manage recurring automation
+        in Workflows.
       </div>
-
-      {isFormOpen && (
-        <CronJobForm
-          form={form}
-          setForm={setForm}
-          onSave={saveForm}
-          onCancel={() => setIsFormOpen(false)}
-          onDelete={deleteFormJob}
-          onTestWebhook={testWebhook}
-          workflowsHref={href('/workflows')}
-        />
-      )}
 
       <AppTable<CronJob>
         items={jobs}

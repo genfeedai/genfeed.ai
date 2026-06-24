@@ -36,11 +36,13 @@ import type {
   CronRun as PrismaCronRun,
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, GoneException, Injectable } from '@nestjs/common';
 import { CronJob as CronParser } from 'cron';
 
 /** Minimum credits required before executing a paid AI cron job type. */
 const MIN_CREDITS_FOR_AI_JOB = 10;
+export const LEGACY_CRON_JOBS_RETIRED_MESSAGE =
+  'Legacy cron jobs are retired. Use workflow schedules for recurring automation.';
 const LEGACY_CRON_JOB_MIGRATION_STATUS = 'workflow_migrated';
 const LEGACY_CRON_JOB_MIGRATION_SOURCE = 'legacy-cron-job';
 const LEGACY_CRON_JOB_NODE_TYPE = 'legacyCronJob';
@@ -369,35 +371,16 @@ export class CronJobsService {
     return value === 'manual' || value === 'scheduled' ? value : undefined;
   }
 
+  private throwRetiredMutation(): never {
+    throw new GoneException(LEGACY_CRON_JOBS_RETIRED_MESSAGE);
+  }
+
   async create(
-    userId: string,
-    organizationId: string,
-    dto: CreateCronJobDto,
+    _userId: string,
+    _organizationId: string,
+    _dto: CreateCronJobDto,
   ): Promise<CronJobDocument> {
-    this.assertValidSchedule(dto.schedule, dto.timezone);
-
-    const created = await this.prisma.cronJob.create({
-      data: {
-        config: this.buildCronJobConfig({
-          consecutiveFailures: 0,
-          enabled: dto.enabled ?? true,
-          jobType: dto.jobType,
-          lastStatus: 'never',
-          name: dto.name,
-          payload: dto.payload ?? {},
-          schedule: dto.schedule,
-          timezone: dto.timezone ?? 'UTC',
-        }) as never,
-        expression: dto.schedule,
-        label: dto.name,
-        nextRunAt: computeNextRunAtOrThrow(dto.schedule, dto.timezone),
-        organizationId,
-        status: dto.enabled === false ? 'PAUSED' : 'ACTIVE',
-        userId,
-      },
-    });
-
-    return this.toCronJobDocument(created);
+    this.throwRetiredMutation();
   }
 
   async list(
@@ -441,118 +424,32 @@ export class CronJobsService {
   }
 
   async update(
-    id: string,
-    organizationId: string,
-    dto: UpdateCronJobDto,
+    _id: string,
+    _organizationId: string,
+    _dto: UpdateCronJobDto,
   ): Promise<CronJobDocument | null> {
-    // Read with raw (unredacted) payload so we don't accidentally persist '[REDACTED]'
-    // back into the DB when the caller omits the payload field.
-    const dbJob = await this.prisma.cronJob.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-    if (!dbJob) {
-      return null;
-    }
-    const current = this.toCronJobDocument(dbJob, { redactSecrets: false });
-
-    const schedule = dto.schedule ?? current.schedule;
-    const timezone = dto.timezone ?? current.timezone;
-    this.assertValidSchedule(schedule, timezone);
-
-    const updated = await this.prisma.cronJob.update({
-      data: {
-        config: this.buildCronJobConfig(
-          {
-            consecutiveFailures: current.consecutiveFailures,
-            enabled: dto.enabled ?? current.enabled,
-            jobType: current.jobType,
-            lastStatus: current.lastStatus,
-            name: dto.name ?? current.name,
-            payload: dto.payload ?? current.payload,
-            schedule,
-            timezone,
-          },
-          current.config,
-        ) as never,
-        ...(dto.name !== undefined ? { label: dto.name } : {}),
-        ...(dto.schedule !== undefined ? { expression: dto.schedule } : {}),
-        nextRunAt: computeNextRunAtOrThrow(schedule, timezone),
-        ...(dto.enabled !== undefined
-          ? { status: dto.enabled ? 'ACTIVE' : 'PAUSED' }
-          : {}),
-      },
-      where: { id },
-    });
-
-    // Return the redacted version to the API caller.
-    return this.toCronJobDocument(updated);
+    this.throwRetiredMutation();
   }
 
   async pause(
-    id: string,
-    organizationId: string,
+    _id: string,
+    _organizationId: string,
   ): Promise<CronJobDocument | null> {
-    const existing = await this.findOne(id, organizationId);
-    if (!existing) return null;
-
-    const updated = await this.prisma.cronJob.update({
-      data: {
-        config: this.buildCronJobConfig(
-          { enabled: false },
-          existing.config,
-        ) as never,
-        status: 'PAUSED',
-      },
-      where: { id },
-    });
-
-    return this.toCronJobDocument(updated);
+    this.throwRetiredMutation();
   }
 
   async resume(
-    id: string,
-    organizationId: string,
+    _id: string,
+    _organizationId: string,
   ): Promise<CronJobDocument | null> {
-    const current = await this.findOne(id, organizationId);
-    if (!current) {
-      return null;
-    }
-
-    const updated = await this.prisma.cronJob.update({
-      data: {
-        config: this.buildCronJobConfig(
-          { enabled: true },
-          current.config,
-        ) as never,
-        nextRunAt: computeNextRunAtOrThrow(current.schedule, current.timezone),
-        status: 'ACTIVE',
-      },
-      where: { id },
-    });
-
-    return this.toCronJobDocument(updated);
+    this.throwRetiredMutation();
   }
 
   async delete(
-    id: string,
-    organizationId: string,
+    _id: string,
+    _organizationId: string,
   ): Promise<CronJobDocument | null> {
-    const existing = await this.findOne(id, organizationId);
-    if (!existing) return null;
-
-    const updated = await this.prisma.cronJob.update({
-      data: {
-        config: this.buildCronJobConfig(
-          { enabled: false },
-          existing.config,
-        ) as never,
-        isDeleted: true,
-        status: 'PAUSED',
-      },
-      where: { id },
-    });
-
-    return this.toCronJobDocument(updated);
+    this.throwRetiredMutation();
   }
 
   async getRuns(
@@ -590,28 +487,10 @@ export class CronJobsService {
   }
 
   async runNow(
-    id: string,
-    organizationId: string,
+    _id: string,
+    _organizationId: string,
   ): Promise<CronRunDocument | null> {
-    const dbJob = await this.prisma.cronJob.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-    if (!dbJob) {
-      return null;
-    }
-
-    // Use unredacted document for execution so webhook secrets are available.
-    const job = this.toCronJobDocument(dbJob, { redactSecrets: false });
-    if (this.isWorkflowMigratedJob(job)) {
-      this.logger.warn('Migrated cron job runNow ignored', {
-        jobId: job.id,
-        migrationStatus: LEGACY_CRON_JOB_MIGRATION_STATUS,
-        organizationId,
-      });
-      return null;
-    }
-
-    return await this.executeJob(job, 'manual');
+    this.throwRetiredMutation();
   }
 
   async processDueJobs(limit = 30): Promise<number> {
@@ -1367,16 +1246,5 @@ export class CronJobsService {
   ): string {
     const firstLine = draftContent?.split('\n')[0]?.replace(/^#\s*/, '').trim();
     return firstLine || topic;
-  }
-
-  private assertValidSchedule(
-    schedule: string,
-    timezone: string | undefined,
-  ): void {
-    try {
-      computeNextRunAtOrThrow(schedule, timezone);
-    } catch {
-      throw new BadRequestException('Invalid cron schedule or timezone');
-    }
   }
 }

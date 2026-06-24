@@ -43,7 +43,7 @@ export class AnalyticsDateRangeDto {
   })
   @IsOptional()
   @IsString()
-  brand?: string;
+  declare brand?: string;
 }
 
 export class LeaderboardQueryDto extends AnalyticsDateRangeDto {
@@ -158,7 +158,7 @@ export class AnalyticsFilterQueryDto extends AnalyticsDateRangeDto {
   })
   @IsOptional()
   @IsString()
-  brand?: string;
+  declare brand?: string;
 
   @ApiProperty({
     description: 'Platform to filter by',
@@ -207,7 +207,7 @@ export class TopContentQueryDto extends AnalyticsDateRangeDto {
   })
   @IsOptional()
   @IsString()
-  brand?: string;
+  declare brand?: string;
 
   @ApiProperty({
     description: 'Platform to filter by',
@@ -246,7 +246,7 @@ export class ViralHooksQueryDto extends AnalyticsDateRangeDto {
   })
   @IsOptional()
   @IsString()
-  brand?: string;
+  declare brand?: string;
 
   @ApiProperty({
     description: 'Organization ID to filter by',

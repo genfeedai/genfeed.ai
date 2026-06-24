@@ -53,6 +53,9 @@ export interface CreateCronJobInput {
 
 export type UpdateCronJobInput = Partial<CreateCronJobInput>;
 
+export const LEGACY_CRON_JOBS_RETIRED_MESSAGE =
+  'Legacy cron jobs are retired. Use workflow schedules for recurring automation.';
+
 export class CronJobsService extends HTTPBaseService {
   constructor(token: string) {
     super(`${EnvironmentService.apiEndpoint}/cron-jobs`, token);
@@ -70,48 +73,39 @@ export class CronJobsService extends HTTPBaseService {
     return deserializeCollection<CronJobRecord>(response.data);
   }
 
+  private throwRetiredMutation(): never {
+    throw new Error(LEGACY_CRON_JOBS_RETIRED_MESSAGE);
+  }
+
   async create(input: CreateCronJobInput): Promise<CronJobRecord> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      '',
-      input,
-    );
-    return deserializeResource<CronJobRecord>(response.data);
+    void input;
+    this.throwRetiredMutation();
   }
 
   async update(id: string, input: UpdateCronJobInput): Promise<CronJobRecord> {
-    const response = await this.instance.patch<JsonApiResponseDocument>(
-      `/${id}`,
-      input,
-    );
-    return deserializeResource<CronJobRecord>(response.data);
+    void id;
+    void input;
+    this.throwRetiredMutation();
   }
 
   async pause(id: string): Promise<CronJobRecord> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `/${id}/pause`,
-    );
-    return deserializeResource<CronJobRecord>(response.data);
+    void id;
+    this.throwRetiredMutation();
   }
 
   async resume(id: string): Promise<CronJobRecord> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `/${id}/resume`,
-    );
-    return deserializeResource<CronJobRecord>(response.data);
+    void id;
+    this.throwRetiredMutation();
   }
 
   async runNow(id: string): Promise<CronRunRecord> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `/${id}/run-now`,
-    );
-    return deserializeResource<CronRunRecord>(response.data);
+    void id;
+    this.throwRetiredMutation();
   }
 
   async delete(id: string): Promise<CronJobRecord> {
-    const response = await this.instance.delete<JsonApiResponseDocument>(
-      `/${id}`,
-    );
-    return deserializeResource<CronJobRecord>(response.data);
+    void id;
+    this.throwRetiredMutation();
   }
 
   async testWebhook(input: {
@@ -119,11 +113,8 @@ export class CronJobsService extends HTTPBaseService {
     webhookSecret?: string;
     webhookHeaders?: Record<string, string>;
   }): Promise<Record<string, unknown>> {
-    const response = await this.instance.post<Record<string, unknown>>(
-      '/test-webhook',
-      input,
-    );
-    return response.data;
+    void input;
+    this.throwRetiredMutation();
   }
 
   async runs(id: string): Promise<CronRunRecord[]> {

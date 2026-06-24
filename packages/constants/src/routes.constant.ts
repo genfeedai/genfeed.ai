@@ -89,7 +89,7 @@ export const APP_ROUTES = {
   },
   LAB: {
     ARTICLES: '/lab/articles',
-    CRON_JOBS: '/lab/cron-jobs',
+    CRON_JOBS: '/workflows',
     LIBRARY_PREVIEW: '/lab/library-preview',
     TWITTER_ENGAGE: '/lab/twitter-engage',
   },

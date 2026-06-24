@@ -1,8 +1,9 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { CronJobsController } from '@api/collections/cron-jobs/controllers/cron-jobs.controller';
-import type { CreateCronJobDto } from '@api/collections/cron-jobs/dto/create-cron-job.dto';
-import type { UpdateCronJobDto } from '@api/collections/cron-jobs/dto/update-cron-job.dto';
-import { CronJobsService } from '@api/collections/cron-jobs/services/cron-jobs.service';
+import {
+  CronJobsService,
+  LEGACY_CRON_JOBS_RETIRED_MESSAGE,
+} from '@api/collections/cron-jobs/services/cron-jobs.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -155,165 +156,56 @@ describe('CronJobsController', () => {
   });
 
   describe('create', () => {
-    it('should create a cron job and return it serialized', async () => {
-      mockServiceMethods.create.mockResolvedValue(mockCronJob);
-
-      const dto: CreateCronJobDto = {
-        jobType: 'newsletter_substack',
-        name: 'Daily Newsletter',
-        schedule: '0 9 * * 1-5',
-      };
-
-      const result = await controller.create(mockRequest, mockUser as any, dto);
-
-      expect(mockServiceMethods.create).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439014',
-        '507f1f77bcf86cd799439012',
-        dto,
+    it('should reject new legacy cron jobs', () => {
+      expect(() => controller.create()).toThrow(
+        LEGACY_CRON_JOBS_RETIRED_MESSAGE,
       );
-      expect(result).toEqual({ data: mockCronJob });
+      expect(mockServiceMethods.create).not.toHaveBeenCalled();
     });
   });
 
   describe('update', () => {
-    it('should update a cron job and return it serialized', async () => {
-      mockServiceMethods.update.mockResolvedValue(mockCronJob);
-
-      const dto: UpdateCronJobDto = { name: 'Updated Name' };
-
-      const result = await controller.update(
-        mockRequest,
-        mockUser as any,
-        '507f1f77bcf86cd799439011',
-        dto,
+    it('should reject legacy cron job edits', () => {
+      expect(() => controller.update()).toThrow(
+        LEGACY_CRON_JOBS_RETIRED_MESSAGE,
       );
-
-      expect(mockServiceMethods.update).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
-        '507f1f77bcf86cd799439012',
-        dto,
-      );
-      expect(result).toEqual({ data: mockCronJob });
-    });
-
-    it('should throw when cron job is not found', async () => {
-      mockServiceMethods.update.mockResolvedValue(null);
-
-      await expect(
-        controller.update(
-          mockRequest,
-          mockUser as any,
-          'nonexistent-id',
-          {} as UpdateCronJobDto,
-        ),
-      ).rejects.toThrow();
+      expect(mockServiceMethods.update).not.toHaveBeenCalled();
     });
   });
 
   describe('runNow', () => {
-    it('should trigger a run and return the cron run serialized', async () => {
-      mockServiceMethods.runNow.mockResolvedValue(mockCronRun);
-
-      const result = await controller.runNow(
-        mockRequest,
-        mockUser as any,
-        '507f1f77bcf86cd799439011',
+    it('should reject manual legacy cron job runs', () => {
+      expect(() => controller.runNow()).toThrow(
+        LEGACY_CRON_JOBS_RETIRED_MESSAGE,
       );
-
-      expect(mockServiceMethods.runNow).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
-        '507f1f77bcf86cd799439012',
-      );
-      expect(result).toEqual({ data: mockCronRun });
-    });
-
-    it('should throw when cron job is not found', async () => {
-      mockServiceMethods.runNow.mockResolvedValue(null);
-
-      await expect(
-        controller.runNow(mockRequest, mockUser as any, 'nonexistent-id'),
-      ).rejects.toThrow();
+      expect(mockServiceMethods.runNow).not.toHaveBeenCalled();
     });
   });
 
   describe('pause', () => {
-    it('should pause a cron job and return it serialized', async () => {
-      const paused = { ...mockCronJob, enabled: false };
-      mockServiceMethods.pause.mockResolvedValue(paused);
-
-      const result = await controller.pause(
-        mockRequest,
-        mockUser as any,
-        '507f1f77bcf86cd799439011',
+    it('should reject legacy cron job pause requests', () => {
+      expect(() => controller.pause()).toThrow(
+        LEGACY_CRON_JOBS_RETIRED_MESSAGE,
       );
-
-      expect(mockServiceMethods.pause).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
-        '507f1f77bcf86cd799439012',
-      );
-      expect(result).toEqual({ data: paused });
-    });
-
-    it('should throw when cron job is not found', async () => {
-      mockServiceMethods.pause.mockResolvedValue(null);
-
-      await expect(
-        controller.pause(mockRequest, mockUser as any, 'nonexistent-id'),
-      ).rejects.toThrow();
+      expect(mockServiceMethods.pause).not.toHaveBeenCalled();
     });
   });
 
   describe('resume', () => {
-    it('should resume a cron job and return it serialized', async () => {
-      const resumed = { ...mockCronJob, enabled: true };
-      mockServiceMethods.resume.mockResolvedValue(resumed);
-
-      const result = await controller.resume(
-        mockRequest,
-        mockUser as any,
-        '507f1f77bcf86cd799439011',
+    it('should reject legacy cron job resume requests', () => {
+      expect(() => controller.resume()).toThrow(
+        LEGACY_CRON_JOBS_RETIRED_MESSAGE,
       );
-
-      expect(mockServiceMethods.resume).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
-        '507f1f77bcf86cd799439012',
-      );
-      expect(result).toEqual({ data: resumed });
-    });
-
-    it('should throw when cron job is not found', async () => {
-      mockServiceMethods.resume.mockResolvedValue(null);
-
-      await expect(
-        controller.resume(mockRequest, mockUser as any, 'nonexistent-id'),
-      ).rejects.toThrow();
+      expect(mockServiceMethods.resume).not.toHaveBeenCalled();
     });
   });
 
   describe('delete', () => {
-    it('should soft-delete a cron job and return it serialized', async () => {
-      const deleted = { ...mockCronJob, enabled: false, isDeleted: true };
-      mockServiceMethods.delete.mockResolvedValue(deleted);
-
-      const result = await controller.delete(
-        mockRequest,
-        mockUser as any,
-        '507f1f77bcf86cd799439011',
+    it('should reject legacy cron job deletion requests', () => {
+      expect(() => controller.delete()).toThrow(
+        LEGACY_CRON_JOBS_RETIRED_MESSAGE,
       );
-
-      expect(mockServiceMethods.delete).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439011',
-        '507f1f77bcf86cd799439012',
-      );
-      expect(result).toEqual({ data: deleted });
-    });
-
-    it('should throw when deleting a missing cron job', async () => {
-      mockServiceMethods.delete.mockResolvedValue(null);
-
-      await expect(
-        controller.delete(mockRequest, mockUser as any, 'nonexistent-id'),
-      ).rejects.toThrow();
+      expect(mockServiceMethods.delete).not.toHaveBeenCalled();
     });
   });
 

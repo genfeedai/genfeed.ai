@@ -347,8 +347,8 @@ export class AdsResearchService {
       ...base,
       creative: {
         body: item.bodyText,
-        cta: item.ctaText,
-        headline: item.headlineText,
+        cta: item.ctaText ?? undefined,
+        headline: item.headlineText ?? undefined,
         imageUrls: item.imageUrls,
         landingPageUrl: item.landingPageUrl,
         videoUrls: item.videoUrls,

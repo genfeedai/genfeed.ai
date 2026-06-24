@@ -1,8 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CreateCronJobDto } from '@api/collections/cron-jobs/dto/create-cron-job.dto';
 import { CronJobQueryDto } from '@api/collections/cron-jobs/dto/cron-job-query.dto';
-import { UpdateCronJobDto } from '@api/collections/cron-jobs/dto/update-cron-job.dto';
-import { CronJobsService } from '@api/collections/cron-jobs/services/cron-jobs.service';
+import {
+  CronJobsService,
+  LEGACY_CRON_JOBS_RETIRED_MESSAGE,
+} from '@api/collections/cron-jobs/services/cron-jobs.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
@@ -13,10 +14,10 @@ import {
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { CronJobSerializer, CronRunSerializer } from '@genfeedai/serializers';
 import {
-  Body,
   Controller,
   Delete,
   Get,
+  GoneException,
   Param,
   Patch,
   Post,
@@ -30,6 +31,10 @@ export class CronJobsController {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(private readonly cronJobsService: CronJobsService) {}
+
+  private throwRetiredMutation(): never {
+    throw new GoneException(LEGACY_CRON_JOBS_RETIRED_MESSAGE);
+  }
 
   @Get()
   async findAll(
@@ -48,100 +53,33 @@ export class CronJobsController {
   }
 
   @Post()
-  async create(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Body() dto: CreateCronJobDto,
-  ): Promise<JsonApiSingleResponse> {
-    const metadata = getPublicMetadata(user);
-    const created = await this.cronJobsService.create(
-      metadata.user,
-      metadata.organization,
-      dto,
-    );
-
-    return serializeSingle(request, CronJobSerializer, created);
+  create(): never {
+    this.throwRetiredMutation();
   }
 
   @Patch(':id')
-  async update(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() dto: UpdateCronJobDto,
-  ): Promise<JsonApiSingleResponse> {
-    const metadata = getPublicMetadata(user);
-    const updated = await this.cronJobsService.update(
-      id,
-      metadata.organization,
-      dto,
-    );
-
-    return updated
-      ? serializeSingle(request, CronJobSerializer, updated)
-      : returnNotFound(this.constructorName, id);
+  update(): never {
+    this.throwRetiredMutation();
   }
 
   @Post(':id/run-now')
-  async runNow(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ): Promise<JsonApiSingleResponse> {
-    const metadata = getPublicMetadata(user);
-    const run = await this.cronJobsService.runNow(id, metadata.organization);
-
-    return run
-      ? serializeSingle(request, CronRunSerializer, run)
-      : returnNotFound(this.constructorName, id);
+  runNow(): never {
+    this.throwRetiredMutation();
   }
 
   @Post(':id/pause')
-  async pause(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ): Promise<JsonApiSingleResponse> {
-    const metadata = getPublicMetadata(user);
-    const paused = await this.cronJobsService.pause(id, metadata.organization);
-
-    return paused
-      ? serializeSingle(request, CronJobSerializer, paused)
-      : returnNotFound(this.constructorName, id);
+  pause(): never {
+    this.throwRetiredMutation();
   }
 
   @Post(':id/resume')
-  async resume(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ): Promise<JsonApiSingleResponse> {
-    const metadata = getPublicMetadata(user);
-    const resumed = await this.cronJobsService.resume(
-      id,
-      metadata.organization,
-    );
-
-    return resumed
-      ? serializeSingle(request, CronJobSerializer, resumed)
-      : returnNotFound(this.constructorName, id);
+  resume(): never {
+    this.throwRetiredMutation();
   }
 
   @Delete(':id')
-  async delete(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ): Promise<JsonApiSingleResponse> {
-    const metadata = getPublicMetadata(user);
-    const deleted = await this.cronJobsService.delete(
-      id,
-      metadata.organization,
-    );
-
-    return deleted
-      ? serializeSingle(request, CronJobSerializer, deleted)
-      : returnNotFound(this.constructorName, id);
+  delete(): never {
+    this.throwRetiredMutation();
   }
 
   @Get(':id/runs')

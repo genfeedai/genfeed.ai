@@ -33,7 +33,8 @@ Raw cron jobs are not a primary product abstraction.
 The repo currently contains two scheduling models:
 
 - workflow-native scheduling via `WorkflowSchedulerService`
-- a generic `cron-jobs` subsystem with its own API, UI, and execution model
+- a legacy `cron-jobs` subsystem retained for compatibility reads, migration,
+  and workflow-adapter execution of migrated rows
 
 The strategic path is workflow scheduling.
 
@@ -43,6 +44,13 @@ The `cron-jobs` subsystem should be treated as legacy because:
 - it exposes raw cron infrastructure as a product surface
 - it creates a second execution model for recurring automation
 - `processDueJobs()` is not the preferred scheduler path for new product work
+
+The legacy product surface is retired:
+
+- `/lab/cron-jobs` redirects to workflow scheduling
+- `POST`/`PATCH`/pause/resume/delete/run-now cron-job API routes return `410`
+- SDK mutation methods fail before making HTTP calls
+- new product code must not create legacy cron rows or call legacy mutation APIs
 
 ## Consequences
 
