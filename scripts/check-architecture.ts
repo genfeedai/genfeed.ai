@@ -13,6 +13,14 @@ const checks = [
     command: ['bun', 'run', 'scripts/check-decorator-boundaries.ts'],
     name: 'Nest decorator boundaries',
   },
+  {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-legacy-cron-jobs-surface.ts',
+    ],
+    name: 'Legacy cron-jobs product surface',
+  },
 ] as const;
 
 let failed = false;

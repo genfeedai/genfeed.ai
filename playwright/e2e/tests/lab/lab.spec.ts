@@ -8,7 +8,6 @@ test.describe('Lab', () => {
 
   const routes = [
     `${BRAND}/lab/articles`,
-    `${BRAND}/lab/cron-jobs`,
     `${BRAND}/lab/library-preview`,
     `${BRAND}/lab/twitter-engage`,
   ];
@@ -26,10 +25,17 @@ test.describe('Lab', () => {
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
 
-  test('cron-jobs view stays interactive', async ({ authenticatedPage }) => {
-    await assertRouteRenders(authenticatedPage, `${BRAND}/lab/cron-jobs`);
-    await tryClick(authenticatedPage, '[data-testid]');
-    await tryClick(authenticatedPage, 'button');
+  test('cron-jobs lab redirects to workflows', async ({
+    authenticatedPage,
+  }) => {
+    const response = await authenticatedPage.goto(`${BRAND}/lab/cron-jobs`, {
+      waitUntil: 'domcontentloaded',
+    });
+
+    expect(response?.status() ?? 0).toBeLessThan(400);
+    await expect(authenticatedPage).toHaveURL(
+      /\/test-org\/brand-1\/workflows(?:[?#].*)?$/,
+    );
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
 });

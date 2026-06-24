@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type CreateCronJobInput,
   CronJobsService,
+  LEGACY_CRON_JOBS_RETIRED_MESSAGE,
   type UpdateCronJobInput,
 } from './cron-jobs.service';
 
@@ -83,67 +84,60 @@ describe('CronJobsService', () => {
     expect(result).toBeDefined();
   });
 
-  it('create POSTs new cron job', async () => {
+  it('rejects create without calling the legacy API', async () => {
     const input: CreateCronJobInput = {
       jobType: 'workflow_execution',
       name: 'Daily Report',
       schedule: '0 8 * * *',
     };
-    mockInstance.post.mockResolvedValue({ data: { data: makeCronJob() } });
 
-    await service.create(input);
+    await expect(service.create(input)).rejects.toThrow(
+      LEGACY_CRON_JOBS_RETIRED_MESSAGE,
+    );
 
-    expect(mockInstance.post).toHaveBeenCalledWith('', input);
+    expect(mockInstance.post).not.toHaveBeenCalled();
   });
 
-  it('update PATCHes a cron job by id', async () => {
+  it('rejects update without calling the legacy API', async () => {
     const patch: UpdateCronJobInput = { enabled: false };
-    mockInstance.patch.mockResolvedValue({
-      data: { data: makeCronJob('cron-99') },
-    });
 
-    await service.update('cron-99', patch);
+    await expect(service.update('cron-99', patch)).rejects.toThrow(
+      LEGACY_CRON_JOBS_RETIRED_MESSAGE,
+    );
 
-    expect(mockInstance.patch).toHaveBeenCalledWith('/cron-99', patch);
+    expect(mockInstance.patch).not.toHaveBeenCalled();
   });
 
-  it('pause POSTs to /:id/pause', async () => {
-    mockInstance.post.mockResolvedValue({ data: { data: makeCronJob() } });
+  it('rejects pause without calling the legacy API', async () => {
+    await expect(service.pause('cron-1')).rejects.toThrow(
+      LEGACY_CRON_JOBS_RETIRED_MESSAGE,
+    );
 
-    await service.pause('cron-1');
-
-    expect(mockInstance.post).toHaveBeenCalledWith('/cron-1/pause');
+    expect(mockInstance.post).not.toHaveBeenCalled();
   });
 
-  it('resume POSTs to /:id/resume', async () => {
-    mockInstance.post.mockResolvedValue({ data: { data: makeCronJob() } });
+  it('rejects resume without calling the legacy API', async () => {
+    await expect(service.resume('cron-1')).rejects.toThrow(
+      LEGACY_CRON_JOBS_RETIRED_MESSAGE,
+    );
 
-    await service.resume('cron-1');
-
-    expect(mockInstance.post).toHaveBeenCalledWith('/cron-1/resume');
+    expect(mockInstance.post).not.toHaveBeenCalled();
   });
 
-  it('runNow POSTs to /:id/run-now and returns a CronRunRecord', async () => {
-    const runRecord = {
-      cronJob: 'cron-1',
-      id: 'run-1',
-      status: 'queued',
-      trigger: 'manual',
-    };
-    mockInstance.post.mockResolvedValue({ data: { data: runRecord } });
+  it('rejects runNow without calling the legacy API', async () => {
+    await expect(service.runNow('cron-1')).rejects.toThrow(
+      LEGACY_CRON_JOBS_RETIRED_MESSAGE,
+    );
 
-    const result = await service.runNow('cron-1');
-
-    expect(mockInstance.post).toHaveBeenCalledWith('/cron-1/run-now');
-    expect(result).toBeDefined();
+    expect(mockInstance.post).not.toHaveBeenCalled();
   });
 
-  it('delete DELETEs a cron job by id', async () => {
-    mockInstance.delete.mockResolvedValue({ data: { data: makeCronJob() } });
+  it('rejects delete without calling the legacy API', async () => {
+    await expect(service.delete('cron-2')).rejects.toThrow(
+      LEGACY_CRON_JOBS_RETIRED_MESSAGE,
+    );
 
-    await service.delete('cron-2');
-
-    expect(mockInstance.delete).toHaveBeenCalledWith('/cron-2');
+    expect(mockInstance.delete).not.toHaveBeenCalled();
   });
 
   it('runs GETs run history for a cron job', async () => {
@@ -162,18 +156,16 @@ describe('CronJobsService', () => {
     expect(mockInstance.get).toHaveBeenCalledWith('/cron-1/runs/run-5');
   });
 
-  it('testWebhook POSTs to /test-webhook', async () => {
+  it('rejects testWebhook without calling the legacy API', async () => {
     const webhookInput = {
-      webhookSecret: 's3cr3t',
+      webhookSecret: 'placeholder-secret',
       webhookUrl: 'https://example.com/hook',
     };
-    mockInstance.post.mockResolvedValue({ data: { success: true } });
 
-    await service.testWebhook(webhookInput);
-
-    expect(mockInstance.post).toHaveBeenCalledWith(
-      '/test-webhook',
-      webhookInput,
+    await expect(service.testWebhook(webhookInput)).rejects.toThrow(
+      LEGACY_CRON_JOBS_RETIRED_MESSAGE,
     );
+
+    expect(mockInstance.post).not.toHaveBeenCalled();
   });
 });

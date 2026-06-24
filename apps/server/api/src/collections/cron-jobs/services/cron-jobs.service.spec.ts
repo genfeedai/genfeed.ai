@@ -1,6 +1,7 @@
 import {
   CronJobsService,
   computeNextRunAtOrThrow,
+  LEGACY_CRON_JOBS_RETIRED_MESSAGE,
 } from '@api/collections/cron-jobs/services/cron-jobs.service';
 import type { CronJob as PrismaCronJob } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
@@ -260,29 +261,35 @@ describe('CronJobsService legacy cron workflow migration', () => {
     expect(cacheService.acquireLock).not.toHaveBeenCalled();
   });
 
-  it('does not run migrated rows through runNow', async () => {
-    const { prisma, service, workflowsService } = createService();
-    prisma.cronJob.findFirst.mockResolvedValue(
-      buildCronJob({
-        config: {
-          enabled: false,
+  it.each([
+    [
+      'create',
+      (service: CronJobsService) =>
+        service.create('user-1', 'org-1', {
           jobType: 'workflow_execution',
-          migration: {
-            status: 'workflow_migrated',
-            workflowId: 'workflow-migrated',
-          },
-          payload: { workflowId: 'workflow-target' },
+          name: 'Legacy schedule',
           schedule: '0 9 * * *',
-          timezone: 'UTC',
-        },
-        status: 'PAUSED',
-      }),
+        }),
+    ],
+    [
+      'update',
+      (service: CronJobsService) =>
+        service.update('cron-1', 'org-1', { name: 'Updated' }),
+    ],
+    ['pause', (service: CronJobsService) => service.pause('cron-1', 'org-1')],
+    ['resume', (service: CronJobsService) => service.resume('cron-1', 'org-1')],
+    ['delete', (service: CronJobsService) => service.delete('cron-1', 'org-1')],
+    ['runNow', (service: CronJobsService) => service.runNow('cron-1', 'org-1')],
+  ])('rejects retired legacy cron mutation %s', async (_name, action) => {
+    const { prisma, service } = createService();
+
+    await expect(action(service)).rejects.toThrow(
+      LEGACY_CRON_JOBS_RETIRED_MESSAGE,
     );
 
-    const result = await service.runNow('cron-1', 'org-1');
-
-    expect(result).toBeNull();
-    expect(workflowsService.executeWorkflow).not.toHaveBeenCalled();
+    expect(prisma.cronJob.create).not.toHaveBeenCalled();
+    expect(prisma.cronJob.update).not.toHaveBeenCalled();
+    expect(prisma.cronJob.findFirst).not.toHaveBeenCalled();
   });
 
   it('executes migrated workflow_execution rows through the workflow service', async () => {
