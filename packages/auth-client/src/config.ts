@@ -9,6 +9,22 @@
 
 const DEFAULT_API_ENDPOINT = 'https://api.genfeed.ai/v1';
 
+interface GenfeedRuntimeConfig {
+  apiEndpoint?: string;
+  betterAuthEnabled?: boolean;
+}
+
+declare global {
+  // Injected by the Next.js root layout so a prebuilt self-hosted image can
+  // honor runtime .env changes for auth mode instead of freezing them at build.
+  // eslint-disable-next-line no-var
+  var __GENFEED_RUNTIME_CONFIG__: GenfeedRuntimeConfig | undefined;
+}
+
+function getRuntimeConfig(): GenfeedRuntimeConfig {
+  return globalThis.__GENFEED_RUNTIME_CONFIG__ ?? {};
+}
+
 /**
  * Better Auth is mounted by the API at `${origin}/v1/auth/*` (Phase 1).
  *
@@ -32,9 +48,11 @@ export function getApiEndpoint(): string {
       __GENFEED_DESKTOP_ENV__?: { apiEndpoint?: string };
     }
   ).__GENFEED_DESKTOP_ENV__?.apiEndpoint;
+  const runtimeEndpoint = getRuntimeConfig().apiEndpoint;
 
   return (
     desktopOverride ||
+    runtimeEndpoint ||
     process.env.NEXT_PUBLIC_API_ENDPOINT ||
     DEFAULT_API_ENDPOINT
   );
@@ -60,5 +78,9 @@ export function getApiOrigin(): string {
  * path when the variable is absent.
  */
 export function isBetterAuthEnabled(): boolean {
+  const runtimeEnabled = getRuntimeConfig().betterAuthEnabled;
+  if (runtimeEnabled !== undefined) {
+    return runtimeEnabled;
+  }
   return process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED !== 'false';
 }

@@ -31,13 +31,27 @@ export GENFEEDAI_MICROSERVICES_WORKERS_URL=${GENFEEDAI_MICROSERVICES_WORKERS_URL
 export GENFEEDAI_APP_URL=${GENFEEDAI_APP_URL:-http://localhost:3000}
 export GENFEEDAI_PUBLIC_URL=${GENFEEDAI_PUBLIC_URL:-http://localhost:3000}
 
-# Optional: Enable HYBRID mode (local app + optional Better Auth cloud connection)
-# Set these to allow users to sign in with Better Auth and sync to cloud:
-#   NEXT_PUBLIC_BETTER_AUTH_ENABLED=true
-#   BETTER_AUTH_SECRET=sk_live_...
-# When set, the app runs in HYBRID mode: works offline by default,
-# but users can click "Connect to Cloud" to sign in and sync workflows.
-# When unset, the app runs in LOCAL mode (fully offline, no account needed).
+# Community defaults to LOCAL mode: a seeded single-org workspace with no login
+# wall. Setting BETTER_AUTH_ENABLED=true turns on the local Better Auth handler.
+export BETTER_AUTH_ENABLED=${BETTER_AUTH_ENABLED:-false}
+export NEXT_PUBLIC_BETTER_AUTH_ENABLED=${NEXT_PUBLIC_BETTER_AUTH_ENABLED:-$BETTER_AUTH_ENABLED}
+if [ "$BETTER_AUTH_ENABLED" = "false" ]; then
+  export NEXT_PUBLIC_BETTER_AUTH_ENABLED=false
+else
+  export BETTER_AUTH_URL=${BETTER_AUTH_URL:-$GENFEEDAI_API_URL}
+  export BETTER_AUTH_TRUSTED_ORIGINS=${BETTER_AUTH_TRUSTED_ORIGINS:-$GENFEEDAI_PUBLIC_URL}
+
+  if [ -z "$BETTER_AUTH_SECRET" ]; then
+    if [ -f /data/.better-auth-secret ]; then
+      BETTER_AUTH_SECRET=$(cat /data/.better-auth-secret)
+    else
+      BETTER_AUTH_SECRET=$(head -c 48 /dev/urandom | base64 | tr -d '\n=' | head -c 64)
+      echo -n "$BETTER_AUTH_SECRET" > /data/.better-auth-secret
+      chmod 600 /data/.better-auth-secret
+    fi
+  fi
+  export BETTER_AUTH_SECRET
+fi
 
 # Start infrastructure
 redis-server --dir /data/redis --appendonly yes --daemonize yes

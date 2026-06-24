@@ -16,9 +16,11 @@ describe('auth-client config', () => {
     // truthy value) — delete the keys so the defaults are actually exercised.
     delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
     delete process.env.NEXT_PUBLIC_API_ENDPOINT;
+    delete globalThis.__GENFEED_RUNTIME_CONFIG__;
   });
 
   afterEach(() => {
+    delete globalThis.__GENFEED_RUNTIME_CONFIG__;
     if (originalEnabled === undefined) {
       delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
     } else {
@@ -47,6 +49,15 @@ describe('auth-client config', () => {
       expect(getApiOrigin()).toBe('http://local.genfeed.ai:3010');
     });
 
+    it('prefers the runtime endpoint injected by the app shell', () => {
+      process.env.NEXT_PUBLIC_API_ENDPOINT = 'https://build.example/v1';
+      globalThis.__GENFEED_RUNTIME_CONFIG__ = {
+        apiEndpoint: 'http://runtime.local:3010/v1',
+      };
+
+      expect(getApiOrigin()).toBe('http://runtime.local:3010');
+    });
+
     it('produces the correct effective auth base URL', () => {
       // This is exactly what the client/server concatenate before hitting the
       // Phase 1 handler — guards against the basePath-drop bug.
@@ -71,6 +82,15 @@ describe('auth-client config', () => {
       expect(isBetterAuthEnabled()).toBe(false);
     });
 
+    it('prefers the runtime auth mode injected by the app shell', () => {
+      process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'true';
+      globalThis.__GENFEED_RUNTIME_CONFIG__ = {
+        betterAuthEnabled: false,
+      };
+
+      expect(isBetterAuthEnabled()).toBe(false);
+    });
+
     it('is true for non-"false" values', () => {
       process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = '1';
       expect(isBetterAuthEnabled()).toBe(true);
@@ -85,6 +105,15 @@ describe('auth-client config', () => {
     it('honours NEXT_PUBLIC_API_ENDPOINT when present', () => {
       process.env.NEXT_PUBLIC_API_ENDPOINT = 'http://local.genfeed.ai:3010/v1';
       expect(getApiEndpoint()).toBe('http://local.genfeed.ai:3010/v1');
+    });
+
+    it('honours runtime API endpoint before build-time env', () => {
+      process.env.NEXT_PUBLIC_API_ENDPOINT = 'https://build.example/v1';
+      globalThis.__GENFEED_RUNTIME_CONFIG__ = {
+        apiEndpoint: 'http://runtime.local:3010/v1',
+      };
+
+      expect(getApiEndpoint()).toBe('http://runtime.local:3010/v1');
     });
   });
 });
