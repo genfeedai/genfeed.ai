@@ -1,6 +1,14 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "cd ../../ && sh scripts/sh/vercel-bun.sh run build:docs",
   "framework": "nextjs",
+  "git": {
+    "deploymentEnabled": {
+      "*": false,
+      "master": false,
+      "staging": false
+    }
+  },
   "installCommand": "cd ../../ && sh scripts/sh/vercel-bun.sh install --ignore-scripts",
   "outputDirectory": ".next"
 }
