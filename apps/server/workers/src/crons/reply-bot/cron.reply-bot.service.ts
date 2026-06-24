@@ -6,7 +6,6 @@ import { ReplyBotPlatform } from '@genfeedai/enums';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 interface ReplyBotCronTarget {
   organizationId: string;
@@ -26,7 +25,6 @@ export class CronReplyBotService {
     private readonly logger: LoggerService,
   ) {}
 
-  @Cron(CronExpression.EVERY_10_MINUTES)
   async processReplyBots(): Promise<void> {
     const acquired = await this.cacheService.acquireLock(
       CronReplyBotService.LOCK_KEY,
