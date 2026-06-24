@@ -41,6 +41,9 @@ summary; the canonical, decision-of-record version is the ADR at
   credits on the cloud and use the issued API key against the cloud
   `/v1/managed-inference` endpoint. A self-hosted instance does not sell credits
   locally.
+- **SaaS admin access is a platform role.** `/admin` is gated by
+  `users.platformRole = 'SUPERADMIN'`, separate from organization owner/admin
+  roles. See [Platform Admin Role](platform-admin-role.md).
 
 ## See also
 

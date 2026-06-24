@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import {
   AdminFleetGenerateVoiceDto,
   BulkEc2ActionDto,
@@ -67,7 +68,7 @@ import type { Request } from 'express';
 
 @ApiTags('Admin / Fleet')
 @Controller(['admin/fleet', 'admin/darkroom'])
-@UseGuards(IpWhitelistGuard)
+@UseGuards(IpWhitelistGuard, SuperAdminGuard)
 export class AdminFleetController {
   constructor(
     private readonly adminFleetService: AdminFleetService,

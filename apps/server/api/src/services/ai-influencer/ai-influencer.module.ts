@@ -1,5 +1,6 @@
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { PersonasModule } from '@api/collections/personas/personas.module';
+import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { ConfigModule } from '@api/config/config.module';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { AiInfluencerController } from '@api/services/ai-influencer/ai-influencer.controller';
@@ -26,6 +27,6 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => TwitterModule),
     forwardRef(() => PersonaContentModule),
   ],
-  providers: [AiInfluencerService, IpWhitelistGuard],
+  providers: [AiInfluencerService, IpWhitelistGuard, SuperAdminGuard],
 })
 export class AiInfluencerModule {}

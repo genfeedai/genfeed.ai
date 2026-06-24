@@ -8,7 +8,7 @@ export interface IBetterAuthJwtUserPayloadSource {
   id?: string;
   email?: string | null;
   name?: string | null;
-  isSuperAdmin?: boolean;
+  platformRole?: string | null;
 }
 
 export interface IBetterAuthVerifiedClaims {

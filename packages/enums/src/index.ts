@@ -71,6 +71,7 @@ export * from './page-scope.enum';
 export * from './parse-mode.enum';
 export * from './persona.enum';
 export * from './platform.enum';
+export * from './platform-role.enum';
 export * from './post.enum';
 export * from './priority.enum';
 export * from './prompt.enum';

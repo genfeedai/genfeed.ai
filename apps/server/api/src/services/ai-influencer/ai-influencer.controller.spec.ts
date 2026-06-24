@@ -1,7 +1,9 @@
+import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { AiInfluencerController } from '@api/services/ai-influencer/ai-influencer.controller';
 import { AiInfluencerService } from '@api/services/ai-influencer/ai-influencer.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('AiInfluencerController', () => {
@@ -34,6 +36,8 @@ describe('AiInfluencerController', () => {
     })
       .overrideGuard(IpWhitelistGuard)
       .useValue({ canActivate: () => true })
+      .overrideGuard(SuperAdminGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     controller = module.get(AiInfluencerController);
@@ -41,6 +45,12 @@ describe('AiInfluencerController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('requires IP whitelist and platform superadmin guards', () => {
+    const guards = Reflect.getMetadata(GUARDS_METADATA, AiInfluencerController);
+
+    expect(guards).toEqual([IpWhitelistGuard, SuperAdminGuard]);
   });
 
   describe('generatePost', () => {

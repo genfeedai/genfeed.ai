@@ -10,7 +10,7 @@ export const MCP_ADMIN_TOOLS: SourceTool[] = [
       properties: {},
       type: 'object',
     },
-    requiredRole: 'admin',
+    requiredRole: 'superadmin',
     surfaces: { agent: false, cliAgentVisible: false, mcp: true },
   },
   {
@@ -35,7 +35,7 @@ export const MCP_ADMIN_TOOLS: SourceTool[] = [
       required: ['action'],
       type: 'object',
     },
-    requiredRole: 'admin',
+    requiredRole: 'superadmin',
     surfaces: { agent: false, cliAgentVisible: false, mcp: true },
   },
   {
@@ -46,7 +46,7 @@ export const MCP_ADMIN_TOOLS: SourceTool[] = [
       properties: {},
       type: 'object',
     },
-    requiredRole: 'admin',
+    requiredRole: 'superadmin',
     surfaces: { agent: false, cliAgentVisible: false, mcp: true },
   },
   {
@@ -57,7 +57,7 @@ export const MCP_ADMIN_TOOLS: SourceTool[] = [
       properties: {},
       type: 'object',
     },
-    requiredRole: 'admin',
+    requiredRole: 'superadmin',
     surfaces: { agent: false, cliAgentVisible: false, mcp: true },
   },
   {
@@ -74,7 +74,7 @@ export const MCP_ADMIN_TOOLS: SourceTool[] = [
       required: ['jobId'],
       type: 'object',
     },
-    requiredRole: 'admin',
+    requiredRole: 'superadmin',
     surfaces: { agent: false, cliAgentVisible: false, mcp: true },
   },
   {
@@ -107,7 +107,7 @@ export const MCP_ADMIN_TOOLS: SourceTool[] = [
       required: ['handle'],
       type: 'object',
     },
-    requiredRole: 'admin',
+    requiredRole: 'superadmin',
     surfaces: { agent: false, cliAgentVisible: false, mcp: true },
   },
   {
@@ -124,7 +124,7 @@ export const MCP_ADMIN_TOOLS: SourceTool[] = [
       required: ['jobId'],
       type: 'object',
     },
-    requiredRole: 'admin',
+    requiredRole: 'superadmin',
     surfaces: { agent: false, cliAgentVisible: false, mcp: true },
   },
   {
@@ -142,7 +142,7 @@ export const MCP_ADMIN_TOOLS: SourceTool[] = [
       required: ['handle'],
       type: 'object',
     },
-    requiredRole: 'admin',
+    requiredRole: 'superadmin',
     surfaces: { agent: false, cliAgentVisible: false, mcp: true },
   },
   {
@@ -164,7 +164,7 @@ export const MCP_ADMIN_TOOLS: SourceTool[] = [
       required: ['handle'],
       type: 'object',
     },
-    requiredRole: 'admin',
+    requiredRole: 'superadmin',
     surfaces: { agent: false, cliAgentVisible: false, mcp: true },
   },
   {
@@ -188,7 +188,7 @@ export const MCP_ADMIN_TOOLS: SourceTool[] = [
       required: ['approvalId', 'decision'],
       type: 'object',
     },
-    requiredRole: 'admin',
+    requiredRole: 'superadmin',
     surfaces: { agent: false, cliAgentVisible: false, mcp: true },
   },
 ];

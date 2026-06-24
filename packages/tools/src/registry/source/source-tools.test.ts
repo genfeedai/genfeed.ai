@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { AGENT_ONLY_TOOLS } from './agent-only/index.js';
 import { SOURCE_TOOLS } from './index.js';
+import { MCP_ADMIN_TOOLS } from './mcp-only/admin.tools.js';
 import { MCP_ONLY_TOOLS } from './mcp-only/index.js';
 import { OVERLAP_TOOLS } from './overlap.tools.js';
 
@@ -209,6 +210,13 @@ describe('SOURCE_TOOLS registry split (#692)', () => {
       expect(typeof tool.surfaces.agent).toBe('boolean');
       expect(typeof tool.surfaces.mcp).toBe('boolean');
     }
+  });
+
+  it('keeps MCP admin tools behind platform superadmin authorization', () => {
+    expect(MCP_ADMIN_TOOLS.length).toBeGreaterThan(0);
+    expect(
+      MCP_ADMIN_TOOLS.every((tool) => tool.requiredRole === 'superadmin'),
+    ).toBe(true);
   });
 
   it('keeps every data module within the line budget', () => {

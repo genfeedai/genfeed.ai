@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { resolveBetterAuthJwtOrganizationId } from './better-auth.factory';
+import {
+  resolveBetterAuthJwtAccess,
+  resolveBetterAuthJwtIsSuperAdmin,
+  resolveBetterAuthJwtOrganizationId,
+} from './better-auth.factory';
 import type { ICreateBetterAuthOptions } from './better-auth.types';
 
 type PrismaForBetterAuth = ICreateBetterAuthOptions['prisma'];
@@ -122,5 +126,58 @@ describe('resolveBetterAuthJwtOrganizationId', () => {
         'user_4',
       ),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe('resolveBetterAuthJwtIsSuperAdmin', () => {
+  it('derives signed superadmin compatibility claims from platformRole', async () => {
+    const prisma = createPrismaMock();
+    prisma.user.findUnique.mockResolvedValue({
+      platformRole: 'SUPERADMIN',
+    });
+
+    await expect(
+      resolveBetterAuthJwtIsSuperAdmin(
+        prisma as unknown as PrismaForBetterAuth,
+        'user_superadmin',
+      ),
+    ).resolves.toBe(true);
+  });
+
+  it('does not grant superadmin for default platform users', async () => {
+    const prisma = createPrismaMock();
+    prisma.user.findUnique.mockResolvedValue({
+      platformRole: 'USER',
+    });
+
+    await expect(
+      resolveBetterAuthJwtIsSuperAdmin(
+        prisma as unknown as PrismaForBetterAuth,
+        'user_org_admin',
+      ),
+    ).resolves.toBe(false);
+  });
+});
+
+describe('resolveBetterAuthJwtAccess', () => {
+  it('resolves active organization and superadmin compatibility from one user lookup', async () => {
+    const prisma = createPrismaMock();
+    prisma.user.findUnique.mockResolvedValue({
+      lastUsedOrganizationId: 'org_active',
+      platformRole: 'SUPERADMIN',
+    });
+    prisma.organization.findFirst.mockResolvedValue({ id: 'org_active' });
+
+    await expect(
+      resolveBetterAuthJwtAccess(
+        prisma as unknown as PrismaForBetterAuth,
+        'user_superadmin',
+      ),
+    ).resolves.toEqual({
+      isSuperAdmin: true,
+      organizationId: 'org_active',
+    });
+
+    expect(prisma.user.findUnique).toHaveBeenCalledTimes(1);
   });
 });

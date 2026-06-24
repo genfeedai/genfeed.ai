@@ -3,6 +3,7 @@ import type { MemberDocument } from '@api/collections/members/schemas/member.sch
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { PlatformRole } from '@genfeedai/enums';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 
 import type { IBetterAuthResolvedIdentity } from '../better-auth.types';
@@ -25,6 +26,13 @@ function getMemberOrganizationId(member: MemberDocument): string {
   const record = member as unknown as Record<string, unknown>;
   return (
     getRecordId(record, 'organizationId') || getRecordId(record, 'organization')
+  );
+}
+
+function isPlatformSuperAdmin(platformRole: unknown): boolean {
+  return (
+    typeof platformRole === 'string' &&
+    platformRole.toUpperCase() === PlatformRole.SUPERADMIN
   );
 }
 
@@ -57,7 +65,7 @@ export class BetterAuthIdentityResolverService {
       throw new UnauthorizedException('User account not found');
     }
 
-    const isSuperAdmin = userRecord?.isSuperAdmin === true;
+    const isSuperAdmin = isPlatformSuperAdmin(userRecord?.platformRole);
     const lastUsedOrganizationId = getRecordId(
       userRecord,
       'lastUsedOrganizationId',

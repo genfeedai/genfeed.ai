@@ -28,7 +28,17 @@ describe('SuperAdminGuard', () => {
     expect(() => guard.canActivate(ctx as never)).toThrow(ForbiddenException);
   });
 
-  it('req.context missing → ForbiddenException', () => {
+  it('authenticated user publicMetadata.isSuperAdmin = true → passes without request context', () => {
+    const ctx = buildContext({
+      user: {
+        publicMetadata: { isSuperAdmin: true },
+      },
+    });
+
+    expect(guard.canActivate(ctx as never)).toBe(true);
+  });
+
+  it('missing superadmin context and user metadata → ForbiddenException', () => {
     const ctx = buildContext({});
     expect(() => guard.canActivate(ctx as never)).toThrow(ForbiddenException);
   });

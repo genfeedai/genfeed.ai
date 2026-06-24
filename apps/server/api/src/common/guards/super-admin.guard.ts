@@ -1,4 +1,5 @@
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import {
   type CanActivate,
   type ExecutionContext,
@@ -11,11 +12,7 @@ export class SuperAdminGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest<RequestWithContext>();
 
-    if (!req.context) {
-      throw new ForbiddenException('Request context not available');
-    }
-
-    if (!req.context.isSuperAdmin) {
+    if (!getIsSuperAdmin(req.user, req)) {
       throw new ForbiddenException('Super admin access required');
     }
 
