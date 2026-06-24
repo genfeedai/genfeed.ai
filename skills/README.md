@@ -9,11 +9,13 @@ Genfeed.ai content and product skills — used by the application itself to powe
 | `ad-copy-creator` | Generate ad copy for campaigns |
 | `ad-performance-analyzer` | Analyze ad performance metrics |
 | `blog-content-creator` | Create blog posts and articles |
+| `brand-os-architect` | Create source-backed Brand OS systems |
 | `competitor-analyzer` | Analyze competitor content strategies |
 | `content-atomizer` | Break long-form content into social posts |
 | `content-reviewer` | Review and score content quality |
 | `content-seo-optimizer` | Optimize content for search engines |
 | `content-strategist` | Plan content calendars and strategy |
+| `genfeed-brand-os` | Apply the Genfeed.ai Brand OS |
 | `image-prompt-engineer` | Generate image prompts for AI models |
 | `instagram-content-creator` | Create Instagram-optimized content |
 | `linkedin-content-creator` | Create LinkedIn posts and articles |
