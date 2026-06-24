@@ -136,6 +136,10 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
         userId,
         organizationId,
       );
+      await workflowsService.ensureLivestreamBotWorkflows(
+        userId,
+        organizationId,
+      );
     } catch (error) {
       this.logger.error(
         'Failed to provision default self-hosted workflows',

@@ -34,6 +34,7 @@ import { AgentAutopilotWorkflowService } from '@api/collections/workflows/servic
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows/services/campaign-orchestration-workflow.service';
 import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
+import { LivestreamBotWorkflowService } from '@api/collections/workflows/services/livestream-bot-workflow.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { TrendNotificationWorkflowService } from '@api/collections/workflows/services/trend-notification-workflow.service';
 import type { TrendNotificationCadence } from '@api/collections/workflows/templates/trend-notification-workflows.template';
@@ -285,6 +286,8 @@ export class WorkflowEngineAdapterService {
     @Optional()
     @Inject(LEGACY_CRON_JOB_EXECUTOR)
     private readonly legacyCronJobExecutor?: LegacyCronJobExecutor,
+    @Optional()
+    private readonly livestreamBotWorkflowService?: LivestreamBotWorkflowService,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -317,6 +320,7 @@ export class WorkflowEngineAdapterService {
     this.registerContentProductionExecutors();
     this.registerReplyPollingExecutors();
     this.registerTrendNotificationExecutors();
+    this.registerLivestreamBotExecutors();
     this.registerLegacyCronJobExecutors();
     this.registerTrendTriggerExecutor();
     this.registerTrendDigestExecutor();
@@ -1016,6 +1020,37 @@ export class WorkflowEngineAdapterService {
       skipped: 1,
       status: 'skipped',
       trends: 0,
+    };
+  }
+
+  private registerLivestreamBotExecutors(): void {
+    this.engine.registerExecutor(
+      'livestreamBotSessionProcessing',
+      async (_node, _inputs, context) =>
+        this.livestreamBotWorkflowService
+          ? this.livestreamBotWorkflowService.runActiveSessionProcessing(
+              context.organizationId,
+            )
+          : this.livestreamBotUnavailable(
+              'livestreamBotSessionProcessing',
+              context,
+            ),
+    );
+  }
+
+  private async livestreamBotUnavailable(
+    action: string,
+    context: ExecutionContext,
+  ): Promise<Record<string, unknown>> {
+    return {
+      action,
+      failed: 0,
+      organizationId: context.organizationId,
+      processed: 0,
+      reason: 'livestream_bot_service_unavailable',
+      sessions: 0,
+      skipped: 1,
+      status: 'skipped',
     };
   }
 

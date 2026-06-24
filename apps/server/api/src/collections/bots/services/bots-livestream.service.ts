@@ -13,14 +13,12 @@ import type {
   LivestreamSessionContext,
   LivestreamTranscriptChunk,
 } from '@api/collections/bots/schemas/livestream-bot-session.schema';
-import { ConfigService } from '@api/config/config.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BotPlatform } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 
 import { BotsLivestreamDeliveryService } from './bots-livestream-delivery.service';
 import {
@@ -50,6 +48,17 @@ interface SendNowPayload {
   message?: string;
   platform: LivestreamPlatform;
   type?: LivestreamMessageType;
+}
+
+export interface LivestreamBotProcessingResult {
+  action: 'livestreamBotSessionProcessing';
+  failed: number;
+  organizationId: string;
+  processed: number;
+  reason?: string;
+  sessions: number;
+  skipped: number;
+  status: 'completed' | 'skipped';
 }
 
 function isLivestreamPlatform(
@@ -136,7 +145,6 @@ export class BotsLivestreamService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly deliveryService: BotsLivestreamDeliveryService,
-    private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly replicateService: ReplicateService,
     private readonly runtimeService: BotsLivestreamRuntimeService,
@@ -723,12 +731,9 @@ export class BotsLivestreamService {
     return session;
   }
 
-  @Cron('0 * * * * *')
-  async processActiveSessions(): Promise<void> {
-    if (!this.configService.isDevSchedulersEnabled) {
-      return;
-    }
-
+  async processActiveSessionsForOrganization(
+    organizationId: string,
+  ): Promise<LivestreamBotProcessingResult> {
     const sessions = (
       await this.prisma.livestreamBotSession.findMany({
         where: { isDeleted: false },
@@ -737,19 +742,33 @@ export class BotsLivestreamService {
       .map((session) =>
         this.normalizeSessionDocument(session as Record<string, unknown>),
       )
-      .filter((session) => session.status === 'active');
+      .filter(
+        (session) =>
+          session.status === 'active' &&
+          (session.organizationId ?? session.organization) === organizationId,
+      );
+
+    let failed = 0;
+    let processed = 0;
+    let skipped = sessions.length === 0 ? 1 : 0;
 
     for (const session of sessions) {
       try {
+        if (!session.botId) {
+          skipped++;
+          continue;
+        }
+
         const bot = await this.prisma.bot.findFirst({
           where: {
             id: session.botId,
             isDeleted: false,
-            organizationId: session.organizationId,
+            organizationId,
           },
         });
 
         if (!bot) {
+          skipped++;
           continue;
         }
 
@@ -757,10 +776,32 @@ export class BotsLivestreamService {
           this.normalizeBotDocument(bot as unknown as BotDocument),
           session,
         );
+        processed++;
       } catch (error) {
-        this.loggerService.error('Failed to process livestream session', error);
+        failed++;
+        this.loggerService.error(
+          'Failed to process livestream session',
+          error,
+          {
+            botId: session.botId,
+            organizationId,
+            sessionId: session.id,
+          },
+        );
       }
     }
+
+    return {
+      action: 'livestreamBotSessionProcessing',
+      failed,
+      organizationId,
+      processed,
+      reason:
+        sessions.length === 0 ? 'no_active_livestream_sessions' : undefined,
+      sessions: sessions.length,
+      skipped,
+      status: sessions.length === 0 ? 'skipped' : 'completed',
+    };
   }
 
   private async processSession(

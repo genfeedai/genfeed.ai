@@ -258,6 +258,45 @@ describe('WorkflowEngineAdapterService', () => {
       expect(result.status).toBe('completed');
     });
 
+    it('executes livestream bot session processing with workflow organization scope', async () => {
+      const livestreamBotWorkflowService = {
+        runActiveSessionProcessing: vi.fn().mockResolvedValue({
+          action: 'livestreamBotSessionProcessing',
+          failed: 0,
+          organizationId: 'org-1',
+          processed: 1,
+          sessions: 1,
+          skipped: 0,
+          status: 'completed',
+        }),
+      };
+      const args = new Array(37).fill(undefined);
+      args[0] = { ingredientsEndpoint: 'https://ingredients.example.com' };
+      args[1] = loggerService;
+      args[36] = livestreamBotWorkflowService;
+      const livestreamAdapter = new WorkflowEngineAdapterService(...args);
+
+      const workflow = livestreamAdapter.convertToExecutableWorkflow({
+        _id: { toString: () => 'wf-livestream' },
+        nodes: [
+          {
+            data: { config: {}, label: 'Process Livestream Sessions' },
+            id: 'livestream-sessions',
+            type: 'livestreamBotSessionProcessing',
+          },
+        ],
+        organization: { toString: () => 'org-1' },
+        user: { toString: () => 'user-1' },
+      });
+
+      const result = await livestreamAdapter.executeWorkflow(workflow);
+
+      expect(
+        livestreamBotWorkflowService.runActiveSessionProcessing,
+      ).toHaveBeenCalledWith('org-1');
+      expect(result.status).toBe('completed');
+    });
+
     it('executes image inputs from picker-backed config', async () => {
       const workflow = service.convertToExecutableWorkflow({
         _id: { toString: () => 'wf-image-input' },
