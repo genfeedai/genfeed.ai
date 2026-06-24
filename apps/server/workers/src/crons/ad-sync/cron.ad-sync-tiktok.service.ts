@@ -3,7 +3,6 @@ import { QueueService } from '@api/queues/core/queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class CronAdSyncTikTokService {
@@ -15,7 +14,6 @@ export class CronAdSyncTikTokService {
     private readonly queueService: QueueService,
   ) {}
 
-  @Cron('0 4 * * *') // 4 AM daily
   async syncTikTokAds(): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);

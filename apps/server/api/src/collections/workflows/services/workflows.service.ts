@@ -16,6 +16,7 @@ import {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/ad-automation-workflows.template';
 import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
@@ -250,6 +251,88 @@ export class WorkflowsService extends BaseService<
         return;
       }
       throw error;
+    }
+  }
+
+  /**
+   * Idempotently seeds the default-on ad automation workflow set for an
+   * organization. Missing credentials/config are handled inside the action
+   * nodes as per-org skips, so new organizations get the workflows immediately
+   * and they begin doing real work once ad automation becomes eligible.
+   */
+  async ensureAdAutomationWorkflows(
+    userId: string,
+    organizationId: string,
+  ): Promise<void> {
+    for (const template of AD_AUTOMATION_WORKFLOW_TEMPLATES) {
+      const where = {
+        isDeleted: false,
+        metadata: {
+          equals: template.id,
+          path: ['sourceTemplateId'],
+        },
+        organizationId,
+      };
+
+      const preCheck = await this.prisma.workflow.findFirst({
+        select: { id: true },
+        where,
+      });
+
+      if (preCheck) {
+        continue;
+      }
+
+      try {
+        await this.prisma.$transaction(
+          async (tx) => {
+            const existing = await tx.workflow.findFirst({
+              select: { id: true },
+              where,
+            });
+
+            if (existing) {
+              return;
+            }
+
+            await tx.workflow.create({
+              data: {
+                description: template.description,
+                edges: (template.edges ?? []) as never,
+                executionCount: 0,
+                inputVariables: (template.inputVariables ?? []) as never,
+                isDeleted: false,
+                isScheduleEnabled: true,
+                label: template.name,
+                metadata: {
+                  sourceIssue: 782,
+                  sourceTemplateId: template.id,
+                  sourceType: 'seeded-template',
+                },
+                nodes: (template.nodes ?? []) as never,
+                organizationId,
+                progress: 0,
+                schedule: template.schedule,
+                status: WorkflowStatus.ACTIVE,
+                steps: template.steps as never,
+                timezone: 'UTC',
+                userId,
+              },
+            });
+          },
+          { isolationLevel: 'Serializable' },
+        );
+      } catch (error) {
+        const errorCode = (error as { code?: string }).code;
+        if (errorCode === 'P2034') {
+          this.logger?.debug(
+            'ensureAdAutomationWorkflows: serialization conflict — workflow already seeded by concurrent request',
+            { organizationId, templateId: template.id },
+          );
+          continue;
+        }
+        throw error;
+      }
     }
   }
 

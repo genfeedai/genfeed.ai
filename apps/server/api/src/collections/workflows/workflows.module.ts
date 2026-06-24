@@ -3,6 +3,8 @@
  * Automation templates: reusable multi-step workflows, triggers (manual/auto),
 dependency management, and workflow execution tracking.
  */
+import { AdOptimizationConfigsModule } from '@api/collections/ad-optimization-configs/ad-optimization-configs.module';
+import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
@@ -18,6 +20,7 @@ import { VideosModule } from '@api/collections/videos/videos.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WebhooksController } from '@api/collections/workflows/controllers/webhooks.controller';
 import { WorkflowsController } from '@api/collections/workflows/controllers/workflows.controller';
+import { AdAutomationWorkflowService } from '@api/collections/workflows/services/ad-automation-workflow.service';
 import { InstagramSocialAdapter } from '@api/collections/workflows/services/adapters/instagram-social.adapter';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
 import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
@@ -37,10 +40,14 @@ import { WorkflowGenerationService } from '@api/collections/workflows/services/w
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
+import { QueuesModule } from '@api/queues/core/queues.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
+import { GoogleAdsModule } from '@api/services/integrations/google-ads/google-ads.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
+import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
+import { TikTokAdsModule } from '@api/services/integrations/tiktok-ads/tiktok-ads.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
@@ -62,25 +69,32 @@ import { forwardRef, Module } from '@nestjs/common';
     WorkflowExecutionQueueService,
     WorkflowFormatConverterService,
     WorkflowGenerationService,
+    AdAutomationWorkflowService,
   ],
   imports: [
+    forwardRef(() => AdOptimizationConfigsModule),
+    forwardRef(() => AdPerformanceModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => CaptionsModule),
     forwardRef(() => CredentialsCoreModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => ElevenLabsModule),
+    forwardRef(() => GoogleAdsModule),
     forwardRef(() => HeyGenModule),
     forwardRef(() => IngredientsModule),
     forwardRef(() => InstagramModule),
     forwardRef(() => MarketplaceIntegrationModule),
     forwardRef(() => MetadataModule),
+    forwardRef(() => MetaAdsModule),
     forwardRef(() => MusicsModule),
     forwardRef(() => NewslettersModule),
     forwardRef(() => NotificationsModule),
     forwardRef(() => NotificationsPublisherModule),
     forwardRef(() => OpenRouterModule),
     forwardRef(() => PostsModule),
+    forwardRef(() => QueuesModule),
     forwardRef(() => SharedModule),
+    forwardRef(() => TikTokAdsModule),
     forwardRef(() => TrendsModule),
     forwardRef(() => TwitterModule),
     forwardRef(() => VideoGenerationModule),
@@ -113,6 +127,7 @@ import { forwardRef, Module } from '@nestjs/common';
     TwitterSocialAdapter,
     InstagramSocialAdapter,
     SocialAdapterFactory,
+    AdAutomationWorkflowService,
     BatchWorkflowQueueService,
     BatchWorkflowService,
     WorkflowEngineAdapterService,

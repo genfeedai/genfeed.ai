@@ -45,8 +45,10 @@ export class OrganizationSettingsService extends BaseService<
   /**
    * Org-bootstrap chokepoint: all organization-creation paths (legacy auth provider webhook,
    * OrganizationsController, UserSetupService) funnel through settings creation.
-   * After creating settings we idempotently seed the predetermined Daily Trends
-   * Digest workflow (OFF by default). Failures never block settings creation.
+   * After creating settings we idempotently seed predetermined workflows.
+   * Daily Trends Digest is OFF by default; ad automation workflows are ON by
+   * default and skip per org until credentials/config make them eligible.
+   * Failures never block settings creation.
    */
   async create(
     createDto: CreateOrganizationSettingDto,
@@ -102,13 +104,17 @@ export class OrganizationSettingsService extends BaseService<
         organization.userId,
         organizationId,
       );
+      await workflowsService.ensureAdAutomationWorkflows(
+        organization.userId,
+        organizationId,
+      );
     } catch (error) {
       // Swallowed so a non-critical provisioning step never fails org creation,
       // but reported to Sentry as well as the log: otherwise new-org workflow
       // seeding can fail silently for every org (e.g. a future DI/module-graph
       // regression) with nothing but a log line nobody is watching.
       this.logger?.error(
-        'Failed to provision Daily Trends Digest workflow',
+        'Failed to provision default organization workflows',
         error,
       );
       Sentry.captureException(error);
