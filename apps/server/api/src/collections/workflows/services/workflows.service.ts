@@ -787,7 +787,7 @@ export class WorkflowsService extends BaseService<
       data: {
         isDeleted: true,
         isScheduleEnabled: false,
-        status: WorkflowStatus.ARCHIVED,
+        status: WorkflowStatus.PAUSED,
       },
       where: {
         isDeleted: false,

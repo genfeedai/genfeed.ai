@@ -11,7 +11,7 @@ export class ReplyBotConfigsQueryDto extends BaseQueryDto {
   })
   @IsString()
   @IsOptional()
-  organization?: string;
+  declare organization?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by brand ID',
@@ -19,7 +19,7 @@ export class ReplyBotConfigsQueryDto extends BaseQueryDto {
   })
   @IsString()
   @IsOptional()
-  brand?: string;
+  declare brand?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by bot type',

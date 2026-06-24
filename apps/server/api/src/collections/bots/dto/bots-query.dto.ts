@@ -19,12 +19,12 @@ export class BotsQueryDto extends BaseQueryDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'Organization ID filter', required: false })
-  organization?: string;
+  declare organization?: string;
 
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'Brand ID filter', required: false })
-  brand?: string;
+  declare brand?: string;
 
   @IsEntityId()
   @IsOptional()

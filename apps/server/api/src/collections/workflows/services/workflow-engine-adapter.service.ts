@@ -650,34 +650,44 @@ export class WorkflowEngineAdapterService {
   }
 
   private registerAdAutomationExecutors(): void {
-    this.engine.registerExecutor('adOptimization', (_node, _inputs, context) =>
-      this.adAutomationWorkflowService
-        ? this.adAutomationWorkflowService.runAdOptimization(
-            context.organizationId,
-          )
-        : this.adAutomationUnavailable('adOptimization', context),
+    this.engine.registerExecutor(
+      'adOptimization',
+      async (_node, _inputs, context) =>
+        this.adAutomationWorkflowService
+          ? this.adAutomationWorkflowService.runAdOptimization(
+              context.organizationId,
+            )
+          : this.adAutomationUnavailable('adOptimization', context),
     );
 
-    this.engine.registerExecutor('adSyncGoogle', (_node, _inputs, context) =>
-      this.adAutomationWorkflowService
-        ? this.adAutomationWorkflowService.runGoogleAdSync(
-            context.organizationId,
-          )
-        : this.adAutomationUnavailable('adSyncGoogle', context),
+    this.engine.registerExecutor(
+      'adSyncGoogle',
+      async (_node, _inputs, context) =>
+        this.adAutomationWorkflowService
+          ? this.adAutomationWorkflowService.runGoogleAdSync(
+              context.organizationId,
+            )
+          : this.adAutomationUnavailable('adSyncGoogle', context),
     );
 
-    this.engine.registerExecutor('adSyncMeta', (_node, _inputs, context) =>
-      this.adAutomationWorkflowService
-        ? this.adAutomationWorkflowService.runMetaAdSync(context.organizationId)
-        : this.adAutomationUnavailable('adSyncMeta', context),
+    this.engine.registerExecutor(
+      'adSyncMeta',
+      async (_node, _inputs, context) =>
+        this.adAutomationWorkflowService
+          ? this.adAutomationWorkflowService.runMetaAdSync(
+              context.organizationId,
+            )
+          : this.adAutomationUnavailable('adSyncMeta', context),
     );
 
-    this.engine.registerExecutor('adSyncTikTok', (_node, _inputs, context) =>
-      this.adAutomationWorkflowService
-        ? this.adAutomationWorkflowService.runTikTokAdSync(
-            context.organizationId,
-          )
-        : this.adAutomationUnavailable('adSyncTikTok', context),
+    this.engine.registerExecutor(
+      'adSyncTikTok',
+      async (_node, _inputs, context) =>
+        this.adAutomationWorkflowService
+          ? this.adAutomationWorkflowService.runTikTokAdSync(
+              context.organizationId,
+            )
+          : this.adAutomationUnavailable('adSyncTikTok', context),
     );
   }
 
@@ -698,7 +708,7 @@ export class WorkflowEngineAdapterService {
   private registerCampaignOrchestrationExecutors(): void {
     this.engine.registerExecutor(
       'agentCampaignOrchestration',
-      (_node, _inputs, context) =>
+      async (_node, _inputs, context) =>
         this.campaignOrchestrationWorkflowService
           ? this.campaignOrchestrationWorkflowService.runDueCampaignOrchestration(
               context.organizationId,
@@ -711,7 +721,7 @@ export class WorkflowEngineAdapterService {
 
     this.engine.registerExecutor(
       'agentCampaignTriggerEvaluation',
-      (_node, _inputs, context) =>
+      async (_node, _inputs, context) =>
         this.campaignOrchestrationWorkflowService
           ? this.campaignOrchestrationWorkflowService.runTriggerEvaluations(
               context.organizationId,
@@ -740,7 +750,7 @@ export class WorkflowEngineAdapterService {
   private registerAgentAutopilotExecutors(): void {
     this.engine.registerExecutor(
       'proactiveAgentStrategies',
-      (_node, _inputs, context) =>
+      async (_node, _inputs, context) =>
         this.agentAutopilotWorkflowService
           ? this.agentAutopilotWorkflowService.runProactiveStrategies(
               context.organizationId,
@@ -750,7 +760,7 @@ export class WorkflowEngineAdapterService {
 
     this.engine.registerExecutor(
       'aiInfluencerDailyPosts',
-      (_node, _inputs, context) =>
+      async (_node, _inputs, context) =>
         this.agentAutopilotWorkflowService
           ? this.agentAutopilotWorkflowService.runAiInfluencerDailyPosts(
               context.organizationId,

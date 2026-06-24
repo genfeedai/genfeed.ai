@@ -364,7 +364,8 @@ export class AdAutomationWorkflowService {
         credentialId,
         customerIds,
         lastSyncDate: lastSyncDate?.toISOString(),
-        loginCustomerId: this.readOptionalString(credential.externalHandle),
+        loginCustomerId:
+          this.readOptionalString(credential.externalHandle) ?? undefined,
         organizationId,
         refreshToken,
       };

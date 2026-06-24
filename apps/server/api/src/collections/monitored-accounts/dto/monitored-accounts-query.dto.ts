@@ -10,7 +10,7 @@ export class MonitoredAccountsQueryDto extends BaseQueryDto {
   })
   @IsString()
   @IsOptional()
-  organization?: string;
+  declare organization?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by bot config ID',
@@ -26,7 +26,7 @@ export class MonitoredAccountsQueryDto extends BaseQueryDto {
   })
   @IsString()
   @IsOptional()
-  brand?: string;
+  declare brand?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by active status',
