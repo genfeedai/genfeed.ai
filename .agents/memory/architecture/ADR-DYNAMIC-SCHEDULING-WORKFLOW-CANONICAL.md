@@ -52,6 +52,17 @@ The legacy product surface is retired:
 - SDK mutation methods fail before making HTTP calls
 - new product code must not create legacy cron rows or call legacy mutation APIs
 
+Ad insights aggregation is explicitly classified as platform scheduling:
+
+- `cron.ad-insights` runs once per weekly platform window, not once per
+  organization
+- the aggregation queue payload carries `scope: "platform"` plus a deterministic
+  weekly idempotency key
+- the worker processor rejects non-platform scope
+- the data contract is public-scope ad performance with k-anonymity across at
+  least five organizations, so a per-org workflow would duplicate global work
+  and weaken the anonymity boundary
+
 ## Consequences
 
 ### Required for new work

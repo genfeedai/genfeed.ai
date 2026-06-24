@@ -1,26 +1,35 @@
 import type { AdInsightsAggregationJobData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  AD_INSIGHTS_AGGREGATION_QUEUE,
+  AD_INSIGHTS_MIN_ORGS_FOR_AGGREGATION,
+  AD_INSIGHTS_PLATFORM_SCOPE,
+} from '@workers/crons/ad-insights/ad-insights-scheduling.config';
 import { Job } from 'bullmq';
 
 @Injectable()
-@Processor('ad-insights-aggregation')
+@Processor(AD_INSIGHTS_AGGREGATION_QUEUE)
 export class AdInsightsAggregationProcessor extends WorkerHost {
-  private readonly MIN_ORGS_FOR_AGGREGATION = 5;
-
   constructor(private readonly logger: LoggerService) {
     super();
   }
 
   async process(job: Job<AdInsightsAggregationJobData>): Promise<void> {
-    const { insightTypes } = job.data;
-
-    this.logger.log(
-      `Processing ad insights aggregation for types: ${insightTypes.join(', ')}`,
-    );
+    const { aggregationWindow = 'legacy', insightTypes, scope } = job.data;
 
     try {
+      if (scope !== AD_INSIGHTS_PLATFORM_SCOPE) {
+        throw new BadRequestException(
+          `Unsupported ad insights aggregation scope: ${String(scope)}`,
+        );
+      }
+
+      this.logger.log(
+        `Processing platform ad insights aggregation for window ${aggregationWindow}, min orgs ${AD_INSIGHTS_MIN_ORGS_FOR_AGGREGATION}, and types: ${insightTypes.join(', ')}`,
+      );
+
       for (const insightType of insightTypes) {
         try {
           await this.computeInsight(insightType);
@@ -46,7 +55,7 @@ export class AdInsightsAggregationProcessor extends WorkerHost {
   private async computeInsight(_insightType: string): Promise<void> {
     // Implementation will:
     // 1. Query ad_performance with scope: 'public'
-    // 2. Check k-anonymity (>= 5 distinct orgs per slice)
+    // 2. Check k-anonymity (>= AD_INSIGHTS_MIN_ORGS_FOR_AGGREGATION distinct orgs per slice)
     // 3. Compute aggregated metrics weighted by dataConfidence
     // 4. Store in ad_insights collection
     // 5. Set validUntil to 7 days from now
