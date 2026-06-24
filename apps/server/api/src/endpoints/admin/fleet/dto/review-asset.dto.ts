@@ -1,6 +1,6 @@
 import { DarkroomReviewStatus as FleetReviewStatus } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum } from 'class-validator';
 
 export class ReviewAssetDto {
   @IsEnum(FleetReviewStatus)
@@ -10,9 +10,4 @@ export class ReviewAssetDto {
     enumName: 'FleetReviewStatus',
   })
   readonly reviewStatus!: FleetReviewStatus;
-
-  @IsString()
-  @IsOptional()
-  @ApiProperty({ description: 'Review notes', required: false })
-  readonly notes?: string;
 }

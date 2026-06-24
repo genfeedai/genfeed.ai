@@ -18,18 +18,22 @@ const EC2_SKELETON_KEYS = [
 
 type Props = {
   isLoadingInstances: boolean;
+  error: unknown;
   instances: IEC2Instance[] | undefined;
   isActioningAll: boolean;
   ec2Columns: TableColumn<IEC2Instance>[];
   onEC2ActionAll: (action: 'start' | 'stop') => void;
+  onRefresh: () => void;
 };
 
 export default function EC2InstancesSection({
   isLoadingInstances,
+  error,
   instances,
   isActioningAll,
   ec2Columns,
   onEC2ActionAll,
+  onRefresh,
 }: Props) {
   return (
     <WorkspaceSurface
@@ -69,6 +73,12 @@ export default function EC2InstancesSection({
             <SkeletonCard key={key} showImage={false} />
           ))}
         </div>
+      ) : error ? (
+        <CardEmpty
+          label="Failed to load EC2 instances"
+          description="Refresh the GPU instance status and try again."
+          action={{ label: 'Retry', onClick: onRefresh }}
+        />
       ) : !instances || instances.length === 0 ? (
         <CardEmpty label="No EC2 instances found" />
       ) : (

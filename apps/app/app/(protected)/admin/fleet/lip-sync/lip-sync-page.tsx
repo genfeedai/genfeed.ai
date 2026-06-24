@@ -6,6 +6,7 @@ import { AdminFleetService } from '@services/admin/fleet.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
+import CardEmpty from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { HiOutlineVideoCamera } from 'react-icons/hi2';
@@ -103,9 +104,11 @@ export default function LipSyncPage() {
   } = state;
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { data: characters, error: charactersError } = useQuery<
-    IFleetCharacter[]
-  >({
+  const {
+    data: characters,
+    error: charactersError,
+    refetch: refreshCharacters,
+  } = useQuery<IFleetCharacter[]>({
     queryKey: ['fleet-characters'],
     queryFn: async () => {
       const service = await getFleetService();
@@ -218,32 +221,39 @@ export default function LipSyncPage() {
       description="Generate lip-synced videos from character images and audio"
       icon={HiOutlineVideoCamera}
     >
-      {/* Configuration */}
-      <LipSyncConfigForm
-        characters={characters}
-        selectedCharacter={selectedCharacter}
-        onSelectedCharacterChange={(value) =>
-          dispatch({ type: 'SET_SELECTED_CHARACTER', payload: value })
-        }
-        audioSource={audioSource}
-        onAudioSourceChange={(value) =>
-          dispatch({ type: 'SET_AUDIO_SOURCE', payload: value })
-        }
-        imageUrl={imageUrl}
-        onImageUrlChange={(value) =>
-          dispatch({ type: 'SET_IMAGE_URL', payload: value })
-        }
-        audioUrl={audioUrl}
-        onAudioUrlChange={(value) =>
-          dispatch({ type: 'SET_AUDIO_URL', payload: value })
-        }
-        ttsText={ttsText}
-        onTtsTextChange={(value) =>
-          dispatch({ type: 'SET_TTS_TEXT', payload: value })
-        }
-        isGenerating={isGenerating}
-        onGenerate={handleGenerate}
-      />
+      {charactersError ? (
+        <CardEmpty
+          label="Failed to load characters"
+          description="Refresh the Fleet characters list before generating lip sync."
+          action={{ label: 'Retry', onClick: () => void refreshCharacters() }}
+        />
+      ) : (
+        <LipSyncConfigForm
+          characters={characters}
+          selectedCharacter={selectedCharacter}
+          onSelectedCharacterChange={(value) =>
+            dispatch({ type: 'SET_SELECTED_CHARACTER', payload: value })
+          }
+          audioSource={audioSource}
+          onAudioSourceChange={(value) =>
+            dispatch({ type: 'SET_AUDIO_SOURCE', payload: value })
+          }
+          imageUrl={imageUrl}
+          onImageUrlChange={(value) =>
+            dispatch({ type: 'SET_IMAGE_URL', payload: value })
+          }
+          audioUrl={audioUrl}
+          onAudioUrlChange={(value) =>
+            dispatch({ type: 'SET_AUDIO_URL', payload: value })
+          }
+          ttsText={ttsText}
+          onTtsTextChange={(value) =>
+            dispatch({ type: 'SET_TTS_TEXT', payload: value })
+          }
+          isGenerating={isGenerating}
+          onGenerate={handleGenerate}
+        />
+      )}
 
       {/* Processing Status */}
       {isGenerating && jobId && <LipSyncProcessingStatus jobId={jobId} />}

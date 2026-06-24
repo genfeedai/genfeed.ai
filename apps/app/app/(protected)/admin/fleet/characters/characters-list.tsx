@@ -78,7 +78,13 @@ export default function CharactersList() {
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }
     >
-      {!characters || characters.length === 0 ? (
+      {charactersError ? (
+        <CardEmpty
+          label="Failed to load characters"
+          description="Refresh the Fleet characters list and try again."
+          action={{ label: 'Retry', onClick: () => void refresh() }}
+        />
+      ) : !characters || characters.length === 0 ? (
         <CardEmpty label="No characters found" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

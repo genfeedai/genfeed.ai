@@ -107,9 +107,11 @@ export default function VoicesPage() {
   } = state;
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const { data: characters, error: charactersError } = useQuery<
-    IFleetCharacter[]
-  >({
+  const {
+    data: characters,
+    error: charactersError,
+    refetch: refreshCharacters,
+  } = useQuery<IFleetCharacter[]>({
     queryKey: ['fleet-characters'],
     queryFn: async () => {
       const service = await getFleetService();
@@ -121,6 +123,7 @@ export default function VoicesPage() {
     data: voices,
     isLoading: isLoadingVoices,
     error: voicesError,
+    refetch: refreshVoices,
   } = useQuery<VoiceOption[]>({
     queryKey: ['fleet-voices'],
     queryFn: async () => {
@@ -213,6 +216,7 @@ export default function VoicesPage() {
                 Character (Optional)
               </span>
               <Select
+                disabled={Boolean(charactersError)}
                 onValueChange={(value) =>
                   dispatch({
                     type: 'SET_CHARACTER',
@@ -236,6 +240,19 @@ export default function VoicesPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {charactersError && (
+                <div className="mt-2 flex items-center justify-between gap-3 rounded border border-error/20 bg-error/5 px-3 py-2 text-xs text-error">
+                  <span>Failed to load characters.</span>
+                  <Button
+                    className="font-medium hover:underline"
+                    onClick={() => void refreshCharacters()}
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div>
@@ -243,7 +260,7 @@ export default function VoicesPage() {
                 Voice
               </span>
               <Select
-                disabled={isLoadingVoices}
+                disabled={isLoadingVoices || Boolean(voicesError)}
                 onValueChange={(value) =>
                   dispatch({ type: 'SET_VOICE_ID', payload: value })
                 }
@@ -266,6 +283,19 @@ export default function VoicesPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {voicesError && (
+                <div className="mt-2 flex items-center justify-between gap-3 rounded border border-error/20 bg-error/5 px-3 py-2 text-xs text-error">
+                  <span>Failed to load voices.</span>
+                  <Button
+                    className="font-medium hover:underline"
+                    onClick={() => void refreshVoices()}
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div>

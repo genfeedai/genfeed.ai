@@ -1,7 +1,9 @@
 import type {
+  IBulkEc2ActionResult,
   IEC2Instance,
   IFleetAsset,
   IFleetCharacter,
+  IFleetGenerationJob,
   IFleetHealthResponse,
   IFleetTraining,
   IPipelineCampaign,
@@ -15,32 +17,6 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
-
-export interface IFleetGenerationJob {
-  jobId: string;
-  status: 'queued' | 'processing' | 'uploading' | 'completed' | 'failed';
-  stage: string;
-  progress: number;
-  personaSlug: string;
-  prompt: string;
-  model: string;
-  createdAt: string;
-  updatedAt: string;
-  ingredientId?: string;
-  cdnUrl?: string;
-  error?: string;
-}
-
-export interface IBulkEc2ActionResult {
-  action: 'start' | 'stop';
-  results: Array<{
-    instanceId: string;
-    name: string;
-    state: string;
-    success: boolean;
-    error?: string;
-  }>;
-}
 
 export class AdminFleetService extends HTTPBaseService {
   constructor(token: string) {
@@ -138,15 +114,10 @@ export class AdminFleetService extends HTTPBaseService {
     return deserializeResource(response.data);
   }
 
-  async reviewAsset(
-    id: string,
-    reviewStatus: string,
-    notes?: string,
-  ): Promise<IFleetAsset> {
+  async reviewAsset(id: string, reviewStatus: string): Promise<IFleetAsset> {
     const response = await this.instance.patch<JsonApiResponseDocument>(
       `/assets/${id}/review`,
       {
-        notes,
         reviewStatus,
       },
     );

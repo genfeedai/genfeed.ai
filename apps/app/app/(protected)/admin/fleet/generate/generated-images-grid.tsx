@@ -1,6 +1,6 @@
 'use client';
 
-import type { IFleetGenerationJob } from '@services/admin/fleet.service';
+import type { IFleetGenerationJob } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import Image from 'next/image';

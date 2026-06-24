@@ -92,6 +92,32 @@ export interface IFleetHealthResponse {
   timestamp: string;
 }
 
+export interface IFleetGenerationJob {
+  jobId: string;
+  status: 'queued' | 'processing' | 'uploading' | 'completed' | 'failed';
+  stage: string;
+  progress: number;
+  personaSlug: string;
+  prompt: string;
+  model: string;
+  createdAt: string;
+  updatedAt: string;
+  ingredientId?: string;
+  cdnUrl?: string;
+  error?: string;
+}
+
+export interface IBulkEc2ActionResult {
+  action: 'start' | 'stop';
+  results: Array<{
+    instanceId: string;
+    name: string;
+    state: string;
+    success: boolean;
+    error?: string;
+  }>;
+}
+
 export interface IServiceStatus {
   name: string;
   status: 'online' | 'offline' | 'unknown';

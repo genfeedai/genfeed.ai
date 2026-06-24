@@ -16,7 +16,7 @@ import { AdminPage } from '../../pages/admin.page';
 /**
  * E2E Tests for Admin Content Management
  *
- * Covers fleet and CRM sections.
+ * Covers fleet, CRM, and Library sections.
  * All tests use adminPage fixture. All API calls are mocked.
  */
 test.describe('Admin Content Management', () => {

@@ -70,6 +70,7 @@ export default function InfrastructurePage() {
   const {
     data: fleetHealth,
     isLoading: isLoadingFleet,
+    isFetching: isFetchingFleet,
     error: fleetError,
     refetch: refreshFleet,
   } = useQuery<IFleetHealthResponse>({
@@ -273,11 +274,12 @@ export default function InfrastructurePage() {
   ];
 
   const handleRefreshAll = useCallback(() => {
-    refreshInstances();
-    refreshFleet();
+    void refreshInstances();
+    void refreshFleet();
   }, [refreshInstances, refreshFleet]);
 
   const fleetInstances = fleetHealth?.instances ?? [];
+  const isRefreshingFleet = isFetchingFleet && !isLoadingFleet;
 
   return (
     <Container
@@ -293,15 +295,20 @@ export default function InfrastructurePage() {
     >
       <FleetServicesSection
         isLoadingFleet={isLoadingFleet}
+        isRefreshingFleet={isRefreshingFleet}
+        error={fleetError}
         fleetInstances={fleetInstances}
+        onRefresh={() => void refreshFleet()}
       />
 
       <EC2InstancesSection
         isLoadingInstances={isLoadingInstances}
+        error={instancesError}
         instances={instances}
         isActioningAll={isActioningAll}
         ec2Columns={ec2Columns}
         onEC2ActionAll={handleEC2ActionAll}
+        onRefresh={() => void refreshInstances()}
       />
 
       <CloudFrontSection

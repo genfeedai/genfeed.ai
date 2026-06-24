@@ -1,12 +1,12 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
-import type { IFleetCharacter } from '@genfeedai/interfaces';
+import type {
+  IFleetCharacter,
+  IFleetGenerationJob,
+} from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import {
-  AdminFleetService,
-  type IFleetGenerationJob,
-} from '@services/admin/fleet.service';
+import { AdminFleetService } from '@services/admin/fleet.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';

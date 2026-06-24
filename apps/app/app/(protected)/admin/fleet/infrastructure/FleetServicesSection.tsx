@@ -60,12 +60,18 @@ function getResponseTimeColor(ms: number): string {
 
 type Props = {
   isLoadingFleet: boolean;
+  isRefreshingFleet: boolean;
+  error: unknown;
   fleetInstances: IFleetInstance[];
+  onRefresh: () => void;
 };
 
 export default function FleetServicesSection({
   isLoadingFleet,
+  isRefreshingFleet,
+  error,
   fleetInstances,
+  onRefresh,
 }: Props) {
   return (
     <WorkspaceSurface
@@ -81,6 +87,15 @@ export default function FleetServicesSection({
             <SkeletonCard key={key} showImage={false} />
           ))}
         </div>
+      ) : error ? (
+        <CardEmpty
+          label="Failed to load fleet services"
+          description="Refresh the Fleet health check and try again."
+          action={{
+            label: isRefreshingFleet ? 'Refreshing...' : 'Retry',
+            onClick: onRefresh,
+          }}
+        />
       ) : fleetInstances.length === 0 ? (
         <CardEmpty label="No fleet services configured" />
       ) : (
