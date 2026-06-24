@@ -28,6 +28,7 @@ import { InstagramSocialAdapter } from '@api/collections/workflows/services/adap
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
 import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
+import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { BatchWorkflowService } from '@api/collections/workflows/services/batch-workflow.service';
 import {
   BATCH_WORKFLOW_QUEUE,
@@ -78,6 +79,7 @@ import { forwardRef, Module } from '@nestjs/common';
     WorkflowGenerationService,
     AdAutomationWorkflowService,
     AgentAutopilotWorkflowService,
+    AnalyticsSyncWorkflowService,
     CampaignOrchestrationWorkflowService,
   ],
   imports: [
@@ -143,6 +145,7 @@ import { forwardRef, Module } from '@nestjs/common';
     SocialAdapterFactory,
     AdAutomationWorkflowService,
     AgentAutopilotWorkflowService,
+    AnalyticsSyncWorkflowService,
     BatchWorkflowQueueService,
     BatchWorkflowService,
     CampaignOrchestrationWorkflowService,

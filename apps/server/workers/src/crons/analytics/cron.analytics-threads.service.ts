@@ -7,7 +7,6 @@ import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 /**
  * Threads Analytics Cron Service
@@ -25,7 +24,6 @@ export class CronAnalyticsThreadsService {
     private readonly queueService: QueueService,
   ) {}
 
-  @Cron(CronExpression.EVERY_HOUR)
   async trackThreadsAnalytics(): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);

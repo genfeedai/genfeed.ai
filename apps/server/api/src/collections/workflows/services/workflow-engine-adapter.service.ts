@@ -26,6 +26,7 @@ import type {
 import { AdAutomationWorkflowService } from '@api/collections/workflows/services/ad-automation-workflow.service';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
+import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows/services/campaign-orchestration-workflow.service';
 import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -264,6 +265,8 @@ export class WorkflowEngineAdapterService {
     private readonly campaignOrchestrationWorkflowService?: CampaignOrchestrationWorkflowService,
     @Optional()
     private readonly agentAutopilotWorkflowService?: AgentAutopilotWorkflowService,
+    @Optional()
+    private readonly analyticsSyncWorkflowService?: AnalyticsSyncWorkflowService,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -292,6 +295,7 @@ export class WorkflowEngineAdapterService {
     this.registerAdAutomationExecutors();
     this.registerCampaignOrchestrationExecutors();
     this.registerAgentAutopilotExecutors();
+    this.registerAnalyticsSyncExecutors();
     this.registerTrendTriggerExecutor();
     this.registerTrendDigestExecutor();
     this.registerSendEmailExecutor();
@@ -743,6 +747,84 @@ export class WorkflowEngineAdapterService {
       generated: 0,
       organizationId: context.organizationId,
       reason: 'agent_autopilot_service_unavailable',
+      skipped: 0,
+      status: 'skipped',
+    };
+  }
+
+  private registerAnalyticsSyncExecutors(): void {
+    this.engine.registerExecutor(
+      'analyticsFacebookSync',
+      (_node, _inputs, context) =>
+        this.analyticsSyncWorkflowService
+          ? this.analyticsSyncWorkflowService.runFacebookAnalytics(
+              context.organizationId,
+            )
+          : this.analyticsSyncUnavailable('analyticsFacebookSync', context),
+    );
+
+    this.engine.registerExecutor(
+      'analyticsSocialSync',
+      (_node, _inputs, context) =>
+        this.analyticsSyncWorkflowService
+          ? this.analyticsSyncWorkflowService.runSocialAnalytics(
+              context.organizationId,
+            )
+          : this.analyticsSyncUnavailable('analyticsSocialSync', context),
+    );
+
+    this.engine.registerExecutor(
+      'analyticsThreadsSync',
+      (_node, _inputs, context) =>
+        this.analyticsSyncWorkflowService
+          ? this.analyticsSyncWorkflowService.runThreadsAnalytics(
+              context.organizationId,
+            )
+          : this.analyticsSyncUnavailable('analyticsThreadsSync', context),
+    );
+
+    this.engine.registerExecutor(
+      'analyticsTwitterSync',
+      (_node, _inputs, context) =>
+        this.analyticsSyncWorkflowService
+          ? this.analyticsSyncWorkflowService.runTwitterAnalytics(
+              context.organizationId,
+            )
+          : this.analyticsSyncUnavailable('analyticsTwitterSync', context),
+    );
+
+    this.engine.registerExecutor(
+      'analyticsGenericSync',
+      (_node, _inputs, context) =>
+        this.analyticsSyncWorkflowService
+          ? this.analyticsSyncWorkflowService.runGenericAnalyticsSync(
+              context.organizationId,
+            )
+          : this.analyticsSyncUnavailable('analyticsGenericSync', context),
+    );
+
+    this.engine.registerExecutor(
+      'youtubeAnalyticsSync',
+      (_node, _inputs, context) =>
+        this.analyticsSyncWorkflowService
+          ? this.analyticsSyncWorkflowService.runYouTubeAnalytics(
+              context.organizationId,
+            )
+          : this.analyticsSyncUnavailable('youtubeAnalyticsSync', context),
+    );
+  }
+
+  private async analyticsSyncUnavailable(
+    action: string,
+    context: ExecutionContext,
+  ): Promise<Record<string, unknown>> {
+    return {
+      action,
+      enqueued: 0,
+      organizationId: context.organizationId,
+      posts: 0,
+      queueName: '',
+      reason: 'analytics_sync_service_unavailable',
       skipped: 0,
       status: 'skipped',
     };
