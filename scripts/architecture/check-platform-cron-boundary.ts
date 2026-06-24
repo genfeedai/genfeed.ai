@@ -8,11 +8,13 @@ const DEFAULT_INCLUDE_GLOBS = ['apps/server/**/*.ts'];
 const DEFAULT_IGNORE_GLOBS = [
   '**/*.spec.ts',
   '**/*.test.ts',
+  '**/__fixtures__/**',
   '**/node_modules/**',
   '**/dist/**',
   '**/.next/**',
   '**/.turbo/**',
   '**/coverage/**',
+  '**/fixtures/**',
   '**/generated/**',
 ];
 
@@ -45,6 +47,18 @@ export type CronBoundaryViolation =
   | {
       cron: DetectedCron;
       kind: 'untracked-cron';
+      message: string;
+    }
+  | {
+      entries: IndexedEntry[];
+      key: string;
+      kind: 'duplicate-entry';
+      message: string;
+    }
+  | {
+      crons: DetectedCron[];
+      key: string;
+      kind: 'duplicate-cron';
       message: string;
     }
   | {
@@ -376,6 +390,28 @@ function cronKey(cron: Pick<DetectedCron, 'file' | 'methodName'>): string {
   return `${normalizePath(cron.file)}#${cron.methodName}`;
 }
 
+function addIndexedEntry(
+  indexedEntries: Map<string, IndexedEntry>,
+  violations: CronBoundaryViolation[],
+  indexedEntry: IndexedEntry,
+): void {
+  const key = entryKey(indexedEntry.entry);
+  const existingEntry = indexedEntries.get(key);
+
+  if (existingEntry) {
+    violations.push({
+      entries: [existingEntry, indexedEntry],
+      key,
+      kind: 'duplicate-entry',
+      message:
+        'Cron boundary manifest contains duplicate file/method entries. Each static @Cron must have exactly one classification.',
+    });
+    return;
+  }
+
+  indexedEntries.set(key, indexedEntry);
+}
+
 function collectScheduleImports(sourceFile: ts.SourceFile): {
   cronIdentifiers: Set<string>;
   scheduleNamespaces: Set<string>;
@@ -517,13 +553,17 @@ export function runCheckPlatformCronBoundary(
     options.pendingMigrations ?? PENDING_TENANT_CRON_MIGRATIONS;
 
   const indexedEntries = new Map<string, IndexedEntry>();
+  const violations: CronBoundaryViolation[] = [];
 
   for (const entry of platformAllowlist) {
-    indexedEntries.set(entryKey(entry), { entry, kind: 'platform' });
+    addIndexedEntry(indexedEntries, violations, {
+      entry,
+      kind: 'platform',
+    });
   }
 
   for (const entry of pendingMigrations) {
-    indexedEntries.set(entryKey(entry), {
+    addIndexedEntry(indexedEntries, violations, {
       entry,
       kind: 'pending-migration',
     });
@@ -539,10 +579,37 @@ export function runCheckPlatformCronBoundary(
   const detectedCrons = files.flatMap((filePath) =>
     detectCronDecorators(filePath, rootDir),
   );
-  const detectedKeys = new Set(detectedCrons.map(cronKey));
+  const detectedCronEntries = new Map<string, DetectedCron[]>();
+
+  for (const cron of detectedCrons) {
+    const key = cronKey(cron);
+    const duplicateCrons = detectedCronEntries.get(key);
+
+    if (duplicateCrons) {
+      duplicateCrons.push(cron);
+      continue;
+    }
+
+    detectedCronEntries.set(key, [cron]);
+  }
+
+  for (const [key, crons] of detectedCronEntries) {
+    if (crons.length <= 1) {
+      continue;
+    }
+
+    violations.push({
+      crons,
+      key,
+      kind: 'duplicate-cron',
+      message:
+        'Multiple detected @Cron decorators resolve to the same file/method key. Rename the method or extend the manifest key before classifying it.',
+    });
+  }
+
+  const detectedKeys = new Set(detectedCronEntries.keys());
   const platformCrons: CronBoundaryResult['platformCrons'] = [];
   const pendingMigrationCrons: CronBoundaryResult['pendingMigrationCrons'] = [];
-  const violations: CronBoundaryViolation[] = [];
 
   for (const cron of detectedCrons) {
     const indexedEntry = indexedEntries.get(cronKey(cron));
@@ -612,10 +679,29 @@ if (isMainModule()) {
     for (const violation of result.violations) {
       if (violation.kind === 'untracked-cron') {
         console.error(`- ${formatCron(violation.cron)}: ${violation.message}`);
-      } else {
+        continue;
+      }
+
+      if (violation.kind === 'stale-entry') {
         console.error(
           `- ${violation.entry.file}#${violation.entry.methodName}: ${violation.message}`,
         );
+        continue;
+      }
+
+      if (violation.kind === 'duplicate-entry') {
+        console.error(`- ${violation.key}: ${violation.message}`);
+        for (const duplicate of violation.entries) {
+          console.error(
+            `  - ${duplicate.kind} ${duplicate.entry.id}: ${duplicate.entry.reason}`,
+          );
+        }
+        continue;
+      }
+
+      console.error(`- ${violation.key}: ${violation.message}`);
+      for (const cron of violation.crons) {
+        console.error(`  - ${formatCron(cron)}`);
       }
     }
 

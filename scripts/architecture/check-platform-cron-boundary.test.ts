@@ -128,7 +128,7 @@ describe('check-platform-cron-boundary', () => {
     expect(result.violations[0]?.kind).toBe('stale-entry');
   });
 
-  it('ignores commented cron text and test files', () => {
+  it('ignores commented cron text, test files, and fixtures', () => {
     writeFixture(
       'apps/server/api/src/commented.service.ts',
       `
@@ -148,6 +148,28 @@ describe('check-platform-cron-boundary', () => {
         export class TestOnlyService {
           @Cron('* * * * *')
           async runTestWork(): Promise<void> {}
+        }
+      `,
+    );
+    writeFixture(
+      'apps/server/api/src/__fixtures__/fixture.service.ts',
+      `
+        import { Cron } from '@nestjs/schedule';
+
+        export class FixtureOnlyService {
+          @Cron('* * * * *')
+          async runFixtureWork(): Promise<void> {}
+        }
+      `,
+    );
+    writeFixture(
+      'apps/server/api/src/fixtures/fixture.service.ts',
+      `
+        import { Cron } from '@nestjs/schedule';
+
+        export class FixtureOnlyService {
+          @Cron('* * * * *')
+          async runFixtureWork(): Promise<void> {}
         }
       `,
     );
@@ -181,6 +203,79 @@ describe('check-platform-cron-boundary', () => {
 
     expect(result.detectedCrons).toHaveLength(1);
     expect(result.violations[0]?.kind).toBe('untracked-cron');
+  });
+
+  it('detects duplicate manifest entries', () => {
+    writeFixture(
+      'apps/server/workers/src/crons/platform.service.ts',
+      `
+        import { Cron } from '@nestjs/schedule';
+
+        export class PlatformService {
+          @Cron('* * * * *')
+          async runMaintenance(): Promise<void> {}
+        }
+      `,
+    );
+
+    const platformAllowlist: CronBoundaryEntry[] = [
+      {
+        file: 'apps/server/workers/src/crons/platform.service.ts',
+        id: 'platform-maintenance',
+        methodName: 'runMaintenance',
+        reason: 'Fixture platform maintenance cron.',
+      },
+      {
+        file: 'apps/server/workers/src/crons/platform.service.ts',
+        id: 'platform-maintenance-duplicate',
+        methodName: 'runMaintenance',
+        reason: 'Duplicate fixture platform maintenance cron.',
+      },
+    ];
+
+    const result = runCheckPlatformCronBoundary({
+      pendingMigrations: [],
+      platformAllowlist,
+    });
+
+    expect(result.violations).toHaveLength(1);
+    expect(result.violations[0]?.kind).toBe('duplicate-entry');
+  });
+
+  it('detects duplicate detected cron keys', () => {
+    writeFixture(
+      'apps/server/workers/src/crons/duplicate-method.service.ts',
+      `
+        import { Cron } from '@nestjs/schedule';
+
+        export class FirstService {
+          @Cron('* * * * *')
+          async runMaintenance(): Promise<void> {}
+        }
+
+        export class SecondService {
+          @Cron('* * * * *')
+          async runMaintenance(): Promise<void> {}
+        }
+      `,
+    );
+
+    const platformAllowlist: CronBoundaryEntry[] = [
+      {
+        file: 'apps/server/workers/src/crons/duplicate-method.service.ts',
+        id: 'platform-maintenance',
+        methodName: 'runMaintenance',
+        reason: 'Fixture platform maintenance cron.',
+      },
+    ];
+
+    const result = runCheckPlatformCronBoundary({
+      pendingMigrations: [],
+      platformAllowlist,
+    });
+
+    expect(result.violations).toHaveLength(1);
+    expect(result.violations[0]?.kind).toBe('duplicate-cron');
   });
 });
 
