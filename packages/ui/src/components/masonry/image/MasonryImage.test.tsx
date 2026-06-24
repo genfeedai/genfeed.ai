@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
@@ -92,6 +92,11 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { IImage } from '@genfeedai/interfaces';
 import MasonryImage from '@ui/masonry/image/MasonryImage';
 
+const defaultBrandContext = {
+  selectedBrand: { isDarkroomEnabled: false },
+  settings: { isDarkroomNsfwVisible: false },
+} as ReturnType<typeof useBrand>;
+
 const mockImage: IImage = {
   id: 'img-123',
   ingredientUrl: 'https://example.com/image.png',
@@ -101,6 +106,10 @@ const mockImage: IImage = {
 } as IImage;
 
 describe('MasonryImage', () => {
+  beforeEach(() => {
+    vi.mocked(useBrand).mockReturnValue(defaultBrandContext);
+  });
+
   it('should render without crashing', () => {
     const { container } = render(<MasonryImage image={mockImage} />);
     expect(container.firstChild).toBeInTheDocument();
@@ -175,5 +184,46 @@ describe('MasonryImage', () => {
     fireEvent.click(screen.getByRole('button'));
 
     expect(handleClickIngredient).not.toHaveBeenCalled();
+  });
+
+  it('keeps broken remote assets in an explicit fallback state', () => {
+    render(<MasonryImage image={mockImage} />);
+
+    fireEvent.error(screen.getByRole('img'));
+
+    expect(screen.getByTestId('masonry-ingredient-img-123')).toHaveAttribute(
+      'data-asset-media-state',
+      'fallback',
+    );
+    expect(
+      screen.getByTestId('asset-media-fallback-img-123'),
+    ).toHaveTextContent('Preview unavailable');
+    expect(screen.getByRole('img')).toHaveAttribute(
+      'src',
+      'https://assets.test.com/placeholders/portrait.jpg',
+    );
+
+    fireEvent.load(screen.getByRole('img'));
+
+    expect(screen.getByTestId('masonry-ingredient-img-123')).toHaveAttribute(
+      'data-asset-media-state',
+      'fallback',
+    );
+  });
+
+  it('marks missing asset urls as fallback previews', () => {
+    render(<MasonryImage image={{ ...mockImage, ingredientUrl: undefined }} />);
+
+    expect(screen.getByTestId('masonry-ingredient-img-123')).toHaveAttribute(
+      'data-asset-media-state',
+      'fallback',
+    );
+    expect(
+      screen.getByTestId('asset-media-fallback-img-123'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('img')).toHaveAttribute(
+      'src',
+      'https://assets.test.com/placeholders/portrait.jpg',
+    );
   });
 });

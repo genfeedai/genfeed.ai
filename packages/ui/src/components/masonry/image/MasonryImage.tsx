@@ -58,8 +58,8 @@ export default function MasonryImage({
   onHoverChange,
 }: MasonryImageProps): React.ReactElement {
   const { selectedBrand, settings } = useBrand();
-  const [isLoading, setIsLoading] = useState(true);
-  const [imageError, setImageError] = useState(false);
+  const [loadedImageUrl, setLoadedImageUrl] = useState<string | null>(null);
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
 
   const {
     isHovered,
@@ -91,16 +91,21 @@ export default function MasonryImage({
 
   const handleDownload = useMemo(() => createDownloadHandler(), []);
 
+  const currentImageUrl = image.ingredientUrl ?? '';
+  const imageError =
+    currentImageUrl === '' || failedImageUrl === currentImageUrl;
+  const isLoading =
+    currentImageUrl !== '' && loadedImageUrl !== currentImageUrl && !imageError;
+
   const handleImageLoad = useCallback(() => {
-    setIsLoading(false);
-    setImageError(false);
+    setLoadedImageUrl(currentImageUrl);
     onImageLoad?.();
-  }, [onImageLoad]);
+  }, [currentImageUrl, onImageLoad]);
 
   const handleImageError = useCallback(() => {
-    setIsLoading(false);
-    setImageError(true);
-  }, []);
+    setLoadedImageUrl(currentImageUrl);
+    setFailedImageUrl(currentImageUrl);
+  }, [currentImageUrl]);
 
   const handleIngredientDrop = useCallback(
     (

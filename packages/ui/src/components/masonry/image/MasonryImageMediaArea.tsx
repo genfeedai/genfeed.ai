@@ -43,11 +43,21 @@ export default function MasonryImageMediaArea({
   handleContentClick,
   onRefresh,
 }: MasonryImageMediaAreaProps): React.ReactElement {
+  const mediaState = imageError
+    ? 'fallback'
+    : isProcessing
+      ? 'processing'
+      : isLoading
+        ? 'loading'
+        : 'ready';
+
   return (
     <>
       <div
         role="button"
         tabIndex={0}
+        aria-label={imageError ? 'Asset preview unavailable' : undefined}
+        data-asset-media-state={mediaState}
         data-testid={`masonry-ingredient-${image.id}`}
         className={cn(
           'relative size-full cursor-pointer overflow-hidden border border-white/[0.08] bg-card transition-[border-color,background-color] duration-200 hover:border-white/[0.14]',
@@ -94,6 +104,17 @@ export default function MasonryImageMediaArea({
           )}
           src={imageSrc}
         />
+
+        {imageError && (
+          <div
+            aria-live="polite"
+            className="absolute inset-x-3 bottom-3 rounded-md border border-white/15 bg-black/70 px-3 py-2 text-center text-xs font-medium text-white shadow-lg backdrop-blur-sm"
+            data-testid={`asset-media-fallback-${image.id}`}
+            role="status"
+          >
+            Preview unavailable
+          </div>
+        )}
 
         {isDarkroomLocked && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/35 backdrop-blur-sm px-4 text-center">
