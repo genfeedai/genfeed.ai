@@ -3,6 +3,7 @@ import { type ActivityDocument } from '@api/collections/activities/schemas/activ
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -94,6 +95,7 @@ export class OrganizationsController extends BaseCRUDController<
     private readonly activitiesService: ActivitiesService,
     private readonly membersService: MembersService,
     private readonly organizationsService: OrganizationsService,
+    private readonly defaultRecurringContentService: DefaultRecurringContentService,
     private readonly postsService: PostsService,
     private readonly tagsService: TagsService,
     private readonly videosService: VideosService,
@@ -699,6 +701,12 @@ export class OrganizationsController extends BaseCRUDController<
       userId,
     } as unknown as Parameters<BrandsService['create']>[0]);
 
+    await this.provisionDefaultRecurringWorkflows(
+      orgId.toString(),
+      brand._id.toString(),
+      userId,
+    );
+
     // Step 4: Find admin role and create member
     let adminRole = await this.rolesService.findOne({
       isDeleted: false,
@@ -750,5 +758,30 @@ export class OrganizationsController extends BaseCRUDController<
       brand: { id: brand._id.toString(), label: brand.label },
       organization: { id: org._id.toString(), label: org.label },
     };
+  }
+
+  private async provisionDefaultRecurringWorkflows(
+    organizationId: string,
+    brandId: string,
+    userId: string,
+  ): Promise<void> {
+    try {
+      await this.defaultRecurringContentService.ensureDefaultBundle({
+        brandId,
+        organizationId,
+        origin: 'brand-create',
+        userId,
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        'Failed to provision default recurring workflows',
+        {
+          brandId,
+          error: (error as Error)?.message,
+          organizationId,
+          stack: (error as Error)?.stack,
+        },
+      );
+    }
   }
 }

@@ -11,6 +11,7 @@
  */
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
@@ -43,6 +44,7 @@ export class UserSetupService {
     private readonly organizationsService: OrganizationsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly brandsService: BrandsService,
+    private readonly defaultRecurringContentService: DefaultRecurringContentService,
     private readonly membersService: MembersService,
     private readonly rolesService: RolesService,
     private readonly settingsService: SettingsService,
@@ -87,7 +89,16 @@ export class UserSetupService {
       // Step 4: Create brand (REQUIRED - cascading failure)
       brand = await this.getOrCreateBrand(organization._id, userId);
 
-      // Step 5: Create credit balance (REQUIRED - cascading failure)
+      // Step 5: Create default recurring workflows for the default brand.
+      if (organizationResult.wasCreated) {
+        await this.provisionDefaultRecurringWorkflows(
+          organization._id,
+          brand._id,
+          userId,
+        );
+      }
+
+      // Step 6: Create credit balance (REQUIRED - cascading failure)
       await this.creditBalanceService.getOrCreateBalance(
         organization._id.toString(),
       );
@@ -100,7 +111,7 @@ export class UserSetupService {
         await this.awardSignupGiftCredits(organization._id);
       }
 
-      // Step 6: Create member (REQUIRED - cascading failure)
+      // Step 7: Create member (REQUIRED - cascading failure)
       member = await this.getOrCreateMember(organization._id, userId);
 
       // Log success summary
@@ -203,6 +214,28 @@ export class UserSetupService {
       `Awarded signup gift credits for organization ${organizationIdString}`,
       this.context,
     );
+  }
+
+  private async provisionDefaultRecurringWorkflows(
+    organizationId: string,
+    brandId: string,
+    userId: string,
+  ): Promise<void> {
+    try {
+      await this.defaultRecurringContentService.ensureDefaultBundle({
+        brandId: brandId.toString(),
+        organizationId: organizationId.toString(),
+        origin: 'onboarding',
+        userId,
+      });
+    } catch (error: unknown) {
+      this.logger.error('Failed to provision default recurring workflows', {
+        brandId: brandId.toString(),
+        error: (error as Error)?.message,
+        organizationId: organizationId.toString(),
+        stack: (error as Error)?.stack,
+      });
+    }
   }
 
   private async getOrCreateOrganizationSettings(

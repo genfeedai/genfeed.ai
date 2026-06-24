@@ -264,7 +264,7 @@ export class DefaultRecurringContentService {
         ],
         schedule: cronSchedule,
         timezone,
-        trigger: WorkflowTrigger.MANUAL,
+        trigger: WorkflowTrigger.SCHEDULED,
       } as never,
     );
 

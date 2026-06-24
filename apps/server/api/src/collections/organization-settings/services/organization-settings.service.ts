@@ -46,8 +46,8 @@ export class OrganizationSettingsService extends BaseService<
    * Org-bootstrap chokepoint: all organization-creation paths (legacy auth provider webhook,
    * OrganizationsController, UserSetupService) funnel through settings creation.
    * After creating settings we idempotently seed predetermined workflows.
-   * Daily Trends Digest is OFF by default; ad automation workflows are ON by
-   * default and skip per org until credentials/config make them eligible.
+   * Daily Trends Digest and tenant-product automation workflows are ON by default
+   * and skip per org until credentials/config make them eligible.
    * Failures never block settings creation.
    */
   async create(

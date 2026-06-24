@@ -1,4 +1,5 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MembersService } from '@api/collections/members/services/members.service';
@@ -46,6 +47,10 @@ describe('UserSetupService', () => {
     findOne: vi.fn(),
   };
 
+  const mockDefaultRecurringContentService = {
+    ensureDefaultBundle: vi.fn(),
+  };
+
   const mockMembersService = {
     create: vi.fn(),
     findOne: vi.fn(),
@@ -81,6 +86,7 @@ describe('UserSetupService', () => {
       mockOrganizationsService as unknown as OrganizationsService,
       mockOrganizationSettingsService as unknown as OrganizationSettingsService,
       mockBrandsService as unknown as BrandsService,
+      mockDefaultRecurringContentService as unknown as DefaultRecurringContentService,
       mockMembersService as unknown as MembersService,
       mockRolesService as unknown as RolesService,
       mockSettingsService as unknown as SettingsService,
@@ -118,6 +124,10 @@ describe('UserSetupService', () => {
 
       mockBrandsService.findOne.mockResolvedValue(null);
       mockBrandsService.create.mockResolvedValue(mockBrand);
+      mockDefaultRecurringContentService.ensureDefaultBundle.mockResolvedValue({
+        isConfigured: true,
+        items: [],
+      });
 
       mockCreditBalanceService.getOrCreateBalance.mockResolvedValue({
         balance: 0,
@@ -213,6 +223,36 @@ describe('UserSetupService', () => {
       await service.initializeUserResources(userId);
 
       expect(mockMembersService.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('should provision default recurring workflows for a newly created organization', async () => {
+      await service.initializeUserResources(userId);
+
+      expect(
+        mockDefaultRecurringContentService.ensureDefaultBundle,
+      ).toHaveBeenCalledWith({
+        brandId: brandId.toString(),
+        organizationId: orgId.toString(),
+        origin: 'onboarding',
+        userId,
+      });
+    });
+
+    it('should not block user setup when default recurring workflow provisioning fails', async () => {
+      mockDefaultRecurringContentService.ensureDefaultBundle.mockRejectedValue(
+        new Error('workflow provisioning failed'),
+      );
+
+      const result = await service.initializeUserResources(userId);
+
+      expect(result.brand).toBe(mockBrand);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to provision default recurring workflows',
+        expect.objectContaining({
+          brandId: brandId.toString(),
+          organizationId: orgId.toString(),
+        }),
+      );
     });
 
     it('should fallback to user role if admin role not found', async () => {
