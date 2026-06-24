@@ -21,6 +21,14 @@ const checks = [
     ],
     name: 'Legacy cron-jobs product surface',
   },
+  {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-platform-cron-boundary.ts',
+    ],
+    name: 'Platform cron boundary',
+  },
 ] as const;
 
 let failed = false;
