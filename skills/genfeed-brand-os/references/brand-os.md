@@ -264,8 +264,35 @@ Image/video direction:
 Scale tokens:
 
 - Compact UI: 4, 8, 12, 16, 24, 32.
-- Marketing/story assets: 24, 40, 64, 104, 168.
+- Marketing/story assets: 24, 40, 64, 104, 168, 272, 440.
 - Use larger jumps for launch content, not inside dense product UI.
+
+Scale model:
+
+- Product UI uses a practical 4px grid. It is not required to follow the golden ratio because dense interfaces need alignment, scannability, and predictable control heights.
+- Brand and campaign objects use a rounded golden-ratio progression. The ratio is approximate because values are rounded to CSS-friendly grid numbers.
+- The working phi-rounded sequence is `24 -> 40 -> 64 -> 104 -> 168 -> 272 -> 440`.
+- Use semantic scale roles in prompts and specs instead of "make it bigger" or "make it smaller."
+- Never use the largest campaign roles inside dense product UI.
+
+Semantic size roles:
+
+| Role | Size band | Use |
+| --- | --- | --- |
+| `micro` | 4-8px | Dividers, tiny offsets, state dots, hairline spacing |
+| `chip` | 12-16px | Badges, inline icons, metadata marks |
+| `control` | 32px | Buttons, inputs, select triggers, toolbar actions |
+| `block` | 40-64px | Small brand marks, content-card anchors, compact campaign objects |
+| `hero` | 104px | Section-leading visual objects, hero marks, screenshot highlights |
+| `monument` | 168-272px | First-viewport visual anchors, launch page objects, large proof artifacts |
+| `god` | 440px+ | One-per-page or one-per-campaign focal object; full-bleed or dominant launch visual only |
+
+Font-by-size rule:
+
+- Product UI typography stays on the app scale.
+- Campaign typography should be assigned by semantic role, not by arbitrary px values.
+- Until the final marketing typeface is selected, use the role scale with system sans and mono.
+- Do not copy a competitor's font-size/typeface pairing.
 
 Element size contract:
 

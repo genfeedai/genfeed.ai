@@ -71,6 +71,7 @@ Produce this structure unless the user asks for a narrower artifact:
 - Typography direction, not just font names
 - Layout and density rules
 - Scale tokens
+- Semantic size roles, such as block, hero, and one-per-page campaign scale
 - Motion rules
 - Image/video prompt rules
 
@@ -92,6 +93,7 @@ Produce this structure unless the user asks for a narrower artifact:
 - Treat brand as a compounding trust system, not a logo exercise.
 - Make launch assets story-first: show stakes, transformation, and artifact value.
 - Use visual systems as durable memory for agents: color roles, type roles, scale, motion, and negative rules.
+- Define relative object sizes with semantic roles and ratios, not only pixel values.
 - Prefer distinctive constraints over generic "premium/minimal" language.
 - Use Japanese color references for harmony and naming depth when they fit the brand, not as a default aesthetic.
 - Use mascot, cuteness, or maximalism only when it serves audience psychology and business context.
@@ -104,5 +106,6 @@ Before finalizing:
 - Every recommendation is tied to evidence, source-backed principle, or explicit assumption.
 - The Brand OS includes both human-readable guidance and compact AI context.
 - Visual rules define usage and hierarchy, not only a list of colors.
+- Scale rules define role, ratio, and usage context, not only a list of sizes.
 - The CTA/funnel recommendation maps to a concrete conversion behavior.
 - Competitor references are marked as references only and are not copied.
