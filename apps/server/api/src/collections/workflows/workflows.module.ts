@@ -12,6 +12,7 @@ import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { ContentSchedulesModule } from '@api/collections/content-schedules/content-schedules.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { CronJobsModule } from '@api/collections/cron-jobs/cron-jobs.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
@@ -108,6 +109,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => ContentOrchestrationModule),
     forwardRef(() => ContentSchedulesModule),
     forwardRef(() => CredentialsCoreModule),
+    forwardRef(() => CronJobsModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => ElevenLabsModule),
     forwardRef(() => GoogleAdsModule),

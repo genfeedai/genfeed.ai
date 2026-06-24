@@ -4,6 +4,11 @@ import { CaptionsService } from '@api/collections/captions/services/captions.ser
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import {
+  LEGACY_CRON_JOB_EXECUTOR,
+  type LegacyCronJobExecutor,
+} from '@api/collections/cron-jobs/legacy-cron-job-executor.token';
+import type { CronJobType } from '@api/collections/cron-jobs/schemas/cron-job.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -101,7 +106,7 @@ import {
 } from '@genfeedai/workflow-engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { Injectable, Optional } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 
 /**
  * Shape of workflow document passed to convertToExecutableWorkflow.
@@ -277,6 +282,9 @@ export class WorkflowEngineAdapterService {
     private readonly replyPollingWorkflowService?: ReplyPollingWorkflowService,
     @Optional()
     private readonly trendNotificationWorkflowService?: TrendNotificationWorkflowService,
+    @Optional()
+    @Inject(LEGACY_CRON_JOB_EXECUTOR)
+    private readonly legacyCronJobExecutor?: LegacyCronJobExecutor,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -309,6 +317,7 @@ export class WorkflowEngineAdapterService {
     this.registerContentProductionExecutors();
     this.registerReplyPollingExecutors();
     this.registerTrendNotificationExecutors();
+    this.registerLegacyCronJobExecutors();
     this.registerTrendTriggerExecutor();
     this.registerTrendDigestExecutor();
     this.registerSendEmailExecutor();
@@ -998,6 +1007,55 @@ export class WorkflowEngineAdapterService {
       status: 'skipped',
       trends: 0,
     };
+  }
+
+  private registerLegacyCronJobExecutors(): void {
+    this.engine.registerExecutor('legacyCronJob', (node, _inputs, context) => {
+      if (!this.legacyCronJobExecutor) {
+        return this.legacyCronJobUnavailable(context, 'cron_jobs_unavailable');
+      }
+
+      const legacyCronJobId = this.readConfigString(
+        node.config,
+        'legacyCronJobId',
+      );
+      const jobType = this.readConfigString(node.config, 'jobType');
+      if (!legacyCronJobId || !this.isLegacyCronJobType(jobType)) {
+        return this.legacyCronJobUnavailable(
+          context,
+          'legacy_cron_job_config_invalid',
+        );
+      }
+
+      return this.legacyCronJobExecutor.executeMigratedLegacyCronJob({
+        legacyCronJobId,
+        organizationId: context.organizationId,
+        userId: context.userId,
+      });
+    });
+  }
+
+  private async legacyCronJobUnavailable(
+    context: ExecutionContext,
+    reason: string,
+  ): Promise<Record<string, unknown>> {
+    return {
+      action: 'legacyCronJob',
+      organizationId: context.organizationId,
+      reason,
+      skipped: 1,
+      status: 'skipped',
+    };
+  }
+
+  private isLegacyCronJobType(
+    jobType: string | undefined,
+  ): jobType is CronJobType {
+    return (
+      jobType === 'workflow_execution' ||
+      jobType === 'agent_strategy_execution' ||
+      jobType === 'newsletter_substack'
+    );
   }
 
   private isTrendNotificationCadence(

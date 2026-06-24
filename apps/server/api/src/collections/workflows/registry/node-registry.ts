@@ -1660,6 +1660,39 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     outputs: {},
   },
 
+  legacyCronJob: {
+    category: 'control',
+    configSchema: {
+      jobType: {
+        description: 'Legacy cron job type migrated into workflow execution',
+        label: 'Job Type',
+        options: [
+          'workflow_execution',
+          'agent_strategy_execution',
+          'newsletter_substack',
+        ],
+        required: true,
+        type: 'select',
+      },
+      legacyCronJobId: {
+        description: 'Legacy cron job row that backs this migrated workflow',
+        label: 'Legacy Cron Job ID',
+        required: true,
+        type: 'string',
+      },
+    },
+    description:
+      'Executes a migrated legacy automation row through the workflow scheduler',
+    icon: 'HiArrowPath',
+    inputs: {},
+    isEnabled: false,
+    isPremium: false,
+    label: 'Legacy Automation Adapter',
+    outputs: {
+      result: { label: 'Execution Result', type: 'any' },
+    },
+  },
+
   'workflow-ref': {
     category: 'control',
     configSchema: {
