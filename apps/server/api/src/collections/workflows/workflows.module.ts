@@ -18,6 +18,7 @@ import { MusicsModule } from '@api/collections/musics/musics.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
@@ -37,6 +38,7 @@ import {
 } from '@api/collections/workflows/services/batch-workflow-queue.service';
 import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows/services/campaign-orchestration-workflow.service';
 import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
+import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import {
   WORKFLOW_EXECUTION_QUEUE,
@@ -64,6 +66,7 @@ import { TikTokAdsModule } from '@api/services/integrations/tiktok-ads/tiktok-ad
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
+import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { WorkflowExecutorModule } from '@api/services/workflow-executor/workflow-executor.module';
 import { SharedModule } from '@api/shared/shared.module';
@@ -87,6 +90,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AnalyticsSyncWorkflowService,
     CampaignOrchestrationWorkflowService,
     ContentProductionWorkflowService,
+    ReplyPollingWorkflowService,
   ],
   imports: [
     forwardRef(() => AdOptimizationConfigsModule),
@@ -119,6 +123,8 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => OpenRouterModule),
     forwardRef(() => PostsModule),
     forwardRef(() => QueuesModule),
+    forwardRef(() => ReplyBotConfigsModule),
+    forwardRef(() => ReplyBotModule),
     forwardRef(() => SharedModule),
     forwardRef(() => TikTokAdsModule),
     forwardRef(() => TrendsModule),
@@ -160,6 +166,7 @@ import { forwardRef, Module } from '@nestjs/common';
     BatchWorkflowService,
     CampaignOrchestrationWorkflowService,
     ContentProductionWorkflowService,
+    ReplyPollingWorkflowService,
     WorkflowEngineAdapterService,
     WorkflowExecutorService,
     WorkflowExecutionQueueService,

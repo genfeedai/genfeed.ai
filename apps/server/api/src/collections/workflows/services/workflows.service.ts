@@ -25,6 +25,7 @@ import {
   CONTENT_SCHEDULE_WORKFLOW_TEMPLATE_ID,
 } from '@api/collections/workflows/templates/content-production-workflows.template';
 import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
+import { REPLY_POLLING_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/reply-polling-workflows.template';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -848,6 +849,88 @@ export class WorkflowsService extends BaseService<
         type: 'contentScheduleRun',
       },
     ];
+  }
+
+  /**
+   * Idempotently seeds default-on reply/social polling workflow schedules for
+   * an organization. Nodes preserve the previous cron scanner behavior by
+   * discovering active reply configs and workflow social trigger nodes during
+   * execution, scoped to the workflow organization.
+   */
+  async ensureReplyPollingWorkflows(
+    userId: string,
+    organizationId: string,
+  ): Promise<void> {
+    for (const template of REPLY_POLLING_WORKFLOW_TEMPLATES) {
+      const where = {
+        isDeleted: false,
+        metadata: {
+          equals: template.id,
+          path: ['sourceTemplateId'],
+        },
+        organizationId,
+      };
+
+      const preCheck = await this.prisma.workflow.findFirst({
+        select: { id: true },
+        where,
+      });
+
+      if (preCheck) {
+        continue;
+      }
+
+      try {
+        await this.prisma.$transaction(
+          async (tx) => {
+            const existing = await tx.workflow.findFirst({
+              select: { id: true },
+              where,
+            });
+
+            if (existing) {
+              return;
+            }
+
+            await tx.workflow.create({
+              data: {
+                description: template.description,
+                edges: (template.edges ?? []) as never,
+                executionCount: 0,
+                inputVariables: (template.inputVariables ?? []) as never,
+                isDeleted: false,
+                isScheduleEnabled: true,
+                label: template.name,
+                metadata: {
+                  sourceIssue: 787,
+                  sourceTemplateId: template.id,
+                  sourceType: 'seeded-template',
+                },
+                nodes: (template.nodes ?? []) as never,
+                organizationId,
+                progress: 0,
+                schedule: template.schedule,
+                status: WorkflowStatus.ACTIVE,
+                steps: template.steps as never,
+                timezone: 'UTC',
+                userId,
+              },
+            });
+          },
+          { isolationLevel: 'Serializable' },
+        );
+      } catch (error) {
+        const errorCode = (error as { code?: string }).code;
+        if (errorCode === 'P2034') {
+          this.logger?.debug(
+            'ensureReplyPollingWorkflows: serialization conflict - workflow already seeded by concurrent request',
+            { organizationId, templateId: template.id },
+          );
+          continue;
+        }
+        throw error;
+      }
+    }
   }
 
   async executeWorkflow(workflowId: string): Promise<void> {

@@ -29,6 +29,7 @@ import { AgentAutopilotWorkflowService } from '@api/collections/workflows/servic
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows/services/campaign-orchestration-workflow.service';
 import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
+import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -270,6 +271,8 @@ export class WorkflowEngineAdapterService {
     private readonly analyticsSyncWorkflowService?: AnalyticsSyncWorkflowService,
     @Optional()
     private readonly contentProductionWorkflowService?: ContentProductionWorkflowService,
+    @Optional()
+    private readonly replyPollingWorkflowService?: ReplyPollingWorkflowService,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -300,6 +303,7 @@ export class WorkflowEngineAdapterService {
     this.registerAgentAutopilotExecutors();
     this.registerAnalyticsSyncExecutors();
     this.registerContentProductionExecutors();
+    this.registerReplyPollingExecutors();
     this.registerTrendTriggerExecutor();
     this.registerTrendDigestExecutor();
     this.registerSendEmailExecutor();
@@ -905,6 +909,44 @@ export class WorkflowEngineAdapterService {
       reason,
       skipped: 1,
       status: 'skipped',
+    };
+  }
+
+  private registerReplyPollingExecutors(): void {
+    this.engine.registerExecutor(
+      'replyBotPolling',
+      (_node, _inputs, context) =>
+        this.replyPollingWorkflowService
+          ? this.replyPollingWorkflowService.runReplyBotPolling(
+              context.organizationId,
+            )
+          : this.replyPollingUnavailable('replyBotPolling', context),
+    );
+
+    this.engine.registerExecutor(
+      'socialTriggerPolling',
+      (_node, _inputs, context) =>
+        this.replyPollingWorkflowService
+          ? this.replyPollingWorkflowService.runSocialTriggerPolling(
+              context.organizationId,
+            )
+          : this.replyPollingUnavailable('socialTriggerPolling', context),
+    );
+  }
+
+  private async replyPollingUnavailable(
+    action: string,
+    context: ExecutionContext,
+  ): Promise<Record<string, unknown>> {
+    return {
+      action,
+      checked: 0,
+      errors: 0,
+      organizationId: context.organizationId,
+      reason: 'reply_polling_service_unavailable',
+      skipped: 1,
+      status: 'skipped',
+      triggered: 0,
     };
   }
 

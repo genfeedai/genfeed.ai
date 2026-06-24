@@ -1,17 +1,24 @@
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
+import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { InstagramSocialAdapter } from '@api/collections/workflows/services/adapters/instagram-social.adapter';
 import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.service';
 import { ConfigService } from '@api/config/config.service';
+import { CacheService } from '@api/services/cache/services/cache.service';
+import {
+  type ProcessingResult,
+  ReplyBotOrchestratorService,
+} from '@api/services/reply-bot/reply-bot-orchestrator.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { WorkflowStatus } from '@genfeedai/enums';
+import { ReplyBotPlatform, WorkflowStatus } from '@genfeedai/enums';
+import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import type { Workflow } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
-/**
- * Social trigger node types that require polling.
- */
 const SOCIAL_TRIGGER_TYPES = [
   'mentionTrigger',
   'newLikeTrigger',
@@ -22,11 +29,12 @@ const SOCIAL_TRIGGER_TYPES = [
 ] as const;
 
 type SocialTriggerType = (typeof SOCIAL_TRIGGER_TYPES)[number];
+type ReplyPollingAction = 'replyBotPolling' | 'socialTriggerPolling';
 
 type WorkflowNode = {
+  data?: { config?: Record<string, unknown>; label?: string };
   id: string;
   type: string;
-  data: { config: Record<string, unknown> };
 };
 
 type WorkflowConfig = {
@@ -36,147 +44,271 @@ type WorkflowConfig = {
   [key: string]: unknown;
 };
 
-/**
- * Poll state stored per-workflow for tracking last seen event IDs.
- * Stored in workflow.config.metadata.pollState.
- */
 interface PollState {
-  /** Last seen event ID per trigger node */
   [nodeId: string]: PollState | string | null | undefined;
-  /** Timestamp of last successful poll */
   lastPolledAt?: string;
 }
 
-/**
- * Social Polling Service
- *
- * Periodically checks social platform APIs for new events (mentions, likes,
- * reposts, followers, keywords, engagement) and triggers workflow executions.
- */
+interface ReplyBotTarget {
+  credentialId: string;
+  organizationId: string;
+}
+
+export interface ReplyPollingWorkflowResult {
+  action: ReplyPollingAction;
+  checked: number;
+  errors: number;
+  organizationId: string;
+  reason?: string;
+  skipped: number;
+  status: 'completed' | 'skipped';
+  triggered: number;
+}
+
 @Injectable()
-export class SocialPollingService {
-  private readonly logContext = 'SocialPollingService';
-  private isRunning = false;
+export class ReplyPollingWorkflowService {
+  private readonly logContext = 'ReplyPollingWorkflowService';
 
   constructor(
+    private readonly replyBotConfigsService: ReplyBotConfigsService,
+    private readonly credentialsService: CredentialsService,
+    private readonly replyBotOrchestratorService: ReplyBotOrchestratorService,
     private readonly prisma: PrismaService,
     private readonly executionQueue: WorkflowExecutionQueueService,
     private readonly twitterAdapter: TwitterSocialAdapter,
     private readonly instagramAdapter: InstagramSocialAdapter,
     private readonly configService: ConfigService,
+    private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
   ) {}
 
-  /**
-   * Main polling loop — runs every 5 minutes in production.
-   * Disabled in development to avoid hitting API rate limits.
-   */
-  async pollSocialTriggers(): Promise<void> {
-    if (!this.configService.isDevSchedulersEnabled) {
-      this.logger.debug(
-        `${this.logContext} skipping — local schedulers disabled`,
-      );
-      return;
+  async runReplyBotPolling(
+    organizationId: string,
+  ): Promise<ReplyPollingWorkflowResult> {
+    const action: ReplyPollingAction = 'replyBotPolling';
+    const lockKey = this.lockKey(action, organizationId);
+    const acquired = await this.cacheService.acquireLock(lockKey, 600);
+
+    if (!acquired) {
+      return this.skipped(action, organizationId, 'reply_bot_polling_locked');
     }
 
-    if (this.isRunning) {
-      this.logger.warn(
-        `${this.logContext} skipping — previous poll in progress`,
-      );
-      return;
-    }
-
-    this.isRunning = true;
-    const startTime = Date.now();
+    let checked = 0;
+    let triggered = 0;
+    let errors = 0;
+    let skipped = 0;
 
     try {
-      this.logger.log(`${this.logContext} starting poll cycle`);
+      const targets = await this.findReplyBotTargets(organizationId);
+      skipped = targets.length === 0 ? 1 : 0;
 
-      // Find active workflows that have social trigger nodes
-      const workflows = await this.findWorkflowsWithSocialTriggers();
-      this.logger.log(
-        `${this.logContext} found ${workflows.length} workflows with social triggers`,
-      );
-
-      let triggeredCount = 0;
-
-      for (const workflow of workflows) {
+      for (const target of targets) {
+        checked += 1;
         try {
-          const triggered = await this.pollWorkflow(workflow);
-          if (triggered) {
-            triggeredCount++;
+          const credential = await this.loadCredential(target);
+          if (!credential) {
+            skipped += 1;
+            continue;
           }
-        } catch (error) {
-          this.logger.error(
-            `${this.logContext} failed to poll workflow ${workflow.id}`,
-            { error },
-          );
+
+          const results =
+            await this.replyBotOrchestratorService.processOrganizationBots(
+              organizationId,
+              credential,
+            );
+
+          triggered += results.length;
+          errors += this.countReplyBotErrors(results);
+        } catch (error: unknown) {
+          errors += 1;
+          this.logger.error(`${this.logContext} reply bot polling failed`, {
+            credentialId: target.credentialId,
+            error: this.errorMessage(error),
+            organizationId,
+          });
         }
       }
 
-      const duration = Date.now() - startTime;
-      this.logger.log(
-        `${this.logContext} poll cycle complete: ${workflows.length} checked, ${triggeredCount} triggered (${duration}ms)`,
-      );
-    } catch (error) {
-      this.logger.error(`${this.logContext} poll cycle failed`, { error });
+      return {
+        action,
+        checked,
+        errors,
+        organizationId,
+        skipped,
+        status: 'completed',
+        triggered,
+      };
     } finally {
-      this.isRunning = false;
+      await this.cacheService.releaseLock(lockKey);
     }
   }
 
-  /**
-   * Find all active workflows that contain social trigger nodes.
-   */
-  private async findWorkflowsWithSocialTriggers(): Promise<Workflow[]> {
-    const all = await this.prisma.workflow.findMany({
+  async runSocialTriggerPolling(
+    organizationId: string,
+  ): Promise<ReplyPollingWorkflowResult> {
+    const action: ReplyPollingAction = 'socialTriggerPolling';
+
+    if (!this.configService.isDevSchedulersEnabled) {
+      return this.skipped(action, organizationId, 'local_schedulers_disabled');
+    }
+
+    const lockKey = this.lockKey(action, organizationId);
+    const acquired = await this.cacheService.acquireLock(lockKey, 300);
+
+    if (!acquired) {
+      return this.skipped(action, organizationId, 'social_polling_locked');
+    }
+
+    let checked = 0;
+    let triggered = 0;
+    let errors = 0;
+
+    try {
+      const workflows =
+        await this.findWorkflowsWithSocialTriggers(organizationId);
+
+      for (const workflow of workflows) {
+        checked += 1;
+        try {
+          const didTrigger = await this.pollWorkflow(workflow);
+          if (didTrigger) {
+            triggered += 1;
+          }
+        } catch (error: unknown) {
+          errors += 1;
+          this.logger.error(`${this.logContext} social polling failed`, {
+            error: this.errorMessage(error),
+            organizationId,
+            workflowId: workflow.id,
+          });
+        }
+      }
+
+      return {
+        action,
+        checked,
+        errors,
+        organizationId,
+        skipped: workflows.length === 0 ? 1 : 0,
+        status: 'completed',
+        triggered,
+      };
+    } finally {
+      await this.cacheService.releaseLock(lockKey);
+    }
+  }
+
+  private async findReplyBotTargets(
+    organizationId: string,
+  ): Promise<ReplyBotTarget[]> {
+    const configs = await this.replyBotConfigsService.find({
+      isActive: true,
+      isDeleted: false,
+      organizationId,
+    });
+
+    const targets = new Map<string, ReplyBotTarget>();
+
+    for (const config of configs) {
+      const credentialId = this.readCredentialId(config);
+      if (!credentialId) {
+        continue;
+      }
+      const key = `${organizationId}:${credentialId}`;
+      if (!targets.has(key)) {
+        targets.set(key, { credentialId, organizationId });
+      }
+    }
+
+    return [...targets.values()];
+  }
+
+  private readCredentialId(config: ReplyBotConfigDocument): string | undefined {
+    const configRecord = this.readRecord(config.config);
+    return (
+      this.optionalString(config.credential) ??
+      this.optionalString(config.credentialId) ??
+      this.optionalString(configRecord.credential) ??
+      this.optionalString(configRecord.credentialId)
+    );
+  }
+
+  private async loadCredential(
+    target: ReplyBotTarget,
+  ): Promise<IReplyBotCredentialData | null> {
+    const credential = (await this.credentialsService.findOne({
+      _id: target.credentialId,
+      isDeleted: false,
+      organization: target.organizationId,
+    })) as CredentialDocument | null;
+
+    if (!credential) {
+      this.logger.warn(`${this.logContext} credential not found`, {
+        credentialId: target.credentialId,
+        organizationId: target.organizationId,
+      });
+      return null;
+    }
+
+    return {
+      accessToken: credential.accessToken ?? '',
+      accessTokenSecret: credential.accessTokenSecret ?? undefined,
+      externalId: credential.externalId ?? undefined,
+      platform: credential.platform as ReplyBotPlatform,
+      refreshToken: credential.refreshToken ?? undefined,
+      username: credential.username ?? undefined,
+    };
+  }
+
+  private countReplyBotErrors(results: ProcessingResult[]): number {
+    return results.reduce((sum, result) => sum + result.errors, 0);
+  }
+
+  private async findWorkflowsWithSocialTriggers(
+    organizationId: string,
+  ): Promise<Workflow[]> {
+    const workflows = await this.prisma.workflow.findMany({
       take: 200,
       where: {
         isDeleted: false,
+        organizationId,
         status: WorkflowStatus.ACTIVE as never,
       },
     });
 
-    // Filter in-memory for social trigger nodes
-    return all.filter((w) => {
-      const nodes = (w.nodes as WorkflowNode[]) ?? [];
-      return nodes.some((n) =>
-        SOCIAL_TRIGGER_TYPES.includes(n.type as SocialTriggerType),
+    return workflows.filter((workflow) => {
+      const nodes = (workflow.nodes as WorkflowNode[]) ?? [];
+      return nodes.some((node) =>
+        SOCIAL_TRIGGER_TYPES.includes(node.type as SocialTriggerType),
       );
     });
   }
 
-  /**
-   * Poll a single workflow's social triggers for new events.
-   * Returns true if any trigger fired.
-   */
   private async pollWorkflow(workflow: Workflow): Promise<boolean> {
     const wfConfig = (workflow.config as WorkflowConfig) ?? {};
     const pollState: PollState = wfConfig.metadata?.pollState ?? {};
     let triggered = false;
 
     const nodes = (workflow.nodes as WorkflowNode[]) ?? [];
-    const triggerNodes = nodes.filter((n) =>
-      SOCIAL_TRIGGER_TYPES.includes(n.type as SocialTriggerType),
+    const triggerNodes = nodes.filter((node) =>
+      SOCIAL_TRIGGER_TYPES.includes(node.type as SocialTriggerType),
     );
 
     for (const node of triggerNodes) {
       try {
         if (!workflow.organizationId || !workflow.userId) {
-          this.logger.warn(
-            `${this.logContext} skipping workflow with missing organization/user`,
-            { workflowId: workflow.id },
-          );
+          this.logger.warn(`${this.logContext} workflow missing ownership`, {
+            workflowId: workflow.id,
+          });
           continue;
         }
 
         const previousEventId = pollState[node.id];
-        const lastEventId: string | null =
+        const lastEventId =
           typeof previousEventId === 'string' ? previousEventId : null;
         const result = await this.checkTrigger(workflow, node, lastEventId);
 
         if (result) {
-          // Queue workflow execution
           const triggerEvent: TriggerEvent = {
             data: result.data,
             organizationId: workflow.organizationId,
@@ -187,24 +319,18 @@ export class SocialPollingService {
 
           await this.executionQueue.queueTriggerEvent(triggerEvent);
           triggered = true;
-
-          // Update poll state with latest event ID
           pollState[node.id] = result.lastEventId;
-
-          this.logger.log(
-            `${this.logContext} triggered ${node.type} for workflow ${workflow.id}`,
-            { eventId: result.lastEventId, platform: result.platform },
-          );
         }
-      } catch (error) {
-        this.logger.error(
-          `${this.logContext} trigger check failed for node ${node.id} in workflow ${workflow.id}`,
-          { error, nodeType: node.type },
-        );
+      } catch (error: unknown) {
+        this.logger.error(`${this.logContext} trigger check failed`, {
+          error: this.errorMessage(error),
+          nodeId: node.id,
+          nodeType: node.type,
+          workflowId: workflow.id,
+        });
       }
     }
 
-    // Persist updated poll state
     pollState.lastPolledAt = new Date().toISOString();
     const updatedConfig: WorkflowConfig = {
       ...wfConfig,
@@ -222,21 +348,16 @@ export class SocialPollingService {
     return triggered;
   }
 
-  /**
-   * Check a single trigger node for new events.
-   * Returns event data if a new event was found, null otherwise.
-   */
   private checkTrigger(
     workflow: Workflow,
     node: WorkflowNode,
     lastEventId: string | null,
   ): Promise<{
     data: Record<string, unknown>;
-    platform: string;
     lastEventId: string;
+    platform: string;
   } | null> {
     const config = node.data?.config || {};
-
     const orgId = workflow.organizationId;
     const platform = (config.platform as string) || 'twitter';
 
@@ -268,7 +389,11 @@ export class SocialPollingService {
     platform: string,
     config: Record<string, unknown>,
     lastEventId: string | null,
-  ) {
+  ): Promise<{
+    data: Record<string, unknown>;
+    lastEventId: string;
+    platform: string;
+  } | null> {
     const checker =
       platform === 'twitter'
         ? this.twitterAdapter.createMentionChecker()
@@ -425,7 +550,7 @@ export class SocialPollingService {
       keywords: (config.keywords as string[]) || [],
       lastPostId: lastEventId,
       matchMode:
-        (config.matchMode as 'exact' | 'contains' | 'regex') || 'contains',
+        (config.matchMode as 'contains' | 'exact' | 'regex') || 'contains',
       organizationId: orgId,
       platform: platform as 'twitter' | 'instagram',
     });
@@ -464,7 +589,7 @@ export class SocialPollingService {
           : rawMetricType === 'engagement_rate'
             ? 'likes'
             : rawMetricType;
-    const metricType: 'likes' | 'comments' | 'shares' | 'views' =
+    const metricType: 'comments' | 'likes' | 'shares' | 'views' =
       mappedMetricType === 'likes' ||
       mappedMetricType === 'comments' ||
       mappedMetricType === 'shares' ||
@@ -489,5 +614,40 @@ export class SocialPollingService {
       lastEventId: result.postId,
       platform,
     };
+  }
+
+  private lockKey(action: ReplyPollingAction, organizationId: string): string {
+    return ['workflow-reply-polling', action, organizationId].join(':');
+  }
+
+  private skipped(
+    action: ReplyPollingAction,
+    organizationId: string,
+    reason: string,
+  ): ReplyPollingWorkflowResult {
+    return {
+      action,
+      checked: 0,
+      errors: 0,
+      organizationId,
+      reason,
+      skipped: 1,
+      status: 'skipped',
+      triggered: 0,
+    };
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private optionalString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : 'Unknown error';
   }
 }
