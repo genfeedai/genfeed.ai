@@ -29,6 +29,7 @@ import {
   BATCH_WORKFLOW_QUEUE,
   BatchWorkflowQueueService,
 } from '@api/collections/workflows/services/batch-workflow-queue.service';
+import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows/services/campaign-orchestration-workflow.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import {
   WORKFLOW_EXECUTION_QUEUE,
@@ -41,6 +42,7 @@ import { WorkflowSchedulerService } from '@api/collections/workflows/services/wo
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
+import { AgentCampaignOrchestratorModule } from '@api/services/agent-campaign/agent-campaign-orchestrator.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { GoogleAdsModule } from '@api/services/integrations/google-ads/google-ads.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
@@ -70,10 +72,12 @@ import { forwardRef, Module } from '@nestjs/common';
     WorkflowFormatConverterService,
     WorkflowGenerationService,
     AdAutomationWorkflowService,
+    CampaignOrchestrationWorkflowService,
   ],
   imports: [
     forwardRef(() => AdOptimizationConfigsModule),
     forwardRef(() => AdPerformanceModule),
+    forwardRef(() => AgentCampaignOrchestratorModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => CaptionsModule),
     forwardRef(() => CredentialsCoreModule),
@@ -130,6 +134,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AdAutomationWorkflowService,
     BatchWorkflowQueueService,
     BatchWorkflowService,
+    CampaignOrchestrationWorkflowService,
     WorkflowEngineAdapterService,
     WorkflowExecutorService,
     WorkflowExecutionQueueService,

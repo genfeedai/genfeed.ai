@@ -25,6 +25,7 @@ import type {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { AdAutomationWorkflowService } from '@api/collections/workflows/services/ad-automation-workflow.service';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
+import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows/services/campaign-orchestration-workflow.service';
 import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -258,6 +259,8 @@ export class WorkflowEngineAdapterService {
     @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
     @Optional()
     private readonly adAutomationWorkflowService?: AdAutomationWorkflowService,
+    @Optional()
+    private readonly campaignOrchestrationWorkflowService?: CampaignOrchestrationWorkflowService,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -284,6 +287,7 @@ export class WorkflowEngineAdapterService {
     this.registerBrandContextExecutor();
     this.registerAnalyticsFeedbackExecutor();
     this.registerAdAutomationExecutors();
+    this.registerCampaignOrchestrationExecutors();
     this.registerTrendTriggerExecutor();
     this.registerTrendDigestExecutor();
     this.registerSendEmailExecutor();
@@ -656,6 +660,48 @@ export class WorkflowEngineAdapterService {
       enqueued: 0,
       organizationId: context.organizationId,
       reason: 'ad_automation_service_unavailable',
+      skipped: 0,
+      status: 'skipped',
+    };
+  }
+
+  private registerCampaignOrchestrationExecutors(): void {
+    this.engine.registerExecutor(
+      'agentCampaignOrchestration',
+      (_node, _inputs, context) =>
+        this.campaignOrchestrationWorkflowService
+          ? this.campaignOrchestrationWorkflowService.runDueCampaignOrchestration(
+              context.organizationId,
+            )
+          : this.campaignOrchestrationUnavailable(
+              'agentCampaignOrchestration',
+              context,
+            ),
+    );
+
+    this.engine.registerExecutor(
+      'agentCampaignTriggerEvaluation',
+      (_node, _inputs, context) =>
+        this.campaignOrchestrationWorkflowService
+          ? this.campaignOrchestrationWorkflowService.runTriggerEvaluations(
+              context.organizationId,
+            )
+          : this.campaignOrchestrationUnavailable(
+              'agentCampaignTriggerEvaluation',
+              context,
+            ),
+    );
+  }
+
+  private campaignOrchestrationUnavailable(
+    action: string,
+    context: ExecutionContext,
+  ): Record<string, unknown> {
+    return {
+      action,
+      enqueued: 0,
+      organizationId: context.organizationId,
+      reason: 'campaign_orchestration_service_unavailable',
       skipped: 0,
       status: 'skipped',
     };

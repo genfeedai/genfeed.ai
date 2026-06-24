@@ -7,7 +7,6 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AgentCampaign } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 const MAX_CAMPAIGNS_PER_CYCLE = 20;
 
@@ -36,7 +35,6 @@ export class CronAgentCampaignOrchestratorService {
     private readonly logger: LoggerService,
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
   async processDueCampaigns(): Promise<void> {
     const acquired = await this.cacheService.acquireLock(
       CronAgentCampaignOrchestratorService.LOCK_KEY,
@@ -136,7 +134,6 @@ export class CronAgentCampaignOrchestratorService {
     }
   }
 
-  @Cron('0 */15 * * * *')
   async processTriggerEvaluations(): Promise<void> {
     const acquired = await this.cacheService.acquireLock(
       `${CronAgentCampaignOrchestratorService.LOCK_KEY}:triggers`,
