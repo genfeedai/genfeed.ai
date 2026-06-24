@@ -10,6 +10,7 @@ import AppProviders from '@ui/providers/AppProviders';
 import AppHtmlDocument from '@ui/shell/AppHtmlDocument';
 import { createAppMetadata, createPwaMetadata } from '@ui/shell/metadata';
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import DesktopDragStrip from '@/components/desktop/DesktopDragStrip';
 
 const { name, description } = metadataHelper;
@@ -23,6 +24,17 @@ export const metadata: Metadata = createAppMetadata({
 });
 
 export const viewport: Viewport = pwaConfig.viewport;
+
+function createRuntimeConfigScript(): string {
+  const config = {
+    apiEndpoint: process.env.NEXT_PUBLIC_API_ENDPOINT,
+    betterAuthEnabled: process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED !== 'false',
+  };
+
+  return `globalThis.__GENFEED_RUNTIME_CONFIG__=${JSON.stringify(
+    config,
+  ).replaceAll('<', '\\u003c')};`;
+}
 
 export default async function RootLayout({ children }: LayoutProps) {
   const initialTheme = await resolveRequestTheme();
@@ -47,6 +59,9 @@ export default async function RootLayout({ children }: LayoutProps) {
         includeSpeedInsights={!isDesktopShell}
         includeVercelAnalytics={!isDesktopShell}
       >
+        <Script id="genfeed-runtime-config" strategy="beforeInteractive">
+          {createRuntimeConfigScript()}
+        </Script>
         <DesktopDragStrip />
         {children}
       </AppProviders>

@@ -23,6 +23,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    env_file:
+      - .env
     ports:
       # Host side overridable; container side is FIXED — the entrypoint always
       # starts the app on 3000 and the API on 3010 regardless of these vars.
@@ -30,6 +32,12 @@ services:
       - "${SELFHOSTED_API_PORT:-3010}:3010"  # API
     volumes:
       - genfeed_data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:3010/v1/health >/dev/null || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
 
 volumes:
   genfeed_data:
