@@ -7,7 +7,6 @@ import type { SocialAnalyticsJobData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 /**
  * Social Media Analytics Cron Service
@@ -26,7 +25,6 @@ export class CronAnalyticsSocialService {
     private readonly queueService: QueueService,
   ) {}
 
-  @Cron(CronExpression.EVERY_HOUR)
   async trackSocialAnalytics(): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);

@@ -6,7 +6,6 @@ import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 type AnalyticsTwitterPost = {
   _id: unknown;
@@ -33,7 +32,6 @@ export class CronAnalyticsTwitterService {
     private readonly queueService: QueueService,
   ) {}
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
   async trackTwitterAnalytics(): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);
