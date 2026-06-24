@@ -30,6 +30,8 @@ import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/service
 import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows/services/campaign-orchestration-workflow.service';
 import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
+import { TrendNotificationWorkflowService } from '@api/collections/workflows/services/trend-notification-workflow.service';
+import type { TrendNotificationCadence } from '@api/collections/workflows/templates/trend-notification-workflows.template';
 import { ConfigService } from '@api/config/config.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -273,6 +275,8 @@ export class WorkflowEngineAdapterService {
     private readonly contentProductionWorkflowService?: ContentProductionWorkflowService,
     @Optional()
     private readonly replyPollingWorkflowService?: ReplyPollingWorkflowService,
+    @Optional()
+    private readonly trendNotificationWorkflowService?: TrendNotificationWorkflowService,
   ) {
     this.engine = new WorkflowEngine({
       maxConcurrency: 3,
@@ -304,6 +308,7 @@ export class WorkflowEngineAdapterService {
     this.registerAnalyticsSyncExecutors();
     this.registerContentProductionExecutors();
     this.registerReplyPollingExecutors();
+    this.registerTrendNotificationExecutors();
     this.registerTrendTriggerExecutor();
     this.registerTrendDigestExecutor();
     this.registerSendEmailExecutor();
@@ -948,6 +953,57 @@ export class WorkflowEngineAdapterService {
       status: 'skipped',
       triggered: 0,
     };
+  }
+
+  private registerTrendNotificationExecutors(): void {
+    this.engine.registerExecutor(
+      'trendSummaryNotifications',
+      (node, _inputs, context) => {
+        if (!this.trendNotificationWorkflowService) {
+          return this.trendNotificationUnavailable(
+            'trendSummaryNotifications',
+            context,
+          );
+        }
+
+        const cadence = this.readConfigString(node.config, 'cadence');
+        if (!this.isTrendNotificationCadence(cadence)) {
+          return this.trendNotificationUnavailable(
+            'trendSummaryNotifications',
+            context,
+            'trend_notification_cadence_invalid',
+          );
+        }
+
+        return this.trendNotificationWorkflowService.runTrendSummaryNotifications(
+          context.organizationId,
+          cadence,
+        );
+      },
+    );
+  }
+
+  private async trendNotificationUnavailable(
+    action: string,
+    context: ExecutionContext,
+    reason = 'trend_notification_service_unavailable',
+  ): Promise<Record<string, unknown>> {
+    return {
+      action,
+      errors: 0,
+      organizationId: context.organizationId,
+      reason,
+      sent: 0,
+      skipped: 1,
+      status: 'skipped',
+      trends: 0,
+    };
+  }
+
+  private isTrendNotificationCadence(
+    cadence: string | undefined,
+  ): cadence is TrendNotificationCadence {
+    return cadence === 'hourly' || cadence === 'daily' || cadence === 'weekly';
   }
 
   private registerTrendTriggerExecutor(): void {
