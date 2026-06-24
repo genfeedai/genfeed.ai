@@ -1,8 +1,8 @@
 # ECS production deploy (replaces the SSH-waves path post-cutover).
 # Dispatch-only + gated by the GitHub "production" environment (manual approval).
-# Flow: resolve server:<sha> in GHCR -> copy GHCR->ECR -> run migrate task ->
-# run workflow backfill task -> terraform apply rolls services (task defs are
-# TF-managed with image_tag) -> wait services-stable.
+# Flow: resolve server:<sha> in GHCR -> copy GHCR->ECR -> run Prisma migrate task ->
+# run workflow migration/backfill task -> terraform apply rolls services
+# (task defs are TF-managed with image_tag) -> wait services-stable.
 name: Deploy ECS (production)
 
 on:
@@ -186,7 +186,7 @@ jobs:
         working-directory: ${{ env.TF_DIR }}
         run: tofu init -input=false
 
-      - name: Register migration, workflow-backfill + boot-smoke task definitions
+      - name: Register migration, workflow migration + boot-smoke task definitions
         working-directory: ${{ env.TF_DIR }}
         run: |
           tofu apply -input=false -auto-approve \
@@ -270,7 +270,7 @@ jobs:
           echo "migrate exit code: $CODE"
           [ "$CODE" = "0" ] || { echo "::error::migration failed"; exit 1; }
 
-      - name: Run workflow backfill (one-off task, gated before services roll)
+      - name: Run workflow migration/backfill (one-off task, gated before services roll)
         working-directory: ${{ env.TF_DIR }}
         run: |
           set -euo pipefail

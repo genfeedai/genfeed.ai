@@ -109,12 +109,11 @@ resource "aws_ecs_task_definition" "workflow_backfill" {
     name      = "workflow-backfill"
     image     = local.image
     essential = true
-    command   = ["bun", "--filter", local.services.api.filter, "start:prod"]
+    command   = ["bun", "--filter", local.services.api.filter, "migrate:workflows"]
     secrets   = local.task_secrets
     environment = concat(local.internal_env, [
       { name = "PORT", value = tostring(local.services.api.port) },
       { name = "SERVICE_NAME", value = "api" },
-      { name = "RUN_WORKFLOW_BACKFILL", value = "1" },
     ])
     logConfiguration = {
       logDriver = "awslogs"

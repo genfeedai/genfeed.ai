@@ -56,7 +56,9 @@ module.exports = function createWebpackConfig({
   appDir,
   distPath,
   distRoot,
+  entryFile = 'src/main.ts',
   nodeModulesDir,
+  outputFilename = 'main.js',
 }) {
   const isProduction = process.env.NODE_ENV === 'production';
   const tsConfigPath = path.resolve(appDir, 'tsconfig.app.json');
@@ -169,7 +171,7 @@ module.exports = function createWebpackConfig({
     },
     context: appDir,
     devtool: isProduction ? 'source-map' : false, // Disable source maps in dev for faster builds
-    entry: path.resolve(appDir, 'src/main.ts'),
+    entry: path.resolve(appDir, entryFile),
 
     externals: [
       nodeExternals({
@@ -304,7 +306,7 @@ module.exports = function createWebpackConfig({
 
     output: {
       clean: true,
-      filename: 'main.js',
+      filename: outputFilename,
       path: path.resolve(distRoot, 'dist', distPath),
     },
 
