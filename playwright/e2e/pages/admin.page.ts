@@ -4,7 +4,7 @@ import { expect } from '@playwright/test';
 /**
  * Page Object Model for the Admin Dashboard
  *
- * Covers overview, users, templates, darkroom, CRM, and analytics.
+ * Covers overview, users, templates, fleet, CRM, and analytics.
  *
  * @module admin.page
  */
@@ -30,10 +30,10 @@ export class AdminPage {
   readonly templateCards: Locator;
   readonly templateEmptyState: Locator;
 
-  // Darkroom
-  readonly darkroomGalleryGrid: Locator;
-  readonly darkroomCharactersList: Locator;
-  readonly darkroomPipelineContent: Locator;
+  // Fleet
+  readonly fleetGalleryGrid: Locator;
+  readonly fleetCharactersList: Locator;
+  readonly fleetPipelineContent: Locator;
 
   // CRM
   readonly crmLeadsTable: Locator;
@@ -87,16 +87,16 @@ export class AdminPage {
       '[data-testid="empty-state"], .empty-state',
     );
 
-    // Darkroom
-    this.darkroomGalleryGrid = page.locator(
+    // Fleet
+    this.fleetGalleryGrid = page.locator(
       '[data-testid="gallery-grid"], .gallery-grid, ' +
         '.image-grid, [class*="grid"]',
     );
-    this.darkroomCharactersList = page.locator(
+    this.fleetCharactersList = page.locator(
       '[data-testid="characters-list"], .characters-list, ' +
         'table, [role="table"]',
     );
-    this.darkroomPipelineContent = page.locator(
+    this.fleetPipelineContent = page.locator(
       '[data-testid="pipeline"], .pipeline',
     );
 
@@ -146,29 +146,29 @@ export class AdminPage {
     await this.waitForPageLoad();
   }
 
-  async gotoDarkroomGallery(): Promise<void> {
-    await this.page.goto('/admin/darkroom/gallery', {
+  async gotoFleetGallery(): Promise<void> {
+    await this.page.goto('/admin/fleet/gallery', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
-  async gotoDarkroomCharacters(): Promise<void> {
-    await this.page.goto('/admin/darkroom/characters', {
+  async gotoFleetCharacters(): Promise<void> {
+    await this.page.goto('/admin/fleet/characters', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
-  async gotoDarkroomPipeline(): Promise<void> {
-    await this.page.goto('/admin/darkroom/pipeline', {
+  async gotoFleetPipeline(): Promise<void> {
+    await this.page.goto('/admin/fleet/pipeline', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
-  async gotoDarkroomInfrastructure(): Promise<void> {
-    await this.page.goto('/admin/darkroom/infrastructure', {
+  async gotoFleetInfrastructure(): Promise<void> {
+    await this.page.goto('/admin/fleet/infrastructure', {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();

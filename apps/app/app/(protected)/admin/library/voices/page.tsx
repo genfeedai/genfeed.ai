@@ -7,7 +7,7 @@ export const generateMetadata = createPageMetadata('Voice Library');
 
 export default function AdminLibraryVoicesPage() {
   // Library voices is the superadmin DB-backed catalog manager.
-  // It is intentionally separate from /admin/darkroom/voices, which stays
+  // It is intentionally separate from /admin/fleet/voices, which stays
   // dedicated to experimental/local TTS generation workflows.
   return (
     <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
