@@ -5,11 +5,6 @@ name: Deploy Vercel Frontends
 # frontends deploy only through this workflow, normally after deploy-ecs.yml has
 # finished migrating, boot-smoking, and rolling the API/services.
 #
-# admin.genfeed.ai is intentionally excluded until it has a real monorepo build
-# target again. It is the open-source instance-admin surface. apps/admin/vercel.json
-# only guards the current Vercel project while it still points at the removed
-# apps/admin root.
-
 on:
   workflow_call:
 
