@@ -47,6 +47,14 @@ Apply it this way:
 - Store color roles: canvas, surface, text, accent, warning, proof, campaign, image grade.
 - Avoid defaulting every brand to Japanese color names; use them when they improve clarity and taste.
 
+Validation rule:
+
+- A palette is Wada/Sanzo-matched only when each matched role records the Wada color name, collection, combination id when relevant, source URL, HEX, RGB, LAB when available, and whether the match is exact or nearest.
+- A palette is Wada/Sanzo-informed when it uses Wada's color-relationship method without claiming exact source swatches.
+- Do not rename product tokens with Japanese or Wada color names unless the exact or nearest mapping is documented.
+- Use nearest-color matching as diagnostics only. Never claim an exact match when the codebase token and source swatch differ.
+- Keep accessibility and product semantics ahead of historic color matching: contrast, state meaning, and readable hierarchy still win.
+
 ## Cute Studies And Kawaii
 
 Sources:
