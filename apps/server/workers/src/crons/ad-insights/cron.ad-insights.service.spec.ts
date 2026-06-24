@@ -1,6 +1,13 @@
 import { QueueService } from '@api/queues/core/queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  AD_INSIGHTS_AGGREGATION_QUEUE,
+  AD_INSIGHTS_PLATFORM_SCOPE,
+  AD_INSIGHTS_SOURCE_ISSUE,
+  buildAdInsightsAggregationJobId,
+  buildAdInsightsAggregationWindow,
+} from '@workers/crons/ad-insights/ad-insights-scheduling.config';
 import { CronAdInsightsService } from '@workers/crons/ad-insights/cron.ad-insights.service';
 import type { Mocked } from 'vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -42,7 +49,7 @@ describe('CronAdInsightsService', () => {
       await service.computeWeeklyInsights();
 
       expect(queueService.add).toHaveBeenCalledWith(
-        'ad-insights-aggregation',
+        AD_INSIGHTS_AGGREGATION_QUEUE,
         expect.any(Object),
         expect.any(Object),
       );
@@ -79,7 +86,29 @@ describe('CronAdInsightsService', () => {
       await service.computeWeeklyInsights();
 
       expect(logger.log).toHaveBeenCalledWith(
-        expect.stringContaining('weekly ad insights aggregation job enqueued'),
+        expect.stringContaining(
+          'weekly platform ad insights aggregation job enqueued',
+        ),
+      );
+    });
+
+    it('classifies the aggregation as one platform-scoped weekly window', async () => {
+      const now = new Date('2026-06-24T12:00:00.000Z');
+      const aggregationWindow = buildAdInsightsAggregationWindow(now);
+
+      await service.computeWeeklyInsights(now);
+
+      expect(queueService.add).toHaveBeenCalledWith(
+        AD_INSIGHTS_AGGREGATION_QUEUE,
+        expect.objectContaining({
+          aggregationWindow,
+          idempotencyKey: buildAdInsightsAggregationJobId(aggregationWindow),
+          scope: AD_INSIGHTS_PLATFORM_SCOPE,
+          sourceIssue: AD_INSIGHTS_SOURCE_ISSUE,
+        }),
+        expect.objectContaining({
+          jobId: buildAdInsightsAggregationJobId(aggregationWindow),
+        }),
       );
     });
 

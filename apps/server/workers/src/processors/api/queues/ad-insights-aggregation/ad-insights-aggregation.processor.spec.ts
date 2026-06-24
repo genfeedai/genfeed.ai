@@ -1,6 +1,7 @@
 import type { AdInsightsAggregationJobData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { AD_INSIGHTS_PLATFORM_SCOPE } from '@workers/crons/ad-insights/ad-insights-scheduling.config';
 import type { Job } from 'bullmq';
 
 import { AdInsightsAggregationProcessor } from './ad-insights-aggregation.processor';
@@ -46,8 +47,17 @@ describe('AdInsightsAggregationProcessor', () => {
   });
 
   it('should log start message when processing insight types', async () => {
-    const job = makeJob({ insightTypes: ['ctr', 'cpm'] });
+    const job = makeJob({
+      aggregationWindow: '2026-06-21',
+      insightTypes: ['ctr', 'cpm'],
+      scope: AD_INSIGHTS_PLATFORM_SCOPE,
+    });
     await processor.process(job);
+    expect(loggerService.log).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'platform ad insights aggregation for window 2026-06-21',
+      ),
+    );
     expect(loggerService.log).toHaveBeenCalledWith(
       expect.stringContaining('ctr, cpm'),
     );
@@ -86,6 +96,21 @@ describe('AdInsightsAggregationProcessor', () => {
       insightTypes: ['ctr'],
     });
     await expect(processor.process(job)).resolves.toBeUndefined();
+  });
+
+  it('rejects non-platform aggregation scope', async () => {
+    const job = makeJob({
+      insightTypes: ['ctr'],
+      scope: 'tenant' as never,
+    });
+
+    await expect(processor.process(job)).rejects.toThrow(
+      'Unsupported ad insights aggregation scope: tenant',
+    );
+    expect(loggerService.error).toHaveBeenCalledWith(
+      'Ad insights aggregation failed',
+      'Unsupported ad insights aggregation scope: tenant',
+    );
   });
 
   it('should log error and re-throw if a top-level exception occurs', async () => {
