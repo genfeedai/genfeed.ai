@@ -7,6 +7,7 @@ import { AdOptimizationConfigsModule } from '@api/collections/ad-optimization-co
 import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
 import { AgentGoalsModule } from '@api/collections/agent-goals/agent-goals.module';
 import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
+import { BotsModule } from '@api/collections/bots/bots.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { ContentSchedulesModule } from '@api/collections/content-schedules/content-schedules.module';
@@ -39,6 +40,7 @@ import {
 } from '@api/collections/workflows/services/batch-workflow-queue.service';
 import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows/services/campaign-orchestration-workflow.service';
 import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
+import { LivestreamBotWorkflowService } from '@api/collections/workflows/services/livestream-bot-workflow.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { TrendNotificationWorkflowService } from '@api/collections/workflows/services/trend-notification-workflow.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
@@ -92,6 +94,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AnalyticsSyncWorkflowService,
     CampaignOrchestrationWorkflowService,
     ContentProductionWorkflowService,
+    LivestreamBotWorkflowService,
     ReplyPollingWorkflowService,
     TrendNotificationWorkflowService,
   ],
@@ -102,6 +105,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => AgentGoalsModule),
     forwardRef(() => AgentRunsModule),
     forwardRef(() => AiInfluencerModule),
+    forwardRef(() => BotsModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => CaptionsModule),
     forwardRef(() => ContentEngineModule),
@@ -170,6 +174,7 @@ import { forwardRef, Module } from '@nestjs/common';
     BatchWorkflowService,
     CampaignOrchestrationWorkflowService,
     ContentProductionWorkflowService,
+    LivestreamBotWorkflowService,
     ReplyPollingWorkflowService,
     TrendNotificationWorkflowService,
     WorkflowEngineAdapterService,
