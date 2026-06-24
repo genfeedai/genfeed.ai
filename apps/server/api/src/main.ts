@@ -24,6 +24,7 @@ import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { ResponseIdNormalizerInterceptor } from '@api/interceptors/response-id-normalizer.interceptor';
 import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
+import { WorkflowDeploymentBackfillService } from '@api/seeds/workflow-deployment-backfill.service';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
@@ -277,6 +278,18 @@ async function main() {
 
     expressApp.use('/admin/queues', bullBoardAuth, serverAdapter.getRouter());
 
+    if (process.env.RUN_WORKFLOW_BACKFILL === '1') {
+      await app.init();
+      const workflowDeploymentBackfill = app.get(
+        WorkflowDeploymentBackfillService,
+        { strict: false },
+      );
+      await workflowDeploymentBackfill.run();
+      await app.close();
+      logger.debug('Workflow deployment backfill completed.');
+      process.exit(0);
+    }
+
     if (process.env.BOOT_SMOKE === '1') {
       // Boot smoke (used as a pre-roll gate in deploy-ecs before services roll):
       // fully initialize the app — which surfaces crash-on-boot bugs like the
@@ -293,7 +306,10 @@ async function main() {
     logger.debug(`API service is running on port ${port}`);
   } catch (error: unknown) {
     logger.error('Failed to start API service:', error);
-    if (process.env.BOOT_SMOKE === '1') {
+    if (
+      process.env.BOOT_SMOKE === '1' ||
+      process.env.RUN_WORKFLOW_BACKFILL === '1'
+    ) {
       // Fail the boot-smoke gate loudly — never let a startup error pass as green.
       process.exit(1);
     }

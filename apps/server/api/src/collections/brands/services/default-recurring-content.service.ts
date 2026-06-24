@@ -19,6 +19,12 @@ export type DefaultRecurringContentStatus = {
   items: DefaultRecurringContentItem[];
 };
 
+type ExistingDefaultRecurringWorkflow = {
+  id: string;
+  isScheduleEnabled: boolean | null;
+  metadata: unknown;
+};
+
 type EnsureDefaultRecurringContentParams = {
   brandId: string;
   organizationId: string;
@@ -151,16 +157,37 @@ export class DefaultRecurringContentService {
       throw new Error(`Brand "${params.brandId}" not found`);
     }
 
-    const existingStatus = await this.getStatus(
-      params.organizationId,
-      params.brandId,
-    );
-    const existingTypes = new Set(
-      existingStatus.items.map((item) => item.contentType),
-    );
+    const existingWorkflows = (await this.prisma.workflow.findMany({
+      select: { id: true, isScheduleEnabled: true, metadata: true },
+      where: {
+        brands: { some: { id: params.brandId } },
+        isDeleted: false,
+        organizationId: params.organizationId,
+      },
+    })) as ExistingDefaultRecurringWorkflow[];
+
+    const existingByType = new Map<
+      DefaultRecurringContentType,
+      ExistingDefaultRecurringWorkflow
+    >();
+    for (const workflow of existingWorkflows) {
+      const contentType = this.readWorkflowContentType(
+        workflow.metadata as Record<string, unknown> | undefined,
+      );
+      if (contentType && !existingByType.has(contentType)) {
+        existingByType.set(contentType, workflow);
+      }
+    }
 
     for (const contentType of DEFAULT_RECURRING_TYPES) {
-      if (existingTypes.has(contentType)) {
+      const existing = existingByType.get(contentType);
+      if (existing) {
+        if (!existing.isScheduleEnabled) {
+          await this.prisma.workflow.update({
+            data: { isScheduleEnabled: true },
+            where: { id: existing.id },
+          });
+        }
         continue;
       }
 

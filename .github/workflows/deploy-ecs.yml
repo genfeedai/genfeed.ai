@@ -1,8 +1,8 @@
 # ECS production deploy (replaces the SSH-waves path post-cutover).
 # Dispatch-only + gated by the GitHub "production" environment (manual approval).
 # Flow: resolve server:<sha> in GHCR -> copy GHCR->ECR -> run migrate task ->
-# terraform apply rolls services (task defs are TF-managed with image_tag) ->
-# wait services-stable.
+# run workflow backfill task -> terraform apply rolls services (task defs are
+# TF-managed with image_tag) -> wait services-stable.
 name: Deploy ECS (production)
 
 on:
@@ -186,12 +186,14 @@ jobs:
         working-directory: ${{ env.TF_DIR }}
         run: tofu init -input=false
 
-      - name: Register migration + boot-smoke task definitions
+      - name: Register migration, workflow-backfill + boot-smoke task definitions
         working-directory: ${{ env.TF_DIR }}
         run: |
           tofu apply -input=false -auto-approve \
             -target=aws_cloudwatch_log_group.migrate \
             -target=aws_ecs_task_definition.migrate \
+            -target=aws_cloudwatch_log_group.workflow_backfill \
+            -target=aws_ecs_task_definition.workflow_backfill \
             -target=aws_cloudwatch_log_group.boot_smoke \
             -target=aws_ecs_task_definition.boot_smoke \
             -var="image_tag=${{ steps.image.outputs.sha }}" \
@@ -267,6 +269,40 @@ jobs:
             --query 'tasks[0].containers[0].exitCode' --output text)
           echo "migrate exit code: $CODE"
           [ "$CODE" = "0" ] || { echo "::error::migration failed"; exit 1; }
+
+      - name: Run workflow backfill (one-off task, gated before services roll)
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          set -euo pipefail
+          CLUSTER=$(tofu output -raw cluster_name)
+          TASK_DEFINITION=$(tofu output -raw workflow_backfill_task_definition_arn)
+          SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
+          SG=$(tofu output -raw task_security_group)
+          echo "Running workflow backfill task on $CLUSTER ($TASK_DEFINITION)..."
+          TASK_ARN=$(aws ecs run-task --cluster "$CLUSTER" --task-definition "$TASK_DEFINITION" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG],assignPublicIp=DISABLED}" \
+            --query 'tasks[0].taskArn' --output text)
+          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "None" ]; then
+            echo "::error::ECS run-task launched no workflow backfill task (capacity, IAM, or quota failure)"; exit 1
+          fi
+          DEADLINE=$((SECONDS + 1200))
+          while :; do
+            STATUS=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
+              --query 'tasks[0].lastStatus' --output text)
+            [ "$STATUS" = "STOPPED" ] && break
+            if [ "$SECONDS" -ge "$DEADLINE" ]; then
+              REASON=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
+                --query 'tasks[0].stoppedReason' --output text)
+              echo "::error::workflow backfill task did not stop within 20m (last status: $STATUS, reason: $REASON)"; exit 1
+            fi
+            echo "  workflow backfill task status: $STATUS ($((DEADLINE - SECONDS))s remaining)"
+            sleep 6
+          done
+          CODE=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[0].exitCode' --output text)
+          echo "workflow backfill exit code: $CODE"
+          [ "$CODE" = "0" ] || { echo "::error::workflow backfill failed"; exit 1; }
 
       - name: Boot smoke — verify new image boots (gated before services roll)
         working-directory: ${{ env.TF_DIR }}

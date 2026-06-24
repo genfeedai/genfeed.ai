@@ -90,6 +90,43 @@ resource "aws_ecs_task_definition" "migrate" {
   }])
 }
 
+# ── One-off workflow backfill (run after Prisma migrations, before api rolls) ─
+resource "aws_cloudwatch_log_group" "workflow_backfill" {
+  name              = "/ecs/${local.name_prefix}/workflow-backfill"
+  retention_in_days = 30
+}
+
+resource "aws_ecs_task_definition" "workflow_backfill" {
+  family                   = "${local.name_prefix}-workflow-backfill"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = local.services.api.cpu
+  memory                   = local.services.api.mem
+  execution_role_arn       = aws_iam_role.execution.arn
+  task_role_arn            = aws_iam_role.task.arn
+
+  container_definitions = jsonencode([{
+    name      = "workflow-backfill"
+    image     = local.image
+    essential = true
+    command   = ["bun", "--filter", local.services.api.filter, "start:prod"]
+    secrets   = local.task_secrets
+    environment = concat(local.internal_env, [
+      { name = "PORT", value = tostring(local.services.api.port) },
+      { name = "SERVICE_NAME", value = "api" },
+      { name = "RUN_WORKFLOW_BACKFILL", value = "1" },
+    ])
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.workflow_backfill.name
+        "awslogs-region"        = var.region
+        "awslogs-stream-prefix" = "workflow-backfill"
+      }
+    }
+  }])
+}
+
 # ── One-off boot smoke (run via `aws ecs run-task` BEFORE services roll) ─
 # Boots the api with BOOT_SMOKE=1 so it fully initializes (catching crash-on-boot
 # bugs like the circular-dependency TDZ in #711 that CI's lack of a boot test let

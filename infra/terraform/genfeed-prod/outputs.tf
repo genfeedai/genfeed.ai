@@ -39,6 +39,10 @@ output "migrate_task_definition_arn" {
   value = aws_ecs_task_definition.migrate.arn
 }
 
+output "workflow_backfill_task_definition_arn" {
+  value = aws_ecs_task_definition.workflow_backfill.arn
+}
+
 output "boot_smoke_task_definition_arn" {
   value = aws_ecs_task_definition.boot_smoke.arn
 }
