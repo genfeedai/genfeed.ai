@@ -20,9 +20,12 @@ summary; the canonical, decision-of-record version is the ADR at
 ## Choosing a mode (env)
 
 - **SaaS** — `GENFEED_CLOUD=1` (+ Better Auth, AWS, Stripe).
-- **Community** — leave `GENFEED_CLOUD` unset. Zero-config runs single-user with
-  no auth and seeds a default workspace. Turn on a login wall (Better Auth) for a
-  team — still one org. Auth is self-hostable; no SaaS auth vendor, works offline.
+- **Community** — leave `GENFEED_CLOUD` unset. The default
+  `docker/.env.example` runs single-user with no auth and seeds one workspace.
+  Turn on a login wall with `BETTER_AUTH_ENABLED=true` and
+  `NEXT_PUBLIC_BETTER_AUTH_ENABLED=true` in `docker/.env` when a team needs
+  local accounts. It is still one org, fully self-hostable, and does not require
+  a Better Auth cloud account.
 - **Desktop** — the Electron shell sets `NEXT_PUBLIC_DESKTOP_SHELL=1`.
 
 ## Key rules
