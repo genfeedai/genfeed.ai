@@ -2,6 +2,10 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { ConfigService } from '@api/config/config.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  buildSystemEmailHtml,
+  buildSystemEmailParagraph,
+} from '@genfeedai/helpers';
 import type { Invitation, Member, Prisma, User } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -74,15 +78,6 @@ function hashToken(token: string): string {
 
 function generateInvitationToken(): string {
   return randomBytes(INVITATION_TOKEN_BYTES).toString('base64url');
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 function generateHandle(email: string): string {
@@ -552,18 +547,16 @@ export class InvitationService {
     email: string;
     organizationLabel: string;
   }): string {
-    const organizationLabel = escapeHtml(input.organizationLabel);
-    const email = escapeHtml(input.email);
-    const acceptUrl = escapeHtml(input.acceptUrl);
-
-    return [
-      '<div style="font-family:system-ui,-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:24px">',
-      `<h1 style="font-size:20px;margin:0 0 16px">Join ${organizationLabel} on Genfeed.ai</h1>`,
-      `<p style="font-size:14px;color:#444;margin:0 0 24px">An invitation was sent to ${email}. Click the button below to accept it. This link expires in 7 days and can only be used once.</p>`,
-      `<a href="${acceptUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:14px">Accept invitation</a>`,
-      '<p style="font-size:12px;color:#888;margin:24px 0 0">If you did not expect this invitation, you can safely ignore this email.</p>',
-      '</div>',
-    ].join('');
+    return buildSystemEmailHtml({
+      action: { label: 'Accept invitation', url: input.acceptUrl },
+      bodyHtml: buildSystemEmailParagraph(
+        `An invitation was sent to ${input.email}. Accept it to join ${input.organizationLabel}. This link expires in 7 days and can only be used once.`,
+      ),
+      footerNote:
+        'If you did not expect this invitation, you can safely ignore this email.',
+      preheader: `Join ${input.organizationLabel} on Genfeed.ai.`,
+      title: `Join ${input.organizationLabel} on Genfeed.ai`,
+    });
   }
 
   private resolveRedirectUrl(invitation: Invitation): string {

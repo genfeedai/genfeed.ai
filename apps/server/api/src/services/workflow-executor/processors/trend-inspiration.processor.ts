@@ -16,6 +16,11 @@ import {
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { ActivitySource } from '@genfeedai/enums';
+import {
+  buildSystemEmailHtml,
+  buildSystemEmailParagraph,
+  escapeSystemEmailHtml,
+} from '@helpers/email/system-email.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -447,47 +452,54 @@ export class TrendInspirationProcessor {
    * Format trend summary for Email
    */
   private formatTrendSummaryForEmail(summary: TrendSummary): string {
-    return `
-      <h2>Your Trend Summary</h2>
-      <p>Here's what's trending right now:</p>
+    const sections: string[] = [
+      buildSystemEmailParagraph("Here's what's trending right now."),
+    ];
 
-      ${
-        summary.topVideos.length > 0
-          ? `
-        <h3>Top Viral Videos</h3>
-        <ul>
-          ${summary.topVideos.map((v) => `<li><strong>${v.title}</strong> - Viral Score: ${v.viralScore}</li>`).join('')}
-        </ul>
-      `
-          : ''
-      }
+    if (summary.topVideos.length > 0) {
+      sections.push(
+        '<h2 style="border-bottom:1px solid #333538;color:#f4f4f5;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Top Viral Videos</h2>',
+        `<ul style="color:#b4b4bc;font-size:14px;line-height:22px;margin:0 0 16px;padding-left:18px;">${summary.topVideos
+          .map(
+            (video) =>
+              `<li><strong style="color:#f4f4f5;">${escapeSystemEmailHtml(video.title)}</strong> - Viral Score: ${video.viralScore}</li>`,
+          )
+          .join('')}</ul>`,
+      );
+    }
 
-      ${
-        summary.topHashtags.length > 0
-          ? `
-        <h3>Trending Hashtags</h3>
-        <ul>
-          ${summary.topHashtags.map((h) => `<li>#${h.hashtag.replace('#', '')} - ${this.formatNumber(h.postCount)} posts</li>`).join('')}
-        </ul>
-      `
-          : ''
-      }
+    if (summary.topHashtags.length > 0) {
+      sections.push(
+        '<h2 style="border-bottom:1px solid #333538;color:#f4f4f5;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Trending Hashtags</h2>',
+        `<ul style="color:#b4b4bc;font-size:14px;line-height:22px;margin:0 0 16px;padding-left:18px;">${summary.topHashtags
+          .map(
+            (hashtag) =>
+              `<li>#${escapeSystemEmailHtml(hashtag.hashtag.replace('#', ''))} - ${this.formatNumber(hashtag.postCount)} posts</li>`,
+          )
+          .join('')}</ul>`,
+      );
+    }
 
-      ${
-        summary.topSounds.length > 0
-          ? `
-        <h3>Trending Sounds</h3>
-        <ul>
-          ${summary.topSounds.map((s) => `<li>${s.soundName} - ${this.formatNumber(s.usageCount)} uses</li>`).join('')}
-        </ul>
-      `
-          : ''
-      }
+    if (summary.topSounds.length > 0) {
+      sections.push(
+        '<h2 style="border-bottom:1px solid #333538;color:#f4f4f5;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Trending Sounds</h2>',
+        `<ul style="color:#b4b4bc;font-size:14px;line-height:22px;margin:0 0 16px;padding-left:18px;">${summary.topSounds
+          .map(
+            (sound) =>
+              `<li>${escapeSystemEmailHtml(sound.soundName)} - ${this.formatNumber(sound.usageCount)} uses</li>`,
+          )
+          .join('')}</ul>`,
+      );
+    }
 
-      <p style="color: #666; font-size: 12px;">
-        Generated at ${summary.generatedAt.toLocaleString()}
-      </p>
-    `;
+    sections.push(
+      `<p style="color:#8c8c96;font-size:12px;line-height:18px;margin:24px 0 0;">Generated at ${escapeSystemEmailHtml(summary.generatedAt.toLocaleString())}</p>`,
+    );
+
+    return buildSystemEmailHtml({
+      bodyHtml: sections.join(''),
+      title: 'Your Trend Summary',
+    });
   }
 
   /**

@@ -44,7 +44,7 @@ export class ResendService {
           from:
             payload.from ||
             this.configService.get('RESEND_FROM_EMAIL') ||
-            'Genfeed <updates@genfeed.ai>',
+            'Genfeed <no-reply@genfeed.ai>',
           html: payload.html,
           replyTo:
             payload.replyTo || this.configService.get('RESEND_REPLY_TO_EMAIL'),

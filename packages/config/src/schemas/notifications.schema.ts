@@ -1,5 +1,8 @@
 import Joi from 'joi';
 
+const EMAIL_WITH_OPTIONAL_DISPLAY_NAME =
+  /^(?:[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+|[^<>\r\n]+<[^<>\s@]+@[^<>\s@]+\.[^<>\s@]+>)$/;
+
 /**
  * Discord bot configuration (for notifications service)
  */
@@ -31,7 +34,10 @@ export const telegramBotSchema = {
  */
 export const resendSchema = {
   RESEND_API_KEY: Joi.string().optional().allow(''),
-  RESEND_FROM_EMAIL: Joi.string().email().optional().allow(''),
+  RESEND_FROM_EMAIL: Joi.string()
+    .pattern(EMAIL_WITH_OPTIONAL_DISPLAY_NAME)
+    .optional()
+    .allow(''),
   RESEND_REPLY_TO_EMAIL: Joi.string().email().optional().allow(''),
 };
 

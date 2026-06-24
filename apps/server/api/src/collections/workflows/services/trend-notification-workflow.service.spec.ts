@@ -132,7 +132,7 @@ describe('TrendNotificationWorkflowService', () => {
     expect(notificationsService.sendEmail).toHaveBeenCalledWith(
       'notify@example.com',
       expect.stringContaining('Trend Summary'),
-      expect.stringContaining('<!DOCTYPE html>'),
+      expect.stringContaining('<!doctype html>'),
     );
     expect(notificationsService.sendNotification).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -37,6 +37,7 @@ vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
 }));
 
 const getEmailInput = () => screen.getByRole('textbox', { name: /^Email/ });
+const absoluteCallback = (path: string) => `${window.location.origin}${path}`;
 
 describe('LoginPage', () => {
   beforeEach(() => {
@@ -108,7 +109,7 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
-        callbackURL: '/',
+        callbackURL: absoluteCallback('/'),
         provider: 'google',
       });
     });
@@ -125,7 +126,7 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
-        callbackURL: '/onboarding',
+        callbackURL: absoluteCallback('/onboarding'),
         provider: 'google',
       });
     });
@@ -155,7 +156,7 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({
-        callbackURL: '/',
+        callbackURL: absoluteCallback('/'),
         email: 'user@example.com',
       });
     });
@@ -180,7 +181,7 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({
-        callbackURL: '/oauth/cli?port=4321',
+        callbackURL: absoluteCallback('/oauth/cli?port=4321'),
         email: 'cli@example.com',
       });
     });
@@ -199,7 +200,7 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(authClientMocks.email).toHaveBeenCalledWith({
-        callbackURL: '/',
+        callbackURL: absoluteCallback('/'),
         email: 'saved@example.com',
         password: 'correct horse battery staple',
       });
