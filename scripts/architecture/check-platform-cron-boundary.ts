@@ -1,0 +1,643 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { globSync } from 'glob';
+import ts from 'typescript';
+
+const DEFAULT_INCLUDE_GLOBS = ['apps/server/**/*.ts'];
+
+const DEFAULT_IGNORE_GLOBS = [
+  '**/*.spec.ts',
+  '**/*.test.ts',
+  '**/node_modules/**',
+  '**/dist/**',
+  '**/.next/**',
+  '**/.turbo/**',
+  '**/coverage/**',
+  '**/generated/**',
+];
+
+export type CronBoundaryEntry = {
+  file: string;
+  id: string;
+  methodName: string;
+  reason: string;
+};
+
+export type PendingCronMigrationEntry = CronBoundaryEntry & {
+  issue: number;
+};
+
+export type DetectedCron = {
+  className: string | null;
+  file: string;
+  line: number;
+  methodName: string;
+};
+
+type EntryKind = 'pending-migration' | 'platform';
+
+type IndexedEntry = {
+  entry: CronBoundaryEntry | PendingCronMigrationEntry;
+  kind: EntryKind;
+};
+
+export type CronBoundaryViolation =
+  | {
+      cron: DetectedCron;
+      kind: 'untracked-cron';
+      message: string;
+    }
+  | {
+      entry: CronBoundaryEntry | PendingCronMigrationEntry;
+      kind: 'stale-entry';
+      message: string;
+    };
+
+export type CronBoundaryResult = {
+  detectedCrons: DetectedCron[];
+  pendingMigrationCrons: Array<{
+    cron: DetectedCron;
+    entry: PendingCronMigrationEntry;
+  }>;
+  platformCrons: Array<{
+    cron: DetectedCron;
+    entry: CronBoundaryEntry;
+  }>;
+  violations: CronBoundaryViolation[];
+};
+
+export type CronBoundaryOptions = {
+  includeGlobs?: string[];
+  ignoreGlobs?: string[];
+  pendingMigrations?: PendingCronMigrationEntry[];
+  platformAllowlist?: CronBoundaryEntry[];
+  rootDir?: string;
+};
+
+export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
+  {
+    file: 'apps/server/api/src/collections/workflows/services/workflow-scheduler.service.ts',
+    id: 'workflow-scheduler-reconciler',
+    methodName: 'syncScheduledWorkflows',
+    reason: 'Platform workflow scheduler reconciliation.',
+  },
+  {
+    file: 'apps/server/api/src/collections/trends/services/trends-warmup.service.ts',
+    id: 'trends-warmup',
+    methodName: 'warmGlobalTrendDatasets',
+    reason: 'Platform global trend corpus warmup.',
+  },
+  {
+    file: 'apps/server/files/src/cron/temp-file-cleanup.cron.ts',
+    id: 'temp-file-cleanup',
+    methodName: 'cleanupTempFiles',
+    reason: 'Platform temporary file cleanup.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/credentials/cron.credentials.service.ts',
+    id: 'credentials-refresh',
+    methodName: 'refreshExpiringTokens',
+    reason: 'Platform credential refresh maintenance.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/byok-billing/cron.byok-billing.service.ts',
+    id: 'byok-billing',
+    methodName: 'processMonthlyByokBilling',
+    reason: 'Platform BYOK billing maintenance.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/model-deprecation/cron.model-deprecation.service.ts',
+    id: 'model-deprecation',
+    methodName: 'deprecateSupersededModels',
+    reason: 'Platform model lifecycle maintenance.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts',
+    id: 'model-watcher',
+    methodName: 'discoverNewModels',
+    reason: 'Platform model catalog maintenance.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/tiktok/cron.tiktok-status.service.ts',
+    id: 'tiktok-status',
+    methodName: 'checkPendingTiktokPosts',
+    reason: 'Platform publish-status reconciliation.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/youtube/cron.youtube-status.service.ts',
+    id: 'youtube-status',
+    methodName: 'checkScheduledYoutubeVideos',
+    reason: 'Platform publish-status reconciliation.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/streaks/cron.streaks.service.ts',
+    id: 'streaks',
+    methodName: 'processStreaks',
+    reason: 'Platform streak state maintenance.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/llm-idle/cron.llm-idle.service.ts',
+    id: 'llm-idle-stop',
+    methodName: 'shutdownIfIdle',
+    reason: 'Platform GPU cost-control maintenance.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/ingredients/cron.ingredients.service.ts',
+    id: 'ingredients-timeout-health',
+    methodName: 'checkStuckProcessingIngredients',
+    reason: 'Platform ingredients health check.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/ingredients/cron.ingredients.service.ts',
+    id: 'ingredients-metadata-health',
+    methodName: 'refreshMissingMetadataDimensions',
+    reason: 'Platform ingredients metadata health check.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/pattern-extraction/cron.pattern-extraction.service.ts',
+    id: 'pattern-extraction',
+    methodName: 'computeDailyPatterns',
+    reason: 'Platform pattern extraction maintenance.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/posts/cron.posts.service.ts',
+    id: 'posts-publish',
+    methodName: 'publishScheduledPosts',
+    reason: 'Core publishing scheduler.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/dynamic-jobs/cron.dynamic-jobs.service.ts',
+    id: 'dynamic-jobs-dispatcher',
+    methodName: 'processDueDynamicJobs',
+    reason: 'Platform dynamic job dispatcher.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/workflows/cron.workflows.service.ts',
+    id: 'legacy-step-workflow-executor',
+    methodName: 'checkScheduledWorkflows',
+    reason: 'Legacy step-workflow executor retained during workflow migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/trends/cron.trends.service.ts',
+    id: 'trends-global-refresh',
+    methodName: 'refreshGlobalTrends',
+    reason: 'Platform global trends corpus refresh.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/trends/cron.trends.service.ts',
+    id: 'trends-corpus-backfill',
+    methodName: 'backfillGlobalTrendCorpus',
+    reason: 'Platform global trends corpus backfill.',
+  },
+];
+
+export const PENDING_TENANT_CRON_MIGRATIONS: PendingCronMigrationEntry[] = [
+  {
+    file: 'apps/server/workers/src/crons/ad-insights/cron.ad-insights.service.ts',
+    id: 'ad-insights',
+    issue: 782,
+    methodName: 'computeWeeklyInsights',
+    reason: 'Tenant ad insights migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/ad-optimization/cron.ad-optimization.service.ts',
+    id: 'ad-optimization',
+    issue: 782,
+    methodName: 'runOptimization',
+    reason: 'Tenant ad optimization migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/ad-sync/cron.ad-sync-google.service.ts',
+    id: 'ad-sync-google',
+    issue: 782,
+    methodName: 'syncGoogleAds',
+    reason: 'Tenant Google ads sync migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/ad-sync/cron.ad-sync-meta.service.ts',
+    id: 'ad-sync-meta',
+    issue: 782,
+    methodName: 'syncMetaAds',
+    reason: 'Tenant Meta ads sync migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/ad-sync/cron.ad-sync-tiktok.service.ts',
+    id: 'ad-sync-tiktok',
+    issue: 782,
+    methodName: 'syncTikTokAds',
+    reason: 'Tenant TikTok ads sync migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/agent-campaign/cron.agent-campaign-orchestrator.service.ts',
+    id: 'agent-campaign-due-campaigns',
+    issue: 783,
+    methodName: 'processDueCampaigns',
+    reason: 'Tenant campaign orchestration migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/agent-campaign/cron.agent-campaign-orchestrator.service.ts',
+    id: 'agent-campaign-trigger-evaluations',
+    issue: 783,
+    methodName: 'processTriggerEvaluations',
+    reason: 'Tenant campaign trigger evaluation migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/agent/cron.proactive-agent.service.ts',
+    id: 'proactive-agent',
+    issue: 784,
+    methodName: 'processProactiveStrategies',
+    reason: 'Tenant proactive agent migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/ai-influencer/cron.ai-influencer.service.ts',
+    id: 'ai-influencer',
+    issue: 784,
+    methodName: 'runDailyInfluencerPosts',
+    reason: 'Tenant AI influencer autopilot migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/analytics/cron.analytics-facebook.service.ts',
+    id: 'analytics-facebook',
+    issue: 785,
+    methodName: 'trackFacebookAnalytics',
+    reason: 'Tenant Facebook analytics sync migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/analytics/cron.analytics-social.service.ts',
+    id: 'analytics-social',
+    issue: 785,
+    methodName: 'trackSocialAnalytics',
+    reason: 'Tenant social analytics sync migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/analytics/cron.analytics-sync.service.ts',
+    id: 'analytics-sync',
+    issue: 785,
+    methodName: 'triggerAnalyticsSync',
+    reason: 'Tenant analytics sync migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/analytics/cron.analytics-threads.service.ts',
+    id: 'analytics-threads',
+    issue: 785,
+    methodName: 'trackThreadsAnalytics',
+    reason: 'Tenant Threads analytics sync migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/analytics/cron.analytics-twitter.service.ts',
+    id: 'analytics-twitter',
+    issue: 785,
+    methodName: 'trackTwitterAnalytics',
+    reason: 'Tenant Twitter analytics sync migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/youtube/cron.youtube-analytics.service.ts',
+    id: 'youtube-analytics',
+    issue: 785,
+    methodName: 'trackYouTubeAnalytics',
+    reason: 'Tenant YouTube analytics sync migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/content-engine/cron.content-engine.service.ts',
+    id: 'content-engine',
+    issue: 786,
+    methodName: 'processContentEngine',
+    reason: 'Tenant content engine migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/content-pipeline/cron.content-pipeline.service.ts',
+    id: 'content-pipeline',
+    issue: 786,
+    methodName: 'processAutopilotPersonas',
+    reason: 'Tenant content pipeline migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/content-schedules/cron.content-schedules.service.ts',
+    id: 'content-schedules',
+    issue: 786,
+    methodName: 'processContentSchedules',
+    reason: 'Tenant content schedules migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/reply-bot/cron.reply-bot.service.ts',
+    id: 'reply-bot',
+    issue: 787,
+    methodName: 'processReplyBots',
+    reason: 'Tenant reply bot migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/social-polling/social-polling.service.ts',
+    id: 'social-polling',
+    issue: 787,
+    methodName: 'pollSocialTriggers',
+    reason: 'Tenant social polling migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/trends/cron.trend-summary-notifications.service.ts',
+    id: 'trend-summary-hourly',
+    issue: 788,
+    methodName: 'sendHourlyTrendSummaries',
+    reason: 'Tenant hourly trend notification migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/trends/cron.trend-summary-notifications.service.ts',
+    id: 'trend-summary-daily',
+    issue: 788,
+    methodName: 'sendDailyTrendSummaries',
+    reason: 'Tenant daily trend notification migration.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/trends/cron.trend-summary-notifications.service.ts',
+    id: 'trend-summary-weekly',
+    issue: 788,
+    methodName: 'sendWeeklyTrendSummaries',
+    reason: 'Tenant weekly trend notification migration.',
+  },
+  {
+    file: 'apps/server/api/src/collections/bots/services/bots-livestream.service.ts',
+    id: 'livestream-bot-sessions',
+    issue: 793,
+    methodName: 'processActiveSessions',
+    reason: 'Tenant livestream bot session migration.',
+  },
+];
+
+function normalizePath(filePath: string): string {
+  return filePath.replaceAll('\\', '/');
+}
+
+function entryKey(
+  entry: Pick<CronBoundaryEntry, 'file' | 'methodName'>,
+): string {
+  return `${normalizePath(entry.file)}#${entry.methodName}`;
+}
+
+function cronKey(cron: Pick<DetectedCron, 'file' | 'methodName'>): string {
+  return `${normalizePath(cron.file)}#${cron.methodName}`;
+}
+
+function collectScheduleImports(sourceFile: ts.SourceFile): {
+  cronIdentifiers: Set<string>;
+  scheduleNamespaces: Set<string>;
+} {
+  const cronIdentifiers = new Set<string>();
+  const scheduleNamespaces = new Set<string>();
+
+  for (const statement of sourceFile.statements) {
+    if (
+      !ts.isImportDeclaration(statement) ||
+      !ts.isStringLiteralLike(statement.moduleSpecifier) ||
+      statement.moduleSpecifier.text !== '@nestjs/schedule' ||
+      !statement.importClause?.namedBindings
+    ) {
+      continue;
+    }
+
+    const { namedBindings } = statement.importClause;
+
+    if (ts.isNamespaceImport(namedBindings)) {
+      scheduleNamespaces.add(namedBindings.name.text);
+      continue;
+    }
+
+    for (const element of namedBindings.elements) {
+      const importedName = element.propertyName?.text ?? element.name.text;
+      if (importedName === 'Cron') {
+        cronIdentifiers.add(element.name.text);
+      }
+    }
+  }
+
+  return { cronIdentifiers, scheduleNamespaces };
+}
+
+function isCronDecorator(
+  decorator: ts.Decorator,
+  cronIdentifiers: Set<string>,
+  scheduleNamespaces: Set<string>,
+): boolean {
+  const { expression } = decorator;
+
+  if (!ts.isCallExpression(expression)) {
+    return false;
+  }
+
+  const callee = expression.expression;
+
+  if (ts.isIdentifier(callee)) {
+    return cronIdentifiers.has(callee.text);
+  }
+
+  return (
+    ts.isPropertyAccessExpression(callee) &&
+    callee.name.text === 'Cron' &&
+    ts.isIdentifier(callee.expression) &&
+    scheduleNamespaces.has(callee.expression.text)
+  );
+}
+
+function methodNameFromNode(node: ts.MethodDeclaration): string {
+  if (ts.isIdentifier(node.name) || ts.isPrivateIdentifier(node.name)) {
+    return node.name.text;
+  }
+
+  return node.name.getText();
+}
+
+function classNameFromNode(node: ts.MethodDeclaration): string | null {
+  const parent = node.parent;
+
+  if (ts.isClassDeclaration(parent) && parent.name) {
+    return parent.name.text;
+  }
+
+  return null;
+}
+
+function detectCronDecorators(
+  filePath: string,
+  rootDir: string,
+): DetectedCron[] {
+  const sourceText = readFileSync(filePath, 'utf8');
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const { cronIdentifiers, scheduleNamespaces } =
+    collectScheduleImports(sourceFile);
+
+  if (cronIdentifiers.size === 0 && scheduleNamespaces.size === 0) {
+    return [];
+  }
+
+  const detected: DetectedCron[] = [];
+
+  function visit(node: ts.Node): void {
+    if (ts.isMethodDeclaration(node)) {
+      const decorators = ts.canHaveDecorators(node)
+        ? (ts.getDecorators(node) ?? [])
+        : [];
+
+      for (const decorator of decorators) {
+        if (!isCronDecorator(decorator, cronIdentifiers, scheduleNamespaces)) {
+          continue;
+        }
+
+        detected.push({
+          className: classNameFromNode(node),
+          file: normalizePath(path.relative(rootDir, filePath)),
+          line:
+            sourceFile.getLineAndCharacterOfPosition(
+              decorator.getStart(sourceFile),
+            ).line + 1,
+          methodName: methodNameFromNode(node),
+        });
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+
+  return detected;
+}
+
+export function runCheckPlatformCronBoundary(
+  options: CronBoundaryOptions = {},
+): CronBoundaryResult {
+  const rootDir = options.rootDir ?? process.cwd();
+  const includeGlobs = options.includeGlobs ?? DEFAULT_INCLUDE_GLOBS;
+  const ignoreGlobs = options.ignoreGlobs ?? DEFAULT_IGNORE_GLOBS;
+  const platformAllowlist =
+    options.platformAllowlist ?? PLATFORM_CRON_ALLOWLIST;
+  const pendingMigrations =
+    options.pendingMigrations ?? PENDING_TENANT_CRON_MIGRATIONS;
+
+  const indexedEntries = new Map<string, IndexedEntry>();
+
+  for (const entry of platformAllowlist) {
+    indexedEntries.set(entryKey(entry), { entry, kind: 'platform' });
+  }
+
+  for (const entry of pendingMigrations) {
+    indexedEntries.set(entryKey(entry), {
+      entry,
+      kind: 'pending-migration',
+    });
+  }
+
+  const files = globSync(includeGlobs, {
+    absolute: true,
+    cwd: rootDir,
+    ignore: ignoreGlobs,
+    nodir: true,
+  }).sort();
+
+  const detectedCrons = files.flatMap((filePath) =>
+    detectCronDecorators(filePath, rootDir),
+  );
+  const detectedKeys = new Set(detectedCrons.map(cronKey));
+  const platformCrons: CronBoundaryResult['platformCrons'] = [];
+  const pendingMigrationCrons: CronBoundaryResult['pendingMigrationCrons'] = [];
+  const violations: CronBoundaryViolation[] = [];
+
+  for (const cron of detectedCrons) {
+    const indexedEntry = indexedEntries.get(cronKey(cron));
+
+    if (!indexedEntry) {
+      violations.push({
+        cron,
+        kind: 'untracked-cron',
+        message:
+          'Static @Cron is not classified. Tenant-product recurring automation must be workflow-backed; platform maintenance cron must be explicitly allowlisted.',
+      });
+      continue;
+    }
+
+    if (indexedEntry.kind === 'platform') {
+      platformCrons.push({
+        cron,
+        entry: indexedEntry.entry,
+      });
+      continue;
+    }
+
+    pendingMigrationCrons.push({
+      cron,
+      entry: indexedEntry.entry as PendingCronMigrationEntry,
+    });
+  }
+
+  for (const indexedEntry of indexedEntries.values()) {
+    if (!detectedKeys.has(entryKey(indexedEntry.entry))) {
+      violations.push({
+        entry: indexedEntry.entry,
+        kind: 'stale-entry',
+        message:
+          'Cron boundary manifest entry no longer matches a detected @Cron decorator. Remove or update this entry.',
+      });
+    }
+  }
+
+  return {
+    detectedCrons,
+    pendingMigrationCrons,
+    platformCrons,
+    violations,
+  };
+}
+
+function formatCron(cron: DetectedCron): string {
+  const owner = cron.className
+    ? `${cron.className}.${cron.methodName}`
+    : cron.methodName;
+
+  return `${cron.file}:${cron.line} ${owner}`;
+}
+
+function isMainModule(): boolean {
+  const entryPoint = process.argv[1];
+  return Boolean(entryPoint) && path.resolve(entryPoint) === __filename;
+}
+
+if (isMainModule()) {
+  const result = runCheckPlatformCronBoundary();
+
+  if (result.violations.length > 0) {
+    console.error('Platform cron boundary violations found.');
+
+    for (const violation of result.violations) {
+      if (violation.kind === 'untracked-cron') {
+        console.error(`- ${formatCron(violation.cron)}: ${violation.message}`);
+      } else {
+        console.error(
+          `- ${violation.entry.file}#${violation.entry.methodName}: ${violation.message}`,
+        );
+      }
+    }
+
+    console.error(
+      '\nUse workflows for tenant recurring automation, or add a reviewed platform-maintenance allowlist entry with a reason.',
+    );
+    process.exit(1);
+  }
+
+  if (result.pendingMigrationCrons.length > 0) {
+    console.log(
+      `Platform cron boundary passed with ${result.pendingMigrationCrons.length} tracked tenant cron migration(s) still open:`,
+    );
+
+    for (const pending of result.pendingMigrationCrons) {
+      console.log(
+        `- ${formatCron(pending.cron)} -> #${pending.entry.issue} ${pending.entry.reason}`,
+      );
+    }
+  }
+
+  console.log(
+    `Platform cron boundary passed. ${result.platformCrons.length} platform cron(s), ${result.pendingMigrationCrons.length} tracked migration cron(s).`,
+  );
+}

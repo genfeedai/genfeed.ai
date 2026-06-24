@@ -82,3 +82,14 @@ Ad insights aggregation is explicitly classified as platform scheduling:
 - shipping new user-facing features on `/cron-jobs`
 - exposing raw cron-job management as the canonical UX for automations
 - building a second dynamic scheduler parallel to workflow scheduling
+
+## Enforcement
+
+Run `bun run check:cron-boundary` to verify static Nest `@Cron(...)`
+decorators are either reviewed platform/maintenance jobs or tracked tenant
+automation migrations. `bun run check:architecture` runs the same guard in CI.
+
+When adding recurring tenant-product behavior, create or update a scheduled
+workflow instead of adding a new static cron decorator. If a static cron is
+truly platform/maintenance work, add it to the reviewed platform allowlist in
+`scripts/architecture/check-platform-cron-boundary.ts` with a concrete reason.
