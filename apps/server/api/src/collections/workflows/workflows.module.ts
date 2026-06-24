@@ -39,6 +39,7 @@ import {
 import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows/services/campaign-orchestration-workflow.service';
 import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
+import { TrendNotificationWorkflowService } from '@api/collections/workflows/services/trend-notification-workflow.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import {
   WORKFLOW_EXECUTION_QUEUE,
@@ -91,6 +92,7 @@ import { forwardRef, Module } from '@nestjs/common';
     CampaignOrchestrationWorkflowService,
     ContentProductionWorkflowService,
     ReplyPollingWorkflowService,
+    TrendNotificationWorkflowService,
   ],
   imports: [
     forwardRef(() => AdOptimizationConfigsModule),
@@ -167,6 +169,7 @@ import { forwardRef, Module } from '@nestjs/common';
     CampaignOrchestrationWorkflowService,
     ContentProductionWorkflowService,
     ReplyPollingWorkflowService,
+    TrendNotificationWorkflowService,
     WorkflowEngineAdapterService,
     WorkflowExecutorService,
     WorkflowExecutionQueueService,

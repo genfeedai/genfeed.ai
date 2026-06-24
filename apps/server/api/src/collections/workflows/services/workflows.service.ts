@@ -26,6 +26,7 @@ import {
 } from '@api/collections/workflows/templates/content-production-workflows.template';
 import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
 import { REPLY_POLLING_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/reply-polling-workflows.template';
+import { TREND_NOTIFICATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/trend-notification-workflows.template';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -924,6 +925,89 @@ export class WorkflowsService extends BaseService<
         if (errorCode === 'P2034') {
           this.logger?.debug(
             'ensureReplyPollingWorkflows: serialization conflict - workflow already seeded by concurrent request',
+            { organizationId, templateId: template.id },
+          );
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Idempotently seeds default-on trend notification workflow schedules for an
+   * organization. Each cadence executor checks the org owner's current settings
+   * at run time, preserving legacy frequency/recipient semantics while letting
+   * workflow schedule toggles pause the tenant-facing notification path.
+   */
+  async ensureTrendNotificationWorkflows(
+    userId: string,
+    organizationId: string,
+  ): Promise<void> {
+    for (const template of TREND_NOTIFICATION_WORKFLOW_TEMPLATES) {
+      const where = {
+        isDeleted: false,
+        metadata: {
+          equals: template.id,
+          path: ['sourceTemplateId'],
+        },
+        organizationId,
+      };
+
+      const preCheck = await this.prisma.workflow.findFirst({
+        select: { id: true },
+        where,
+      });
+
+      if (preCheck) {
+        continue;
+      }
+
+      try {
+        await this.prisma.$transaction(
+          async (tx) => {
+            const existing = await tx.workflow.findFirst({
+              select: { id: true },
+              where,
+            });
+
+            if (existing) {
+              return;
+            }
+
+            await tx.workflow.create({
+              data: {
+                description: template.description,
+                edges: (template.edges ?? []) as never,
+                executionCount: 0,
+                inputVariables: (template.inputVariables ?? []) as never,
+                isDeleted: false,
+                isScheduleEnabled: true,
+                label: template.name,
+                metadata: {
+                  cadence: template.cadence,
+                  sourceIssue: 788,
+                  sourceTemplateId: template.id,
+                  sourceType: 'seeded-template',
+                },
+                nodes: (template.nodes ?? []) as never,
+                organizationId,
+                progress: 0,
+                schedule: template.schedule,
+                status: WorkflowStatus.ACTIVE,
+                steps: template.steps as never,
+                timezone: 'UTC',
+                userId,
+              },
+            });
+          },
+          { isolationLevel: 'Serializable' },
+        );
+      } catch (error) {
+        const errorCode = (error as { code?: string }).code;
+        if (errorCode === 'P2034') {
+          this.logger?.debug(
+            'ensureTrendNotificationWorkflows: serialization conflict - workflow already seeded by concurrent request',
             { organizationId, templateId: template.id },
           );
           continue;

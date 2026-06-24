@@ -12,7 +12,6 @@ import type { Setting } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@workers/config/config.service';
 
 type TrendRecord = {
@@ -53,7 +52,6 @@ export class CronTrendSummaryNotificationsService {
    * Hourly trend summary notifications
    * Runs every hour for users with 'hourly' frequency
    */
-  @Cron(CronExpression.EVERY_HOUR)
   async sendHourlyTrendSummaries() {
     await this.sendTrendSummariesByFrequency('hourly', this.LOCK_KEY_HOURLY);
   }
@@ -62,7 +60,6 @@ export class CronTrendSummaryNotificationsService {
    * Daily trend summary notifications
    * Runs every day at 9 AM for users with 'daily' frequency
    */
-  @Cron('0 9 * * *')
   async sendDailyTrendSummaries() {
     await this.sendTrendSummariesByFrequency('daily', this.LOCK_KEY_DAILY);
   }
@@ -71,7 +68,6 @@ export class CronTrendSummaryNotificationsService {
    * Weekly trend summary notifications
    * Runs every Monday at 9 AM for users with 'weekly' frequency
    */
-  @Cron('0 9 * * 1')
   async sendWeeklyTrendSummaries() {
     await this.sendTrendSummariesByFrequency('weekly', this.LOCK_KEY_WEEKLY);
   }

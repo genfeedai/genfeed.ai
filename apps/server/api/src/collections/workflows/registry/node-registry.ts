@@ -1240,6 +1240,29 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     },
   },
 
+  trendSummaryNotifications: {
+    category: 'processing',
+    configSchema: {
+      cadence: {
+        default: 'daily',
+        label: 'Cadence',
+        options: ['hourly', 'daily', 'weekly'],
+        type: 'select',
+      },
+    },
+    description:
+      'Send trend summary notifications using the organization owner notification settings',
+    icon: 'HiTrendingUp',
+    inputs: {},
+    isPremium: true,
+    label: 'Trend Summary Notifications',
+    outputs: {
+      errors: { label: 'Errors', type: 'number' },
+      sent: { label: 'Sent', type: 'number' },
+      trends: { label: 'Trends', type: 'number' },
+    },
+  },
+
   'output-export': {
     category: 'output',
     configSchema: {
