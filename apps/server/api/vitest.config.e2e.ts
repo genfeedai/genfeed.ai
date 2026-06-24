@@ -53,12 +53,60 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../files/src'),
       },
       {
+        find: '@genfeedai/constants',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/constants/src',
+        ),
+      },
+      {
+        find: '@genfeedai/enums',
+        replacement: path.resolve(serviceDir, '../../../packages/enums/src'),
+      },
+      {
+        find: '@genfeedai/helpers',
+        replacement: path.resolve(serviceDir, '../../../packages/helpers/src'),
+      },
+      {
+        find: '@genfeedai/harness',
+        replacement: path.resolve(serviceDir, '../../../packages/harness/src'),
+      },
+      {
+        find: /^@genfeedai\/harness\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/harness/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/prisma',
+        replacement: path.resolve(serviceDir, '../../../packages/prisma/src'),
+      },
+      {
         find: '@genfeedai/types',
         replacement: path.resolve(serviceDir, '../../../packages/types/src'),
       },
       {
+        find: /^@genfeedai\/interfaces\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/interfaces/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/interfaces',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/interfaces/src',
+        ),
+      },
+      {
         find: '@genfeedai/config',
         replacement: path.resolve(serviceDir, '../../../packages/config/src'),
+      },
+      {
+        find: '@genfeedai/pricing',
+        replacement: path.resolve(serviceDir, '../../../packages/pricing/src'),
       },
       {
         find: /^@genfeedai\/config\/(.*)$/,
@@ -180,6 +228,16 @@ export default defineConfig({
       {
         find: /^@test\/(.*)$/,
         replacement: path.resolve(serviceDir, './test/$1'),
+      },
+      {
+        // Mirrors the webpack/tsconfig `@billing-providers` alias for API E2E:
+        // OSS CI resolves billing collection modules to the in-tree stub
+        // fragment while EE billing remains covered by its own package tests.
+        find: '@billing-providers',
+        replacement: path.resolve(
+          serviceDir,
+          './src/common/subscriptions/billing.providers.oss.ts',
+        ),
       },
     ],
   },

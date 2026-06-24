@@ -1,10 +1,9 @@
 import process from 'node:process';
-import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { ConfigService } from '@api/config/config.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
-import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { CreditTransactionsService } from '@credits/services/credit-transactions.service';
 import { CustomersService } from '@customers/services/customers.service';
+import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -27,6 +26,15 @@ if (process.env.SKIP_DB_INTEGRATION === 'true') {
   g.test = g.it;
 }
 
+type PaymentSubscriptionsServiceMock = {
+  cancel: vi.Mock;
+  create: vi.Mock;
+  findByCustomer: vi.Mock;
+  findOne: vi.Mock;
+  update: vi.Mock;
+  updateStatus: vi.Mock;
+};
+
 describe('Payment Processing Integration Tests (Stripe)', () => {
   // Increase timeout for MongoDB memory server operations
   // vi timeout configured in vitest.config(30000);
@@ -35,7 +43,7 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
   let moduleRef: TestingModule;
 
   let stripeService: StripeService;
-  let subscriptionsService: SubscriptionsService;
+  let subscriptionsService: PaymentSubscriptionsServiceMock;
   let customersService: CustomersService;
   let creditTransactionsService: CreditTransactionsService;
   let mockStripe: any;
@@ -107,7 +115,6 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
     };
 
     moduleRef = await Test.createTestingModule({
-      imports: [PrismaModule],
       providers: [
         {
           provide: StripeService,
@@ -130,7 +137,7 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
           },
         },
         {
-          provide: SubscriptionsService,
+          provide: SUBSCRIPTIONS_SERVICE,
           useValue: {
             cancel: vi.fn(),
             create: vi.fn(),
@@ -178,8 +185,9 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
     await app.init();
 
     stripeService = moduleRef.get<StripeService>(StripeService);
-    subscriptionsService =
-      moduleRef.get<SubscriptionsService>(SubscriptionsService);
+    subscriptionsService = moduleRef.get<PaymentSubscriptionsServiceMock>(
+      SUBSCRIPTIONS_SERVICE,
+    );
     customersService = moduleRef.get<CustomersService>(CustomersService);
     creditTransactionsService = moduleRef.get<CreditTransactionsService>(
       CreditTransactionsService,

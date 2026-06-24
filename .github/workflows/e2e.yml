@@ -39,19 +39,14 @@ jobs:
       - name: Check route coverage
         run: node scripts/e2e-route-coverage.mjs
 
-  # API E2E Tests — DISABLED by default. The test infrastructure is incomplete:
-  # the suite fails every run on E2ETestModule DI wiring (PrismaService/
-  # FilesClientService not provided) and a missing @api/collections/subscriptions
-  # path alias. It was already continue-on-error (never gated), so it only burned
-  # ~2 min/run and added noise. Gated behind the E2E_API_ENABLED repo variable
-  # (mirrors e2e-frontend-authed): set it to 'true' to re-enable once the DI /
-  # path-alias fixes land.
+  # API E2E Tests — boot/smoke gate for the real API test graph.
+  # The #702 blockers are resolved in-source: E2ETestModule provides the
+  # files client mock, API E2E resolves the OSS billing provider alias, and the
+  # payment integration spec uses the canonical subscription DI token.
   e2e-api:
     name: API E2E Tests
-    if: ${{ vars.E2E_API_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    continue-on-error: true
     services:
       postgres:
         image: postgres:17-alpine
@@ -203,19 +198,24 @@ jobs:
     name: E2E Gate (all shards)
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [e2e-route-coverage, e2e-frontend]
+    needs: [e2e-route-coverage, e2e-frontend, e2e-api]
     if: always()
     steps:
       - name: Check shard results
         run: |
           echo "Route coverage: ${{ needs.e2e-route-coverage.result }}"
           echo "Frontend matrix: ${{ needs.e2e-frontend.result }}"
+          echo "API E2E: ${{ needs.e2e-api.result }}"
           if [[ "${{ needs.e2e-route-coverage.result }}" == "failure" ]]; then
             echo "Route coverage gate failed" && exit 1
           fi
           if [[ "${{ needs.e2e-frontend.result }}" == "failure" || \
                 "${{ needs.e2e-frontend.result }}" == "cancelled" ]]; then
             echo "One or more E2E shards failed or were cancelled" && exit 1
+          fi
+          if [[ "${{ needs.e2e-api.result }}" == "failure" || \
+                "${{ needs.e2e-api.result }}" == "cancelled" ]]; then
+            echo "API E2E boot gate failed or was cancelled" && exit 1
           fi
           echo "All required E2E checks passed."
 
