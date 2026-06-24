@@ -1,7 +1,7 @@
 import type { AdInsightsAggregationJobData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   AD_INSIGHTS_AGGREGATION_QUEUE,
   AD_INSIGHTS_MIN_ORGS_FOR_AGGREGATION,
@@ -17,15 +17,11 @@ export class AdInsightsAggregationProcessor extends WorkerHost {
   }
 
   async process(job: Job<AdInsightsAggregationJobData>): Promise<void> {
-    const {
-      aggregationWindow = 'legacy',
-      insightTypes,
-      scope = AD_INSIGHTS_PLATFORM_SCOPE,
-    } = job.data;
+    const { aggregationWindow = 'legacy', insightTypes, scope } = job.data;
 
     try {
       if (scope !== AD_INSIGHTS_PLATFORM_SCOPE) {
-        throw new Error(
+        throw new BadRequestException(
           `Unsupported ad insights aggregation scope: ${String(scope)}`,
         );
       }

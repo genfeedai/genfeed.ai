@@ -5,7 +5,7 @@ export interface AdInsightsAggregationJobData {
   idempotencyKey?: string;
   insightTypes: string[];
   industries?: string[];
-  scope?: 'platform';
+  scope: 'platform';
   sourceIssue?: number;
 }
 
