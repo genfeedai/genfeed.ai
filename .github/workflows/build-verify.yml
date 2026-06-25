@@ -20,10 +20,35 @@ env:
   IMAGE_NAME: genfeed-server-verify
 
 jobs:
+  # Release-cut boot gate — builds the COMPILED api bundle and loads its full
+  # provider graph with BOOT_CHECK=1, which exits 0 BEFORE NestFactory/config
+  # (no env, DB, or Redis needed). Kept out of normal PR CI so pull requests stay
+  # fast, but still runs before Docker release verification.
+  api-boot-check:
+    name: API Boot Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: '1.3.14'
+      - name: Build api (compiled bundle)
+        # The api package emits to apps/server/dist, outside apps/server/api.
+        # Force a real build so a Turbo cache-hit replay cannot skip restoring
+        # the compiled bundle this boot check loads.
+        run: bunx turbo run build --filter=@genfeedai/api --force
+      - name: Boot check — compiled graph must load
+        run: BOOT_CHECK=1 timeout 120 node apps/server/dist/apps/api/main.js
+
   build-and-boot:
     name: Build & Boot Check
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    needs: api-boot-check
     permissions:
       contents: read
       packages: write
@@ -120,6 +145,8 @@ jobs:
       - name: Build summary
         if: success()
         run: |
-          echo "## ✅ Build Verification Passed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Docker image built + all 12 bundles verified; EE api bundle booted past module init (#574 guard)." >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## ✅ Build Verification Passed"
+            echo ""
+            echo "Docker image built + all 12 bundles verified; EE api bundle booted past module init (#574 guard)."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,23 +1,18 @@
 name: Self-Hosted Release E2E
 
-# Tests the RELEASED self-hosted image — the exact artifact users `docker run`,
-# produced by "Docker Publish (Self-Hosted)" on release (ghcr :latest). Boots it
-# against a throwaway Postgres in LOCAL mode (no Better Auth, no secrets), then drives
-# Playwright critical-path specs through the live API + frontend + DB stack.
+# Tests the latest RELEASED self-hosted image on a nightly schedule. This is
+# intentionally decoupled from Docker Publish so community image flakiness never
+# blocks a SaaS release or deploy.
 #
 # This is the only suite that proves real API ↔ frontend ↔ Postgres integration.
 # The weekly e2e.yml runs the frontend against a MOCKED backend; this runs the
 # shipped container end to end.
 
 on:
-  # Run right after a publish so :latest is the freshly-released artifact.
-  workflow_run:
-    workflows: ["Docker Publish (Self-Hosted)"]
-    types: [completed]
-  # Every 3 days, 05:23 UTC (off-:00 hygiene; */3 resets at month boundaries).
+  # Nightly, 05:23 UTC (off-:00 hygiene).
   schedule:
-    - cron: "23 5 */3 * *"
-  # Manual / CI dry-run against an explicit tag.
+    - cron: "23 5 * * *"
+  # Manual non-blocking dry-run against an explicit tag.
   workflow_dispatch:
     inputs:
       image_tag:
@@ -36,7 +31,7 @@ permissions:
 
 env:
   COMPOSE_FILE: docker/docker-compose.selfhosted.yml
-  # workflow_dispatch supplies image_tag; schedule/workflow_run fall back to latest.
+  # workflow_dispatch supplies image_tag; schedule falls back to latest.
   IMAGE_TAG: ${{ github.event.inputs.image_tag || 'latest' }}
   APP_BASE_URL: http://localhost:3000
   API_BASE_URL: http://localhost:3010
@@ -46,9 +41,6 @@ jobs:
     name: Release E2E (LOCAL mode)
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # On a workflow_run trigger, only proceed if the publish actually succeeded.
-    # schedule / workflow_dispatch always proceed.
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v5
 
