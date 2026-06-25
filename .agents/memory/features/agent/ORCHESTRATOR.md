@@ -142,7 +142,7 @@ When the LLM calls a tool not in the agent type's allowed list:
 
 **File:** `apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts`
 
-25+ module imports (all via `forwardRef()`): AgentCampaigns, AgentContextAssembly, AgentMemories, AgentMessages, AgentMessageBus, AgentRuns, AgentSpawn, AgentStreamPublisher, AgentThreads, AgentThreading, Analytics, BatchGeneration, Brands, Campaigns, Clerk, ContentIntelligence, ContentQuality, Credentials, Credits, Images, KnowledgeBases, LlmDispatcher, OrganizationSettings, Organizations, Posts, Settings, Tasks, Trends, Users, Voices, Workflows, WorkflowExecutions, Config, Logger, HttpModule
+25+ module imports (all via `forwardRef()`): AgentCampaigns, AgentContextAssembly, AgentMemories, AgentMessages, AgentMessageBus, AgentRuns, AgentSpawn, AgentStreamPublisher, AgentThreads, AgentThreading, Analytics, BatchGeneration, Brands, Campaigns, Auth, ContentIntelligence, ContentQuality, Credentials, Credits, Images, KnowledgeBases, LlmDispatcher, OrganizationSettings, Organizations, Posts, Settings, Tasks, Trends, Users, Voices, Workflows, WorkflowExecutions, Config, Logger, HttpModule
 
 ## Key Constants
 

@@ -14,13 +14,13 @@ v1.1.0
 
 ## Canonical Source
 
-This file. Contributor summary: [`docs/deployment-modes.md`](../../../docs/deployment-modes.md) (public: https://docs.genfeed.ai/deployment-modes). Implementation tracking: **epic #740** (deployment modes) + **epic #735** (Clerk → Better Auth).
+This file. Contributor summary: [`docs/deployment-modes.md`](../../../docs/deployment-modes.md) (public: https://docs.genfeed.ai/deployment-modes). Implementation tracking: **epic #740** (deployment modes) + **epic #735** (Better Auth).
 
 ## Context
 
 Genfeed ships from one monorepo to **three deployment targets**, but the codebase had no canonical definition of them. Mode was detected by 3–4 overlapping mechanisms that could disagree (`GenfeedMode` enum, `IS_SELF_HOSTED`/`IS_CLOUD`, a duplicate frontend `edition.ts`, `NEXT_PUBLIC_DESKTOP_SHELL`), and auth/switcher/billing behaviour was wired inconsistently as a result — e.g. the brand switcher silently disappeared in self-hosted while a useless org switcher was always shown.
 
-**Validated against peers** (Cal.com, PostHog, Supabase, Nango, Dub, Twenty, Documenso, Medusa): gating org-level multi-tenancy behind EE is market-standard (Cal.com, PostHog); BYOK-free with zero call-home is the Supabase model; community-self-host-as-funnel (not a revenue tier) is PostHog's hard-won lesson; and **no peer requires a proprietary SaaS auth vendor to self-host** — which is why depending on Clerk in self-hosted was the one genuinely out-of-step decision.
+**Validated against peers** (Cal.com, PostHog, Supabase, Nango, Dub, Twenty, Documenso, Medusa): gating org-level multi-tenancy behind EE is market-standard (Cal.com, PostHog); BYOK-free with zero call-home is the Supabase model; community-self-host-as-funnel (not a revenue tier) is PostHog's hard-won lesson; and peers support self-hostable auth for community deployments.
 
 This ADR locks the product model, the boundaries, and the auth direction so every mode-conditional decision has one place to refer to.
 
@@ -56,9 +56,9 @@ The **brand** is the unit of content context (a brand owns one or more social ac
 
 **Switcher rule (canonical):** the **brand switcher is always shown and populated** in every mode; the **org switcher only renders in SaaS**. This corrects the prior bug where self-hosted hid the brand switcher and showed an org switcher that couldn't switch anything (#743).
 
-### 3. Auth — own it; Clerk removed entirely
+### 3. Auth — own it with Better Auth
 
-**One self-hostable auth system across all three modes: [Better Auth](https://better-auth.com)** (MIT, free). It runs **in-process** against our existing Postgres — no separate instance, no SaaS vendor, no call-home. **Clerk is removed everywhere, SaaS included** (one auth system; no Clerk-shaped fields lingering in modes that don't use them).
+**One self-hostable auth system across all three modes: [Better Auth](https://better-auth.com)** (MIT, free). It runs **in-process** against our existing Postgres — no separate instance, no SaaS vendor, no call-home.
 
 Better Auth ships **magic link, Google/GitHub OAuth, organizations/teams, and admin impersonation** as first-party plugins, with a Prisma/Postgres adapter and NestJS + Electron integrations.
 
@@ -72,7 +72,7 @@ Better Auth ships **magic link, Google/GitHub OAuth, organizations/teams, and ad
 
 Client features gate on **mode**, never on raw auth signals.
 
-**Migration** is a phased, dual-run epic (#735): Better Auth lands beside Clerk feature-flagged (zero user impact), with a **staged production cutover** — a magic-link "set your password" campaign, since Clerk can't export password hashes. Drop `User.clerkId` / `Organization.clerkOrganizationId` / `Member.clerkMembershipId`; move `isSuperAdmin` + subscription state out of Clerk `publicMetadata` into DB columns.
+**Migration** is a phased rollout epic (#735). Better Auth organizations are implemented as an auth/session bridge while Genfeed `Organization`, `Member`, and `Role` remain the domain authorization and tenant-guard source. Use clean platform `role:superadmin` for SaaS control-plane access. Subscription state lives in DB-owned billing state.
 
 ### 4. Tenancy
 
@@ -112,7 +112,7 @@ Community is a **funnel and credibility driver, not a revenue tier** (PostHog ki
 ## Consequences (implementation — tracked on epics #735 and #740)
 
 1. **Mode consolidation** → one canonical source, two axes (#742).
-2. **Auth** → replace Clerk with Better Auth across all modes; phased dual-run migration (#735), incl. headless API-keys UI + CLI (#747).
+2. **Auth** → Better Auth across all modes; phased rollout (#735), Better Auth organizations bridge (#792), platform `role:superadmin` (#806), and headless API-keys UI + CLI (#747).
 3. **Switcher rule** → brand always shown+populated; org SaaS-only (#743).
 4. **CI** → fast PRs; heavy gates at release-cut; self-hosted E2E nightly-only; community build split from SaaS deploy (#744).
 5. **Community "just works"** → fix docs/ports/compose + healthcheck (#745).
@@ -122,7 +122,7 @@ Community is a **funnel and credibility driver, not a revenue tier** (PostHog ki
 ## Related
 
 - [ADR: PLG Boundary Between OSS and Genfeed Cloud](ADR-PLG-BOUNDARY-OSS-CLOUD.md)
-- **Epic #735** — Clerk → Better Auth (self-hostable auth, all modes)
+- **Epic #735** — Better Auth (self-hostable auth, all modes)
 - **Epic #740** — Deployment modes (canonical split, switcher, CI, community, QA)
 - Supersedes the **auth half** of the closed One-API epic #95
 - Issue #87 — EE billing / multi-tenancy extraction

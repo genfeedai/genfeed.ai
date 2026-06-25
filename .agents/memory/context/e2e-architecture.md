@@ -29,7 +29,7 @@ concurrency:
 - **Manual, per-branch:** Actions → *E2E Tests* → *Run workflow* → choose `master` (the trunk) or any
   short-lived feature branch. CLI: `gh workflow run e2e.yml --ref <branch>`.
   `workflow_dispatch` checks out **that branch** and runs its copy of the workflow + tests.
-  (Trunk-based: `develop`/`staging` branches no longer exist.)
+  `master` is the single trunk.
 - **Nightly review:** the `schedule` trigger always runs on the **default branch = `master`**
   (GitHub runs scheduled workflows only from the default branch). This is the nightly master review.
 - **Availability:** the workflow only appears in the Actions UI / runs on schedule when the file
@@ -49,7 +49,7 @@ Top-level env: `TURBO_TOKEN` (secret) + `TURBO_TEAM` (var) enable Turborepo remo
 | `e2e-frontend` | Frontend E2E (Shard N/12) | ubuntu / 45m | **yes** (via gate) | matrix 12 shards, `fail-fast:false`, `bun run test:e2e:sharded -- --reporter=blob` |
 | `e2e-merge-reports` | Merge E2E Reports | ubuntu / 10m | no (`if: always()`) | `playwright merge-reports` → single HTML report |
 | `e2e-gate` | E2E Gate (all shards) | ubuntu / 5m | **yes — the aggregator** | bash check of `e2e-route-coverage` + `e2e-frontend` results (fails on any shard failure OR cancellation) |
-| `e2e-frontend-authed` | Frontend Authed E2E (real Clerk) | ubuntu / 40m | no (`continue-on-error`, gated by `E2E_AUTHED_ENABLED` var) | `bun run test:e2e:authed` |
+| `e2e-frontend-authed` | Frontend Authenticated E2E | ubuntu / 40m | no (`continue-on-error`, gated by `E2E_AUTHED_ENABLED` var) | `bun run test:e2e:authed` |
 
 `e2e-gate` is the single job that represents the suite's pass/fail (it `needs:` route-coverage +
 frontend). It exits 1 if route coverage failed or any shard failed/was cancelled. Re-running only the
@@ -74,19 +74,19 @@ workflow** — it now lives in `coverage.yml` (weekly), not here. The old single
   and `redis:7` (`6379`).
 - **Job env:** `NODE_ENV=test`, `DATABASE_URL=postgresql://genfeed:genfeed_local@localhost:5432/test`,
   `REDIS_URL=redis://localhost:6379`. All external keys mocked
-  (`REPLICATE_API_TOKEN`, `STRIPE_SECRET_KEY` = `test-mock-key`; `CLERK_SECRET_KEY` = secret || mock).
+  (`REPLICATE_API_TOKEN`, `STRIPE_SECRET_KEY`, and auth secrets use test-safe values).
 - **Steps:** checkout → Node 22 → Bun 1.3.13 → cache bun/turbo → `bun install` →
   `bunx turbo run build --filter="./packages/*"` →
   `bunx prisma migrate deploy` (cwd `packages/prisma`) → `test:e2e:ci` → codecov (flag `api-e2e`, non-fatal).
-- The "test infrastructure incomplete, non-blocking until ready" **comment is stale** — the job has no
+- The API E2E job currently gates when enabled; keep workflow comments aligned with that behavior.
   `continue-on-error`, so it DOES gate the run. (See §5.)
 
 ### 2.3 `e2e-frontend` — Playwright core
 - **Steps:** checkout → Node 22 → Bun → cache bun/turbo/playwright-browsers → `bun install` →
   `npx playwright install --with-deps chromium` → `bunx turbo run build --filter=@genfeedai/app` →
   `bun run test:e2e:core`.
-- **Build env:** Clerk keys (secret || fallback), `NEXT_PUBLIC_API_URL=http://localhost:3010`.
-- **Run env:** `CI=true`, `APP_BASE_URL=http://localhost:3000`, Clerk keys.
+- **Build env:** auth test keys plus `NEXT_PUBLIC_API_URL=http://localhost:3010`.
+- **Run env:** `CI=true`, `APP_BASE_URL=http://localhost:3000`, auth test keys.
 - **Artifacts:** `playwright-report` (always), `playwright-traces` (on failure),
   `screenshot-diffs` (on failure) — all 7-day retention.
 
@@ -109,7 +109,7 @@ workflow** — it now lives in `coverage.yml` (weekly), not here. The old single
 ### Configs — `playwright/configs/`
 | Config | testDir | Projects | webServer | Use |
 |---|---|---|---|---|
-| `playwright.config.ts` | `playwright/e2e/tests` | `clerk-setup`, `app-core`, `app-authed` | yes (CI: `start`, dev: `dev`) | primary / `test:e2e:core` |
+| `playwright.config.ts` | `playwright/e2e/tests` | auth setup, `app-core`, `app-authed` | yes (CI: `start`, dev: `dev`) | primary / `test:e2e:core` |
 | `playwright-coverage.config.ts` | (coverage variant) | — | — | `test:e2e:coverage` |
 | `playwright-full.config.ts` | `playwright/e2e/tests` (ignores admin/core/marketplace/website) | `chromium` | yes (30s CI) | `test:e2e:full` |
 | `playwright-cross-app.config.ts` | `playwright/e2e/tests` | `website` (:3002), `marketplace` (:3104) | **none** (expects running servers) | cross-app |
@@ -141,16 +141,14 @@ Primary config highlights:
   No real backend calls; `requiredEnvVars` is intentionally empty.
 - **global-teardown.ts** — deletes `apps/app/.next/dev/cache` (Turbopack persistent cache, observed at
   ~15 GB → `ENOSPC`). Best-effort; never fails the suite. Respects `PLAYWRIGHT_WEB_APP_PATH`.
-- **clerk.setup.ts** (`clerk-setup` project) — provisions REAL Clerk test users, writes
-  `playwright/artifacts/.clerk/{user,admin}.json` storage state for the `app-authed` project.
-  Hard-fails if `CLERK_SECRET_KEY` / `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `E2E_CLERK_USER_PASSWORD` missing or mock.
+- **auth setup project** — provisions authenticated test storage state for the `app-authed` project. Keep this aligned with Better Auth rollout and test-safe credentials.
 
 ### Mock-auth fixtures (`playwright/e2e/fixtures/`)
-Most specs use **3-layer auth bypass** (no real Clerk needed):
-1. **Middleware bypass** — `__playwright_test=true` cookie; `proxy.ts` skips `clerkMiddleware`.
-2. **Client SDK mock** — `addInitScript` sets `window.__clerk_client_state` + `__clerk_is_signed_in`.
+Most specs use **3-layer auth bypass**:
+1. **Middleware bypass** — `__playwright_test=true` cookie; `proxy.ts` enables test auth bypass.
+2. **Client auth mock** — `addInitScript` seeds authenticated client state.
 3. **API mock** — `setupApiMocks` intercepts `api.genfeed.ai` + `local.genfeed.ai:3010`.
-   **Order matters:** call `setupApiMocks` BEFORE `setupClerkMocks` (Playwright routes resolve last-registered-first).
+   **Order matters:** register API mocks before auth mocks (Playwright routes resolve last-registered-first).
 
 Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`, `unauthenticatedPage`,
 `authenticatedContext`), `onboarding.fixture.ts`, `api-mocks.fixture.ts` (generation/billing/data/workspace/workflow mocks),
@@ -158,13 +156,13 @@ Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`,
 
 **Network guard** (`utils/network-guard.ts`): catch-all `page.route('**/*')` that aborts any cost-risk host
 (OpenAI/Anthropic/ElevenLabs/HeyGen/Stripe/Replicate/Fal/Together/Stability + `api.genfeed.ai`).
-`E2E_STRICT_NETWORK=true` aborts everything off the localhost/Clerk/fonts allowlist.
+`E2E_STRICT_NETWORK=true` aborts everything off the localhost/auth/fonts allowlist.
 `assertNoBlockedRequests()` fails the test if any real external call escaped — asserted in fixture teardown.
 
 ### Test layout (`playwright/e2e/tests/`)
 - **smoke/** — `safe.spec.ts` (health), `all-app-pages.spec.ts` (discovers every `page.tsx`, sweeps all
   routes via in-process mock server on :3010, asserts >100 routes, 900s), `all-app-pages.authed.spec.ts`
-  (real Clerk storage state, curated protected routes, 600s).
+  (authenticated storage state, curated protected routes, 600s).
 - **core + ~25 domain dirs** — admin, agents, analytics, auth, automation, brands, calendar, chat, compose,
   core, dashboard, editor, library, onboarding, overview, posts, research, responsive, settings, studio,
   tasks, visual, website, workflow(s), workspace. ~50 spec files.
@@ -180,13 +178,13 @@ Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`,
   disables OXC. Pool `threads`, `maxWorkers: 1` (serial, avoids DB contention), 60s timeout, setup `test/setup.ts`.
 - **CI subset** (`test:e2e:ci`) runs only 3 files:
   - `test/e2e/integrations.e2e-spec.ts` — org integrations CRUD over HTTP (the only full HTTP suite in CI).
-  - `test/integration/payment-processing.integration.spec.ts` — Stripe flow (mocked; has `SKIP_MONGODB_MEMORY` gate).
+  - `test/integration/payment-processing.integration.spec.ts` — Stripe flow (mocked).
   - `test/integration/health.e2e-spec.spec.ts` — unit-level `HealthController` (no HTTP/DB).
 - **Full suite** (`test:e2e`, not in CI): + organizations / brands / auth / tasks e2e specs and other integration specs.
 - **DB lifecycle:** `TestDatabaseHelper` (`test/e2e-test.module.ts`) — `beforeEach` `clearDatabase()` deletes in
-  FK-safe order then `seedCollection()` (normalizes Mongo-era `_id→id`, uppercases enums). No `afterAll`
+  FK-safe order then `seedCollection()` (normalizes ids and uppercases enums). No `afterAll`
   truncation (safe only because `maxWorkers: 1`).
-- **Auth:** `MockClerkGuard` injects a synthetic `clerk_e2e_test_user`. External keys are `test-mock-*`.
+- **Auth:** test auth guard injects a synthetic authenticated user. External keys are `test-mock-*`.
 
 ---
 
@@ -212,8 +210,7 @@ Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`,
 - **Only 3 of ~11 API specs run in CI** — organizations/brands/auth/tasks never exercised by CI.
 - **`health.e2e-spec.ts`** (HTTP version) imports `@test/app.module` which does not exist — would fail if added.
 - **`tasks.e2e-spec.ts`** passes a `schemas` option that `E2ETestModule.forRoot` silently ignores
-  (stale Mongoose artifact).
-- **`payment-processing.integration.spec.ts`** carries `SKIP_MONGODB_MEMORY` — incomplete Prisma port.
+  (data-layer porting artifact).
 - **`workers: 1` + `fullyParallel: true`** is contradictory; masks races that surface if workers increase.
 - **Playwright browser cache** has no restore-key fallback — any `bun.lock` change forces full Chromium re-download.
 - **Visual baselines** (`__screenshots__/`) are OS/font-sensitive — diffs across environments.

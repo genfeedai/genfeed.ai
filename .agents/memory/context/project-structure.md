@@ -67,7 +67,7 @@ genfeed.ai/
 │   │   └── youtube/
 │   ├── interfaces/          # TypeScript interfaces
 │   ├── libs/                # Shared libraries
-│   ├── models/              # Mongoose models
+│   ├── models/              # Domain data models
 │   ├── next-config/         # Shared Next.js config
 │   ├── pages/               # Shared page components
 │   ├── prompts/             # AI prompts

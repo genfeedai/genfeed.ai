@@ -1,0 +1,9 @@
+.env
+.env.local
+packages/prisma/prisma/.env
+apps/*/.env
+apps/*/.env.local
+apps/docs/.env
+apps/docs/.env.local
+apps/server/*/.env
+apps/server/*/.env.local

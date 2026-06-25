@@ -30,7 +30,7 @@ Live AWS wins over older AL2023 EC2 migration notes.
   2026-06-18 from `master` and rolled the server image tag
   `05f7538e48cad75cbebf7a6405d09fc82d4db868`.
 - **Public backend follow-up**: `mcp.genfeed.ai` and
-  `notifications.genfeed.ai` were moved from stale A records on EIP
+  `notifications.genfeed.ai` were moved from previous A records on EIP
   `52.52.217.255` to ALB aliases on 2026-06-18.
 
 ## Legacy EC2 Host
