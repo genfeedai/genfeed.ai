@@ -30,7 +30,7 @@ type: feedback | project | reference
 
 Project-level rules and facts that apply to this repo regardless of which agent is reading them:
 
-- **feedback_\*.md** — user-corrected or user-validated patterns (e.g. `feedback_ui_primitives.md`, `feedback_proxy_middleware.md`)
+- **rule memory files** — user-corrected or user-validated patterns (e.g. `ui_primitives.md`, `proxy_middleware.md`)
 - **project_\*.md** — facts about current work, goals, deadlines, stakeholders (e.g. `project_one_api_epic.md`, `project_bullmq.md`)
 - **reference_\*.md** — pointers to external systems (Linear boards, Grafana dashboards, etc.)
 

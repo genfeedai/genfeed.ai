@@ -18,4 +18,4 @@ last_verified: 2026-06-10
 
 - 2026-06-08: `genfeed-local` renamed → `genfeed-data` (promoted to prod); old empty `genfeed-data` deleted (final snapshot `genfeed-data-empty-final-20260608`).
 - Pre-rename snapshot: `rds:genfeed-local-2026-06-08-13-00`; pre-reconcile manual snapshot: `genfeed-data-pre-reconcile-20260609-1818`.
-- Local homebrew Postgres `genfeed` db (localhost:5432) is stale leftover — seed skeleton only, safe to drop.
+- Local homebrew Postgres `genfeed` db (localhost:5432) is a disposable seed skeleton.

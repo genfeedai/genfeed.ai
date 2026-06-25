@@ -18,7 +18,7 @@ This file provides context for AI agents working on deployment-related tasks. It
 - **Enterprise multi-tenancy:** Available via `ee/packages/`. All multi-tenant data access code must live under `ee/` or import from `ee/packages/`.
 - **Server apps:** `apps/server/{api,clips,discord,files,images,mcp,notifications,slack,telegram,videos,voices,workers}`
 - **Frontend apps:** `apps/{app,admin,website,desktop,mobile}`
-- **Database:** MongoDB (single connection for self-hosted, configurable per-service for scale)
+- **Database:** PostgreSQL via Prisma
 - **Queue:** BullMQ via Redis
 - **Real-time:** WebSocket via Redis pub/sub
 

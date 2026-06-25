@@ -25,7 +25,7 @@ Genfeed.ai is an open-source AI operating system for content creation — a self
 - **6 app surfaces**: app (studio), docs, website, desktop, mobile, extensions
 - **~45 shared packages**: serializers, UI components, hooks, services, types, enums, workflow engine, integrations, etc.
 - **9 enterprise packages** (`ee/`): multi-tenancy, billing, analytics, SSO, teams, collaboration, scheduling, branding, admin-ee
-- **Infrastructure**: Docker self-hosted, PostgreSQL (Prisma ORM), Redis + BullMQ, Better Auth auth
+- **Infrastructure**: Docker self-hosted, PostgreSQL (Prisma ORM), Redis + BullMQ, Better Auth
 
 ## Current State
 
