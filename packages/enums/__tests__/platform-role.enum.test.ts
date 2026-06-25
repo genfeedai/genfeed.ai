@@ -1,5 +1,5 @@
+import { PlatformRole } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
-import { PlatformRole } from '../src/platform-role.enum';
 
 describe('platform-role.enum', () => {
   describe('PlatformRole', () => {

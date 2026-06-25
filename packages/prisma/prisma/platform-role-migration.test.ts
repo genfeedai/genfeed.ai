@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const prismaDir = join(process.cwd(), 'prisma');
+const prismaDir = fileURLToPath(new URL('./', import.meta.url));
 const schemaSource = readFileSync(join(prismaDir, 'schema.prisma'), 'utf8');
 const migrationSource = readFileSync(
   join(
@@ -25,6 +26,8 @@ describe('platform role migration', () => {
     );
     expect(migrationSource).toContain('WHERE "isSuperAdmin" = true');
     expect(migrationSource).toContain("lower('vincent@genfeed.ai')");
+    expect(migrationSource).toContain('bootstrap_match_count <> 1');
+    expect(migrationSource).toContain('Expected exactly one bootstrap');
     expect(migrationSource).toContain('DROP COLUMN "isSuperAdmin"');
   });
 });

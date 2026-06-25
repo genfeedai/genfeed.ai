@@ -28,8 +28,9 @@ ORDER BY "email";
 ROLLBACK;
 ```
 
-Expected result: exactly one row, `vincent@genfeed.ai`.
+Expected result: `vincent@genfeed.ai` is present as a `SUPERADMIN`; other rows
+may also appear if they were backfilled from legacy `isSuperAdmin = true`.
 
 If production verification after deploy shows no platform administrator, rerun
 the `UPDATE ... RETURNING` statement above inside a transaction and `COMMIT`
-only after the returned row is the intended account.
+only after the returned row is exactly the intended `vincent@genfeed.ai` account.

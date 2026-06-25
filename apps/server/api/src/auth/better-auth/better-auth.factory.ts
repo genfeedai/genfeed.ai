@@ -1,23 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import { dash } from '@better-auth/infra';
-import { PlatformRole } from '@genfeedai/enums';
 import type { IBetterAuthJwtUserPayloadSource } from '@genfeedai/interfaces';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { jwt, magicLink } from 'better-auth/plugins';
-
 import { BETTER_AUTH_BASE_PATH } from './better-auth.constants';
 import type { ICreateBetterAuthOptions } from './better-auth.types';
+import { isPlatformSuperAdmin } from './better-auth-access.util';
 
 function getString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
-
-function isPlatformSuperAdmin(platformRole: unknown): boolean {
-  return (
-    typeof platformRole === 'string' &&
-    platformRole.toUpperCase() === PlatformRole.SUPERADMIN
-  );
 }
 
 /**
@@ -49,10 +41,13 @@ export async function resolveBetterAuthJwtOrganizationId(
   prisma: ICreateBetterAuthOptions['prisma'],
   userId: string,
 ): Promise<string | undefined> {
-  const user = await prisma.user.findUnique({
+  const user = await prisma.user.findFirst({
     select: { lastUsedOrganizationId: true },
-    where: { id: userId },
+    where: { id: userId, isDeleted: false },
   });
+  if (!user) {
+    return undefined;
+  }
 
   return resolveBetterAuthJwtOrganizationIdFromLastUsed(
     prisma,
@@ -122,10 +117,14 @@ export async function resolveBetterAuthJwtAccess(
   prisma: ICreateBetterAuthOptions['prisma'],
   userId: string,
 ): Promise<{ isSuperAdmin: boolean; organizationId?: string }> {
-  const user = await prisma.user.findUnique({
+  const user = await prisma.user.findFirst({
     select: { lastUsedOrganizationId: true, platformRole: true },
-    where: { id: userId },
+    where: { id: userId, isDeleted: false },
   });
+  if (!user) {
+    return { isSuperAdmin: false };
+  }
+
   const isSuperAdmin = isPlatformSuperAdmin(user?.platformRole);
   const organizationId = await resolveBetterAuthJwtOrganizationIdFromLastUsed(
     prisma,
@@ -140,9 +139,9 @@ export async function resolveBetterAuthJwtIsSuperAdmin(
   prisma: ICreateBetterAuthOptions['prisma'],
   userId: string,
 ): Promise<boolean> {
-  const user = await prisma.user.findUnique({
+  const user = await prisma.user.findFirst({
     select: { platformRole: true },
-    where: { id: userId },
+    where: { id: userId, isDeleted: false },
   });
 
   return isPlatformSuperAdmin(user?.platformRole);

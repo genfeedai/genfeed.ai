@@ -1,5 +1,6 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import type { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
+import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -107,8 +108,7 @@ describe('AnnouncementsController', () => {
       AnnouncementsController,
     );
 
-    expect(guards).toHaveLength(2);
-    expect(guards).toContain(SuperAdminGuard);
+    expect(guards).toEqual([IpWhitelistGuard, SuperAdminGuard]);
   });
 
   describe('broadcast()', () => {

@@ -3,10 +3,9 @@ import type { MemberDocument } from '@api/collections/members/schemas/member.sch
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { PlatformRole } from '@genfeedai/enums';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-
 import type { IBetterAuthResolvedIdentity } from '../better-auth.types';
+import { isPlatformSuperAdmin } from '../better-auth-access.util';
 
 function getRecordId(
   record: Record<string, unknown> | null | undefined,
@@ -26,13 +25,6 @@ function getMemberOrganizationId(member: MemberDocument): string {
   const record = member as unknown as Record<string, unknown>;
   return (
     getRecordId(record, 'organizationId') || getRecordId(record, 'organization')
-  );
-}
-
-function isPlatformSuperAdmin(platformRole: unknown): boolean {
-  return (
-    typeof platformRole === 'string' &&
-    platformRole.toUpperCase() === PlatformRole.SUPERADMIN
   );
 }
 
@@ -57,7 +49,10 @@ export class BetterAuthIdentityResolverService {
   ) {}
 
   async resolve(userId: string): Promise<IBetterAuthResolvedIdentity> {
-    const user = await this.usersService.findOne({ _id: userId }, []);
+    const user = await this.usersService.findOne(
+      { _id: userId, isDeleted: false },
+      [],
+    );
     const userRecord = user as Record<string, unknown> | null | undefined;
     const resolvedUserId = getEntityId(userRecord);
 

@@ -170,7 +170,7 @@ export const MCP_ADMIN_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Approve or decline a pending MCP write action that was queued for human review, executing it on approval. Pass the approvalId returned by the original (pending) tool call. Admin-only.',
+      'Approve or decline a pending MCP write action that was queued for human review, executing it on approval. Pass the approvalId returned by the original (pending) tool call. Superadmin-only.',
     name: 'resolve_approval',
     parameters: {
       properties: {

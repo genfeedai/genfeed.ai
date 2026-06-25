@@ -34,6 +34,10 @@ describe('BetterAuthIdentityResolverService', () => {
     await expect(resolver.resolve('missing')).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
+    expect(usersService.findOne).toHaveBeenCalledWith(
+      { _id: 'missing', isDeleted: false },
+      [],
+    );
   });
 
   it('resolves the owner organization and its first brand, deriving isSuperAdmin from the platform role', async () => {
@@ -56,6 +60,10 @@ describe('BetterAuthIdentityResolverService', () => {
       isDeleted: false,
       user: 'user_1',
     });
+    expect(usersService.findOne).toHaveBeenCalledWith(
+      { _id: 'user_1', isDeleted: false },
+      [],
+    );
   });
 
   it('does not treat organization admins as platform superadmins', async () => {
