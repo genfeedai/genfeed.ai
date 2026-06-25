@@ -186,7 +186,7 @@
     "@aws-sdk/client-s3": "3.1059.0",
     "@aws-sdk/lib-storage": "3.1059.0",
     "@aws-sdk/s3-request-presigner": "3.1059.0",
-    "@bull-board/api": "7.1.5",
+    "@bull-board/api": "8.0.1",
     "@bull-board/express": "7.1.5",
     "@genfeedai/auth-client": "workspace:*",
     "@dagrejs/dagre": "3.0.0",
