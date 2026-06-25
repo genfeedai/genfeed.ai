@@ -5,7 +5,7 @@ import { PublicPostsController } from '@api/endpoints/public/controllers/posts/p
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { AssetScope, PostStatus } from '@genfeedai/enums';
+import { PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -181,9 +181,9 @@ describe('PublicPostsController', () => {
       };
       expect(callArgs.where).toEqual({
         isDeleted: false,
-        scope: AssetScope.PUBLIC,
         status: PostStatus.PUBLIC,
       });
+      expect(callArgs.where.scope).toBeUndefined();
     });
 
     it('should handle invalid account id gracefully', async () => {

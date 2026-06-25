@@ -147,8 +147,14 @@ export class CollectionFilterUtil {
    * CollectionFilterUtil.buildScopeFilter(undefined)
    * // Returns: undefined
    */
-  static buildScopeFilter(scope?: AssetScope): AssetScope | undefined {
-    return scope;
+  static buildScopeFilter(scope?: unknown): AssetScope | undefined {
+    if (typeof scope !== 'string') {
+      return undefined;
+    }
+
+    return Object.values(AssetScope).includes(scope as AssetScope)
+      ? (scope as AssetScope)
+      : undefined;
   }
 
   /**

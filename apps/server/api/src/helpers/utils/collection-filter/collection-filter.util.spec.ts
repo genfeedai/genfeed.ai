@@ -55,6 +55,16 @@ describe('CollectionFilterUtil', () => {
       const result = CollectionFilterUtil.buildScopeFilter(undefined);
       expect(result).toBeUndefined();
     });
+
+    it('omits malformed scope filter objects', () => {
+      const result = CollectionFilterUtil.buildScopeFilter({ not: null });
+      expect(result).toBeUndefined();
+    });
+
+    it('omits unknown scope strings', () => {
+      const result = CollectionFilterUtil.buildScopeFilter('unknown');
+      expect(result).toBeUndefined();
+    });
   });
 
   describe('buildSearchFilter', () => {

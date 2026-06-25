@@ -4,7 +4,11 @@ import { StripeService } from '@api/services/integrations/stripe/services/stripe
 import { CreateSkillCheckoutDto } from '@api/skills-pro/dto/create-skill-checkout.dto';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import StripeConstructor from 'stripe';
 
 type StripeClient = InstanceType<typeof StripeConstructor>;
@@ -17,6 +21,8 @@ type CheckoutSessionCreateParams = Parameters<
 type CheckoutLineItem = NonNullable<
   CheckoutSessionCreateParams['line_items']
 >[number];
+
+const STRIPE_SECRET_KEY_PATTERN = /^[sr]k_(live|test)_/;
 
 @Injectable()
 export class SkillCheckoutService {
@@ -34,6 +40,7 @@ export class SkillCheckoutService {
     dto: CreateSkillCheckoutDto,
   ): Promise<{ url: string }> {
     this.loggerService.log(`${this.constructorName} createCheckoutSession`);
+    this.assertStripeCheckoutConfigured();
 
     const lineItem = await this.resolveBundleLineItem();
 
@@ -74,6 +81,20 @@ export class SkillCheckoutService {
     });
 
     return { url: session.url || '' };
+  }
+
+  private assertStripeCheckoutConfigured(): void {
+    const secretKey = this.configService.get('STRIPE_SECRET_KEY')?.trim();
+
+    if (
+      !this.stripeService.stripe ||
+      !secretKey ||
+      !STRIPE_SECRET_KEY_PATTERN.test(secretKey)
+    ) {
+      throw new ServiceUnavailableException(
+        'Skills Pro checkout is not configured. Stripe secret key is missing or invalid.',
+      );
+    }
   }
 
   private async resolveBundleLineItem(): Promise<CheckoutLineItem> {

@@ -5,7 +5,10 @@ import { SkillCheckoutService } from '@api/skills-pro/services/skill-checkout.se
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
 import type { IEnvConfig } from '@genfeedai/config';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type Stripe from 'stripe';
 
@@ -20,7 +23,16 @@ describe('SkillCheckoutService', () => {
 
   const buildConfigGetMock = (
     values: Partial<Record<keyof IEnvConfig, string>>,
-  ) => vi.fn((key: keyof IEnvConfig) => values[key]);
+  ) => {
+    const defaults: Partial<Record<keyof IEnvConfig, string>> = {
+      GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
+      STRIPE_PRICE_SKILLS_PRO: '',
+      STRIPE_PROMOTION_CODE_SKILLS_PRO: '',
+      STRIPE_SECRET_KEY: ['sk', 'test', 'valid'].join('_'),
+    };
+
+    return vi.fn((key: keyof IEnvConfig) => ({ ...defaults, ...values })[key]);
+  };
 
   beforeEach(async () => {
     const mockStripeSessionCreate = vi.fn();
@@ -227,6 +239,23 @@ describe('SkillCheckoutService', () => {
       await expect(service.createCheckoutSession({})).rejects.toThrow(
         BadRequestException,
       );
+    });
+
+    it('should reject placeholder Stripe secret keys before creating a checkout session', async () => {
+      configService.get.mockImplementation(
+        buildConfigGetMock({
+          GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
+          STRIPE_PRICE_SKILLS_PRO: 'price_env_123',
+          STRIPE_SECRET_KEY: 'PLACEHOLDER_NOT_CONFIGURED',
+        }),
+      );
+
+      await expect(service.createCheckoutSession({})).rejects.toThrow(
+        ServiceUnavailableException,
+      );
+      expect(
+        stripeService.stripe.checkout.sessions.create,
+      ).not.toHaveBeenCalled();
     });
 
     it('should use default success and cancel URLs when not provided in DTO', async () => {
