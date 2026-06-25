@@ -20,8 +20,8 @@ permissions:
 
 jobs:
   # The community self-hosted image is what users `docker run`. Only master may
-  # produce it — a release cut from develop/staging, or a manual dispatch off a
-  # feature branch, would otherwise ship pre-release code as the public image.
+  # produce it — a release cut from any non-master ref, or a manual dispatch off
+  # a feature branch, would otherwise ship pre-release code as the public image.
   # Mirrors the production master-only release policy.
   validate-master-ref:
     name: Validate master ref

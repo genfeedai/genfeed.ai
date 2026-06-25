@@ -10,6 +10,7 @@
     "scripts/env-spec.ts",
     "**/.env.*local"
   ],
+  "globalEnv": ["GITHUB_EVENT_PATH"],
   "tasks": {
     "build": {
       "dependsOn": ["//#env:check", "^build"],
