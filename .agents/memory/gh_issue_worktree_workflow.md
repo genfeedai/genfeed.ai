@@ -17,7 +17,7 @@ topics: [workflow, git, worktrees, github]
 - Keep all code edits, tests, commits, and agent/subagent work for that issue inside that worktree.
 - Tell any spawned coding agents to operate inside the issue worktree only and not touch the main checkout or other feature worktrees.
 - Before opening a PR, run the narrowest relevant checks first, then the repo's required pre-push gates when feasible.
-- Open the PR against `master`. There is no `develop`/`staging` branch flow — `master` is the single trunk.
+- Open the PR against `master`, the single trunk.
 - After PR creation, inspect CI, fix failures in the same worktree/branch, push updates, and repeat until CI is green.
-- Merge only through the approved GitHub PR path. NEVER direct-push to `master`.
+- Merge through the approved GitHub PR path.
 - Releases are cut from `master` (semver tag + GitHub release); `staging`/`production` are deploy environments driven by CI/tags, not branches.

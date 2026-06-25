@@ -2,20 +2,20 @@
 
 Use one tag family per surface. Do not reuse a single tag for unrelated release flows.
 
-This repo promotes changes through `develop` -> `staging` -> `master`.
+This repo is trunk-based. `master` is the single trunk.
 
-- Contributors open PRs against `develop`.
-- Maintainers promote `develop` to `staging`, then `staging` to `master`.
+- Contributors open PRs against `master`.
+- Maintainers merge short-lived branches into `master` via PR.
 - Production release automation should only run from commits that already landed on `master`.
+- `staging` and `production` are deploy environments, not promotion branches.
 
 ## Main Production Release
 
 Use this when shipping the hosted product and self-hosted image.
 
-1. Merge the intended changes to `develop`.
-2. Promote `develop` -> `staging` -> `master` via PR.
-3. Create a GitHub release from the `master` commit you want to ship.
-4. Use a semver tag such as `v1.2.3`.
+1. Merge the intended changes to `master` via PR.
+2. Create a GitHub release from the `master` commit you want to ship.
+3. Use a semver tag such as `v1.2.3`.
 
 That release triggers:
 

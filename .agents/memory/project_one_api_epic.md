@@ -1,22 +1,18 @@
 ---
 name: One API Epic
-description: Epic #95 — consolidate genfeed.ai into single NestJS API for self-hosted + cloud, 20 sub-issues across 8 phases
+description: Historical epic #95 for API consolidation; current deployment/auth work lives in #735 and #740
 type: project
+status: archived
+last_verified: 2026-06-25
 ---
 
 Epic: genfeedai/genfeed.ai#95
-Plan: `elegant-imagining-bunny.md` in local Claude Code plans dir (machine-local, not in repo)
 
-**Why:** The codebase had two API surfaces (Next.js routes + NestJS backend). Self-hosted users couldn't run the app without legacy auth provider/Stripe keys because the codebase was deeply coupled to cloud services.
+**Current source of truth:** Deployment/auth implementation is tracked by #735 (Better Auth across modes) and #740 (deployment modes), with the canonical decision in `architecture/ADR-DEPLOYMENT-MODES.md`.
 
-**How to apply:** When implementing any issue in this epic, follow the phase ordering strictly. Phase 0 (config decoupling) and Phase 0.5 (noop providers) must complete before auth/middleware changes.
+**Historical scope:** #95 consolidated the app onto a single API shape for self-hosted and cloud operation. Use it only as closed historical context for the API consolidation work.
 
-Key architectural decisions:
-- Edition detection via `IS_SELF_HOSTED = !process.env.BETTER_AUTH_SECRET`
-- Noop providers for legacy auth provider/Stripe in self-hosted (not conditional imports)
-- Self-hosted seed uses `onApplicationBootstrap` NestJS lifecycle hook
-- WebSocket via direct port connection (Next.js rewrites can't proxy WS upgrades)
-- Minimum self-hosted env vars: MONGODB_URI + REDIS_HOST + PORT + TOKEN_ENCRYPTION_KEY
-- Three install paths: npx (no Docker), single Docker image, Docker Compose
-
-Sub-issues: #96 #97 #98 #99 #100 #101 #102 #103 #105 #106 #107 #108 #109 #110 #111 #112 #113 #114 #115 #117
+**How to apply:**
+- For auth, mode detection, self-hosting, and community deployment decisions, use #735/#740 and `ADR-DEPLOYMENT-MODES.md`.
+- For new implementation, follow current issues and project board fields rather than #95 phase notes.
+- Closed sub-issues: #96 #97 #98 #99 #100 #101 #102 #103 #105 #106 #107 #108 #109 #110 #111 #112 #113 #114 #115 #117.

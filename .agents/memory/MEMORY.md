@@ -8,35 +8,36 @@
 - [BullMQ Refactor](project_bullmq.md) — 32 @Processor decorators in API need moving to Workers (#84)
 - [Migration Status](project_migration.md) — cloud + core → genfeed.ai migration complete, all pages/tests present
 - [Settings Routing](project_settings_routing.md) — canonical personal/org/brand settings URL shapes
-- [Desktop BYOK Generation](project_desktop_byok_generation.md) — desktop local/BYOK generation works without legacy auth provider; legacy auth provider is sync-only
-- [TS6.0/Prisma-7 build regression](project_ts6_prisma7_build_regression.md) — **BUILD REGRESSION RESOLVED 2026-06-03** (develop CI green @ 2e66b0aa8). Root cause was stale turbo cache + mv-dist-src hack, not ~2020 real errors; removed the hack + fixed ~7 Prisma-7 Document interfaces. Stage 4 + migration-apply still pending.
-- **Deployment Modes & Auth Refactor (2026-06-22)** — canonical 3-mode model (SaaS / Community / Desktop as `deployment × client` axes) locked in [ADR-DEPLOYMENT-MODES](architecture/ADR-DEPLOYMENT-MODES.md). Two P0 epics: **#735** legacy auth provider → Better Auth (own self-hostable auth across ALL modes incl. SaaS; phased dual-run; headless API-keys UI+CLI #747) and **#740** deployment modes (canonical mode #742, switcher #743, CI rework #744, community-just-works #745, release QA #746). Multi-tenancy stays EE/SaaS; managed credits cloud-only; Community = funnel charter. Supersedes the auth half of #95.
+- [Desktop BYOK Generation](project_desktop_byok_generation.md) — desktop local/BYOK generation is local-first; cloud connect is optional
+- [TS6.0/Prisma-7 build regression](project_ts6_prisma7_build_regression.md) — **BUILD REGRESSION RESOLVED 2026-06-03** (CI green @ 2e66b0aa8). Root cause was outdated turbo cache + mv-dist-src hack, not ~2020 real errors; removed the hack + fixed ~7 Prisma-7 Document interfaces. Stage 4 + migration-apply still pending.
+- **Deployment Modes & Auth Refactor (2026-06-22)** — canonical 3-mode model (SaaS / Community / Desktop as `deployment × client` axes) locked in [ADR-DEPLOYMENT-MODES](architecture/ADR-DEPLOYMENT-MODES.md). Two P0 epics: **#735** Better Auth across ALL modes incl. SaaS; phased rollout; headless API-keys UI+CLI #747 and **#740** deployment modes (canonical mode #742, switcher #743, CI rework #744, community-just-works #745, release QA #746). Multi-tenancy stays EE/SaaS; managed credits cloud-only; Community = funnel charter. Supersedes the auth half of #95.
 
-## Feedback (user corrections — permanent)
+## Rules (user corrections — permanent)
 
-- [Never lose code](feedback_never_lose_code.md) — Always branch+push WIP before destructive git ops
-- [Ship autonomously; master is PR-only](feedback_never_commit_to_master.md) — Trunk-based: commit/push/PR freely when work done. Never push direct to master. Secret-scan every commit.
-- [proxy.ts is middleware](feedback_proxy_middleware.md) — Next.js 16 renamed middleware.ts → proxy.ts
-- [Use @ui/primitives](feedback_ui_primitives.md) — Never raw HTML elements — blocked by lint-no-raw-html.sh
-- [Codex adversarial review](feedback_codex_adversarial_review.md) — MANDATORY before ExitPlanMode
-- [GitHub issue worktree workflow](feedback_gh_issue_worktree_workflow.md) — Assigned issues use worktrees from master → PR to master
-- [Ready PRs by default](feedback_ready_pr_default.md) — Open normal ready PRs to master by default; draft only by explicit request or blocked WIP
-- [No external symlinks](feedback_no_external_symlinks.md) — Open source repo. Internal symlinks only.
-- [End-to-end implementation](feedback_end_to_end_implementation.md) — Never ship half-architecture; wire the full user path
-- [P0 status, not label](feedback_p0_status_not_label.md) — P0 is issue status; never create priority labels
-- [No issue-body frontmatter](feedback_no_issue_body_frontmatter.md) — GitHub issue PRDs use native project fields for metadata; never add YAML frontmatter to issue bodies
-- [Skill boundary](feedback_skill_boundary.md) — .agents/skills are repo-build skills; root skills/ are Genfeed product content skills
-- [GPU instances off by default](feedback_gpu_instances_off_by_default.md) — Keep Genfeed GPU/Fleet inference instances off unless explicitly needed
-- [Inference servers private boundary](feedback_inference_servers_private_boundary.md) — Keep Genfeed inference server implementations out of the public monorepo
-- [GenfeedAI managed provider](feedback_genfeedai_managed_provider.md) — Model Genfeed-managed inference as provider=genfeedai, enabled per customer from console
-- [Console managed inference control plane](feedback_console_managed_inference_control_plane.md) — Private console owns Genfeed-managed Fleet/model/customer assignment
-- [Concurrent automation in shared checkout](feedback_concurrent_automation_develop.md) — A background bot commits to HEAD + pushes the shared checkout; path-scope git add, never blind add -u
-- [Genfeed project kanban](feedback_genfeed_project_kanban.md) — Use project #12 Genfeed.ai as canonical; never select work from closed Mission Control #11
-- [Production deploys master-only](feedback_production_deploy_master_only.md) — Never deploy any non-master ref to production unless Vincent explicitly overrides; production deploys run from GitHub CI on master
+- [Never lose code](never_lose_code.md) — Always branch+push WIP before destructive git ops
+- [Trunk PR workflow](trunk_pr_workflow.md) — Trunk-based: commit/push/PR on short-lived branches; master is PR-only; secret-scan every commit.
+- [proxy.ts is middleware](proxy_middleware.md) — Next.js 16 renamed middleware.ts → proxy.ts
+- [Use @ui/primitives](ui_primitives.md) — Never raw HTML elements — blocked by lint-no-raw-html.sh
+- [Codex adversarial review](codex_adversarial_review.md) — MANDATORY before ExitPlanMode
+- [GitHub issue worktree workflow](gh_issue_worktree_workflow.md) — Assigned issues use worktrees from master → PR to master
+- [Ready PRs by default](ready_pr_default.md) — Open normal ready PRs to master by default; draft only by explicit request or blocked WIP
+- [No external symlinks](no_external_symlinks.md) — Open source repo. Internal symlinks only.
+- [End-to-end implementation](end_to_end_implementation.md) — Never ship half-architecture; wire the full user path
+- [P0 priority field](p0_priority_not_label.md) — P0/P1/P2/P3 live in Project #12 Priority; no priority labels
+- [No issue-body frontmatter](no_issue_body_frontmatter.md) — GitHub issue PRDs use native project fields for metadata; never add YAML frontmatter to issue bodies
+- [Skill boundary](skill_boundary.md) — .agents/skills are repo-build skills; root skills/ are Genfeed product content skills
+- [GPU instances off by default](gpu_instances_off_by_default.md) — Keep Genfeed GPU/Fleet inference instances off unless explicitly needed
+- [Inference servers private boundary](inference_servers_private_boundary.md) — Keep Genfeed inference server implementations out of the public monorepo
+- [GenfeedAI managed provider](genfeedai_managed_provider.md) — Model Genfeed-managed inference as provider=genfeedai, enabled per customer from console
+- [Console managed inference control plane](console_managed_inference_control_plane.md) — Private console owns Genfeed-managed Fleet/model/customer assignment
+- [Shared checkout automation](shared_checkout_automation.md) — Treat shared checkout state as moving; path-scope git add
+- [Genfeed project kanban](genfeed_project_kanban.md) — Use project #12 Genfeed.ai as canonical
+- [Positive memory framing](positive_memory_framing.md) — Write memory as target-state guidance with active sources of truth
+- [Epic status on child start](epic_status_on_child_start.md) — Move parent epics to In Progress as soon as a child starts
+- [Production deploys master-only](production_deploy_master_only.md) — Never deploy any non-master ref to production unless Vincent explicitly overrides; production deploys run from GitHub CI on master
 
 ## References
 
-- [MongoDB Atlas URI](reference_mongodb_atlas.md) — Atlas connection string for `cloud` DB
 - [Postgres RDS](reference_postgres_rds.md) — prod `genfeed-data` + dev `local-genfeedai` instances, sslmode gotcha, PrismaService env path
 - [Production AWS Runtime](reference_prod_aws_runtime.md) — live AWS source of truth: ECS/Fargate production, AL2023 EC2 stopped as rollback host, community deploy unaffected
 - [Production Fargate + Vercel webhook](reference_production_fargate_vercel_webhook.md) — live ECS service state, Vercel webhook receiver, Discord notification sink disabled, correct webhook reset scope
@@ -80,7 +81,7 @@
 - [PLG Boundary](architecture/ADR-PLG-BOUNDARY-OSS-CLOUD.md) — OSS vs cloud feature split
 - [Workflow-Backed Agents](architecture/ADR-WORKFLOW-BACKED-RECURRING-AGENT-AUTOMATION.md) — recurring agent automation
 - [Skills, Routines, and Memory Boundary](architecture/ADR-SKILLS-ROUTINES-MEMORY-BOUNDARY.md) — OSS single-player loop vs cloud collaborative governance
-- [Deployment Modes & Auth](architecture/ADR-DEPLOYMENT-MODES.md) — 3 product modes (SaaS/Community/Desktop) as `deployment × client` axes; legacy auth provider → Better Auth everywhere; brand-always/org-SaaS-only switcher; multi-tenancy = EE/SaaS; managed credits cloud-only; Community funnel charter. Epics #735, #740. (contributor doc: `docs/deployment-modes.md`)
+- [Deployment Modes & Auth](architecture/ADR-DEPLOYMENT-MODES.md) — 3 product modes (SaaS/Community/Desktop) as `deployment × client` axes; Better Auth everywhere; brand-always/org-SaaS-only switcher; multi-tenancy = EE/SaaS; managed credits cloud-only; Community funnel charter. Epics #735, #740. (contributor doc: `docs/deployment-modes.md`)
 
 ## Rules (symlinked to .claude/rules/)
 

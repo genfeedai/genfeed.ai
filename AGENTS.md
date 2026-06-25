@@ -84,11 +84,12 @@ bun run test --filter=@genfeedai/[changed-package]
 - Local markdown task files are not canonical backlog and should not be used for task tracking.
 - Do not create local task markdown files.
 
-## Release Branch Workflow
+## Trunk Workflow
 
-- Default promotion flow: `develop` → `staging` → `master`.
-- Do not open or merge PRs out of order.
-- Treat exceptions as temporary and user-directed.
+- `master` is the single trunk.
+- Create short-lived branches from `master`, then open PRs back to `master`.
+- Do not use `develop` or `staging` as promotion branches.
+- `staging` and `production` are deploy environments, not branch names.
 
 ## Documentation
 

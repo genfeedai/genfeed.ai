@@ -1,20 +1,13 @@
 ---
 name: Concurrent automation commits and pushes in this shared checkout
-description: A background automation (codex feature-impl + a deps-update bot) commits to HEAD and pushes the shared checkout; short-lived branches do not isolate it
+description: Shared checkout automation can move HEAD; path-scope staging and recheck git state
 type: feedback
 status: active
 last_verified: 2026-06-15
 topics: [workflow, git, automation, shared-checkout]
 ---
 
-**Observed:** 2026-06-03 (pre-trunk migration, against the then-`develop` branch).
-During an interactive session, a background automation repeatedly committed to
-whatever branch was checked out and pushed the shared mainline without the
-interactive agent acting. Commits seen interleaved with the agent's: `473613a00`
-(chore deps bump), `f1aa801f0` / `c8e441673` / `6c021339c` (feat UI Container
-integration, settings/sidebar). It also pushed the agent's local-only commits to
-origin as a side effect. The repo is now trunk-based (`master` is the single
-trunk, PR-only), but the shared-checkout contention pattern is durable.
+**Rule:** Treat a shared checkout as a moving target when background automation is active. Recheck git state before staging, committing, or pushing.
 
 **Why it matters:**
 - The shared checkout is actively contended. `git status` / `ahead/behind` shifts

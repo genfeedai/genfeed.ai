@@ -6,8 +6,8 @@ packaged Electron shell.
 ## Automated Gate
 
 - GitHub Actions workflow: `Desktop QA`.
-- Trigger: pull requests to `develop`, `staging`, or `master` when desktop,
-  embedded app shell, desktop package, root dependency, or workflow files change.
+- Trigger: desktop release tags, manual dispatch, and trunk PR/release gates that
+  call the reusable `Desktop QA` workflow.
 - Command: `bun run --filter=@genfeedai/desktop qa:release`.
 - Coverage: desktop lint, type-check, Bun/Vitest tests, native rebuild, packaged
   app-shell build, and Electron `--smoke-test` boot.

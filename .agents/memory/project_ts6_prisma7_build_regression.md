@@ -6,13 +6,13 @@ status: temporary
 last_verified: 2026-06-03
 ---
 
-**Status:** BUILD REGRESSION RESOLVED 2026-06-03 — develop CI fully green @
+**Status:** BUILD REGRESSION RESOLVED 2026-06-03 — CI fully green @
 `2e66b0aa8` (all 15 jobs incl. Build/Typecheck/Test Packages).
 
 **Actual root cause (corrects the breakdown below):** the `~2020 errors` were
-mostly **stale turbo cache + `dist/src` nesting from the `mv dist/src` hack**, not
+mostly **outdated turbo cache + `dist/src` nesting from the `mv dist/src` hack**, not
 real code. Under TS6.0 `tsc` emits flat to `dist/`, so the hack was a no-op that
-rewrote `dist/` after `.tsbuildinfo` was written → cached stale buildinfo → TS6305
+rewrote `dist/` after `.tsbuildinfo` was written → cached outdated buildinfo → TS6305
 cascade on cache replay. Fix: clean rebuild + **removed the `mv` hack from the 9
 composite packages** (busts poisoned cache via new task hash). The only **real**
 code errors were ~7 Prisma-7 `*Document` interface mismatches (nullable columns

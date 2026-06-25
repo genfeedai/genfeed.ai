@@ -18,16 +18,6 @@ const requiredSections = [
   },
 ];
 
-const releaseSummaryPhrases = [
-  'promote the latest',
-  'staging for integrated release validation',
-  'production release validation',
-  'keeps staging aligned',
-  'keeps master aligned',
-];
-
-const requiredReleaseSections = ['Summary', 'Validation'];
-
 function normalize(text) {
   return text.replace(/\r\n/g, '\n');
 }
@@ -43,7 +33,7 @@ function cleanSectionContent(text) {
 function getSectionContent(markdown, heading) {
   const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pattern = new RegExp(
-    `^## ${escapedHeading}\\s*$([\\s\\S]*?)(?=^##\\s+|\\Z)`,
+    `^## ${escapedHeading}\\s*$([\\s\\S]*?)(?=^##\\s+|(?![\\s\\S]))`,
     'im',
   );
   const match = markdown.match(pattern);
@@ -126,66 +116,6 @@ export function validatePullRequestBody(body) {
   return failures;
 }
 
-function isReleasePromotionPullRequest(event) {
-  const title = event.pull_request?.title ?? '';
-  const headRef = event.pull_request?.head?.ref ?? '';
-  const baseRef = event.pull_request?.base?.ref ?? '';
-
-  if (!title.startsWith('Release:')) {
-    return false;
-  }
-
-  return (
-    (headRef === 'develop' && baseRef === 'staging') ||
-    (headRef === 'staging' && baseRef === 'master')
-  );
-}
-
-function validateReleasePullRequestBody(body) {
-  const markdown = normalize(body);
-  const lines = cleanSectionContent(markdown);
-
-  if (lines.length === 0) {
-    return ['Release PR body must explain the promotion scope.'];
-  }
-
-  const sectionFailures = [];
-
-  for (const heading of requiredReleaseSections) {
-    const content = getSectionContent(markdown, heading);
-
-    if (content === null) {
-      sectionFailures.push(`Missing required release section: "${heading}"`);
-      continue;
-    }
-
-    const cleaned = cleanSectionContent(content);
-    if (!hasMeaningfulContent(cleaned)) {
-      sectionFailures.push(
-        `Release section "${heading}" is present but incomplete.`,
-      );
-    }
-  }
-
-  if (sectionFailures.length > 0) {
-    return sectionFailures;
-  }
-
-  const joined = lines.join('\n').toLowerCase();
-  const hasLegacySummary = releaseSummaryPhrases.some((phrase) =>
-    joined.includes(phrase),
-  );
-
-  return hasLegacySummary ||
-    requiredReleaseSections.every(
-      (heading) => getSectionContent(markdown, heading) !== null,
-    )
-    ? []
-    : [
-        'Release PR body must summarize the promotion scope and validation performed.',
-      ];
-}
-
 function parseArgs(argv) {
   const args = {
     bodyFile: undefined,
@@ -219,14 +149,7 @@ function loadBody({ bodyFile }) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const body = loadBody(args);
-  const eventPath = process.env.GITHUB_EVENT_PATH;
-  const event = eventPath
-    ? JSON.parse(readFileSync(eventPath, 'utf8'))
-    : undefined;
-  const failures =
-    event && isReleasePromotionPullRequest(event)
-      ? validateReleasePullRequestBody(body)
-      : validatePullRequestBody(body);
+  const failures = validatePullRequestBody(body);
 
   if (failures.length > 0) {
     console.error('PR governance check failed:');

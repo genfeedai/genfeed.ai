@@ -1,5 +1,5 @@
 ---
-name: feedback_end_to_end_implementation
+name: end_to_end_implementation
 description: Do not ship half-architecture; implement features end to end
 type: feedback
 status: active

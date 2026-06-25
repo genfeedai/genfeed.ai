@@ -20,7 +20,7 @@
 | `agent_input_requests` | AgentInputRequest | Pending/resolved user input requests |
 | `agent_profile_snapshots` | AgentProfileSnapshot | Agent config snapshot (tools, prompts, memory policy) |
 
-All on `DB_CONNECTIONS.AGENT` (separate MongoDB connection).
+All agent-threading records use the dedicated agent persistence connection.
 
 ## Event Types (19)
 

@@ -6,13 +6,11 @@ Thank you for your interest in contributing to Genfeed.ai!
 
 | Branch | Purpose | Who can push |
 |--------|---------|-------------|
-| `develop` | Community contributions land here | PRs from anyone |
-| `staging` | Pre-production testing | Maintainers only |
-| `master` | Production — deploys to Genfeed Cloud | Maintainers only |
+| `master` | Single trunk; production releases are cut from here | Maintainers only via PR |
 
-**Contributors:** Fork the repo and open PRs against `develop`.
+**Contributors:** Fork the repo and open PRs against `master`.
 
-**Maintainers:** Merge `develop` → `staging` → `master` when ready to deploy.
+**Maintainers:** Review and merge short-lived branches into `master` via PR. Do not use promotion branches.
 
 ### CI for External Contributors
 
@@ -21,7 +19,7 @@ To prevent abuse, CI does not run automatically on PRs from forks. A maintainer 
 ## Getting Started
 
 1. Fork the repository
-2. Create a feature branch from `develop`
+2. Create a feature branch from `master`
 3. Make your changes
 4. Run the narrowest relevant checks for the packages you changed:
    - `npx biome check --write .`
@@ -29,7 +27,7 @@ To prevent abuse, CI does not run automatically on PRs from forks. A maintainer 
    - `bunx turbo run type-check --filter=<changed-package>`
    - `bunx turbo run test --filter=<changed-package>`
    - Use the full repo baseline only when the change touches shared infrastructure or multiple packages.
-5. Submit a pull request against `develop`
+5. Submit a pull request against `master`
 
 ## Repository Structure
 

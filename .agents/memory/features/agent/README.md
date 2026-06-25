@@ -4,7 +4,7 @@ Last verified: 2026-04-07
 
 ## Overview
 
-The agent system is a multi-turn LLM chat orchestrator with tool execution, event sourcing, streaming, memory, and sub-agent delegation. It spans backend services, MongoDB collections, a shared tools package, and a React frontend package.
+The agent system is a multi-turn LLM chat orchestrator with tool execution, event sourcing, streaming, memory, and sub-agent delegation. It spans backend services, persistent agent records, a shared tools package, and a React frontend package.
 
 ## Documentation Index
 
@@ -12,7 +12,7 @@ The agent system is a multi-turn LLM chat orchestrator with tool execution, even
 |------|-------|
 | [ORCHESTRATOR.md](./ORCHESTRATOR.md) | Chat loop, tool dispatch, streaming, system prompt resolution |
 | [THREADING.md](./THREADING.md) | Event sourcing, snapshots, sessions, execution lanes |
-| [COLLECTIONS.md](./COLLECTIONS.md) | MongoDB schemas: threads, messages, runs, memories |
+| [COLLECTIONS.md](./COLLECTIONS.md) | Agent persistence records: threads, messages, runs, memories |
 | [TOOLS.md](./TOOLS.md) | Tool registry, executor, agent type configs, credits |
 | [FRONTEND.md](./FRONTEND.md) | React package: store, hooks, components, WebSocket events |
 

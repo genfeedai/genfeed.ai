@@ -1,4 +1,4 @@
-# Agent MongoDB Collections
+# Agent Persistence Records
 
 ## AgentRoom (Thread Metadata)
 

@@ -33,18 +33,20 @@ Pattern: `.agents/SESSIONS/YYYY-MM-DD.md`. Multiple sessions same day -> add to 
 
 ## Coding Violations
 
-### NEVER Skip Organization Multi-Tenancy (Enterprise Only)
+### Keep Organization Multi-Tenancy Guards (Enterprise Only)
 
-Multi-tenant data isolation is an enterprise feature (`ee/`). When working in `ee/packages/` or enterprise modules, every MongoDB query MUST include `{ organization: orgId, isDeleted: false }`. Security -- data MUST be isolated by organization.
+Multi-tenant data isolation is an enterprise feature (`ee/`). When working in `ee/packages/` or enterprise modules, every organization-scoped data access must include organization scope and `isDeleted: false`. Security -- data MUST be isolated by organization.
 
 For single-tenant self-hosted deployments, the default organization is used implicitly but the query pattern remains the same for forward compatibility.
 
 ```typescript
 // CORRECT
-return this.model.findOne({
-  _id: id,
-  organization: organizationId,
-  isDeleted: false,
+return prisma.resource.findFirst({
+  where: {
+    id,
+    organizationId,
+    isDeleted: false,
+  },
 });
 ```
 
@@ -60,24 +62,9 @@ Use `isDeleted: boolean`. `updatedAt` becomes the deletion timestamp.
 
 All interfaces go in `packages/props/` (component props) or `packages/interfaces/` (state/helpers). NEVER declare interfaces inline in component files.
 
-### NEVER Add Compound Indexes in Schema
+### Keep Compound Indexes In Prisma Schema Or Migrations
 
-Simple indexes via `@Prop` decorator. Compound indexes in module `useFactory`:
-
-```typescript
-@Module({
-  imports: [
-    MongooseModule.forFeatureAsync([{
-      name: Feature.name,
-      useFactory: () => {
-        const schema = FeatureSchema;
-        schema.index({ user: 1, isDeleted: 1 });
-        return schema;
-      },
-    }]),
-  ],
-})
-```
+Use Prisma schema indexes or explicit migrations for compound database indexes. Keep index definitions close to the model or migration that owns them.
 
 ### NEVER Forget isDeleted Filter
 
@@ -87,9 +74,9 @@ Without `isDeleted: false`, soft-deleted items appear in results.
 
 Every `useEffect` with async calls must use `AbortController` and clean up on unmount. See repo `CLAUDE.md` or `.agents/memory/system/CROSS-PROJECT-RULES.md` for the full pattern.
 
-### NEVER Return Raw Mongoose Documents
+### Serialize API Responses
 
-Always serialize: DB Document -> Serializer -> Client Response.
+Always serialize: DB record -> Serializer -> Client Response.
 
 ### NEVER Use Dynamic Imports in Type Definitions
 

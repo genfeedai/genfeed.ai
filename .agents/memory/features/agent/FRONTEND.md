@@ -235,7 +235,7 @@ AGENT_SIDEBAR_SLIDE_OFFSET_PX = 8
 
 **File:** `packages/hooks/utils/use-socket-manager/use-socket-manager.ts`
 
-Singleton `SocketManager` per auth token (legacy auth provider `getToken()`).
+Singleton `SocketManager` per Better Auth session token.
 
 **Hook returns:**
 ```typescript

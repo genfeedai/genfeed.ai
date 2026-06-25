@@ -46,7 +46,7 @@ Known Genfeed project IDs from the connected Vercel app / GitHub vars:
 - `chatgpt.genfeed.ai`: `prj_00kRv957hjA0QZvvRHKs6L0DaDRP`
 - `marketplace.genfeed.ai`: `prj_Ai18wq7yeWFy02jLGu0ulq1pfexS`
 
-As of 2026-06-18 only `ENABLE_WEBSITE_VERCEL_DEPLOY=true` is set in GitHub repo vars; docs has a project ID but no matching enable var listed. Avoid including stale app/admin/chatgpt/marketplace projects unless they are deliberately re-homed.
+As of 2026-06-18 only `ENABLE_WEBSITE_VERCEL_DEPLOY=true` is set in GitHub repo vars; docs has a project ID but no matching enable var listed. Use only Genfeed project IDs that are deliberately enabled for deployment notifications.
 
 ## Correct reset shape
 
