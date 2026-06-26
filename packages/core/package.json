@@ -5,10 +5,10 @@
   },
   "description": "Core utilities for Genfeed workflow engine",
   "devDependencies": {
-    "@vitest/coverage-v8": "4.1.8",
+    "@vitest/coverage-v8": "4.1.9",
     "tsup": "8.5.1",
     "typescript": "6.0.2",
-    "vitest": "4.1.8"
+    "vitest": "4.1.9"
   },
   "exports": {
     ".": {

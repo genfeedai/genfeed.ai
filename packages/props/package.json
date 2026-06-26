@@ -11,7 +11,7 @@
   },
   "description": "Shared prop and view-model contracts for Genfeed UI surfaces",
   "devDependencies": {
-    "vitest": "4.1.8"
+    "vitest": "4.1.9"
   },
   "exports": {
     "./*": "./*"

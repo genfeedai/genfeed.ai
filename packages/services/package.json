@@ -10,7 +10,7 @@
   },
   "description": "Shared client-facing services and orchestration helpers for Genfeed applications",
   "devDependencies": {
-    "vitest": "4.1.8"
+    "vitest": "4.1.9"
   },
   "exports": {
     "./*": "./*"

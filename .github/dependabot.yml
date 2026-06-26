@@ -1,11 +1,15 @@
 # Dependabot configuration
 #
-# Branch policy: trunk-based. Version updates open PRs against `master`.
+# Policy: SECURITY-ONLY. Routine dependency refreshes are done in one sweep with
+# `bun run deps:update` (npm-check-updates) and land via a single reviewed PR,
+# instead of a stream of per-package version-update PRs that only add CI noise.
 #
-# CAVEAT: Dependabot SECURITY updates ignore `target-branch` and always open
-# against the repository default branch (master). Bun security updates are not
-# yet supported by Dependabot (version updates only, GA 2025-02). Track upstream:
-# https://github.com/dependabot/dependabot-core/issues/6528
+# `open-pull-requests-limit: 0` disables version-update PRs for each ecosystem.
+# Dependabot SECURITY updates are NOT subject to that limit and still open against
+# the default branch (master) — that is the signal we actually want to see.
+#
+# Bun security updates are not yet supported by Dependabot (version updates only,
+# GA 2025-02). Track upstream: https://github.com/dependabot/dependabot-core/issues/6528
 version: 2
 
 updates:
@@ -18,26 +22,16 @@ updates:
       day: "monday"
       time: "06:00"
       timezone: "Europe/Paris"
-    open-pull-requests-limit: 10
+    # Security-only: no routine version-update PRs.
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "javascript"
+      - "security"
     commit-message:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
       include: "scope"
-    groups:
-      # Collapse low-risk bumps into one PR per group to cut review noise.
-      production-minor-patch:
-        dependency-type: "production"
-        update-types:
-          - "minor"
-          - "patch"
-      development-minor-patch:
-        dependency-type: "development"
-        update-types:
-          - "minor"
-          - "patch"
 
   # GitHub Actions — workflows in .github/workflows + composite actions.
   - package-ecosystem: "github-actions"
@@ -48,17 +42,14 @@ updates:
       day: "monday"
       time: "06:00"
       timezone: "Europe/Paris"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "github-actions"
+      - "security"
     commit-message:
       prefix: "chore(ci)"
       include: "scope"
-    groups:
-      actions-all:
-        patterns:
-          - "*"
 
   # Docker base images — docker/Dockerfile, Dockerfile.server, Dockerfile.selfhosted.
   - package-ecosystem: "docker"
@@ -69,10 +60,11 @@ updates:
       day: "monday"
       time: "06:00"
       timezone: "Europe/Paris"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "docker"
+      - "security"
     commit-message:
       prefix: "chore(docker)"
       include: "scope"

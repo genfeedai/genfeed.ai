@@ -1,8 +1,8 @@
 {
   "dependencies": {
-    "@anthropic-ai/sdk": "0.100.1",
-    "@aws-sdk/client-cloudfront": "3.1059.0",
-    "@aws-sdk/client-ec2": "3.1059.0",
+    "@anthropic-ai/sdk": "0.106.0",
+    "@aws-sdk/client-cloudfront": "3.1075.0",
+    "@aws-sdk/client-ec2": "3.1075.0",
     "@better-auth/infra": "0.3.2",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/constants": "workspace:*",
@@ -23,22 +23,22 @@
     "@prisma/adapter-pg": "7.8.0",
     "archiver": "8.0.0",
     "bcrypt": "6.0.0",
-    "better-auth": "^1.6.20",
+    "better-auth": "^1.6.21",
     "compression": "1.8.1",
     "cookie-parser": "1.4.7",
-    "effect": "3.21.2",
+    "effect": "3.21.4",
     "google-auth-library": "10.6.2",
     "jose": "^6.2.3",
     "jsonapi-serializer": "3.6.9",
     "jsonwebtoken": "9.0.3",
-    "multer": "2.1.1",
-    "openai": "6.41.0",
+    "multer": "2.2.0",
+    "openai": "6.45.0",
     "rss": "1.2.2",
     "twitter-text": "3.1.0"
   },
   "description": "Genfeed API Service",
   "devDependencies": {
-    "@nestjs/testing": "11.1.24",
+    "@nestjs/testing": "11.1.27",
     "@types/archiver": "7.0.0",
     "@types/bcrypt": "6.0.0",
     "@types/compression": "1.8.1",
@@ -51,7 +51,7 @@
     "@types/twitter-text": "3.1.10",
     "supertest": "^7.2.2",
     "unplugin-swc": "1.5.9",
-    "vitest": "4.1.8"
+    "vitest": "4.1.9"
   },
   "main": "../dist/apps/api/main.js",
   "name": "@genfeedai/api",

@@ -1,17 +1,17 @@
 {
   "dependencies": {
-    "next": "16.2.7",
+    "next": "16.2.9",
     "nextra": "4.6.1",
     "nextra-theme-docs": "4.6.1",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "swagger-ui-react": "5.32.6"
+    "swagger-ui-react": "5.32.8"
   },
   "description": "Genfeed.ai documentation site built with Nextra",
   "devDependencies": {
-    "@types/node": "25.9.1",
+    "@types/node": "26.0.1",
     "@types/react": "19.2.16",
-    "prettier": "3.8.3",
+    "prettier": "3.8.4",
     "typescript": "6.0.2"
   },
   "name": "@genfeedai/docs",
