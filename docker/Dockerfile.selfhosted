@@ -6,7 +6,7 @@
 # ==================================================
 # Stage 1: Base — system deps + runtime tools
 # ==================================================
-FROM node:24-bookworm-slim AS base
+FROM node:26-bookworm-slim AS base
 
 # Redis + tini.
 # ca-certificates is required for HTTPS (bun.sh install below): node:*-slim ships
