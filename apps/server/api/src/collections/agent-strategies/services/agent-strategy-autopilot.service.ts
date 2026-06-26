@@ -6,6 +6,7 @@ import { AgentStrategiesService } from '@api/collections/agent-strategies/servic
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { type ContentDraftDocument } from '@api/collections/content-drafts/schemas/content-draft.schema';
 import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
 import { ContentPerformanceService } from '@api/collections/content-performance/services/content-performance.service';
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
@@ -86,6 +87,18 @@ interface OptimizerAnalysisResult {
   overallScore?: number;
 }
 
+interface FinalizeOpportunityInput {
+  draft: ContentDraftDocument;
+  draftContent: string;
+  format: string;
+  gate: PublishGateResult;
+  opportunity: AgentStrategyOpportunityDocument;
+  organizationId: string;
+  platform: string;
+  strategy: AgentStrategyDocument;
+  userId: string;
+}
+
 @Injectable()
 export class AgentStrategyAutopilotService {
   private readonly defaultEventOpportunityCost = 12;
@@ -130,29 +143,21 @@ export class AgentStrategyAutopilotService {
     const strategy = await this.requireStrategy(strategyId, organizationId);
     const { periodEnd, periodStart } = this.resolveReportWindow('weekly');
 
+    const strategyBrandId = this.strategyBrandId(strategy);
+    const strategyOrganizationId = this.strategyOrganizationId(strategy);
+
     const [drafts, opportunities, performance, summary] = await Promise.all([
       this.contentDraftsService.find({
-        brandId:
-          (strategy as Record<string, unknown>).brandId ??
-          String(
-            (strategy as Record<string, unknown>).brandId ?? strategy.brand,
-          ),
+        brandId: strategyBrandId ?? String(strategy.brand),
         createdAt: { gte: periodStart, lte: periodEnd },
         isDeleted: false,
-        organizationId:
-          (strategy as Record<string, unknown>).organizationId ??
-          String(
-            (strategy as Record<string, unknown>).organizationId ??
-              strategy.organization,
-          ),
+        organizationId: strategyOrganizationId,
       }),
       this.opportunitiesService.listByStrategy(strategyId, organizationId),
       strategy.brand
         ? this.contentPerformanceService.queryPerformance(
             {
-              brand: String(
-                (strategy as Record<string, unknown>).brandId ?? strategy.brand,
-              ),
+              brand: String(strategyBrandId),
               endDate: periodEnd.toISOString(),
               limit: 250,
               startDate: periodStart.toISOString(),
@@ -162,16 +167,10 @@ export class AgentStrategyAutopilotService {
         : [],
       strategy.brand
         ? this.performanceSummaryService
-            .getWeeklySummary(
-              organizationId,
-              String(
-                (strategy as Record<string, unknown>).brandId ?? strategy.brand,
-              ),
-              {
-                endDate: periodEnd,
-                startDate: periodStart,
-              },
-            )
+            .getWeeklySummary(organizationId, String(strategyBrandId), {
+              endDate: periodEnd,
+              startDate: periodStart,
+            })
             .catch(() => null)
         : null,
     ]);
@@ -277,33 +276,23 @@ export class AgentStrategyAutopilotService {
           `Bias next runs toward ${pair.platform}/${pair.format} based on current performance.`,
       );
 
-    const strategyRecord = strategy as Record<string, unknown>;
     return this.reportsService.createReport({
       allocationChanges,
       bestPlatformFormatPairs: snapshot.bestPlatformFormatPairs,
       bestPostingWindows: snapshot.bestPostingWindows,
-      brandId:
-        strategyRecord.brandId ??
-        String((strategy as Record<string, unknown>).brandId ?? strategy.brand),
+      brandId: this.strategyBrandId(strategy) ?? String(strategy.brand),
       clicks: snapshot.clicks,
       costPerVisit: snapshot.costPerVisit,
       creditsSpent: snapshot.creditsSpent,
       ctr: snapshot.ctr,
       generatedCount: snapshot.generatedCount,
       impressions: snapshot.impressions,
-      organizationId:
-        strategyRecord.organizationId ??
-        String(
-          (strategy as Record<string, unknown>).organizationId ??
-            strategy.organization,
-        ),
+      organizationId: this.strategyOrganizationId(strategy),
       periodEnd,
       periodStart,
       publishedCount: snapshot.publishedCount,
       reportType,
-      strategyId:
-        strategyRecord.id ??
-        String((strategy as Record<string, unknown>).id ?? strategy._id),
+      strategyId: this.strategyId(strategy),
       topHooks: snapshot.topHooks,
       topTopics: snapshot.topTopics,
       visits: snapshot.visits,
@@ -395,8 +384,21 @@ export class AgentStrategyAutopilotService {
     return strategy;
   }
 
+  private documentId(entity: unknown): string {
+    const record = entity as Record<string, unknown>;
+    return String(record.id ?? record._id);
+  }
+
+  private opportunityId(opportunity: AgentStrategyOpportunityDocument): string {
+    return this.documentId(opportunity);
+  }
+
+  private draftId(draft: ContentDraftDocument): string {
+    return this.documentId(draft);
+  }
+
   private strategyId(strategy: AgentStrategyDocument): string {
-    return String((strategy as Record<string, unknown>).id ?? strategy._id);
+    return this.documentId(strategy);
   }
 
   private strategyOrganizationId(strategy: AgentStrategyDocument): string {
@@ -709,15 +711,13 @@ export class AgentStrategyAutopilotService {
     defaultModel?: string,
   ): Promise<{ contentGenerated: number; creditsUsed: number }> {
     const strategyOrganizationId = this.strategyOrganizationId(strategy);
-    const strategyBrandId = this.strategyBrandId(strategy);
     const targetPlatform = this.resolveOpportunityPlatform(
       strategy,
       opportunity,
     );
 
     await this.opportunitiesService.updateStatus(
-      ((opportunity as Record<string, unknown>).id as string) ??
-        String(opportunity._id),
+      this.opportunityId(opportunity),
       strategyOrganizationId,
       'generating',
     );
@@ -725,43 +725,20 @@ export class AgentStrategyAutopilotService {
     const format = opportunity.formatCandidates[0] ?? 'text';
 
     if (format === 'video') {
-      await this.opportunitiesService.updateStatus(
-        ((opportunity as Record<string, unknown>).id as string) ??
-          String(opportunity._id),
-        strategyOrganizationId,
-        'held',
-        {
-          decisionReason:
-            'Video opportunities remain draft-only until stronger evaluation and generation support lands.',
-        },
-      );
-      return { contentGenerated: 0, creditsUsed: 0 };
+      return this.handleVideoHold(opportunity, strategyOrganizationId);
     }
 
-    const generation = await this.contentGatewayService.processManualRequest(
-      strategyOrganizationId,
-      strategyBrandId ?? '',
-      format === 'image' ? 'image-generation' : 'content-writing',
-      format === 'image'
-        ? {
-            model: defaultModel,
-            prompt: this.buildImagePrompt(strategy, opportunity),
-            skillSlugs: this.strategySkillSlugs(strategy, ['image-generation']),
-          }
-        : {
-            model: defaultModel,
-            platform: targetPlatform,
-            skillSlugs: this.strategySkillSlugs(strategy, ['content-writing']),
-            topic: opportunity.topic,
-            variationsCount: 1,
-          },
-    );
-
-    const [draft] = generation.drafts;
+    const draft = await this.generateAutopilotDraft({
+      defaultModel,
+      format,
+      opportunity,
+      organizationId: strategyOrganizationId,
+      platform: targetPlatform,
+      strategy,
+    });
     if (!draft) {
       await this.opportunitiesService.updateStatus(
-        ((opportunity as Record<string, unknown>).id as string) ??
-          String(opportunity._id),
+        this.opportunityId(opportunity),
         strategyOrganizationId,
         'held',
         { decisionReason: 'No content draft was produced.' },
@@ -769,28 +746,13 @@ export class AgentStrategyAutopilotService {
       return { contentGenerated: 0, creditsUsed: 0 };
     }
 
-    const autopilotMetadata = {
-      ...((draft.metadata ?? {}) as Record<string, unknown>),
-      autopilotFormat: format,
-      autopilotOpportunityId: String(
-        (opportunity as Record<string, unknown>).id ?? opportunity._id,
-      ),
-      autopilotSourceType: opportunity.sourceType,
-      autopilotStrategyId: String(
-        (strategy as Record<string, unknown>).id ?? strategy._id,
-      ),
-      budgetCost: opportunity.estimatedCreditCost,
-      goalProfile: strategy.goalProfile,
-    };
+    const autopilotMetadata = await this.persistAutopilotMetadata({
+      draft,
+      format,
+      opportunity,
+      strategy,
+    });
     const draftContent = draft.content ?? '';
-
-    await this.contentDraftsService.patch(
-      ((draft as Record<string, unknown>).id as string) ??
-        String((draft as Record<string, unknown>).id ?? draft._id),
-      {
-        metadata: autopilotMetadata,
-      } as never,
-    );
 
     const gate = await this.evaluateDraft(
       strategy,
@@ -802,186 +764,356 @@ export class AgentStrategyAutopilotService {
     );
 
     if (gate.decision === 'revise' && format === 'text') {
-      const optimization = await this.optimizersService.optimizeContent(
-        {
-          content: draftContent,
-          contentType: 'caption',
-          goals: ['engagement', 'reach'],
-          platform: targetPlatform,
-        },
-        strategyOrganizationId,
-        userId,
-      );
-
-      await this.contentDraftsService.patch(
-        ((draft as Record<string, unknown>).id as string) ??
-          String((draft as Record<string, unknown>).id ?? draft._id),
-        {
-          content: optimization.optimized,
-          metadata: {
-            ...autopilotMetadata,
-            revisionInstructions: gate.revisionInstructions,
-          },
-        } as never,
-      );
-
-      const revisedGate = await this.evaluateDraft(
-        strategy,
-        strategyOrganizationId,
+      const revision = await this.reviseAndReEvaluate({
+        autopilotMetadata,
+        draft,
+        draftContent,
         format,
-        optimization.optimized,
-        undefined,
-        targetPlatform,
-      );
+        gate,
+        opportunity,
+        organizationId: strategyOrganizationId,
+        platform: targetPlatform,
+        strategy,
+        userId,
+      });
 
-      if (revisedGate.decision !== 'approved') {
-        await this.contentDraftsService.reject(
-          String((draft as Record<string, unknown>).id ?? draft._id),
-          strategyOrganizationId,
-          revisedGate.reasons.join(' '),
-        );
-        await this.opportunitiesService.updateStatus(
-          ((opportunity as Record<string, unknown>).id as string) ??
-            String(opportunity._id),
-          strategyOrganizationId,
-          'discarded',
-          { decisionReason: revisedGate.reasons.join(' ') },
-        );
-        return {
-          contentGenerated: 1,
-          creditsUsed: opportunity.estimatedCreditCost,
-        };
+      if (revision.terminal) {
+        return revision.result;
       }
     } else if (gate.decision !== 'approved') {
-      if (gate.decision === 'discard' || gate.decision === 'hold') {
-        await this.contentDraftsService.reject(
-          String((draft as Record<string, unknown>).id ?? draft._id),
-          strategyOrganizationId,
-          gate.reasons.join(' '),
-        );
+      return this.handleGateRejection({
+        draft,
+        gate,
+        opportunity,
+        organizationId: strategyOrganizationId,
+      });
+    }
+
+    return this.finalizeApprovalAndHandoff({
+      draft,
+      draftContent,
+      format,
+      gate,
+      opportunity,
+      organizationId: strategyOrganizationId,
+      platform: targetPlatform,
+      strategy,
+      userId,
+    });
+  }
+
+  private async generateAutopilotDraft(input: {
+    defaultModel?: string;
+    format: string;
+    opportunity: AgentStrategyOpportunityDocument;
+    organizationId: string;
+    platform: string;
+    strategy: AgentStrategyDocument;
+  }): Promise<ContentDraftDocument | undefined> {
+    const generation = await this.contentGatewayService.processManualRequest(
+      input.organizationId,
+      this.strategyBrandId(input.strategy) ?? '',
+      input.format === 'image' ? 'image-generation' : 'content-writing',
+      input.format === 'image'
+        ? {
+            model: input.defaultModel,
+            prompt: this.buildImagePrompt(input.strategy, input.opportunity),
+            skillSlugs: this.strategySkillSlugs(input.strategy, [
+              'image-generation',
+            ]),
+          }
+        : {
+            model: input.defaultModel,
+            platform: input.platform,
+            skillSlugs: this.strategySkillSlugs(input.strategy, [
+              'content-writing',
+            ]),
+            topic: input.opportunity.topic,
+            variationsCount: 1,
+          },
+    );
+
+    return generation.drafts[0];
+  }
+
+  private async persistAutopilotMetadata(input: {
+    draft: ContentDraftDocument;
+    format: string;
+    opportunity: AgentStrategyOpportunityDocument;
+    strategy: AgentStrategyDocument;
+  }): Promise<Record<string, unknown>> {
+    const metadata: Record<string, unknown> = {
+      ...((input.draft.metadata ?? {}) as Record<string, unknown>),
+      autopilotFormat: input.format,
+      autopilotOpportunityId: this.opportunityId(input.opportunity),
+      autopilotSourceType: input.opportunity.sourceType,
+      autopilotStrategyId: this.strategyId(input.strategy),
+      budgetCost: input.opportunity.estimatedCreditCost,
+      goalProfile: input.strategy.goalProfile,
+    };
+
+    await this.contentDraftsService.patch(this.draftId(input.draft), {
+      metadata,
+    } as never);
+
+    return metadata;
+  }
+
+  private async handleVideoHold(
+    opportunity: AgentStrategyOpportunityDocument,
+    organizationId: string,
+  ): Promise<{ contentGenerated: number; creditsUsed: number }> {
+    await this.opportunitiesService.updateStatus(
+      this.opportunityId(opportunity),
+      organizationId,
+      'held',
+      {
+        decisionReason:
+          'Video opportunities remain draft-only until stronger evaluation and generation support lands.',
+      },
+    );
+    return { contentGenerated: 0, creditsUsed: 0 };
+  }
+
+  private async reviseAndReEvaluate(input: {
+    autopilotMetadata: Record<string, unknown>;
+    draft: ContentDraftDocument;
+    draftContent: string;
+    format: string;
+    gate: PublishGateResult;
+    opportunity: AgentStrategyOpportunityDocument;
+    organizationId: string;
+    platform: string;
+    strategy: AgentStrategyDocument;
+    userId: string;
+  }): Promise<
+    | {
+        result: { contentGenerated: number; creditsUsed: number };
+        terminal: true;
       }
+    | { terminal: false }
+  > {
+    const draftId = this.draftId(input.draft);
+    const optimization = await this.optimizersService.optimizeContent(
+      {
+        content: input.draftContent,
+        contentType: 'caption',
+        goals: ['engagement', 'reach'],
+        platform: input.platform,
+      },
+      input.organizationId,
+      input.userId,
+    );
 
-      await this.opportunitiesService.updateStatus(
-        ((opportunity as Record<string, unknown>).id as string) ??
-          String(opportunity._id),
-        strategyOrganizationId,
-        gate.decision === 'hold' ? 'held' : 'discarded',
-        { decisionReason: gate.reasons.join(' ') },
+    await this.contentDraftsService.patch(draftId, {
+      content: optimization.optimized,
+      metadata: {
+        ...input.autopilotMetadata,
+        revisionInstructions: input.gate.revisionInstructions,
+      },
+    } as never);
+
+    const revisedGate = await this.evaluateDraft(
+      input.strategy,
+      input.organizationId,
+      input.format,
+      optimization.optimized,
+      undefined,
+      input.platform,
+    );
+
+    if (revisedGate.decision !== 'approved') {
+      await this.contentDraftsService.reject(
+        draftId,
+        input.organizationId,
+        revisedGate.reasons.join(' '),
       );
+      await this.opportunitiesService.updateStatus(
+        this.opportunityId(input.opportunity),
+        input.organizationId,
+        'discarded',
+        { decisionReason: revisedGate.reasons.join(' ') },
+      );
+      return {
+        result: {
+          contentGenerated: 1,
+          creditsUsed: input.opportunity.estimatedCreditCost,
+        },
+        terminal: true,
+      };
+    }
 
+    return { terminal: false };
+  }
+
+  private async handleGateRejection(input: {
+    draft: ContentDraftDocument;
+    gate: PublishGateResult;
+    opportunity: AgentStrategyOpportunityDocument;
+    organizationId: string;
+  }): Promise<{ contentGenerated: number; creditsUsed: number }> {
+    if (input.gate.decision === 'discard' || input.gate.decision === 'hold') {
+      await this.contentDraftsService.reject(
+        this.draftId(input.draft),
+        input.organizationId,
+        input.gate.reasons.join(' '),
+      );
+    }
+
+    await this.opportunitiesService.updateStatus(
+      this.opportunityId(input.opportunity),
+      input.organizationId,
+      input.gate.decision === 'hold' ? 'held' : 'discarded',
+      { decisionReason: input.gate.reasons.join(' ') },
+    );
+
+    return {
+      contentGenerated: 1,
+      creditsUsed: input.opportunity.estimatedCreditCost,
+    };
+  }
+
+  private async finalizeApprovalAndHandoff(
+    input: FinalizeOpportunityInput,
+  ): Promise<{ contentGenerated: number; creditsUsed: number }> {
+    if (input.format === 'text' && this.shouldAutoPublish(input.strategy)) {
+      return this.finalizeAutoPublish(input);
+    }
+
+    return this.finalizeManualReviewHandoff(input);
+  }
+
+  private async finalizeAutoPublish(
+    input: FinalizeOpportunityInput,
+  ): Promise<{ contentGenerated: number; creditsUsed: number }> {
+    const {
+      draftContent,
+      gate,
+      opportunity,
+      organizationId,
+      platform,
+      strategy,
+      userId,
+    } = input;
+    const draftId = this.draftId(input.draft);
+    const opportunityId = this.opportunityId(opportunity);
+
+    const publishResult = await this.publishTextDraft(
+      strategy,
+      draftId,
+      draftContent,
+      opportunity.platformCandidates,
+      userId,
+    );
+
+    if (publishResult.published) {
+      await this.opportunitiesService.updateStatus(
+        opportunityId,
+        organizationId,
+        'published',
+        {
+          decisionReason:
+            'Draft passed publish gate and was converted into pending posts.',
+        },
+      );
       return {
         contentGenerated: 1,
         creditsUsed: opportunity.estimatedCreditCost,
       };
     }
 
-    if (format === 'text' && this.shouldAutoPublish(strategy)) {
-      const publishResult = await this.publishTextDraft(
-        strategy,
-        String((draft as Record<string, unknown>).id ?? draft._id),
-        draftContent,
-        opportunity.platformCandidates,
-        userId,
-      );
+    await this.contentDraftsService.approve(draftId, organizationId, userId);
 
-      if (publishResult.published) {
-        await this.opportunitiesService.updateStatus(
-          ((opportunity as Record<string, unknown>).id as string) ??
-            String(opportunity._id),
-          strategyOrganizationId,
-          'published',
-          {
-            decisionReason:
-              'Draft passed publish gate and was converted into pending posts.',
-          },
-        );
-      } else {
-        await this.contentDraftsService.approve(
-          String((draft as Record<string, unknown>).id ?? draft._id),
-          strategyOrganizationId,
-          userId,
-        );
+    const reviewHandoff = await this.createPublishingInboxHandoff({
+      draftContent,
+      draftId,
+      format: this.resolveReviewBatchItemFormat(platform),
+      gate,
+      opportunity,
+      organizationId,
+      platform,
+      strategy,
+      userId,
+    });
 
-        const reviewHandoff = await this.createPublishingInboxHandoff({
-          draftContent,
-          draftId: String((draft as Record<string, unknown>).id ?? draft._id),
-          format: this.resolveReviewBatchItemFormat(targetPlatform),
-          gate,
-          opportunity,
-          organizationId: strategyOrganizationId,
-          platform: targetPlatform,
-          strategy,
-          userId,
-        });
+    await this.opportunitiesService.updateStatus(
+      opportunityId,
+      organizationId,
+      'approved',
+      {
+        decisionReason: reviewHandoff
+          ? `Draft passed publish gate but no connected credential was available, so it was handed off to publishing inbox batch ${reviewHandoff.batchId}.`
+          : 'Draft passed publish gate but no connected credential was available.',
+      },
+    );
 
-        await this.opportunitiesService.updateStatus(
-          ((opportunity as Record<string, unknown>).id as string) ??
-            String(opportunity._id),
-          strategyOrganizationId,
-          'approved',
-          {
-            decisionReason: reviewHandoff
-              ? `Draft passed publish gate but no connected credential was available, so it was handed off to publishing inbox batch ${reviewHandoff.batchId}.`
-              : 'Draft passed publish gate but no connected credential was available.',
-          },
-        );
-      }
-    } else {
-      await this.contentDraftsService.approve(
-        String((draft as Record<string, unknown>).id ?? draft._id),
-        strategyOrganizationId,
-        userId,
-      );
+    return {
+      contentGenerated: 1,
+      creditsUsed: opportunity.estimatedCreditCost,
+    };
+  }
 
-      const reviewHandoff =
-        format === 'image'
+  private async finalizeManualReviewHandoff(
+    input: FinalizeOpportunityInput,
+  ): Promise<{ contentGenerated: number; creditsUsed: number }> {
+    const {
+      draft,
+      draftContent,
+      format,
+      gate,
+      opportunity,
+      organizationId,
+      platform,
+      strategy,
+      userId,
+    } = input;
+    const draftId = this.draftId(draft);
+
+    await this.contentDraftsService.approve(draftId, organizationId, userId);
+
+    const reviewHandoff =
+      format === 'image'
+        ? await this.createPublishingInboxHandoff({
+            draftContent,
+            draftId,
+            format: ContentFormat.IMAGE,
+            gate,
+            mediaUrl: draft.mediaUrls?.[0],
+            opportunity,
+            organizationId,
+            platform,
+            strategy,
+            userId,
+          })
+        : format === 'text'
           ? await this.createPublishingInboxHandoff({
               draftContent,
-              draftId: String(
-                (draft as Record<string, unknown>).id ?? draft._id,
-              ),
-              format: ContentFormat.IMAGE,
+              draftId,
+              format: this.resolveReviewBatchItemFormat(platform),
               gate,
-              mediaUrl: draft.mediaUrls?.[0],
               opportunity,
-              organizationId: strategyOrganizationId,
-              platform: targetPlatform,
+              organizationId,
+              platform,
               strategy,
               userId,
             })
-          : format === 'text'
-            ? await this.createPublishingInboxHandoff({
-                draftContent,
-                draftId: String(
-                  (draft as Record<string, unknown>).id ?? draft._id,
-                ),
-                format: this.resolveReviewBatchItemFormat(targetPlatform),
-                gate,
-                opportunity,
-                organizationId: strategyOrganizationId,
-                platform: targetPlatform,
-                strategy,
-                userId,
-              })
-            : null;
+          : null;
 
-      await this.opportunitiesService.updateStatus(
-        ((opportunity as Record<string, unknown>).id as string) ??
-          String(opportunity._id),
-        strategyOrganizationId,
-        format === 'image' ? 'approved' : 'approved',
-        {
-          decisionReason:
-            format === 'image'
-              ? reviewHandoff
-                ? `Image passed quality gate and was handed off to publishing inbox batch ${reviewHandoff.batchId}.`
-                : 'Image passed quality gate and was approved for downstream review/publishing.'
-              : reviewHandoff
-                ? `Draft passed publish gate and was handed off to publishing inbox batch ${reviewHandoff.batchId}.`
-                : 'Draft passed publish gate and was approved.',
-        },
-      );
-    }
+    await this.opportunitiesService.updateStatus(
+      this.opportunityId(opportunity),
+      organizationId,
+      'approved',
+      {
+        decisionReason:
+          format === 'image'
+            ? reviewHandoff
+              ? `Image passed quality gate and was handed off to publishing inbox batch ${reviewHandoff.batchId}.`
+              : 'Image passed quality gate and was approved for downstream review/publishing.'
+            : reviewHandoff
+              ? `Draft passed publish gate and was handed off to publishing inbox batch ${reviewHandoff.batchId}.`
+              : 'Draft passed publish gate and was approved.',
+      },
+    );
 
     return {
       contentGenerated: 1,
@@ -1153,14 +1285,8 @@ export class AgentStrategyAutopilotService {
             opportunityTopic: input.opportunity.topic,
             platform: input.platform,
             prompt: input.draftContent,
-            sourceActionId: String(
-              (input.opportunity as Record<string, unknown>).id ??
-                input.opportunity._id,
-            ),
-            sourceWorkflowId: String(
-              (input.strategy as Record<string, unknown>).id ??
-                input.strategy._id,
-            ),
+            sourceActionId: this.opportunityId(input.opportunity),
+            sourceWorkflowId: this.strategyId(input.strategy),
             sourceWorkflowName: input.strategy.label ?? undefined,
           },
         ],
@@ -1286,9 +1412,7 @@ export class AgentStrategyAutopilotService {
 
     for (const platform of platforms) {
       const credential = await this.credentialsService.findOne({
-        brandId:
-          (strategy as Record<string, unknown>).brandId ??
-          String(strategy.brand),
+        brandId: this.strategyBrandId(strategy) ?? String(strategy.brand),
         isConnected: true,
         isDeleted: false,
         organizationId: this.strategyOrganizationId(strategy),
@@ -1302,9 +1426,7 @@ export class AgentStrategyAutopilotService {
       const post = await this.postsService.create({
         brandId: String(this.strategyBrandId(strategy)),
         category: PostCategory.TEXT,
-        credentialId: String(
-          (credential as Record<string, unknown>).id ?? credential._id,
-        ),
+        credentialId: this.documentId(credential),
         description: content,
         organizationId: this.strategyOrganizationId(strategy),
         platform: credential.platform,
@@ -1313,9 +1435,7 @@ export class AgentStrategyAutopilotService {
         userId: userId,
       } as never);
 
-      createdPostIds.push(
-        String((post as Record<string, unknown>).id ?? post._id),
-      );
+      createdPostIds.push(this.documentId(post));
     }
 
     if (createdPostIds.length > 0) {
