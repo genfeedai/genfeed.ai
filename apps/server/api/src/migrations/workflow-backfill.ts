@@ -37,12 +37,20 @@ async function main(): Promise<void> {
   }
 }
 
-void main().catch((error: unknown) => {
-  bootstrapLogger.error(
-    'Workflow backfill migration failed',
-    error instanceof Error ? error.stack : String(error),
-  );
-  process.exit(1);
-});
+void main()
+  .then(() => {
+    // Force a clean exit after app.close(). Lingering handles (DB pools, timers)
+    // would otherwise keep this one-off ECS task alive until the 20-minute deploy
+    // deadline, marking a successful backfill as a failed deploy. Sibling
+    // entrypoints (main.ts boot-smoke) exit explicitly for the same reason.
+    process.exit(0);
+  })
+  .catch((error: unknown) => {
+    bootstrapLogger.error(
+      'Workflow backfill migration failed',
+      error instanceof Error ? error.stack : String(error),
+    );
+    process.exit(1);
+  });
 
 setupGracefulShutdown();

@@ -324,11 +324,14 @@ async function ensureDefaultBundle(params: {
       if (!existing.isScheduleEnabled) {
         changedTypes.push(contentType);
         if (!params.dryRun) {
+          // Re-enable only flips the schedule flag, matching
+          // DefaultRecurringContentService.ensureDefaultBundle. Never overwrite
+          // schedule/timezone here: this runs as a production backfill over
+          // existing rows, and an owner who customized then paused a workflow
+          // must keep their customizations on re-enable.
           await params.prisma.workflow.update({
             data: {
               isScheduleEnabled: true,
-              schedule: DEFAULT_RECURRING_SCHEDULE,
-              timezone,
             },
             where: { id: existing.id },
           });

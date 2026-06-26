@@ -61,10 +61,8 @@ export class WorkflowDeploymentBackfillService {
         );
       } catch (error: unknown) {
         orgFailures += 1;
-        this.logger.error('Failed to backfill organization workflows', {
-          error: error instanceof Error ? error.message : String(error),
+        this.logger.error('Failed to backfill organization workflows', error, {
           organizationId: organization.id,
-          stack: error instanceof Error ? error.stack : undefined,
         });
       }
     }
@@ -100,12 +98,14 @@ export class WorkflowDeploymentBackfillService {
         });
       } catch (error: unknown) {
         brandFailures += 1;
-        this.logger.error('Failed to backfill default recurring workflows', {
-          brandId: brand.id,
-          error: error instanceof Error ? error.message : String(error),
-          organizationId: brand.organizationId,
-          stack: error instanceof Error ? error.stack : undefined,
-        });
+        this.logger.error(
+          'Failed to backfill default recurring workflows',
+          error,
+          {
+            brandId: brand.id,
+            organizationId: brand.organizationId,
+          },
+        );
       }
     }
 
@@ -135,10 +135,10 @@ export class WorkflowDeploymentBackfillService {
         ...legacyCronReport,
         failed: legacyCronReport.failed + 1,
       };
-      this.logger.error('Failed to migrate legacy cron jobs to workflows', {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
+      this.logger.error(
+        'Failed to migrate legacy cron jobs to workflows',
+        error,
+      );
     }
 
     const report: WorkflowDeploymentBackfillReport = {
