@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { AdminAnnouncementsService } from '@api/endpoints/admin/announcements/announcements.service';
 import { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
@@ -26,7 +27,7 @@ import type { Request } from 'express';
 
 @ApiTags('Admin / Announcements')
 @Controller('admin/announcements')
-@UseGuards(IpWhitelistGuard)
+@UseGuards(IpWhitelistGuard, SuperAdminGuard)
 export class AnnouncementsController {
   constructor(
     private readonly adminAnnouncementsService: AdminAnnouncementsService,

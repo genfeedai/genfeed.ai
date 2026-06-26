@@ -1,3 +1,4 @@
+import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { AiInfluencerService } from '@api/services/ai-influencer/ai-influencer.service';
@@ -20,7 +21,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Admin / AI Influencer')
 @Controller('admin/ai-influencer')
-@UseGuards(IpWhitelistGuard)
+@UseGuards(IpWhitelistGuard, SuperAdminGuard)
 export class AiInfluencerController {
   constructor(
     private readonly aiInfluencerService: AiInfluencerService,

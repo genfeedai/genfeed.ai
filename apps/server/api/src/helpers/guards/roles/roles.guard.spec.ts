@@ -64,6 +64,24 @@ describe('RolesGuard', () => {
     );
   });
 
+  it('denies organization admins when a route requires platform superadmin', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue(['superadmin']);
+
+    const organizationId = 'b13yktd0f1e38me3f55swu0n';
+    const userId = 'hkh2jbovtpcsrzw3oyxr11oj';
+    const context = createContext({
+      publicMetadata: {
+        isSuperAdmin: false,
+        organization: organizationId,
+        role: 'admin',
+        user: userId,
+      },
+    });
+
+    await expect(guard.canActivate(context)).rejects.toThrow(HttpException);
+    expect(mockMembersService.findOne).not.toHaveBeenCalled();
+  });
+
   it('throws forbidden when organization context exists but user metadata is invalid', async () => {
     vi.spyOn(reflector, 'get').mockReturnValue(undefined);
 

@@ -1,3 +1,5 @@
+import type { PlatformRole } from '@genfeedai/enums';
+
 export interface IBetterAuthJwksVerifierOptions {
   audience: string;
   issuer: string;
@@ -8,7 +10,7 @@ export interface IBetterAuthJwtUserPayloadSource {
   id?: string;
   email?: string | null;
   name?: string | null;
-  isSuperAdmin?: boolean;
+  platformRole?: PlatformRole | null;
 }
 
 export interface IBetterAuthVerifiedClaims {

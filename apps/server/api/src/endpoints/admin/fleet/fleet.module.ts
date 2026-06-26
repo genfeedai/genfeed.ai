@@ -7,6 +7,7 @@ import { ModelRegistrationService } from '@api/collections/models/services/model
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PersonasModule } from '@api/collections/personas/personas.module';
 import { TrainingsModule } from '@api/collections/trainings/trainings.module';
+import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { AdminFleetController } from '@api/endpoints/admin/fleet/fleet.controller';
 import { AdminFleetService } from '@api/endpoints/admin/fleet/fleet.service';
 import { AdminFleetAssetService } from '@api/endpoints/admin/fleet/services/fleet-asset.service';
@@ -65,6 +66,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AdminFleetTrainingService,
     IpWhitelistGuard,
     ModelRegistrationService,
+    SuperAdminGuard,
   ],
 })
 export class AdminFleetModule {}

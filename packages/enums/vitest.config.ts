@@ -5,6 +5,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: '@genfeedai/enums',
+        replacement: path.resolve(__dirname, 'src/index.ts'),
+      },
+      {
         find: '@genfeedai/constants',
         replacement: path.resolve(__dirname, '../constants/src/index.ts'),
       },

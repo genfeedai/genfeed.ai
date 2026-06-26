@@ -14,7 +14,7 @@ export class UserEntity extends BaseEntity implements User {
   // Better Auth (epic #735) — first-party identity columns on the User model.
   declare readonly name: string | null;
   declare readonly emailVerified: boolean;
-  declare readonly isSuperAdmin: boolean;
+  declare readonly platformRole: User['platformRole'];
 
   declare readonly isInvited: boolean;
 

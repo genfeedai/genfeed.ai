@@ -29,9 +29,9 @@ export interface IBetterAuthJwtClaims {
 
 /**
  * Genfeed identity resolved from a verified Better Auth JWT. Mirrors the subset
- * of `IAuthPublicMetadata` that `RequestContextMiddleware` reads; subscription
- * tier / status are filled by the middleware from the DB, so they are not
- * resolved here.
+ * of `IAuthPublicMetadata` that `RequestContextMiddleware` reads. The
+ * compatibility `isSuperAdmin` boolean is derived from the persisted platform
+ * role; subscription tier / status are filled by the middleware from the DB.
  */
 export interface IBetterAuthResolvedIdentity {
   userId: string;

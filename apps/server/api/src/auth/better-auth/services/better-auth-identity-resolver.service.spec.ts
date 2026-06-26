@@ -34,12 +34,16 @@ describe('BetterAuthIdentityResolverService', () => {
     await expect(resolver.resolve('missing')).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
+    expect(usersService.findOne).toHaveBeenCalledWith(
+      { _id: 'missing', isDeleted: false },
+      [],
+    );
   });
 
-  it('resolves the owner organization and its first brand, carrying isSuperAdmin', async () => {
+  it('resolves the owner organization and its first brand, deriving isSuperAdmin from the platform role', async () => {
     usersService.findOne.mockResolvedValue({
       id: 'user_1',
-      isSuperAdmin: true,
+      platformRole: 'SUPERADMIN',
     });
     organizationsService.findOne.mockResolvedValue({ id: 'org_1' });
     brandsService.findOne.mockResolvedValue({ id: 'brand_1' });
@@ -55,6 +59,36 @@ describe('BetterAuthIdentityResolverService', () => {
     expect(organizationsService.findOne).toHaveBeenCalledWith({
       isDeleted: false,
       user: 'user_1',
+    });
+    expect(usersService.findOne).toHaveBeenCalledWith(
+      { _id: 'user_1', isDeleted: false },
+      [],
+    );
+  });
+
+  it('does not treat organization admins as platform superadmins', async () => {
+    usersService.findOne.mockResolvedValue({
+      id: 'user_org_admin',
+      platformRole: 'USER',
+    });
+    membersService.find.mockResolvedValue([
+      {
+        organizationId: 'org_admin',
+        role: { key: 'admin' },
+      },
+    ]);
+    organizationsService.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'org_admin' });
+    brandsService.findOne.mockResolvedValue({ id: 'brand_admin' });
+
+    const identity = await resolver.resolve('user_org_admin');
+
+    expect(identity).toEqual({
+      brandId: 'brand_admin',
+      isSuperAdmin: false,
+      organizationId: 'org_admin',
+      userId: 'user_org_admin',
     });
   });
 

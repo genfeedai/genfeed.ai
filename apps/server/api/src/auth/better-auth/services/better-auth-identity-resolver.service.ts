@@ -4,8 +4,8 @@ import { MembersService } from '@api/collections/members/services/members.servic
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-
 import type { IBetterAuthResolvedIdentity } from '../better-auth.types';
+import { isPlatformSuperAdmin } from '../better-auth-access.util';
 
 function getRecordId(
   record: Record<string, unknown> | null | undefined,
@@ -49,7 +49,10 @@ export class BetterAuthIdentityResolverService {
   ) {}
 
   async resolve(userId: string): Promise<IBetterAuthResolvedIdentity> {
-    const user = await this.usersService.findOne({ _id: userId }, []);
+    const user = await this.usersService.findOne(
+      { _id: userId, isDeleted: false },
+      [],
+    );
     const userRecord = user as Record<string, unknown> | null | undefined;
     const resolvedUserId = getEntityId(userRecord);
 
@@ -57,7 +60,7 @@ export class BetterAuthIdentityResolverService {
       throw new UnauthorizedException('User account not found');
     }
 
-    const isSuperAdmin = userRecord?.isSuperAdmin === true;
+    const isSuperAdmin = isPlatformSuperAdmin(userRecord?.platformRole);
     const lastUsedOrganizationId = getRecordId(
       userRecord,
       'lastUsedOrganizationId',

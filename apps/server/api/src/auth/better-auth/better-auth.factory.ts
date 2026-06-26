@@ -4,9 +4,9 @@ import type { IBetterAuthJwtUserPayloadSource } from '@genfeedai/interfaces';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { jwt, magicLink } from 'better-auth/plugins';
-
 import { BETTER_AUTH_BASE_PATH } from './better-auth.constants';
 import type { ICreateBetterAuthOptions } from './better-auth.types';
+import { isPlatformSuperAdmin } from './better-auth-access.util';
 
 function getString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
@@ -41,12 +41,27 @@ export async function resolveBetterAuthJwtOrganizationId(
   prisma: ICreateBetterAuthOptions['prisma'],
   userId: string,
 ): Promise<string | undefined> {
-  const user = await prisma.user.findUnique({
+  const user = await prisma.user.findFirst({
     select: { lastUsedOrganizationId: true },
-    where: { id: userId },
+    where: { id: userId, isDeleted: false },
   });
+  if (!user) {
+    return undefined;
+  }
 
-  const lastUsedOrganizationId = getString(user?.lastUsedOrganizationId);
+  return resolveBetterAuthJwtOrganizationIdFromLastUsed(
+    prisma,
+    userId,
+    user?.lastUsedOrganizationId,
+  );
+}
+
+async function resolveBetterAuthJwtOrganizationIdFromLastUsed(
+  prisma: ICreateBetterAuthOptions['prisma'],
+  userId: string,
+  lastUsedOrganizationIdValue: unknown,
+): Promise<string | undefined> {
+  const lastUsedOrganizationId = getString(lastUsedOrganizationIdValue);
   if (lastUsedOrganizationId) {
     const activeOrganization = await prisma.organization.findFirst({
       select: { id: true },
@@ -96,6 +111,40 @@ export async function resolveBetterAuthJwtOrganizationId(
   });
 
   return getString(membership?.organizationId);
+}
+
+export async function resolveBetterAuthJwtAccess(
+  prisma: ICreateBetterAuthOptions['prisma'],
+  userId: string,
+): Promise<{ isSuperAdmin: boolean; organizationId?: string }> {
+  const user = await prisma.user.findFirst({
+    select: { lastUsedOrganizationId: true, platformRole: true },
+    where: { id: userId, isDeleted: false },
+  });
+  if (!user) {
+    return { isSuperAdmin: false };
+  }
+
+  const isSuperAdmin = isPlatformSuperAdmin(user?.platformRole);
+  const organizationId = await resolveBetterAuthJwtOrganizationIdFromLastUsed(
+    prisma,
+    userId,
+    user?.lastUsedOrganizationId,
+  );
+
+  return organizationId ? { isSuperAdmin, organizationId } : { isSuperAdmin };
+}
+
+export async function resolveBetterAuthJwtIsSuperAdmin(
+  prisma: ICreateBetterAuthOptions['prisma'],
+  userId: string,
+): Promise<boolean> {
+  const user = await prisma.user.findFirst({
+    select: { platformRole: true },
+    where: { id: userId, isDeleted: false },
+  });
+
+  return isPlatformSuperAdmin(user?.platformRole);
 }
 
 /**
@@ -199,14 +248,15 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
           definePayload: async ({ user }) => {
             const typed = user as unknown as IBetterAuthJwtUserPayloadSource;
             const userId = getString(typed.id);
-            const organizationId = userId
-              ? await resolveBetterAuthJwtOrganizationId(prisma, userId)
-              : undefined;
+            const access: { isSuperAdmin: boolean; organizationId?: string } =
+              userId
+                ? await resolveBetterAuthJwtAccess(prisma, userId)
+                : { isSuperAdmin: false };
             return {
               email: typed.email ?? undefined,
               name: typed.name ?? undefined,
-              organizationId,
-              isSuperAdmin: typed.isSuperAdmin === true,
+              organizationId: access.organizationId,
+              isSuperAdmin: access.isSuperAdmin,
             };
           },
         },

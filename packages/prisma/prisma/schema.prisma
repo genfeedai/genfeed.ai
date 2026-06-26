@@ -479,6 +479,11 @@ enum BatchStatus {
   FAILED
 }
 
+enum PlatformRole {
+  USER
+  SUPERADMIN
+}
+
 // ═══════════════════════════════════════════════════════════════
 // CORE IDENTITY — The ownership chain
 // User → Organization → Brand → Member
@@ -494,13 +499,11 @@ model User {
   email                    String?         @unique
   avatar                   String?
   // Better Auth (epic #735, dual-run beside legacy auth provider). `name`/`emailVerified` are
-  // the BA core user fields (BA `image` maps onto `avatar` above via config);
-  // `isSuperAdmin` moves the super-admin flag off legacy auth provider publicMetadata into the
-  // DB so it survives the legacy auth provider cutover. All nullable/defaulted so the migration
-  // applies cleanly over existing rows.
+  // the BA core user fields (BA `image` maps onto `avatar` above via config).
+  // Platform access is explicit and separate from organization/member roles.
   name                     String?
   emailVerified            Boolean         @default(false)
-  isSuperAdmin             Boolean         @default(false)
+  platformRole             PlatformRole    @default(USER)
   isDefault                Boolean         @default(false)
   isDeleted                Boolean         @default(false)
   isInvited                Boolean         @default(false)

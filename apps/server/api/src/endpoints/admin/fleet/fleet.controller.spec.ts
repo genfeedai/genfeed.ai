@@ -21,6 +21,7 @@ vi.mock('@api/helpers/utils/objectid/objectid.util', () => ({
 }));
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import {
   BulkEc2ActionDto,
   CloudFrontInvalidateDto,
@@ -35,9 +36,11 @@ import {
 } from '@api/endpoints/admin/fleet/dto';
 import { AdminFleetController } from '@api/endpoints/admin/fleet/fleet.controller';
 import { AdminFleetService } from '@api/endpoints/admin/fleet/fleet.service';
+import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import type { Request } from 'express';
 
 describe('AdminFleetController', () => {
@@ -110,6 +113,12 @@ describe('AdminFleetController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('requires IP whitelist and platform superadmin guards', () => {
+    const guards = Reflect.getMetadata(GUARDS_METADATA, AdminFleetController);
+
+    expect(guards).toEqual([IpWhitelistGuard, SuperAdminGuard]);
   });
 
   describe('Characters', () => {

@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { resolveBetterAuthJwtOrganizationId } from './better-auth.factory';
+import {
+  resolveBetterAuthJwtAccess,
+  resolveBetterAuthJwtIsSuperAdmin,
+  resolveBetterAuthJwtOrganizationId,
+} from './better-auth.factory';
 import type { ICreateBetterAuthOptions } from './better-auth.types';
 
 type PrismaForBetterAuth = ICreateBetterAuthOptions['prisma'];
@@ -13,7 +17,7 @@ function createPrismaMock() {
       findFirst: vi.fn(),
     },
     user: {
-      findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
   };
 }
@@ -21,7 +25,7 @@ function createPrismaMock() {
 describe('resolveBetterAuthJwtOrganizationId', () => {
   it('prefers lastUsedOrganizationId when the user can access it', async () => {
     const prisma = createPrismaMock();
-    prisma.user.findUnique.mockResolvedValue({
+    prisma.user.findFirst.mockResolvedValue({
       lastUsedOrganizationId: 'org_active',
     });
     prisma.organization.findFirst.mockResolvedValue({ id: 'org_active' });
@@ -33,6 +37,10 @@ describe('resolveBetterAuthJwtOrganizationId', () => {
       ),
     ).resolves.toBe('org_active');
 
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      select: { lastUsedOrganizationId: true },
+      where: { id: 'user_1', isDeleted: false },
+    });
     expect(prisma.organization.findFirst).toHaveBeenCalledWith({
       select: { id: true },
       where: {
@@ -57,7 +65,7 @@ describe('resolveBetterAuthJwtOrganizationId', () => {
 
   it('falls back to an owned organization when lastUsedOrganizationId is inaccessible', async () => {
     const prisma = createPrismaMock();
-    prisma.user.findUnique.mockResolvedValue({
+    prisma.user.findFirst.mockResolvedValue({
       lastUsedOrganizationId: 'org_stale',
     });
     prisma.organization.findFirst
@@ -83,7 +91,7 @@ describe('resolveBetterAuthJwtOrganizationId', () => {
 
   it('falls back to an active membership organization when the user owns none', async () => {
     const prisma = createPrismaMock();
-    prisma.user.findUnique.mockResolvedValue({
+    prisma.user.findFirst.mockResolvedValue({
       lastUsedOrganizationId: null,
     });
     prisma.organization.findFirst.mockResolvedValue(null);
@@ -112,7 +120,7 @@ describe('resolveBetterAuthJwtOrganizationId', () => {
 
   it('returns undefined when no accessible organization exists', async () => {
     const prisma = createPrismaMock();
-    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.user.findFirst.mockResolvedValue(null);
     prisma.organization.findFirst.mockResolvedValue(null);
     prisma.member.findFirst.mockResolvedValue(null);
 
@@ -122,5 +130,84 @@ describe('resolveBetterAuthJwtOrganizationId', () => {
         'user_4',
       ),
     ).resolves.toBeUndefined();
+
+    expect(prisma.organization.findFirst).not.toHaveBeenCalled();
+    expect(prisma.member.findFirst).not.toHaveBeenCalled();
+  });
+});
+
+describe('resolveBetterAuthJwtIsSuperAdmin', () => {
+  it('derives signed superadmin compatibility claims from platformRole', async () => {
+    const prisma = createPrismaMock();
+    prisma.user.findFirst.mockResolvedValue({
+      platformRole: 'SUPERADMIN',
+    });
+
+    await expect(
+      resolveBetterAuthJwtIsSuperAdmin(
+        prisma as unknown as PrismaForBetterAuth,
+        'user_superadmin',
+      ),
+    ).resolves.toBe(true);
+
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      select: { platformRole: true },
+      where: { id: 'user_superadmin', isDeleted: false },
+    });
+  });
+
+  it('does not grant superadmin for default platform users', async () => {
+    const prisma = createPrismaMock();
+    prisma.user.findFirst.mockResolvedValue({
+      platformRole: 'USER',
+    });
+
+    await expect(
+      resolveBetterAuthJwtIsSuperAdmin(
+        prisma as unknown as PrismaForBetterAuth,
+        'user_org_admin',
+      ),
+    ).resolves.toBe(false);
+  });
+});
+
+describe('resolveBetterAuthJwtAccess', () => {
+  it('resolves active organization and superadmin compatibility from one user lookup', async () => {
+    const prisma = createPrismaMock();
+    prisma.user.findFirst.mockResolvedValue({
+      lastUsedOrganizationId: 'org_active',
+      platformRole: 'SUPERADMIN',
+    });
+    prisma.organization.findFirst.mockResolvedValue({ id: 'org_active' });
+
+    await expect(
+      resolveBetterAuthJwtAccess(
+        prisma as unknown as PrismaForBetterAuth,
+        'user_superadmin',
+      ),
+    ).resolves.toEqual({
+      isSuperAdmin: true,
+      organizationId: 'org_active',
+    });
+
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      select: { lastUsedOrganizationId: true, platformRole: true },
+      where: { id: 'user_superadmin', isDeleted: false },
+    });
+  });
+
+  it('fails closed when the user is missing or soft-deleted', async () => {
+    const prisma = createPrismaMock();
+    prisma.user.findFirst.mockResolvedValue(null);
+
+    await expect(
+      resolveBetterAuthJwtAccess(
+        prisma as unknown as PrismaForBetterAuth,
+        'user_deleted',
+      ),
+    ).resolves.toEqual({ isSuperAdmin: false });
+
+    expect(prisma.organization.findFirst).not.toHaveBeenCalled();
+    expect(prisma.member.findFirst).not.toHaveBeenCalled();
   });
 });
