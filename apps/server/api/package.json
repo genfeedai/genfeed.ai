@@ -38,7 +38,7 @@
   },
   "description": "Genfeed API Service",
   "devDependencies": {
-    "@nestjs/testing": "11.1.24",
+    "@nestjs/testing": "11.1.27",
     "@types/archiver": "7.0.0",
     "@types/bcrypt": "6.0.0",
     "@types/compression": "1.8.1",
@@ -51,7 +51,7 @@
     "@types/twitter-text": "3.1.10",
     "supertest": "^7.2.2",
     "unplugin-swc": "1.5.9",
-    "vitest": "4.1.8"
+    "vitest": "4.1.9"
   },
   "main": "../dist/apps/api/main.js",
   "name": "@genfeedai/api",

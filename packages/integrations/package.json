@@ -5,7 +5,7 @@
   "description": "Shared types and utilities for platform integrations",
   "devDependencies": {
     "@types/node": "25.9.1",
-    "typescript": "6.0.2"
+    "typescript": "6.0.3"
   },
   "exports": {
     "./ads": {
