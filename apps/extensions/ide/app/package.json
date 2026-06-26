@@ -301,7 +301,7 @@
   },
   "dependencies": {
     "@genfeedai/ui": "workspace:*",
-    "@sentry/node": "10.56.0"
+    "@sentry/node": "10.61.0"
   },
   "description": "Content copilot for Genfeed.ai campaigns in VS Code/Cursor",
   "devDependencies": {
