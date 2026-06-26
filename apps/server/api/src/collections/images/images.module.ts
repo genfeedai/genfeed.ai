@@ -12,6 +12,7 @@ import { ImagesOperationsController } from '@api/collections/images/controllers/
 import { ImagesRelationshipsController } from '@api/collections/images/controllers/relationships/images-relationships.controller';
 import { ImagesTransformationsController } from '@api/collections/images/controllers/transformations/images-transformations.controller';
 import { ImagesUploadsController } from '@api/collections/images/controllers/upload/images-uploads.controller';
+import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -89,6 +90,7 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   providers: [
     ImagesService,
+    ImageGenerationService,
     ModelRegistrationService,
     CreditsGuard,
     ModelsGuard,

@@ -40,6 +40,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { ImagesOperationsController } from '@api/collections/images/controllers/operations/images-operations.controller';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
+import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import type { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -214,6 +215,9 @@ describe('ImagesOperationsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ImagesOperationsController],
       providers: [
+        // Real service resolved from the mocks below; the controller delegates
+        // create() to it, so the DI graph must be able to construct it.
+        ImageGenerationService,
         {
           provide: ConfigService,
           useValue: {
@@ -438,7 +442,10 @@ describe('ImagesOperationsController', () => {
       })
       .compile();
 
-    controller = new ImagesOperationsController(
+    // The image-generation workflow now lives in ImageGenerationService, built
+    // here from the same resolved mocks so the controller's create() delegate
+    // exercises the identical dependencies the assertions below observe.
+    const imageGenerationService = new ImageGenerationService(
       module.get(ConfigService),
       module.get(ActivitiesService),
       module.get(AssetsService),
@@ -458,15 +465,23 @@ describe('ImagesOperationsController', () => {
       module.get(MetadataService),
       module.get(ModelRegistrationService),
       module.get(ModelsService),
-      module.get(NotificationsService),
       module.get(PromptBuilderService),
       module.get(PromptsService),
       module.get(ReplicateService),
       module.get(RouterService),
       module.get(SharedService),
-      module.get(TagsService),
-      module.get(WebhookClientService),
       module.get(NotificationsPublisherService),
+    );
+
+    controller = new ImagesOperationsController(
+      module.get(ConfigService),
+      module.get(ActivitiesService),
+      module.get(FilesClientService),
+      module.get(ImagesService),
+      module.get(LoggerService),
+      module.get(SharedService),
+      module.get(TagsService),
+      imageGenerationService,
     );
     brandsService = module.get(BrandsService);
     imagesService = module.get(ImagesService);
