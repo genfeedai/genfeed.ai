@@ -362,3 +362,11 @@ jobs:
             aws ecs wait services-stable --cluster "$CLUSTER" --services "$svc"
           done
           echo "All services stable."
+
+  deploy-vercel-frontends:
+    name: Deploy Vercel frontends
+    needs: deploy
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy-vercel-frontends.yml
+    secrets: inherit

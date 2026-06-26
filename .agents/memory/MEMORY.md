@@ -35,6 +35,7 @@
 - [Positive memory framing](positive_memory_framing.md) — Write memory as target-state guidance with active sources of truth
 - [Epic status on child start](epic_status_on_child_start.md) — Move parent epics to In Progress as soon as a child starts
 - [Production deploys master-only](production_deploy_master_only.md) — Never deploy any non-master ref to production unless Vincent explicitly overrides; production deploys run from GitHub CI on master
+- [Vercel release gate](feedback_vercel_release_gate.md) — SaaS Vercel frontends deploy only through the API-first production release workflow; Vercel Git auto-deploy stays disabled
 
 ## References
 

@@ -1,0 +1,69 @@
+name: Deploy Vercel Frontends
+
+# Canonical production deploy path for Vercel-hosted frontends.
+# Vercel Git auto-deploy is disabled in each app's vercel.json; production
+# frontends deploy only through this workflow, normally after deploy-ecs.yml has
+# finished migrating, boot-smoking, and rolling the API/services.
+#
+on:
+  workflow_call:
+
+concurrency:
+  group: deploy-vercel-frontends-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.label }}
+    if: github.ref_name == 'master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: app.genfeed.ai
+            path: apps/app
+            project_id: prj_1iMHTqANXgCLd3wALOFcWNtgrdAc
+          - label: genfeed.ai
+            path: apps/website
+            project_id: prj_77xnWYm4Fp3ngF1SpeuF5lwhOG7I
+          - label: docs.genfeed.ai
+            path: apps/docs
+            project_id: prj_SdDiBAjBgxhqmsbDBZ6mmIOAnqUL
+    env:
+      VERCEL_ORG_ID: team_hFVCbNU4RnfEpQOeSWRxmhEJ
+      VERCEL_PROJECT_ID: ${{ matrix.project_id }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ./.github/actions/setup-bun-env
+        with:
+          install-command: HUSKY=0 bun install --frozen-lockfile --ignore-scripts
+
+      - name: Install Vercel CLI
+        run: bun add --global vercel@54.4.1
+
+      - name: Pull Vercel production environment
+        working-directory: ${{ matrix.path }}
+        run: vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
+
+      - name: Build ${{ matrix.label }}
+        working-directory: ${{ matrix.path }}
+        run: vercel build --prod --token="${VERCEL_TOKEN}"
+
+      - name: Deploy ${{ matrix.label }}
+        id: deploy
+        working-directory: ${{ matrix.path }}
+        run: |
+          url="$(vercel deploy --prebuilt --prod --token="${VERCEL_TOKEN}")"
+          echo "${url}"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+
+      - name: Deployment URL
+        run: echo "${{ matrix.label }} -> ${{ steps.deploy.outputs.url }}"
