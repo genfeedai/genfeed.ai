@@ -290,7 +290,11 @@ async function setupBetterAuthMocks(
     // call) mocked by setupApiMocks. setupBetterAuthMocks runs AFTER it, so this
     // catch-all would otherwise shadow it — fall through so the real bootstrap
     // payload (and thus accessState) loads instead of {data:null}.
-    if (route.request().url().includes('/auth/bootstrap')) {
+    // Match on pathname, not the raw URL, so an unrelated auth call whose query
+    // string happens to contain "/auth/bootstrap" (e.g. a callbackURL) does not
+    // wrongly fall through to the real bootstrap handler.
+    const { pathname } = new URL(route.request().url());
+    if (pathname.endsWith('/auth/bootstrap')) {
       await route.fallback();
       return;
     }
