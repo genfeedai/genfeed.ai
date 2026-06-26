@@ -1760,6 +1760,9 @@ model Post {
   sourceWorkflowName    String?
   // Origin label for the post (e.g. agent, fastlane, manual). Free-form string.
   source                String?
+  // Canonical SEO score (0-100) + structured scorecard, set by SEOScorerService (#758).
+  seoScore              Float?
+  seoBreakdown          Json?
   isDeleted             Boolean         @default(false)
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
@@ -2089,6 +2092,11 @@ model Article {
 
   category String?
   scope    String?
+
+  // Canonical SEO score (0-100) + structured scorecard, set by SEOScorerService (#758).
+  // Distinct from the virality sub-factor `seoScore` (in-memory virality blob only).
+  seoScore     Float?
+  seoBreakdown Json?
 
   @@map("articles")
 }

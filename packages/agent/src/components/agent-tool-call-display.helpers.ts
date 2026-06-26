@@ -38,6 +38,7 @@ export const TOOL_LABELS: Record<string, string> = {
   prepare_workflow_trigger: 'Prepare Workflow Trigger',
   present_payment_options: 'Payment Options',
   rate_content: 'Rate Content',
+  score_seo: 'Score SEO',
   rate_ingredient: 'Rate Ingredient',
   reframe_image: 'Reframe Image',
   resolve_handle: 'Resolve Handle',

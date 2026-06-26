@@ -41,6 +41,7 @@ const SHARED_READ_TOOLS: AgentToolName[] = [
   GENERATE_AD_PACK_TOOL,
   PREPARE_AD_LAUNCH_REVIEW_TOOL,
   'rate_content' as AgentToolName,
+  AgentToolName.SCORE_SEO,
   'rate_ingredient' as AgentToolName,
   'get_top_ingredients' as AgentToolName,
   'replicate_top_ingredient' as AgentToolName,
