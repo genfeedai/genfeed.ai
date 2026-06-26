@@ -167,6 +167,14 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
     return `${this.envConfig.GENFEEDAI_CDN_URL}/ingredients`;
   }
 
+  /**
+   * Public base URL of the API service (used to build webhook URLs).
+   * Falls back to the production host when unset.
+   */
+  public get apiUrl(): string {
+    return this.envConfig.GENFEEDAI_API_URL ?? 'https://api.genfeed.ai';
+  }
+
   private isLocalDevFlagEnabled(
     key:
       | 'GF_DEV_ENABLE_OPTIONAL_INIT'
