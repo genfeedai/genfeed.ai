@@ -219,4 +219,32 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
     requiredRole: 'user',
     surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
+  {
+    creditCost: 0,
+    description:
+      'Score a piece of content (article or post) for SEO against a 7-dimension rubric. Returns a 0-100 score, per-dimension breakdown, and prioritized improvement suggestions. Persists the result on the entity.',
+    name: 'score_seo',
+    parameters: {
+      properties: {
+        contentId: {
+          description: 'ID of the article or post to score',
+          type: 'string',
+        },
+        contentType: {
+          description: 'Type of content to score (defaults to article)',
+          enum: ['article', 'post'],
+          type: 'string',
+        },
+        targetKeyword: {
+          description:
+            'Optional primary keyword to audit placement against (title, slug, meta, headings, density)',
+          type: 'string',
+        },
+      },
+      required: ['contentId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
+  },
 ];

@@ -176,6 +176,7 @@ import { NotificationsModule } from '@api/services/notifications/notifications.m
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PreflightModule } from '@api/services/preflight/preflight.module';
 import { RouterModule as ModelRouterModule } from '@api/services/router/router.module';
+import { SeoModule } from '@api/services/seo/seo.module';
 import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor.module';
 import { DesktopSyncModule } from '@api/services/sync/desktop-sync.module';
 import { SyncModule } from '@api/services/sync/sync.module';
@@ -391,6 +392,9 @@ import { SentryModule } from '@sentry/nestjs/setup';
 
     // Content Optimization (closed-loop feedback)
     ContentOptimizationModule,
+
+    // SEO scoring (canonical SEOScorerService, #758)
+    SeoModule,
 
     // Higgsfield (multi-model I2V)
     HiggsFieldModule,

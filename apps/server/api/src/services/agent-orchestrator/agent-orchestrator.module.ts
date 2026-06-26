@@ -40,6 +40,7 @@ import { AgentThreadingModule } from '@api/services/agent-threading/agent-thread
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ContentQualityModule } from '@api/services/content-quality/content-quality.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
+import { SeoModule } from '@api/services/seo/seo.module';
 import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
@@ -86,6 +87,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => WorkflowExecutionsModule),
     forwardRef(() => WorkflowsModule),
     forwardRef(() => AgentSpawnModule),
+    SeoModule,
     forwardRef(() => SkillRuntimeModule),
   ],
   providers: [

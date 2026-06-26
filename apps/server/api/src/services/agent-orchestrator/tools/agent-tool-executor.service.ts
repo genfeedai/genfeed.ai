@@ -48,6 +48,7 @@ import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/ag
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
+import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { isEEEnabled } from '@genfeedai/config';
 import {
   AgentType,
@@ -389,6 +390,8 @@ export class AgentToolExecutorService {
     private readonly voicesService: VoicesService,
     @Optional()
     private readonly contentQualityScorerService: ContentQualityScorerService,
+    @Optional()
+    private readonly seoScorerService: SeoScorerService,
     @Optional()
     private readonly agentGoalsService: AgentGoalsService,
     @Optional()
@@ -1129,6 +1132,10 @@ export class AgentToolExecutorService {
       // Content quality scoring
       case 'rate_content':
         return this.rateContent(params, ctx);
+
+      // SEO scoring
+      case 'score_seo':
+        return this.scoreSeo(params, ctx);
 
       // Ingredient voting & replication tools
       case 'rate_ingredient':
@@ -8334,6 +8341,79 @@ export class AgentToolExecutorService {
       return {
         creditsUsed: 0,
         error: `Rate content failed: ${errorMessage}`,
+        success: false,
+      };
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // SEO SCORING
+  // ──────────────────────────────────────────────
+
+  private async scoreSeo(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    if (!this.seoScorerService) {
+      return {
+        creditsUsed: 0,
+        error: 'SeoScorerService not available',
+        success: false,
+      };
+    }
+
+    const contentId = params.contentId ? String(params.contentId) : undefined;
+    const contentType =
+      String(params.contentType ?? 'article') === 'post' ? 'post' : 'article';
+    const targetKeyword = params.targetKeyword
+      ? String(params.targetKeyword)
+      : undefined;
+
+    if (!contentId) {
+      return {
+        creditsUsed: 0,
+        error: 'contentId is required',
+        success: false,
+      };
+    }
+
+    try {
+      const result =
+        contentType === 'post'
+          ? await this.seoScorerService.scorePost(
+              contentId,
+              ctx.organizationId,
+              targetKeyword,
+            )
+          : await this.seoScorerService.scoreArticle(
+              contentId,
+              ctx.organizationId,
+              targetKeyword,
+            );
+
+      return {
+        creditsUsed: 0,
+        data: {
+          breakdown: result.breakdown,
+          message: `SEO score: ${result.score}/100 (${result.rating}). ${result.suggestions[0] ?? ''}`,
+          rating: result.rating,
+          score: result.score,
+          suggestions: result.suggestions,
+        },
+        success: true,
+      };
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
+      this.loggerService.error(`${this.constructorName} SCORE_SEO failed`, {
+        contentId,
+        error: errorMessage,
+      });
+
+      return {
+        creditsUsed: 0,
+        error: `Score SEO failed: ${errorMessage}`,
         success: false,
       };
     }
