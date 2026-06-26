@@ -64,7 +64,6 @@ export class PublicPostsController {
 
     const matchQuery: PrismaWhereQuery = {
       isDeleted: false,
-      scope: AssetScope.PUBLIC,
       status: PostStatus.PUBLIC,
     };
 
