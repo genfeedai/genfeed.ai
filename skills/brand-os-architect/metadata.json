@@ -1,0 +1,32 @@
+{
+  "name": "brand-os-architect",
+  "version": "1.0.0",
+  "description": "Create source-backed Brand OS systems for AI-era brands",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "brand os",
+    "brand operating system",
+    "brand system",
+    "ai-readable brand book",
+    "brand kit generator",
+    "source-backed brand strategy",
+    "launch storytelling",
+    "japanese color references",
+    "cute studies",
+    "build a brand os"
+  ],
+  "references": {
+    "source_pack": "references/source-pack.md"
+  },
+  "outputs": ["text"],
+  "tags": [
+    "branding",
+    "brand-os",
+    "positioning",
+    "visual-identity",
+    "content-strategy",
+    "launch-storytelling",
+    "source-backed"
+  ]
+}
