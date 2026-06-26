@@ -40,7 +40,7 @@ jobs:
           - packages/workflow-saas
           - packages/workflow-ui
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -63,7 +63,7 @@ jobs:
           retention-days: 7
 
       - name: Report coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         if: always()
         # Coverage is a best-effort weekly report, not a gate. Without a
         # CODECOV_TOKEN (public repo / forks) the uploader exits non-zero even
@@ -82,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -105,7 +105,7 @@ jobs:
           retention-days: 7
 
       - name: Report coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         if: always()
         # Coverage is a best-effort weekly report, not a gate. Without a
         # CODECOV_TOKEN (public repo / forks) the uploader exits non-zero even
@@ -128,7 +128,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -163,7 +163,7 @@ jobs:
     needs: coverage-app
     if: always()
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -192,7 +192,7 @@ jobs:
           retention-days: 7
 
       - name: Report coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         if: always()
         # Coverage is a best-effort weekly report, not a gate. Without a
         # CODECOV_TOKEN (public repo / forks) the uploader exits non-zero even
@@ -215,7 +215,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -251,7 +251,7 @@ jobs:
     needs: coverage-api
     if: always()
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -281,7 +281,7 @@ jobs:
           retention-days: 7
 
       - name: Report coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         if: always()
         # Coverage is a best-effort weekly report, not a gate. Without a
         # CODECOV_TOKEN (public repo / forks) the uploader exits non-zero even
@@ -309,7 +309,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -348,7 +348,7 @@ jobs:
           retention-days: 7
 
       - name: Report E2E coverage to Codecov (shard ${{ matrix.shard }})
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         if: always()
         # Best-effort upload; never let a missing token / empty report red the job.
         continue-on-error: true

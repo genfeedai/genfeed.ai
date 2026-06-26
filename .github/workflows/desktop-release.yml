@@ -27,7 +27,7 @@ jobs:
       GENFEED_DESKTOP_RELEASE: ${{ github.sha }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Validate macOS signing secrets
         run: |
@@ -86,7 +86,7 @@ jobs:
         run: bun run --filter=@genfeedai/desktop release:mac
 
       - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: genfeed-desktop-macos
           path: apps/desktop/app/release/*
@@ -101,13 +101,13 @@ jobs:
       contents: write
     steps:
       - name: Download macOS artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: genfeed-desktop-macos
           path: release
 
       - name: Attach macOS artifacts to GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           make_latest: false

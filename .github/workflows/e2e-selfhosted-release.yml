@@ -50,10 +50,10 @@ jobs:
     # schedule / workflow_dispatch always proceed.
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -116,7 +116,7 @@ jobs:
 
       - name: Upload container logs (on failure)
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-e2e-compose-logs
           path: compose-logs.txt
@@ -124,7 +124,7 @@ jobs:
 
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-e2e-playwright-report
           path: playwright/artifacts/report/
@@ -144,7 +144,7 @@ jobs:
     if: failure()
     steps:
       - name: Open or update tracking issue
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           IMAGE_TAG: ${{ env.IMAGE_TAG }}
         with:

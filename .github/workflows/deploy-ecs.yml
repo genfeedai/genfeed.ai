@@ -38,7 +38,7 @@ jobs:
     timeout-minutes: 90
     environment: production # <- requires reviewer approval (the human gate)
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           # Needed when HEAD is a non-server commit: the image resolver can walk
           # recent first-parent ancestors and verify no server-image inputs
@@ -88,7 +88,7 @@ jobs:
           echo "explicit=$EXPLICIT_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
