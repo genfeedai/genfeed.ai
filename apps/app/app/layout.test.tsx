@@ -34,9 +34,11 @@ vi.mock('@ui/providers/AppProviders', () => ({
     ...props
   }: {
     children: ReactNode;
-    authProps?: Record<string, unknown>;
     googleAnalyticsId?: string;
+    includeSpeedInsights?: boolean;
+    includeVercelAnalytics?: boolean;
     initialTheme: string;
+    storageKey?: string;
   }) => {
     appProvidersSpy(props);
     return <div data-testid="app-providers">{children}</div>;
@@ -71,14 +73,11 @@ describe('app root layout', () => {
     expect(appProvidersSpy).toHaveBeenCalledTimes(1);
     expect(appProvidersSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        authProps: {
-          signInFallbackRedirectUrl: '/',
-          signInForceRedirectUrl: '/',
-          signInUrl: '/login',
-          signUpUrl: '/sign-up',
-        },
         googleAnalyticsId: 'ga-test',
+        includeSpeedInsights: true,
+        includeVercelAnalytics: true,
         initialTheme: 'dark',
+        storageKey: 'theme',
       }),
     );
   });

@@ -1,32 +1,76 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const authStateMock = vi.fn();
 const fetchMock = vi.fn();
 const originalFetch = globalThis.fetch;
 
-vi.mock('@genfeedai/auth-client/server', () => ({
-  authMiddleware: (
-    handler: (
-      auth: () => Promise<unknown>,
-      req: Record<string, unknown>,
-      event: unknown,
-    ) => Promise<Response>,
-  ) => {
-    return (req: Record<string, unknown>, event: unknown) =>
-      handler(async () => await authStateMock(), req, event);
-  },
-  createRouteMatcher:
-    (patterns: string[]) => (req: { nextUrl: { pathname: string } }) => {
-      const pathname = req.nextUrl.pathname;
-      return patterns.some((pattern) => {
-        const normalized = pattern.replace('(.*)', '');
-        if (normalized === '/') {
-          return pathname === '/';
-        }
-        return pathname === normalized || pathname.startsWith(normalized);
-      });
+const SESSION_TOKEN = 'test-session-token';
+const BEARER_TOKEN = 'test-bearer-token';
+const SESSION_COOKIE_NAME = 'better-auth.session_token';
+
+/**
+ * Build a signed-in NextRequest-like mock.
+ *
+ * proxy.ts needs two things for a Better Auth session:
+ *  1. `req.cookies.get('better-auth.session_token')` → `{ value: SESSION_TOKEN }`
+ *     (used by `getBetterAuthSessionCookie` to set `hasSession=true`)
+ *  2. `req.headers.get('cookie')` → the raw cookie header string
+ *     (used by `getBetterAuthBearerToken` to call `/auth/token`)
+ *
+ * Extra cookie overrides (e.g. `gf_ws`) can be provided via `extraCookies`.
+ */
+function makeSignedInRequest(
+  pathname: string,
+  opts: {
+    extraCookies?: Record<string, string>;
+    search?: string;
+  } = {},
+) {
+  const cookieMap: Record<string, string> = {
+    [SESSION_COOKIE_NAME]: SESSION_TOKEN,
+    ...opts.extraCookies,
+  };
+  const rawCookieHeader = Object.entries(cookieMap)
+    .map(([k, v]) => `${k}=${v}`)
+    .join('; ');
+
+  return {
+    cookies: {
+      get: vi.fn((name: string) => {
+        const value = cookieMap[name];
+        return value !== undefined ? { value } : undefined;
+      }),
     },
-}));
+    headers: {
+      get: vi.fn((name: string) =>
+        name.toLowerCase() === 'cookie' ? rawCookieHeader : null,
+      ),
+    },
+    nextUrl: {
+      pathname,
+      search: opts.search ?? '',
+    },
+    url: `http://localhost:3000${pathname}${opts.search ?? ''}`,
+  } as never;
+}
+
+/**
+ * Build a signed-out NextRequest-like mock (no session cookie present).
+ */
+function makeSignedOutRequest(pathname: string, search?: string) {
+  return {
+    cookies: {
+      get: vi.fn(() => undefined),
+    },
+    headers: {
+      get: vi.fn(() => null),
+    },
+    nextUrl: {
+      pathname,
+      search: search ?? '',
+    },
+    url: `http://localhost:3000${pathname}${search ?? ''}`,
+  } as never;
+}
 
 describe('proxy', () => {
   beforeEach(() => {
@@ -36,14 +80,20 @@ describe('proxy', () => {
     vi.stubEnv('NEXT_PUBLIC_API_ENDPOINT', 'http://localhost:3010/v1');
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', undefined);
     vi.resetModules();
-    authStateMock.mockResolvedValue({
-      getToken: vi.fn().mockResolvedValue('token_1'),
-      sessionId: 'session_1',
-      userId: 'user_1',
-    });
     globalThis.fetch = fetchMock as typeof fetch;
+
+    // Default fetch mock handles all three Better Auth endpoints proxy.ts calls:
+    //   1. POST /auth/token  – exchanges the session cookie for a bearer token
+    //   2. GET  /auth/bootstrap – returns brands + access info
+    //   3. GET  /organizations/mine – fallback org slug resolution
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
+
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
 
       if (url.endsWith('/auth/bootstrap')) {
         return new Response(
@@ -70,69 +120,41 @@ describe('proxy', () => {
     globalThis.fetch = originalFetch;
   });
 
-  it('redirects signed-in users away from public routes', async () => {
+  // ─── Signed-in redirect away from root / public entry points ──────────────
+
+  it('does not force-redirect a signed-in user off a public auth page', async () => {
+    // /login is a real Better Auth public page (isBetterAuthPublicRoute). proxy
+    // only auto-redirects at the root path; on /login it passes through and lets
+    // the page itself handle any client-side redirect. So a signed-in user on
+    // /login is NOT bounced by the proxy (no 307, no Location).
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/login' },
-        url: 'http://localhost:3000/login',
-      } as never,
-      {} as never,
-    );
+    const response = await proxy(makeSignedInRequest('/login'), {} as never);
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
-    );
+    expect(response.status).not.toBe(307);
+    expect(response.headers.get('location')).toBeNull();
   });
 
-  it('redirects signed-in public auth routes to onboarding when no workspace exists', async () => {
-    fetchMock.mockImplementation(async (input: string | URL) => {
-      const url = String(input);
-
-      if (url.endsWith('/auth/bootstrap')) {
-        return new Response(
-          JSON.stringify({
-            brands: [],
-            currentUser: { id: 'user_1' },
-          }),
-          { status: 200 },
-        );
-      }
-
-      return new Response('not found', { status: 404 });
-    });
-
+  it('redirects a signed-out user on a protected route to /login', async () => {
+    // No session cookie → getBetterAuthSessionCookie returns null → the auth
+    // gate sends any non-public protected route to /login.
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/login' },
-        url: 'http://localhost:3000/login',
-      } as never,
+      makeSignedOutRequest('/acme/moonrise-studio/workspace/overview'),
       {} as never,
     );
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/onboarding',
+      'http://localhost:3000/login',
     );
   });
 
   it('redirects signed-in root to workspace when single brand', async () => {
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/' },
-        url: 'http://localhost:3000/',
-      } as never,
-      {} as never,
-    );
+    const response = await proxy(makeSignedInRequest('/'), {} as never);
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -143,6 +165,12 @@ describe('proxy', () => {
   it('redirects signed-in root to org overview when no brand is selected', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
+
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
 
       if (url.endsWith('/auth/bootstrap')) {
         return new Response(
@@ -166,14 +194,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/' },
-        url: 'http://localhost:3000/',
-      } as never,
-      {} as never,
-    );
+    const response = await proxy(makeSignedInRequest('/'), {} as never);
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -184,6 +205,12 @@ describe('proxy', () => {
   it('redirects signed-in root to onboarding when no workspace exists', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
+
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
 
       if (url.endsWith('/auth/bootstrap')) {
         return new Response(
@@ -200,14 +227,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/' },
-        url: 'http://localhost:3000/',
-      } as never,
-      {} as never,
-    );
+    const response = await proxy(makeSignedInRequest('/'), {} as never);
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -218,6 +238,12 @@ describe('proxy', () => {
   it('redirects signed-in root to active brand workspace when multiple brands', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
+
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
 
       if (url.endsWith('/auth/bootstrap')) {
         return new Response(
@@ -244,14 +270,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/' },
-        url: 'http://localhost:3000/',
-      } as never,
-      {} as never,
-    );
+    const response = await proxy(makeSignedInRequest('/'), {} as never);
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -260,58 +279,51 @@ describe('proxy', () => {
   });
 
   it('falls through on root when slug resolution fails', async () => {
-    fetchMock.mockImplementation(async () => {
+    // Token exchange succeeds but bootstrap (slug resolution) returns an error.
+    // Both resolveCanonicalProtectedPath and shouldRedirectSignedInUserToOnboarding
+    // return null/false → falls through to NextResponse.next() (200).
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
       return new Response('error', { status: 500 });
     });
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/' },
-        url: 'http://localhost:3000/',
-      } as never,
-      {} as never,
-    );
+    const response = await proxy(makeSignedInRequest('/'), {} as never);
 
     expect(response.status).toBe(200);
   });
 
   it('falls through on root when slug resolution fetch rejects', async () => {
-    fetchMock.mockRejectedValue(new TypeError('fetch failed'));
+    // Token exchange succeeds; bootstrap fetch throws (network error).
+    // resolveCanonicalProtectedPath catches the rejection and returns null
+    // → shouldRedirectSignedInUserToOnboarding also returns false → fall through.
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
+      throw new TypeError('fetch failed');
+    });
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/' },
-        url: 'http://localhost:3000/',
-      } as never,
-      {} as never,
-    );
+    const response = await proxy(makeSignedInRequest('/'), {} as never);
 
     expect(response.status).toBe(200);
   });
 
   it('redirects unauthenticated root to login', async () => {
-    authStateMock.mockResolvedValue({
-      getToken: vi.fn().mockResolvedValue(null),
-      sessionId: null,
-      userId: null,
-    });
-
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/' },
-        url: 'http://localhost:3000/',
-      } as never,
-      {} as never,
-    );
+    const response = await proxy(makeSignedOutRequest('/'), {} as never);
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -323,11 +335,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/workspace/overview', search: '' },
-        url: 'http://localhost:3000/workspace/overview',
-      } as never,
+      makeSignedInRequest('/workspace/overview'),
       {} as never,
     );
 
@@ -340,6 +348,12 @@ describe('proxy', () => {
   it('redirects signed-in flat protected routes to org views when no brand is selected', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
+
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
 
       if (url.endsWith('/auth/bootstrap')) {
         return new Response(
@@ -364,11 +378,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const postsResponse = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/posts', search: '' },
-        url: 'http://localhost:3000/posts',
-      } as never,
+      makeSignedInRequest('/posts'),
       {} as never,
     );
 
@@ -378,11 +388,7 @@ describe('proxy', () => {
     );
 
     const workspaceResponse = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/workspace/overview', search: '' },
-        url: 'http://localhost:3000/workspace/overview',
-      } as never,
+      makeSignedInRequest('/workspace/overview'),
       {} as never,
     );
 
@@ -395,6 +401,12 @@ describe('proxy', () => {
   it('keeps personal settings canonical when no brand is selected', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
+
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
 
       if (url.endsWith('/auth/bootstrap')) {
         return new Response(
@@ -419,11 +431,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/settings/personal', search: '' },
-        url: 'http://localhost:3000/settings/personal',
-      } as never,
+      makeSignedInRequest('/settings/personal'),
       {} as never,
     );
 
@@ -437,6 +445,12 @@ describe('proxy', () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
+
       if (url.endsWith('/auth/bootstrap')) {
         return new Response(
           JSON.stringify({
@@ -453,11 +467,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/workspace/overview', search: '' },
-        url: 'http://localhost:3000/workspace/overview',
-      } as never,
+      makeSignedInRequest('/workspace/overview'),
       {} as never,
     );
 
@@ -471,6 +481,12 @@ describe('proxy', () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
+
       if (url.endsWith('/auth/bootstrap')) {
         return new Response(
           JSON.stringify({
@@ -487,11 +503,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/acme/~/overview', search: '' },
-        url: 'http://localhost:3000/acme/~/overview',
-      } as never,
+      makeSignedInRequest('/acme/~/overview'),
       {} as never,
     );
 
@@ -518,11 +530,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/acme/moonrise-studio/posts', search: '' },
-        url: 'http://localhost:3000/acme/moonrise-studio/posts',
-      } as never,
+      makeSignedInRequest('/acme/moonrise-studio/posts'),
       {} as never,
     );
 
@@ -541,14 +549,7 @@ describe('proxy', () => {
   it('redirects signed-in flat chat to the canonical org-scoped chat path', async () => {
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/chat', search: '' },
-        url: 'http://localhost:3000/chat',
-      } as never,
-      {} as never,
-    );
+    const response = await proxy(makeSignedInRequest('/chat'), {} as never);
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -559,14 +560,7 @@ describe('proxy', () => {
   it('keeps signed-in personal settings on the canonical personal route', async () => {
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/settings', search: '' },
-        url: 'http://localhost:3000/settings',
-      } as never,
-      {} as never,
-    );
+    const response = await proxy(makeSignedInRequest('/settings'), {} as never);
 
     expect(response.status).toBe(200);
   });
@@ -624,11 +618,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/settings/organization/members', search: '' },
-        url: 'http://localhost:3000/settings/organization/members',
-      } as never,
+      makeSignedInRequest('/settings/organization/members'),
       {} as never,
     );
 
@@ -642,14 +632,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: {
-          pathname: '/settings/brands/moonrise-studio/voice',
-          search: '',
-        },
-        url: 'http://localhost:3000/settings/brands/moonrise-studio/voice',
-      } as never,
+      makeSignedInRequest('/settings/brands/moonrise-studio/voice'),
       {} as never,
     );
 
@@ -662,6 +645,12 @@ describe('proxy', () => {
   it('uses the bootstrap organization slug without fetching organizations', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
+
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
 
       if (url.endsWith('/auth/bootstrap')) {
         return new Response(
@@ -685,11 +674,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/workspace/overview', search: '' },
-        url: 'http://localhost:3000/workspace/overview',
-      } as never,
+      makeSignedInRequest('/workspace/overview'),
       {} as never,
     );
 
@@ -705,20 +690,10 @@ describe('proxy', () => {
   });
 
   it('redirects signed-out protected routes to login instead of invoking legacy auth provider dev handshake', async () => {
-    authStateMock.mockResolvedValue({
-      getToken: vi.fn().mockResolvedValue(null),
-      sessionId: null,
-      userId: null,
-    });
-
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/settings/organization/members', search: '' },
-        url: 'http://localhost:3000/settings/organization/members',
-      } as never,
+      makeSignedOutRequest('/settings/organization/members'),
       {} as never,
     );
 
@@ -735,14 +710,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/login' },
-        url: 'http://localhost:3000/login',
-      } as never,
-      {} as never,
-    );
+    const response = await proxy(makeSignedInRequest('/login'), {} as never);
 
     expect(response.status).toBe(200);
   });
@@ -821,11 +789,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const firstResponse = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        nextUrl: { pathname: '/workspace/overview', search: '' },
-        url: 'http://localhost:3000/workspace/overview',
-      } as never,
+      makeSignedInRequest('/workspace/overview'),
       {} as never,
     );
 
@@ -842,17 +806,9 @@ describe('proxy', () => {
     fetchMock.mockClear();
 
     const secondResponse = await proxy(
-      {
-        cookies: {
-          get: vi.fn((name: string) =>
-            name === 'gf_ws'
-              ? { name: 'gf_ws', value: cookieValue }
-              : undefined,
-          ),
-        },
-        nextUrl: { pathname: '/posts', search: '' },
-        url: 'http://localhost:3000/posts',
-      } as never,
+      makeSignedInRequest('/posts', {
+        extraCookies: { gf_ws: cookieValue ?? '' },
+      }),
       {} as never,
     );
 
@@ -860,7 +816,19 @@ describe('proxy', () => {
     expect(secondResponse.headers.get('location')).toBe(
       'http://localhost:3000/acme/moonrise-studio/posts',
     );
-    expect(fetchMock).not.toHaveBeenCalled();
+    // The slug cookie caches org/brand slugs — the expensive bootstrap and org
+    // resolution fetches must be skipped. The Better Auth token exchange
+    // (/auth/token) is a required per-request step and is expected to be called.
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).endsWith('/auth/bootstrap'),
+      ),
+    ).toBe(false);
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).endsWith('/organizations/mine'),
+      ),
+    ).toBe(false);
 
     delete process.env.COOKIE_SECRET;
   });
@@ -872,17 +840,9 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      {
-        cookies: {
-          get: vi.fn((name: string) =>
-            name === 'gf_ws'
-              ? { name: 'gf_ws', value: 'tampered.cookie' }
-              : undefined,
-          ),
-        },
-        nextUrl: { pathname: '/workspace/overview', search: '' },
-        url: 'http://localhost:3000/workspace/overview',
-      } as never,
+      makeSignedInRequest('/workspace/overview', {
+        extraCookies: { gf_ws: 'tampered.cookie' },
+      }),
       {} as never,
     );
 

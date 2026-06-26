@@ -3,13 +3,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsProfilePage from './settings-profile-page';
 import '@testing-library/jest-dom/vitest';
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useUser: vi.fn(() => ({
+vi.mock('@hooks/auth/use-auth-user/use-auth-user', () => ({
+  useAuthUser: vi.fn(() => ({
     isLoaded: true,
+    isSignedIn: true,
     user: {
+      firstName: 'Test',
       fullName: 'Test User',
       id: 'user-123',
+      imageUrl: null,
+      lastName: 'User',
       primaryEmailAddress: { emailAddress: 'test@example.com' },
+      publicMetadata: {},
+      reload: vi.fn(),
+      updatedAt: null,
     },
   })),
 }));
