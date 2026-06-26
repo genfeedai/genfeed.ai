@@ -277,17 +277,25 @@ async function setupBetterAuthMocks(
     },
   };
 
-  await page.route('**/v1/auth/session**', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify(sessionPayload),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
+  // Playwright matches routes in REVERSE registration order (last-registered =
+  // highest priority). Register the broad catch-all FIRST so it has the LOWEST
+  // priority, then the specific endpoints, so each specific mock wins over the
+  // catch-all. Getting this order wrong makes the catch-all shadow the session
+  // mock, useSession() resolves signed-out, and protected shells spin forever.
 
-  await page.route('**/v1/auth/token**', async (route) => {
+  // Lowest priority: anything under /v1/auth/* the client touches but we do not
+  // explicitly mock (e.g. sign-out) returns an inert empty payload.
+  await page.route('**/v1/auth/**', async (route) => {
+    // /v1/auth/bootstrap is a Genfeed API endpoint (NOT a Better Auth client
+    // call) mocked by setupApiMocks. setupBetterAuthMocks runs AFTER it, so this
+    // catch-all would otherwise shadow it — fall through so the real bootstrap
+    // payload (and thus accessState) loads instead of {data:null}.
+    if (route.request().url().includes('/auth/bootstrap')) {
+      await route.fallback();
+      return;
+    }
     await route.fulfill({
-      body: JSON.stringify({ token: `mock-jwt-${session.sessionId}` }),
+      body: JSON.stringify({ data: null }),
       contentType: 'application/json',
       status: 200,
     });
@@ -301,9 +309,19 @@ async function setupBetterAuthMocks(
     });
   });
 
-  await page.route('**/v1/auth/**', async (route) => {
+  await page.route('**/v1/auth/token**', async (route) => {
     await route.fulfill({
-      body: JSON.stringify({ data: null }),
+      body: JSON.stringify({ token: `mock-jwt-${session.sessionId}` }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  // Highest priority: Better Auth's client fetches GET /v1/auth/get-session
+  // (NOT /v1/auth/session). This must win over the catch-all above.
+  await page.route('**/v1/auth/get-session**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(sessionPayload),
       contentType: 'application/json',
       status: 200,
     });
@@ -394,7 +412,7 @@ export const test = base.extend<AuthFixtures>({
     await setupApiMocks(page);
 
     // Return unauthenticated state from Better Auth
-    await page.route('**/v1/auth/session**', async (route) => {
+    await page.route('**/v1/auth/get-session**', async (route) => {
       await route.fulfill({
         body: JSON.stringify({ session: null, user: null }),
         contentType: 'application/json',
@@ -446,7 +464,7 @@ export async function simulateLogout(page: Page): Promise<void> {
 }
 
 export async function simulateSessionExpiry(page: Page): Promise<void> {
-  await page.route('**/v1/auth/session**', async (route) => {
+  await page.route('**/v1/auth/get-session**', async (route) => {
     await route.fulfill({
       body: JSON.stringify({ session: null, user: null }),
       contentType: 'application/json',

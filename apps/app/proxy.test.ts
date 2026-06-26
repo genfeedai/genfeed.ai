@@ -31,8 +31,8 @@ vi.mock('@genfeedai/auth-client/server', () => ({
 describe('proxy', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv('NEXT_PUBLIC_BETTER_AUTH_ENABLED', 'pk_test');
-    vi.stubEnv('BETTER_AUTH_SECRET', 'sk_test');
+    vi.stubEnv('NEXT_PUBLIC_BETTER_AUTH_ENABLED', 'true');
+    vi.stubEnv('BETTER_AUTH_SECRET', 'test-better-auth-secret');
     vi.stubEnv('NEXT_PUBLIC_API_ENDPOINT', 'http://localhost:3010/v1');
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', undefined);
     vi.resetModules();
@@ -573,7 +573,8 @@ describe('proxy', () => {
 
   it('redirects desktop shell bare settings to seeded workspace without a desktop token', async () => {
     const previousDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL;
-    const previousPublishableKey = process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+    const previousBetterAuthEnabled =
+      process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
     const previousSecretKey = process.env.BETTER_AUTH_SECRET;
 
     try {
@@ -605,10 +606,10 @@ describe('proxy', () => {
         process.env.NEXT_PUBLIC_DESKTOP_SHELL = previousDesktopShell;
       }
 
-      if (previousPublishableKey === undefined) {
+      if (previousBetterAuthEnabled === undefined) {
         delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
       } else {
-        process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = previousPublishableKey;
+        process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = previousBetterAuthEnabled;
       }
 
       if (previousSecretKey === undefined) {
