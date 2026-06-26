@@ -4439,28 +4439,25 @@ export async function mockAdminTemplates(page: Page, count = 8): Promise<void> {
 }
 
 /**
- * Mock for darkroom gallery
+ * Mock for fleet gallery
  */
-export async function mockDarkroomGallery(
-  page: Page,
-  count = 12,
-): Promise<void> {
+export async function mockFleetGallery(page: Page, count = 12): Promise<void> {
   const images = Array.from({ length: count }, (_, i) => ({
     attributes: {
       createdAt: new Date(Date.now() - i * 3600000).toISOString(),
       height: 1024,
-      id: `darkroom-img-${i + 1}`,
-      prompt: `Darkroom generated image ${i + 1}`,
+      id: `fleet-img-${i + 1}`,
+      prompt: `Fleet generated image ${i + 1}`,
       status: 'completed',
-      thumbnailUrl: `https://cdn.genfeed.ai/mock/darkroom/thumb-${i + 1}.jpg`,
-      url: `https://cdn.genfeed.ai/mock/darkroom/${i + 1}.png`,
+      thumbnailUrl: `https://cdn.genfeed.ai/mock/fleet/thumb-${i + 1}.jpg`,
+      url: `https://cdn.genfeed.ai/mock/fleet/${i + 1}.png`,
       width: 1024,
     },
-    id: `darkroom-img-${i + 1}`,
+    id: `fleet-img-${i + 1}`,
     type: 'images',
   }));
 
-  await page.route('**/api.genfeed.ai/v1/darkroom/gallery**', async (route) => {
+  const fulfillAssets = async (route: Route) => {
     await route.fulfill({
       body: JSON.stringify({
         data: images,
@@ -4469,25 +4466,17 @@ export async function mockDarkroomGallery(
       contentType: 'application/json',
       status: 200,
     });
-  });
+  };
 
-  // Also mock generic darkroom images
-  await page.route('**/api.genfeed.ai/v1/darkroom/images**', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        data: images,
-        meta: { page: 1, pageSize: count, totalCount: count },
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
+  await page.route('**/api.genfeed.ai/v1/admin/fleet/assets**', fulfillAssets);
+  await page.route('**/api.genfeed.ai/admin/fleet/assets**', fulfillAssets);
+  await page.route(`${LOCAL_API}/admin/fleet/assets**`, fulfillAssets);
 }
 
 /**
- * Mock for darkroom characters
+ * Mock for fleet characters
  */
-export async function mockDarkroomCharacters(
+export async function mockFleetCharacters(
   page: Page,
   count = 5,
 ): Promise<void> {
@@ -4505,23 +4494,30 @@ export async function mockDarkroomCharacters(
     type: 'characters',
   }));
 
+  const fulfillCharacters = async (route: Route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: characters,
+        meta: {
+          page: 1,
+          pageSize: count,
+          totalCount: count,
+        },
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  };
+
   await page.route(
-    '**/api.genfeed.ai/v1/darkroom/characters**',
-    async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({
-          data: characters,
-          meta: {
-            page: 1,
-            pageSize: count,
-            totalCount: count,
-          },
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    },
+    '**/api.genfeed.ai/v1/admin/fleet/characters**',
+    fulfillCharacters,
   );
+  await page.route(
+    '**/api.genfeed.ai/admin/fleet/characters**',
+    fulfillCharacters,
+  );
+  await page.route(`${LOCAL_API}/admin/fleet/characters**`, fulfillCharacters);
 
   await page.route('**/api.genfeed.ai/v1/characters**', async (route) => {
     if (route.request().method() === 'GET') {
@@ -4737,11 +4733,11 @@ export async function mockCrmAnalytics(page: Page): Promise<void> {
 }
 
 /**
- * Mock for darkroom infrastructure
+ * Mock for fleet infrastructure
  */
-export async function mockDarkroomInfrastructure(page: Page): Promise<void> {
+export async function mockFleetInfrastructure(page: Page): Promise<void> {
   await page.route(
-    '**/api.genfeed.ai/admin/darkroom/infrastructure/ec2/status**',
+    '**/api.genfeed.ai/v1/admin/fleet/infrastructure/ec2/status**',
     async (route) => {
       await route.fulfill({
         body: JSON.stringify({
@@ -4783,7 +4779,7 @@ export async function mockDarkroomInfrastructure(page: Page): Promise<void> {
   );
 
   await page.route(
-    '**/api.genfeed.ai/admin/darkroom/infrastructure/fleet/health**',
+    '**/api.genfeed.ai/v1/admin/fleet/infrastructure/fleet/health**',
     async (route) => {
       await route.fulfill({
         body: JSON.stringify({
@@ -4825,7 +4821,7 @@ export async function mockDarkroomInfrastructure(page: Page): Promise<void> {
   );
 
   await page.route(
-    '**/api.genfeed.ai/admin/darkroom/infrastructure/ec2/action-all',
+    '**/api.genfeed.ai/v1/admin/fleet/infrastructure/ec2/action-all',
     async (route) => {
       await route.fulfill({
         body: JSON.stringify({
@@ -4847,7 +4843,7 @@ export async function mockDarkroomInfrastructure(page: Page): Promise<void> {
   );
 
   await page.route(
-    '**/api.genfeed.ai/admin/darkroom/infrastructure/cloudfront/invalidate',
+    '**/api.genfeed.ai/v1/admin/fleet/infrastructure/cloudfront/invalidate',
     async (route) => {
       await route.fulfill({
         body: JSON.stringify({

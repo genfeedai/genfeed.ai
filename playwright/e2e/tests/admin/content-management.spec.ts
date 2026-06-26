@@ -5,9 +5,9 @@ import {
   mockCrmCompanyDetail,
   mockCrmLeads,
   mockCrmTasks,
-  mockDarkroomCharacters,
-  mockDarkroomGallery,
-  mockDarkroomInfrastructure,
+  mockFleetCharacters,
+  mockFleetGallery,
+  mockFleetInfrastructure,
   mockOrganizationIdentityDefaults,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
@@ -16,7 +16,7 @@ import { AdminPage } from '../../pages/admin.page';
 /**
  * E2E Tests for Admin Content Management
  *
- * Covers darkroom and CRM sections.
+ * Covers fleet, CRM, and Library sections.
  * All tests use adminPage fixture. All API calls are mocked.
  */
 test.describe('Admin Content Management', () => {
@@ -24,43 +24,43 @@ test.describe('Admin Content Management', () => {
     await mockAdminStats(adminPage);
   });
 
-  test.describe('Darkroom', () => {
-    test('should display darkroom gallery', async ({ adminPage }) => {
-      await mockDarkroomGallery(adminPage, 8);
+  test.describe('Fleet', () => {
+    test('should display fleet gallery', async ({ adminPage }) => {
+      await mockFleetGallery(adminPage, 8);
 
       const admin = new AdminPage(adminPage);
-      await admin.gotoDarkroomGallery();
+      await admin.gotoFleetGallery();
 
       await admin.assertPageVisible();
-      await expect(adminPage).toHaveURL(/darkroom\/gallery/);
+      await expect(adminPage).toHaveURL(/fleet\/gallery/);
     });
 
     test('should display characters list', async ({ adminPage }) => {
-      await mockDarkroomCharacters(adminPage, 5);
+      await mockFleetCharacters(adminPage, 5);
 
       const admin = new AdminPage(adminPage);
-      await admin.gotoDarkroomCharacters();
+      await admin.gotoFleetCharacters();
 
       await admin.assertPageVisible();
-      await expect(adminPage).toHaveURL(/darkroom\/characters/);
+      await expect(adminPage).toHaveURL(/fleet\/characters/);
     });
 
     test('should display infrastructure surfaces', async ({ adminPage }) => {
-      await mockDarkroomInfrastructure(adminPage);
+      await mockFleetInfrastructure(adminPage);
 
       const admin = new AdminPage(adminPage);
-      await admin.gotoDarkroomInfrastructure();
+      await admin.gotoFleetInfrastructure();
 
       await admin.assertPageVisible();
-      await expect(adminPage).toHaveURL(/darkroom\/infrastructure/);
+      await expect(adminPage).toHaveURL(/fleet\/infrastructure/);
       await expect(
-        adminPage.locator('[data-testid="darkroom-fleet-services-surface"]'),
+        adminPage.locator('[data-testid="fleet-services-surface"]'),
       ).toBeVisible();
       await expect(
-        adminPage.locator('[data-testid="darkroom-ec2-surface"]'),
+        adminPage.locator('[data-testid="fleet-ec2-surface"]'),
       ).toBeVisible();
       await expect(
-        adminPage.locator('[data-testid="darkroom-cloudfront-surface"]'),
+        adminPage.locator('[data-testid="fleet-cloudfront-surface"]'),
       ).toBeVisible();
     });
   });
