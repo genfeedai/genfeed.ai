@@ -26,8 +26,15 @@ describe('platform role migration', () => {
     );
     expect(migrationSource).toContain('WHERE "isSuperAdmin" = true');
     expect(migrationSource).toContain("lower('vincent@genfeed.ai')");
-    expect(migrationSource).toContain('bootstrap_match_count <> 1');
-    expect(migrationSource).toContain('Expected exactly one bootstrap');
     expect(migrationSource).toContain('DROP COLUMN "isSuperAdmin"');
+  });
+
+  it('bootstraps the initial admin without aborting on databases that lack it', () => {
+    // The bootstrap must be a plain conditional UPDATE so `prisma migrate deploy`
+    // stays portable across fresh/community/CI databases instead of raising.
+    expect(migrationSource).not.toContain('RAISE EXCEPTION');
+    expect(migrationSource).toMatch(
+      /SET "platformRole" = 'SUPERADMIN'\s*\nWHERE lower\("email"\) = lower\('vincent@genfeed\.ai'\)/,
+    );
   });
 });

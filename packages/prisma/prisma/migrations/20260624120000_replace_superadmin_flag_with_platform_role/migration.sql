@@ -10,25 +10,14 @@ SET "platformRole" = 'SUPERADMIN'
 WHERE "isSuperAdmin" = true;
 
 -- InitialPlatformAdmin
-DO $$
-DECLARE
-  bootstrap_match_count integer;
-BEGIN
-  SELECT COUNT(*)
-  INTO bootstrap_match_count
-  FROM "users"
-  WHERE lower("email") = lower('vincent@genfeed.ai');
-
-  IF bootstrap_match_count <> 1 THEN
-    RAISE EXCEPTION
-      'Expected exactly one bootstrap superadmin account for vincent@genfeed.ai, found %',
-      bootstrap_match_count;
-  END IF;
-
-  UPDATE "users"
-  SET "platformRole" = 'SUPERADMIN'
-  WHERE lower("email") = lower('vincent@genfeed.ai');
-END $$;
+-- Bootstrap the initial platform superadmin when that account exists. This is a
+-- no-op on databases that do not have it (fresh installs, community/self-hosted
+-- deployments, ephemeral CI test DBs), so `prisma migrate deploy` stays portable
+-- across every deployment mode instead of aborting when the account is absent.
+-- The users.email unique index guarantees this matches at most one row.
+UPDATE "users"
+SET "platformRole" = 'SUPERADMIN'
+WHERE lower("email") = lower('vincent@genfeed.ai');
 
 -- DropFlag
 ALTER TABLE "users" DROP COLUMN "isSuperAdmin";
