@@ -58,8 +58,8 @@ export default function MasonryImage({
   onHoverChange,
 }: MasonryImageProps): React.ReactElement {
   const { selectedBrand, settings } = useBrand();
-  const [isLoading, setIsLoading] = useState(true);
-  const [imageError, setImageError] = useState(false);
+  const [loadedImageUrl, setLoadedImageUrl] = useState<string | null>(null);
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
 
   const {
     isHovered,
@@ -91,16 +91,34 @@ export default function MasonryImage({
 
   const handleDownload = useMemo(() => createDownloadHandler(), []);
 
+  const isProcessing = image.status === IngredientStatus.PROCESSING;
+  const isFailed = image.status === IngredientStatus.FAILED;
+
+  const currentImageUrl = image.ingredientUrl ?? '';
+  // A still-processing asset has no generated URL yet — that is not an error,
+  // the processing overlay covers it. Only treat a missing or failed URL as a
+  // fallback when the asset is not actively processing.
+  const imageError =
+    !isProcessing &&
+    (currentImageUrl === '' || failedImageUrl === currentImageUrl);
+  const isLoading =
+    currentImageUrl !== '' && loadedImageUrl !== currentImageUrl && !imageError;
+
   const handleImageLoad = useCallback(() => {
-    setIsLoading(false);
-    setImageError(false);
+    // After a real-image error, imageSrc swaps to the placeholder; when that
+    // placeholder finishes loading, onLoad fires again. Do not report the
+    // placeholder (or a missing URL) to the parent as a successful asset load.
+    if (currentImageUrl === '' || failedImageUrl === currentImageUrl) {
+      return;
+    }
+    setLoadedImageUrl(currentImageUrl);
     onImageLoad?.();
-  }, [onImageLoad]);
+  }, [currentImageUrl, failedImageUrl, onImageLoad]);
 
   const handleImageError = useCallback(() => {
-    setIsLoading(false);
-    setImageError(true);
-  }, []);
+    setLoadedImageUrl(currentImageUrl);
+    setFailedImageUrl(currentImageUrl);
+  }, [currentImageUrl]);
 
   const handleIngredientDrop = useCallback(
     (
@@ -115,8 +133,6 @@ export default function MasonryImage({
   );
 
   const metadata = image?.metadata as IMetadata;
-  const isProcessing = image.status === IngredientStatus.PROCESSING;
-  const isFailed = image.status === IngredientStatus.FAILED;
   const aspectRatioStyle = getAspectRatioStyle(isSquare, metadata);
   const imageSrc = getImageSrc(image?.ingredientUrl, imageError);
   const shouldShowBadges = isActionsEnabled && !isProcessing && !isFailed;
