@@ -8,13 +8,13 @@
   "dependencies": {
     "commander": "15.0.0",
     "consola": "3.4.2",
-    "giget": "3.2.0"
+    "giget": "3.3.0"
   },
   "description": "Genfeed.ai — AI OS for content creation. Self-host for free.",
   "devDependencies": {
-    "@types/node": "25.9.1",
+    "@types/node": "26.0.1",
     "typescript": "6.0.2",
-    "vitest": "4.1.8"
+    "vitest": "4.1.9"
   },
   "files": [
     "dist"
