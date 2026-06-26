@@ -1,12 +1,13 @@
-# Full Suite — on-demand caller for CI, heavy build verification, then E2E.
+# Full Suite — on-demand caller for CI, SaaS release verification, then E2E.
 #
 # Dispatch from any branch: Actions → "Full Suite (CI + Release Gates + E2E)"
 # → Run workflow → pick the branch. E2E runs only if the CI gate (format, lint,
-# typecheck, design, unit tests, build) and release-time build verification pass
-# first.
+# typecheck, design, unit tests, build) and SaaS release-time build verification
+# pass first.
 #
 # Reuses existing workflows via workflow_call — no job logic is duplicated here;
-# this file only orders the release-prep gates.
+# this file only orders the SaaS release-prep gates. Community self-hosted image
+# verification lives in build-verify-selfhosted.yml and runs independently.
 
 name: Full Suite (CI + Release Gates + E2E)
 
@@ -30,14 +31,8 @@ jobs:
     # login), which every called workflow gets automatically. Inheriting the full
     # secret set here would over-scope it (least-privilege).
 
-  selfhosted-build-verify:
-    name: Self-Hosted Build & Boot Check
-    uses: ./.github/workflows/build-verify-selfhosted.yml
-    # Release-time self-hosted image validation. Kept out of normal PR CI so
-    # routine pull requests stay fast; run through Full Suite before release.
-
   e2e:
     name: E2E Suite
-    needs: [ci, build-verify, selfhosted-build-verify]
+    needs: [ci, build-verify]
     uses: ./.github/workflows/e2e.yml
     secrets: inherit

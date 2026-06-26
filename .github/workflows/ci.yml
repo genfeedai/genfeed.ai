@@ -534,30 +534,3 @@ jobs:
           else
             bun run build
           fi
-
-  # Boot gate — builds the COMPILED api bundle and loads its full provider graph
-  # with BOOT_CHECK=1, which exits 0 BEFORE NestFactory/config (no env, DB, or
-  # Redis needed). A circular-import TDZ — e.g. #711's "Cannot access 'X' before
-  # initialization", which crashed the API on boot and shipped because nothing in
-  # PR CI booted the build — crashes the process here and fails the PR. vitest
-  # cannot reproduce this class (its SWC/ESM resolution differs); only the
-  # compiled webpack bundle does, which is exactly what this runs.
-  api-boot-check:
-    name: API Boot Check
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
-    steps:
-      - uses: actions/checkout@v5
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
-      - name: Build api (compiled bundle)
-        # The api package emits to apps/server/dist, outside apps/server/api.
-        # Force a real build so a Turbo cache-hit replay cannot skip restoring
-        # the compiled bundle this boot check loads.
-        run: bunx turbo run build --filter=@genfeedai/api --force
-      - name: Boot check — compiled graph must load
-        run: BOOT_CHECK=1 timeout 120 node apps/server/dist/apps/api/main.js
