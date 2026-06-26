@@ -115,9 +115,31 @@ export class WorkflowDeploymentBackfillService {
     const cronJobsService = this.moduleRef.get(CronJobsService, {
       strict: false,
     });
-    const legacyCronReport = await cronJobsService.migrateLegacyJobsToWorkflows(
-      { dryRun: false },
-    );
+    let legacyCronReport = {
+      failed: 0,
+      invalid: 0,
+      migrated: 0,
+      scanned: 0,
+    };
+
+    try {
+      legacyCronReport = await cronJobsService.migrateLegacyJobsToWorkflows({
+        dryRun: false,
+      });
+    } catch (error: unknown) {
+      // Treat an unexpected throw the same way the org/brand loops above treat
+      // their failures: log it and count it as a hard failure so the final gate
+      // still fails the deploy closed, but with a structured report instead of
+      // an opaque task crash mid-migration.
+      legacyCronReport = {
+        ...legacyCronReport,
+        failed: legacyCronReport.failed + 1,
+      };
+      this.logger.error('Failed to migrate legacy cron jobs to workflows', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    }
 
     const report: WorkflowDeploymentBackfillReport = {
       brandFailures,
