@@ -36,6 +36,11 @@ const config = createAppNextConfig({
   ],
   redirects: async () => [
     {
+      destination: '/privacy',
+      permanent: true,
+      source: '/policy',
+    },
+    {
       destination: '/use-cases/creators',
       permanent: true,
       source: '/creators',
