@@ -89,6 +89,7 @@ vi.mock('@genfeedai/services/core/environment.service', () => ({
 }));
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { IngredientStatus } from '@genfeedai/enums';
 import type { IImage } from '@genfeedai/interfaces';
 import MasonryImage from '@ui/masonry/image/MasonryImage';
 
@@ -225,5 +226,41 @@ describe('MasonryImage', () => {
       'src',
       'https://assets.test.com/placeholders/portrait.jpg',
     );
+  });
+
+  it('keeps processing assets in a processing state, not a fallback', () => {
+    render(
+      <MasonryImage
+        image={{
+          ...mockImage,
+          ingredientUrl: undefined,
+          status: IngredientStatus.PROCESSING,
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId('masonry-ingredient-img-123')).toHaveAttribute(
+      'data-asset-media-state',
+      'processing',
+    );
+    expect(
+      screen.queryByTestId('asset-media-fallback-img-123'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('reports a genuine asset load but not the post-error placeholder load', () => {
+    const handleImageLoad = vi.fn();
+
+    render(<MasonryImage image={mockImage} onImageLoad={handleImageLoad} />);
+
+    // A genuine load of the real asset is reported once.
+    fireEvent.load(screen.getByRole('img'));
+    expect(handleImageLoad).toHaveBeenCalledTimes(1);
+
+    // The real image then errors, swapping src to the placeholder.
+    fireEvent.error(screen.getByRole('img'));
+    // The placeholder finishing its load must NOT be reported as a success.
+    fireEvent.load(screen.getByRole('img'));
+    expect(handleImageLoad).toHaveBeenCalledTimes(1);
   });
 });
