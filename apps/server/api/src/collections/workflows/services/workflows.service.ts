@@ -177,8 +177,8 @@ export class WorkflowsService extends BaseService<
 
   /**
    * Idempotently seeds the predetermined "Daily Trends Digest" workflow for an
-   * organization. Seeded OFF (`isScheduleEnabled: false`) so it stays invisible
-   * to the scheduler until the owner enables it from the workflow list UI.
+   * organization. Seeded ON (`isScheduleEnabled: true`) so the workflow is the
+   * default recurring automation path for every organization.
    * Safe to call repeatedly (e.g. on every org bootstrap + a one-time backfill).
    *
    * Race protection: the check-and-insert runs inside a SERIALIZABLE transaction
@@ -202,11 +202,17 @@ export class WorkflowsService extends BaseService<
 
     // Fast path: most calls hit an already-seeded org.
     const preCheck = await this.prisma.workflow.findFirst({
-      select: { id: true },
+      select: { id: true, isScheduleEnabled: true },
       where,
     });
 
     if (preCheck) {
+      if (!preCheck.isScheduleEnabled) {
+        await this.prisma.workflow.update({
+          data: { isScheduleEnabled: true },
+          where: { id: preCheck.id },
+        });
+      }
       return;
     }
 
@@ -217,11 +223,17 @@ export class WorkflowsService extends BaseService<
       await this.prisma.$transaction(
         async (tx) => {
           const existing = await tx.workflow.findFirst({
-            select: { id: true },
+            select: { id: true, isScheduleEnabled: true },
             where,
           });
 
           if (existing) {
+            if (!existing.isScheduleEnabled) {
+              await tx.workflow.update({
+                data: { isScheduleEnabled: true },
+                where: { id: existing.id },
+              });
+            }
             return;
           }
 
@@ -230,7 +242,7 @@ export class WorkflowsService extends BaseService<
               edges: DAILY_TRENDS_DIGEST_TEMPLATE.edges as never,
               executionCount: 0,
               isDeleted: false,
-              isScheduleEnabled: false,
+              isScheduleEnabled: true,
               label: 'Daily Trends Digest',
               metadata: {
                 sourceTemplateId: DAILY_TRENDS_DIGEST_TEMPLATE_ID,

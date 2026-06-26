@@ -4,8 +4,8 @@ import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
 /**
  * Daily Trends Digest — a predetermined, per-org workflow.
  *
- * Seeded OFF (`isScheduleEnabled: false`) for every organization and toggled on
- * from the automation/workflow list UI. When enabled, the canonical
+ * Seeded ON (`isScheduleEnabled: true`) for every organization and toggled off
+ * from the automation/workflow list UI when needed. The canonical
  * WorkflowSchedulerService fires it daily; the node graph assembles a curated
  * digest from the existing global trend corpus (no scrape, no LLM) and emails it
  * to the org owner. Credits are charged once per confirmed send by the adapter.

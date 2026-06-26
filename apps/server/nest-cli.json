@@ -36,6 +36,21 @@
       "sourceRoot": "api/src",
       "type": "application"
     },
+    "api-workflow-backfill": {
+      "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "api/workflow-backfill.webpack.config.cjs"
+          },
+          "type": "webpack"
+        },
+        "tsConfigPath": "api/tsconfig.app.json"
+      },
+      "entryFile": "migrations/workflow-backfill",
+      "root": "api",
+      "sourceRoot": "api/src",
+      "type": "application"
+    },
     "clips": {
       "compilerOptions": {
         "builder": {

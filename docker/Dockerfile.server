@@ -192,7 +192,13 @@ RUN echo "Checking build outputs..." && \
       else \
         echo "❌ $svc bundle MISSING" && exit 1; \
       fi; \
-    done
+    done && \
+    if test -f "apps/server/dist/apps/api-workflow-backfill/main.js"; then \
+      SIZE=$(stat -c%s "apps/server/dist/apps/api-workflow-backfill/main.js"); \
+      echo "✅ api-workflow-backfill bundle ($(( SIZE / 1024 ))KB)"; \
+    else \
+      echo "❌ api-workflow-backfill bundle MISSING" && exit 1; \
+    fi
 
 # ==================================================
 # Stage 3: Production - Runtime image

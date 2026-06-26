@@ -28,7 +28,7 @@ import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [BrandsController, BrandsRelationshipsController],
-  exports: [BrandsService],
+  exports: [BrandsService, DefaultRecurringContentService],
   imports: [
     forwardRef(() => ActivitiesModule),
     forwardRef(() => ArticlesModule),

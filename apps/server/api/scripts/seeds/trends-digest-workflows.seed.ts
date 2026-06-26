@@ -2,7 +2,7 @@
  * Seed Script: Daily Trends Digest Workflows
  *
  * Idempotently provisions the predetermined "Daily Trends Digest" workflow for
- * existing organizations (seeded OFF — owners enable it from the workflow list).
+ * existing organizations (seeded ON by default; owners can pause it from the workflow list).
  * New organizations are seeded automatically on creation; this backfills the
  * organizations that existed before the feature shipped.
  *
@@ -19,11 +19,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { AppModule } from '@api/app.module';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaClient } from '@genfeedai/prisma';
 import { Logger } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 const logger = new Logger('TrendsDigestSeed');
 const scriptDir = fileURLToPath(new URL('.', import.meta.url));
@@ -33,6 +31,80 @@ type SeedArgs = {
   env?: string;
   organizationId?: string;
 };
+
+type SeedOrganization = {
+  id: string;
+  userId: string | null;
+};
+
+type ExistingDigestWorkflow = {
+  id: string;
+  isScheduleEnabled: boolean | null;
+};
+
+const DAILY_TRENDS_DIGEST_NODES = [
+  {
+    data: {
+      config: {
+        creditCost: 5,
+        minViralScore: 70,
+        platforms: ['tiktok', 'instagram', 'youtube', 'twitter'],
+        topN: 5,
+      },
+      label: 'Assemble Trend Digest',
+    },
+    id: 'trend-digest',
+    position: { x: 0, y: 120 },
+    type: 'trendDigest',
+  },
+  {
+    data: {
+      config: {},
+      label: 'Email Digest to Owner',
+    },
+    id: 'send-email',
+    position: { x: 360, y: 120 },
+    type: 'sendEmail',
+  },
+] as const;
+
+const DAILY_TRENDS_DIGEST_EDGES = [
+  {
+    id: 'edge-digest-to',
+    source: 'trend-digest',
+    sourceHandle: 'to',
+    target: 'send-email',
+    targetHandle: 'to',
+  },
+  {
+    id: 'edge-digest-subject',
+    source: 'trend-digest',
+    sourceHandle: 'subject',
+    target: 'send-email',
+    targetHandle: 'subject',
+  },
+  {
+    id: 'edge-digest-html',
+    source: 'trend-digest',
+    sourceHandle: 'html',
+    target: 'send-email',
+    targetHandle: 'html',
+  },
+  {
+    id: 'edge-digest-skipped',
+    source: 'trend-digest',
+    sourceHandle: 'skipped',
+    target: 'send-email',
+    targetHandle: 'skipped',
+  },
+  {
+    id: 'edge-digest-reason',
+    source: 'trend-digest',
+    sourceHandle: 'reason',
+    target: 'send-email',
+    targetHandle: 'reason',
+  },
+] as const;
 
 function loadEnvFile(): void {
   const args = process.argv.slice(2);
@@ -74,35 +146,111 @@ function parseArgs(): SeedArgs {
   };
 }
 
+function createPrismaClient(): PrismaClient {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error('DATABASE_URL environment variable is not set');
+  }
+  return new PrismaClient({
+    adapter: new PrismaPg({ connectionString }),
+  });
+}
+
+async function findExistingDigestWorkflow(
+  prisma: PrismaClient,
+  organizationId: string,
+): Promise<ExistingDigestWorkflow | null> {
+  return (await prisma.workflow.findFirst({
+    select: { id: true, isScheduleEnabled: true },
+    where: {
+      isDeleted: false,
+      metadata: {
+        equals: 'daily-trends-digest',
+        path: ['sourceTemplateId'],
+      },
+      organizationId,
+    },
+  })) as ExistingDigestWorkflow | null;
+}
+
+async function ensureDailyTrendsDigestWorkflow(params: {
+  dryRun: boolean;
+  organizationId: string;
+  prisma: PrismaClient;
+  userId: string;
+}): Promise<'created' | 'enabled' | 'unchanged'> {
+  const existing = await findExistingDigestWorkflow(
+    params.prisma,
+    params.organizationId,
+  );
+
+  if (existing) {
+    if (existing.isScheduleEnabled) {
+      return 'unchanged';
+    }
+    if (!params.dryRun) {
+      await params.prisma.workflow.update({
+        data: { isScheduleEnabled: true },
+        where: { id: existing.id },
+      });
+    }
+    return 'enabled';
+  }
+
+  if (!params.dryRun) {
+    await params.prisma.workflow.create({
+      data: {
+        edges: DAILY_TRENDS_DIGEST_EDGES as never,
+        executionCount: 0,
+        inputVariables: [],
+        isDeleted: false,
+        isScheduleEnabled: true,
+        label: 'Daily Trends Digest',
+        metadata: {
+          sourceTemplateId: 'daily-trends-digest',
+          sourceType: 'seeded-template',
+        },
+        nodes: DAILY_TRENDS_DIGEST_NODES as never,
+        organizationId: params.organizationId,
+        progress: 0,
+        schedule: '0 7 * * *',
+        status: 'active',
+        steps: [],
+        timezone: 'UTC',
+        userId: params.userId,
+      },
+    });
+  }
+
+  return 'created';
+}
+
 async function main(): Promise<void> {
   loadEnvFile();
   const args = parseArgs();
 
-  const app = await NestFactory.createApplicationContext(AppModule, {
-    logger: ['error', 'log', 'warn'],
-  });
+  const prisma = createPrismaClient();
 
   try {
-    const workflowsService = app.get(WorkflowsService);
-    const prisma = app.get(PrismaService);
-
     const where: Record<string, unknown> = { isDeleted: false };
     if (args.organizationId) {
       where.id = args.organizationId;
     }
 
-    const organizations = await prisma.organization.findMany({
+    const organizations = (await prisma.organization.findMany({
       orderBy: { createdAt: 'asc' },
       select: { id: true, userId: true },
       where: where as never,
-    });
+    })) as SeedOrganization[];
 
     logger.log(
       `${args.dryRun ? 'DRY RUN' : 'LIVE'} evaluating ${organizations.length} organization(s)${args.env ? ` for ${args.env}` : ''}`,
     );
 
-    let seeded = 0;
+    let created = 0;
+    let enabled = 0;
     let skipped = 0;
+    let unchanged = 0;
 
     for (const organization of organizations) {
       if (!organization.userId) {
@@ -113,26 +261,33 @@ async function main(): Promise<void> {
         continue;
       }
 
-      if (args.dryRun) {
+      const result = await ensureDailyTrendsDigestWorkflow({
+        dryRun: args.dryRun,
+        organizationId: organization.id,
+        prisma,
+        userId: organization.userId,
+      });
+
+      if (args.dryRun && result !== 'unchanged') {
         logger.log(
-          `[DRY RUN] would ensure Daily Trends Digest workflow for org ${organization.id}`,
+          `[DRY RUN] would ${result === 'enabled' ? 'enable' : 'create'} Daily Trends Digest workflow for org ${organization.id}`,
         );
-        seeded += 1;
-        continue;
       }
 
-      await workflowsService.ensureDailyTrendsDigestWorkflow(
-        organization.userId,
-        organization.id,
-      );
-      seeded += 1;
+      if (result === 'created') {
+        created += 1;
+      } else if (result === 'enabled') {
+        enabled += 1;
+      } else {
+        unchanged += 1;
+      }
     }
 
     logger.log(
-      `Trends digest seed summary: processed=${seeded}, skipped=${skipped}`,
+      `Trends digest seed summary: created=${created}, enabled=${enabled}, unchanged=${unchanged}, skipped=${skipped}`,
     );
   } finally {
-    await app.close();
+    await prisma.$disconnect();
   }
 }
 
