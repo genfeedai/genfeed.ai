@@ -76,9 +76,7 @@ describe('app/(onboarding)/layout.tsx', () => {
     expect(source).toContain('export ');
   });
 
-  it('wraps onboarding providers in the protected auth gate when legacy auth provider is enabled', () => {
-    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test_fake';
-
+  it('wraps onboarding providers in the protected auth gate', () => {
     render(
       <OnboardingSetupLayout>
         <span data-testid="child">hello</span>
@@ -93,15 +91,19 @@ describe('app/(onboarding)/layout.tsx', () => {
     expect(screen.getByTestId('child')).toHaveTextContent('hello');
   });
 
-  it('bypasses the protected auth gate in local mode', () => {
+  it('always uses the protected auth gate regardless of env vars', () => {
+    // Better Auth is the only auth layer — ProtectedAuthGate is always active
+    // (the old Clerk-era NEXT_PUBLIC_BETTER_AUTH_ENABLED bypass no longer exists)
+    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'any-value';
+
     render(
       <OnboardingSetupLayout>
         <span data-testid="child">hello</span>
       </OnboardingSetupLayout>,
     );
 
-    expect(screen.queryByTestId('protected-auth-gate')).not.toBeInTheDocument();
-    expect(protectedAuthGateMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('protected-auth-gate')).toBeInTheDocument();
+    expect(protectedAuthGateMock).toHaveBeenCalled();
     expect(screen.getByTestId('child')).toHaveTextContent('hello');
   });
 

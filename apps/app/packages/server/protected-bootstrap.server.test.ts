@@ -1,20 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const getTokenMock = vi.fn();
+const getBetterAuthServerTokenMock = vi.fn();
 const getBootstrapMock = vi.fn();
 const getInstanceMock = vi.fn(() => ({
   getBootstrap: getBootstrapMock,
 }));
 const cookiesMock = vi.fn(async () => ({
   get: vi.fn(() => undefined),
+  getAll: vi.fn(() => []),
 }));
 
 vi.mock('@genfeedai/auth-client/server', () => ({
-  auth: () => ({
-    getToken: getTokenMock,
-    sessionId: 'session_123',
-    userId: 'user_123',
-  }),
+  getBetterAuthServerToken: getBetterAuthServerTokenMock,
 }));
 
 vi.mock('next/headers', () => ({
@@ -52,8 +49,9 @@ describe('loadProtectedBootstrap', () => {
     delete process.env.PLAYWRIGHT_TEST;
     cookiesMock.mockResolvedValue({
       get: vi.fn(() => undefined),
+      getAll: vi.fn(() => []),
     });
-    getTokenMock.mockResolvedValue('token_123');
+    getBetterAuthServerTokenMock.mockResolvedValue('token_123');
     getBootstrapMock.mockResolvedValue({
       access: {
         brandId: 'brand_123',
@@ -132,6 +130,7 @@ describe('loadProtectedBootstrap', () => {
       get: vi.fn((name: string) =>
         name === '__playwright_test' ? { value: 'true' } : undefined,
       ),
+      getAll: vi.fn(() => []),
     });
 
     const { getServerAuthToken, loadProtectedBootstrap } = await import(
@@ -145,7 +144,7 @@ describe('loadProtectedBootstrap', () => {
 
   it('falls back to self-hosted bootstrap when server auth throws in hybrid mode', async () => {
     vi.doMock('@genfeedai/auth-client/server', () => ({
-      auth: vi.fn(async () => {
+      getBetterAuthServerToken: vi.fn(async () => {
         throw new Error('auth middleware missing');
       }),
     }));
@@ -167,7 +166,7 @@ describe('loadProtectedBootstrap', () => {
   it('returns null when server auth throws in cloud mode', async () => {
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
     vi.doMock('@genfeedai/auth-client/server', () => ({
-      auth: vi.fn(async () => {
+      getBetterAuthServerToken: vi.fn(async () => {
         throw new Error('auth middleware missing');
       }),
     }));
@@ -183,7 +182,7 @@ describe('loadProtectedBootstrap', () => {
 
   it('skips cloud bootstrap in desktop shell mode without a desktop session token', async () => {
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
-    getTokenMock.mockResolvedValue('');
+    getBetterAuthServerTokenMock.mockResolvedValue('');
 
     const { getServerAuthToken, loadProtectedBootstrap } = await import(
       '@app-server/protected-bootstrap.server'

@@ -7,24 +7,29 @@ import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util
 import SuccessContent from './success-content';
 
 const getTokenMock = vi.fn();
-const sessionTouchMock = vi.fn();
 const userReloadMock = vi.fn();
 const resolveAuthTokenMock = vi.fn();
 const completeFunnelMock = vi.fn();
 const patchSettingsMock = vi.fn();
 const assignMock = vi.fn();
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useAuth: () => ({
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
     getToken: getTokenMock,
+    isLoaded: true,
+    isSignedIn: true,
+    orgId: null,
+    sessionId: 'session-123',
+    userId: 'user-123',
   }),
-  useSession: () => ({
-    session: {
-      touch: sessionTouchMock,
-    },
-  }),
-  useUser: () => ({
+}));
+
+vi.mock('@hooks/auth/use-auth-user/use-auth-user', () => ({
+  useAuthUser: () => ({
+    isLoaded: true,
+    isSignedIn: true,
     user: {
+      id: 'user-123',
       reload: userReloadMock,
     },
   }),
@@ -48,6 +53,7 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
 }));
 
 vi.mock('@helpers/auth/auth.helper', () => ({
+  getPlaywrightAuthState: () => null,
   resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
 }));
 
@@ -103,7 +109,6 @@ const localStorageMock = (() => {
 describe('SuccessContent behavior', () => {
   beforeEach(() => {
     getTokenMock.mockReset();
-    sessionTouchMock.mockReset();
     userReloadMock.mockReset();
     resolveAuthTokenMock.mockReset();
     completeFunnelMock.mockReset();
@@ -113,7 +118,6 @@ describe('SuccessContent behavior', () => {
 
     resolveAuthTokenMock.mockResolvedValue('api-token');
     completeFunnelMock.mockResolvedValue(undefined);
-    sessionTouchMock.mockResolvedValue(undefined);
     userReloadMock.mockResolvedValue(undefined);
 
     Object.defineProperty(globalThis, 'localStorage', {
