@@ -16,6 +16,10 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { persistOnboardingHandoffParams } from '@/lib/onboarding/onboarding-access.util';
+import {
+  getAuthCallbackURL,
+  toAbsoluteAuthCallbackURL,
+} from '../auth-callback-url';
 
 const subscribe = () => () => {};
 const getSnapshot = () => true;
@@ -33,11 +37,8 @@ export default function SignUpBetterAuth() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const callbackURL =
-    searchParams.get('callbackUrl') ||
-    searchParams.get('return_to') ||
-    searchParams.get('redirect_url') ||
-    '/';
+  const callbackURL = getAuthCallbackURL(searchParams);
+  const authCallbackURL = toAbsoluteAuthCallbackURL(callbackURL);
 
   useEffect(() => {
     persistOnboardingHandoffParams(window.location.search);
@@ -49,7 +50,10 @@ export default function SignUpBetterAuth() {
     setIsSubmitting(true);
 
     try {
-      const result = await signIn.magicLink({ email, callbackURL });
+      const result = await signIn.magicLink({
+        callbackURL: authCallbackURL,
+        email,
+      });
       if (result?.error) {
         setErrorMessage(
           result.error.message ??
@@ -67,7 +71,7 @@ export default function SignUpBetterAuth() {
 
   async function handleGoogleSignUp() {
     setErrorMessage(null);
-    await signIn.social({ provider: 'google', callbackURL });
+    await signIn.social({ callbackURL: authCallbackURL, provider: 'google' });
   }
 
   if (!isMounted) {

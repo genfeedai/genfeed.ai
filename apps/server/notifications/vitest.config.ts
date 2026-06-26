@@ -46,6 +46,10 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/config/src'),
       },
       {
+        find: '@genfeedai/pricing',
+        replacement: path.resolve(serviceDir, '../../../packages/pricing/src'),
+      },
+      {
         find: /^@genfeedai\/config\/(.*)$/,
         replacement: path.resolve(
           serviceDir,

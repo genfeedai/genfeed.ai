@@ -1,5 +1,9 @@
 import process from 'node:process';
 import { IngredientCategory } from '@genfeedai/enums';
+import {
+  buildSystemEmailHtml,
+  escapeSystemEmailHtml,
+} from '@helpers/email/system-email.helper';
 import type { NotificationEvent } from '@libs/interfaces/events.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
@@ -419,20 +423,17 @@ export class NotificationHandlerService implements OnModuleInit {
     ctaLabel?: string;
     ctaUrl?: string;
   }): string {
-    const cta =
-      input.ctaLabel && input.ctaUrl
-        ? `<p style="margin-top:24px;"><a href="${this.escapeHtml(input.ctaUrl)}" style="background:#111827;border-radius:8px;color:#ffffff;display:inline-block;padding:12px 16px;text-decoration:none;">${this.escapeHtml(input.ctaLabel)}</a></p>`
-        : '';
-
-    return `<!DOCTYPE html><html><body style="background:#f8fafc;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:24px;"><div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;max-width:640px;margin:0 auto;padding:32px;"><h1 style="font-size:24px;line-height:1.2;margin:0 0 16px;">${this.escapeHtml(input.title)}</h1>${input.body}${cta}</div></body></html>`;
+    return buildSystemEmailHtml({
+      action:
+        input.ctaLabel && input.ctaUrl
+          ? { label: input.ctaLabel, url: input.ctaUrl }
+          : undefined,
+      bodyHtml: input.body,
+      title: input.title,
+    });
   }
 
   private escapeHtml(value: string): string {
-    return value
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
+    return escapeSystemEmailHtml(value);
   }
 }

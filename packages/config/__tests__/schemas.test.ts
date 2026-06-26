@@ -121,6 +121,16 @@ describe('Config Schemas', () => {
         expect(error.message).toContain('required');
       }
     });
+
+    it('accepts a Resend sender with a display name', () => {
+      const schema = Joi.object(resendSchema);
+      const { error } = schema.validate(
+        { RESEND_FROM_EMAIL: 'Genfeed <no-reply@genfeed.ai>' },
+        { allowUnknown: true },
+      );
+
+      expect(error).toBeUndefined();
+    });
   });
 
   describe('twitchSchema', () => {

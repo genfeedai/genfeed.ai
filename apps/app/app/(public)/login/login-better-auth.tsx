@@ -16,6 +16,10 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { FcGoogle } from 'react-icons/fc';
+import {
+  getAuthCallbackURL,
+  toAbsoluteAuthCallbackURL,
+} from '../auth-callback-url';
 
 const subscribe = () => () => {};
 const getSnapshot = () => true;
@@ -32,15 +36,6 @@ const AUTH_BUTTON_CLASS_NAME =
 
 const AUTH_LINK_CLASS_NAME =
   'text-sm font-medium text-foreground underline underline-offset-4';
-
-function getCallbackURL(searchParams: Pick<URLSearchParams, 'get'>) {
-  return (
-    searchParams.get('callbackUrl') ||
-    searchParams.get('return_to') ||
-    searchParams.get('redirect_url') ||
-    '/'
-  );
-}
 
 function getLoginModeHref(path: string, callbackURL: string) {
   if (callbackURL === '/') {
@@ -74,7 +69,8 @@ export default function LoginBetterAuth({
   const [socialErrorMessage, setSocialErrorMessage] = useState<string | null>(
     null,
   );
-  const callbackURL = getCallbackURL(searchParams);
+  const callbackURL = getAuthCallbackURL(searchParams);
+  const authCallbackURL = toAbsoluteAuthCallbackURL(callbackURL);
   const chooserHref = getLoginModeHref('/login', callbackURL);
   const magicLinkHref = getLoginModeHref('/login/magic-link', callbackURL);
   const passwordHref = getLoginModeHref('/login/password', callbackURL);
@@ -87,7 +83,10 @@ export default function LoginBetterAuth({
     setIsSubmitting(true);
 
     try {
-      const result = await signIn.magicLink({ email, callbackURL });
+      const result = await signIn.magicLink({
+        callbackURL: authCallbackURL,
+        email,
+      });
       if (result?.error) {
         setErrorMessage(
           result.error.message ??
@@ -111,7 +110,7 @@ export default function LoginBetterAuth({
 
     try {
       const result = await signIn.email({
-        callbackURL,
+        callbackURL: authCallbackURL,
         email,
         password,
       });
@@ -137,7 +136,10 @@ export default function LoginBetterAuth({
     setIsSocialSubmitting(true);
 
     try {
-      const result = await signIn.social({ provider: 'google', callbackURL });
+      const result = await signIn.social({
+        callbackURL: authCallbackURL,
+        provider: 'google',
+      });
       if (result?.error) {
         setSocialErrorMessage(
           result.error.message ??

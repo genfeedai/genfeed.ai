@@ -89,7 +89,8 @@ describe('buildTrendDigestHtml', () => {
     expect(html).toContain('Trending Sounds');
     expect(html).toContain('Score: 92');
     expect(html).toContain('1.5M views');
-    expect(html).toContain('<a href="https://app.genfeed.ai">Open Genfeed</a>');
+    expect(html).toContain('href="https://app.genfeed.ai"');
+    expect(html).toContain('Open Genfeed');
   });
 
   it('omits the footer link when appUrl is empty', () => {

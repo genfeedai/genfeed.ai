@@ -94,7 +94,7 @@ describe('ResendService', () => {
   it('sends successfully', async () => {
     configMock.get.mockImplementation((key: string) => {
       if (key === 'RESEND_API_KEY') return 're_test';
-      if (key === 'RESEND_FROM_EMAIL') return 'Genfeed <updates@genfeed.ai>';
+      if (key === 'RESEND_FROM_EMAIL') return 'Genfeed <no-reply@genfeed.ai>';
       return '';
     });
     mockSend.mockResolvedValue({
@@ -113,7 +113,7 @@ describe('ResendService', () => {
 
     expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({
-        from: 'Genfeed <updates@genfeed.ai>',
+        from: 'Genfeed <no-reply@genfeed.ai>',
         subject: 'Subject',
         to: 'test@example.com',
       }),

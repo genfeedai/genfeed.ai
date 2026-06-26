@@ -5,8 +5,8 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ParseMode } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { CronTrendSummaryNotificationsService } from '@workers/crons/trends/cron.trend-summary-notifications.service';
 import { ConfigService } from '@workers/config/config.service';
+import { CronTrendSummaryNotificationsService } from '@workers/crons/trends/cron.trend-summary-notifications.service';
 
 vi.mock('@nestjs/schedule', () => ({
   Cron: () => () => undefined,
@@ -221,7 +221,7 @@ describe('CronTrendSummaryNotificationsService', () => {
       expect(notificationsService.sendEmail).toHaveBeenCalledWith(
         'user@example.com',
         expect.stringContaining('Trend Summary'),
-        expect.stringContaining('<!DOCTYPE html>'),
+        expect.stringContaining('<!doctype html>'),
       );
     });
 

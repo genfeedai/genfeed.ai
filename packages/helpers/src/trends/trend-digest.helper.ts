@@ -7,6 +7,11 @@
  * (trends + branding/threshold options) are passed in by the caller so this file
  * can live in a public package that the engine and workers both consume.
  */
+import {
+  buildSystemEmailHtml,
+  buildSystemEmailParagraph,
+  escapeSystemEmailHtml,
+} from '../email/system-email.helper';
 
 export type TrendDigestItemType = 'video' | 'hashtag' | 'sound' | 'topic';
 
@@ -43,12 +48,7 @@ export function formatTrendCount(num: number): string {
 
 /** Escapes a string for safe interpolation into the digest HTML. */
 export function escapeTrendHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+  return escapeSystemEmailHtml(text);
 }
 
 /** Markdown summary (used for chat/Telegram channels). */
@@ -117,89 +117,57 @@ export function buildTrendDigestHtml(
   const hashtags = trends.filter((trend) => trend.type === 'hashtag');
   const sounds = trends.filter((trend) => trend.type === 'sound');
 
-  let html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; background: #f5f5f5; }
-          .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 24px; }
-          h1 { color: #1a1a1a; margin-bottom: 8px; }
-          .subtitle { color: #666; font-size: 14px; margin-bottom: 24px; }
-          .section { margin-bottom: 24px; }
-          .section-title { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #eee; }
-          .trend-item { padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
-          .trend-item:last-child { border-bottom: none; }
-          .trend-name { font-weight: 500; color: #1a1a1a; }
-          .trend-meta { font-size: 12px; color: #888; margin-top: 4px; }
-          .viral-score { display: inline-block; background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
-          .platform { display: inline-block; background: #e5e7eb; color: #374151; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 4px; }
-          .footer { margin-top: 24px; padding-top: 16px; border-top: 1px solid #eee; text-align: center; color: #888; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h1>${escapeTrendHtml(headerTitle)}</h1>
-          <p class="subtitle">Filtered for viral score >= ${minViralScore}</p>
-    `;
+  const sections: string[] = [
+    buildSystemEmailParagraph(`Filtered for viral score >= ${minViralScore}.`),
+  ];
 
   if (videos.length > 0) {
-    html += `<div class="section"><div class="section-title">Viral Videos</div>`;
+    sections.push(
+      '<h2 style="border-bottom:1px solid #333538;color:#f4f4f5;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Viral Videos</h2>',
+    );
     videos.slice(0, 5).forEach((video) => {
-      html += `
-          <div class="trend-item">
-            <div class="trend-name">${escapeTrendHtml(video.topic)}</div>
-            <div class="trend-meta">
-              <span class="viral-score">Score: ${video.viralScore}</span>
-              <span class="platform">${escapeTrendHtml(video.platform)}</span>
-              ${video.usageCount ? `<span> • ${formatTrendCount(video.usageCount)} views</span>` : ''}
-            </div>
-          </div>
-        `;
+      sections.push(buildTrendRow(video, 'views'));
     });
-    html += `</div>`;
   }
 
   if (hashtags.length > 0) {
-    html += `<div class="section"><div class="section-title">Trending Hashtags</div>`;
+    sections.push(
+      '<h2 style="border-bottom:1px solid #333538;color:#f4f4f5;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Trending Hashtags</h2>',
+    );
     hashtags.slice(0, 5).forEach((hashtag) => {
-      html += `
-          <div class="trend-item">
-            <div class="trend-name">${escapeTrendHtml(hashtag.topic)}</div>
-            <div class="trend-meta">
-              <span class="platform">${escapeTrendHtml(hashtag.platform)}</span>
-              ${hashtag.usageCount ? `<span> • ${formatTrendCount(hashtag.usageCount)} posts</span>` : ''}
-            </div>
-          </div>
-        `;
+      sections.push(buildTrendRow(hashtag, 'posts'));
     });
-    html += `</div>`;
   }
 
   if (sounds.length > 0) {
-    html += `<div class="section"><div class="section-title">Trending Sounds</div>`;
+    sections.push(
+      '<h2 style="border-bottom:1px solid #333538;color:#f4f4f5;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Trending Sounds</h2>',
+    );
     sounds.slice(0, 5).forEach((sound) => {
-      html += `
-          <div class="trend-item">
-            <div class="trend-name">${escapeTrendHtml(sound.topic)}</div>
-            <div class="trend-meta">
-              ${sound.usageCount ? `<span>${formatTrendCount(sound.usageCount)} uses</span>` : ''}
-            </div>
-          </div>
-        `;
+      sections.push(buildTrendRow(sound, 'uses'));
     });
-    html += `</div>`;
   }
 
-  html += `
-          <div class="footer">
-            Use these trends to create viral content!<br>
-            ${appUrl ? `<a href="${escapeTrendHtml(appUrl)}">Open Genfeed</a>` : ''}
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+  return buildSystemEmailHtml({
+    action: appUrl ? { label: 'Open Genfeed', url: appUrl } : undefined,
+    appUrl,
+    bodyHtml: sections.join(''),
+    preheader: `Trends filtered for viral score >= ${minViralScore}.`,
+    title: headerTitle,
+  });
+}
 
-  return html;
+function buildTrendRow(trend: TrendDigestItem, usageLabel: string): string {
+  const usage = trend.usageCount
+    ? `<span style="color:#8c8c96;"> - ${formatTrendCount(trend.usageCount)} ${usageLabel}</span>`
+    : '';
+
+  return `
+    <div style="border-bottom:1px solid #1e2022;padding:10px 0;">
+      <div style="color:#f4f4f5;font-size:14px;font-weight:700;line-height:20px;">${escapeTrendHtml(trend.topic)}</div>
+      <div style="font-size:12px;line-height:18px;margin-top:4px;">
+        <span style="background:#10b981;border-radius:4px;color:#050607;display:inline-block;font-weight:700;padding:2px 6px;">Score: ${trend.viralScore}</span>
+        <span style="background:#20232a;border-radius:4px;color:#b4b4bc;display:inline-block;margin-left:4px;padding:2px 6px;">${escapeTrendHtml(trend.platform)}</span>${usage}
+      </div>
+    </div>`;
 }

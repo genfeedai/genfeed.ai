@@ -29,6 +29,7 @@ vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
 }));
 
 const getEmailInput = () => screen.getByRole('textbox', { name: /^Email/ });
+const absoluteCallback = (path: string) => `${window.location.origin}${path}`;
 
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
@@ -90,7 +91,7 @@ describe('SignUpForm', () => {
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({
-        callbackURL: '/onboarding',
+        callbackURL: absoluteCallback('/onboarding'),
         email: 'new@example.com',
       });
     });
