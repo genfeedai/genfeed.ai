@@ -26,10 +26,10 @@ import { InternalIntegrationsController } from '@api/endpoints/integrations/inte
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { CacheService } from '@api/services/cache/services/cache.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
-import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 // External service mock imports
 import {
@@ -38,6 +38,7 @@ import {
   createMockCryptoService,
   createMockEventEmitter,
   createMockFileQueueService,
+  createMockFilesClientService,
   createMockHttpService,
   createMockLoggerService,
   createMockRedisService,
@@ -110,6 +111,10 @@ export const EXTERNAL_SERVICE_MOCK_PROVIDERS = [
   {
     provide: StripeService,
     useFactory: () => createMockStripeService(),
+  },
+  {
+    provide: FilesClientService,
+    useFactory: () => createMockFilesClientService(),
   },
   {
     provide: FileQueueService,
@@ -412,8 +417,8 @@ export class E2ETestModule {
 
     return {
       controllers,
-      exports: [PrismaModule],
-      imports: [PrismaModule],
+      exports: [PrismaService],
+      imports: [],
       module: E2ETestModule,
       providers: [
         ...EXTERNAL_SERVICE_MOCK_PROVIDERS.map((provider) => {
@@ -425,6 +430,7 @@ export class E2ETestModule {
           }
           return provider;
         }),
+        PrismaService,
         ...guardProviders,
         ...providers,
       ],

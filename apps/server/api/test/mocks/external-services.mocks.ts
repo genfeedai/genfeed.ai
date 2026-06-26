@@ -656,6 +656,46 @@ export const createMockRedisService = () => ({
 // File Queue Service Mocks
 // ============================================================================
 
+export const createMockFilesClientService = () => ({
+  audioOverlay: vi.fn().mockResolvedValue({
+    publicUrl: 'https://example.com/audio-overlay.mp4',
+    s3Key: 'mock-audio-overlay-key',
+  }),
+  copyInS3: vi.fn().mockResolvedValue({
+    publicUrl: 'https://example.com/copied-file.jpg',
+    s3Key: 'mock-copied-file-key',
+  }),
+  extractMetadataFromUrl: vi.fn().mockResolvedValue({
+    duration: 5,
+    height: 1080,
+    publicUrl: 'https://example.com/metadata-source.mp4',
+    size: 1024,
+    width: 1920,
+  }),
+  generateThumbnail: vi.fn().mockResolvedValue({
+    publicUrl: 'https://example.com/thumbnail.jpg',
+    s3Key: 'mock-thumbnail-key',
+  }),
+  getFileFromS3: vi.fn().mockResolvedValue(Buffer.from('mock-file')),
+  getPresignedDownloadUrl: vi
+    .fn()
+    .mockResolvedValue('https://example.com/download/mock-file'),
+  getPresignedUploadUrl: vi.fn().mockResolvedValue({
+    publicUrl: 'https://example.com/uploaded-file.jpg',
+    s3Key: 'mock-upload-key',
+    uploadUrl: 'https://example.com/upload/mock-file',
+  }),
+  uploadToS3: vi.fn().mockResolvedValue({
+    duration: 5,
+    hasAudio: true,
+    height: 1080,
+    publicUrl: 'https://example.com/uploaded-file.jpg',
+    s3Key: 'mock-upload-key',
+    size: 1024,
+    width: 1920,
+  }),
+});
+
 export const createMockFileQueueService = () => ({
   getJobStatus: vi.fn().mockResolvedValue({
     progress: 100,
