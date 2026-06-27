@@ -58,7 +58,6 @@ import {
   PromptTemplateKey,
   SystemPromptKey,
 } from '@genfeedai/enums';
-import type { PopulateOption } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -128,6 +127,64 @@ export class ArticlesService extends BaseService<
 
   private normalizeArticleScope(value: unknown): ArticleScope | undefined {
     return Object.values(ArticleScope).find((scope) => scope === value);
+  }
+
+  /**
+   * Assert that the caller-scoping identifiers are all present and non-blank.
+   * Single home for the id-validation triad previously inlined across
+   * createArticle/findOneArticle/update/removeArticle.
+   */
+  private assertArticleOwnershipIds(
+    userId: string,
+    organizationId: string,
+    brandId: string,
+  ): void {
+    if (!userId || userId.trim() === '') {
+      throw new Error('Invalid userId');
+    }
+    if (!organizationId || organizationId.trim() === '') {
+      throw new Error('Invalid organizationId');
+    }
+    if (!brandId || brandId.trim() === '') {
+      throw new Error('Invalid brandId');
+    }
+  }
+
+  /**
+   * Invalidate the article list/aggregation cache tag set after a write.
+   * Single home for the tag block previously copy-pasted across
+   * createArticle/update/removeArticle.
+   *
+   * @param context - the write that triggered invalidation (used in the debug log)
+   * @param includePublic - also bust the `public` tag (published articles)
+   */
+  private async invalidateArticleListCaches(
+    context: string,
+    includePublic = false,
+  ): Promise<void> {
+    if (!this.cacheService) {
+      return;
+    }
+
+    const collectionName = this.collectionName;
+    const tagsToInvalidate = [
+      'articles',
+      collectionName,
+      `collection:${collectionName}`,
+      `agg:${collectionName}`,
+      'agg:paginated',
+    ];
+
+    if (includePublic) {
+      tagsToInvalidate.push('public');
+    }
+
+    const invalidated =
+      await this.cacheService.invalidateByTags(tagsToInvalidate);
+    this.logger.debug(
+      `${this.constructorName} invalidated ${invalidated} cache keys after ${context}`,
+      { tags: tagsToInvalidate },
+    );
   }
 
   /**
@@ -328,7 +385,7 @@ export class ArticlesService extends BaseService<
     articleId: string,
   ): Promise<void> {
     // Internal service communication
-    const apiUrl = `http://localhost:3010/transcripts/${transcriptId}`;
+    const apiUrl = `${this.configService.get('GENFEEDAI_API_URL')}/transcripts/${transcriptId}`;
 
     try {
       await fetch(apiUrl, {
@@ -346,17 +403,6 @@ export class ArticlesService extends BaseService<
     }
   }
 
-  /**
-   * Get context-aware population options to prevent over-fetching.
-   * NOTE: With Prisma, population is replaced by explicit include queries.
-   * This method is kept for signature compatibility but returns empty array.
-   */
-  protected getPopulationForContext(
-    _context: 'list' | 'detail' | 'minimal' | 'create' = 'minimal',
-  ): PopulateOption[] {
-    return [];
-  }
-
   @HandleErrors('create article', 'articles')
   async createArticle(
     createArticleDto: CreateArticleDto,
@@ -366,16 +412,7 @@ export class ArticlesService extends BaseService<
   ): Promise<ArticleDocument> {
     this.logger.debug(`${this.constructorName} create`, { createArticleDto });
 
-    // Validate id parameters
-    if (!userId || userId.trim() === '') {
-      throw new Error('Invalid userId');
-    }
-    if (!organizationId || organizationId.trim() === '') {
-      throw new Error('Invalid organizationId');
-    }
-    if (!brandId || brandId.trim() === '') {
-      throw new Error('Invalid brandId');
-    }
+    this.assertArticleOwnershipIds(userId, organizationId, brandId);
 
     const articleData = ArticleFilterUtil.toArticlePersistenceData({
       ...createArticleDto,
@@ -387,24 +424,7 @@ export class ArticlesService extends BaseService<
     const result = await super.create(articleData);
 
     // Explicitly invalidate cache after create - invalidate ALL possible tags
-    if (this.cacheService) {
-      const collectionName = this.collectionName;
-      const tagsToInvalidate = [
-        'articles',
-        collectionName,
-        `collection:${collectionName}`,
-        `agg:${collectionName}`,
-        'agg:paginated',
-      ];
-
-      // Invalidate all tags in one call
-      const invalidated =
-        await this.cacheService.invalidateByTags(tagsToInvalidate);
-      this.logger.debug(
-        `${this.constructorName} invalidated ${invalidated} cache keys after create`,
-        { tags: tagsToInvalidate },
-      );
-    }
+    await this.invalidateArticleListCaches('create');
 
     this.logger.debug(`${this.constructorName} create success`, {
       id: result.id,
@@ -421,18 +441,7 @@ export class ArticlesService extends BaseService<
   ): Promise<ArticleDocument> {
     this.logger.debug(`${this.constructorName} findOne`, { id });
 
-    // Validate id parameters
-    if (!userId || userId.trim() === '') {
-      throw new Error('Invalid userId');
-    }
-
-    if (!organizationId || organizationId.trim() === '') {
-      throw new Error('Invalid organizationId');
-    }
-
-    if (!brandId || brandId.trim() === '') {
-      throw new Error('Invalid brandId');
-    }
+    this.assertArticleOwnershipIds(userId, organizationId, brandId);
 
     const result = await super.findOne({
       id,
@@ -489,18 +498,7 @@ export class ArticlesService extends BaseService<
         updateArticleDto,
       });
 
-      // Validate id parameters
-      if (!userId || userId.trim() === '') {
-        throw new Error('Invalid userId');
-      }
-
-      if (!organizationId || organizationId.trim() === '') {
-        throw new Error('Invalid organizationId');
-      }
-
-      if (!brandId || brandId.trim() === '') {
-        throw new Error('Invalid brandId');
-      }
+      this.assertArticleOwnershipIds(userId, organizationId, brandId);
 
       const updateData = ArticleFilterUtil.toArticlePersistenceData({
         ...updateArticleDto,
@@ -508,31 +506,13 @@ export class ArticlesService extends BaseService<
 
       // If status is being changed to PUBLISHED, handle publishing logic
       if (updateArticleDto.status === ArticleStatus.PUBLIC) {
-        // Find and verify ownership
-        const currentArticle = await this.findOne({
+        await this.applyPublishStateTransition({
           id,
-          OR: [{ userId }, { organizationId }],
-          isDeleted: false,
+          organizationId,
+          publishedAtFromDto: updateArticleDto.publishedAt,
+          updateData,
+          userId,
         });
-
-        if (currentArticle) {
-          // Always set scope to PUBLIC when publishing
-          updateData.scope = ArticleScope.PUBLIC;
-
-          // Set publishedAt if empty/null (first time publishing or missing date)
-          if (!currentArticle.publishedAt) {
-            updateData.publishedAt = new Date().toISOString();
-          }
-
-          // If republishing and publishedAt already exists, keep it as is (unless explicitly provided in DTO)
-        } else {
-          // Article not found, but this will be caught by the patch call below
-          // Still set scope and publishedAt for safety
-          updateData.scope = ArticleScope.PUBLIC;
-          if (!updateArticleDto.publishedAt) {
-            updateData.publishedAt = new Date().toISOString();
-          }
-        }
       }
 
       const result = await super.patch(id, updateData);
@@ -548,84 +528,21 @@ export class ArticlesService extends BaseService<
       }
 
       // Explicitly invalidate ALL cache after update - invalidate ALL possible tags
-      if (this.cacheService) {
-        const collectionName = this.collectionName;
-        const tagsToInvalidate = [
-          'articles',
-          collectionName,
-          `collection:${collectionName}`,
-          `agg:${collectionName}`,
-          'agg:paginated',
-        ];
-
-        // If article is published, also invalidate public cache (PUBLISHED = public)
-        if (ArticleFilterUtil.isPublicArticleStatus(result.status)) {
-          tagsToInvalidate.push('public');
-        }
-
-        // Invalidate all tags in one call
-        const invalidated =
-          await this.cacheService.invalidateByTags(tagsToInvalidate);
-        this.logger.debug(
-          `${this.constructorName} invalidated ${invalidated} cache keys after update`,
-          { tags: tagsToInvalidate },
-        );
-      }
+      await this.invalidateArticleListCaches(
+        'update',
+        ArticleFilterUtil.isPublicArticleStatus(result.status),
+      );
 
       this.logger.debug(`${this.constructorName} update success`, {
         id: result.id,
       });
 
       // Send Discord notification if article was just published
-      if (
-        updateArticleDto.status === ArticleStatus.PUBLIC &&
-        this.notificationsService &&
-        this.organizationSettingsService &&
-        this.configService
-      ) {
-        try {
-          const organizationSettings =
-            await this.organizationSettingsService.findOne({
-              organizationId,
-            });
-
-          if (organizationSettings?.isNotificationsDiscordEnabled) {
-            // PUBLISHED articles are public, so generate URL if slug exists
-            const publicUrl = result.slug
-              ? `${this.configService.get('GENFEEDAI_PUBLIC_URL')}/articles/${result.slug}`
-              : undefined;
-            const articleLabel = this.readString(result.label) ?? result.title;
-            const articleSlug = this.readString(result.slug) ?? result.id;
-
-            await this.notificationsService.sendArticleNotification({
-              category: this.readString(result.category),
-              label: articleLabel,
-              publicUrl,
-              slug: articleSlug,
-              summary:
-                this.readString(result.summary) ??
-                this.readString(result.excerpt),
-            });
-
-            this.logger.log(
-              `${this.constructorName} sent Discord notification for published article`,
-              {
-                articleId: result.id,
-                slug: result.slug,
-              },
-            );
-          }
-        } catch (error: unknown) {
-          // Don't fail the update if notification fails
-          this.logger.error(
-            `${this.constructorName} failed to send Discord notification`,
-            {
-              articleId: result.id,
-              error,
-            },
-          );
-        }
-      }
+      await this.sendArticlePublishedNotification(
+        result,
+        organizationId,
+        updateArticleDto.status,
+      );
 
       return result;
     } catch (error: unknown) {
@@ -638,6 +555,109 @@ export class ArticlesService extends BaseService<
     }
   }
 
+  /**
+   * Apply the publish-state transition to `updateData` when an article is moved
+   * to PUBLIC: always set scope to PUBLIC and stamp publishedAt the first time
+   * (preserving an existing or DTO-provided date). Extracted from `update`.
+   */
+  private async applyPublishStateTransition(params: {
+    id: string;
+    userId: string;
+    organizationId: string;
+    updateData: Record<string, unknown>;
+    publishedAtFromDto?: string;
+  }): Promise<void> {
+    // Always set scope to PUBLIC when publishing
+    params.updateData.scope = ArticleScope.PUBLIC;
+
+    // Find and verify ownership
+    const currentArticle = await this.findOne({
+      id: params.id,
+      OR: [
+        { userId: params.userId },
+        { organizationId: params.organizationId },
+      ],
+      isDeleted: false,
+    });
+
+    if (currentArticle) {
+      // Set publishedAt if empty/null (first time publishing or missing date).
+      // If republishing and publishedAt already exists, keep it as is.
+      if (!currentArticle.publishedAt) {
+        params.updateData.publishedAt = new Date().toISOString();
+      }
+    } else if (!params.publishedAtFromDto) {
+      // Article not found, but this will be caught by the patch call below.
+      // Still stamp publishedAt for safety unless the DTO provided one.
+      params.updateData.publishedAt = new Date().toISOString();
+    }
+  }
+
+  /**
+   * Send a Discord notification when an article was just published.
+   * No-op unless the status is PUBLIC, the supporting services are wired, and
+   * the organization has Discord notifications enabled. Never throws — a failed
+   * notification must not fail the update. Extracted from `update`.
+   */
+  private async sendArticlePublishedNotification(
+    result: ArticleDocument,
+    organizationId: string,
+    status?: ArticleStatus,
+  ): Promise<void> {
+    if (
+      status !== ArticleStatus.PUBLIC ||
+      !this.notificationsService ||
+      !this.organizationSettingsService ||
+      !this.configService
+    ) {
+      return;
+    }
+
+    try {
+      const organizationSettings =
+        await this.organizationSettingsService.findOne({
+          organizationId,
+        });
+
+      if (!organizationSettings?.isNotificationsDiscordEnabled) {
+        return;
+      }
+
+      // PUBLISHED articles are public, so generate URL if slug exists
+      const publicUrl = result.slug
+        ? `${this.configService.get('GENFEEDAI_PUBLIC_URL')}/articles/${result.slug}`
+        : undefined;
+      const articleLabel = this.readString(result.label) ?? result.title;
+      const articleSlug = this.readString(result.slug) ?? result.id;
+
+      await this.notificationsService.sendArticleNotification({
+        category: this.readString(result.category),
+        label: articleLabel,
+        publicUrl,
+        slug: articleSlug,
+        summary:
+          this.readString(result.summary) ?? this.readString(result.excerpt),
+      });
+
+      this.logger.log(
+        `${this.constructorName} sent Discord notification for published article`,
+        {
+          articleId: result.id,
+          slug: result.slug,
+        },
+      );
+    } catch (error: unknown) {
+      // Don't fail the update if notification fails
+      this.logger.error(
+        `${this.constructorName} failed to send Discord notification`,
+        {
+          articleId: result.id,
+          error,
+        },
+      );
+    }
+  }
+
   async removeArticle(
     id: string,
     userId: string,
@@ -647,16 +667,7 @@ export class ArticlesService extends BaseService<
     try {
       this.logger.debug(`${this.constructorName} remove`, { id });
 
-      // Validate id parameters
-      if (!userId || userId.trim() === '') {
-        throw new Error('Invalid userId');
-      }
-      if (!organizationId || organizationId.trim() === '') {
-        throw new Error('Invalid organizationId');
-      }
-      if (!brandId || brandId.trim() === '') {
-        throw new Error('Invalid brandId');
-      }
+      this.assertArticleOwnershipIds(userId, organizationId, brandId);
 
       // First verify the article exists and belongs to the user
       const article = await super.findOne({
@@ -675,25 +686,7 @@ export class ArticlesService extends BaseService<
       await super.patch(id, { isDeleted: true }, []);
 
       // Explicitly invalidate ALL cache after delete - invalidate ALL possible tags
-      if (this.cacheService) {
-        const collectionName = this.collectionName;
-
-        const tagsToInvalidate = [
-          'articles',
-          collectionName,
-          `collection:${collectionName}`,
-          `agg:${collectionName}`,
-          'agg:paginated',
-        ];
-
-        // Invalidate all tags in one call
-        const invalidated =
-          await this.cacheService.invalidateByTags(tagsToInvalidate);
-        this.logger.debug(
-          `${this.constructorName} invalidated ${invalidated} cache keys after delete`,
-          { tags: tagsToInvalidate },
-        );
-      }
+      await this.invalidateArticleListCaches('delete');
 
       this.logger.debug(`${this.constructorName} remove success`, { id });
     } catch (error: unknown) {

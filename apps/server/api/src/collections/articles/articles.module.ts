@@ -7,7 +7,6 @@ import { ActivitiesModule } from '@api/collections/activities/activities.module'
 import { ArticlesController } from '@api/collections/articles/controllers/articles.controller';
 import { ArticleAnalyticsService } from '@api/collections/articles/services/article-analytics.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
-import { ArticlesAnalyticsService } from '@api/collections/articles/services/articles-analytics.service';
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
@@ -33,12 +32,7 @@ import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [ArticlesController],
-  exports: [
-    ArticleAnalyticsService,
-    ArticlesAnalyticsService,
-    ArticlesContentService,
-    ArticlesService,
-  ],
+  exports: [ArticleAnalyticsService, ArticlesContentService, ArticlesService],
   imports: [
     forwardRef(() => ActivitiesModule),
     forwardRef(() => BrandsModule),
@@ -62,7 +56,6 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   providers: [
     ArticleAnalyticsService,
-    ArticlesAnalyticsService,
     ArticlesContentService,
     ArticlesService,
     CreditsGuard,
