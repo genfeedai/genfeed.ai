@@ -258,11 +258,15 @@ export abstract class BaseService<
     );
   }
 
-  public findOne(id: string, query: Record<string, unknown> = {}): Promise<T> {
+  public findOne(
+    id: string,
+    query: Record<string, unknown> = {},
+    signal?: AbortSignal,
+  ): Promise<T> {
     return this.executeWithErrorHandling(
       `GET ${this.baseURL}/${id}`,
       this.instance
-        .get<JsonApiResponseDocument>(`/${id}`, { params: query })
+        .get<JsonApiResponseDocument>(`/${id}`, { params: query, signal })
         .then((res) => res.data)
         .then(async (res) => await this.mapOne(res)),
     );

@@ -68,7 +68,7 @@ export default function TrainingDetail({
 
         controller.signal.throwIfAborted();
 
-        const data = await service.findOne(trainingId);
+        const data = await service.findOne(trainingId, {}, controller.signal);
 
         controller.signal.throwIfAborted();
 
