@@ -40,13 +40,31 @@ const {
   },
 }));
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useAuth: () => ({
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
     getToken: getTokenMock,
+    isLoaded: true,
+    isSignedIn: true,
+    orgId: null,
+    sessionId: 'session-123',
+    userId: 'user-123',
   }),
-  useUser: () => ({
+}));
+
+vi.mock('@hooks/auth/use-auth-user/use-auth-user', () => ({
+  useAuthUser: () => ({
+    isLoaded: true,
+    isSignedIn: true,
     user: {
+      firstName: 'Local',
+      fullName: 'Local User',
+      id: 'user-123',
+      imageUrl: null,
+      lastName: 'User',
+      primaryEmailAddress: { emailAddress: 'local@example.com' },
       publicMetadata: {},
+      reload: vi.fn(),
+      updatedAt: null,
     },
   }),
 }));
@@ -56,6 +74,7 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
 }));
 
 vi.mock('@helpers/auth/auth.helper', () => ({
+  getPlaywrightAuthState: () => null,
   resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
 }));
 

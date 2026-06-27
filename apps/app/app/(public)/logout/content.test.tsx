@@ -1,21 +1,33 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import LogoutPage from './content';
 import '@testing-library/jest-dom/vitest';
 
-const signOut = vi.fn();
+const mocks = vi.hoisted(() => ({
+  push: vi.fn(),
+  signOut: vi.fn().mockResolvedValue(undefined),
+}));
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useAuthClient: () => ({
-    signOut,
+vi.mock('@genfeedai/auth-client', () => ({
+  signOut: mocks.signOut,
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mocks.push,
   }),
 }));
 
 describe('LogoutPage', () => {
-  it('requests sign-out and redirects back to login', () => {
+  it('calls signOut and redirects to login', async () => {
     render(<LogoutPage />);
 
-    expect(signOut).toHaveBeenCalledWith({ redirectUrl: '/login' });
+    await waitFor(() => {
+      expect(mocks.signOut).toHaveBeenCalledOnce();
+    });
+    await waitFor(() => {
+      expect(mocks.push).toHaveBeenCalledWith('/login');
+    });
   });
 
   it('should render without crashing', () => {

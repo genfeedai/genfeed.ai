@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsConversationPage from '../app/(protected)/[orgSlug]/~/settings/(pages)/personal/settings-conversation-page';
 import '@testing-library/jest-dom/vitest';
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useUser: vi.fn(() => ({
+vi.mock('@hooks/auth/use-auth-user/use-auth-user', () => ({
+  useAuthUser: vi.fn(() => ({
     isLoaded: true,
+    isSignedIn: true,
+    user: null,
   })),
 }));
 
