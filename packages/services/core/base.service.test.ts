@@ -475,6 +475,21 @@ describe('BaseService', () => {
       expect(result).toBeInstanceOf(TestModel);
     });
 
+    it('forwards an AbortSignal to the request config so the fetch is cancellable', async () => {
+      const mockResponse = {
+        data: { data: { id: '123', name: 'Test' } },
+      };
+      service.getInstanceForTest().get.mockResolvedValue(mockResponse);
+      const controller = new AbortController();
+
+      await service.findOne('123', { include: 'relations' }, controller.signal);
+
+      expect(service.getInstanceForTest().get).toHaveBeenCalledWith('/123', {
+        params: { include: 'relations' },
+        signal: controller.signal,
+      });
+    });
+
     it('should throw on error', async () => {
       service
         .getInstanceForTest()
