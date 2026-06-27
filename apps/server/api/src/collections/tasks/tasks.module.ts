@@ -7,6 +7,9 @@ import { SkillsModule } from '@api/collections/skills/skills.module';
 import { TaskCommentsModule } from '@api/collections/task-comments/task-comments.module';
 import { TaskCountersModule } from '@api/collections/task-counters/task-counters.module';
 import { TasksController } from '@api/collections/tasks/controllers/tasks.controller';
+import { TaskActionsService } from '@api/collections/tasks/services/task-actions.service';
+import { TaskPlanningService } from '@api/collections/tasks/services/task-planning.service';
+import { TaskRoutingService } from '@api/collections/tasks/services/task-routing.service';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-orchestrator.module';
@@ -31,6 +34,11 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => OrganizationsModule),
     forwardRef(() => LoggerModule),
   ],
-  providers: [TasksService],
+  providers: [
+    TaskActionsService,
+    TaskPlanningService,
+    TaskRoutingService,
+    TasksService,
+  ],
 })
 export class TasksModule {}

@@ -1,28 +1,29 @@
-import { randomUUID } from 'node:crypto';
-import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
-import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
-import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { type SkillDocument } from '@api/collections/skills/schemas/skill.schema';
-import { SkillsService } from '@api/collections/skills/services/skills.service';
-import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
 import {
   type TaskDocument,
-  type TaskEvent,
-  type TaskProgress,
   type TaskStatus,
 } from '@api/collections/tasks/schemas/task.schema';
+import {
+  TaskActionsService,
+  type TaskEventInput,
+} from '@api/collections/tasks/services/task-actions.service';
+import {
+  type PlanningThreadResult,
+  TaskPlanningService,
+} from '@api/collections/tasks/services/task-planning.service';
+import { TaskRoutingService } from '@api/collections/tasks/services/task-routing.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 
 const STATUS_TRANSITIONS: Record<TaskStatus, readonly TaskStatus[]> = {
   backlog: ['todo', 'in_progress', 'cancelled'],
@@ -35,72 +36,19 @@ const STATUS_TRANSITIONS: Record<TaskStatus, readonly TaskStatus[]> = {
   todo: ['in_progress', 'blocked', 'backlog', 'cancelled'],
 };
 
-const PLANNING_THREAD_SOURCE_PREFIX = 'workspace-planning:';
-const PLANNING_THREAD_TITLE_PREFIX = 'Plan next steps: ';
-
-type TaskRoutingDecision = Pick<
-  TaskDocument,
-  | 'chosenModel'
-  | 'chosenProvider'
-  | 'executionPathUsed'
-  | 'outputType'
-  | 'resultPreview'
-  | 'reviewState'
-  | 'reviewTriggered'
-  | 'routingSummary'
-  | 'skillVariantIds'
-  | 'skillsUsed'
-  | 'status'
->;
-
-type AiTaskIntent = {
-  channel?: string;
-  modality: 'image' | 'text' | 'video';
-  outputType: TaskDocument['outputType'];
-  workflowStage: 'creation';
-};
-
-type PlanningThreadResult = {
-  created: boolean;
-  seeded: boolean;
-  threadId: string;
-};
-
-type TaskEventInput = {
-  payload?: Record<string, unknown>;
-  timestamp?: Date;
-  type: string;
-};
-
-type TaskRealtimePayload = {
-  event: {
-    id: string;
-    payload?: Record<string, unknown>;
-    timestamp: string;
-    type: string;
-  };
-  organizationId: string;
-  progress: TaskProgress;
-  room: string;
-  task: Record<string, unknown>;
-  taskId: string;
-  userId: string;
-};
-
-type FollowUpPlanStep = {
-  outputType?: TaskDocument['outputType'];
-  request: string;
-  title: string;
-};
-
 type CreateTaskDtoExtended = CreateTaskDto & {
-  brand?: string;
-  organization?: string;
   platforms?: string[];
   request?: string;
-  user?: string;
 };
 
+/**
+ * Thin persistence / CRUD / lifecycle surface for tasks. Routing classification
+ * lives in {@link TaskRoutingService}, review-gate + output actions + realtime
+ * broadcast in {@link TaskActionsService}, and planning/follow-up orchestration
+ * in {@link TaskPlanningService}. The review/output/planning methods below are
+ * thin delegators so the HTTP contract (the controller still calls them here) is
+ * preserved.
+ */
 @Injectable()
 export class TasksService extends BaseService<
   TaskDocument,
@@ -111,25 +59,25 @@ export class TasksService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     readonly logger: LoggerService,
-    private readonly skillsService: SkillsService,
-    private readonly ingredientsService: IngredientsService,
-    private readonly agentThreadsService: AgentThreadsService,
-    private readonly agentMessagesService: AgentMessagesService,
-    private readonly agentRunsService: AgentRunsService,
-    private readonly notificationsPublisher: NotificationsPublisherService,
-    private readonly taskCountersService: TaskCountersService,
-    private readonly organizationsService: OrganizationsService,
+    private readonly taskRoutingService: TaskRoutingService,
+    @Inject(forwardRef(() => TaskActionsService))
+    private readonly taskActionsService: TaskActionsService,
+    @Inject(forwardRef(() => TaskPlanningService))
+    private readonly taskPlanningService: TaskPlanningService,
   ) {
     super(prisma, 'task', logger);
   }
 
   override async create(createDto: CreateTaskDto): Promise<TaskDocument> {
     const extended = createDto as CreateTaskDtoExtended;
+    const normalizedTitle = this.buildTaskTitle(createDto);
     const routing = extended.request
-      ? await this.buildRoutingDecision(createDto)
+      ? await this.taskRoutingService.buildRoutingDecision(
+          createDto,
+          normalizedTitle,
+        )
       : null;
 
-    const normalizedTitle = this.buildTaskTitle(createDto);
     const createPayload = {
       ...createDto,
       ...(routing ?? {}),
@@ -303,25 +251,12 @@ export class TasksService extends BaseService<
     })) as unknown as TaskDocument[];
   }
 
+  // ===========================================================================
+  // Review / output actions — thin delegators to TaskActionsService.
+  // ===========================================================================
+
   async approve(id: string, organizationId: string): Promise<TaskDocument> {
-    const task = await this.requireAiTask(id, organizationId);
-    const updated = (await this.delegate.update({
-      data: {
-        completedAt: new Date(),
-        reviewState: 'approved',
-        status: 'done',
-        dismissedReason: null,
-        failureReason: null,
-        requestedChangesReason: null,
-      },
-      where: { id },
-    })) as unknown as TaskDocument | null;
-    if (!updated) throw new NotFoundException('Task', id);
-    const userId = task.assigneeUserId ?? '';
-    await this.appendEventAndBroadcast(updated, organizationId, userId, {
-      type: 'task_approved',
-    });
-    return updated;
+    return this.taskActionsService.approve(id, organizationId);
   }
 
   async requestChanges(
@@ -330,22 +265,12 @@ export class TasksService extends BaseService<
     userId: string,
     reason: string,
   ): Promise<TaskDocument> {
-    await this.requireAiTask(id, organizationId);
-    const updated = (await this.delegate.update({
-      data: {
-        requestedChangesReason: reason,
-        reviewState: 'changes_requested',
-        status: 'in_review',
-        dismissedReason: null,
-      },
-      where: { id },
-    })) as unknown as TaskDocument | null;
-    if (!updated) throw new NotFoundException('Task', id);
-    await this.appendEventAndBroadcast(updated, organizationId, userId, {
-      payload: { reason },
-      type: 'task_changes_requested',
-    });
-    return updated;
+    return this.taskActionsService.requestChanges(
+      id,
+      organizationId,
+      userId,
+      reason,
+    );
   }
 
   async dismiss(
@@ -354,24 +279,7 @@ export class TasksService extends BaseService<
     userId: string,
     reason?: string,
   ): Promise<TaskDocument> {
-    await this.requireAiTask(id, organizationId);
-    const updated = (await this.delegate.update({
-      data: {
-        dismissedAt: new Date(),
-        dismissedReason: reason ?? null,
-        reviewState: 'dismissed',
-        status: 'cancelled',
-        failureReason: null,
-        requestedChangesReason: null,
-      },
-      where: { id },
-    })) as unknown as TaskDocument | null;
-    if (!updated) throw new NotFoundException('Task', id);
-    await this.appendEventAndBroadcast(updated, organizationId, userId, {
-      payload: reason ? { reason } : undefined,
-      type: 'task_dismissed',
-    });
-    return updated;
+    return this.taskActionsService.dismiss(id, organizationId, userId, reason);
   }
 
   async keepOutput(
@@ -379,27 +287,7 @@ export class TasksService extends BaseService<
     outputId: string,
     organizationId: string,
   ): Promise<TaskDocument> {
-    const task = await this.requireLinkedOutputTask(
-      id,
-      organizationId,
-      outputId,
-    );
-    const current = (await this.delegate.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    })) as { approvedOutputIds?: string[] } | null;
-    const existingIds = current?.approvedOutputIds ?? [];
-    const deduped = Array.from(new Set([...existingIds, outputId]));
-    const updated = (await this.delegate.update({
-      data: { approvedOutputIds: deduped },
-      where: { id },
-    })) as unknown as TaskDocument | null;
-    if (!updated) throw new NotFoundException('Task', id);
-    const userId = task.assigneeUserId ?? '';
-    await this.appendEventAndBroadcast(updated, organizationId, userId, {
-      payload: { outputId },
-      type: 'output_kept',
-    });
-    return updated;
+    return this.taskActionsService.keepOutput(id, outputId, organizationId);
   }
 
   async unkeepOutput(
@@ -407,27 +295,7 @@ export class TasksService extends BaseService<
     outputId: string,
     organizationId: string,
   ): Promise<TaskDocument> {
-    const task = await this.requireLinkedOutputTask(
-      id,
-      organizationId,
-      outputId,
-    );
-    const current = (await this.delegate.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    })) as { approvedOutputIds?: string[] } | null;
-    const existingIds = current?.approvedOutputIds ?? [];
-    const filtered = existingIds.filter((oid) => oid !== outputId);
-    const updated = (await this.delegate.update({
-      data: { approvedOutputIds: filtered },
-      where: { id },
-    })) as unknown as TaskDocument | null;
-    if (!updated) throw new NotFoundException('Task', id);
-    const userId = task.assigneeUserId ?? '';
-    await this.appendEventAndBroadcast(updated, organizationId, userId, {
-      payload: { outputId },
-      type: 'output_unkept',
-    });
-    return updated;
+    return this.taskActionsService.unkeepOutput(id, outputId, organizationId);
   }
 
   async trashOutput(
@@ -435,34 +303,7 @@ export class TasksService extends BaseService<
     outputId: string,
     organizationId: string,
   ): Promise<TaskDocument> {
-    const task = await this.requireLinkedOutputTask(
-      id,
-      organizationId,
-      outputId,
-    );
-    const ingredient = await this.ingredientsService.findOne({
-      id: outputId,
-      isDeleted: false,
-      organizationId,
-    });
-    if (!ingredient) throw new NotFoundException('Ingredient', outputId);
-    await this.ingredientsService.patch(outputId, { isDeleted: true });
-    const current = (await this.delegate.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    })) as { approvedOutputIds?: string[] } | null;
-    const existingIds = current?.approvedOutputIds ?? [];
-    const filtered = existingIds.filter((oid) => oid !== outputId);
-    const updated = (await this.delegate.update({
-      data: { approvedOutputIds: filtered },
-      where: { id },
-    })) as unknown as TaskDocument | null;
-    if (!updated) throw new NotFoundException('Task', id);
-    const userId = task.assigneeUserId ?? '';
-    await this.appendEventAndBroadcast(updated, organizationId, userId, {
-      payload: { outputId },
-      type: 'output_trashed',
-    });
-    return updated;
+    return this.taskActionsService.trashOutput(id, outputId, organizationId);
   }
 
   async attachOutput(
@@ -471,22 +312,12 @@ export class TasksService extends BaseService<
     organizationId: string,
     userId: string,
   ): Promise<TaskDocument> {
-    await this.requireAiTask(id, organizationId);
-    const current = (await this.delegate.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    })) as { linkedOutputIds?: string[] } | null;
-    const existingIds = current?.linkedOutputIds ?? [];
-    const deduped = Array.from(new Set([...existingIds, outputId]));
-    const updated = (await this.delegate.update({
-      data: { linkedOutputIds: deduped },
-      where: { id },
-    })) as unknown as TaskDocument | null;
-    if (!updated) throw new NotFoundException('Task', id);
-    await this.appendEventAndBroadcast(updated, organizationId, userId, {
-      payload: { outputId },
-      type: 'output_attached',
-    });
-    return updated;
+    return this.taskActionsService.attachOutput(
+      id,
+      outputId,
+      organizationId,
+      userId,
+    );
   }
 
   async recordTaskEvent(
@@ -496,74 +327,33 @@ export class TasksService extends BaseService<
     event: TaskEventInput,
     patch: Record<string, unknown> = {},
   ): Promise<TaskDocument> {
-    const task = await this.requireAiTask(id, organizationId);
-    const updated = await this.patchAiTaskAndReturn(id, organizationId, patch);
-    await this.appendEventAndBroadcast(
-      updated ?? task,
+    return this.taskActionsService.recordTaskEvent(
+      id,
       organizationId,
       userId,
       event,
+      patch,
     );
-    return updated ?? task;
   }
+
+  // ===========================================================================
+  // Planning / follow-up orchestration — thin delegators to TaskPlanningService.
+  // ===========================================================================
 
   async openPlanningThread(
     id: string,
     organizationId: string,
     userId: string,
   ): Promise<PlanningThreadResult> {
-    const task = await this.requireAiTask(id, organizationId);
-    const systemPrompt = await this.buildPlanningSystemPrompt(
-      task,
+    return this.taskPlanningService.openPlanningThread(
+      id,
       organizationId,
-    );
-    const planningThreadIdStr = task.planningThreadId?.toString();
-    const existingThreadId = await this.resolveAccessiblePlanningThreadId(
-      planningThreadIdStr,
-      organizationId,
-    );
-
-    if (existingThreadId) {
-      await this.agentThreadsService.updateThreadMetadata(
-        existingThreadId,
-        organizationId,
-        {
-          planModeEnabled: true,
-          systemPrompt,
-          title: this.buildPlanningThreadTitle(task.title),
-        },
-      );
-      return {
-        created: false,
-        seeded: await this.shouldSeedPlanningThread(
-          existingThreadId,
-          organizationId,
-        ),
-        threadId: existingThreadId,
-      };
-    }
-
-    const thread = await this.agentThreadsService.create({
-      organizationId,
-      planModeEnabled: true,
-      source: this.buildPlanningThreadSource(id),
-      systemPrompt,
-      title: this.buildPlanningThreadTitle(task.title),
       userId,
-    } as Record<string, unknown>);
-
-    const threadId = (thread as Record<string, unknown>).id as string;
-    await this.patch(id, { planningThreadId: threadId } as Record<
-      string,
-      unknown
-    >);
-
-    return { created: true, seeded: true, threadId };
+    );
   }
 
   async getPlanningPrompt(id: string, organizationId: string): Promise<string> {
-    const task = await this.requireAiTask(id, organizationId);
-    return this.buildPlanningKickoffPrompt(task.title);
+    return this.taskPlanningService.getPlanningPrompt(id, organizationId);
   }
 
   async createFollowUpTasks(
@@ -571,63 +361,22 @@ export class TasksService extends BaseService<
     organizationId: string,
     userId: string,
   ): Promise<TaskDocument[]> {
-    const task = await this.requireAiTask(id, organizationId);
-    const planningThreadIdStr = task.planningThreadId?.toString();
-    const threadId = await this.resolveAccessiblePlanningThreadId(
-      planningThreadIdStr,
+    return this.taskPlanningService.createFollowUpTasks(
+      id,
       organizationId,
+      userId,
     );
+  }
 
-    if (!threadId) {
-      throw new BadRequestException(
-        'No planning conversation exists for this task yet.',
-      );
-    }
-
-    const latestPlan = await this.getLatestApprovedPlanningMessage(
-      threadId,
-      organizationId,
-    );
-    const followUpSteps = this.extractFollowUpSteps(latestPlan, task);
-
-    if (followUpSteps.length === 0) {
-      throw new BadRequestException(
-        'The latest approved plan does not contain any follow-up steps to create.',
-      );
-    }
-
-    const taskOrgId =
-      ((task as Record<string, unknown>).organizationId as string) ??
-      organizationId;
-    const org = await this.organizationsService.findOne({
-      id: taskOrgId,
-      isDeleted: false,
-    });
-
-    return Promise.all(
-      followUpSteps.map(async (step) => {
-        const taskNumber =
-          await this.taskCountersService.getNextNumber(taskOrgId);
-        const identifier = `${org?.prefix ?? 'TASK'}-${taskNumber}`;
-        return this.create({
-          brandId: (task as Record<string, unknown>).brandId as string,
-          identifier,
-          organizationId: taskOrgId,
-          outputType: step.outputType ?? task.outputType,
-          platforms: task.platforms,
-          priority: task.priority,
-          request: step.request,
-          taskNumber,
-          title: step.title,
-          userId,
-        } as CreateTaskDto & {
-          identifier: string;
-          organizationId: string;
-          taskNumber: number;
-          userId: string;
-        });
-      }),
-    );
+  /**
+   * Fetch an org-scoped, non-deleted task or throw. Public so the extracted
+   * task services ({@link TaskActionsService}, {@link TaskPlanningService}) can
+   * reuse the canonical lookup.
+   */
+  async requireTask(id: string, organizationId: string): Promise<TaskDocument> {
+    const task = await this.findOne({ id, isDeleted: false, organizationId });
+    if (!task) throw new NotFoundException('Task', id);
+    return task;
   }
 
   private buildTaskTitle(createDto: CreateTaskDto): string {
@@ -640,699 +389,6 @@ export class TasksService extends BaseService<
     if (!compactRequest) return 'Untitled task';
     if (compactRequest.length <= 72) return compactRequest;
     return `${compactRequest.slice(0, 69).trimEnd()}...`;
-  }
-
-  private async buildRoutingDecision(
-    createDto: CreateTaskDto,
-  ): Promise<TaskRoutingDecision> {
-    const extended = createDto as CreateTaskDtoExtended;
-    const inferredOutputType = this.inferOutputType(createDto);
-    const taskIntent = this.buildTaskIntent(createDto, inferredOutputType);
-    const brandId = extended.brand ?? undefined;
-    const organizationId = extended.organization ?? undefined;
-
-    if (brandId && organizationId) {
-      const resolvedSkills = await this.skillsService.resolveBrandSkills(
-        organizationId,
-        brandId,
-        {
-          channel: taskIntent.channel,
-          modality: taskIntent.modality,
-          workflowStage: taskIntent.workflowStage,
-        },
-      );
-      const matchedSkill = resolvedSkills[0];
-      if (matchedSkill) {
-        return this.buildSkillDrivenDecision(
-          createDto,
-          taskIntent,
-          matchedSkill,
-        );
-      }
-    }
-
-    return this.buildFallbackRoutingDecision(inferredOutputType);
-  }
-
-  private buildTaskIntent(
-    createDto: CreateTaskDto,
-    outputType: TaskDocument['outputType'],
-  ): AiTaskIntent {
-    const extended = createDto as CreateTaskDtoExtended;
-    const platforms = extended.platforms ?? [];
-    const normalizedPlatforms = platforms.map((p) => p.toLowerCase());
-    const primaryChannel = normalizedPlatforms[0];
-
-    switch (outputType) {
-      case 'image':
-        return {
-          channel: primaryChannel,
-          modality: 'image',
-          outputType: 'image',
-          workflowStage: 'creation',
-        };
-      case 'video':
-        return {
-          channel: primaryChannel,
-          modality: 'video',
-          outputType: 'video',
-          workflowStage: 'creation',
-        };
-      default:
-        return {
-          channel: primaryChannel,
-          modality: 'text',
-          outputType,
-          workflowStage: 'creation',
-        };
-    }
-  }
-
-  private inferOutputType(
-    createDto: CreateTaskDto,
-  ): TaskDocument['outputType'] {
-    const extended = createDto as CreateTaskDtoExtended;
-    const outputType = extended.outputType;
-    const request = extended.request ?? '';
-    const normalizedRequest = request.toLowerCase();
-
-    return (outputType ??
-      (normalizedRequest.match(/\b(video|reel|short|clip)\b/)
-        ? 'video'
-        : normalizedRequest.match(/\b(newsletter|issue|beehiiv|email)\b/)
-          ? 'newsletter'
-          : normalizedRequest.match(/\b(thread|tweet|post|reply|hook)\b/)
-            ? 'post'
-            : normalizedRequest.match(/\b(caption|copy|text)\b/)
-              ? 'caption'
-              : normalizedRequest.match(/\b(image|photo|thumbnail|visual)\b/)
-                ? 'image'
-                : 'ingredient')) as TaskDocument['outputType'];
-  }
-
-  private buildSkillDrivenDecision(
-    createDto: CreateTaskDto,
-    taskIntent: AiTaskIntent,
-    matchedSkill: Awaited<
-      ReturnType<SkillsService['resolveBrandSkills']>
-    >[number],
-  ): TaskRoutingDecision {
-    const targetSkill = matchedSkill.targetSkill;
-    const requiresApproval = this.skillRequiresApproval(targetSkill);
-    const taskTitle = this.buildTaskTitle(createDto);
-    const executionPathUsed =
-      taskIntent.outputType === 'image'
-        ? 'image_generation'
-        : taskIntent.outputType === 'video' ||
-            taskIntent.outputType === 'facecam'
-          ? 'video_generation'
-          : taskIntent.outputType === 'caption' ||
-              taskIntent.outputType === 'post' ||
-              taskIntent.outputType === 'newsletter'
-            ? 'caption_generation'
-            : 'agent_orchestrator';
-
-    return {
-      chosenModel: 'auto',
-      chosenProvider: targetSkill.requiredProviders?.[0] ?? 'genfeed-router',
-      executionPathUsed,
-      outputType: taskIntent.outputType,
-      resultPreview: requiresApproval
-        ? `Prepared with ${targetSkill.name}: ${taskTitle}`
-        : undefined,
-      reviewState: requiresApproval ? 'pending_approval' : 'none',
-      reviewTriggered: requiresApproval,
-      routingSummary: `Resolved the request using the brand skill "${targetSkill.name}" (${targetSkill.slug}) for the ${taskIntent.workflowStage} stage.`,
-      skillsUsed: targetSkill.slug ? [targetSkill.slug] : [],
-      skillVariantIds: matchedSkill.variant?._id
-        ? [String(matchedSkill.variant._id)]
-        : [],
-      status: requiresApproval
-        ? 'in_review'
-        : executionPathUsed === 'agent_orchestrator'
-          ? 'backlog'
-          : 'in_progress',
-    };
-  }
-
-  private buildFallbackRoutingDecision(
-    inferredOutputType: TaskDocument['outputType'],
-  ): TaskRoutingDecision {
-    switch (inferredOutputType) {
-      case 'image':
-        return {
-          chosenModel: 'auto',
-          chosenProvider: 'genfeed-router',
-          executionPathUsed: 'image_generation',
-          outputType: 'image',
-          reviewState: 'none',
-          reviewTriggered: false,
-          routingSummary:
-            'Detected an image ingredient request and routed it to the image generation path.',
-          skillsUsed: [],
-          skillVariantIds: [],
-          status: 'in_progress',
-        };
-      case 'video':
-        return {
-          chosenModel: 'auto',
-          chosenProvider: 'genfeed-router',
-          executionPathUsed: 'video_generation',
-          outputType: 'video',
-          reviewState: 'none',
-          reviewTriggered: false,
-          routingSummary:
-            'Detected a short-form video request and routed it to the video generation path.',
-          skillsUsed: [],
-          skillVariantIds: [],
-          status: 'in_progress',
-        };
-      case 'facecam':
-        return {
-          chosenModel: 'auto',
-          chosenProvider: 'genfeed-router',
-          executionPathUsed: 'video_generation',
-          outputType: 'facecam',
-          reviewState: 'none',
-          reviewTriggered: false,
-          routingSummary:
-            'Detected a facecam video request and routed it to the video generation path.',
-          skillsUsed: [],
-          skillVariantIds: [],
-          status: 'in_progress',
-        };
-      case 'caption':
-      case 'newsletter':
-      case 'post':
-        return {
-          chosenModel: 'auto',
-          chosenProvider: 'genfeed-router',
-          executionPathUsed: 'caption_generation',
-          outputType: inferredOutputType,
-          reviewState: 'none',
-          reviewTriggered: true,
-          routingSummary:
-            inferredOutputType === 'newsletter'
-              ? 'Detected a newsletter request and routed it to the writing generation path for review.'
-              : inferredOutputType === 'post'
-                ? 'Detected a social post request and routed it to the writing generation path for review.'
-                : 'Detected a writing request and routed it to the caption generation path for review.',
-          skillsUsed: [],
-          skillVariantIds: [],
-          status: 'backlog',
-        };
-      default:
-        return {
-          chosenModel: 'auto',
-          chosenProvider: 'genfeed-router',
-          executionPathUsed: 'agent_orchestrator',
-          outputType: 'ingredient',
-          reviewState: 'none',
-          reviewTriggered: false,
-          routingSummary:
-            'Detected a broader ingredient request and routed it to the orchestration path.',
-          skillsUsed: [],
-          skillVariantIds: [],
-          status: 'backlog',
-        };
-    }
-  }
-
-  private skillRequiresApproval(skill: SkillDocument): boolean {
-    const reviewDefaults = skill.reviewDefaults;
-    if (!reviewDefaults) return skill.workflowStage === 'review';
-    const requiresApproval = reviewDefaults['requiresApproval'];
-    return typeof requiresApproval === 'boolean' ? requiresApproval : false;
-  }
-
-  private async patchAiTaskAndReturn(
-    id: string,
-    organizationId: string,
-    patch: Record<string, unknown>,
-  ): Promise<TaskDocument | null> {
-    if (Object.keys(patch).length === 0) {
-      return this.findOne({ id, isDeleted: false, organizationId });
-    }
-    return (await this.delegate.update({
-      data: patch,
-      where: { id },
-    })) as unknown as TaskDocument | null;
-  }
-
-  private async requireAiTask(
-    id: string,
-    organizationId: string,
-  ): Promise<TaskDocument> {
-    const task = await this.findOne({ id, isDeleted: false, organizationId });
-    if (!task) throw new NotFoundException('Task', id);
-    return task;
-  }
-
-  private async requireLinkedOutputTask(
-    id: string,
-    organizationId: string,
-    outputId: string,
-  ): Promise<TaskDocument> {
-    const task = await this.requireAiTask(id, organizationId);
-    const linkedOutputIds = task.linkedOutputIds ?? [];
-    const isLinked = linkedOutputIds.some(
-      (linkedOutputId) => linkedOutputId.toString() === outputId,
-    );
-    if (!isLinked)
-      throw new BadRequestException(
-        'This output is not linked to the requested task.',
-      );
-    return task;
-  }
-
-  private createTaskEventEntry(input: TaskEventInput): {
-    createdAt: Date;
-    id: string;
-    payload?: Record<string, unknown>;
-    timestamp: Date;
-    type: string;
-  } {
-    const now = input.timestamp ?? new Date();
-    return {
-      createdAt: now,
-      id: randomUUID(),
-      payload: input.payload,
-      timestamp: now,
-      type: input.type,
-    };
-  }
-
-  private serializeTaskProgress(
-    progress: TaskDocument['progress'],
-  ): TaskProgress {
-    return {
-      activeRunCount: progress?.activeRunCount ?? 0,
-      message: progress?.message,
-      percent: progress?.percent ?? 0,
-      stage: progress?.stage,
-    };
-  }
-
-  private serializeDate(value: unknown): string | undefined {
-    if (value instanceof Date) {
-      return value.toISOString();
-    }
-
-    return typeof value === 'string' && value.length > 0 ? value : undefined;
-  }
-
-  private serializeTaskEvent(event: TaskEvent): Record<string, unknown> {
-    const createdAt = event.createdAt ?? event.timestamp;
-    const timestamp =
-      this.serializeDate(event.timestamp) ??
-      this.serializeDate(event.createdAt);
-
-    return {
-      createdAt: this.serializeDate(createdAt),
-      id: event.id,
-      payload: event.payload,
-      timestamp,
-      type: event.type,
-      userId: event.userId,
-    };
-  }
-
-  private serializeTaskRealtimeSnapshot(
-    task: TaskDocument,
-  ): Record<string, unknown> {
-    const approvedOutputIds = task.approvedOutputIds ?? [];
-    const linkedApprovalIds = task.linkedApprovalIds ?? [];
-    const linkedOutputIds = task.linkedOutputIds ?? [];
-    const linkedRunIds = task.linkedRunIds ?? [];
-    const skillVariantIds = task.skillVariantIds ?? [];
-    const eventStream = task.eventStream ?? [];
-    const taskRecord = task as Record<string, unknown>;
-
-    return {
-      approvedOutputIds: approvedOutputIds.map((id) => id.toString()),
-      brandId: taskRecord.brandId,
-      chosenModel: task.chosenModel,
-      chosenProvider: task.chosenProvider,
-      completedAt: this.serializeDate(task.completedAt),
-      createdAt: this.serializeDate(task.createdAt),
-      decomposition: task.decomposition,
-      dismissedAt: this.serializeDate(task.dismissedAt),
-      dismissedReason: task.dismissedReason,
-      eventStream: eventStream.map((event) => this.serializeTaskEvent(event)),
-      executionPathUsed: task.executionPathUsed,
-      failureReason: task.failureReason,
-      id: taskRecord.id,
-      linkedApprovalIds: linkedApprovalIds.map((id) => id.toString()),
-      linkedOutputIds: linkedOutputIds.map((id) => id.toString()),
-      linkedRunIds: linkedRunIds.map((id) => id.toString()),
-      organizationId: taskRecord.organizationId,
-      outputType: task.outputType,
-      planningThreadId: task.planningThreadId?.toString(),
-      platforms: task.platforms,
-      priority: task.priority,
-      progress: this.serializeTaskProgress(task.progress),
-      qualityAssessment: task.qualityAssessment,
-      request: task.request,
-      requestedChangesReason: task.requestedChangesReason,
-      resultPreview: task.resultPreview,
-      reviewState: task.reviewState,
-      reviewTriggered: task.reviewTriggered,
-      routingSummary: task.routingSummary,
-      skillsUsed: task.skillsUsed,
-      skillVariantIds: skillVariantIds.map((id) => id.toString()),
-      status: task.status,
-      title: task.title,
-      updatedAt: this.serializeDate(task.updatedAt),
-    };
-  }
-
-  private async appendEventAndBroadcast(
-    task: TaskDocument,
-    organizationId: string,
-    userId: string,
-    eventInput: TaskEventInput,
-  ): Promise<void> {
-    const entry = this.createTaskEventEntry(eventInput);
-    const taskId = (task as Record<string, unknown>).id as string;
-
-    const eventDoc = {
-      createdAt: entry.createdAt,
-      id: entry.id,
-      payload: entry.payload,
-      timestamp: entry.timestamp,
-      type: entry.type,
-      userId: userId || undefined,
-    };
-
-    const current = (await this.delegate.findFirst({
-      where: { id: taskId, isDeleted: false },
-    })) as { eventStream?: unknown[] } | null;
-    const currentStream = current?.eventStream ?? [];
-    const newStream = [...currentStream, eventDoc];
-
-    const updated = (await this.delegate.update({
-      data: { eventStream: newStream },
-      where: { id: taskId },
-    })) as unknown as TaskDocument | null;
-
-    if (!updated) return;
-
-    const payload: TaskRealtimePayload = {
-      event: {
-        id: entry.id,
-        payload: entry.payload,
-        timestamp: entry.timestamp.toISOString(),
-        type: entry.type,
-      },
-      organizationId,
-      progress: this.serializeTaskProgress(updated.progress),
-      room: `org-${organizationId}`,
-      task: this.serializeTaskRealtimeSnapshot(updated),
-      taskId,
-      userId,
-    };
-
-    await Promise.all([
-      this.notificationsPublisher.emit(
-        WebSocketPaths.workspaceTask(taskId),
-        payload,
-      ),
-      this.notificationsPublisher.emit(
-        WebSocketPaths.workspaceTaskOverview(organizationId),
-        payload,
-      ),
-    ]);
-  }
-
-  private readObjectRecord(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      return null;
-    }
-
-    return value as Record<string, unknown>;
-  }
-
-  private async resolveAccessiblePlanningThreadId(
-    planningThreadId: string | undefined,
-    organizationId: string,
-  ): Promise<string | null> {
-    if (!planningThreadId) return null;
-    const thread = await this.agentThreadsService.findOne({
-      id: planningThreadId,
-      isDeleted: false,
-      organizationId,
-    });
-    return thread ? ((thread as Record<string, unknown>).id as string) : null;
-  }
-
-  private async shouldSeedPlanningThread(
-    threadId: string,
-    organizationId: string,
-  ): Promise<boolean> {
-    const existingMessages = await this.agentMessagesService.getMessagesByRoom(
-      threadId,
-      organizationId,
-      { limit: 1, page: 1 },
-    );
-    return existingMessages.length === 0;
-  }
-
-  private buildPlanningThreadSource(taskId: string): string {
-    return `${PLANNING_THREAD_SOURCE_PREFIX}${taskId}`;
-  }
-
-  private buildPlanningThreadTitle(taskTitle: string): string {
-    const normalized = taskTitle.trim();
-    const title = normalized.length > 0 ? normalized : 'Task';
-    return `${PLANNING_THREAD_TITLE_PREFIX}${title}`.slice(0, 140);
-  }
-
-  private buildPlanningKickoffPrompt(taskTitle: string): string {
-    const subject = taskTitle.trim() || 'this task';
-    return `Review ${subject} and tell me what has already been done, what remains unresolved, what SHOULD happen next, and what COULD happen next.`;
-  }
-
-  private async buildPlanningSystemPrompt(
-    task: TaskDocument,
-    organizationId: string,
-  ): Promise<string> {
-    const linkedRuns = await this.buildLinkedRunSummaries(task, organizationId);
-    const taskId = (task as Record<string, unknown>).id as string;
-    const bundle = {
-      decomposition: task.decomposition ?? null,
-      dismissedReason: task.dismissedReason ?? null,
-      failureReason: task.failureReason ?? null,
-      linkedApprovalIds: (task.linkedApprovalIds ?? []).map((id) =>
-        id.toString(),
-      ),
-      linkedOutputIds: (task.linkedOutputIds ?? []).map((id) => id.toString()),
-      linkedRunIds: (task.linkedRunIds ?? []).map((id) => id.toString()),
-      linkedRuns,
-      outputType: task.outputType,
-      platforms: task.platforms,
-      priority: task.priority,
-      requestedChangesReason: task.requestedChangesReason ?? null,
-      resultPreview: task.resultPreview ?? null,
-      reviewState: task.reviewState,
-      reviewTriggered: task.reviewTriggered,
-      routingSummary: task.routingSummary ?? null,
-      status: task.status,
-      taskId,
-      title: task.title,
-      userRequest: task.request,
-    };
-
-    return [
-      "You are Genfeed's task-aware planning assistant for a single task.",
-      'Use the live task bundle below as the source of truth for what has already happened.',
-      'Stay conversational and concise, but be explicit about state.',
-      'When you answer planning questions, you must:',
-      '1. Summarize what has already been done.',
-      '2. Separate what is complete from what remains unresolved.',
-      '3. Recommend what SHOULD happen next.',
-      '4. List what COULD happen next as optional follow-ups.',
-      '5. When appropriate, propose a sequenced multi-task plan where each step is concrete enough to become a follow-up task.',
-      '',
-      'Live task bundle:',
-      JSON.stringify(bundle, null, 2),
-    ].join('\n');
-  }
-
-  private async buildLinkedRunSummaries(
-    task: TaskDocument,
-    organizationId: string,
-  ): Promise<
-    Array<{
-      completedAt?: string;
-      error?: string;
-      id: string;
-      label: string;
-      startedAt?: string;
-      status: string;
-      summary?: string;
-      threadId?: string;
-    }>
-  > {
-    const runSummaries: Array<{
-      completedAt?: string;
-      error?: string;
-      id: string;
-      label: string;
-      startedAt?: string;
-      status: string;
-      summary?: string;
-      threadId?: string;
-    }> = [];
-
-    for (const linkedRunId of task.linkedRunIds ?? []) {
-      const run = await this.agentRunsService.getById(
-        linkedRunId.toString(),
-        organizationId,
-      );
-
-      if (!run) {
-        continue;
-      }
-
-      runSummaries.push({
-        completedAt: this.serializeDate(run.completedAt),
-        error: typeof run.error === 'string' ? run.error : undefined,
-        id: (run as Record<string, unknown>).id as string,
-        label: typeof run.label === 'string' ? run.label : '',
-        startedAt: this.serializeDate(run.startedAt),
-        status: typeof run.status === 'string' ? run.status : 'unknown',
-        summary: typeof run.summary === 'string' ? run.summary : undefined,
-        threadId: run.thread?.toString(),
-      });
-    }
-
-    return runSummaries;
-  }
-
-  private async getLatestApprovedPlanningMessage(
-    threadId: string,
-    organizationId: string,
-  ): Promise<Record<string, unknown>> {
-    const recentMessages = await this.agentMessagesService.getMessagesByRoom(
-      threadId,
-      organizationId,
-      { limit: 100, page: 1 },
-    );
-
-    const latestPlanningMessage = recentMessages.find((message) => {
-      if (message.role !== 'assistant') return false;
-      const metadata = this.readObjectRecord(message.metadata);
-      const proposedPlan = metadata?.['proposedPlan'];
-      return (
-        proposedPlan !== null &&
-        typeof proposedPlan === 'object' &&
-        !Array.isArray(proposedPlan)
-      );
-    });
-
-    const latestMetadata = this.readObjectRecord(
-      latestPlanningMessage?.metadata,
-    );
-    const plan = latestMetadata?.['proposedPlan'];
-
-    if (!plan || typeof plan !== 'object' || Array.isArray(plan)) {
-      throw new BadRequestException(
-        'No proposed plan is available in the planning conversation yet.',
-      );
-    }
-
-    const status =
-      typeof (plan as { status?: unknown }).status === 'string'
-        ? (plan as { status: string }).status
-        : null;
-
-    if (status !== 'approved') {
-      throw new BadRequestException(
-        'Approve the proposed plan before creating follow-up tasks.',
-      );
-    }
-
-    return plan as Record<string, unknown>;
-  }
-
-  private extractFollowUpSteps(
-    plan: Record<string, unknown>,
-    task: TaskDocument,
-  ): FollowUpPlanStep[] {
-    const steps = Array.isArray(plan['steps']) ? plan['steps'] : [];
-    const taskId = (task as Record<string, unknown>).id as string;
-
-    return steps.flatMap((step) => {
-      if (!step || typeof step !== 'object' || Array.isArray(step)) return [];
-
-      const title =
-        this.readStringField(step as Record<string, unknown>, [
-          'step',
-          'title',
-          'task',
-          'label',
-          'name',
-        ]) ?? null;
-      if (!title) return [];
-
-      const detail =
-        this.readStringField(step as Record<string, unknown>, [
-          'details',
-          'description',
-          'request',
-          'summary',
-          'brief',
-        ]) ?? '';
-      const request = [
-        detail.length > 0 ? `${title}\n\n${detail}` : title,
-        `Source task: ${task.title} (${taskId})`,
-        `Original task request: ${task.request}`,
-      ].join('\n\n');
-
-      const outputType = this.normalizeOutputType(
-        this.readStringField(step as Record<string, unknown>, [
-          'outputType',
-          'type',
-        ]),
-      );
-
-      return [
-        {
-          outputType: outputType ?? task.outputType,
-          request,
-          title: title.slice(0, 140),
-        },
-      ];
-    });
-  }
-
-  private normalizeOutputType(
-    value: string | null,
-  ): TaskDocument['outputType'] | null {
-    if (!value) return null;
-    return [
-      'caption',
-      'facecam',
-      'image',
-      'ingredient',
-      'newsletter',
-      'post',
-      'video',
-    ].includes(value)
-      ? (value as TaskDocument['outputType'])
-      : null;
-  }
-
-  private readStringField(
-    value: Record<string, unknown>,
-    keys: string[],
-  ): string | null {
-    for (const key of keys) {
-      const candidate = value[key];
-      if (typeof candidate === 'string' && candidate.trim().length > 0)
-        return candidate.trim();
-    }
-    return null;
   }
 
   private validateStatusTransition(
