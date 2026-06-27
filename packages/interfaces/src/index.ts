@@ -47,6 +47,7 @@ export * from './automation/task.interface';
 export * from './automation/workflow.interface';
 export * from './automation/workflow-builder.interface';
 export * from './batch/batch.interface';
+export * from './batch/batch-workflow-status.interface';
 export * from './batch/manual-review-batch-item.interface';
 export * from './billing/credits.interface';
 export * from './billing/managed-credits.interface';

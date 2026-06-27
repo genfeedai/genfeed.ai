@@ -57,18 +57,11 @@ function ThemedBetterAuthProvider({
   authProps?: BetterAuthProviderProps;
 }) {
   const { resolvedTheme } = useTheme();
-  const isPlaywrightTest = process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true';
   const appearance = authProps?.appearance;
 
   return (
     <BetterAuthProvider
       {...authProps}
-      {...(isPlaywrightTest
-        ? {
-            __internal_bypassMissingPublishableKey: true,
-            publishableKey: '',
-          }
-        : {})}
       appearance={{
         ...(appearance ?? {}),
         theme: resolvedTheme === 'dark' ? dark : appearance?.theme,
