@@ -26,7 +26,12 @@ import { VideoGenerationModule } from '@api/collections/videos/video-generation.
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WebhooksController } from '@api/collections/workflows/controllers/webhooks.controller';
-import { WorkflowsController } from '@api/collections/workflows/controllers/workflows.controller';
+import { WorkflowBatchController } from '@api/collections/workflows/controllers/workflow-batch.controller';
+import { WorkflowBuilderController } from '@api/collections/workflows/controllers/workflow-builder.controller';
+import { WorkflowCrudController } from '@api/collections/workflows/controllers/workflow-crud.controller';
+import { WorkflowExecutionController } from '@api/collections/workflows/controllers/workflow-execution.controller';
+import { WorkflowMarketplaceController } from '@api/collections/workflows/controllers/workflow-marketplace.controller';
+import { WorkflowWebhookManagementController } from '@api/collections/workflows/controllers/workflow-webhook-management.controller';
 import { AdAutomationWorkflowService } from '@api/collections/workflows/services/ad-automation-workflow.service';
 import { InstagramSocialAdapter } from '@api/collections/workflows/services/adapters/instagram-social.adapter';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
@@ -78,7 +83,19 @@ import { BullModule } from '@nestjs/bullmq';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
-  controllers: [WorkflowsController, WebhooksController],
+  // Order matters: controllers that own literal first-segment routes
+  // (templates, marketplace, referencable, batch, nodes/*) are registered
+  // before WorkflowCrudController so its `:workflowId` param route never
+  // shadows them.
+  controllers: [
+    WorkflowBuilderController,
+    WorkflowMarketplaceController,
+    WorkflowExecutionController,
+    WorkflowBatchController,
+    WorkflowWebhookManagementController,
+    WorkflowCrudController,
+    WebhooksController,
+  ],
   exports: [
     BatchWorkflowQueueService,
     BatchWorkflowService,

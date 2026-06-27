@@ -2189,6 +2189,30 @@ export class WorkflowsService extends BaseService<
   // ===========================================================================
 
   /**
+   * Fetch a workflow the caller owns (org-scoped, optionally user-scoped) or
+   * throw the canonical {@link NotFoundException}. Single source of truth for
+   * the ownership-guard preamble that used to be duplicated across the
+   * workflows controllers with three divergent 404 shapes.
+   */
+  async findOwnedOrThrow(
+    workflowId: string,
+    scope: { organization: string; user?: string },
+  ): Promise<WorkflowDocument> {
+    const workflow = await this.findOne({
+      _id: workflowId,
+      isDeleted: false,
+      organization: scope.organization,
+      ...(scope.user ? { user: scope.user } : {}),
+    });
+
+    if (!workflow) {
+      throw new NotFoundException('Workflow not found');
+    }
+
+    return workflow;
+  }
+
+  /**
    * Generate a webhook URL for a workflow
    */
   @HandleErrors('generate webhook', 'workflows')
