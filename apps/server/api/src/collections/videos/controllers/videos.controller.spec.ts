@@ -27,6 +27,7 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
+import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import type { VoteDocument } from '@api/collections/votes/schemas/vote.schema';
@@ -379,6 +380,12 @@ describe('VideosController', () => {
             addMusicToVideo: vi.fn().mockResolvedValue(undefined),
           },
         },
+        // DI-instantiating VideosController via the module needs this provider;
+        // the tests themselves drive a real VideoGenerationService built below.
+        {
+          provide: VideoGenerationService,
+          useValue: { generateVideo: vi.fn() },
+        },
       ],
     })
       .overrideGuard(BetterAuthGuard)
@@ -398,12 +405,14 @@ describe('VideosController', () => {
       })
       .compile();
 
-    controller = new VideosController(
+    // The generation workflow now lives in VideoGenerationService; build the
+    // real service from the same mocked providers so the controller delegates
+    // into it and every existing create() expectation still holds.
+    const videoGenerationService = new VideoGenerationService(
       testingModule.get(ConfigService),
       testingModule.get(ActivitiesService),
       testingModule.get(BrandsService),
       testingModule.get(AssetsService),
-      testingModule.get(FilesClientService),
       testingModule.get(BookmarksService),
       testingModule.get(CreditsUtilsService),
       testingModule.get(FalService),
@@ -422,10 +431,18 @@ describe('VideosController', () => {
       testingModule.get(SharedService),
       testingModule.get(VideoMusicOrchestrationService),
       testingModule.get(VideosService),
-      testingModule.get(VotesService),
       testingModule.get(CacheService),
       testingModule.get(RouterService),
       testingModule.get(NotificationsPublisherService),
+    );
+
+    controller = new VideosController(
+      testingModule.get(ConfigService),
+      testingModule.get(VideosService),
+      testingModule.get(VotesService),
+      testingModule.get(FilesClientService),
+      testingModule.get(MetadataService),
+      videoGenerationService,
     );
     videosService = testingModule.get(VideosService);
     brandsService = testingModule.get(BrandsService);
@@ -1069,6 +1086,31 @@ describe('VideosController', () => {
       expect(klingAIService.queueGenerateTextToVideo).toHaveBeenCalledTimes(3);
     });
 
+    // Regression: provider routing used to be duplicated across two divergent
+    // switches, and the multi-output copy omitted FAL_KLING_VIDEO_V3_PRO,
+    // FAL_VEO_3_1 and FAL_PIXVERSE_V6 — so additional outputs silently fell
+    // through to Replicate. A single dispatch (isFalDestination-based) must now
+    // route EVERY output of these models to FAL.
+    it.each([
+      MODEL_KEYS.FAL_VEO_3_1,
+      MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO,
+      MODEL_KEYS.FAL_PIXVERSE_V6,
+    ])('routes every output of a multi-output %s request to falService, never replicateService', async (model) => {
+      const dto: CreateVideoDto = {
+        ...baseCreateDto,
+        model,
+        outputs: 3,
+      };
+
+      await controller.create(mockRequest, dto, mockUser);
+
+      // Primary output + 2 additional outputs all dispatch to FAL.
+      expect(testingModule.get(FalService).generateVideo).toHaveBeenCalledTimes(
+        3,
+      );
+      expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+    });
+
     it('should link video to bookmark if provided', async () => {
       const bookmarkId = '507f191e810c19729de860ee';
       const dto: CreateVideoDto = {
@@ -1385,6 +1427,10 @@ beforeAll(async () => {
       {
         provide: VideoMusicOrchestrationService,
         useValue: { addMusicToVideo: vi.fn() },
+      },
+      {
+        provide: VideoGenerationService,
+        useValue: { generateVideo: vi.fn() },
       },
     ],
   })
