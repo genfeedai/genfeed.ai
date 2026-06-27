@@ -19,6 +19,7 @@ import {
 import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
 import { type ArticleDocument } from '@api/collections/articles/schemas/article.schema';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { buildTwitterThreadTweets } from '@api/collections/articles/utils/article-thread.util';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
@@ -255,44 +256,23 @@ export class ArticlesContentService {
         ],
         topic: generateDto.prompt,
       });
-      const promptWithHarness = appendHarnessBriefToPrompt(
-        prompt,
-        harnessContext.brief,
-      );
-
       // Build prompt with PromptBuilderService then call Replicate
       const generationModel = modelConfig.generationModel || DEFAULT_TEXT_MODEL;
-      const { input } = (await this.promptBuilderService?.buildPrompt(
-        generationModel as string,
-        {
+      const responseText = await this.runTextGenerationStep({
+        basePrompt: prompt,
+        buildPromptOptions: {
           maxTokens: this.configService.get('MAX_TOKENS'),
           modelCategory: ModelCategory.TEXT,
-          prompt: promptWithHarness,
           promptTemplate: PromptTemplateKey.TEXT_ARTICLE,
           systemPromptTemplate: SystemPromptKey.ARTICLE,
           temperature: 0.8,
-          ...harnessContext.promptBuilder,
         },
+        failureMessage: 'Failed to generate content from AI service',
+        harnessContext,
+        model: generationModel,
+        onBilling,
         organizationId,
-      )) || { input: {} };
-
-      const responseText =
-        await this.replicateService?.generateTextCompletionSync(
-          generationModel,
-          input,
-        );
-
-      if (!responseText) {
-        throw new Error('Failed to generate content from AI service');
-      }
-
-      onBilling?.(
-        await this.calculateTextGenerationCharge(
-          generationModel,
-          input,
-          responseText,
-        ),
-      );
+      });
 
       // Parse JSON response
       let response: ArticleGenerationResponse;
@@ -459,47 +439,26 @@ export class ArticlesContentService {
         ],
         topic: generateDto.prompt,
       });
-      const promptWithHarness = appendHarnessBriefToPrompt(
-        this.appendAccountPublishingContextToPrompt(
+      // Build prompt with PromptBuilderService then call Replicate
+      const generationModel = modelConfig.generationModel || DEFAULT_TEXT_MODEL;
+      const responseText = await this.runTextGenerationStep({
+        basePrompt: this.appendAccountPublishingContextToPrompt(
           prompt,
           accountPublishingContext,
         ),
-        harnessContext.brief,
-      );
-
-      // Build prompt with PromptBuilderService then call Replicate
-      const generationModel = modelConfig.generationModel || DEFAULT_TEXT_MODEL;
-      const { input } = (await this.promptBuilderService?.buildPrompt(
-        generationModel as string,
-        {
+        buildPromptOptions: {
           maxTokens: this.configService.get('MAX_TOKENS'),
           modelCategory: ModelCategory.TEXT,
-          prompt: promptWithHarness,
           promptTemplate: PromptTemplateKey.X_ARTICLE_GENERATE,
           systemPromptTemplate: SystemPromptKey.X_ARTICLE,
           temperature: 0.8,
-          ...harnessContext.promptBuilder,
         },
+        failureMessage: 'Failed to generate content from AI service',
+        harnessContext,
+        model: generationModel,
+        onBilling,
         organizationId,
-      )) || { input: {} };
-
-      const responseText =
-        await this.replicateService?.generateTextCompletionSync(
-          generationModel,
-          input,
-        );
-
-      if (!responseText) {
-        throw new Error('Failed to generate content from AI service');
-      }
-
-      onBilling?.(
-        await this.calculateTextGenerationCharge(
-          generationModel,
-          input,
-          responseText,
-        ),
-      );
+      });
 
       // Parse JSON response
       let response: ArticleGenerationResponse;
@@ -522,38 +481,12 @@ export class ArticlesContentService {
         throw new Error('Unexpected response format from AI service');
       }
 
-      // Build full HTML content by concatenating sections
-      const htmlParts: string[] = [];
-      for (const section of response.sections) {
-        if (section.heading) {
-          htmlParts.push(`<h2>${section.heading}</h2>`);
-        }
-        if (section.content) {
-          htmlParts.push(section.content);
-        }
-        if (section.pullQuote) {
-          htmlParts.push(`<blockquote>${section.pullQuote}</blockquote>`);
-        }
-      }
-      const fullContent = htmlParts.join('\n');
-
-      // Calculate word count and estimated read time
-      const plainText = fullContent.replace(/<[^>]+>/g, '');
-      const wordCount = plainText.split(/\s+/).filter(Boolean).length;
-      const estimatedReadTime = Math.ceil(wordCount / 250);
-
-      // Build xArticleMetadata
-      const xArticleMetadata = {
-        estimatedReadTime,
-        sections: response.sections.map((s, index) => ({
-          content: s.content || '',
-          heading: s.heading || '',
-          id: `section-${index + 1}`,
-          order: index + 1,
-          pullQuote: s.pullQuote,
-        })),
+      // Build full HTML content + reading metadata from the returned sections
+      const {
+        content: fullContent,
+        metadata: xArticleMetadata,
         wordCount,
-      };
+      } = this.buildXArticleContentAndMetadata(response.sections);
 
       const cycle = await this.runReviewUpdateCycle({
         draft: {
@@ -669,36 +602,22 @@ export class ArticlesContentService {
         sourceLines: [`enhancement-request: ${editDto.prompt}`],
         topic: this.getArticleLabel(article),
       });
-      const promptWithHarness = appendHarnessBriefToPrompt(
-        prompt,
-        harnessContext.brief,
-      );
-
-      // Build prompt with PromptBuilderService then call Replicate
-      const { input: enhanceInput } =
-        (await this.promptBuilderService?.buildPrompt(
-          DEFAULT_MINI_TEXT_MODEL,
-          {
-            maxTokens: TEXT_GENERATION_LIMITS.articleEnhancement,
-            modelCategory: ModelCategory.TEXT,
-            prompt: promptWithHarness,
-            systemPromptTemplate: SystemPromptKey.ARTICLE,
-            temperature: 0.8,
-            useTemplate: false,
-            ...harnessContext.promptBuilder,
-          },
-          organizationId,
-        )) || { input: {} };
-
-      const responseText =
-        await this.replicateService?.generateTextCompletionSync(
-          DEFAULT_MINI_TEXT_MODEL,
-          enhanceInput,
-        );
-
-      if (!responseText) {
-        throw new Error('Failed to enhance content from AI service');
-      }
+      // Build prompt with PromptBuilderService then call Replicate.
+      // Enhancement is intentionally unbilled, so no onBilling callback is passed.
+      const responseText = await this.runTextGenerationStep({
+        basePrompt: prompt,
+        buildPromptOptions: {
+          maxTokens: TEXT_GENERATION_LIMITS.articleEnhancement,
+          modelCategory: ModelCategory.TEXT,
+          systemPromptTemplate: SystemPromptKey.ARTICLE,
+          temperature: 0.8,
+          useTemplate: false,
+        },
+        failureMessage: 'Failed to enhance content from AI service',
+        harnessContext,
+        model: DEFAULT_MINI_TEXT_MODEL,
+        organizationId,
+      });
 
       // Parse JSON response
       let response: ArticleGenerationResponse;
@@ -754,104 +673,22 @@ export class ArticlesContentService {
         articleId: article._id,
       });
 
-      // Parse HTML content to extract paragraphs
-      const articleContent = article.content ?? '';
-      const articleLabel = this.getArticleLabel(article);
-      const articleSummary = article.summary ?? '';
-      const content = articleContent
-        .replace(/<[^>]+>/g, '') // Strip HTML tags
-        .replace(/\n+/g, '\n') // Normalize newlines
-        .trim();
-
-      // Split by double newlines (paragraphs) or by sentences if no paragraphs
-      const paragraphs = content
-        .split(/\n\n+/)
-        .filter((p) => p.trim().length > 0);
-
-      const tweets: TwitterThreadResponse['tweets'] = [];
-      const maxChars = 280;
-
-      // First tweet: Title + summary
-      const firstTweet = articleSummary
-        ? `${articleLabel}\n\n${articleSummary}`
-        : articleLabel;
-      if (firstTweet.length <= maxChars) {
-        tweets.push({
-          characterCount: firstTweet.length,
-          content: firstTweet,
-          order: 1,
-        });
-      } else {
-        // Title only if too long
-        tweets.push({
-          characterCount: articleLabel.length,
-          content: articleLabel,
-          order: 1,
-        });
-      }
-
-      // Convert each paragraph to a tweet
-      paragraphs.forEach((paragraph) => {
-        const trimmed = paragraph.trim();
-
-        if (trimmed.length === 0) {
-          return;
-        }
-
-        if (trimmed.length <= maxChars) {
-          // Paragraph fits in one tweet
-          tweets.push({
-            characterCount: trimmed.length,
-            content: trimmed,
-            order: tweets.length + 1,
-          });
-        } else {
-          // Split long paragraph by sentences
-          const sentences = trimmed.split(/(?<=[.!?])\s+/);
-          let currentTweet = '';
-
-          sentences.forEach((sentence) => {
-            if (`${currentTweet} ${sentence}`.trim().length <= maxChars) {
-              currentTweet += (currentTweet ? ' ' : '') + sentence;
-            } else {
-              if (currentTweet) {
-                tweets.push({
-                  characterCount: currentTweet.trim().length,
-                  content: currentTweet.trim(),
-                  order: tweets.length + 1,
-                });
-              }
-              currentTweet = sentence;
-            }
-          });
-
-          if (currentTweet.trim()) {
-            tweets.push({
-              characterCount: currentTweet.trim().length,
-              content: currentTweet.trim(),
-              order: tweets.length + 1,
-            });
-          }
-        }
-      });
-
-      // Add final tweet with link (if article has a slug)
+      // Resolve the public/preview article URL for the trailing link tweet
+      let articleUrl: string | undefined;
       if (article.slug && this.configService) {
         const baseUrl = `${this.configService.get('GENFEEDAI_PUBLIC_URL')}/articles/${article.slug}`;
-        const articleUrl =
+        articleUrl =
           String(article.status) === ArticleStatus.PUBLIC
             ? baseUrl
             : `${baseUrl}?isPreview=true`;
-        const finalTweet = `Read the full article:\n${articleUrl}`;
-
-        if (finalTweet.length <= maxChars) {
-          tweets.push({
-            characterCount: finalTweet.length,
-            content: finalTweet,
-            order: tweets.length + 1,
-          });
-        }
       }
+
+      const tweets = buildTwitterThreadTweets({
+        articleUrl,
+        content: article.content ?? '',
+        label: this.getArticleLabel(article),
+        summary: article.summary ?? '',
+      });
 
       this.logger.log(
         `${this.constructorName} converted article to ${tweets.length} tweets`,
@@ -872,6 +709,125 @@ export class ArticlesContentService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Shared generation prologue for the article generators.
+   *
+   * Appends the harness brief to `basePrompt`, builds the model input via the
+   * PromptBuilderService (merging the harness brand context), runs the Replicate
+   * text completion, and — when an `onBilling` callback is supplied — meters the
+   * charge. Returns the raw model response for the caller to parse. The differing
+   * pieces (model, prompt-builder options, failure message, whether the step is
+   * billed) are passed in so generateArticles/generateLongFormArticle/enhance can
+   * share one body without changing their individual behaviour.
+   */
+  private async runTextGenerationStep(params: {
+    model: string;
+    basePrompt: string;
+    harnessContext: ArticleHarnessContext;
+    buildPromptOptions: Omit<
+      PromptBuilderParams,
+      'prompt' | 'brand' | 'branding' | 'brandingMode' | 'isBrandingEnabled'
+    >;
+    organizationId: string;
+    failureMessage: string;
+    onBilling?: (charge: TextGenerationCharge) => void;
+  }): Promise<string> {
+    const promptWithHarness = appendHarnessBriefToPrompt(
+      params.basePrompt,
+      params.harnessContext.brief,
+    );
+
+    const { input } = (await this.promptBuilderService?.buildPrompt(
+      params.model,
+      {
+        ...params.buildPromptOptions,
+        prompt: promptWithHarness,
+        ...params.harnessContext.promptBuilder,
+      },
+      params.organizationId,
+    )) || { input: {} };
+
+    const responseText =
+      await this.replicateService?.generateTextCompletionSync(
+        params.model,
+        input,
+      );
+
+    if (!responseText) {
+      throw new Error(params.failureMessage);
+    }
+
+    if (params.onBilling) {
+      params.onBilling(
+        await this.calculateTextGenerationCharge(
+          params.model,
+          input,
+          responseText,
+        ),
+      );
+    }
+
+    return responseText;
+  }
+
+  /**
+   * Build the concatenated HTML body and reading metadata for an X Article from
+   * its generated sections. Extracted from generateLongFormArticle.
+   */
+  private buildXArticleContentAndMetadata(
+    sections: NonNullable<ArticleGenerationResponse['sections']>,
+  ): {
+    content: string;
+    metadata: {
+      estimatedReadTime: number;
+      sections: Array<{
+        content: string;
+        heading: string;
+        id: string;
+        order: number;
+        pullQuote?: string;
+      }>;
+      wordCount: number;
+    };
+    wordCount: number;
+  } {
+    // Build full HTML content by concatenating sections
+    const htmlParts: string[] = [];
+    for (const section of sections) {
+      if (section.heading) {
+        htmlParts.push(`<h2>${section.heading}</h2>`);
+      }
+      if (section.content) {
+        htmlParts.push(section.content);
+      }
+      if (section.pullQuote) {
+        htmlParts.push(`<blockquote>${section.pullQuote}</blockquote>`);
+      }
+    }
+    const content = htmlParts.join('\n');
+
+    // Calculate word count and estimated read time
+    const plainText = content.replace(/<[^>]+>/g, '');
+    const wordCount = plainText.split(/\s+/).filter(Boolean).length;
+    const estimatedReadTime = Math.ceil(wordCount / 250);
+
+    return {
+      content,
+      metadata: {
+        estimatedReadTime,
+        sections: sections.map((section, index) => ({
+          content: section.content || '',
+          heading: section.heading || '',
+          id: `section-${index + 1}`,
+          order: index + 1,
+          pullQuote: section.pullQuote,
+        })),
+        wordCount,
+      },
+      wordCount,
+    };
   }
 
   private async buildArticleHarnessContext(params: {

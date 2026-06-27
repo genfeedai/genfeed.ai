@@ -3,9 +3,8 @@
  * Single source of truth for building ViralityAnalysis objects from AI responses
  * and extracting performance metrics updates.
  *
- * Replaces duplicate logic previously in:
- * - articles.service.ts (analyzeVirality)
- * - articles-analytics.service.ts (analyzeVirality)
+ * Single home for the virality-analysis mapping previously duplicated across
+ * articles.service.ts and the now-removed articles-analytics.service.ts.
  */
 import type {
   ViralityAnalysis,
