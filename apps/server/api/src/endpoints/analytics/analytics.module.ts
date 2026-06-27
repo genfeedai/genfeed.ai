@@ -15,7 +15,9 @@ import { UsersModule } from '@api/collections/users/users.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
+import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
 import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
+import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
 import { CacheModule } from '@api/services/cache/cache.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
@@ -50,6 +52,11 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => TwitterModule),
     forwardRef(() => YoutubeModule),
   ],
-  providers: [AnalyticsService, BusinessAnalyticsService],
+  providers: [
+    AnalyticsService,
+    AnalyticsExportService,
+    BusinessAnalyticsService,
+    EntityLeaderboardService,
+  ],
 })
 export class AnalyticsModule {}

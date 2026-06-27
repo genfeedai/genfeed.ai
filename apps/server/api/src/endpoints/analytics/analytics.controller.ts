@@ -10,6 +10,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
+import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
 import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import {
   AdminBrandsQueryDto,
@@ -27,6 +28,7 @@ import {
   PaginatedBrandsResponse,
   PaginatedOrgsResponse,
 } from '@api/endpoints/analytics/entities/organization-leaderboard.entity';
+import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -115,6 +117,8 @@ export class AnalyticsController {
     private readonly loggerService: LoggerService,
 
     private readonly analyticsService: AnalyticsService,
+    private readonly analyticsExportService: AnalyticsExportService,
+    private readonly entityLeaderboardService: EntityLeaderboardService,
     private readonly businessAnalyticsService: BusinessAnalyticsService,
     private readonly botsService: BotsService,
     private readonly brandsService: BrandsService,
@@ -316,7 +320,7 @@ export class AnalyticsController {
       organizationId: targetOrganizationId,
     });
 
-    const data = await this.analyticsService.exportData(
+    const data = await this.analyticsExportService.exportData(
       exportFormat,
       exportFields,
       targetOrganizationId,
@@ -404,12 +408,13 @@ export class AnalyticsController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
-    const data = await this.analyticsService.getOrganizationsLeaderboard(
-      query.startDate,
-      query.endDate,
-      query.sort,
-      query.limit,
-    );
+    const data =
+      await this.entityLeaderboardService.getOrganizationsLeaderboard(
+        query.startDate,
+        query.endDate,
+        query.sort,
+        query.limit,
+      );
     return serializeSingle(req, AnalyticsOrgLeaderboardSerializer, data);
   }
 
@@ -428,7 +433,7 @@ export class AnalyticsController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
-    const data = await this.analyticsService.getOrganizationsWithStats(
+    const data = await this.entityLeaderboardService.getOrganizationsWithStats(
       query.startDate,
       query.endDate,
       query.page,
@@ -454,7 +459,7 @@ export class AnalyticsController {
     const organizationId = this.getScopedOrganizationId(user);
     this.loggerService.log(url, { query });
 
-    const data = await this.analyticsService.getBrandsLeaderboard(
+    const data = await this.entityLeaderboardService.getBrandsLeaderboard(
       query.startDate,
       query.endDate,
       query.sort,
@@ -480,7 +485,7 @@ export class AnalyticsController {
     const organizationId = this.getScopedOrganizationId(user);
     this.loggerService.log(url, { query });
 
-    const data = await this.analyticsService.getBrandsWithStats(
+    const data = await this.entityLeaderboardService.getBrandsWithStats(
       query.startDate,
       query.endDate,
       query.page,
