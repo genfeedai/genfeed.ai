@@ -34,6 +34,7 @@ export enum ActivitySource {
   BOT_GENERATION = 'bot-generate',
   VOICE_GENERATION = 'voice-generate',
   TREND_SCAN = 'trend-scan',
+  BRAND_INTERVIEW = 'brand-interview',
 }
 
 export enum ActivityKey {
