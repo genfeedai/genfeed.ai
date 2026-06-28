@@ -62,6 +62,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
+  BadRequestException,
   forwardRef,
   Inject,
   Injectable,

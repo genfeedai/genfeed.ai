@@ -675,9 +675,9 @@ export class ArticlesContentService {
 
       // Resolve the public/preview article URL for the trailing link tweet
       let articleUrl: string | undefined;
-      const publicUrl = this.configService
-        ?.get<string>('GENFEEDAI_PUBLIC_URL')
-        ?.replace(/\/$/, '');
+      const publicUrl = (
+        this.configService?.get('GENFEEDAI_PUBLIC_URL') as string | undefined
+      )?.replace(/\/$/, '');
       if (article.slug && publicUrl) {
         const baseUrl = `${publicUrl}/articles/${article.slug}`;
         articleUrl =
