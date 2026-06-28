@@ -1,0 +1,29 @@
+# Genfeed.ai Docs
+
+> Technical documentation for Genfeed.ai, the open source AI OS for content creation.
+
+## Core
+
+- [Getting Started](https://docs.genfeed.ai/getting-started): Install and run Genfeed.
+- [Installation](https://docs.genfeed.ai/core/installation): Community and self-host setup.
+- [Configuration](https://docs.genfeed.ai/core/configuration): Environment, providers, and runtime settings.
+- [Self-hosted vs Cloud](https://docs.genfeed.ai/core/self-hosted-vs-cloud): Deployment mode boundaries.
+
+## API And Operations
+
+- [API Reference](https://docs.genfeed.ai/api-reference): Genfeed API reference.
+- [Provider Registry](https://docs.genfeed.ai/core/provider-registry): AI provider setup.
+- [Execution Boundaries](https://docs.genfeed.ai/core/execution-boundaries): Local, hosted, and managed execution.
+- [Production Readiness](https://docs.genfeed.ai/deployment/production-readiness): Deployment checks and release operations.
+
+## Content Loop
+
+- [Agent Orchestration](https://docs.genfeed.ai/core-loop/agent-orchestration): Agent and workflow execution model.
+- [Trend Ingestion](https://docs.genfeed.ai/core-loop/trend-ingestion): Reference and trend ingestion.
+- [Corpus Health](https://docs.genfeed.ai/core-loop/corpus-health): Corpus freshness and diagnostics.
+- [Prelaunch Corpus Backfill](https://docs.genfeed.ai/core-loop/prelaunch-corpus-backfill): Launch corpus preparation.
+
+## Optional
+
+- [Guides](https://docs.genfeed.ai/guides): Prompting, self-hosting, and workflow guides.
+- [Features](https://docs.genfeed.ai/features): Product capability overview.

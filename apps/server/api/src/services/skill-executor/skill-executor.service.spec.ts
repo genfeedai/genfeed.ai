@@ -1,6 +1,7 @@
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
+import { ContentGeoOptimizerHandler } from '@api/services/skill-executor/handlers/content-geo-optimizer.handler';
 import { ContentWritingHandler } from '@api/services/skill-executor/handlers/content-writing.handler';
 import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
 import { TrendDiscoveryHandler } from '@api/services/skill-executor/handlers/trend-discovery.handler';
@@ -63,6 +64,7 @@ describe('SkillExecutorService', () => {
           provide: ByokProviderFactoryService,
           useValue: mockByokProviderFactoryService,
         },
+        { provide: ContentGeoOptimizerHandler, useValue: mockHandler },
         { provide: ContentWritingHandler, useValue: mockHandler },
         { provide: ImageGenerationHandler, useValue: mockHandler },
         { provide: TrendDiscoveryHandler, useValue: mockHandler },

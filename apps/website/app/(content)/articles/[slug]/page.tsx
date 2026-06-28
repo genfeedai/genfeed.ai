@@ -1,4 +1,5 @@
 import { stringifyJsonLd } from '@data/json-ld';
+import { buildArticleJsonLd } from '@genfeedai/helpers';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { PublicService } from '@services/external/public.service';
@@ -93,56 +94,28 @@ export default async function ArticleDetail({
 
   const articleJsonLd =
     article && article.id !== 'undefined'
-      ? {
-          '@context': 'https://schema.org',
-          '@type': 'BlogPosting',
-          articleBody: article.content || undefined,
-          author: article.author
-            ? {
-                '@type': 'Person',
-                name: article.author,
-                worksFor: {
-                  '@type': 'Organization',
-                  name: 'Genfeed',
-                  url: 'https://genfeed.ai',
-                },
-              }
-            : {
-                '@type': 'Organization',
-                name: 'Genfeed',
-                url: 'https://genfeed.ai',
-              },
+      ? buildArticleJsonLd({
+          author: article.author || {
+            name: 'Genfeed',
+            url: 'https://genfeed.ai',
+          },
+          body: article.content,
           dateModified: article.updatedAt || article.createdAt,
           datePublished: article.createdAt,
           description: article.summary,
           headline: article.label,
-          image: article.bannerUrl || metadata.cards.default,
+          imageUrls: [article.bannerUrl || metadata.cards.default],
           inLanguage: 'en-US',
-          isPartOf: {
-            '@type': 'Blog',
-            name: 'Genfeed Blog',
-            url: `${EnvironmentService.apps.website}/articles`,
-          },
-          keywords:
-            article.tags && article.tags.length > 0
-              ? article.tags.map((t) => t.label).join(', ')
-              : undefined,
-          mainEntityOfPage: {
-            '@id': `${EnvironmentService.apps.website}/articles/${slug}`,
-            '@type': 'WebPage',
-          },
+          keywords: article.tags?.map((tag) => tag.label),
+          mainEntityUrl: `${EnvironmentService.apps.website}/articles/${slug}`,
           publisher: {
-            '@type': 'Organization',
-            logo: {
-              '@type': 'ImageObject',
-              url: 'https://cdn.genfeed.ai/assets/logo.png',
-            },
+            logoUrl: 'https://cdn.genfeed.ai/assets/logo.png',
             name: 'Genfeed',
             url: 'https://genfeed.ai',
           },
           url: `${EnvironmentService.apps.website}/articles/${slug}`,
           wordCount: article.wordCount || undefined,
-        }
+        })
       : null;
 
   const breadcrumbJsonLd = {
