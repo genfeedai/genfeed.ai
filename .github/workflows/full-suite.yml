@@ -13,6 +13,7 @@ name: Full Suite (CI + Release Gates + E2E)
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 concurrency:
   group: full-suite-${{ github.ref }}
