@@ -89,7 +89,9 @@ export class TrendSourcePreviewService {
     }
 
     return this.trendReferenceCorpusService.annotateSourceItemsWithReferenceIds(
-      this.trendSourceItemsService.buildFallbackTrendSourceItems(trend),
+      this.trendSourceItemsService
+        .buildFallbackTrendSourceItems(trend)
+        .slice(0, limit),
     );
   }
 
@@ -169,7 +171,9 @@ export class TrendSourcePreviewService {
       expiresAt:
         trend.expiresAt instanceof Date
           ? trend.expiresAt
-          : new Date(trend.expiresAt),
+          : trend.expiresAt
+            ? new Date(trend.expiresAt)
+            : undefined,
       sourcePreview,
       sourcePreviewState,
       sourcePreviewTotal: sourcePreview.length,
@@ -223,6 +227,11 @@ export class TrendSourcePreviewService {
           limit: TREND_SOURCE_PREVIEW_LIMIT,
         })
       : result.trends;
+    if (refresh) {
+      // Refresh repopulates only the current key; bust shared content tags so
+      // other trends:content:* variants don't keep serving stale previews.
+      await this.invalidateContentCache(['trends:content']);
+    }
 
     const contentItems =
       await this.trendReferenceCorpusService.annotateSourceItemsWithReferenceIds(

@@ -185,8 +185,8 @@ export class TrendPrelaunchCorpusService {
     Array<{ data: unknown; id: string } & Record<string, unknown>>
   > {
     const docs = await this.prisma.trend.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: PRELAUNCH_REFERENCE_CORPUS_MINIMUMS.trends * 2,
+      // Scan the full seeded corpus: capping the lookup would let older rows
+      // fall out of existingByKey and create duplicate prelaunch trends.
       where: {
         brandId: null,
         isDeleted: false,

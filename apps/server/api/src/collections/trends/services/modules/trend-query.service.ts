@@ -70,7 +70,7 @@ export class TrendQueryService {
           'Instagram teams are turning dense strategy notes into swipeable carousel lessons and remixable Reel hooks.',
         source: 'curated',
         sourcePreviewState: 'fallback',
-        trendType: 'post',
+        trendType: 'topic',
         urls: ['https://genfeed.ai/studio'],
       },
       platform: 'instagram',
@@ -102,7 +102,7 @@ export class TrendQueryService {
           'Reddit discussions are comparing lightweight creator stacks for briefs, assets, scheduling, and analytics.',
         source: 'curated',
         sourcePreviewState: 'fallback',
-        trendType: 'discussion',
+        trendType: 'topic',
         urls: ['https://genfeed.ai/articles'],
       },
       platform: 'reddit',
@@ -150,7 +150,7 @@ export class TrendQueryService {
         isDeleted: false,
         ...(organizationId
           ? { OR: [{ organizationId }, { organizationId: null }] }
-          : {}),
+          : { organizationId: null }),
       },
     });
 
