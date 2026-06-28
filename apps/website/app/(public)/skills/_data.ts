@@ -117,6 +117,13 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
       },
       {
         description:
+          'GEO scorecard, citation-ready rewrites, source attribution, and answer-engine schema guidance.',
+        icon: LuBrainCircuit,
+        name: 'GEO Optimizer',
+        slug: 'content-geo-optimizer',
+      },
+      {
+        description:
           'Operate content intake, briefs, production queues, review gates, and analytics loops.',
         icon: LuPackage,
         name: 'Factory Operator',

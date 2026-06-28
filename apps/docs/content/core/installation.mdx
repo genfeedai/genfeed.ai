@@ -1,4 +1,4 @@
-import { Callout } from 'nextra/components'
+import { Callout } from 'nextra/components';
 
 # Self-Hosted Installation
 
@@ -8,24 +8,24 @@ Deploy Genfeed Core on your own infrastructure. This guide covers everything fro
 
 Before you begin, ensure you have:
 
-| Requirement | Version | Notes |
-|-------------|---------|-------|
-| **Node.js** | 18.0+ | [Download](https://nodejs.org/) |
-| **Bun** | 1.0+ | [Install](https://bun.sh/) (recommended) or use npm |
-| **PostgreSQL** | 17+ | [Install](https://www.postgresql.org/download/) |
-| **Redis** | 7.0+ | [Install](https://redis.io/download/) |
-| **Git** | Latest | [Download](https://git-scm.com/) |
+| Requirement    | Version | Notes                                               |
+| -------------- | ------- | --------------------------------------------------- |
+| **Node.js**    | 18.0+   | [Download](https://nodejs.org/)                     |
+| **Bun**        | 1.0+    | [Install](https://bun.sh/) (recommended) or use npm |
+| **PostgreSQL** | 17+     | [Install](https://www.postgresql.org/download/)     |
+| **Redis**      | 7.0+    | [Install](https://redis.io/download/)               |
+| **Git**        | Latest  | [Download](https://git-scm.com/)                    |
 
 ### API Keys (Optional but Recommended)
 
 To use AI generation features, you need API keys from at least one provider:
 
-| Provider | For | Get Key |
-|----------|-----|---------|
-| OpenAI | Text generation | [platform.openai.com](https://platform.openai.com/api-keys) |
-| Replicate | Image/Video models | [replicate.com](https://replicate.com/account/api-tokens) |
-| ElevenLabs | Voice synthesis | [elevenlabs.io](https://elevenlabs.io/app/settings/api-keys) |
-| Anthropic | Claude models | [console.anthropic.com](https://console.anthropic.com/) |
+| Provider   | For                | Get Key                                                      |
+| ---------- | ------------------ | ------------------------------------------------------------ |
+| OpenAI     | Text generation    | [platform.openai.com](https://platform.openai.com/api-keys)  |
+| Replicate  | Image/Video models | [replicate.com](https://replicate.com/account/api-tokens)    |
+| ElevenLabs | Voice synthesis    | [elevenlabs.io](https://elevenlabs.io/app/settings/api-keys) |
+| Anthropic  | Claude models      | [console.anthropic.com](https://console.anthropic.com/)      |
 
 ---
 
@@ -84,7 +84,7 @@ JWT_SECRET=your-secure-random-string
 ```
 
 <Callout type="warning">
-**Never commit API keys.** Add `.env.local` to your `.gitignore`. Never commit API keys or secrets to version control.
+  **Never commit API keys.** Add `.env.local` to your `.gitignore`. Never commit API keys or secrets to version control.
 </Callout>
 
 ### 4. Start Services
@@ -125,7 +125,7 @@ You should see:
 Open your browser and visit:
 
 ```
-http://localhost:3010/health
+http://localhost:3010/v1/health
 ```
 
 You should see a JSON response confirming the API, database, and Redis are connected and ready.
@@ -149,71 +149,47 @@ The app UI will be available at `http://localhost:3000`.
 
 ## Docker Deployment
 
-For production deployments, we recommend Docker:
+For Community self-hosting, use the published Docker image and the
+self-hosted compose file:
 
 ### Using Docker Compose
 
 ```bash
-# Clone with Docker config
 git clone https://github.com/genfeedai/genfeed.ai.git
-cd genfeed.ai
-
-# Copy environment file
+cd genfeed.ai/docker
 cp .env.example .env
-
-# Start all services
-docker-compose up -d
+docker compose -f docker-compose.selfhosted.yml up
 ```
 
-### docker-compose.yml
+This pulls `ghcr.io/genfeedai/genfeed.ai:latest`, starts Postgres, applies
+Prisma migrations, seeds one local workspace, and exposes:
 
-```yaml
-version: '3.8'
+| Service | URL                     |
+| ------- | ----------------------- |
+| Web UI  | `http://localhost:3000` |
+| API     | `http://localhost:3010` |
+| MCP     | `http://localhost:3014` |
 
-services:
-  api:
-    build: .
-    ports:
-      - "3010:3010"
-    environment:
-      - DATABASE_URL=postgresql://genfeed:genfeed_local@postgres:5432/genfeed
-      - REDIS_URL=redis://redis:6379
-    depends_on:
-      - postgres
-      - redis
+The default `docker/.env` starts without a login wall:
 
-  postgres:
-    image: postgres:17-alpine
-    environment:
-      - POSTGRES_DB=genfeed
-      - POSTGRES_USER=genfeed
-      - POSTGRES_PASSWORD=genfeed_local
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redis_data:/data
-    ports:
-      - "6379:6379"
-
-volumes:
-  postgres_data:
-  redis_data:
+```env
+BETTER_AUTH_ENABLED=false
+NEXT_PUBLIC_BETTER_AUTH_ENABLED=false
 ```
+
+To require local email/password sign-in, set both values to `true`. If
+`BETTER_AUTH_SECRET` is empty, the entrypoint generates and persists one under
+`/data/.better-auth-secret`.
 
 ---
 
 ## Resource Requirements
 
-| Component | Minimum | Recommended |
-|-----------|---------|-------------|
-| CPU | 2 cores | 4+ cores |
-| RAM | 4 GB | 8+ GB |
-| Storage | 20 GB | 100+ GB (for generated assets) |
+| Component | Minimum | Recommended                    |
+| --------- | ------- | ------------------------------ |
+| CPU       | 2 cores | 4+ cores                       |
+| RAM       | 4 GB    | 8+ GB                          |
+| Storage   | 20 GB   | 100+ GB (for generated assets) |
 
 ---
 
@@ -262,7 +238,7 @@ To upgrade to a new version:
 
 ```bash
 # Pull latest changes
-git pull origin main
+git pull origin master
 
 # Install new dependencies
 bun install

@@ -5,8 +5,9 @@
 ```bash
 git clone https://github.com/genfeedai/genfeed.ai.git
 cd genfeed.ai
-cp docker/.env.example docker/.env
-docker compose --env-file docker/.env -f docker/docker-compose.selfhosted.yml up
+cd docker
+cp .env.example .env
+docker compose -f docker-compose.selfhosted.yml up
 ```
 
 This starts:

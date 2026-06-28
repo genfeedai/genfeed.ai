@@ -206,6 +206,9 @@ function buildLlmsIndex(): string {
     '- [Open Source Core](https://github.com/genfeedai/genfeed.ai): Self-host Genfeed with your own AI keys',
   );
   lines.push(
+    `- [Generative Engine Optimization](${BASE_URL}/articles): Create citation-ready long-form content with answer blocks, source attribution, and Article/FAQ/HowTo structured data`,
+  );
+  lines.push(
     '- [Documentation](https://docs.genfeed.ai): API references, integration guides, and tutorials',
   );
   lines.push('');
@@ -260,6 +263,9 @@ function buildLlmsFull(): string {
   );
   s.push(
     '- **Analytics**: Track performance and revenue attribution across all channels',
+  );
+  s.push(
+    '- **Generative Engine Optimization**: Make long-form content citation-ready for AI answer engines with direct answer blocks, source attribution, and Article/FAQ/HowTo structured data',
   );
   s.push(
     '- **Open source core**: Self-host for free with your own AI keys (BYOK)',

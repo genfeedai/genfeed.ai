@@ -1,20 +1,23 @@
 import { Callout, Steps, Tabs } from 'nextra/components';
 
-# Self-Host GenFeed in 5 Minutes
+# Self-Host Genfeed in 5 Minutes
 
-Get GenFeed Core running on your own infrastructure. Generate AI content with full control over models, data, and costs.
+Run Genfeed Community with the published Docker image, a local Postgres
+database, and a single seeded workspace.
 
 <Callout type="info">
-  **Just want to use GenFeed?** [GenFeed Cloud](https://genfeed.ai) is the fastest way to start — no setup required, all
-  features included, free tier available.
+  **Just want to use Genfeed?** [Genfeed Cloud](https://genfeed.ai) is the fastest way to start without running
+  infrastructure.
 </Callout>
 
 ## Prerequisites
 
-- Node.js 18+ (or Bun)
-- PostgreSQL 17+
-- Redis 7+
-- At least one AI provider API key (Replicate, fal.ai, or OpenAI)
+- Docker 24+
+- Docker Compose v2
+- At least one AI provider API key when you want to generate content
+
+No local Node.js, Bun, Postgres, Redis, or Better Auth account is required for
+the Community quick start.
 
 ## Quick Start
 
@@ -24,164 +27,127 @@ Get GenFeed Core running on your own infrastructure. Generate AI content with fu
 
 ```bash
 git clone https://github.com/genfeedai/genfeed.ai.git
-cd genfeed.ai
+cd genfeed.ai/docker
 ```
 
-### Install dependencies
-
-<Tabs items={['Bun (Recommended)', 'npm']}>
-  <Tabs.Tab>
+### Create the Community environment file
 
 ```bash
-bun install
+cp .env.example .env
 ```
 
-  </Tabs.Tab>
-  <Tabs.Tab>
+The default `.env` starts in single-user local mode with no login wall. Add
+provider keys such as `OPENAI_API_KEY`, `REPLICATE_KEY`, or `FAL_API_KEY` when
+you want generation enabled.
+
+### Start Genfeed Community
 
 ```bash
-npm install
+docker compose -f docker-compose.selfhosted.yml up
 ```
 
-  </Tabs.Tab>
-</Tabs>
+This pulls `ghcr.io/genfeedai/genfeed.ai:latest`, starts Postgres, applies
+Prisma migrations, and seeds one local user, organization, and brand.
 
-### Configure environment
+### Open the app
 
-```bash
-cp .env.example .env.local
-bun run env:sync local
+```text
+Web UI: http://localhost:3000
+API:    http://localhost:3010
+MCP:    http://localhost:3014
 ```
 
-Edit the root `.env.local` with your settings:
+### Verify the API
 
 ```bash
-# Required
-DATABASE_URL=postgresql://genfeed:genfeed_local@localhost:5432/genfeed
-REDIS_URL=redis://localhost:6379
-
-# AI Providers (at least one required)
-REPLICATE_KEY=your_token_here
-FAL_API_KEY=your_key_here
-
-# Optional
-PORT=3010
-NODE_ENV=development
-```
-
-### Start the server
-
-<Tabs items={['Bun', 'npm']}>
-  <Tabs.Tab>
-
-```bash
-bun run dev
-```
-
-  </Tabs.Tab>
-  <Tabs.Tab>
-
-```bash
-npm run dev
-```
-
-  </Tabs.Tab>
-</Tabs>
-
-### Generate your first image
-
-```bash
-curl -X POST http://localhost:3010/api/generate/image \
-  -H "Content-Type: application/json" \
-  -d '{
-    "prompt": "A modern tech startup office, minimalist design",
-    "model": "flux-schnell",
-    "width": 1024,
-    "height": 1024
-  }'
+curl http://localhost:3010/v1/health
 ```
 
 </Steps>
 
-## Docker Compose
+## What Starts
 
-For a production-ready setup with all dependencies:
+- Web UI on port 3000
+- API on port 3010
+- MCP on port 3014
+- Postgres on port 5432
+- Redis embedded in the Genfeed container and persisted under `/data`
 
-```yaml
-# docker-compose.yml
-version: '3.8'
+The compose file uses `docker/docker-compose.selfhosted.yml`. It is the
+Community path for self-hosters; the build-from-source compose files are for
+local development and CI.
 
-services:
-  genfeed:
-    build: .
-    ports:
-      - '3010:3010'
-    environment:
-      - DATABASE_URL=postgresql://genfeed:genfeed_local@postgres:5432/genfeed
-      - REDIS_URL=redis://redis:6379
-      - REPLICATE_KEY=${REPLICATE_KEY}
-    depends_on:
-      - postgres
-      - redis
+## Auth Modes
 
-  postgres:
-    image: postgres:17-alpine
-    environment:
-      - POSTGRES_DB=genfeed
-      - POSTGRES_USER=genfeed
-      - POSTGRES_PASSWORD=genfeed_local
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - '5432:5432'
+<Tabs items={['Solo offline', 'Local login wall', 'Team invites']}>
+  <Tabs.Tab>
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - '6379:6379'
+Default Community installs run without a login wall:
 
-volumes:
-  postgres_data:
+```env
+BETTER_AUTH_ENABLED=false
+NEXT_PUBLIC_BETTER_AUTH_ENABLED=false
 ```
+
+The first boot seeds a local workspace. No email provider, OAuth app, or cloud
+account is needed.
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+
+Enable Better Auth when you want local email/password accounts:
+
+```env
+BETTER_AUTH_ENABLED=true
+NEXT_PUBLIC_BETTER_AUTH_ENABLED=true
+BETTER_AUTH_URL=http://localhost:3010
+BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
+BETTER_AUTH_SECRET=
+```
+
+Leaving `BETTER_AUTH_SECRET` empty is valid: the entrypoint generates and
+persists one under `/data/.better-auth-secret`.
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+
+Team invites, magic links, password resets, and email verification need an email
+provider:
+
+```env
+RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=updates@example.com
+RESEND_REPLY_TO_EMAIL=support@example.com
+```
+
+Google sign-in is optional. If enabled, use this local redirect URI:
+
+```text
+http://localhost:3010/v1/auth/callback/google
+```
+
+  </Tabs.Tab>
+</Tabs>
+
+## Optional GPU
+
+Point `GENFEED_GPU_URL` at your ComfyUI instance when you want local GPU-backed
+generation:
+
+```env
+GENFEED_GPU_URL=http://your-comfyui-host:8188
+```
+
+## Updating
 
 ```bash
-docker compose up -d
+cd genfeed.ai/docker
+docker compose -f docker-compose.selfhosted.yml pull
+docker compose -f docker-compose.selfhosted.yml up
 ```
-
-## What's Included
-
-- Image generation (Flux, SDXL, and more via Replicate/fal.ai)
-- Video generation (short-form, with captions)
-- Brand kit management
-- Job queue (BullMQ + Redis)
-- REST API
-- Webhook support
-
-## What's NOT Included (Cloud Only)
-
-Some features require the full GenFeed Cloud platform:
-
-| Feature                          | Core (OSS) | Cloud |
-| -------------------------------- | ---------- | ----- |
-| Image generation                 | Yes        | Yes   |
-| Video generation                 | Yes        | Yes   |
-| Brand kits                       | Yes        | Yes   |
-| Multi-tenancy                    | No         | Yes   |
-| Publisher (auto-post to socials) | No         | Yes   |
-| Analytics dashboard              | No         | Yes   |
-| Team collaboration               | No         | Yes   |
-| Managed infrastructure           | No         | Yes   |
-| SLA and support                  | No         | Yes   |
-
-<Callout type="info">
-  Need multi-tenancy, publishing, or analytics? [Try GenFeed Cloud](https://genfeed.ai) — same engine, fully managed,
-  with all the features your team needs.
-</Callout>
 
 ## Next Steps
 
-- [API Reference](/api-reference) — Full API documentation
-- [Models](/models) — Supported AI models and providers
-- [Execution Boundaries](/core/execution-boundaries) — Local, BYOK, managed, and Cloud runtime contract
-- [Deployment Options](/deployment) — Production deployment guides
-- [GenFeed Cloud](https://genfeed.ai) — Managed platform with all features
+- [Installation guide](/core/installation) -- Local development and Docker self-hosting
+- [Execution Boundaries](/core/execution-boundaries) -- Local, BYOK, managed, and Cloud runtime contract
+- [Deployment Options](/deployment) -- Cloud, Community, and Desktop modes

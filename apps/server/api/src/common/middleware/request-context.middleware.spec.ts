@@ -1,11 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const configState = vi.hoisted(() => ({
+  isSelfHosted: false,
+}));
+
 vi.mock('@genfeedai/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/config')>();
 
   return {
     ...actual,
-    IS_SELF_HOSTED: false,
+    get IS_SELF_HOSTED() {
+      return configState.isSelfHosted;
+    },
   };
 });
 
@@ -89,11 +95,26 @@ function buildSubscriptionsService(status: string | null = 'active') {
   };
 }
 
+function buildPrismaService() {
+  return {
+    brand: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'brand_default' }),
+    },
+    organization: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'org_default' }),
+    },
+    user: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'user_default' }),
+    },
+  };
+}
+
 describe('RequestContextMiddleware', () => {
   let middleware: RequestContextMiddleware;
   let redisService: { getPublisher: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
+    configState.isSelfHosted = false;
     redisService = { getPublisher: vi.fn() };
     middleware = new RequestContextMiddleware(
       redisService as unknown as RedisService,
@@ -250,5 +271,48 @@ describe('RequestContextMiddleware', () => {
       unknown
     >;
     expect(ctx.isSuperAdmin).toBe(false);
+  });
+
+  it('hydrates self-hosted context with the default brand', async () => {
+    configState.isSelfHosted = true;
+    const publisher = buildPublisher();
+    redisService.getPublisher.mockReturnValue(publisher);
+    const prisma = buildPrismaService();
+
+    middleware = new RequestContextMiddleware(
+      redisService as unknown as RedisService,
+      buildLogger(),
+      buildOrgSettingsService('free') as never,
+      buildSubscriptionsService('active') as never,
+      prisma as never,
+    );
+
+    const req = {} as never;
+    const next: NextFunction = vi.fn();
+
+    await middleware.use(req, {} as Response, next);
+
+    expect(prisma.brand.findFirst).toHaveBeenCalledWith({
+      where: {
+        isDefault: true,
+        isDeleted: false,
+        organizationId: 'org_default',
+      },
+    });
+    expect((req as { context: unknown }).context).toEqual(
+      expect.objectContaining({
+        brandId: 'brand_default',
+        isSuperAdmin: true,
+        organizationId: 'org_default',
+        subscriptionTier: 'free',
+        userId: 'user_default',
+      }),
+    );
+    expect(publisher.setEx).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(Number),
+      expect.stringContaining('"brandId":"brand_default"'),
+    );
+    expect(next).toHaveBeenCalledOnce();
   });
 });

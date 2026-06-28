@@ -69,7 +69,10 @@ echo "[entrypoint] Running Prisma migrations..."
 MIGRATE_RETRIES=5
 MIGRATE_DELAY=5
 for i in $(seq 1 $MIGRATE_RETRIES); do
-  if (cd packages/prisma && bunx prisma migrate deploy); then
+  # `bun x` (not `bunx`): some runtime images ship only the `bun` binary, and a
+  # bare `bunx` first-arg falls through to the node entrypoint as `node bunx`
+  # (MODULE_NOT_FOUND). Mirrors the ECS migrate task + deploy-common.sh.
+  if (cd packages/prisma && bun x prisma migrate deploy); then
     echo "[entrypoint] Prisma migrations applied successfully"
     break
   fi
