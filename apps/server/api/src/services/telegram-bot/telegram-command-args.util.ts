@@ -17,10 +17,10 @@ export function extractCommandArgs(ctx: Context): string {
     return '';
   }
 
-  const firstSpace = messageText.indexOf(' ');
-  if (firstSpace === -1) {
+  const firstWhitespace = messageText.search(/\s/);
+  if (firstWhitespace === -1) {
     return '';
   }
 
-  return messageText.slice(firstSpace + 1).trim();
+  return messageText.slice(firstWhitespace + 1).trim();
 }

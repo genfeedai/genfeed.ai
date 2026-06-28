@@ -123,8 +123,10 @@ export class TelegramMessageHandlerService {
       const pendingImageUrl = this.conversation.peekPendingImage(chatId);
       const prompt = ctx.message.text.trim();
       if (pendingImageUrl && prompt.length > 0) {
-        this.conversation.clearPendingImage(chatId);
+        // Clear the pending image only after a successful generate so a failed
+        // run leaves the reference image available for retry.
         await this.runCommands.runGenerate(ctx, { pendingImageUrl, prompt });
+        this.conversation.clearPendingImage(chatId);
       }
       return;
     }
