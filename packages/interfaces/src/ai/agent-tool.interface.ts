@@ -44,6 +44,7 @@ export enum AgentToolName {
   UPDATE_STRATEGY_STATE = 'update_strategy_state',
   CAPTURE_MEMORY = 'capture_memory',
   RATE_CONTENT = 'rate_content',
+  SCORE_SEO = 'score_seo',
   RATE_INGREDIENT = 'rate_ingredient',
   GET_TOP_INGREDIENTS = 'get_top_ingredients',
   REPLICATE_TOP_INGREDIENT = 'replicate_top_ingredient',
