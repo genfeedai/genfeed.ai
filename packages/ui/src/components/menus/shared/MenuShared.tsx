@@ -77,6 +77,8 @@ export default function MenuShared({
     ? (prefixHref({ href: backHref }) ?? backHref)
     : undefined;
   const prefetchBackHref = useNavigationPrefetch(resolvedBackHref);
+  const shouldRenderOrganizationSwitcher =
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD === 'true';
 
   const secondaryNavigationContent =
     secondaryItems.length > 0 ? (
@@ -213,7 +215,7 @@ export default function MenuShared({
           )}
         >
           {sharedCollapseControl}
-          <OrganizationSwitcher />
+          {shouldRenderOrganizationSwitcher ? <OrganizationSwitcher /> : null}
         </div>
 
         {/* Body — fades out when collapsed, pointer-events disabled */}
