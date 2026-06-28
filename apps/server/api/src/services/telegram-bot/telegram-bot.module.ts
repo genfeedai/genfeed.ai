@@ -7,6 +7,7 @@
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { RunsModule } from '@api/collections/runs/runs.module';
 import { ConfigModule } from '@api/config/config.module';
+import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { TelegramBotController } from '@api/services/telegram-bot/telegram-bot.controller';
@@ -21,6 +22,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => ApiKeysModule),
     forwardRef(() => ConfigModule),
     forwardRef(() => FalModule),
+    forwardRef(() => FilesClientModule),
     forwardRef(() => LoggerModule),
     forwardRef(() => ReplicateModule),
     forwardRef(() => RunsModule),
