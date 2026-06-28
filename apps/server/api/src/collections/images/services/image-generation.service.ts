@@ -342,11 +342,16 @@ export class ImageGenerationService {
       organizationSettings,
     );
 
-    // Validate resolved model against org (catches default-resolution bypassing ModelsGuard)
-    if (request.context?.organizationId) {
+    // Validate resolved model against org (catches default-resolution bypassing
+    // ModelsGuard). Prefer the verified token org so validation still runs when
+    // request-context middleware did not populate organizationId; only
+    // single-tenant deployments (no org at all) skip it.
+    const validationOrgId =
+      publicMetadata.organization || request.context?.organizationId;
+    if (validationOrgId) {
       await this.modelRegistrationService.validateModelForOrg(
         model,
-        request.context.organizationId,
+        validationOrgId,
       );
     }
 
@@ -415,7 +420,7 @@ export class ImageGenerationService {
           ? createImageDto.brand
           : publicMetadata.brand,
         category: PromptCategory.MODELS_PROMPT_IMAGE,
-        model: createImageDto.model as string,
+        model,
         organization: publicMetadata.organization,
         original: promptOriginalText,
         status: PromptStatus.PROCESSING,
