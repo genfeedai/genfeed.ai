@@ -1150,10 +1150,20 @@ export class ImageGenerationService {
         }),
       ]);
 
-      await this.createImagePlaceholderActivity(
-        context,
-        additionalIngredient._id,
-      );
+      // Activity creation + websocket publishing is post-success bookkeeping:
+      // a failure here must not mark the already-generated additional output as
+      // failed, so swallow (and log) instead of letting it reach the catch.
+      try {
+        await this.createImagePlaceholderActivity(
+          context,
+          additionalIngredient._id,
+        );
+      } catch (activityError: unknown) {
+        this.loggerService.error(
+          'Failed to publish placeholder activity for additional output',
+          { error: activityError },
+        );
+      }
 
       context.pendingIngredientIds.push(additionalIngredient._id.toString());
     } catch (error: unknown) {
@@ -1448,6 +1458,9 @@ export class ImageGenerationService {
             destination,
             promptParams,
           );
+        if (!additionalGenerationId) {
+          throw new Error('No generation ID returned from Replicate');
+        }
 
         await Promise.all([
           this.metadataService.patch(
