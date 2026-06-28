@@ -84,7 +84,7 @@ jobs:
       # The E2E suite assumes a migrated DB (it truncates + reseeds per test,
       # it does not create the schema itself).
       - name: Apply Prisma migrations to test DB
-        run: bunx prisma migrate deploy
+        run: bun x prisma migrate deploy
         working-directory: packages/prisma
 
       - name: Run API E2E smoke tests

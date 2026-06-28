@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { type TaskDocument } from '@api/collections/tasks/schemas/task.schema';
-import { TasksService } from '@api/collections/tasks/services/tasks.service';
+import type { TasksService } from '@api/collections/tasks/services/tasks.service';
+import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -11,12 +12,7 @@ import {
   serializeWorkspaceTaskProgress,
   type WorkspaceTaskProgressSnapshot,
 } from '@genfeedai/serializers';
-import {
-  BadRequestException,
-  forwardRef,
-  Inject,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
 export type TaskEventInput = {
   payload?: Record<string, unknown>;
@@ -58,7 +54,7 @@ type TaskDelegate = {
 @Injectable()
 export class TaskActionsService {
   constructor(
-    @Inject(forwardRef(() => TasksService))
+    @Inject(TASKS_SERVICE)
     private readonly tasksService: TasksService,
     private readonly prisma: PrismaService,
     private readonly ingredientsService: IngredientsService,

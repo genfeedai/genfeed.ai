@@ -5,14 +5,10 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import { type TaskDocument } from '@api/collections/tasks/schemas/task.schema';
-import { TasksService } from '@api/collections/tasks/services/tasks.service';
+import type { TasksService } from '@api/collections/tasks/services/tasks.service';
+import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
 import { serializeWorkspaceTaskDate } from '@genfeedai/serializers';
-import {
-  BadRequestException,
-  forwardRef,
-  Inject,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
 const PLANNING_THREAD_SOURCE_PREFIX = 'workspace-planning:';
 const PLANNING_THREAD_TITLE_PREFIX = 'Plan next steps: ';
@@ -37,7 +33,7 @@ type FollowUpPlanStep = {
 @Injectable()
 export class TaskPlanningService {
   constructor(
-    @Inject(forwardRef(() => TasksService))
+    @Inject(TASKS_SERVICE)
     private readonly tasksService: TasksService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentMessagesService: AgentMessagesService,
