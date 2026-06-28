@@ -257,9 +257,7 @@ export class VideoGenerationService {
       const prompt = await this.promptsService.findOne({
         _id: createVideoDto.prompt.toString(),
         isDeleted: false,
-        ...(publicMetadata.organization
-          ? { organization: publicMetadata.organization }
-          : {}),
+        ...(validationOrgId ? { organization: validationOrgId } : {}),
       });
 
       if (!prompt?._id) {
