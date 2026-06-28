@@ -6,16 +6,16 @@ summary; the canonical, decision-of-record version is the ADR at
 
 ## The three modes
 
-| | **SaaS** | **Community** | **Desktop** |
-|---|---|---|---|
-| **For** | Customers using the hosted product | Self-hosters running the whole stack | Solo creators on their own machine |
-| **Get it** | app.genfeed.ai | `docker compose -f docker-compose.selfhosted.yml up` | Download the installer |
-| **Orgs** | many (isolated tenants) | **one** | one |
-| **Brands** | many per org | **many** | many |
-| **Auth** | Better Auth (email/password, magic link, Google) | Better Auth, self-hostable — none for solo, optional login wall | local-first sign-in |
-| **Storage** | S3 | local filesystem | local (PGlite) + optional cloud sync |
-| **Generation** | managed | your own provider keys (BYOK), free | BYOK local, free |
-| **Managed inference** | included | buy cloud credits, use via API | buy cloud credits, use via API |
+|                       | **SaaS**                                         | **Community**                                                     | **Desktop**                          |
+| --------------------- | ------------------------------------------------ | ----------------------------------------------------------------- | ------------------------------------ |
+| **For**               | Customers using the hosted product               | Self-hosters running the whole stack                              | Solo creators on their own machine   |
+| **Get it**            | app.genfeed.ai                                   | `cd docker && docker compose -f docker-compose.selfhosted.yml up` | Download the installer               |
+| **Orgs**              | many (isolated tenants)                          | **one**                                                           | one                                  |
+| **Brands**            | many per org                                     | **many**                                                          | many                                 |
+| **Auth**              | Better Auth (email/password, magic link, Google) | Better Auth, self-hostable — none for solo, optional login wall   | local-first sign-in                  |
+| **Storage**           | S3                                               | local filesystem                                                  | local (PGlite) + optional cloud sync |
+| **Generation**        | managed                                          | your own provider keys (BYOK), free                               | BYOK local, free                     |
+| **Managed inference** | included                                         | buy cloud credits, use via API                                    | buy cloud credits, use via API       |
 
 ## Choosing a mode (env)
 
