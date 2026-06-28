@@ -1,19 +1,20 @@
 # ECS production deploy (replaces the SSH-waves path post-cutover).
-# Dispatch-only + gated by the GitHub "production" environment (manual approval).
-# Flow: resolve server:<sha> in GHCR -> copy GHCR->ECR -> run Prisma migrate task ->
-# run workflow migration/backfill task -> terraform apply rolls services
-# (task defs are TF-managed with image_tag) -> wait services-stable.
+# Dispatch-only. Flow: validate master -> QA before deploy -> production
+# environment approval -> resolve server:<sha> in GHCR -> copy GHCR->ECR ->
+# run Prisma migrate task -> run workflow migration/backfill task -> terraform
+# apply rolls services (task defs are TF-managed with image_tag) -> wait
+# services-stable -> deploy Vercel frontends -> live post-deploy smoke.
 name: Deploy ECS (production)
 
 on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: 'server image tag to deploy (default: current SHA)'
+        description: "server image tag to deploy (default: current SHA)"
         required: false
-        default: ''
+        default: ""
       allow_rollback:
-        description: 'allow deploying an image tag different from current SHA'
+        description: "allow deploying an image tag different from current SHA"
         required: false
         default: false
         type: boolean
@@ -32,8 +33,34 @@ env:
   TF_DIR: infra/terraform/genfeed-prod
 
 jobs:
+  validate-production-ref:
+    name: Validate production ref
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate ref is master
+        run: |
+          # Check the FULL ref, not GITHUB_REF_NAME: the short name strips the
+          # refs/heads vs refs/tags prefix, so a tag literally named "master"
+          # would satisfy a name-only check and bypass the production gate.
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Production deploy must run from refs/heads/master (got ${GITHUB_REF})"; exit 1
+          fi
+
+  qa-before-deploy:
+    name: QA before deploy
+    needs: validate-production-ref
+    uses: ./.github/workflows/full-suite.yml
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
+      statuses: write
+    secrets: inherit
+
   deploy:
     name: Deploy ECS
+    needs: qa-before-deploy
     runs-on: ubuntu-latest
     timeout-minutes: 90
     environment: production # <- requires reviewer approval (the human gate)
@@ -370,3 +397,142 @@ jobs:
       contents: read
     uses: ./.github/workflows/deploy-vercel-frontends.yml
     secrets: inherit
+
+  post-deploy-smoke:
+    name: Post-deploy smoke
+    needs: deploy-vercel-frontends
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Smoke live production endpoints
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/post-deploy-smoke"
+
+          smoke_url() {
+            local name="$1"
+            local url="$2"
+            local expected="${3:-}"
+            local body="${RUNNER_TEMP}/post-deploy-smoke/${name}.body"
+
+            echo "Checking ${name}: ${url}"
+            curl --fail --show-error --silent --location \
+              --retry 6 --retry-delay 10 --retry-all-errors \
+              --connect-timeout 10 --max-time 20 \
+              --output "${body}" \
+              "${url}"
+
+            if [ -n "${expected}" ] && ! grep -Fq "${expected}" "${body}"; then
+              echo "::error::${name} response did not include expected marker: ${expected}"
+              echo "Response tail:"
+              tail -c 1200 "${body}" || true
+              exit 1
+            fi
+
+            {
+              echo "- ${name}: ${url}"
+            } >> "${RUNNER_TEMP}/post-deploy-smoke/summary.md"
+          }
+
+          smoke_url api-ready "https://api.genfeed.ai/v1/health/ready" '"status":"ready"'
+          smoke_url mcp-health "https://mcp.genfeed.ai/v1/health" '"status":"ok"'
+          smoke_url notifications-health "https://notifications.genfeed.ai/v1/health" '"status":"ok"'
+          smoke_url app-login "https://app.genfeed.ai/login"
+          smoke_url website-home "https://genfeed.ai"
+          smoke_url docs-home "https://docs.genfeed.ai"
+
+          {
+            echo "## Post-deploy smoke"
+            echo ""
+            cat "${RUNNER_TEMP}/post-deploy-smoke/summary.md"
+            echo ""
+            echo "Ref: \`${GITHUB_REF}\`"
+            echo "SHA: \`${GITHUB_SHA}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  report-post-deploy-smoke-failure:
+    name: Report post-deploy smoke failure
+    needs: post-deploy-smoke
+    if: always() && needs.post-deploy-smoke.result == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Open or update tracking issue
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const label = 'post-deploy-smoke';
+            const date = new Date().toISOString().slice(0, 10);
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const title = `Post-deploy smoke failed - ${date}`;
+            const body = [
+              `**Post-deploy production smoke failed** on \`${date}\`.`,
+              ``,
+              `- Failed run: ${runUrl}`,
+              `- Ref: \`${context.ref}\``,
+              `- SHA: \`${context.sha}\``,
+              ``,
+              `Checked endpoints:`,
+              `- https://api.genfeed.ai/v1/health/ready`,
+              `- https://mcp.genfeed.ai/v1/health`,
+              `- https://notifications.genfeed.ai/v1/health`,
+              `- https://app.genfeed.ai/login`,
+              `- https://genfeed.ai`,
+              `- https://docs.genfeed.ai`,
+              ``,
+              `This means the production deploy completed but the live public surface did not pass smoke verification.`,
+            ].join('\n');
+
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label,
+              });
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label,
+                color: 'b60205',
+                description: 'Production post-deploy smoke failures',
+              });
+            }
+
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: label,
+              per_page: 1,
+            });
+
+            if (existing.data.length > 0) {
+              const number = existing.data[0].number;
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: number,
+                body,
+              });
+              core.info(`Commented on existing post-deploy smoke issue #${number}`);
+              return;
+            }
+
+            const created = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: [label],
+            });
+            core.info(`Created post-deploy smoke issue #${created.data.number}`);
