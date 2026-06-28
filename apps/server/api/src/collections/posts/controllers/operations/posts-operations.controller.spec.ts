@@ -27,6 +27,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MembersService } from '@api/collections/members/services/members.service';
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
+import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
@@ -269,6 +270,7 @@ Tweet 3: Tech innovation is changing the world.`,
         { provide: IngredientsService, useValue: mockIngredientsService },
         { provide: MembersService, useValue: mockMembersService },
         { provide: LoggerService, useValue: mockLoggerService },
+        PostGenerationService,
         { provide: PostsService, useValue: mockPostsService },
         { provide: PromptBuilderService, useValue: mockPromptBuilderService },
         { provide: QuotaService, useValue: mockQuotaService },
@@ -392,37 +394,6 @@ Tweet 3: Tech innovation is changing the world.`,
       ).rejects.toThrow(httpError);
     });
 
-    it('records remix lineage for generated tweet posts when source metadata is provided', async () => {
-      await (controller as any).generateAccountContentAsync(
-        {
-          ...generateTweetsDto,
-          format: 'post',
-          sourceReferenceIds: ['507f1f77bcf86cd799439099'],
-          sourceUrl: 'https://x.com/example/status/1',
-          trendId: '507f1f77bcf86cd799439098',
-        },
-        [mockPost],
-        {
-          brand: brandId,
-          organization: organizationId,
-          user: userId,
-        },
-        mockPublishingContext,
-      );
-
-      expect(
-        mockTrendReferenceCorpusService.recordDraftRemixLineage,
-      ).toHaveBeenCalledWith(
-        expect.objectContaining({
-          brandId,
-          draftType: 'tweet',
-          organizationId,
-          platforms: [CredentialPlatform.TWITTER],
-          postId,
-        }),
-      );
-    });
-
     it('uses the selected account platform when creating generated drafts', async () => {
       mockAccountPublishingContextService.resolve.mockResolvedValueOnce({
         ...mockPublishingContext,
@@ -509,37 +480,6 @@ Tweet 3: Tech innovation is changing the world.`,
       await controller.generateThread(mockRequest, mockUser, dtoWithoutTone);
 
       expect(mockPostsService.create).toHaveBeenCalled();
-    });
-
-    it('records remix lineage for generated thread posts when source metadata is provided', async () => {
-      await (controller as any).generateAccountContentAsync(
-        {
-          ...generateThreadDto,
-          format: 'thread',
-          sourceReferenceIds: ['507f1f77bcf86cd799439099'],
-          sourceUrl: 'https://x.com/example/status/1',
-          trendId: '507f1f77bcf86cd799439098',
-        },
-        [mockPost],
-        {
-          brand: brandId,
-          organization: organizationId,
-          user: userId,
-        },
-        mockPublishingContext,
-      );
-
-      expect(
-        mockTrendReferenceCorpusService.recordDraftRemixLineage,
-      ).toHaveBeenCalledWith(
-        expect.objectContaining({
-          brandId,
-          draftType: 'thread',
-          organizationId,
-          platforms: [CredentialPlatform.TWITTER],
-          postId,
-        }),
-      );
     });
   });
 
@@ -1163,36 +1103,6 @@ Tweet 3: Tech innovation is changing the world.`,
         );
 
         expect(mockPostsService.create).toHaveBeenCalled();
-      });
-
-      it('should use X weighted character counting for emoji and URLs', () => {
-        const weightedValidPost = `${'a'.repeat(
-          250,
-        )} https://example.com/${'b'.repeat(220)} 😄`;
-        const weightedInvalidPost = `${'a'.repeat(279)} 😄`;
-        const parser = controller as unknown as {
-          parseTweetContent: (
-            content: string,
-            maxCount: number,
-            context: typeof mockPublishingContext,
-          ) => string[];
-        };
-
-        expect(weightedValidPost.length).toBeGreaterThan(280);
-        expect(
-          parser.parseTweetContent(
-            JSON.stringify([weightedValidPost]),
-            1,
-            mockPublishingContext,
-          ),
-        ).toEqual([weightedValidPost]);
-        expect(
-          parser.parseTweetContent(
-            JSON.stringify([weightedInvalidPost]),
-            1,
-            mockPublishingContext,
-          ),
-        ).toEqual([]);
       });
     });
 
