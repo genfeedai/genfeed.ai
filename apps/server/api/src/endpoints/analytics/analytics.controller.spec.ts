@@ -317,7 +317,7 @@ describe('AnalyticsController', () => {
         'Content-Type',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       );
-      expect(mockResponse.send).toHaveBeenCalledWith('xlsx-data');
+      expect(mockResponse.send).toHaveBeenCalledWith(Buffer.from('xlsx-data'));
     });
   });
 
