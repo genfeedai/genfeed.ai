@@ -335,10 +335,14 @@ export class AnalyticsExportService {
   }
 
   private escapeCsv(value: string): string {
-    if (/[",\n]/.test(value)) {
-      return `"${value.replace(/"/g, '""')}"`;
+    // Neutralize CSV/spreadsheet formula injection: prefix a single quote when
+    // a user-controlled value begins with =, +, -, or @ so Excel/Sheets treats
+    // it as text rather than a formula.
+    const safeValue = /^[=+\-@]/.test(value) ? `'${value}` : value;
+    if (/[",\n]/.test(safeValue)) {
+      return `"${safeValue.replace(/"/g, '""')}"`;
     }
-    return value;
+    return safeValue;
   }
 
   @LogMethod({ level: 'log', logEnd: true, logError: true, logStart: true })

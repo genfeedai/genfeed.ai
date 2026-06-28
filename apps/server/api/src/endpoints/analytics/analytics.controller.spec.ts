@@ -293,7 +293,9 @@ describe('AnalyticsController', () => {
     });
 
     it('should export XLSX data', async () => {
-      analyticsExportService.exportData.mockResolvedValueOnce('xlsx-data');
+      analyticsExportService.exportData.mockResolvedValueOnce(
+        Buffer.from('xlsx-data'),
+      );
 
       const mockUser = {
         publicMetadata: { isSuperAdmin: true, organization: 'org-1' },
