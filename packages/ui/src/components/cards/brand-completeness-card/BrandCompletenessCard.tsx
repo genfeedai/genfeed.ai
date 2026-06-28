@@ -154,6 +154,22 @@ export default function BrandCompletenessCard({
       <p className="mt-3 text-[10px] text-white/25 leading-relaxed">
         Filling in brand context improves AI content quality.
       </p>
+
+      {/* Interview me shortcut — only shown when there are interviewable gaps */}
+      {result.groups.some(
+        (g) => g.key !== 'visual' && g.fields.some((f) => !f.isComplete),
+      ) && (
+        <div className="mt-2 pt-2 border-t border-white/[0.06]">
+          <Button variant={ButtonVariant.UNSTYLED} withWrapper={false}>
+            <Link
+              href={href('/settings/interview')}
+              className="text-[11px] text-primary/70 hover:text-primary transition-colors duration-150"
+            >
+              Interview me to fill gaps →
+            </Link>
+          </Button>
+        </div>
+      )}
     </Card>
   );
 }

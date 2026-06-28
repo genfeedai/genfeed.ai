@@ -13,7 +13,7 @@ import type {
   IBrandInterviewQuestion,
   IBrandInterviewStartResult,
 } from '@genfeedai/interfaces';
-import type { BrandInterview } from '@genfeedai/prisma';
+import { type BrandInterview, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -214,7 +214,7 @@ export class BrandInterviewService {
 
     const updated = await this.prisma.brandInterview.update({
       data: {
-        answeredFields: updatedAnsweredFields,
+        answeredFields: updatedAnsweredFields as Prisma.InputJsonValue,
         askedFieldKeys,
         completenessAfter,
         currentFieldKey: nextFieldKey,
@@ -476,7 +476,7 @@ export class BrandInterviewService {
       cfg[grpKey] = { ...grp, [fieldKey]: value };
 
       await this.prisma.brand.update({
-        data: { agentConfig: cfg },
+        data: { agentConfig: cfg as Prisma.InputJsonValue },
         where: { id: brandId },
       });
     }
