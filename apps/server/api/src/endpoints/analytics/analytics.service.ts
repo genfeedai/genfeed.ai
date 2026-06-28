@@ -1,142 +1,22 @@
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ConfigService } from '@api/config/config.service';
-import { LeaderboardSort } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
-import {
-  BrandWithStatsEntity,
-  OrgLeaderboardItemEntity,
-  OrgWithStatsEntity,
-  PaginatedBrandsResponse,
-  PaginatedOrgsResponse,
-} from '@api/endpoints/analytics/entities/organization-leaderboard.entity';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
-import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
-import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
-import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
-import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import {
-  AnalyticsMetric,
-  CredentialPlatform,
-  PublishStatus,
-} from '@genfeedai/enums';
-import type {
-  IAggregatedAnalyticsResult,
-  IAggregatedEngagementResult,
-  IEntityAnalyticsStats,
-} from '@genfeedai/interfaces';
+import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import * as ExcelJS from 'exceljs';
 
 type PrismaSql = ReturnType<typeof Prisma.sql>;
 type PostAnalyticsTextColumn = 'brandId' | 'organizationId';
+type RawRow = Record<string, unknown>;
 
-interface ExportPostData {
-  id: string;
-  label: string;
-  description?: string;
-  status: string;
-  scheduledDate?: Date;
-  publicationDate?: Date;
-  tags?: string[];
-  views?: number;
-  isRepeat?: boolean;
-  repeatFrequency?: string;
-  repeatInterval?: number;
-  repeatCount?: number;
-  maxRepeats?: number;
-  createdAt: Date;
-  updatedAt: Date;
-  externalId?: string;
-  credential: {
-    platform: CredentialPlatform;
-  };
-  ingredient: {
-    metadata: string;
-  };
-  metadata?: {
-    label?: string;
-    description?: string;
-    extension?: string;
-    model?: string;
-    style?: string;
-  };
-  organizationId: string;
-  brandId: string;
-}
-
-interface ProcessedExportData {
-  id: string;
-  title: string;
-  description?: string;
-  status: string;
-  platform: CredentialPlatform;
-  scheduledDate?: Date;
-  publicationDate?: Date;
-  views: number;
-  likes: number;
-  comments: number;
-  tags: string;
-  videoLabel: string;
-  videoDescription: string;
-  extension: string;
-  model: string;
-  style: string;
-  isRepeat?: boolean;
-  repeatFrequency: string;
-  repeatInterval: number;
-  repeatCount: number;
-  maxRepeats: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface ExportRowData {
-  [key: string]: string | number | Date | boolean | undefined;
-}
-
-/** Organization document with aggregated fields */
-interface OrganizationDoc {
-  id: string;
-  name?: string;
-  label?: string;
-  logo?: { cdnUrl?: string };
-  isDeleted?: boolean;
-  createdAt?: Date;
-}
-
-/** Brand document with aggregated fields */
-interface BrandDoc {
-  id: string;
-  name?: string;
-  label?: string;
-  logo?: { cdnUrl?: string };
-  organizationId?: string;
-  org?: OrganizationDoc;
-  isDeleted?: boolean;
-  createdAt?: Date;
-}
-
-/** Stats for leaderboard sorting */
-interface LeaderboardStats {
-  id: string;
-  name: string;
-  logo?: string;
-  avgEngagementRate: number;
-  growth: number;
-  totalEngagement: number;
-  totalPosts: number;
-  totalViews: number;
-  activePlatforms?: string[];
-  organizationId?: string;
-  organizationName?: string;
+interface DateRange {
+  startDate: Date;
+  endDate: Date;
+  previousStartDate: Date;
+  previousEndDate: Date;
 }
 
 /** Platform metrics for time series */
@@ -149,25 +29,6 @@ interface PlatformMetrics {
   engagementRate: number;
 }
 
-/** Raw row from $queryRaw analytics aggregation */
-interface AnalyticsAggRow {
-  entity_id: string;
-  avg_engagement_rate: number;
-  total_views: bigint;
-  total_likes: bigint;
-  total_comments: bigint;
-  total_shares: bigint;
-  total_saves: bigint;
-  unique_posts: bigint;
-  platforms?: string[];
-}
-
-/** Raw row from $queryRaw previous-engagement aggregation */
-interface EngagementAggRow {
-  entity_id: string;
-  total_engagement: bigint;
-}
-
 export type AnalyticsBestPostingTime = {
   avgEngagementRate: number;
   hour: number;
@@ -175,39 +36,46 @@ export type AnalyticsBestPostingTime = {
   postCount: number;
 };
 
-/** Default analytics stats for entities with no data */
-const DEFAULT_ANALYTICS = {
-  avgEngagementRate: 0,
-  totalEngagement: 0,
-  totalPosts: 0,
-  totalViews: 0,
+/** One viral-hook video projection */
+type ViralHookVideo = {
+  description: string;
+  hook: string;
+  id: string;
+  platforms: string[];
+  title: string;
+  totalEngagement: number;
+  totalViews: number;
 };
 
-/** Default brand analytics stats including platforms */
-const DEFAULT_BRAND_ANALYTICS = {
-  ...DEFAULT_ANALYTICS,
-  activePlatforms: [] as string[],
+/** Aggregated effectiveness of a single hook pattern */
+type HookEffectiveness = {
+  hook: string;
+  avgEngagement: number;
+  avgViews: number;
+  postCount: number;
 };
 
-/** Map sort enum to field name */
-const SORT_FIELD_MAP: Record<LeaderboardSort, string> = {
-  [LeaderboardSort.VIEWS]: 'totalViews',
-  [LeaderboardSort.POSTS]: 'totalPosts',
-  [LeaderboardSort.ENGAGEMENT]: 'totalEngagement',
+type TopPlatformSummary = {
+  platform: string;
+  postCount: number;
+  totalEngagement: number;
+  totalViews: number;
+};
+
+type ViralHooksResult = {
+  analysis: {
+    hookEffectiveness: HookEffectiveness[];
+    topHooks: Array<{ hook: string; avgEngagement: number; postCount: number }>;
+    topPlatforms: TopPlatformSummary[];
+    totalVideos: number;
+  };
+  videos: ViralHookVideo[];
 };
 
 @Injectable()
 export class AnalyticsService extends BaseService<Record<string, unknown>> {
   constructor(
     protected readonly prisma: PrismaService,
-    private readonly postsService: PostsService,
-    private readonly organizationsService: OrganizationsService,
-    private readonly brandsService: BrandsService,
-    private readonly youtubeService: YoutubeService,
-    private readonly tiktokService: TiktokService,
-    private readonly instagramService: InstagramService,
-    private readonly pinterestService: PinterestService,
-    private readonly twitterService: TwitterService,
     configService: ConfigService,
     logger: LoggerService,
   ) {
@@ -221,12 +89,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
   private parseDateRange(
     startDateStr?: string,
     endDateStr?: string,
-  ): {
-    startDate: Date;
-    endDate: Date;
-    previousStartDate: Date;
-    previousEndDate: Date;
-  } {
+  ): DateRange {
     return DateRangeUtil.parseDateRange(startDateStr, endDateStr);
   }
 
@@ -277,695 +140,6 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       default:
         return Prisma.raw('pa."totalViews" DESC');
     }
-  }
-
-  /**
-   * Calculate growth percentage between current and previous values
-   */
-  private calculateGrowth(current: number, previous: number): number {
-    if (previous > 0) {
-      return Math.round(((current - previous) / previous) * 100 * 100) / 100;
-    }
-    return current > 0 ? 100 : 0;
-  }
-
-  /**
-   * Get current period analytics grouped by entity ID.
-   * Uses Prisma raw SQL aggregation on PostAnalytics.
-   */
-  private async getCurrentAnalytics(
-    entityIds: string[],
-    startDate: Date,
-    endDate: Date,
-    entityField: 'organizationId' | 'brandId',
-    includePlatforms = false,
-  ): Promise<Map<string, IEntityAnalyticsStats>> {
-    if (entityIds.length === 0) {
-      return new Map();
-    }
-
-    const column = this.postAnalyticsTextColumn(entityField);
-
-    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
-    const results: any[] = await this.prisma.$queryRaw`
-      SELECT
-        ${column} AS entity_id,
-        AVG("engagementRate") AS avg_engagement_rate,
-        SUM("totalViews") AS total_views,
-        SUM("totalLikes") AS total_likes,
-        SUM("totalComments") AS total_comments,
-        SUM("totalShares") AS total_shares,
-        SUM("totalSaves") AS total_saves,
-        COUNT(DISTINCT "postId") AS unique_posts
-        ${includePlatforms ? Prisma.sql`, ARRAY_AGG(DISTINCT "platform"::text) AS platforms` : Prisma.empty}
-      FROM "post_analytics"
-      WHERE ${column} = ANY(${entityIds}::text[])
-        AND "date" >= ${startDate}
-        AND "date" <= ${endDate}
-      GROUP BY ${column}
-    `;
-
-    const analyticsMap = new Map<string, IEntityAnalyticsStats>();
-    for (const row of results as AnalyticsAggRow[]) {
-      const totalLikes = Number(row.total_likes);
-      const totalComments = Number(row.total_comments);
-      const totalShares = Number(row.total_shares);
-      const totalSaves = Number(row.total_saves);
-      const stats: IEntityAnalyticsStats = {
-        avgEngagementRate: row.avg_engagement_rate || 0,
-        totalEngagement: totalLikes + totalComments + totalShares + totalSaves,
-        totalPosts: Number(row.unique_posts),
-        totalViews: Number(row.total_views),
-      };
-      if (includePlatforms) {
-        stats.activePlatforms = (row.platforms as string[] | null) || [];
-      }
-      analyticsMap.set(row.entity_id, stats);
-    }
-
-    return analyticsMap;
-  }
-
-  /**
-   * Get previous period engagement totals grouped by entity ID.
-   */
-  private async getPreviousEngagement(
-    entityIds: string[],
-    startDate: Date,
-    endDate: Date,
-    entityField: 'organizationId' | 'brandId',
-  ): Promise<Map<string, number>> {
-    if (entityIds.length === 0) {
-      return new Map();
-    }
-
-    const column = this.postAnalyticsTextColumn(entityField);
-
-    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
-    const results: any[] = await this.prisma.$queryRaw`
-      SELECT
-        ${column} AS entity_id,
-        SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS total_engagement
-      FROM "post_analytics"
-      WHERE ${column} = ANY(${entityIds}::text[])
-        AND "date" >= ${startDate}
-        AND "date" <= ${endDate}
-      GROUP BY ${column}
-    `;
-
-    const engagementMap = new Map<string, number>();
-    for (const row of results as EngagementAggRow[]) {
-      engagementMap.set(row.entity_id, Number(row.total_engagement));
-    }
-
-    return engagementMap;
-  }
-
-  /**
-   * Get organization leaderboard - top performing orgs by engagement
-   * Returns ALL orgs, sorted by metrics (includes orgs with 0 analytics)
-   */
-  @LogMethod({ level: 'log', logEnd: true, logError: true, logStart: true })
-  async getOrganizationsLeaderboard(
-    startDateStr?: string,
-    endDateStr?: string,
-    sort: LeaderboardSort = LeaderboardSort.ENGAGEMENT,
-    limit: number = 10,
-  ): Promise<OrgLeaderboardItemEntity[]> {
-    const { startDate, endDate, previousStartDate, previousEndDate } =
-      this.parseDateRange(startDateStr, endDateStr);
-
-    const orgsResult = await this.organizationsService.findAll(
-      { where: { isDeleted: false } },
-      { pagination: false },
-    );
-    const allOrgs =
-      (orgsResult as AggregatePaginateResult<OrganizationDoc>).docs || [];
-
-    if (allOrgs.length === 0) {
-      return [];
-    }
-
-    const orgIds = allOrgs.map((o: OrganizationDoc) => o.id);
-
-    const [analyticsMap, previousEngagementMap] = await Promise.all([
-      this.getCurrentAnalytics(orgIds, startDate, endDate, 'organizationId'),
-      this.getPreviousEngagement(
-        orgIds,
-        previousStartDate,
-        previousEndDate,
-        'organizationId',
-      ),
-    ]);
-
-    const sortField = SORT_FIELD_MAP[sort];
-
-    let orgsWithStats: LeaderboardStats[] = allOrgs.map(
-      (org: OrganizationDoc) => {
-        const orgId = org.id;
-        const analytics = analyticsMap.get(orgId) || DEFAULT_ANALYTICS;
-        const prevEngagement = previousEngagementMap.get(orgId) || 0;
-
-        return {
-          avgEngagementRate: analytics.avgEngagementRate,
-          growth: this.calculateGrowth(
-            analytics.totalEngagement,
-            prevEngagement,
-          ),
-          id: orgId,
-          logo: org.logo?.cdnUrl,
-          name: org.label || org.name || 'Unknown',
-          totalEngagement: analytics.totalEngagement,
-          totalPosts: analytics.totalPosts,
-          totalViews: analytics.totalViews,
-        };
-      },
-    );
-
-    orgsWithStats.sort(
-      (a: LeaderboardStats, b: LeaderboardStats) =>
-        (b[sortField as keyof LeaderboardStats] as number) -
-        (a[sortField as keyof LeaderboardStats] as number),
-    );
-    orgsWithStats = orgsWithStats.slice(0, limit);
-
-    return orgsWithStats.map((item: LeaderboardStats, index: number) => {
-      return new OrgLeaderboardItemEntity({
-        avgEngagementRate: item.avgEngagementRate,
-        growth: item.growth,
-        organization: {
-          id: item.id,
-          logo: item.logo,
-          name: item.name,
-        },
-        rank: index + 1,
-        totalEngagement: item.totalEngagement,
-        totalPosts: item.totalPosts,
-        totalViews: item.totalViews,
-      });
-    });
-  }
-
-  /**
-   * Get brands leaderboard - top performing brands by engagement
-   * Returns ALL brands, sorted by metrics (includes brands with 0 analytics)
-   */
-  @LogMethod({ level: 'log', logEnd: true, logError: true, logStart: true })
-  async getBrandsLeaderboard(
-    startDateStr?: string,
-    endDateStr?: string,
-    sort: LeaderboardSort = LeaderboardSort.ENGAGEMENT,
-    limit: number = 10,
-    organizationId?: string,
-  ): Promise<BrandWithStatsEntity[]> {
-    const { startDate, endDate, previousStartDate, previousEndDate } =
-      this.parseDateRange(startDateStr, endDateStr);
-
-    const brandsResult = await this.brandsService.findAll(
-      {
-        where: {
-          isDeleted: false,
-          ...(organizationId && { organization: organizationId }),
-        },
-      },
-      { pagination: false },
-    );
-    const allBrands =
-      (brandsResult as AggregatePaginateResult<BrandDoc>).docs || [];
-
-    if (allBrands.length === 0) {
-      return [];
-    }
-
-    const brandIds = allBrands.map((b: BrandDoc) => b.id);
-
-    const [analyticsMap, previousEngagementMap] = await Promise.all([
-      this.getCurrentAnalytics(brandIds, startDate, endDate, 'brandId', true),
-      this.getPreviousEngagement(
-        brandIds,
-        previousStartDate,
-        previousEndDate,
-        'brandId',
-      ),
-    ]);
-
-    const sortField = SORT_FIELD_MAP[sort];
-
-    let brandsWithStats = allBrands.map((brand: BrandDoc) => {
-      const brandId = brand.id;
-      const analytics = analyticsMap.get(brandId) || DEFAULT_BRAND_ANALYTICS;
-      const prevEngagement = previousEngagementMap.get(brandId) || 0;
-
-      return new BrandWithStatsEntity({
-        activePlatforms: analytics.activePlatforms,
-        avgEngagementRate: analytics.avgEngagementRate,
-        growth: this.calculateGrowth(analytics.totalEngagement, prevEngagement),
-        id: brandId,
-        logo: brand.logo?.cdnUrl,
-        name: brand.label || brand.name || 'Unknown',
-        organizationId: brand.organizationId || brand.org?.id,
-        organizationName: brand.org?.label || brand.org?.name || 'Unknown',
-        totalEngagement: analytics.totalEngagement,
-        totalPosts: analytics.totalPosts,
-        totalViews: analytics.totalViews,
-      });
-    });
-
-    brandsWithStats.sort((a, b) => {
-      const aVal = a[sortField as keyof typeof a] as number;
-      const bVal = b[sortField as keyof typeof b] as number;
-      return bVal - aVal;
-    });
-    brandsWithStats = brandsWithStats.slice(0, limit);
-
-    return brandsWithStats;
-  }
-
-  /**
-   * Get all organizations with analytics stats (paginated)
-   */
-  @LogMethod({ level: 'log', logEnd: true, logError: true, logStart: true })
-  async getOrganizationsWithStats(
-    startDateStr?: string,
-    endDateStr?: string,
-    page: number = 1,
-    limit: number = 20,
-    sort: LeaderboardSort = LeaderboardSort.ENGAGEMENT,
-  ): Promise<PaginatedOrgsResponse> {
-    const { startDate, endDate, previousStartDate, previousEndDate } =
-      this.parseDateRange(startDateStr, endDateStr);
-
-    const orgsResult = await this.organizationsService.findAll(
-      { where: { isDeleted: false } },
-      { pagination: false },
-    );
-    const allOrgs =
-      (orgsResult as AggregatePaginateResult<OrganizationDoc>).docs || [];
-
-    let analyticsMap = new Map<string, IEntityAnalyticsStats>();
-    let previousEngagementMap = new Map<string, number>();
-
-    if (allOrgs.length > 0) {
-      const orgIds = allOrgs.map((o: OrganizationDoc) => o.id);
-
-      [analyticsMap, previousEngagementMap] = await Promise.all([
-        this.getCurrentAnalytics(orgIds, startDate, endDate, 'organizationId'),
-        this.getPreviousEngagement(
-          orgIds,
-          previousStartDate,
-          previousEndDate,
-          'organizationId',
-        ),
-      ]);
-    }
-
-    // Count brands per org directly from Prisma
-    const brandCountRows = await this.prisma.brand.groupBy({
-      by: ['organizationId'],
-      where: { isDeleted: false },
-      _count: { id: true },
-    });
-    const brandCountMap = new Map<string, number>(
-      brandCountRows.map((row) => [row.organizationId, row._count.id]),
-    );
-
-    const orgsWithStats = allOrgs.map((org: OrganizationDoc) => {
-      const orgId = org.id;
-      const analytics = analyticsMap.get(orgId) || DEFAULT_ANALYTICS;
-      const prevEngagement = previousEngagementMap.get(orgId) || 0;
-
-      return new OrgWithStatsEntity({
-        avgEngagementRate: analytics.avgEngagementRate,
-        growth: this.calculateGrowth(analytics.totalEngagement, prevEngagement),
-        id: orgId,
-        logo: org.logo?.cdnUrl,
-        name: org.label || org.name || 'Unknown',
-        totalBrands: brandCountMap.get(orgId) || 0,
-        totalEngagement: analytics.totalEngagement,
-        totalMembers: 0,
-        totalPosts: analytics.totalPosts,
-        totalViews: analytics.totalViews,
-      });
-    });
-
-    const sortField = SORT_FIELD_MAP[sort];
-    orgsWithStats.sort((a, b) => {
-      const aVal = a[sortField as keyof typeof a] as number;
-      const bVal = b[sortField as keyof typeof b] as number;
-      return bVal - aVal;
-    });
-
-    const total = orgsWithStats.length;
-    const totalPages = Math.ceil(total / limit);
-    const startIndex = (page - 1) * limit;
-    const paginatedOrgs = orgsWithStats.slice(startIndex, startIndex + limit);
-
-    return new PaginatedOrgsResponse({
-      data: paginatedOrgs,
-      pagination: {
-        limit,
-        page,
-        total,
-        totalPages,
-      },
-    });
-  }
-
-  /**
-   * Get all brands with analytics stats (paginated)
-   */
-  @LogMethod({ level: 'log', logEnd: true, logError: true, logStart: true })
-  async getBrandsWithStats(
-    startDateStr?: string,
-    endDateStr?: string,
-    page: number = 1,
-    limit: number = 20,
-    sort: LeaderboardSort = LeaderboardSort.ENGAGEMENT,
-    organizationId?: string,
-  ): Promise<PaginatedBrandsResponse> {
-    const { startDate, endDate, previousStartDate, previousEndDate } =
-      this.parseDateRange(startDateStr, endDateStr);
-
-    const brandsResult = await this.brandsService.findAll(
-      {
-        where: {
-          isDeleted: false,
-          ...(organizationId && { organization: organizationId }),
-        },
-      },
-      { pagination: false },
-    );
-    const allBrands =
-      (brandsResult as AggregatePaginateResult<BrandDoc>).docs || [];
-
-    let analyticsMap = new Map<string, IEntityAnalyticsStats>();
-    let previousEngagementMap = new Map<string, number>();
-
-    if (allBrands.length > 0) {
-      const brandIds = allBrands.map((b: BrandDoc) => b.id);
-
-      [analyticsMap, previousEngagementMap] = await Promise.all([
-        this.getCurrentAnalytics(brandIds, startDate, endDate, 'brandId', true),
-        this.getPreviousEngagement(
-          brandIds,
-          previousStartDate,
-          previousEndDate,
-          'brandId',
-        ),
-      ]);
-    }
-
-    const brandsWithStats = allBrands.map((brand: BrandDoc) => {
-      const brandId = brand.id;
-      const analytics = analyticsMap.get(brandId) || DEFAULT_BRAND_ANALYTICS;
-      const prevEngagement = previousEngagementMap.get(brandId) || 0;
-
-      return new BrandWithStatsEntity({
-        activePlatforms: analytics.activePlatforms,
-        avgEngagementRate: analytics.avgEngagementRate,
-        growth: this.calculateGrowth(analytics.totalEngagement, prevEngagement),
-        id: brandId,
-        logo: brand.logo?.cdnUrl,
-        name: brand.label || brand.name || 'Unknown',
-        organizationId: brand.organizationId || brand.org?.id,
-        organizationName: brand.org?.label || brand.org?.name || 'Unknown',
-        totalEngagement: analytics.totalEngagement,
-        totalPosts: analytics.totalPosts,
-        totalViews: analytics.totalViews,
-      });
-    });
-
-    const sortField = SORT_FIELD_MAP[sort];
-    brandsWithStats.sort((a, b) => {
-      const aVal = a[sortField as keyof typeof a] as number;
-      const bVal = b[sortField as keyof typeof b] as number;
-      return bVal - aVal;
-    });
-
-    const total = brandsWithStats.length;
-    const totalPages = Math.ceil(total / limit);
-    const startIndex = (page - 1) * limit;
-    const paginatedBrands = brandsWithStats.slice(
-      startIndex,
-      startIndex + limit,
-    );
-
-    return new PaginatedBrandsResponse({
-      data: paginatedBrands,
-      pagination: {
-        limit,
-        page,
-        total,
-        totalPages,
-      },
-    });
-  }
-
-  @LogMethod({ level: 'log', logEnd: true, logError: true, logStart: true })
-  public async exportData(
-    format: 'csv' | 'xlsx',
-    fields: string[],
-    organizationId?: string,
-  ): Promise<Buffer | string> {
-    const data = await this.getExportData(organizationId);
-
-    if (format === 'csv') {
-      return this.generateCsv(data, fields);
-    } else {
-      return this.generateXlsx(data, fields);
-    }
-  }
-
-  private async getExportData(
-    organizationId?: string,
-  ): Promise<ProcessedExportData[]> {
-    // Build match stage with optional organization filter
-    const matchStage: Record<string, unknown> = {
-      status: PublishStatus.PUBLISHED,
-    };
-    if (organizationId) {
-      matchStage.organization = organizationId;
-    }
-
-    const aggregate = { where: matchStage };
-
-    const result = await this.postsService.findAll(aggregate, {
-      pagination: false,
-    });
-    const docs = (result as unknown as { docs?: ExportPostData[] }).docs || [];
-
-    // Batch fetch analytics by platform to avoid N+1 queries
-    const statsMap = await this.batchFetchAnalytics(docs);
-
-    const processedData: ProcessedExportData[] = docs.map((pub) => {
-      const platform = pub.credential.platform;
-      const stats = statsMap.get(pub.id) || {
-        comments: 0,
-        likes: 0,
-        views: pub.views || 0,
-      };
-
-      return {
-        comments: stats.comments,
-        createdAt: pub.createdAt,
-        description: pub.description,
-        extension: pub.metadata?.extension || '',
-        id: pub.id,
-        isRepeat: pub.isRepeat,
-        likes: stats.likes,
-        maxRepeats: pub.maxRepeats || 0,
-        model: pub.metadata?.model || '',
-        platform: platform,
-        publicationDate: pub.publicationDate,
-        repeatCount: pub.repeatCount || 0,
-        repeatFrequency: pub.repeatFrequency || '',
-        repeatInterval: pub.repeatInterval || 0,
-        scheduledDate: pub.scheduledDate,
-        status: pub.status,
-        style: pub.metadata?.style || '',
-        tags: pub.tags?.join(',') || '',
-        title: pub.label,
-        updatedAt: pub.updatedAt,
-        videoDescription: pub.metadata?.description || '',
-        videoLabel: pub.metadata?.label || '',
-        views: stats.views,
-      };
-    });
-
-    return processedData;
-  }
-
-  /**
-   * Batch fetch analytics by platform to avoid N+1 queries
-   * Groups posts by platform and fetches in parallel with concurrency limit
-   */
-  private async batchFetchAnalytics(
-    docs: ExportPostData[],
-  ): Promise<Map<string, { comments: number; likes: number; views: number }>> {
-    const statsMap = new Map<
-      string,
-      { comments: number; likes: number; views: number }
-    >();
-
-    // Group posts by platform
-    const postsByPlatform = new Map<CredentialPlatform, ExportPostData[]>();
-    for (const doc of docs) {
-      if (!doc.externalId) {
-        continue;
-      }
-      const platform = doc.credential.platform;
-      if (!postsByPlatform.has(platform)) {
-        postsByPlatform.set(platform, []);
-      }
-      postsByPlatform.get(platform)?.push(doc);
-    }
-
-    // Fetch analytics for each platform in parallel
-    const platformPromises = Array.from(postsByPlatform.entries()).map(
-      async ([platform, posts]) => {
-        // Process posts for this platform with concurrency limit
-        const BATCH_SIZE = 10;
-        for (let i = 0; i < posts.length; i += BATCH_SIZE) {
-          const batch = posts.slice(i, i + BATCH_SIZE);
-          const batchPromises = batch.map(async (post) => {
-            try {
-              const stats = await this.fetchPlatformStats(
-                platform,
-                post.organizationId,
-                post.brandId,
-                post.externalId!,
-              );
-              statsMap.set(post.id, stats);
-            } catch (error) {
-              this.logger?.error('fetch stats failed', {
-                error,
-                externalId: post.externalId,
-                platform,
-              });
-              statsMap.set(post.id, {
-                comments: 0,
-                likes: 0,
-                views: post.views || 0,
-              });
-            }
-          });
-          await Promise.all(batchPromises);
-        }
-      },
-    );
-
-    await Promise.all(platformPromises);
-    return statsMap;
-  }
-
-  /**
-   * Fetch stats for a single post from the appropriate platform service
-   */
-  private fetchPlatformStats(
-    platform: CredentialPlatform,
-    organizationId: string,
-    brandId: string,
-    externalId: string,
-  ): Promise<{ comments: number; likes: number; views: number }> {
-    switch (platform) {
-      case CredentialPlatform.YOUTUBE:
-        return this.youtubeService.getMediaAnalytics(
-          organizationId,
-          brandId,
-          externalId,
-        );
-      case CredentialPlatform.TIKTOK:
-        return this.tiktokService.getMediaAnalytics(
-          organizationId,
-          brandId,
-          externalId,
-        );
-      case CredentialPlatform.INSTAGRAM:
-        return this.instagramService.getMediaAnalytics(
-          organizationId,
-          brandId,
-          externalId,
-        );
-      case CredentialPlatform.TWITTER:
-        return this.twitterService.getMediaAnalytics(externalId);
-      case CredentialPlatform.PINTEREST:
-        return this.pinterestService.getMediaAnalytics(
-          organizationId,
-          brandId,
-          externalId,
-        );
-      default:
-        // @ts-expect-error return shape
-        return { comments: 0, likes: 0, views: 0 };
-    }
-  }
-
-  private generateCsv(data: ProcessedExportData[], fields: string[]): string {
-    if (data.length === 0) {
-      return fields.join(',');
-    }
-
-    const headers = fields.join(',');
-    const rows = data.map((item: ProcessedExportData) => {
-      return fields
-        .map((field) => {
-          const value = item[field as keyof ProcessedExportData];
-          if (value == null) {
-            return '';
-          }
-          return this.escapeCsv(String(value));
-        })
-        .join(',');
-    });
-
-    return [headers, ...rows].join('\n');
-  }
-
-  private async generateXlsx(
-    data: ProcessedExportData[],
-    fields: string[],
-  ): Promise<Buffer> {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Export Data');
-
-    // Add headers
-    worksheet.columns = fields.map((field) => ({
-      header: this.formatFieldName(field),
-      key: field,
-      width: 20,
-    }));
-
-    // Add data
-    data.forEach((item) => {
-      const row: ExportRowData = {};
-      fields.forEach((field) => {
-        row[field] = item[field as keyof ProcessedExportData];
-      });
-      worksheet.addRow(row);
-    });
-
-    // Style the header row
-    worksheet.getRow(1).font = { bold: true };
-    worksheet.getRow(1).fill = {
-      fgColor: { argb: 'FFE0E0E0' },
-      pattern: 'solid',
-      type: 'pattern',
-    };
-
-    return Buffer.from(await workbook.xlsx.writeBuffer());
-  }
-
-  private formatFieldName(field: string): string {
-    return field
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, (str) => str.toUpperCase())
-      .trim();
-  }
-
-  @LogMethod({ level: 'log', logEnd: true, logError: true, logStart: true })
-  public async exportVideoStatsCsv(): Promise<string> {
-    const fields = ['videoLabel', 'views', 'comments', 'likes', 'platform'];
-    return (await this.exportData('csv', fields)) as string;
   }
 
   @LogMethod({ level: 'log', logEnd: true, logError: true, logStart: true })
@@ -1021,41 +195,49 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     }
 
     // Build response with all dates and platforms
-    return allDates.map((date) => {
-      const platformData =
-        dataMap.get(date) || new Map<string, PlatformMetrics>();
-
-      return {
+    return allDates.map((date) =>
+      this.buildTimeSeriesRow(
         date,
-        facebook:
-          platformData.get(CredentialPlatform.FACEBOOK) ||
-          this.createEmptyPlatformMetrics(),
-        instagram:
-          platformData.get(CredentialPlatform.INSTAGRAM) ||
-          this.createEmptyPlatformMetrics(),
-        linkedin:
-          platformData.get(CredentialPlatform.LINKEDIN) ||
-          this.createEmptyPlatformMetrics(),
-        medium:
-          platformData.get(CredentialPlatform.MEDIUM) ||
-          this.createEmptyPlatformMetrics(),
-        pinterest:
-          platformData.get(CredentialPlatform.PINTEREST) ||
-          this.createEmptyPlatformMetrics(),
-        reddit:
-          platformData.get(CredentialPlatform.REDDIT) ||
-          this.createEmptyPlatformMetrics(),
-        tiktok:
-          platformData.get(CredentialPlatform.TIKTOK) ||
-          this.createEmptyPlatformMetrics(),
-        twitter:
-          platformData.get(CredentialPlatform.TWITTER) ||
-          this.createEmptyPlatformMetrics(),
-        youtube:
-          platformData.get(CredentialPlatform.YOUTUBE) ||
-          this.createEmptyPlatformMetrics(),
-      };
-    });
+        dataMap.get(date) || new Map<string, PlatformMetrics>(),
+      ),
+    );
+  }
+
+  /** Project a single day's platform map into the fixed 9-platform output row */
+  private buildTimeSeriesRow(
+    date: string,
+    platformData: Map<string, PlatformMetrics>,
+  ): Record<string, unknown> {
+    return {
+      date,
+      facebook:
+        platformData.get(CredentialPlatform.FACEBOOK) ||
+        this.createEmptyPlatformMetrics(),
+      instagram:
+        platformData.get(CredentialPlatform.INSTAGRAM) ||
+        this.createEmptyPlatformMetrics(),
+      linkedin:
+        platformData.get(CredentialPlatform.LINKEDIN) ||
+        this.createEmptyPlatformMetrics(),
+      medium:
+        platformData.get(CredentialPlatform.MEDIUM) ||
+        this.createEmptyPlatformMetrics(),
+      pinterest:
+        platformData.get(CredentialPlatform.PINTEREST) ||
+        this.createEmptyPlatformMetrics(),
+      reddit:
+        platformData.get(CredentialPlatform.REDDIT) ||
+        this.createEmptyPlatformMetrics(),
+      tiktok:
+        platformData.get(CredentialPlatform.TIKTOK) ||
+        this.createEmptyPlatformMetrics(),
+      twitter:
+        platformData.get(CredentialPlatform.TWITTER) ||
+        this.createEmptyPlatformMetrics(),
+      youtube:
+        platformData.get(CredentialPlatform.YOUTUBE) ||
+        this.createEmptyPlatformMetrics(),
+    };
   }
 
   private generateDateScaffolding(startDate: Date, endDate: Date): string[] {
@@ -1082,13 +264,6 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     };
   }
 
-  private escapeCsv(value: string): string {
-    if (/[",\n]/.test(value)) {
-      return `"${value.replace(/"/g, '""')}"`;
-    }
-    return value;
-  }
-
   /**
    * Get high-level overview analytics
    */
@@ -1112,7 +287,36 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       organizationId,
     );
 
-    // Current period metrics
+    const current = await this.fetchOverviewCurrentMetrics(
+      startDate,
+      endDate,
+      brandFilter,
+      orgFilter,
+    );
+    const previous = await this.fetchOverviewPreviousMetrics(
+      previousStartDate,
+      previousEndDate,
+      brandFilter,
+      orgFilter,
+    );
+
+    const metrics = this.computeOverviewMetrics(current, previous);
+    const { brandCount, orgCount } =
+      await this.countOverviewEntities(organizationId);
+
+    return {
+      ...metrics,
+      brandCount,
+      organizationCount: orgCount,
+    };
+  }
+
+  private async fetchOverviewCurrentMetrics(
+    startDate: Date,
+    endDate: Date,
+    brandFilter: PrismaSql,
+    orgFilter: PrismaSql,
+  ): Promise<RawRow> {
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const currentMetrics: any[] = await this.prisma.$queryRaw`
       SELECT
@@ -1129,7 +333,25 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         ${orgFilter}
     `;
 
-    // Previous period metrics for growth calculation
+    return (
+      currentMetrics[0] || {
+        avg_engagement_rate: 0,
+        total_comments: 0,
+        total_likes: 0,
+        total_posts: 0,
+        total_saves: 0,
+        total_shares: 0,
+        total_views: 0,
+      }
+    );
+  }
+
+  private async fetchOverviewPreviousMetrics(
+    previousStartDate: Date,
+    previousEndDate: Date,
+    brandFilter: PrismaSql,
+    orgFilter: PrismaSql,
+  ): Promise<RawRow> {
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const previousMetrics: any[] = await this.prisma.$queryRaw`
       SELECT
@@ -1142,22 +364,25 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         ${orgFilter}
     `;
 
-    const current = currentMetrics[0] || {
-      avg_engagement_rate: 0,
-      total_comments: 0,
-      total_likes: 0,
-      total_posts: 0,
-      total_saves: 0,
-      total_shares: 0,
-      total_views: 0,
-    };
+    return (
+      previousMetrics[0] || {
+        total_engagement: 0,
+        total_posts: 0,
+        total_views: 0,
+      }
+    );
+  }
 
-    const previous = previousMetrics[0] || {
-      total_engagement: 0,
-      total_posts: 0,
-      total_views: 0,
-    };
-
+  private computeOverviewMetrics(
+    current: RawRow,
+    previous: RawRow,
+  ): {
+    avgEngagementRate: number;
+    growth: { engagement: number; posts: number; views: number };
+    totalEngagement: number;
+    totalPosts: number;
+    totalViews: number;
+  } {
     const totalLikes = Number(current.total_likes);
     const totalComments = Number(current.total_comments);
     const totalShares = Number(current.total_shares);
@@ -1179,6 +404,22 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         ? ((totalEngagement - prevEngagement) / prevEngagement) * 100
         : 0;
 
+    return {
+      avgEngagementRate: Number(current.avg_engagement_rate) || 0,
+      growth: {
+        engagement: engagementGrowth,
+        posts: postsGrowth,
+        views: viewsGrowth,
+      },
+      totalEngagement,
+      totalPosts,
+      totalViews,
+    };
+  }
+
+  private async countOverviewEntities(
+    organizationId?: string,
+  ): Promise<{ brandCount: number; orgCount: number }> {
     // Count organizations and brands via Prisma
     const orgWhere = organizationId
       ? { isDeleted: false, id: organizationId }
@@ -1192,19 +433,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       this.prisma.brand.count({ where: brandWhere }),
     ]);
 
-    return {
-      avgEngagementRate: Number(current.avg_engagement_rate) || 0,
-      brandCount,
-      growth: {
-        engagement: engagementGrowth,
-        posts: postsGrowth,
-        views: viewsGrowth,
-      },
-      organizationCount: orgCount,
-      totalEngagement,
-      totalPosts,
-      totalViews,
-    };
+    return { brandCount, orgCount };
   }
 
   @LogMethod({ level: 'log', logEnd: true, logError: true, logStart: true })
@@ -1307,35 +536,15 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       'pa',
     );
 
-    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
-    const results: any[] = await this.prisma.$queryRaw`
-      SELECT
-        pa.id,
-        pa."postId" AS post_id,
-        pa."platform"::text AS platform,
-        pa."date",
-        pa."totalViews",
-        pa."totalLikes",
-        pa."totalComments",
-        pa."totalSaves",
-        pa."totalShares",
-        pa."engagementRate",
-        (pa."totalLikes" + pa."totalComments" + pa."totalShares" + pa."totalSaves") AS total_engagement,
-        p.label AS label,
-        p.description AS description,
-        b.label AS brand_name,
-        NULL AS brand_logo
-      FROM "post_analytics" pa
-      LEFT JOIN "posts" p ON p.id = pa."postId"
-      LEFT JOIN "brands" b ON b.id = pa."brandId"
-      WHERE pa."date" >= ${startDate}
-        AND pa."date" <= ${endDate}
-        ${brandFilter}
-        ${platformFilter}
-        ${orgFilter}
-      ORDER BY ${sortExpr}
-      LIMIT ${safeLimit}
-    `;
+    const results = await this.fetchTopContent(
+      startDate,
+      endDate,
+      safeLimit,
+      sortExpr,
+      brandFilter,
+      platformFilter,
+      orgFilter,
+    );
 
     return results.map((row) => ({
       _id: row.id as string,
@@ -1357,6 +566,48 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       totalShares: Number(row.total_shares),
       totalViews: Number(row.total_views),
     }));
+  }
+
+  private async fetchTopContent(
+    startDate: Date,
+    endDate: Date,
+    safeLimit: number,
+    sortExpr: PrismaSql,
+    brandFilter: PrismaSql,
+    platformFilter: PrismaSql,
+    orgFilter: PrismaSql,
+  ): Promise<RawRow[]> {
+    // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
+    const results: any[] = await this.prisma.$queryRaw`
+      SELECT
+        pa.id,
+        pa."postId" AS post_id,
+        pa."platform"::text AS platform,
+        pa."date",
+        pa."totalViews" AS total_views,
+        pa."totalLikes" AS total_likes,
+        pa."totalComments" AS total_comments,
+        pa."totalSaves" AS total_saves,
+        pa."totalShares" AS total_shares,
+        pa."engagementRate" AS engagement_rate,
+        (pa."totalLikes" + pa."totalComments" + pa."totalShares" + pa."totalSaves") AS total_engagement,
+        p.label AS label,
+        p.description AS description,
+        b.label AS brand_name,
+        NULL AS brand_logo
+      FROM "post_analytics" pa
+      LEFT JOIN "posts" p ON p.id = pa."postId"
+      LEFT JOIN "brands" b ON b.id = pa."brandId"
+      WHERE pa."date" >= ${startDate}
+        AND pa."date" <= ${endDate}
+        ${brandFilter}
+        ${platformFilter}
+        ${orgFilter}
+      ORDER BY ${sortExpr}
+      LIMIT ${safeLimit}
+    `;
+
+    return results;
   }
 
   /**
@@ -1452,6 +703,30 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       brandId,
     );
 
+    const currentResults = await this.fetchGrowthCurrent(
+      startDate,
+      endDate,
+      brandFilter,
+    );
+    const previous = await this.fetchGrowthPrevious(
+      previousStartDate,
+      previousEndDate,
+      brandFilter,
+    );
+
+    return {
+      data: this.buildGrowthTrends(currentResults, previous, metric),
+      endDate: endDate.toISOString().split('T')[0],
+      metric,
+      startDate: startDate.toISOString().split('T')[0],
+    };
+  }
+
+  private async fetchGrowthCurrent(
+    startDate: Date,
+    endDate: Date,
+    brandFilter: PrismaSql,
+  ): Promise<RawRow[]> {
     // Current period: group by day
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const currentResults: any[] = await this.prisma.$queryRaw`
@@ -1471,6 +746,14 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       ORDER BY day ASC
     `;
 
+    return currentResults;
+  }
+
+  private async fetchGrowthPrevious(
+    previousStartDate: Date,
+    previousEndDate: Date,
+    brandFilter: PrismaSql,
+  ): Promise<RawRow> {
     // Previous period: aggregate totals
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const previousResults: any[] = await this.prisma.$queryRaw`
@@ -1486,15 +769,26 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         ${brandFilter}
     `;
 
-    const previous = previousResults[0] || {
-      total_comments: 0,
-      total_likes: 0,
-      total_posts: 0,
-      total_saves: 0,
-      total_shares: 0,
-      total_views: 0,
-    };
+    return (
+      previousResults[0] || {
+        total_comments: 0,
+        total_likes: 0,
+        total_posts: 0,
+        total_saves: 0,
+        total_shares: 0,
+        total_views: 0,
+      }
+    );
+  }
 
+  private buildGrowthTrends(
+    currentResults: RawRow[],
+    previous: RawRow,
+    metric:
+      | AnalyticsMetric.VIEWS
+      | AnalyticsMetric.ENGAGEMENT
+      | AnalyticsMetric.POSTS,
+  ): Array<{ date: string; growth: number; trend: string; value: number }> {
     const prevEngagement =
       Number(previous.total_likes) +
       Number(previous.total_comments) +
@@ -1502,7 +796,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       Number(previous.total_saves);
 
     // Calculate growth for each day
-    const trends = currentResults.map((day) => {
+    return currentResults.map((day) => {
       let growth = 0;
       let previousValue = 0;
       let currentValue = 0;
@@ -1532,13 +826,6 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         value: currentValue,
       };
     });
-
-    return {
-      data: trends,
-      endDate: endDate.toISOString().split('T')[0],
-      metric,
-      startDate: startDate.toISOString().split('T')[0],
-    };
   }
 
   /**
@@ -1614,37 +901,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     endDateStr?: string,
     brandId?: string,
     organizationId?: string,
-  ): Promise<{
-    analysis: {
-      hookEffectiveness: Array<{
-        hook: string;
-        avgEngagement: number;
-        avgViews: number;
-        postCount: number;
-      }>;
-      topHooks: Array<{
-        hook: string;
-        avgEngagement: number;
-        postCount: number;
-      }>;
-      topPlatforms: Array<{
-        platform: string;
-        postCount: number;
-        totalEngagement: number;
-        totalViews: number;
-      }>;
-      totalVideos: number;
-    };
-    videos: Array<{
-      description: string;
-      hook: string;
-      id: string;
-      platforms: string[];
-      title: string;
-      totalEngagement: number;
-      totalViews: number;
-    }>;
-  }> {
+  ): Promise<ViralHooksResult> {
     const { startDate, endDate } = this.parseDateRange(
       startDateStr,
       endDateStr,
@@ -1661,6 +918,56 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       'pa',
     );
 
+    // Get top performing posts with description data
+    const videos = await this.fetchViralHookVideos(
+      startDate,
+      endDate,
+      brandFilter,
+      orgFilter,
+    );
+    // Platform aggregation
+    const topPlatformsRaw = await this.fetchViralHookPlatforms(
+      startDate,
+      endDate,
+      brandFilter,
+      orgFilter,
+    );
+
+    // Extract hook text from each video's description (first sentence/line)
+    const videosWithHooks: ViralHookVideo[] = videos.map((v) => ({
+      description: (v.description as string) || '',
+      hook: this.extractHookFromDescription(v.description as string),
+      id: v.id as string,
+      platforms: (v.platforms as string[]) || [],
+      title: (v.title as string) || 'Untitled',
+      totalEngagement: Number(v.total_engagement),
+      totalViews: Number(v.total_views),
+    }));
+
+    const hookEffectiveness = this.buildHookEffectiveness(videosWithHooks);
+    const topHooks = hookEffectiveness.slice(0, 10).map((h) => ({
+      avgEngagement: h.avgEngagement,
+      hook: h.hook,
+      postCount: h.postCount,
+    }));
+
+    return {
+      analysis: {
+        hookEffectiveness,
+        topHooks,
+        topPlatforms: this.mapTopPlatforms(topPlatformsRaw),
+        totalVideos: videosWithHooks.length,
+      },
+      videos: videosWithHooks,
+    };
+  }
+
+  private async fetchViralHookVideos(
+    startDate: Date,
+    endDate: Date,
+    brandFilter: PrismaSql,
+    orgFilter: PrismaSql,
+  ): Promise<RawRow[]> {
     // Get top performing posts with description data
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const videos: any[] = await this.prisma.$queryRaw`
@@ -1681,35 +988,39 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       LIMIT 50
     `;
 
+    return videos;
+  }
+
+  private async fetchViralHookPlatforms(
+    startDate: Date,
+    endDate: Date,
+    brandFilter: PrismaSql,
+    orgFilter: PrismaSql,
+  ): Promise<RawRow[]> {
     // Platform aggregation
     // biome-ignore lint/suspicious/noExplicitAny: raw SQL result
     const topPlatformsRaw: any[] = await this.prisma.$queryRaw`
       SELECT
-        "platform"::text AS platform,
+        pa."platform"::text AS platform,
         COUNT(*) AS post_count,
-        SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS total_engagement,
-        SUM("totalViews") AS total_views
-      FROM "post_analytics"
-      WHERE "date" >= ${startDate} AND "date" <= ${endDate}
+        SUM(pa."totalLikes" + pa."totalComments" + pa."totalShares" + pa."totalSaves") AS total_engagement,
+        SUM(pa."totalViews") AS total_views
+      FROM "post_analytics" pa
+      WHERE pa."date" >= ${startDate} AND pa."date" <= ${endDate}
         ${brandFilter}
         ${orgFilter}
-      GROUP BY "platform"
+      GROUP BY pa."platform"
       ORDER BY total_engagement DESC
       LIMIT 5
     `;
 
-    // Extract hook text from each video's description (first sentence/line)
-    const videosWithHooks = videos.map((v) => ({
-      ...v,
-      hook: this.extractHookFromDescription(v.description as string),
-      id: v.id as string,
-      platforms: (v.platforms as string[]) || [],
-      title: (v.title as string) || 'Untitled',
-      totalEngagement: Number(v.total_engagement),
-      totalViews: Number(v.total_views),
-    }));
+    return topPlatformsRaw;
+  }
 
-    // Group by normalized hook text and compute aggregate engagement
+  /** Group videos by normalized hook text and rank by average engagement */
+  private buildHookEffectiveness(
+    videosWithHooks: ViralHookVideo[],
+  ): HookEffectiveness[] {
     const hookMap = new Map<
       string,
       { totalEngagement: number; totalViews: number; count: number }
@@ -1731,7 +1042,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       hookMap.set(normalized, existing);
     }
 
-    const hookEffectiveness = Array.from(hookMap.entries())
+    return Array.from(hookMap.entries())
       .map(([hook, stats]) => ({
         avgEngagement: Math.round(stats.totalEngagement / stats.count),
         avgViews: Math.round(stats.totalViews / stats.count),
@@ -1739,35 +1050,15 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         postCount: stats.count,
       }))
       .sort((a, b) => b.avgEngagement - a.avgEngagement);
+  }
 
-    const topHooks = hookEffectiveness.slice(0, 10).map((h) => ({
-      avgEngagement: h.avgEngagement,
-      hook: h.hook,
-      postCount: h.postCount,
+  private mapTopPlatforms(rows: RawRow[]): TopPlatformSummary[] {
+    return rows.map((p) => ({
+      platform: p.platform as string,
+      postCount: Number(p.post_count),
+      totalEngagement: Number(p.total_engagement),
+      totalViews: Number(p.total_views),
     }));
-
-    return {
-      analysis: {
-        hookEffectiveness,
-        topHooks,
-        topPlatforms: topPlatformsRaw.map((p) => ({
-          platform: p.platform as string,
-          postCount: Number(p.post_count),
-          totalEngagement: Number(p.total_engagement),
-          totalViews: Number(p.total_views),
-        })),
-        totalVideos: videosWithHooks.length,
-      },
-      videos: videosWithHooks.map((v) => ({
-        description: (v.description as string) || '',
-        hook: v.hook || '',
-        id: v.id,
-        platforms: v.platforms,
-        title: v.title,
-        totalEngagement: v.totalEngagement,
-        totalViews: v.totalViews,
-      })),
-    };
   }
 
   /**

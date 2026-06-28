@@ -10,6 +10,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
+import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
 import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import {
   AdminBrandsQueryDto,
@@ -21,6 +22,7 @@ import {
   TopContentQueryDto,
   ViralHooksQueryDto,
 } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
+import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -53,6 +55,8 @@ describe('AnalyticsController', () => {
 
   let controller: AnalyticsController;
   let analyticsService: vi.Mocked<AnalyticsService>;
+  let analyticsExportService: vi.Mocked<AnalyticsExportService>;
+  let entityLeaderboardService: vi.Mocked<EntityLeaderboardService>;
   let businessAnalyticsService: vi.Mocked<BusinessAnalyticsService>;
   let brandsService: vi.Mocked<BrandsService>;
   let ingredientsService: vi.Mocked<IngredientsService>;
@@ -88,19 +92,23 @@ describe('AnalyticsController', () => {
     } as unknown as vi.Mocked<LoggerService>;
 
     analyticsService = {
-      exportData: vi.fn(),
-      getBrandsLeaderboard: vi.fn(),
-      getBrandsWithStats: vi.fn(),
       getEngagementBreakdown: vi.fn(),
       getGrowthTrends: vi.fn(),
-      getOrganizationsLeaderboard: vi.fn(),
-      getOrganizationsWithStats: vi.fn(),
       getOverview: vi.fn(),
       getPlatformComparison: vi.fn(),
       getTimeSeriesData: vi.fn(),
       getTopContent: vi.fn(),
       getViralHooks: vi.fn(),
     } as unknown as vi.Mocked<AnalyticsService>;
+    analyticsExportService = {
+      exportData: vi.fn(),
+    } as unknown as vi.Mocked<AnalyticsExportService>;
+    entityLeaderboardService = {
+      getBrandsLeaderboard: vi.fn(),
+      getBrandsWithStats: vi.fn(),
+      getOrganizationsLeaderboard: vi.fn(),
+      getOrganizationsWithStats: vi.fn(),
+    } as unknown as vi.Mocked<EntityLeaderboardService>;
     businessAnalyticsService = {
       getBusinessAnalytics: vi.fn(),
     } as unknown as vi.Mocked<BusinessAnalyticsService>;
@@ -192,6 +200,14 @@ describe('AnalyticsController', () => {
         },
         { provide: AnalyticsService, useValue: analyticsService },
         {
+          provide: AnalyticsExportService,
+          useValue: analyticsExportService,
+        },
+        {
+          provide: EntityLeaderboardService,
+          useValue: entityLeaderboardService,
+        },
+        {
           provide: BusinessAnalyticsService,
           useValue: businessAnalyticsService,
         },
@@ -251,7 +267,7 @@ describe('AnalyticsController', () => {
 
   describe('exportData', () => {
     it('should export CSV data', async () => {
-      analyticsService.exportData.mockResolvedValueOnce('csv-data');
+      analyticsExportService.exportData.mockResolvedValueOnce('csv-data');
 
       const mockUser = {
         publicMetadata: { isSuperAdmin: true, organization: 'org-1' },
@@ -264,7 +280,7 @@ describe('AnalyticsController', () => {
         mockResponse,
       );
 
-      expect(analyticsService.exportData).toHaveBeenCalledWith(
+      expect(analyticsExportService.exportData).toHaveBeenCalledWith(
         'csv',
         ['videoLabel', 'views'],
         undefined,
@@ -277,7 +293,9 @@ describe('AnalyticsController', () => {
     });
 
     it('should export XLSX data', async () => {
-      analyticsService.exportData.mockResolvedValueOnce('xlsx-data');
+      analyticsExportService.exportData.mockResolvedValueOnce(
+        Buffer.from('xlsx-data'),
+      );
 
       const mockUser = {
         publicMetadata: { isSuperAdmin: true, organization: 'org-1' },
@@ -290,7 +308,7 @@ describe('AnalyticsController', () => {
         mockResponse,
       );
 
-      expect(analyticsService.exportData).toHaveBeenCalledWith(
+      expect(analyticsExportService.exportData).toHaveBeenCalledWith(
         'xlsx',
         ['videoLabel', 'views', 'comments', 'likes', 'platform'],
         undefined,
@@ -299,7 +317,7 @@ describe('AnalyticsController', () => {
         'Content-Type',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       );
-      expect(mockResponse.send).toHaveBeenCalledWith('xlsx-data');
+      expect(mockResponse.send).toHaveBeenCalledWith(Buffer.from('xlsx-data'));
     });
   });
 
@@ -334,7 +352,9 @@ describe('AnalyticsController', () => {
 
   describe('leaderboards', () => {
     it('should return organization leaderboard', async () => {
-      analyticsService.getOrganizationsLeaderboard.mockResolvedValueOnce([]);
+      entityLeaderboardService.getOrganizationsLeaderboard.mockResolvedValueOnce(
+        [],
+      );
 
       const query = {
         endDate: '2025-01-31',
@@ -348,17 +368,14 @@ describe('AnalyticsController', () => {
         query,
       );
 
-      expect(analyticsService.getOrganizationsLeaderboard).toHaveBeenCalledWith(
-        '2025-01-01',
-        '2025-01-31',
-        'engagement',
-        10,
-      );
+      expect(
+        entityLeaderboardService.getOrganizationsLeaderboard,
+      ).toHaveBeenCalledWith('2025-01-01', '2025-01-31', 'engagement', 10);
       expect(result).toBeDefined();
     });
 
     it('should return organization stats', async () => {
-      analyticsService.getOrganizationsWithStats.mockResolvedValueOnce({
+      entityLeaderboardService.getOrganizationsWithStats.mockResolvedValueOnce({
         data: [],
         pagination: { limit: 20, page: 1, total: 0, totalPages: 0 },
       } as never);
@@ -376,18 +393,14 @@ describe('AnalyticsController', () => {
         query,
       );
 
-      expect(analyticsService.getOrganizationsWithStats).toHaveBeenCalledWith(
-        '2025-01-01',
-        '2025-01-31',
-        1,
-        20,
-        'engagement',
-      );
+      expect(
+        entityLeaderboardService.getOrganizationsWithStats,
+      ).toHaveBeenCalledWith('2025-01-01', '2025-01-31', 1, 20, 'engagement');
       expect(result).toBeDefined();
     });
 
     it('should return brand leaderboard', async () => {
-      analyticsService.getBrandsLeaderboard.mockResolvedValueOnce([]);
+      entityLeaderboardService.getBrandsLeaderboard.mockResolvedValueOnce([]);
 
       const query = {
         endDate: '2025-01-31',
@@ -402,7 +415,9 @@ describe('AnalyticsController', () => {
         query,
       );
 
-      expect(analyticsService.getBrandsLeaderboard).toHaveBeenCalledWith(
+      expect(
+        entityLeaderboardService.getBrandsLeaderboard,
+      ).toHaveBeenCalledWith(
         '2025-01-01',
         '2025-01-31',
         'engagement',
@@ -413,7 +428,7 @@ describe('AnalyticsController', () => {
     });
 
     it('should return brand stats', async () => {
-      analyticsService.getBrandsWithStats.mockResolvedValueOnce({
+      entityLeaderboardService.getBrandsWithStats.mockResolvedValueOnce({
         data: [],
         pagination: { limit: 15, page: 2, total: 0, totalPages: 0 },
       } as never);
@@ -432,7 +447,7 @@ describe('AnalyticsController', () => {
         query,
       );
 
-      expect(analyticsService.getBrandsWithStats).toHaveBeenCalledWith(
+      expect(entityLeaderboardService.getBrandsWithStats).toHaveBeenCalledWith(
         '2025-01-01',
         '2025-01-31',
         2,
